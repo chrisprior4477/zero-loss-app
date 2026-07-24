@@ -24,6 +24,8 @@ This file explains how the system must be built so the product vision can be del
 
 Project Zero-Loss is a web-only marketplace built on a modern server-first architecture that prioritizes security, auditability, replayability, and future operational control.
 
+**UI/UX Direction Guardrail:** The customer-facing experience is an energetic, gamified marketplace. Server-side ledger integrity and database security are mandatory, but they must serve a UI that emphasizes high-visibility progress bars, interactive ticket counters, instant visual feedback, and gamified shopping mechanics derived from StockX, Temu, and DraftKings.
+
 The system must not be built like a loose startup prototype where core financial truth lives in mutable counters, client payloads are trusted, and admin operations are improvised after launch.
 
 The architecture must support:
