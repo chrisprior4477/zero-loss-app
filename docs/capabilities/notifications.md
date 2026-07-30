@@ -1,773 +1,863 @@
 # Project Zero-Loss Notifications Capability Specification
+## Trusted Customer Communications & Event Delivery
 
-**Version:** 1.0
-**Status:** Draft for Founder Review
-**Document Owner:** Founder / Customer Communications
-**Last Updated:** 2026-07-16
-**Target Path:** `docs/capabilities/notifications.md`
-
-**Related Documents:**
-
-* `docs/project-index.md`
-* `docs/architecture/master-architecture.md`
-* `docs/architecture/ai-operating-rules.md`
-* `docs/architecture/output-contract.md`
-* `docs/core/product-vision.md`
-* `docs/core/product-concept.md`
-* `docs/capabilities/README.md`
-* `docs/capabilities/favorites.md`
-* `docs/capabilities/wishlist.md`
-* `docs/capabilities/search.md`
-* `docs/capabilities/recommendations.md`
-* `docs/capabilities/user-preferences.md`
-* `docs/capabilities/activity-history.md`
-* `docs/capabilities/catalog.md`
-* `docs/capabilities/identity-and-profile.md`
-* `docs/capabilities/rewards-and-referrals.md`
-* `docs/capabilities/communications.md`
-* `docs/product/homepage-spec.md`
-* `docs/product/item-page-spec.md`
-* `docs/product/account-wallet-spec.md`
-* `docs/product/payments-and-payouts-spec.md`
-* `docs/product/support-status-spec.md`
-* `docs/product/design-system-spec.md`
-* `docs/operations/admin-portal-spec.md`
-* `docs/operations/analytics-spec.md`
-* `docs/operations/fraud-and-risk-spec.md`
-* `docs/operations/content-management-spec.md`
-* `docs/decisions/ADR-004-notification-strategy.md`
+**Version:** 1.1  
+**Status:** Authoritative  
+**Document Type:** Capability Specification
 
 ---
 
-# 1. Purpose
+# Purpose
 
-The Notifications capability provides reliable, respectful, traceable communication between Project Zero-Loss and its users.
+The Notifications capability provides reliable, timely, and respectful communication between Project Zero-Loss and its customers. It ensures customers understand important account activity, financial events, marketplace updates, and user-requested alerts without overwhelming them.
 
-Notifications must help users:
+Notifications exist to communicate information—not to create financial truth.
 
-* understand account and security activity,
-* confirm financial and marketplace actions,
-* monitor products and pools they intentionally follow,
-* receive winner, rebate, purchase, payout, and support updates,
-* discover relevant products without being overwhelmed,
-* and control how and when optional messages are delivered.
+The authoritative source of every notification remains the underlying system of record, including:
 
-Notifications are part of the customer experience, but they are also part of the platform’s operational infrastructure.
+- Ledger
+- Wallet
+- Payment records
+- Pool records
+- Entry records
+- Prize records
+- Claims
+- Support tickets
+- Identity verification
+- Customer preferences
 
-A notification must never become the authoritative source of:
+A notification simply communicates that an authoritative event has occurred.
 
-* wallet balance,
-* entry ownership,
-* pool status,
-* payment status,
-* rebate value,
-* prize ownership,
-* payout status,
-* or any other financial or legal fact.
+Notifications must never:
 
-The authoritative system record must always remain in the appropriate database, ledger, payment, pool, claim, or support table.
+- create financial state,
+- modify wallet balances,
+- alter pool status,
+- confirm unverified events,
+- or replace the underlying business record.
+
+---
+
+# 1. Capability Objectives
+
+The Notifications capability should help customers:
+
+- stay informed,
+- stay secure,
+- monitor products they care about,
+- understand financial activity,
+- follow marketplace events,
+- receive meaningful reminders,
+- and remain in complete control of communication preferences.
+
+Every notification should provide value.
 
 ---
 
 # 2. Product Philosophy
 
-Zero-Loss notifications should build trust rather than pressure.
+Notifications should strengthen customer trust.
 
-The system should communicate:
+Every message should answer four questions:
 
-* what happened,
-* why it happened,
-* what the user needs to know,
-* whether action is required,
-* and where the user can verify the information.
+1. What happened?
+2. Why did it happen?
+3. Does the customer need to do anything?
+4. Where can they verify the information?
 
-Notifications should be:
+The system should always favor one useful notification over multiple unnecessary interruptions.
 
-* factual,
-* timely,
-* understandable,
-* relevant,
-* accessible,
-* secure,
-* and easy to control.
+Communication should remain:
 
-Notifications must not use:
+- factual,
+- respectful,
+- transparent,
+- timely,
+- and understandable.
 
-* fake urgency,
-* fake winners,
-* fake activity,
-* misleading countdowns,
-* exaggerated scarcity,
-* disguised marketing,
-* guilt,
-* fear,
-* repeated loss-based prompts,
-* or manipulative language.
+The platform must never rely on manipulative communication.
 
-The system should prefer one useful message over several low-value messages.
+Prohibited behaviors include:
 
-The user should never feel that following one item gave the platform permission to contact them about everything.
+- fake urgency,
+- fake scarcity,
+- fake winners,
+- fake activity,
+- exaggerated countdowns,
+- misleading marketing,
+- guilt-based messaging,
+- fear-based messaging,
+- or repeated prompts tied to previous losses.
 
 ---
 
 # 3. Guiding Principles
 
-All notification design and implementation must follow these principles.
+Every notification within Project Zero-Loss should follow these principles.
 
-## 3.1 User Control
+---
 
-Users control optional notification categories, channels, frequency, and quiet hours.
+## Customer Control
 
-## 3.2 Explicit Consent
+Customers determine:
 
-Optional marketing and user-requested alerts require appropriate consent.
+- notification categories,
+- preferred channels,
+- delivery frequency,
+- quiet hours,
+- and optional subscriptions.
 
-Silence, inactivity, or account creation must not be treated as unlimited consent.
+---
 
-## 3.3 Transactional Integrity
+## Explicit Consent
 
-Transactional messages must accurately reflect authoritative system state.
+Optional communication requires customer consent.
 
-## 3.4 Separation of Message Classes
+Creating an account does not automatically authorize unlimited marketing communication.
 
-Transactional, security, user-requested, operational, educational, founder, and promotional messages must remain distinguishable.
+---
 
-## 3.5 Traceability
+## Transactional Accuracy
 
-Every delivered notification should be traceable to:
+Transactional notifications must accurately reflect authoritative business events.
 
-* its trigger,
-* notification type,
-* template version,
-* recipient,
-* delivery channel,
-* provider,
-* delivery result,
-* and related entity.
+Notifications never predict outcomes.
 
-## 3.6 Idempotency
+They only communicate completed or verified events.
 
-The same triggering event must not create duplicate notifications or duplicate deliveries.
+---
 
-## 3.7 Privacy
+## Clear Separation
 
-Messages must contain only the information necessary for the user to understand and act.
+Different communication categories remain independent.
 
-## 3.8 Safe Failure
+Examples include:
 
-A failed email, push message, or SMS must not alter financial state or mark the underlying business operation as failed.
+- Security
+- Transactional
+- User Requested
+- Operational
+- Educational
+- Founder Updates
+- Promotional
 
-## 3.9 Honest Urgency
+Customers should always understand why they received a message.
 
-Urgency may be communicated only when supported by real system state.
+---
 
-## 3.10 Accessible Communication
+## Traceability
 
-Messages and controls must work for users with disabilities and across supported devices.
+Every notification should be traceable to:
+
+- triggering event,
+- notification type,
+- template version,
+- delivery attempt,
+- delivery provider,
+- recipient,
+- and resulting status.
+
+---
+
+## Idempotency
+
+Duplicate business events must never generate duplicate notifications.
+
+Retries should safely reuse existing notification records.
+
+---
+
+## Privacy
+
+Notifications should expose only the minimum information required.
+
+Sensitive customer information should never appear unnecessarily.
+
+---
+
+## Safe Failure
+
+If email delivery fails, the financial transaction must still complete correctly.
+
+Notification failures never invalidate successful business operations.
+
+---
+
+## Honest Urgency
+
+Urgency may be communicated only when supported by genuine marketplace conditions.
+
+Artificial urgency is prohibited.
+
+---
+
+## Accessibility
+
+Notifications should be understandable across:
+
+- desktop,
+- mobile,
+- assistive technologies,
+- and alternative input methods.
 
 ---
 
 # 4. Definitions
 
-## 4.1 Notification
+---
 
-A user-facing message created in response to an event, condition, schedule, or approved campaign.
+## Notification
 
-## 4.2 In-App Notification
+A customer-facing communication generated from an approved event.
 
-A notification displayed inside the authenticated Zero-Loss experience.
+---
 
-## 4.3 Delivery
+## Notification Type
 
-An attempt to send a notification through a channel such as email, web push, or SMS.
+A specific event.
 
-## 4.4 Notification Type
+Examples include:
 
-A specific event or purpose.
+- Entry Confirmed
+- Pool Closed
+- Winner Selected
+- Wishlist Available
+- Password Changed
 
-Examples:
+---
 
-* `entry_confirmed`
-* `pool_result_published`
-* `winner_claim_required`
-* `wishlist_item_available`
+## Notification Class
 
-## 4.5 Notification Class
+A high-level communication category.
 
-The high-level purpose and consent category.
+Examples include:
 
-Examples:
+- Security
+- Transactional
+- User Requested
+- Operational
+- Educational
+- Founder Updates
+- Promotional
 
-* Security.
-* Transactional.
-* User-requested alert.
-* Operational.
-* Educational.
-* Founder communication.
-* Promotional.
+---
 
-## 4.6 Channel
+## Channel
 
-The method used to deliver a notification.
+The delivery method.
 
-Examples:
+Version 1 supports:
 
-* In-app.
-* Email.
-* Web push.
-* SMS.
+- In-App
+- Email
 
-## 4.7 Trigger
+Future versions may include:
 
-The authoritative event or condition that causes a notification to be created.
+- Web Push
+- SMS
 
-## 4.8 Template
+---
 
-The approved structure and wording used to render a notification.
+## Trigger
 
-## 4.9 Digest
+The authoritative business event responsible for creating a notification.
 
-A grouped notification containing multiple relevant events delivered on a schedule.
+Examples include:
 
-## 4.10 Quiet Hours
+- Payment completed
+- Entry confirmed
+- Pool finalized
+- Watch threshold reached
+- Support case updated
 
-A user-defined period during which nonurgent optional notifications should not be delivered.
+---
 
-## 4.11 Suppression
+## Template
 
-A rule preventing delivery to an address, phone number, account, channel, or notification type.
+An approved communication layout used to render notifications.
 
-## 4.12 Deduplication Key
+Templates remain version-controlled.
 
-A unique identifier used to prevent repeated creation or delivery of the same logical message.
+---
+
+## Digest
+
+A grouped notification summarizing multiple related events.
+
+Examples include:
+
+- Daily Digest
+- Weekly Digest
+
+---
+
+## Quiet Hours
+
+Customer-defined periods during which optional notifications should be delayed.
+
+Critical security communication may bypass Quiet Hours when appropriate.
+
+---
+
+## Suppression
+
+A rule preventing delivery through one or more channels.
+
+Examples include:
+
+- Unsubscribe
+- Invalid email
+- Complaint
+- Permanent bounce
+
+---
+
+## Deduplication Key
+
+A unique identifier preventing duplicate notification creation or duplicate delivery.
 
 ---
 
 # 5. Notification Classes
 
-# 5.1 Security Notifications
-
-Security notifications protect the user’s account.
-
-Examples:
-
-* New account verification.
-* Password reset.
-* Password changed.
-* Email address changed.
-* Phone number changed.
-* New device or unusual login.
-* Multifactor authentication changed.
-* Account locked.
-* Suspicious activity detected.
-* Security recovery completed.
-* Account deletion initiated.
-* Account deletion completed.
-
-Security notifications should generally be delivered promptly and should not be disabled when required to protect the account.
-
-They must never include:
-
-* passwords,
-* full authentication secrets,
-* session tokens,
-* full payment credentials,
-* or unrestricted account-access links.
+Notifications are grouped according to customer purpose.
 
 ---
 
-# 5.2 Transactional Notifications
+## Security Notifications
 
-Transactional notifications confirm or explain a user-requested or system-required event.
+Protect customer accounts.
 
-Examples:
+Examples include:
 
-* Wallet funding initiated.
-* Wallet funding completed.
-* Wallet funding failed.
-* Entry purchase confirmed.
-* Entry purchase failed.
-* Entry corrected or reversed.
-* Pool closed.
-* Pool result published.
-* Winner selected.
-* Winner claim required.
-* Winner claim received.
-* Winner claim approved.
-* Prize delivery initiated.
-* Prize delivery completed.
-* Gift-card delivery available.
-* Rebate or store credit issued.
-* Rebate or credit expiration warning.
-* Purchase confirmed.
-* Refund initiated.
-* Refund completed.
-* Payout initiated.
-* Payout completed.
-* Support ticket created.
-* Support ticket updated.
-* Identity verification status changed.
-* Account restriction applied.
-* Official rule or terms update requiring notice.
+- Account Verification
+- Password Reset
+- Password Changed
+- Email Changed
+- New Device Login
+- Suspicious Login
+- MFA Updated
+- Account Locked
+- Account Recovery
+- Account Deletion
 
-Transactional messages must not contain unrelated marketing content.
+Security notifications generally cannot be disabled where required for customer protection.
 
 ---
 
-# 5.3 User-Requested Alerts
+## Transactional Notifications
 
-These alerts are created because the user explicitly follows, favorites, watches, saves, or requests something.
+Communicate completed business events.
 
-Examples:
+Examples include:
 
-* Favorited item has a new pool.
-* Wishlist item becomes available.
-* Coming-soon item goes live.
-* Pool reaches a selected capacity threshold.
-* Pool reaches a selected entries-remaining threshold.
-* Followed brand has a new product.
-* Followed retailer has a new pool.
-* Followed category has new inventory.
-* Saved search has new matches.
-* Requested item was added.
-* Similar item becomes available.
-* Item returns after being unavailable.
+- Wallet Funding
+- Entry Confirmation
+- Pool Closed
+- Winner Selected
+- Claim Required
+- Prize Delivery
+- Purchase Confirmation
+- Refund
+- Rebate
+- Store Credit
+- Payout
+- Support Updates
 
-These messages must follow the user’s channel and frequency preferences.
-
----
-
-# 5.4 Operational Notifications
-
-Operational messages communicate service conditions that materially affect the user.
-
-Examples:
-
-* Scheduled maintenance.
-* Unexpected outage.
-* Payment processing delay.
-* Prize-delivery delay.
-* Support response delay.
-* Temporary suspension of a capability.
-* Data correction affecting the user.
-* Service restored.
-* Incident resolved.
-
-Operational notifications should be sent only to affected users where practical.
+Transactional messages should never contain unrelated promotional content.
 
 ---
 
-# 5.5 Educational Notifications
+## User-Requested Alerts
 
-Educational messages explain how Zero-Loss works.
+Generated because the customer explicitly requested them.
 
-Examples:
+Examples include:
 
-* How entries work.
-* How the Zero-Loss safety net works.
-* How to read pool progress.
-* How rebates are used.
-* How winners are selected.
-* How to protect an account.
-* How notification controls work.
-* How to contact support.
-* How AMOE participation works where applicable.
+- Favorite receives new pool
+- Wishlist item available
+- Watch threshold reached
+- Category update
+- Brand update
+- Retailer update
+- Saved Search match
+- Similar product available
 
-Educational communication must be accurate, current, and consistent with official rules and legal review.
-
----
-
-# 5.6 Founder Communications
-
-Founder communications may include:
-
-* Founder journey updates.
-* Product-development updates.
-* New feature announcements.
-* Transparency reports.
-* Milestone announcements.
-* Behind-the-scenes content.
-* Community messages.
-* Explanations of major changes.
-
-Founder communications are optional unless they contain required operational or legal information.
-
-Users must be able to subscribe or unsubscribe separately from ordinary marketing where appropriate.
+These alerts always respect customer preferences.
 
 ---
 
-# 5.7 Promotional Notifications
+## Operational Notifications
 
-Promotional messages may include:
+Communicate important service events.
 
-* Featured collections.
-* New-product announcements.
-* Seasonal promotions.
-* Referral campaigns.
-* Partner campaigns.
-* Weekly discovery digest.
-* Category roundups.
-* Limited-time legitimate offers.
-* Re-engagement campaigns.
+Examples include:
 
-Promotional messages require appropriate consent and must have clear unsubscribe or preference controls.
+- Scheduled Maintenance
+- Service Outage
+- Payment Delay
+- Platform Incident
+- Service Restored
 
-Promotional communication must never imitate a security or transactional message.
+Operational messages should target affected customers whenever practical.
 
 ---
 
-# 6. Supported Channels
+## Educational Notifications
 
-# 6.1 In-App Notifications
+Help customers better understand Project Zero-Loss.
 
-In-app notifications are required for Version 1.
+Examples include:
 
-They should support:
+- How Entries Work
+- Safety Net Explanation
+- Prize Claim Process
+- Account Security Tips
+- Notification Controls
 
-* notification inbox,
-* unread count,
-* read and unread state,
-* action links,
-* category labels,
-* timestamps,
-* related item or transaction context,
-* preference links,
-* and historical visibility.
-
-In-app notifications provide a durable user-facing record but are not a substitute for the authoritative source record.
+Educational communication should remain accurate, helpful, and optional.
 
 ---
 
-# 6.2 Email
+## Founder Updates
+
+Founder communication may include:
+
+- Development Progress
+- Feature Releases
+- Transparency Reports
+- Community Updates
+- Product Milestones
+
+Customers should independently control Founder communication preferences.
+
+---
+
+## Promotional Notifications
+
+Examples include:
+
+- New Collections
+- Seasonal Campaigns
+- Referral Programs
+- Product Highlights
+- Discovery Digests
+
+Promotional communication always requires appropriate consent.
+
+# 6. Supported Delivery Channels
+
+Version 1 focuses on dependable, customer-friendly communication channels while leaving room for future expansion.
+
+Every notification channel should provide consistent messaging while respecting customer preferences.
+
+The underlying business event remains identical regardless of the delivery channel.
+
+---
+
+## In-App Notifications
+
+The in-app notification center is required for Version 1.
+
+It serves as the customer's permanent communication history within Project Zero-Loss.
+
+Each notification should include, where appropriate:
+
+- Notification icon
+- Title
+- Plain-language summary
+- Timestamp
+- Read/Unread status
+- Notification category
+- Related product, pool, order, or account
+- Primary action button
+- Secondary action (Manage Preferences)
+- Expiration information when applicable
+
+The in-app inbox provides visibility only.
+
+It never replaces the authoritative business record.
+
+---
+
+## Email Notifications
 
 Email is required for Version 1.
 
 Email should be used for:
 
-* security messages,
-* important transactional confirmations,
-* winner and claim notices,
-* rebate and payout notices,
-* support updates,
-* user-requested alerts,
-* digests,
-* and approved promotional communication.
+- Security notifications
+- Transaction confirmations
+- Entry confirmations
+- Winner notifications
+- Claim reminders
+- Prize delivery
+- Wallet activity
+- Refunds
+- Rebates
+- Support updates
+- User-requested alerts
+- Daily digests
+- Weekly digests
+- Founder communications
+- Approved promotional communication
 
-Email templates must be responsive, accessible, and readable without images.
+Email templates must:
 
----
-
-# 6.3 Web Push
-
-Web push is a future or late-Version-1 enhancement.
-
-Web push may be useful for:
-
-* user-requested item alerts,
-* pool threshold alerts,
-* claim reminders,
-* important account updates,
-* and service restoration.
-
-Web push requires explicit browser permission and must not be requested immediately on first page load.
-
-Permission should be requested only after the user understands the value.
+- remain responsive,
+- support dark mode,
+- include accessible formatting,
+- render correctly without images,
+- include plain-text versions,
+- and follow the Design System.
 
 ---
 
-# 6.4 SMS
+## Web Push Notifications
 
-SMS is not required for initial Version 1.
+Web Push is planned for a later Version 1 enhancement.
 
-SMS may later support:
+Appropriate uses include:
 
-* critical security notices,
-* winner claim reminders,
-* high-priority user-requested alerts,
-* payout notices,
-* or time-sensitive account recovery.
+- Watch alerts
+- Wishlist availability
+- Pool threshold alerts
+- Claim reminders
+- Security alerts
+- Service restoration
 
-SMS requires:
+Permission requests should never appear immediately upon first visiting the platform.
 
-* explicit consent,
-* clear opt-out,
-* cost controls,
-* provider controls,
-* jurisdiction-specific compliance,
-* quiet-hour handling,
-* and legal review.
-
-SMS must not be treated as the default channel.
+Customers should first understand the value of enabling notifications.
 
 ---
 
-# 6.5 Native Mobile Notifications
+## SMS Notifications
 
-Native-app notifications are out of scope while Zero-Loss remains a web application.
+SMS is intentionally excluded from initial Version 1.
 
-The architecture should not assume an Apple App Store or Google Play application exists.
+Future support may include:
+
+- Critical security alerts
+- Winner reminders
+- Claim reminders
+- High-priority account recovery
+- Time-sensitive payout notices
+
+SMS implementation requires:
+
+- explicit consent,
+- legal compliance,
+- provider redundancy,
+- quiet-hour support,
+- cost monitoring,
+- and opt-out controls.
+
+SMS should never become the default communication channel.
+
+---
+
+## Future Channels
+
+Future communication methods may include:
+
+- Native mobile push
+- Browser notifications
+- Messaging integrations
+- Voice assistants
+- Wearable devices
+
+Every new channel must continue following the same business rules established by this specification.
 
 ---
 
 # 7. Version 1 Scope
 
-# 7.1 Required for Version 1
-
-* In-app notification inbox.
-* Transactional email.
-* Security email.
-* User-requested email alerts.
-* Immediate notification option.
-* Daily digest option.
-* Off option for optional messages.
-* Read and unread state.
-* Notification preferences page.
-* Category-level preferences.
-* Channel-level preferences.
-* Favorite-derived alerts.
-* Wishlist and Watchlist alerts.
-* Coming-soon alerts.
-* New-pool alerts.
-* Real pool-threshold alerts.
-* Support updates.
-* Winner and claim notices.
-* Wallet, entry, rebate, refund, and payout notices.
-* Template versioning.
-* Delivery logging.
-* Idempotent creation and delivery.
-* Deduplication.
-* Retry processing.
-* Failed-delivery visibility.
-* Unsubscribe handling.
-* Quiet-hour support for optional messages.
-* User timezone.
-* Separate preview and production behavior.
-* Admin delivery-health controls.
-* Consent history.
-* Rate limiting.
-* Security and privacy protections.
-* Analytics.
-* Automated tests.
-* Founder verification checklist.
-
-# 7.2 Recommended for Version 1
-
-* Weekly digest.
-* Founder update preference.
-* Category and brand digest grouping.
-* Unread-count badge.
-* Mark all as read.
-* Archive or hide user-facing inbox messages.
-* Delivery-status visibility for critical messages.
-* Template previews.
-* Test-send capability.
-* Global emergency pause.
-* Email suppression list.
-* Bounce and complaint processing.
-* Expiration reminders at controlled intervals.
-* Support for localizing date and time presentation.
-
-# 7.3 Future Enhancements
-
-* Web push.
-* SMS.
-* Multilingual templates.
-* User-selected send time.
-* Smart digest timing.
-* Advanced campaign segmentation.
-* Household notification profiles.
-* Shared-account notification rules.
-* Rich notification actions.
-* Voice assistant integration.
-* Notification preference import.
-* AI-assisted copy review, with human approval.
-* Advanced deliverability optimization.
-* Geographic campaign controls.
-* Notification A/B testing with ethical guardrails.
-* In-product preference recommendations.
-* Channel failover for critical messages.
-* Delivery-provider redundancy.
+Version 1 should prioritize reliability over feature quantity.
 
 ---
 
-# 8. Out of Scope for Version 1
+## Required Features
 
-Version 1 should not include:
+Version 1 includes:
 
-* native mobile-app notifications,
-* unlimited real-time promotional alerts,
-* unrequested SMS,
-* automatic browser push prompts on first visit,
-* fake winner notices,
-* fake purchase activity,
-* fake pool activity,
-* fake urgency,
-* mass direct messaging between users,
-* public social-notification feeds,
-* automated marketing created without approval,
-* AI-generated campaign publication without human review,
-* or notification content that changes financial state.
+- In-App Notification Center
+- Email delivery
+- Security notifications
+- Transaction notifications
+- User-requested alerts
+- Daily digests
+- Immediate notifications
+- Notification preferences
+- Read and unread states
+- Favorite alerts
+- Wishlist alerts
+- Watch alerts
+- New Pool alerts
+- Coming Soon alerts
+- Wallet notifications
+- Entry notifications
+- Winner notifications
+- Claim reminders
+- Refund notifications
+- Rebate notifications
+- Support notifications
+- Template versioning
+- Delivery logging
+- Consent history
+- Quiet Hours
+- Deduplication
+- Retry processing
+- Delivery monitoring
+- Failed delivery reporting
+- Administrative controls
+- Analytics
+- Automated testing
 
 ---
 
-# 9. User Preference Experience
+## Recommended Features
+
+Recommended additions include:
+
+- Weekly digest
+- Founder update preferences
+- Category subscriptions
+- Brand subscriptions
+- Retailer subscriptions
+- Mark All Read
+- Archive notifications
+- Delivery status visibility
+- Template previews
+- Test sends
+- Emergency notification pause
+- Bounce management
+- Complaint processing
+- Email suppression management
+- Reminder scheduling
+- Timezone localization
+
+---
+
+## Deferred Features
+
+The following remain intentionally outside Version 1:
+
+- Native mobile push
+- SMS
+- AI-generated campaigns
+- Automatic marketing creation
+- User-to-user messaging
+- Social notification feeds
+- Unlimited real-time marketing alerts
+- Browser push on first visit
+- Cross-account notification sharing
+
+These features require future roadmap approval.
+
+---
+
+# 8. Out of Scope
+
+The Notifications capability must never become responsible for business logic.
+
+Version 1 specifically excludes:
+
+- Financial calculations
+- Wallet management
+- Pool management
+- Entry ownership
+- Winner determination
+- Prize ownership
+- Payment authorization
+- Identity verification decisions
+- Fraud scoring
+- Marketing automation without approval
+
+Notifications communicate results.
+
+They never produce them.
+
+---
+
+# 9. Notification Preferences
 
 Recommended route:
 
 `/account/notifications`
 
-The preference page should be understandable to a nontechnical user.
+Customers should be able to manage all communication preferences from one location.
 
-## 9.1 Preference Groups
+The experience should remain understandable without requiring technical knowledge.
 
-Suggested groups:
+---
 
-### Account and Security
+## Preference Categories
 
-Examples:
+Suggested categories include:
 
-* Password changes.
-* New-device login.
-* Account restrictions.
-* Verification updates.
-
-These may be mandatory where required.
-
-### Entries and Pool Results
+### Account & Security
 
 Examples:
 
-* Entry confirmations.
-* Pool closed.
-* Result published.
-* Winner status.
-* Claim reminders.
+- Password changes
+- Email changes
+- Device logins
+- MFA updates
+- Account restrictions
 
-### Wallet and Payments
+Security notifications may remain mandatory.
 
-Examples:
+---
 
-* Funding completed.
-* Funding failed.
-* Rebate issued.
-* Refund completed.
-* Payout status.
-
-### Favorites, Wishlist, and Watchlist
+### Entries & Pools
 
 Examples:
 
-* New pool opened.
-* Item available.
-* Selected threshold reached.
-* Similar item available.
+- Entry confirmed
+- Entry failed
+- Pool closed
+- Pool results
+- Winner selected
+- Claim reminders
 
-### Brands, Retailers, and Categories
+---
 
-Examples:
-
-* New from followed brand.
-* New from followed retailer.
-* Category digest.
-
-### Founder and Product Updates
+### Wallet & Payments
 
 Examples:
 
-* Founder journey.
-* Feature announcements.
-* Platform milestones.
+- Wallet funded
+- Funding failed
+- Refund completed
+- Rebate issued
+- Store credit available
+- Payout status
+
+---
+
+### Favorites, Wishlist & Watchlist
+
+Examples:
+
+- New Pool
+- Item Available
+- Capacity Threshold
+- Entries Remaining
+- Similar Item
+
+---
+
+### Brands, Categories & Retailers
+
+Examples:
+
+- Followed Brand
+- Followed Category
+- Followed Retailer
+- New Inventory
+
+---
+
+### Founder Updates
+
+Examples:
+
+- Development progress
+- Product updates
+- Feature announcements
+- Community updates
+
+---
 
 ### Promotions
 
 Examples:
 
-* Weekly discovery.
-* Seasonal offers.
-* Referral campaigns.
+- Discovery emails
+- Seasonal campaigns
+- Referral opportunities
+- Product collections
+
+Customers should always understand why each category exists.
 
 ---
 
-# 9.2 Frequency Options
+## Delivery Frequency
 
-Optional notification types should support:
+Optional notification categories should support:
 
-* Immediately.
-* Daily digest.
-* Weekly digest.
-* Off.
+- Immediately
+- Daily Digest
+- Weekly Digest
+- Off
 
-Not every notification type needs every frequency.
+Not every notification supports every frequency.
 
-Example:
+For example:
 
-* Password changed: Immediate only.
-* Pool threshold alert: Immediate or Off.
-* Category updates: Immediate, Daily, Weekly, or Off.
-* Founder updates: Immediate, Weekly, or Off.
+Password Changed
 
----
+Immediate only
 
-# 9.3 Channel Options
+Pool Threshold
 
-Users may choose available channels for each supported type:
+Immediate or Off
 
-* In-app.
-* Email.
-* Web push, when implemented.
-* SMS, when implemented.
+Founder Updates
 
-Unavailable channels should not appear as active choices.
+Immediate, Weekly, or Off
 
 ---
 
-# 9.4 Quiet Hours
+## Delivery Channels
 
-Users should be able to select:
+Customers choose available channels independently.
 
-* Start time.
-* End time.
-* Timezone.
-* Apply to optional messages.
-* Allow critical security messages.
-* Allow claim-deadline messages where appropriate.
+Version 1 includes:
 
-Quiet hours must not silently suppress legally required or critical security communication.
+- In-App
+- Email
 
----
+Future releases may enable:
 
-# 9.5 Global Controls
+- Web Push
+- SMS
 
-Recommended controls:
-
-* Pause all optional notifications.
-* Turn off all promotions.
-* Turn off favorite-based alerts.
-* Turn off recommendation-based alerts.
-* Pause alerts until a selected date.
-* Restore recommended defaults.
-* Export preferences where required.
-* View consent history where appropriate.
+Unavailable channels should not appear selectable.
 
 ---
 
-# 9.6 Default Preferences
+## Quiet Hours
 
-Defaults should be conservative.
+Customers may define:
 
-Recommended general approach:
+- Start Time
+- End Time
+- Timezone
+- Apply to Optional Notifications
+- Allow Security Notifications
+- Allow Claim Reminders
 
-* Security: Enabled.
-* Essential transactional: Enabled.
-* In-app transactional: Enabled.
-* User-requested alert: Enabled only when explicitly requested.
-* Promotional email: Disabled until consent is provided.
-* Founder updates: Explicit opt-in or clearly disclosed signup selection.
-* SMS: Disabled.
-* Web push: Disabled until permission is granted.
-* Category marketing: Disabled unless selected.
+Quiet Hours never suppress mandatory security communication.
 
 ---
+
+## Global Controls
+
+Customers should have access to simple global controls.
+
+Examples include:
+
+- Pause Optional Notifications
+- Disable Promotions
+- Pause Founder Updates
+- Pause Alerts Until Date
+- Restore Recommended Defaults
+- Export Preferences
+- View Consent History
+
+Global controls should always be reversible.
 
 # 10. Notification Center
 
@@ -775,1206 +865,1976 @@ Recommended route:
 
 `/account/notifications/inbox`
 
-## 10.1 Required Features
+The Notification Center serves as the customer's permanent communication hub.
 
-* Notification list.
-* Unread count.
-* Read and unread styling.
-* Mark one as read.
-* Mark all as read.
-* Filter by class.
-* Filter by date.
-* Open related item or record.
-* View message timestamp.
-* Access preference settings.
-* Pagination or incremental loading.
-* Empty state.
-* Loading state.
-* Error state.
+It should provide a complete history of important communications while remaining separate from financial records and operational databases.
 
-## 10.2 Suggested Filters
+Notifications displayed here are informational only.
 
-* All.
-* Security.
-* Entries and Results.
-* Wallet and Payments.
-* Favorites and Watchlist.
-* Support.
-* Founder Updates.
-* Promotions.
-
-## 10.3 Notification Information
-
-Each notification should include, where relevant:
-
-* Icon.
-* Title.
-* Plain-language summary.
-* Timestamp.
-* Read status.
-* Notification class.
-* Related entity.
-* Primary action.
-* Secondary preference action.
-* Expiration or deadline, if genuine.
-* Historical delivery information for critical notices where useful.
-
-## 10.4 Retention
-
-The platform should define retention by notification type.
-
-Examples:
-
-* Security messages: longer retention.
-* Critical transaction notices: longer retention.
-* Promotional notices: shorter retention.
-* User-dismissed inbox messages: hidden from the user but retained only as required.
-
-Deleting an inbox message must not delete the underlying business record.
+The underlying business records remain authoritative.
 
 ---
 
-# 11. Required Transactional Notification Types
+## Primary Features
 
-The following notification types should be considered in Version 1.
+Version 1 should include:
 
-## 11.1 Authentication and Security
+- Notification Inbox
+- Unread counter
+- Read/Unread status
+- Mark as Read
+- Mark All as Read
+- Archive notifications
+- Filter by notification category
+- Search notifications
+- Sort by date
+- Pagination
+- Incremental loading
+- Empty state
+- Loading state
+- Error recovery
 
-* `account_verification_required`
-* `account_verified`
-* `password_reset_requested`
-* `password_changed`
-* `email_change_requested`
-* `email_changed`
-* `new_device_login`
-* `suspicious_login_detected`
-* `account_locked`
-* `account_unlocked`
-* `account_deletion_requested`
-* `account_deletion_completed`
+---
 
-## 11.2 Wallet and Payment
+## Notification Card Layout
 
-* `wallet_funding_started`
-* `wallet_funding_completed`
-* `wallet_funding_failed`
-* `payment_requires_action`
-* `payment_corrected`
-* `refund_started`
-* `refund_completed`
-* `refund_failed`
-* `payout_started`
-* `payout_completed`
-* `payout_failed`
+Each notification card should include, when appropriate:
 
-## 11.3 Entry and Pool
+- Icon
+- Notification title
+- Plain-language description
+- Date and time
+- Read status
+- Notification category
+- Related product or pool
+- Related transaction
+- Primary action
+- Secondary action
+- Expiration notice (when applicable)
 
-* `entry_confirmed`
-* `entry_failed`
-* `entry_reversed`
-* `pool_closed`
-* `pool_result_pending`
-* `pool_result_published`
-* `entry_not_selected`
-* `entry_selected_as_winner`
+Example actions include:
 
-## 11.4 Rebate and Purchase
+- View Entry
+- View Pool
+- View Order
+- View Prize
+- Open Wallet
+- Manage Preferences
 
-* `rebate_issued`
-* `rebate_adjusted`
-* `rebate_expiring`
-* `purchase_started`
-* `purchase_completed`
-* `purchase_failed`
-* `order_status_changed`
+Customers should always understand where a notification originated.
 
-## 11.5 Winner and Prize
+---
 
-* `winner_notification`
-* `claim_required`
-* `claim_reminder`
-* `claim_received`
-* `claim_approved`
-* `claim_rejected`
-* `prize_delivery_started`
-* `prize_delivery_available`
-* `prize_delivery_completed`
-* `prize_delivery_problem`
+## Filtering
 
-## 11.6 Support and Operations
+Recommended filters include:
 
-* `support_case_created`
-* `support_case_updated`
-* `support_case_resolved`
-* `maintenance_scheduled`
-* `service_incident_started`
-* `service_incident_updated`
-* `service_restored`
+- All
+- Security
+- Wallet
+- Entries
+- Pools
+- Favorites
+- Wishlist
+- Watchlist
+- Purchases
+- Rewards
+- Support
+- Founder Updates
+- Promotions
 
-The final active list must be reconciled with financial, pool, support, and operational specifications.
+Filtering should never modify notification history.
+
+---
+
+## Notification Retention
+
+Different notification categories may have different retention periods.
+
+Examples:
+
+Security
+
+Long retention
+
+Financial Transactions
+
+Long retention
+
+Support
+
+Medium retention
+
+Promotions
+
+Short retention
+
+Archived notifications remain informational.
+
+Deleting a notification must never delete the underlying business record.
+
+---
+
+# 11. Transactional Notification Types
+
+Transactional notifications communicate completed or verified business events.
+
+They never predict future outcomes.
+
+---
+
+## Account & Security
+
+Examples include:
+
+- Account Verification
+- Password Reset Requested
+- Password Changed
+- Email Updated
+- Phone Updated
+- New Device Login
+- Suspicious Login
+- MFA Updated
+- Account Locked
+- Account Unlocked
+- Account Deleted
+
+Security notifications should be delivered immediately whenever appropriate.
+
+---
+
+## Wallet & Payments
+
+Examples include:
+
+- Wallet Funding Started
+- Wallet Funding Completed
+- Wallet Funding Failed
+- Payment Requires Action
+- Refund Initiated
+- Refund Completed
+- Refund Failed
+- Store Credit Issued
+- Rebate Issued
+- Rebate Expiring
+- Payout Started
+- Payout Completed
+- Payout Failed
+
+Financial notifications should always reflect ledger-authoritative events.
+
+---
+
+## Entries & Pools
+
+Examples include:
+
+- Entry Confirmed
+- Entry Failed
+- Entry Reversed
+- Pool Closed
+- Pool Results Published
+- Winner Selected
+- Winner Not Selected
+- Claim Required
+- Claim Approved
+- Claim Rejected
+
+Notifications never determine winners.
+
+They communicate finalized results.
+
+---
+
+## Orders & Purchases
+
+Examples include:
+
+- Purchase Started
+- Purchase Completed
+- Purchase Failed
+- Shipping Started
+- Delivery Completed
+- Delivery Problem
+- Return Initiated
+- Return Completed
+
+---
+
+## Support
+
+Examples include:
+
+- Support Case Created
+- Support Case Updated
+- Support Case Resolved
+- Additional Information Requested
 
 ---
 
 # 12. User-Requested Alert Types
 
-Version 1 should support:
+These notifications exist because the customer explicitly requested them.
 
-* `favorite_new_pool`
-* `wishlist_item_available`
-* `watch_new_pool`
-* `watch_coming_soon_live`
-* `watch_capacity_threshold`
-* `watch_entries_remaining`
-* `followed_brand_new_item`
-* `followed_retailer_new_item`
-* `followed_category_new_item`
-* `saved_search_new_match`
-* `requested_item_added`
-* `similar_item_available`
-
-Each alert must be connected to a clear user action or preference.
+The platform should never create them automatically.
 
 ---
 
-# 13. Digest Requirements
+## Favorites
 
-## 13.1 Daily Digest
+Examples:
 
-A daily digest may combine:
+- Favorite Item New Pool
+- Favorite Restocked
+- Favorite Price Changed
+- Favorite Featured
 
-* new items from followed categories,
-* new pools from favorites,
-* wishlist availability,
-* saved-search matches,
-* founder updates,
-* and approved promotional content.
+---
 
-Transactional and security messages should not be delayed merely to fit a digest.
+## Wishlist
 
-## 13.2 Weekly Digest
+Examples:
 
-A weekly digest may include:
+- Wishlist Available
+- Wishlist Back In Stock
+- Wishlist New Pool
+- Wishlist Promotion
 
-* new inventory,
-* followed-brand updates,
-* wishlist summary,
-* coming-soon items,
-* platform updates,
-* and educational content.
+---
 
-## 13.3 Digest Rules
+## Watchlist
 
-1. Do not include duplicate items.
-2. Exclude expired opportunities.
-3. Exclude items the user cannot access.
-4. Honor current preferences at send time.
-5. Limit message length.
-6. Clearly label sponsored content.
-7. Do not turn transactional messages into promotional digest content.
-8. Provide a direct preference link.
-9. Avoid repeated promotion of ignored content.
-10. Record the items included in each digest.
+Examples:
+
+- Pool 50% Full
+- Pool 75% Full
+- Pool 80% Full
+- Pool 90% Full
+- Entries Remaining
+- Pool Closing Soon
+- Pool Completed
+
+Thresholds must always represent actual marketplace data.
+
+---
+
+## Category Subscriptions
+
+Examples:
+
+- New Electronics
+- New Gaming
+- New Sneakers
+- New Luxury
+- New Collectibles
+
+---
+
+## Brand Subscriptions
+
+Examples:
+
+- Nike
+- Sony
+- Apple
+- Lego
+- Louis Vuitton
+
+Customers determine which brands they follow.
+
+---
+
+## Retailer Subscriptions
+
+Examples:
+
+- Amazon
+- Best Buy
+- Walmart
+- Costco
+
+Retailer notifications remain completely optional.
+
+---
+
+## Saved Searches
+
+Examples:
+
+- Search Match Found
+- New Inventory
+- Similar Product
+- Product Returned
+
+Saved Search alerts should only evaluate customer-created searches.
+
+---
+
+# 13. Digest Notifications
+
+Digest notifications reduce communication volume while keeping customers informed.
+
+They summarize multiple related events into one organized message.
+
+---
+
+## Daily Digest
+
+May include:
+
+- New Wishlist Items
+- Favorite Updates
+- New Pools
+- Category Updates
+- Saved Search Matches
+- Founder Updates
+- Approved Promotions
+
+Transactional and security notifications should never wait for a digest.
+
+---
+
+## Weekly Digest
+
+May include:
+
+- Marketplace Highlights
+- Recommended Products
+- New Categories
+- Community Updates
+- Product Releases
+- Educational Articles
+- Feature Announcements
+
+---
+
+## Digest Rules
+
+Every digest should:
+
+- eliminate duplicate content,
+- exclude expired opportunities,
+- respect customer preferences,
+- honor unsubscribe settings,
+- avoid unnecessary repetition,
+- include only currently available opportunities,
+- clearly distinguish promotional content,
+- provide a link to notification preferences,
+- and remain concise.
+
+Customers should feel informed—not overwhelmed.
 
 ---
 
 # 14. Business Rules
 
-1. A notification does not create financial state.
-2. A delivery failure does not reverse the underlying transaction.
-3. A delivery success does not prove the user read the message.
-4. Transactional and promotional messages must remain separate.
-5. User-requested alerts require an explicit triggering preference.
-6. Optional messages must honor channel and frequency settings.
-7. Critical security communication may override optional quiet hours.
-8. Promotional consent must be recorded.
-9. Unsubscribe requests must be honored promptly.
-10. Duplicate event processing must not duplicate notifications.
-11. Duplicate notification processing must not duplicate deliveries.
-12. Every critical notification should reference the authoritative record through a safe link.
-13. Sensitive data must not appear unnecessarily.
-14. Full gift-card numbers, redemption codes, and financial credentials must not appear in ordinary notification content.
-15. Winner messages must not expose a winner publicly without appropriate consent and legal approval.
-16. Fake winner messages are prohibited.
-17. Fake activity messages are prohibited.
-18. Pool urgency may be communicated only from genuine state.
-19. Notification templates must be versioned.
-20. Template changes must not rewrite historical messages silently.
-21. Preview and development environments must not send to production users.
-22. Provider webhooks must be authenticated.
-23. Delivery retries must be bounded.
-24. Permanent failures must enter an observable failed state.
-25. Users may not access another user's notifications.
-26. Admin access must be restricted and audited.
-27. Account suspension may limit optional messages while preserving required notices.
-28. Notification deletion must not delete the underlying business record.
-29. Time-based alerts must use the user's timezone where appropriate.
-30. Deadline messages must state the exact date, time, and timezone.
-31. Notification preference changes must apply before the next optional send.
-32. A removed Favorite should disable only Favorite-derived alerts unless another Watch remains.
-33. A removed Wishlist item should not silently delete a separately created Watch.
-34. Completed pools must stop active capacity alerts.
-35. Item-level and pool-level watches must remain distinct.
-36. Marketing content must not be inserted into password-reset or security messages.
-37. Consent must not be bundled unnecessarily.
-38. The system must support a global emergency stop for optional deliveries.
-39. Notification analytics must not become authoritative message state.
-40. Financial corrections require new authoritative events and corresponding notifications rather than rewriting history.
+Notifications follow strict operational rules.
+
+1. Notifications never create financial state.
+2. Delivery success never proves the customer viewed the message.
+3. Delivery failure never reverses successful business operations.
+4. Security notifications remain separate from promotional messaging.
+5. Customer-requested alerts require explicit customer action.
+6. Preferences determine optional communication.
+7. Promotional consent must always be recorded.
+8. Duplicate events must not create duplicate notifications.
+9. Duplicate deliveries must be prevented.
+10. Notification templates are version-controlled.
+11. Historical notifications remain unchanged after template updates.
+12. Preview environments must never contact production customers.
+13. Provider callbacks require authentication.
+14. Retry attempts must be limited.
+15. Failed deliveries require administrative visibility.
+16. Sensitive financial information must never appear unnecessarily.
+17. Winner announcements must never expose private customer information.
+18. Fake urgency is prohibited.
+19. Fake marketplace activity is prohibited.
+20. Notifications always reference authoritative business records.
+
+# 15. Data Model
+
+The Notifications capability should follow the Master Architecture and maintain a clear separation between communication records and authoritative business records.
+
+Notifications represent communication only.
+
+They never become the source of truth for financial, operational, or marketplace data.
 
 ---
 
-# 15. Suggested Data Model
+## Notification Preferences
 
-Final database implementation must be reviewed against the Master Architecture and implemented through version-controlled migrations.
+Each customer should maintain independent notification preferences.
 
-## 15.1 `notification_preferences`
+Suggested fields include:
 
-Suggested fields:
+- Preference ID
+- User ID
+- Notification Type
+- Notification Class
+- Delivery Channel
+- Delivery Frequency
+- Enabled
+- Quiet Hours Start
+- Quiet Hours End
+- Timezone
+- Consent Source
+- Consent Version
+- Consent Timestamp
+- Unsubscribe Timestamp
+- Created Date
+- Updated Date
 
-* `id`
-* `user_id`
-* `notification_type`
-* `notification_class`
-* `channel`
-* `frequency`
-* `enabled`
-* `quiet_hours_start`
-* `quiet_hours_end`
-* `timezone`
-* `consent_source`
-* `consent_version`
-* `consented_at`
-* `unsubscribed_at`
-* `created_at`
-* `updated_at`
-
-Suggested uniqueness rule:
-
-`UNIQUE (user_id, notification_type, channel)`
-
-## 15.2 `notifications`
-
-Suggested fields:
-
-* `id`
-* `user_id`
-* `notification_type`
-* `notification_class`
-* `template_id`
-* `template_version`
-* `title`
-* `body`
-* `action_url`
-* `related_entity_type`
-* `related_entity_id`
-* `source_event_type`
-* `source_event_id`
-* `deduplication_key`
-* `priority`
-* `created_at`
-* `read_at`
-* `archived_at`
-* `expires_at`
-* `metadata`
-
-Recommended uniqueness rule:
-
-`UNIQUE (deduplication_key)`
-
-where appropriate.
-
-## 15.3 `notification_deliveries`
-
-Suggested fields:
-
-* `id`
-* `notification_id`
-* `channel`
-* `provider`
-* `provider_message_id`
-* `destination_reference`
-* `status`
-* `attempt_count`
-* `scheduled_for`
-* `last_attempt_at`
-* `sent_at`
-* `delivered_at`
-* `opened_at`
-* `clicked_at`
-* `bounced_at`
-* `complained_at`
-* `failed_at`
-* `failure_code`
-* `failure_reason`
-* `deduplication_key`
-* `created_at`
-* `updated_at`
-
-## 15.4 `notification_templates`
-
-Suggested fields:
-
-* `id`
-* `notification_type`
-* `channel`
-* `version`
-* `subject_template`
-* `title_template`
-* `body_template`
-* `action_label`
-* `is_active`
-* `approved_by`
-* `approved_at`
-* `created_at`
-* `updated_at`
-
-## 15.5 `notification_consent_history`
-
-Suggested fields:
-
-* `id`
-* `user_id`
-* `channel`
-* `notification_class`
-* `action`
-* `source`
-* `consent_version`
-* `occurred_at`
-* `ip_metadata`
-* `user_agent_metadata`
-
-Sensitive network metadata should be retained only as necessary.
-
-## 15.6 `notification_suppressions`
-
-Suggested fields:
-
-* `id`
-* `user_id`
-* `channel`
-* `destination_hash`
-* `reason`
-* `source`
-* `created_at`
-* `expires_at`
-* `resolved_at`
-
-## 15.7 `notification_jobs`
-
-If a database-backed job mechanism is selected, suggested fields may include:
-
-* `id`
-* `notification_id`
-* `channel`
-* `status`
-* `attempt_count`
-* `available_at`
-* `locked_at`
-* `locked_by`
-* `last_error`
-* `created_at`
-* `updated_at`
-
-The final queue technology must be decided through architecture review rather than assumed in this document.
+Each customer should have only one active preference for each notification type and channel combination.
 
 ---
 
-# 16. Server and API Requirements
+## Notifications
 
-## 16.1 Server Authority
+Each notification record represents one customer communication.
 
-Notification creation, preference updates, and delivery scheduling must be authorized server-side.
+Suggested fields include:
 
-The server must derive the user from verified authentication.
+- Notification ID
+- User ID
+- Notification Type
+- Notification Class
+- Template ID
+- Template Version
+- Title
+- Message Body
+- Action URL
+- Related Entity Type
+- Related Entity ID
+- Trigger Event
+- Deduplication Key
+- Priority
+- Read Timestamp
+- Archived Timestamp
+- Expiration Timestamp
+- Metadata
+- Created Timestamp
 
-Client-supplied user IDs must never determine ownership.
+Historical notification records should never be silently rewritten.
 
-## 16.2 Event-Driven Creation
+---
 
-Critical notifications should be created from authoritative server events.
+## Delivery Records
 
-Examples:
+Delivery records track every delivery attempt.
 
-* payment webhook confirmed,
-* entry transaction committed,
-* pool result finalized,
-* rebate ledger event written,
-* claim status changed,
-* support case updated.
+Suggested fields include:
 
-The client should not be trusted to declare these events complete.
+- Delivery ID
+- Notification ID
+- Delivery Channel
+- Provider
+- Provider Message ID
+- Destination
+- Status
+- Attempt Count
+- Scheduled Time
+- Last Attempt
+- Sent Time
+- Delivered Time
+- Opened Time
+- Clicked Time
+- Failed Time
+- Failure Reason
 
-## 16.3 Required Operations
+Delivery history improves operational visibility but never changes notification content.
 
-The capability should support:
+---
 
-* List notifications.
-* Retrieve unread count.
-* Mark one as read.
-* Mark all as read.
-* Archive a user-facing notification.
-* Retrieve preferences.
-* Update preferences.
-* Record consent.
-* Create notification from an authorized event.
-* Schedule delivery.
-* Retry delivery.
-* Suppress destination.
-* Process provider webhook.
-* Preview template.
-* Send approved test message.
-* Pause optional delivery.
-* Resume optional delivery.
+## Templates
 
-## 16.4 Idempotency
+Notification templates should remain version-controlled.
 
-Notification creation and delivery must use stable idempotency or deduplication keys.
+Suggested fields include:
 
-Example logical key:
+- Template ID
+- Notification Type
+- Channel
+- Version
+- Subject
+- Title
+- Body
+- Action Label
+- Active Status
+- Approval Information
+- Created Date
+- Updated Date
 
-`entry-confirmed:{entry_id}:{user_id}:v1`
+Every notification stores the exact template version used.
 
-Retries must return the existing result rather than creating duplicate messages.
+---
 
-## 16.5 Rate Limits
+## Consent History
 
-Rate limits should apply to:
+Consent history provides a permanent audit trail.
 
-* preference changes,
-* test sends,
-* verification messages,
-* password-reset requests,
-* watch-trigger creation,
-* campaign sends,
-* and public-facing notification endpoints.
+Suggested fields include:
 
-Security-message rate limiting must avoid locking legitimate users out of account recovery.
+- User
+- Channel
+- Notification Class
+- Consent Action
+- Source
+- Consent Version
+- Timestamp
 
-## 16.6 Authorization
+Consent history should never be modified retroactively.
 
-Users may:
+---
 
-* read their own notifications,
-* update their own optional preferences,
-* mark their own messages read,
-* and manage their own consent.
+# 16. Server Responsibilities
 
-Users may not:
+The server remains the only authoritative component responsible for notification creation.
 
-* create arbitrary transactional messages,
-* send messages to other users,
-* change provider results,
-* or access another user’s notification history.
+The client may display notifications but never creates official transactional communication.
+
+---
+
+## Server Authority
+
+Only the server may:
+
+- create notifications,
+- update notification status,
+- evaluate notification eligibility,
+- schedule delivery,
+- record consent,
+- retry delivery,
+- authenticate provider callbacks,
+- and update delivery results.
+
+Ownership must always be derived from the authenticated session.
+
+Client-provided identifiers must never determine notification ownership.
+
+---
+
+## Event-Driven Processing
+
+Notifications should originate from authoritative events.
+
+Examples include:
+
+- Payment confirmed
+- Ledger entry created
+- Entry purchase completed
+- Pool finalized
+- Winner verified
+- Claim approved
+- Support case updated
+
+The client must never declare these events complete.
+
+---
+
+## Required Operations
+
+Version 1 should support:
+
+- List Notifications
+- Retrieve Unread Count
+- Mark Notification Read
+- Mark All Read
+- Archive Notification
+- Retrieve Preferences
+- Update Preferences
+- Record Consent
+- Create Notification
+- Schedule Delivery
+- Retry Delivery
+- Process Provider Callback
+- Preview Template
+- Test Delivery
+- Pause Optional Notifications
+- Resume Optional Notifications
+
+Every operation should be idempotent.
+
+---
+
+## Rate Limiting
+
+The server should apply appropriate rate limits to:
+
+- Password Reset Requests
+- Verification Messages
+- Test Sends
+- Preference Changes
+- Watch Alerts
+- Campaign Sends
+- Public Notification APIs
+
+Security notifications should avoid blocking legitimate customer recovery.
 
 ---
 
 # 17. Delivery Architecture
 
-## 17.1 Durable Processing
+Reliable delivery requires durable processing.
 
-Notification delivery should use a durable queue, job system, or event-processing mechanism.
+Notification delivery should never depend on an active browser session.
 
-It must not depend solely on:
+---
 
-* an open browser tab,
-* a single user request remaining active,
-* or a best-effort client callback.
+## Recommended Flow
 
-## 17.2 Delivery Flow
-
-Recommended logical flow:
-
-1. Authoritative event occurs.
-2. Event is committed successfully.
+1. Business event completes.
+2. Transaction commits successfully.
 3. Notification eligibility is evaluated.
-4. Notification record is created idempotently.
-5. User preferences are checked.
-6. Delivery job is scheduled.
-7. Provider request is sent.
-8. Provider response is recorded.
-9. Provider webhook updates final status.
-10. Failure is retried or escalated.
-11. User-facing inbox state remains available.
+4. Notification record is created.
+5. Customer preferences are evaluated.
+6. Delivery jobs are scheduled.
+7. Provider receives the request.
+8. Provider responds.
+9. Provider callback updates status.
+10. Failures retry when appropriate.
+11. Customer Inbox remains synchronized.
 
-## 17.3 Transaction Boundary
+---
 
-A business transaction should not be rolled back solely because an external email provider is unavailable.
+## Transaction Boundaries
 
-The authoritative operation and notification scheduling should be coordinated safely.
+Financial transactions must never roll back because email delivery fails.
 
-An outbox or equivalent reliable-event pattern should be evaluated during implementation.
+Notification processing should follow successful authoritative business events.
 
-## 17.4 Retry Strategy
+Reliable event processing patterns should be used to ensure consistent behavior.
 
-Retry behavior should include:
+---
 
-* bounded attempts,
-* increasing delay,
-* classification of temporary versus permanent failures,
-* no duplicate delivery,
-* and visibility after final failure.
+## Retry Strategy
 
-## 17.5 Failed-Delivery Handling
+Retry processing should include:
 
-Permanent failures should support:
+- bounded retry attempts,
+- increasing retry intervals,
+- temporary failure classification,
+- permanent failure detection,
+- duplicate prevention,
+- and administrative visibility.
 
-* suppression,
-* admin visibility,
-* user preference warning where appropriate,
-* destination correction,
-* and safe alternative-channel consideration for critical messages.
+---
 
-## 17.6 Provider Webhooks
+## Provider Callbacks
 
-Provider webhooks must:
+Provider callbacks should:
 
-* verify signatures,
-* reject replay where practical,
-* be idempotent,
-* record status changes,
-* avoid exposing secrets,
-* and produce audit records.
+- verify signatures,
+- reject replay attacks,
+- remain idempotent,
+- update delivery status,
+- avoid exposing secrets,
+- and generate audit records.
 
 ---
 
 # 18. Template Requirements
 
-## 18.1 Template Versioning
+Templates ensure consistency across every communication channel.
 
-Every notification must record the template version used.
+---
 
-Historical messages should remain understandable even after templates change.
+## Version Control
 
-## 18.2 Template Content
+Every template should include:
+
+- Version Number
+- Approval Status
+- Author
+- Review History
+- Effective Date
+
+Historical notifications should preserve the template version originally delivered.
+
+---
+
+## Required Template Content
 
 Templates should include:
 
-* clear sender identity,
-* concise subject or title,
-* plain-language explanation,
-* exact action when required,
-* safe action link,
-* support link,
-* preference or unsubscribe link where applicable,
-* and company/legal information where required.
-
-## 18.3 Dynamic Variables
-
-Dynamic variables must be:
-
-* allowlisted,
-* escaped,
-* validated,
-* and sourced from authoritative records.
-
-Arbitrary HTML or user-supplied script must never be rendered.
-
-## 18.4 Preview and Approval
-
-Templates should support:
-
-* preview with test data,
-* mobile preview,
-* plain-text preview,
-* accessibility review,
-* legal review when required,
-* approval status,
-* and test delivery.
-
-## 18.5 Branding
-
-Notifications should follow the approved design system and communication voice.
-
-Security and financial messages should favor clarity over decorative branding.
+- Clear sender identity
+- Plain-language subject
+- Simple explanation
+- Required customer action
+- Safe action link
+- Support information
+- Preference management
+- Legal information where required
 
 ---
 
-# 19. Security and Privacy
+## Dynamic Content
 
-## 19.1 Row Level Security
+Dynamic values should originate only from authoritative server records.
 
-User-facing notification, preference, and consent tables must use Row Level Security where applicable.
+Allowed variables should be:
 
-## 19.2 Sensitive Information
+- validated,
+- escaped,
+- sanitized,
+- and explicitly approved.
 
-Messages must not expose:
+Arbitrary customer-generated HTML must never render inside notification templates.
 
-* passwords,
-* session tokens,
-* service-role keys,
-* full payment credentials,
-* full gift-card redemption codes,
-* full identity documents,
-* internal fraud scores,
-* private admin notes,
-* or unrestricted account identifiers.
+---
 
-## 19.3 Secure Links
+## Preview & Testing
+
+Template management should support:
+
+- Preview Mode
+- Mobile Preview
+- Plain Text Preview
+- Accessibility Review
+- Legal Review
+- Test Send
+- Approval Workflow
+
+Only approved templates may be used in production.
+
+---
+
+# 19. Security & Privacy
+
+Notifications contain sensitive customer information and should receive the same level of protection as other account data.
+
+---
+
+## Row-Level Security
+
+Notification tables should implement Row-Level Security.
+
+Customers may only access:
+
+- their own notifications,
+- their own preferences,
+- their own consent history,
+- and their own delivery records.
+
+---
+
+## Sensitive Information
+
+Notifications must never expose:
+
+- passwords,
+- session tokens,
+- payment credentials,
+- internal fraud information,
+- administrative notes,
+- service keys,
+- identity documents,
+- or private security information.
+
+---
+
+## Secure Links
 
 Sensitive actions should use:
 
-* authenticated routes,
-* short-lived signed links where appropriate,
-* one-time tokens where appropriate,
-* and server-side validation.
+- authenticated routes,
+- temporary signed links,
+- one-time tokens,
+- and server-side validation.
 
-The notification link itself must not be treated as sufficient authorization for high-risk actions unless specifically designed and reviewed.
-
-## 19.4 Destination Privacy
-
-Email addresses and phone numbers must be protected as personal information.
-
-Logs should avoid displaying full destinations unnecessarily.
-
-## 19.5 Preference Privacy
-
-A user may access only their own notification preferences and history.
-
-## 19.6 Administrative Access
-
-Administrative access should be role-restricted, logged, and limited to legitimate operational needs.
-
-## 19.7 Data Retention
-
-Retention periods should vary by message class and legal requirement.
-
-The platform should not retain detailed delivery metadata forever without purpose.
-
-## 19.8 Account Deletion
-
-Account deletion must follow approved retention requirements.
-
-Some transactional and consent records may need to be retained or anonymized rather than destroyed immediately.
+Notification links alone should never authorize high-risk actions.
 
 ---
 
-# 20. Fraud and Abuse Considerations
+## Administrative Access
 
-Potential abuse includes:
+Administrative notification access should be:
 
-* notification bombing,
-* repeated verification requests,
-* password-reset harassment,
-* fake account creation,
-* bot-generated watch alerts,
-* referral spam,
-* malicious destination changes,
-* email enumeration,
-* SMS abuse,
-* campaign misuse,
-* provider webhook spoofing,
-* fraudulent winner messages,
-* and social-engineering attempts.
+- role-based,
+- permission-controlled,
+- logged,
+- audited,
+- and limited to operational necessity.
 
-Required controls may include:
+# 20. Fraud & Abuse Prevention
 
-* rate limits,
-* CAPTCHA or challenge where appropriate,
-* account-age checks,
-* destination-verification steps,
-* change-confirmation messages,
-* webhook signatures,
-* deduplication,
-* abuse monitoring,
-* suppression lists,
-* admin permissions,
-* and incident alerts.
+The Notifications capability is a potential target for abuse because it communicates with customers across trusted channels.
 
-The platform must never allow an administrator or compromised template to issue a false financial claim without traceability.
+Fraud prevention focuses on protecting customers, maintaining communication integrity, and preventing the notification system from becoming an attack vector.
+
+Notifications must never become a tool for:
+
+- harassment,
+- spam,
+- phishing,
+- social engineering,
+- denial-of-service,
+- misinformation,
+- account enumeration,
+- or fraudulent financial communication.
+
+---
+
+## Common Abuse Scenarios
+
+The platform should defend against situations such as:
+
+- Notification bombing
+- Repeated password reset abuse
+- Fake account verification requests
+- Automated watch-trigger spam
+- Referral spam
+- Email enumeration
+- SMS abuse (future)
+- Fake winner notifications
+- Fraudulent prize claims
+- Provider webhook spoofing
+- Compromised administrator accounts
+- Template tampering
+- Unauthorized campaign creation
+
+---
+
+## Required Protective Controls
+
+Recommended controls include:
+
+- Rate limiting
+- CAPTCHA where appropriate
+- Device fingerprint analysis
+- Account age verification
+- Destination verification
+- Email confirmation
+- Phone verification (future)
+- Provider signature validation
+- Duplicate suppression
+- Queue monitoring
+- Administrative approval workflows
+- Audit logging
+- Real-time fraud monitoring
+
+---
+
+## Fraud Detection Signals
+
+The system should monitor for patterns including:
+
+- Large spikes in notification volume
+- Unusual delivery failures
+- Repeated password reset attempts
+- Multiple notifications to newly created accounts
+- High unsubscribe rates
+- Excessive provider complaints
+- Suspicious webhook activity
+- Unexpected template modifications
+- Unauthorized administrative actions
+
+Detection should generate alerts without interrupting legitimate customer communication whenever possible.
+
+---
+
+## Administrative Safeguards
+
+Administrators must never be able to:
+
+- fabricate winner notifications,
+- alter transaction confirmations,
+- modify payment results,
+- falsify pool outcomes,
+- impersonate financial events,
+- or bypass notification consent without documented authorization.
+
+Every administrative action should produce an immutable audit record.
 
 ---
 
 # 21. Administrative Requirements
 
-The admin portal should support:
+The Admin Portal should provide complete operational visibility into the notification system while preserving customer privacy.
 
-* Delivery health dashboard.
-* Message volume by type and channel.
-* Provider-status view.
-* Failed-delivery queue.
-* Retry controls.
-* Suppression management.
-* Bounce and complaint visibility.
-* Template management.
-* Template version history.
-* Template approval.
-* Test sends.
-* Preview sends.
-* Campaign scheduling.
-* Campaign pause.
-* Global optional-message pause.
-* Per-type pause.
-* Rate-limit controls.
-* Consent audit.
-* Unsubscribe audit.
-* User-specific troubleshooting.
-* Incident communication.
-* Delivery export.
-* Fraud and abuse indicators.
-* Role-based access.
-* Administrative audit logs.
+---
 
-Admin users must not be able to:
+## Delivery Dashboard
 
-* alter financial records through notification tooling,
-* fabricate winner status,
-* change pool results,
-* or bypass user consent without documented legal or operational authority.
+Administrators should be able to monitor:
+
+- Total notifications sent
+- Delivery success rate
+- Delivery failures
+- Queue health
+- Retry queue
+- Processing latency
+- Channel health
+- Provider availability
+- Notification volume trends
+
+---
+
+## Template Management
+
+The administration interface should support:
+
+- Create templates
+- Edit templates
+- Version history
+- Preview rendering
+- Accessibility validation
+- Legal review
+- Approval workflow
+- Scheduled publishing
+- Rollback
+- Template deactivation
+
+Only approved templates may be activated for production.
+
+---
+
+## Campaign Controls
+
+Administrative controls should include:
+
+- Schedule campaign
+- Pause campaign
+- Resume campaign
+- Cancel campaign
+- Emergency stop
+- Preview audience
+- Delivery estimate
+- Test delivery
+
+Campaign controls should never affect transactional communication.
+
+---
+
+## Operational Tools
+
+Administrators should have access to:
+
+- Failed delivery queue
+- Retry controls
+- Bounce management
+- Complaint management
+- Suppression lists
+- Consent history
+- Delivery exports
+- Notification search
+- Customer troubleshooting
+- Incident communication tools
+
+---
+
+## Role-Based Access
+
+Administrative permissions should follow least-privilege principles.
+
+Example roles may include:
+
+- Customer Support
+- Operations
+- Marketing
+- Compliance
+- Fraud Team
+- Engineering
+- Platform Administrator
+
+Each role should receive only the permissions required to perform its responsibilities.
 
 ---
 
 # 22. Analytics Requirements
 
-Recommended events:
+Notification analytics help improve customer communication without becoming authoritative business records.
 
-* `notification_created`
-* `notification_scheduled`
-* `notification_sent`
-* `notification_delivered`
-* `notification_failed`
-* `notification_bounced`
-* `notification_complained`
-* `notification_opened`
-* `notification_clicked`
-* `notification_read_in_app`
-* `notification_archived`
-* `notification_preference_changed`
-* `notification_consent_granted`
-* `notification_consent_withdrawn`
-* `notification_unsubscribed`
-* `digest_generated`
-* `digest_sent`
-* `watch_alert_triggered`
-* `template_previewed`
-* `test_notification_sent`
-* `notification_suppressed`
+Analytics should measure communication effectiveness—not financial state.
 
-Useful metrics:
+---
 
-* Delivery rate.
-* Failure rate.
-* Bounce rate.
-* Complaint rate.
-* Open rate.
-* Click rate.
-* Unsubscribe rate.
-* Digest engagement.
-* Time from trigger to delivery.
-* Duplicate-prevention count.
-* Retry success rate.
-* Preference-change rate.
-* User-requested alert conversion.
-* Winner-notice acknowledgment rate.
-* Claim-reminder effectiveness.
-* Support-notification response rate.
+## Recommended Events
 
-Open and click tracking must be handled carefully because provider and privacy limitations may make those signals incomplete.
+Examples include:
 
-Analytics must not determine authoritative delivery state when the provider status says otherwise.
+- notification_created
+- notification_scheduled
+- notification_sent
+- notification_delivered
+- notification_failed
+- notification_opened
+- notification_clicked
+- notification_read
+- notification_archived
+- notification_suppressed
+- notification_preference_changed
+- notification_unsubscribed
+- notification_consent_granted
+- digest_generated
+- digest_sent
+- watch_alert_triggered
+- template_previewed
+- template_test_sent
+
+---
+
+## Key Metrics
+
+Recommended operational metrics include:
+
+- Delivery Rate
+- Failure Rate
+- Bounce Rate
+- Complaint Rate
+- Open Rate
+- Click Rate
+- Retry Success Rate
+- Average Delivery Time
+- Queue Processing Time
+- Notification Volume
+- Daily Digest Engagement
+- Weekly Digest Engagement
+- Unsubscribe Rate
+- Preference Change Rate
+- Alert Conversion Rate
+
+Analytics should always be interpreted alongside provider delivery data.
+
+---
+
+## Operational Dashboards
+
+Suggested dashboards include:
+
+### Executive Dashboard
+
+- Daily Volume
+- Delivery Success
+- Customer Engagement
+- System Health
+
+---
+
+### Operations Dashboard
+
+- Queue Status
+- Failed Deliveries
+- Retry Activity
+- Provider Health
+- Processing Latency
+
+---
+
+### Marketing Dashboard
+
+- Campaign Performance
+- Open Rates
+- Click Rates
+- Unsubscribes
+- Conversion Metrics
+
+---
+
+### Customer Support Dashboard
+
+- Customer Notification History
+- Delivery Status
+- Failed Notifications
+- Suppression Information
+- Recent Communication Timeline
 
 ---
 
 # 23. Accessibility Requirements
 
-## 23.1 Email
+Notifications should remain understandable and usable by every customer.
 
-Emails should:
+Accessibility applies equally to:
 
-* use semantic structure,
-* have descriptive links,
-* avoid image-only information,
-* include useful alternative text,
-* maintain readable contrast,
-* work at increased text size,
-* include a plain-text version,
-* and remain understandable with images blocked.
-
-## 23.2 In-App Inbox
-
-The inbox should:
-
-* support keyboard navigation,
-* expose unread state to screen readers,
-* provide visible focus,
-* avoid color-only status,
-* use understandable timestamps,
-* announce preference-save results,
-* and respect reduced motion.
-
-## 23.3 Preference Controls
-
-Controls must use:
-
-* clear labels,
-* clear descriptions,
-* accessible toggles,
-* understandable grouping,
-* and confirmation after changes.
-
-## 23.4 Time and Deadline Communication
-
-Deadlines should use exact dates and times with timezone.
-
-Relative phrases such as “soon” should not be the only deadline information.
+- In-App Notifications
+- Email
+- Preference Screens
+- Administrative Interfaces
 
 ---
 
-# 24. Mobile Requirements
+## Email Accessibility
 
-On mobile:
+Emails should:
 
-* The notification inbox must be easy to scan.
-* Unread state must be visible.
-* Actions must be tap-friendly.
-* Preference groups should use expandable sections where helpful.
-* Digest settings should remain understandable.
-* Quiet-hour controls should be easy to operate.
-* Long messages should not require horizontal scrolling.
-* Action links should return users to the correct mobile web route.
-* Permission prompts should not block first use.
-* Weak-network states should provide retry guidance.
+- use semantic HTML,
+- include meaningful headings,
+- support screen readers,
+- provide descriptive links,
+- avoid image-only information,
+- maintain sufficient color contrast,
+- support enlarged text,
+- include plain-text alternatives,
+- and remain understandable when images are disabled.
+
+---
+
+## Notification Center Accessibility
+
+The Notification Center should support:
+
+- Keyboard navigation
+- Visible focus indicators
+- Screen reader announcements
+- Accessible unread indicators
+- Logical heading hierarchy
+- Reduced motion preferences
+- Large touch targets
+- High contrast modes
+
+---
+
+## Preference Accessibility
+
+Notification preference controls should provide:
+
+- Clearly labeled switches
+- Grouped settings
+- Simple descriptions
+- Accessible validation
+- Confirmation messages
+- Consistent navigation
+
+Customers should always understand the consequences of changing a notification preference.
+
+---
+
+## Time & Deadline Presentation
+
+Time-sensitive notifications should display:
+
+- Exact date
+- Exact time
+- Applicable timezone
+
+Relative phrases such as:
+
+- "Soon"
+- "Later"
+- "Almost"
+
+should never be the only indication of an important deadline.
+
+# 24. Mobile Experience
+
+Project Zero-Loss is designed as a web application, so the notification experience must be fully optimized for mobile browsers from the first release.
+
+Customers should be able to understand, manage, and act upon notifications easily regardless of screen size.
+
+---
+
+## Mobile Notification Center
+
+The mobile notification inbox should:
+
+- load quickly,
+- support vertical scrolling,
+- clearly distinguish unread notifications,
+- display concise summaries,
+- provide large touch targets,
+- avoid horizontal scrolling,
+- and remain responsive on common mobile devices.
+
+Important actions should always remain within comfortable thumb reach.
+
+---
+
+## Mobile Notification Cards
+
+Each notification card should include:
+
+- Notification icon
+- Title
+- Short summary
+- Date and time
+- Read/Unread indicator
+- Primary action button
+- Notification category
+
+Long messages should expand without disrupting navigation.
+
+---
+
+## Mobile Preference Management
+
+Notification preferences should use:
+
+- expandable sections,
+- grouped categories,
+- accessible toggle switches,
+- large tap targets,
+- and immediate visual confirmation after changes.
+
+Customers should never need to zoom to modify notification settings.
+
+---
+
+## Mobile Performance
+
+Mobile notifications should:
+
+- minimize unnecessary downloads,
+- support incremental loading,
+- cache previously viewed notifications,
+- optimize image usage,
+- reduce network requests,
+- and remain responsive on slower cellular connections.
+
+---
+
+## Mobile User Experience Principles
+
+The mobile experience should emphasize:
+
+- speed,
+- clarity,
+- readability,
+- accessibility,
+- and simplicity.
+
+Customers should be able to understand an important notification within seconds.
 
 ---
 
 # 25. Performance Requirements
 
-The capability should support:
+The Notifications capability should continue performing reliably during periods of heavy platform activity.
 
-* indexed notification retrieval,
-* paginated inbox results,
-* efficient unread-count queries,
-* batch job processing,
-* bounded retries,
-* provider rate limits,
-* digest generation at scale,
-* and high-volume event bursts.
-
-Performance testing should include:
-
-* mass pool closure,
-* large winner/result batches,
-* high-volume daily digest generation,
-* provider slowdown,
-* repeated webhook delivery,
-* and many concurrent preference updates.
-
-A notification burst must not compromise:
-
-* entry processing,
-* wallet operations,
-* payment webhooks,
-* pool closure,
-* winner selection,
-* or claim processing.
+High notification volume must never interfere with financial operations.
 
 ---
 
-# 26. Failure and Edge Cases
+## Performance Goals
 
-The implementation must address:
+The notification system should support:
 
-* Duplicate source events.
-* Duplicate job execution.
-* Duplicate provider webhook.
-* Provider timeout.
-* Provider outage.
-* Temporary bounce.
-* Permanent bounce.
-* Spam complaint.
-* User unsubscribes while message is queued.
-* User changes email while message is queued.
-* User changes timezone.
-* User enters quiet hours before delivery.
-* User removes Favorite but retains Watch.
-* User removes Wishlist item.
-* Pool completes before threshold message is delivered.
-* Pool state changes after notification creation.
-* Claim deadline changes.
-* Account is suspended.
-* Account is deleted.
-* Template is deactivated.
-* Missing template variable.
-* Invalid action URL.
-* Preview environment attempts production send.
-* Delivery succeeds but webhook is delayed.
-* Delivery fails after underlying transaction succeeds.
-* User marks message read on another device.
-* Unread count becomes temporarily stale.
-* Large inbox history.
-* Malicious provider webhook.
-* Rate limit exceeded.
-* Global pause activated.
-* Required legal notice during optional-message pause.
+- High-volume transaction processing
+- Large notification queues
+- Concurrent customer activity
+- Efficient unread count retrieval
+- Large inbox histories
+- Bulk digest generation
+- High-volume winner notifications
+- Marketplace-wide announcements
 
-Each edge case requires:
+Performance should remain predictable during peak usage.
 
-* safe server behavior,
-* understandable user behavior where relevant,
-* logging,
-* idempotency,
-* and test coverage.
+---
+
+## Scalability
+
+The architecture should support horizontal scaling for:
+
+- Notification creation
+- Queue processing
+- Email delivery
+- Digest generation
+- Administrative reporting
+- Analytics collection
+
+Scaling notification infrastructure should not require changes to business logic.
+
+---
+
+## Queue Processing
+
+Notification queues should:
+
+- process jobs efficiently,
+- support retry behavior,
+- prevent duplicate execution,
+- isolate failed jobs,
+- and maintain ordering where required.
+
+Queue health should be continuously observable.
+
+---
+
+## Database Performance
+
+Notification storage should support:
+
+- indexed retrieval,
+- efficient pagination,
+- fast unread counts,
+- archive management,
+- historical searches,
+- and reporting queries.
+
+Historical notification growth should not significantly degrade customer experience.
+
+---
+
+## Burst Processing
+
+Examples of expected burst scenarios include:
+
+- Large pool closures
+- Multiple winner announcements
+- Marketplace-wide promotions
+- Platform maintenance notices
+- Major feature launches
+- Large marketing campaigns
+
+Notification spikes must never interfere with:
+
+- Ledger operations
+- Payment processing
+- Pool management
+- Winner selection
+- Prize claims
+- Customer authentication
+
+---
+
+# 26. Failure & Edge Cases
+
+Reliable systems anticipate failure before it occurs.
+
+The Notifications capability should handle failures gracefully while preserving customer trust.
+
+---
+
+## Delivery Failures
+
+Potential delivery failures include:
+
+- Provider unavailable
+- Network interruption
+- Invalid destination
+- Temporary bounce
+- Permanent bounce
+- Spam complaint
+- Timeout
+- Authentication failure
+
+The customer experience should remain understandable even when delivery fails.
+
+---
+
+## Queue Failures
+
+The system should safely recover from:
+
+- Duplicate queue execution
+- Lost worker process
+- Delayed processing
+- Queue backlog
+- Job timeout
+- Worker restart
+- Partial processing failure
+
+Recovery should avoid duplicate customer communication.
+
+---
+
+## Preference Changes During Processing
+
+The system should correctly handle situations where a customer changes preferences while notifications are waiting for delivery.
+
+Examples include:
+
+- Email disabled
+- Quiet Hours enabled
+- Digest preference changed
+- Category unsubscribed
+- Account suspended
+- Account deleted
+
+Customer preferences should be evaluated immediately before optional delivery whenever practical.
+
+---
+
+## Marketplace Changes
+
+Notification behavior should adapt safely when:
+
+- A pool closes early
+- Inventory changes
+- Products become unavailable
+- Winners are corrected through authorized processes
+- Claims expire
+- Deadlines change
+
+Notifications should communicate updated information without rewriting historical records.
+
+---
+
+## Multi-Device Behavior
+
+Customers frequently use multiple devices.
+
+The platform should synchronize:
+
+- Read status
+- Archive status
+- Preference changes
+- Unread counts
+
+Synchronization should remain consistent across all authenticated sessions.
+
+---
+
+## Administrative Failures
+
+Administrative tools should safely recover from:
+
+- Template deletion
+- Template deactivation
+- Invalid variables
+- Failed previews
+- Unauthorized edits
+- Campaign cancellation
+- Provider outages
+
+Administrative failures should never create inaccurate customer communication.
 
 ---
 
 # 27. Testing Requirements
 
-## 27.1 Authorization Tests
+Every notification feature should be validated through automated and manual testing before production deployment.
 
-* User can view their notifications.
-* User cannot view another user’s notifications.
-* User can update their optional preferences.
-* User cannot create arbitrary transactional messages.
-* Admin access follows roles.
+---
 
-## 27.2 Idempotency Tests
+## Authorization Testing
 
-* Duplicate event creates one notification.
-* Duplicate job sends once.
-* Duplicate provider webhook updates once.
-* Retry does not duplicate delivery.
-* Digest does not repeat the same event improperly.
+Verify that:
 
-## 27.3 Preference Tests
+- Customers can access only their own notifications.
+- Customers cannot access another customer's notification history.
+- Administrative permissions follow assigned roles.
+- Unauthorized API requests are rejected.
 
-* Off prevents optional delivery.
-* Immediate sends immediately.
-* Daily digest groups correctly.
-* Weekly digest groups correctly.
-* Quiet hours delay optional delivery.
-* Mandatory security message still follows approved rules.
-* Unsubscribe takes effect.
+---
 
-## 27.4 Transactional Tests
+## Notification Creation Testing
 
-* Entry confirmation is created only after authoritative success.
-* Failed entry does not receive success confirmation.
-* Winner notice matches finalized result.
-* Rebate notice matches ledger event.
-* Refund notice matches payment status.
-* Notification failure does not reverse transaction.
+Verify that:
 
-## 27.5 Security Tests
+- One business event creates one notification.
+- Duplicate events do not create duplicate notifications.
+- Notification retries remain idempotent.
+- Notification history remains accurate.
 
-* Cross-user access denied.
-* Signed links expire.
-* Malicious template variables are escaped.
-* Webhook signatures are verified.
-* Replay is handled safely.
-* Sensitive values are not rendered.
-* Preview cannot send to production.
+---
 
-## 27.6 Delivery Tests
+## Preference Testing
 
-* Temporary failure retries.
-* Permanent failure stops.
-* Bounce creates suppression where appropriate.
-* Complaint updates consent and suppression.
-* Provider timeout remains recoverable.
-* Failover behavior follows approved design.
+Verify:
 
-## 27.7 User Experience Tests
+- Immediate delivery
+- Daily digest
+- Weekly digest
+- Quiet Hours
+- Unsubscribe behavior
+- Category preferences
+- Channel preferences
+- Consent recording
 
-* Empty inbox.
-* Loading inbox.
-* Error inbox.
-* Mark read.
-* Mark all read.
-* Mobile layout.
-* Keyboard navigation.
-* Screen-reader labels.
-* Preference-save confirmation.
-* Exact deadline formatting.
+---
 
-## 27.8 Performance Tests
+## Transaction Testing
 
-* High-volume batch.
-* Large inbox.
-* Large digest.
-* Concurrent preference changes.
-* Provider throttling.
-* Pool-result burst.
+Verify notifications for:
+
+- Wallet funding
+- Entry confirmation
+- Winner selection
+- Claim reminders
+- Refunds
+- Rebates
+- Purchases
+- Support updates
+
+Each notification should correspond to an authoritative business event.
+
+---
+
+## Security Testing
+
+Verify:
+
+- Secure links
+- Token expiration
+- Provider signature validation
+- Sensitive data protection
+- Cross-account protection
+- Template variable sanitization
+- Administrative authorization
+
+---
+
+## User Experience Testing
+
+Validate:
+
+- Empty notification inbox
+- Loading state
+- Error state
+- Mobile responsiveness
+- Keyboard navigation
+- Screen reader compatibility
+- Read indicators
+- Archive behavior
+- Notification filters
+
+---
+
+## Performance Testing
+
+Stress testing should include:
+
+- Large notification queues
+- High delivery volume
+- Bulk digest generation
+- Simultaneous customer activity
+- Provider throttling
+- Marketplace event bursts
+
+Performance testing should confirm notification processing never impacts critical marketplace operations.
 
 ---
 
 # 28. Acceptance Criteria
 
-Version 1 is complete only when:
-
-1. Users have an in-app notification inbox.
-2. Users receive approved security and transactional emails.
-3. Users can configure optional notification preferences.
-4. User-requested Favorite, Wishlist, and Watchlist alerts work.
-5. Immediate and daily-digest modes work.
-6. Optional messages honor quiet hours.
-7. Transactional and promotional classes remain separated.
-8. Duplicate events do not create duplicate messages.
-9. Duplicate jobs do not create duplicate deliveries.
-10. Delivery failures retry safely.
-11. Permanent failures are visible to administrators.
-12. Users cannot access another user’s notifications.
-13. RLS and server authorization are active and tested.
-14. Sensitive financial and prize credentials are excluded.
-15. Provider webhooks are authenticated and idempotent.
-16. Preview environments cannot contact production users.
-17. Templates are versioned.
-18. Consent and unsubscribe history are recorded.
-19. Required admin controls exist.
-20. Accessibility requirements pass.
-21. Mobile behavior works.
-22. Notification load does not compromise financial operations.
-23. Automated tests pass.
-24. Founder verification passes.
-25. Documentation matches implementation.
-26. Changes are committed to GitHub.
+Version 1 of the Notifications capability is considered complete only when all of the following conditions are satisfied.
 
 ---
 
+## Functional Acceptance
+
+- Customers have an in-app notification center.
+- Transactional notifications function correctly.
+- Security notifications function correctly.
+- User-requested alerts function correctly.
+- Notification preferences work as expected.
+- Immediate delivery works.
+- Daily digest works.
+- Quiet Hours operate correctly.
+- Notification filtering functions correctly.
+- Read and unread states synchronize properly.
+
+---
+
+## Technical Acceptance
+
+- Duplicate notifications are prevented.
+- Duplicate deliveries are prevented.
+- Queue processing is reliable.
+- Provider callbacks are authenticated.
+- Templates are version-controlled.
+- Delivery retries function correctly.
+- Administrative monitoring is operational.
+- Notification APIs enforce authorization.
+- Row-Level Security is active.
+- Audit logging is complete.
+
+---
+
+## Customer Experience Acceptance
+
+- Notification content is understandable.
+- Customers control optional communication.
+- Accessibility requirements are satisfied.
+- Mobile experience meets design standards.
+- Notification performance remains responsive.
+- Communication remains truthful and transparent.
+
+---
+
+## Operational Acceptance
+
+- Monitoring dashboards are operational.
+- Failed deliveries are visible.
+- Administrative controls are complete.
+- Fraud monitoring is active.
+- Analytics are functioning.
+- Automated tests pass successfully.
+
 # 29. Founder Verification Checklist
 
-Before approving Version 1:
+Before approving the Notifications capability for production, every major customer communication workflow should be verified manually in addition to automated testing.
 
-1. Create a test user.
-2. Verify the account email.
-3. Trigger a password-reset email.
-4. Confirm no password or secret appears in the message.
-5. Fund a test wallet.
-6. Confirm the funding notification matches the authoritative transaction.
-7. Create a test entry.
-8. Confirm the entry notification appears once.
-9. Retry the same event.
-10. Confirm no duplicate notification.
-11. Favorite an item.
-12. Enable a new-pool alert.
-13. Trigger a test new pool.
-14. Confirm the selected channel and frequency are honored.
-15. Add an item to Wishlist.
-16. Create an 80% Watch alert.
-17. Simulate the threshold crossing.
-18. Confirm one alert.
-19. Simulate the event again.
-20. Confirm no duplicate.
-21. Enable daily digest.
-22. Confirm eligible alerts are grouped.
-23. Set quiet hours.
-24. Confirm optional delivery is delayed.
-25. Unsubscribe from promotions.
-26. Confirm promotional email stops.
-27. Confirm required transactional email still works.
-28. Open the in-app inbox.
-29. Mark one message read.
-30. Mark all messages read.
-31. Sign in as another user.
-32. Confirm the second user cannot access the first user’s notifications.
-33. Simulate provider failure.
-34. Confirm retry occurs.
-35. Simulate permanent failure.
-36. Confirm admin visibility.
-37. Test on mobile.
-38. Test keyboard navigation.
-39. Test a screen reader or accessibility checker.
-40. Confirm no notification action changes ledger or pool state.
+The Founder Verification Checklist ensures the system behaves correctly from both the customer's perspective and the platform's operational perspective.
+
+---
+
+## Account & Security
+
+Verify the following:
+
+- Create a new customer account.
+- Verify the account email.
+- Confirm only one verification email is sent.
+- Trigger a password reset.
+- Confirm only one reset notification is generated.
+- Verify password reset links expire correctly.
+- Change the account password.
+- Confirm a password change notification is delivered.
+- Simulate a new device login.
+- Confirm the security notification appears.
+- Confirm no sensitive information appears in any security message.
+
+---
+
+## Wallet & Payments
+
+Verify:
+
+- Fund a test wallet.
+- Confirm the notification matches the completed ledger transaction.
+- Simulate a failed funding attempt.
+- Confirm the appropriate failure notification.
+- Issue a refund.
+- Verify refund notifications.
+- Issue store credit or rebate.
+- Verify rebate communication.
+- Simulate payout processing.
+- Verify payout notifications.
+
+Every notification must match the authoritative financial record.
+
+---
+
+## Entries & Pools
+
+Verify:
+
+- Purchase an entry.
+- Confirm entry notification.
+- Retry the purchase request.
+- Confirm duplicate notifications are not created.
+- Close a pool.
+- Publish pool results.
+- Verify winner notifications.
+- Verify non-winning notifications where applicable.
+- Verify notifications reference the correct pool.
+
+---
+
+## Favorites
+
+Verify:
+
+- Favorite an item.
+- Enable Favorite notifications.
+- Create a new pool.
+- Confirm one notification is generated.
+- Remove the Favorite.
+- Confirm future Favorite notifications stop.
+
+---
+
+## Wishlist
+
+Verify:
+
+- Add an item to Wishlist.
+- Make the item available.
+- Confirm availability notification.
+- Remove the item.
+- Confirm notifications stop unless another Watch exists.
+
+---
+
+## Watchlist
+
+Verify:
+
+- Create an 80% capacity Watch.
+- Simulate threshold crossing.
+- Confirm exactly one notification.
+- Retry the event.
+- Confirm duplicate prevention.
+- Complete the pool.
+- Verify threshold alerts stop.
+
+---
+
+## Notification Preferences
+
+Verify:
+
+- Immediate delivery.
+- Daily digest.
+- Weekly digest.
+- Quiet Hours.
+- Promotional opt-out.
+- Founder update preferences.
+- Category subscriptions.
+- Brand subscriptions.
+- Retailer subscriptions.
+
+Preference changes should take effect before future optional deliveries.
+
+---
+
+## Notification Center
+
+Verify:
+
+- Inbox loads correctly.
+- Empty state.
+- Loading state.
+- Error state.
+- Read indicator.
+- Mark one as read.
+- Mark all as read.
+- Archive notification.
+- Filtering.
+- Pagination.
+- Search functionality.
+
+---
+
+## Multi-Device Synchronization
+
+Verify using multiple browsers or devices.
+
+Confirm synchronization of:
+
+- Read status
+- Archive status
+- Notification count
+- Preference changes
+
+The customer experience should remain consistent across authenticated sessions.
+
+---
+
+## Failure Recovery
+
+Simulate:
+
+- Provider outage
+- Queue delay
+- Temporary delivery failure
+- Permanent delivery failure
+- Retry processing
+- Provider callback delay
+- Invalid destination
+
+Confirm customer-facing behavior remains understandable.
+
+---
+
+## Administrative Validation
+
+Verify administrators can:
+
+- Monitor queue health
+- View failed deliveries
+- Retry failed notifications
+- Preview templates
+- Send test notifications
+- Review consent history
+- Review delivery history
+
+Administrators should never be capable of fabricating transactional events.
+
+---
+
+## Accessibility Review
+
+Verify:
+
+- Keyboard navigation
+- Screen reader compatibility
+- Color contrast
+- Focus indicators
+- Responsive layouts
+- Large text support
+- Plain-text email rendering
+
+Accessibility should be evaluated before production approval.
 
 ---
 
 # 30. Future Enhancements
 
-Potential future additions include:
+Future roadmap items should extend the Notifications capability without changing its core architectural principles.
 
-* Web push.
-* SMS.
-* Provider redundancy.
-* Multilingual templates.
-* User-selected digest time.
-* Smart send-time optimization.
-* Household notification settings.
-* Advanced preference recommendations.
-* Interactive web-push actions.
-* Rich founder updates.
-* Product-specific communication centers.
-* Advanced incident communications.
-* Geographic campaign controls.
-* Ethical A/B testing.
-* Notification fatigue scoring.
-* User-level message caps.
-* Personalized digest sections.
-* Additional delivery-provider failover.
-* Advanced consent-management integrations.
-* Automated accessibility linting.
-* Template-approval workflows with multiple reviewers.
+Potential future enhancements include:
 
-Future enhancements require separate approval and roadmap inclusion.
+- Web Push Notifications
+- SMS Notifications
+- Native Mobile Push
+- Multiple delivery providers
+- Provider failover
+- AI-assisted template drafting with human approval
+- Customer-selected delivery times
+- Intelligent digest optimization
+- Geographic communication targeting
+- Household notification management
+- Shared account notification preferences
+- Personalized notification prioritization
+- Notification fatigue management
+- Rich interactive notifications
+- Voice assistant integrations
+- Multilingual communication
+- Advanced communication analytics
+- Additional accessibility automation
+- Automated compliance validation
+
+Every enhancement should preserve:
+
+- customer control,
+- transparency,
+- security,
+- consent,
+- and operational integrity.
 
 ---
 
-# 31. Architecture Decisions Introduced
+# 31. Architecture Decisions
 
-This specification establishes the following proposed decisions:
+This specification establishes the following architectural decisions for the Notifications capability.
 
-1. Notifications are communication records, not financial truth.
-2. Transactional and promotional communication are separate.
-3. User-requested alerts require explicit user action or preference.
-4. In-app and email are the primary Version 1 channels.
-5. SMS is deferred until cost, demand, consent, and compliance justify it.
-6. Notification creation and delivery are idempotent.
-7. Delivery uses durable queued or event-driven processing.
-8. Preview environments may not send to production recipients.
-9. Templates are versioned.
-10. Delivery failure does not reverse the underlying business transaction.
-11. Optional notifications support frequency and quiet-hour controls.
-12. Sensitive prize and financial credentials are excluded from ordinary messages.
+---
 
-These decisions should be reviewed for inclusion in:
+## Notifications Are Communication Records
 
-`docs/decisions/ADR-004-notification-strategy.md`
+Notifications communicate authoritative events.
+
+They never become authoritative business records.
+
+---
+
+## Separation of Notification Classes
+
+Security, transactional, operational, educational, founder, and promotional communication remain independent.
+
+Each class follows its own business rules and customer consent requirements.
+
+---
+
+## Explicit Customer Intent
+
+User-requested alerts are created only after explicit customer action.
+
+Examples include:
+
+- Favorites
+- Wishlist
+- Watchlist
+- Saved Searches
+- Category subscriptions
+- Brand subscriptions
+- Retailer subscriptions
+
+---
+
+## Primary Delivery Channels
+
+Version 1 officially supports:
+
+- In-App Notifications
+- Email
+
+Additional channels remain future enhancements.
+
+---
+
+## Durable Processing
+
+Notification creation and delivery should use durable background processing with reliable retry behavior.
+
+---
+
+## Idempotent Delivery
+
+Duplicate business events must never create duplicate notifications.
+
+Duplicate deliveries must never occur because of retries.
+
+---
+
+## Version-Controlled Templates
+
+Every notification records the template version used during delivery.
+
+Historical messages remain unchanged even after template updates.
+
+---
+
+## Transaction Independence
+
+Business transactions complete independently from external notification providers.
+
+Provider outages must never roll back completed financial operations.
+
+---
+
+## Customer-Controlled Preferences
+
+Customers control optional communication through:
+
+- Preferences
+- Consent
+- Quiet Hours
+- Delivery Frequency
+- Channel Selection
+
+---
+
+## Privacy by Default
+
+Notification content should expose only the minimum information necessary to communicate the event.
+
+Sensitive customer information remains protected.
 
 ---
 
 # 32. Related Documents
 
-This specification should be reviewed alongside:
+The Notifications capability should be implemented alongside the following specifications:
 
-* `docs/project-index.md`
-* `docs/architecture/master-architecture.md`
-* `docs/architecture/ai-operating-rules.md`
-* `docs/architecture/output-contract.md`
-* `docs/core/product-vision.md`
-* `docs/core/product-concept.md`
-* `docs/capabilities/README.md`
-* `docs/capabilities/favorites.md`
-* `docs/capabilities/wishlist.md`
-* `docs/capabilities/search.md`
-* `docs/capabilities/recommendations.md`
-* `docs/capabilities/user-preferences.md`
-* `docs/capabilities/activity-history.md`
-* `docs/capabilities/catalog.md`
-* `docs/capabilities/identity-and-profile.md`
-* `docs/capabilities/rewards-and-referrals.md`
-* `docs/capabilities/communications.md`
-* `docs/product/homepage-spec.md`
-* `docs/product/item-page-spec.md`
-* `docs/product/account-wallet-spec.md`
-* `docs/product/payments-and-payouts-spec.md`
-* `docs/product/support-status-spec.md`
-* `docs/product/design-system-spec.md`
-* `docs/operations/admin-portal-spec.md`
-* `docs/operations/analytics-spec.md`
-* `docs/operations/fraud-and-risk-spec.md`
-* `docs/operations/content-management-spec.md`
-* `docs/decisions/ADR-004-notification-strategy.md`
+- Master Architecture
+- AI Operating Rules
+- Output Contract
+- Product Vision
+- Product Concept
+- Homepage Specification
+- Item Page Specification
+- Account Wallet Specification
+- Payments & Payouts Specification
+- Support Status Specification
+- Design System Specification
+- Favorites Capability
+- Wishlist Capability
+- Search Capability
+- Recommendations Capability
+- User Preferences Capability
+- Activity History Capability
+- Catalog Capability
+- Identity & Profile Capability
+- Rewards & Referrals Capability
+- Communications Capability
+- Fraud & Risk Specification
+- Analytics Specification
+- Admin Portal Specification
+- Content Management Specification
+
+
+These documents collectively define the complete customer communication architecture for Project Zero-Loss.
 
 ---
 
 # 33. Guiding Statement
 
-Notifications exist to help users understand and control their relationship with Zero-Loss.
+Notifications exist to build trust between Project Zero-Loss and its customers.
 
-They must accurately reflect real events, protect user privacy, respect consent, and provide useful information without creating artificial pressure.
+Every notification should communicate genuine, authoritative information while respecting customer privacy, consent, accessibility, and communication preferences.
 
-Every notification should answer:
+Customers should always understand:
 
-* What happened?
-* Why did it happen?
-* Is action required?
-* Where can the user verify it?
-* How can the user control future messages?
+- What happened.
+- Why it happened.
+- Whether any action is required.
+- Where the information originated.
+- How to manage future communication.
 
-Trust is more valuable than message volume.
+The notification system should never create artificial urgency, manipulate customer behavior, or replace authoritative business records.
+
+Reliable, transparent communication strengthens confidence in the platform and reinforces the integrity of every customer interaction.

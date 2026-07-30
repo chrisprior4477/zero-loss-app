@@ -1,0 +1,74 @@
+---
+description: Project Zero-Loss — core architecture, financial integrity, and domain-ownership rules that apply to every implementation task in this repository.
+globs:
+alwaysApply: true
+---
+
+# Project Zero-Loss — Architecture Rules for AI-Assisted Implementation
+
+This file is loaded automatically into every Cursor session in this repository.
+It exists so that no implementation task begins without the invariants below in context.
+
+This file does not replace the documentation in `docs/`. It is a compressed pointer to it.
+If anything here seems to conflict with a document in `docs/architecture/`, the document in `docs/architecture/` wins — treat the conflict as a stop condition, not something to resolve silently.
+
+---
+
+## 1. Repository Precedence
+
+The repository is the source of truth. Not conversation history, not a prior AI's memory, not this file's summary of a document — the document itself.
+
+When implementing anything, read in this order before writing code:
+
+1. `PROJECT_STATUS.md` — current phase and what's in/out of scope right now.
+2. `docs/architecture/master-architecture.md` — the technical constitution.
+3. `docs/architecture/domain-ownership-matrix.md` — who owns the concept you're touching.
+4. The specific capability/operations/product document for the domain in question.
+5. `docs/architecture/domain-event-catalog.md` — canonical event names before you invent one.
+6. `docs/architecture/enterprise-data-dictionary.md` — canonical entity definitions and identifiers.
+
+## 2. Non-Negotiable Financial Invariants
+
+These apply to every task that touches money, wallets, pools, entries, or prizes — no exceptions, no matter how the task is framed.
+
+- **The Ledger is the only authoritative financial record.** Wallet balances, rebate totals, and any other customer-facing number are always derived from Ledger history — never a mutable balance column, never a second running total maintained elsewhere.
+- **Every financial write is idempotent.** Stripe webhooks, wallet funding, payouts, refunds, and any retried operation must be safe to execute more than once without duplicating the financial effect.
+- **History is corrected by addition, never by mutation.** A wrong ledger entry gets an offsetting/compensating entry with actor, timestamp, and reason. It is never edited or deleted in place.
+- **Identity comes from the server, never the client.** Use `supabase.auth.getUser()` for identity checks. Never trust a client-supplied user ID for anything privileged. Never rely on `getSession()` as the authoritative identity check.
+- **Winner selection must use a cryptographically secure random source.** `Math.random()` and any other predictable/non-cryptographic source are prohibited outright, in any context, regardless of how low-stakes the task seems.
+- **Winner selection runs exactly once per Pool, server-side only.** The eligible-entry population is frozen (Entry Freeze / Locked state) before a Draw executes. No administrative action may select or substitute a winner. Verifying a past Draw's evidence must never re-execute it or produce a second result.
+- **RLS is required but not sufficient.** Row-Level Security policies must exist on every relevant table, but privileged logic must also be enforced server-side. Do not treat RLS alone as the security boundary for financial operations.
+
+## 3. Domain Ownership — Do Not Cross These Lines
+
+Full detail lives in `docs/architecture/domain-ownership-matrix.md`. The short version:
+
+| If you're touching... | The owner is... | And these must never own it |
+|---|---|---|
+| Pool state, Entries, Draws, Winner selection, Prize assignment | Pools & Sweepstakes | Wallet, Ledger, Identity, Catalog |
+| Financial truth, transactions, balances | Ledger | Everything else — Pools, Wallet, Payments all *reference* the Ledger, none of them *are* it |
+| Customer-facing balance display | Wallet | Wallet never becomes an independent financial total — it is a projection of Ledger history |
+| Product/prize metadata | Catalog | Catalog is independent of pricing and financial records |
+| Authentication, session, account status | Identity & Profile | Balances, entries, ledger data |
+| Membership tier definitions/eligibility | Membership | Billing execution, ledger entries — those still flow through Payments & Payouts |
+
+If a task seems to require one domain to write directly into another domain's data, stop and flag it rather than doing it — that's very likely a sign the task description is asking for something the architecture doesn't allow, not a green light to bend the boundary.
+
+## 4. Prohibited Implementation Patterns
+
+Do not do any of the following, even if a task description seems to ask for it:
+
+- Client-side or non-cryptographic randomness for anything related to winner selection, prize allocation, or fraud-relevant decisions.
+- A single mutable `balance` column treated as financial truth.
+- Silent invention of a business rule the documentation doesn't specify (e.g., a rebate percentage, a takeover surcharge formula, a legal prize-value cap). If the number isn't in the docs, stop and ask — do not guess a plausible-sounding default for anything financial, legal, or fairness-related.
+- Skipping idempotency checks on any payment, webhook, or draw-related endpoint "for now" — there is no safe version of this shortcut in this codebase.
+- Direct writes to another domain's tables instead of going through that domain's defined interface/event.
+- Marking a task complete with placeholder logic, a `TODO` on required behavior, or a stub that "would work once X is implemented."
+
+## 5. Missing Information
+
+If the correct implementation genuinely depends on a decision the documentation doesn't make, name the missing decision explicitly, propose the safest default, and wait rather than inventing one — this applies with extra weight to anything financial, legal/compliance-related, or affecting fairness of winner selection.
+
+## 6. Vertical Slice Priority
+
+Unless told otherwise, the current implementation priority is the narrow vertical slice defined in `PROJECT_STATUS.md`: registration → authenticated session → catalog item retrieval → Pool/Sweepstakes visibility → Entry Request → server-side eligibility validation → financial prerequisite handling → Entry creation → audit/event output. Domains outside this slice (Search, Recommendations, Notifications delivery mechanics, Analytics, Content Management, Marketing) are lower priority until the slice is proven end-to-end.

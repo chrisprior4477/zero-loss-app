@@ -1,269 +1,407 @@
-# Project Zero-Loss Wishlist and Watchlist Capability Specification
+# Project Zero-Loss Wishlist & Watchlist Capability Specification
+## Shopping Intent, Product Planning, and Intelligent Alerting
 
-**Version:** 1.0  
-**Status:** Draft for Founder Review  
-**Document Owner:** Founder / Product Experience  
-**Last Updated:** 2026-07-16  
-**Target Path:** `docs/capabilities/wishlist.md`
-
-**Related Documents:**
-
-- `docs/project-index.md`
-- `docs/capabilities/README.md`
-- `docs/capabilities/favorites.md`
-- `docs/capabilities/notifications.md`
-- `docs/capabilities/search.md`
-- `docs/capabilities/recommendations.md`
-- `docs/capabilities/user-preferences.md`
-- `docs/capabilities/activity-history.md`
-- `docs/capabilities/catalog.md`
-- `docs/capabilities/identity-and-profile.md`
-- `docs/product/homepage-spec.md`
-- `docs/product/item-page-spec.md`
-- `docs/product/account-wallet-spec.md`
-- `docs/product/design-system-spec.md`
-- `docs/operations/admin-portal-spec.md`
-- `docs/operations/analytics-spec.md`
-- `docs/operations/fraud-and-risk-spec.md`
+**Version:** 1.1  
+**Status:** Authoritative  
+**Document Type:** Capability Specification
 
 ---
 
-# 1. Purpose
+# Purpose
 
-The Wishlist and Watchlist capability allows users to save products they may want to buy or win later and to monitor specific real item or pool conditions.
+The Wishlist & Watchlist capability allows customers to save products they intend to purchase or participate in later while monitoring real marketplace events that matter to them.
 
-It supports intentional shopping, product discovery, future demand planning, and respectful re-engagement.
+Unlike Favorites, which simply organize interests, Wishlist represents stronger purchase intent, while Watchlist enables customers to receive notifications when specific conditions occur.
+
+The capability exists to support thoughtful shopping rather than impulsive participation.
 
 Wishlist and Watchlist actions must never:
 
 - purchase an entry,
 - reserve inventory,
+- create wallet holds,
 - guarantee future availability,
-- create a wallet hold,
-- automatically enroll a user in marketing,
-- or change the odds, capacity, outcome, or economics of any pool.
+- modify marketplace odds,
+- alter pool capacity,
+- or create financial commitments.
 
-The user remains in control of what is saved, what is monitored, how often alerts are sent, and which channels are used.
+Customers always remain in complete control of what they save, monitor, and receive notifications about.
+
+---
+
+# 1. Capability Objectives
+
+The Wishlist & Watchlist capability should help customers:
+
+- organize products they genuinely want,
+- plan future purchases,
+- monitor marketplace activity,
+- receive meaningful notifications,
+- discover similar opportunities,
+- and return to products without unnecessary searching.
+
+The experience should increase convenience without increasing pressure.
 
 ---
 
 # 2. Product Philosophy
 
-Zero-Loss should help users plan purchases, discover relevant opportunities, and return to items they genuinely care about.
+Project Zero-Loss is designed to help customers shop smarter.
 
-The Wishlist and Watchlist capability should feel like a smart-shopping tool, not a casino mechanic.
+Wishlist and Watchlist should reinforce this philosophy by supporting deliberate purchasing decisions rather than encouraging impulsive behavior.
 
-It should reinforce:
+The experience should emphasize:
 
-- user control,
-- real product intent,
-- transparent availability,
-- respectful communication,
-- and the principle that users are shopping for things they already want.
+- customer choice,
+- transparency,
+- organization,
+- personalization,
+- and trust.
 
-The capability must not use fake scarcity, fake waitlists, fabricated popularity, automatic entries, or pressure based on prior losses.
+The platform should never create artificial urgency through fake scarcity, fabricated waitlists, misleading popularity indicators, or unnecessary alerts.
+
+Every notification should correspond to a real marketplace event.
 
 ---
 
 # 3. Definitions
 
-## 3.1 Favorite
-
-> “I like this and want to find it again.”
-
-Favorites are governed by `docs/capabilities/favorites.md`.
-
-## 3.2 Wishlist
-
-> “I may want to buy or win this item in the future.”
-
-A wishlist captures shopping intent.
-
-## 3.3 Watchlist
-
-> “Notify me when a specific real condition occurs.”
-
-Examples:
-
-- A new pool opens.
-- A coming-soon item goes live.
-- A pool reaches 80% capacity.
-- Only 10 entries remain.
-- An item becomes available again.
-- A similar item is added.
-
-## 3.4 Item Request
-
-> “I would like Zero-Loss to consider offering this item, brand, retailer, or category.”
-
-An item request does not guarantee catalog inclusion.
+To maintain consistency throughout the platform, the following concepts have distinct meanings.
 
 ---
 
-# 4. Core User Outcomes
+## Favorite
 
-A user should be able to:
+A Favorite means:
 
-1. Add or remove a product from a wishlist.
-2. View all wishlist items in one account area.
-3. See whether an item has an active, upcoming, completed, or unavailable pool.
-4. Create a watch for a specific pool or item.
-5. Choose which real event should trigger an alert.
-6. Choose channel and frequency.
-7. Pause or disable alerts without removing the item.
-8. Keep an unavailable product saved.
-9. Request an item not currently offered.
-10. Move clearly between Favorite, Wishlist, and Watchlist states.
-11. Access saved items across signed-in devices.
-12. Understand that saving or watching never creates a financial commitment.
-13. Receive only alerts the user explicitly requested.
-14. View similar alternatives when an item is unavailable.
-15. Remove an item without affecting wallet, entry, purchase, rebate, or result history.
+> "I like this and want to find it again."
+
+Favorites provide lightweight organization.
 
 ---
 
-# 5. User Stories
+## Wishlist
 
-- As a user viewing a $500 gift card, I want to add it to my wishlist so I can return later.
-- As a user interested in Publix gift cards, I want an alert when a new Publix pool opens.
-- As a user watching an active pool, I want to know when it reaches 80% capacity.
-- As a user, I want to know when only 10 entries remain so I can decide whether to participate.
-- As a user, I want to join a waitlist for an upcoming item and receive one alert when it becomes live.
-- As a user who wants a specific automotive product, I want to request it for future consideration.
-- As a user, I want an unavailable wishlist item to remain visible so I can wait for it to return.
-- As a user, I want daily-digest alerts instead of immediate messages.
-- As a user, I want my wishlist private unless I explicitly choose otherwise in a future sharing feature.
+A Wishlist means:
+
+> "I may want to purchase or participate in this item later."
+
+Wishlist entries represent stronger customer intent than Favorites.
+
+---
+
+## Watchlist
+
+A Watchlist means:
+
+> "Notify me when this specific event occurs."
+
+Watchlists monitor real marketplace conditions chosen by the customer.
+
+Examples include:
+
+- new pool opens,
+- coming soon becomes available,
+- item returns,
+- capacity threshold reached,
+- entries remaining threshold reached,
+- or similar products become available.
+
+---
+
+## Item Request
+
+An Item Request means:
+
+> "I would like Zero-Loss to consider offering this product."
+
+Submitting a request does not guarantee future availability.
+
+Every request follows the normal catalog review process.
+
+---
+
+# 4. Customer Outcomes
+
+Customers should be able to:
+
+1. Save products to a Wishlist.
+2. Remove Wishlist items.
+3. Create Watch Alerts.
+4. Choose notification conditions.
+5. Configure delivery channels.
+6. Configure notification frequency.
+7. Pause alerts without deleting products.
+8. Keep unavailable products visible.
+9. Request future catalog items.
+10. Understand the difference between Favorites, Wishlist, and Watchlist.
+11. Synchronize across devices.
+12. Control recommendation influence.
+13. Remove items without affecting financial history.
+
+Wishlist organization should remain simple regardless of marketplace growth.
+
+---
+
+# 5. Customer Experience Principles
+
+The Wishlist capability should follow several guiding principles.
+
+## Intentional
+
+Wishlist represents thoughtful planning rather than spontaneous activity.
+
+---
+
+## Informative
+
+Customers should always understand why an item appears and what alerts are active.
+
+---
+
+## Customer Controlled
+
+Customers determine:
+
+- what is saved,
+- which alerts are enabled,
+- notification frequency,
+- preferred delivery channels,
+- and personalization settings.
+
+---
+
+## Respectful
+
+Notifications should help rather than interrupt.
+
+Customers should never feel overwhelmed by reminders.
+
+---
+
+## Trustworthy
+
+Wishlist actions must never create hidden financial consequences.
 
 ---
 
 # 6. Version 1 Scope
 
-## Required
+Version 1 includes the core shopping-planning experience.
 
-- One default private wishlist per user.
-- Add and remove item.
-- Wishlist account page.
-- Signed-in persistence.
-- Duplicate prevention.
-- Active, upcoming, completed, and unavailable states.
-- Watch “new pool opens.”
-- Watch “coming-soon item becomes live.”
-- Watch a real capacity threshold.
-- Watch a real entries-remaining threshold.
-- In-app and email notification options.
-- Immediate and daily-digest frequency.
-- Pause and disable controls.
-- Item-request form.
-- Server-side ownership enforcement.
-- Row Level Security.
-- Rate limiting and input sanitization.
-- Admin review of item requests.
-- Basic analytics.
-- Automated authorization, duplication, trigger, and abuse tests.
-- Empty, loading, unavailable, and error states.
-- Mobile and accessibility support.
+Required functionality includes:
 
-## Recommended
+- one private Wishlist,
+- add and remove items,
+- Wishlist account page,
+- synchronization,
+- duplicate prevention,
+- Watch Alerts,
+- configurable thresholds,
+- notification preferences,
+- item requests,
+- server-side authorization,
+- accessibility,
+- analytics,
+- mobile support,
+- and complete loading, empty, and error states.
 
-- Brand, retailer, and category wishlist entries.
-- Similar-item suggestions.
-- Recently added section.
-- Move from Favorite to Wishlist.
-- Add a watch directly from the Wishlist page.
-- Anonymous local wishlist with safe account merge.
-- Email digest grouping.
-- Item-request duplicate detection.
-- Aggregate demand analytics.
-
-## Future Enhancements
-
-- Multiple named wishlists.
-- Shared, household, gift, and collaborative lists.
-- Desired price, retailer, priority, notes, gift recipient, and target date.
-- Budget planning.
-- External wishlist import.
-- Browser extension.
-- Group gifting.
-- Location-aware availability.
-- Price-drop and retailer alerts.
-- Seasonal lists and registries.
-- AI-assisted organization, only if accurately disclosed.
+More advanced organizational capabilities are intentionally reserved for future releases.
 
 ---
 
-# 7. Out of Scope for Version 1
+# 7. Wishlist Relationships
 
-- Automatic pool entry.
-- Automatic purchasing or wallet deduction.
-- Inventory reservation.
-- Public wishlist profiles.
-- Collaborative editing.
-- Guaranteed availability or price.
-- Fake waitlist counts or demand.
-- Unrequested SMS or push.
-- Hidden marketing enrollment.
-- Fabricated urgency.
+Wishlist integrates with several other capabilities.
 
----
+### Favorites
 
-# 8. User Experience Requirements
+Customers may move from:
 
-## Wishlist Control
+Favorite
 
-Use a bookmark, list, or shopping-bag icon with accessible labels:
+↓
 
-- `Add to wishlist`
-- `Remove from wishlist`
+Wishlist
 
-## Watchlist Control
-
-Use a bell icon with descriptive labels:
-
-- `Notify me when a new pool opens`
-- `Notify me at 80% filled`
-- `Stop watching this pool`
-
-## Favorite, Wishlist, and Watchlist Clarity
-
-- Heart = Favorite.
-- Bookmark/List = Wishlist.
-- Bell = Watch Alert.
-
-If Version 1 combines controls visually, the underlying behavior must remain distinct.
-
-## Feedback
-
-- Update state quickly.
-- Use subtle confirmation.
-- Avoid casino-style effects.
-- Show failures clearly.
-- Roll back optimistic state after server rejection.
-
-## Unauthenticated Users
-
-An unauthenticated visitor may save locally and receive a nonblocking prompt to sign in for cross-device persistence.
-
-## Removal
-
-Removing a wishlist item must not remove financial history or silently delete a separately created watch.
+when purchase intent increases.
 
 ---
 
-# 9. Required Product Surfaces
+### Watchlist
 
-Wishlist and Watchlist actions may appear on:
+Customers may create Watch Alerts directly from Wishlist items.
 
-- Homepage cards.
-- Search results.
-- Category, brand, and retailer pages.
-- Item and pool pages.
-- Coming-soon cards.
-- Recommendation and recently viewed modules.
-- Favorites page.
-- Account dashboard.
-- Notification settings.
-- Saved-search pages.
-- Mobile navigation where appropriate.
+The two capabilities remain independent.
+
+Removing a Wishlist item should not automatically remove an independent Watch Alert.
+
+---
+
+### Recommendations
+
+Wishlist data may improve recommendations only when customers allow personalization.
+
+---
+
+### Notifications
+
+Notification preferences determine:
+
+- delivery channel,
+- frequency,
+- quiet hours,
+- and alert eligibility.
+
+Wishlist itself does not determine notification behavior.
+
+# 8. User Experience
+
+The Wishlist & Watchlist experience should feel fast, organized, and intuitive across every product surface.
+
+Customers should always understand:
+
+- what they have saved,
+- what they are watching,
+- why they are receiving notifications,
+- and what actions are available.
+
+Every interaction should provide immediate visual feedback while remaining calm and professional.
+
+---
+
+## Wishlist Controls
+
+Wishlist actions should use a consistent visual language throughout the application.
+
+Recommended control:
+
+- Bookmark icon
+- Shopping list icon
+- "Save for Later"
+
+States include:
+
+- Add to Wishlist
+- Added to Wishlist
+- Remove from Wishlist
+
+The control should remain visible on:
+
+- Homepage cards
+- Category listings
+- Search results
+- Product pages
+- Pool pages
+- Recommendation modules
+- Recently viewed items
+
+---
+
+## Watch Controls
+
+Watch Alerts should use a separate control from Wishlist.
+
+Recommended icon:
+
+🔔 Bell
+
+Examples include:
+
+- Notify me when available
+- Notify me when a new pool opens
+- Notify me when only 10 entries remain
+- Notify me when 80% full
+- Stop Watching
+
+Watch controls should clearly communicate what condition is being monitored.
+
+---
+
+## Favorite vs Wishlist vs Watchlist
+
+The platform must clearly distinguish the three concepts.
+
+| Capability | Meaning |
+|------------|---------|
+| ❤️ Favorite | I like this. |
+| 🔖 Wishlist | I want to purchase or participate later. |
+| 🔔 Watchlist | Notify me when something happens. |
+
+Although the interface may visually group these controls, the underlying behavior must remain completely independent.
+
+---
+
+## Customer Feedback
+
+Successful actions should provide subtle confirmation.
+
+Examples:
+
+> Added to Wishlist
+
+> Removed from Wishlist
+
+> Watch Enabled
+
+> Watch Paused
+
+Animations should be quick, unobtrusive, and never resemble casino effects.
+
+If the server rejects a request, optimistic interface updates should automatically roll back.
+
+---
+
+## Anonymous Visitors
+
+Visitors who are not signed in may maintain a temporary local Wishlist.
+
+If they later create an account or sign in, the application may safely merge local Wishlist data into their permanent account.
+
+Merge operations must:
+
+- prevent duplicates,
+- preserve existing records,
+- remain idempotent,
+- and never overwrite server-authoritative data.
+
+---
+
+## Removing Items
+
+Removing an item from a Wishlist should:
+
+- remove only the Wishlist relationship,
+- preserve financial history,
+- preserve completed transactions,
+- preserve ledger history,
+- and leave separate Watch Alerts unchanged unless the customer explicitly removes them.
+
+---
+
+# 9. Product Surfaces
+
+Wishlist and Watchlist functionality should be available wherever meaningful shopping decisions occur.
+
+Supported locations include:
+
+- Homepage
+- Category pages
+- Brand pages
+- Retailer pages
+- Product pages
+- Pool pages
+- Coming Soon listings
+- Search Results
+- Recommendation sections
+- Favorites page
+- Recently Viewed
+- Account Dashboard
+- Notification Preferences
+- Saved Searches
+- Mobile navigation
+
+Customers should never need to navigate deep into Account Settings simply to save an item.
 
 ---
 
@@ -273,79 +411,115 @@ Recommended route:
 
 `/account/wishlist`
 
-## Sections
+The Wishlist page serves as the customer's shopping planner.
 
-- All Wishlist Items.
-- Available Now.
-- Active Pools.
-- Coming Soon.
-- Temporarily Unavailable.
-- Completed or Historical.
-- Watches Enabled.
-- Alerts Paused.
-- Item Requests.
+---
 
-## Card Information
+## Primary Sections
 
-Show, where relevant:
+Recommended organization includes:
 
-- Image.
-- Item name.
-- Brand and retailer.
-- Category.
-- Retail value.
-- Entry price.
-- Pool state and progress.
-- Entries remaining.
-- Coming-soon date.
-- Safety-net summary.
-- Date added.
-- Watch condition and frequency.
-- Primary and remove actions.
+- All Wishlist Items
+- Available Now
+- Active Pools
+- Coming Soon
+- Temporarily Unavailable
+- Completed
+- Active Watches
+- Paused Watches
+- Item Requests
 
-## Filters
+---
 
-- Availability.
-- Category.
-- Brand.
-- Retailer.
-- Pool state.
-- Alerts enabled.
-- Recently added.
-- Coming soon.
-- Price or retail-value range.
+## Wishlist Cards
+
+Each Wishlist card should display, where appropriate:
+
+- Product image
+- Product name
+- Brand
+- Retailer
+- Category
+- Retail value
+- Entry price
+- Current pool status
+- Capacity progress
+- Entries remaining
+- Coming Soon availability
+- Safety Net summary
+- Date saved
+- Active watch indicator
+- Primary action button
+- Remove control
+
+Cards should remain consistent with the Design System specification.
+
+---
+
+## Filtering
+
+Customers should be able to filter by:
+
+- Availability
+- Category
+- Brand
+- Retailer
+- Pool Status
+- Active Watches
+- Recently Added
+- Coming Soon
+- Retail Value
+- Entry Price
+
+Filtering should always occur using server-authoritative data.
+
+---
 
 ## Sorting
 
-- Recently added.
-- Oldest.
-- Available now.
-- Coming soon.
-- Retail value.
-- Entry price.
-- Closest to capacity.
-- Alphabetical.
+Recommended sort options include:
 
-All urgency sorting must use real data.
+- Recently Added
+- Oldest Saved
+- Available Now
+- Coming Soon
+- Highest Retail Value
+- Lowest Retail Value
+- Highest Entry Price
+- Lowest Entry Price
+- Closest to Capacity
+- Alphabetical
+
+Sorting based on urgency must only use genuine marketplace data.
+
+Artificial urgency is prohibited.
 
 ---
 
 # 11. Watchlist Rules
 
+Watch Alerts allow customers to monitor real marketplace conditions.
+
+---
+
 ## Supported Watch Types
 
-Version 1:
+Version 1 supports:
 
-- `new_pool_opened`
-- `coming_soon_live`
-- `capacity_percentage_reached`
-- `entries_remaining_reached`
-- `item_returned`
-- `similar_item_available`
+- New Pool Opened
+- Coming Soon Item Available
+- Pool Capacity Percentage
+- Entries Remaining
+- Item Returns
+- Similar Item Available
 
-## Controlled Thresholds
+Each Watch monitors only one specific condition.
 
-Suggested capacity thresholds:
+---
+
+## Capacity Thresholds
+
+Suggested preset thresholds include:
 
 - 50%
 - 75%
@@ -353,533 +527,814 @@ Suggested capacity thresholds:
 - 90%
 - 95%
 
-Suggested entries-remaining thresholds:
+Thresholds should remain configurable by platform administrators.
 
-- 25
-- 10
-- 5
-- 1
+---
 
-## Trigger Semantics
+## Remaining Entry Thresholds
 
-A threshold alert fires once when the condition becomes true. It must not repeatedly fire while the condition remains unchanged.
+Suggested presets include:
 
-## Pool-Level Versus Item-Level Watches
+- 25 Remaining
+- 10 Remaining
+- 5 Remaining
+- 1 Remaining
 
-- Watch this pool.
-- Watch this item for future pools.
+Customers should clearly understand when each notification will occur.
 
-A pool-specific watch must not silently transfer to a replacement pool.
+---
 
-## Completed Pools
+## Trigger Behavior
 
-Completed pools stop active progress alerts and may offer an item-level watch for future pools.
+Threshold notifications fire once when the monitored condition becomes true.
+
+Notifications must never continuously resend while the condition remains unchanged.
+
+If marketplace conditions reverse and later cross the threshold again, server rules determine whether another notification is appropriate.
+
+---
+
+## Pool-Level Watches
+
+A Pool Watch follows one specific pool.
+
+When that pool completes:
+
+- progress notifications stop,
+- capacity notifications stop,
+- remaining-entry notifications stop.
+
+Pool Watches never automatically transfer to replacement pools.
+
+---
+
+## Item-Level Watches
+
+Item Watches follow the product itself rather than one individual pool.
+
+If future pools become available, customers may receive alerts according to their selected preferences.
+
+Item-level Watches remain independent from any previous completed pools.
 
 ---
 
 # 12. Item Requests
 
-## Required Fields
+Customers may request products not currently available within Project Zero-Loss.
 
-- Request text.
-- Product name.
-- Brand.
-- Retailer.
-- Category.
-- Optional product URL.
-- Desired retail-value range.
-- Optional notes.
-- Notification preference if added.
-
-## Business Rules
-
-1. Requests do not guarantee inclusion.
-2. Requests never create catalog records automatically.
-3. Requests require moderation.
-4. Duplicate requests should be grouped.
-5. URLs and free text must be sanitized.
-6. Requests must be rate-limited.
-7. Illegal or prohibited items must be rejected.
-8. Requests may inform aggregate demand planning.
-9. Users may see a simple status: Submitted, Under Review, Added, or Not Planned.
-10. Internal moderation notes remain private.
-
-Suggested user message:
-
-> Thanks. Your request has been submitted for review. This does not guarantee that the item will be added.
+Requests help improve future catalog planning while making no promise of inclusion.
 
 ---
 
+## Required Information
+
+Recommended request fields include:
+
+- Product Name
+- Brand
+- Retailer
+- Category
+- Optional Product URL
+- Desired Retail Value
+- Additional Notes
+- Notification Preference
+
+---
+
+## Customer Expectations
+
+Submitting an Item Request means:
+
+- the request enters review,
+- moderation may occur,
+- duplicate requests may be grouped,
+- prohibited products may be rejected,
+- and catalog availability is never guaranteed.
+
+Suggested confirmation message:
+
+> Thank you. Your request has been submitted for review. We appreciate your feedback and will evaluate it as part of future catalog planning.
+
 # 13. Empty, Loading, and Error States
+
+The Wishlist & Watchlist experience should gracefully handle every customer state while maintaining confidence and clarity.
+
+---
 
 ## Empty Wishlist
 
-> Your wishlist is empty.
+When a customer has not saved any items, display a welcoming empty state.
 
-Supporting text:
+**Primary Message**
 
-> Save products you may want to buy or try to win later.
+> Your Wishlist is empty.
+
+**Supporting Text**
+
+> Save products you may want to purchase or participate in later so they're always easy to find.
+
+Suggested actions:
+
+- Browse Products
+- Explore Categories
+- View Recommendations
+- Search the Marketplace
+
+The empty state should encourage discovery without creating urgency.
+
+---
 
 ## No Active Pools
 
-> None of your wishlist items have an active pool right now.
+When none of the customer's Wishlist items currently have an active pool:
 
-Actions:
+> None of your saved items currently have an active pool.
 
-- Notify me when one opens.
-- View coming soon.
-- Explore similar items.
+Suggested actions include:
 
-## Loading
+- Notify me when one becomes available
+- Browse Coming Soon
+- Explore Similar Products
 
-Use stable skeletons and avoid major layout shifts.
+Customers should understand that unavailable items remain safely stored in their Wishlist.
 
-## Failures
+---
 
-Examples:
+## Loading States
 
-- `We could not add this item to your wishlist. Please try again.`
-- `We could not remove this item. Please try again.`
-- `We could not create this alert. Please review your settings and try again.`
-- `Your session expired. Sign in again to manage your wishlist.`
+Loading screens should use stable skeleton placeholders.
 
-An item removed from the catalog should show a safe unavailable state instead of breaking the page.
+Requirements include:
+
+- minimal layout shift,
+- responsive loading,
+- predictable placement,
+- and consistent Design System components.
+
+Customers should never experience flashing interfaces or unnecessary animations.
+
+---
+
+## Error States
+
+Errors should be understandable and actionable.
+
+Examples include:
+
+> We couldn't add this item to your Wishlist. Please try again.
+
+> We couldn't remove this item.
+
+> We couldn't create this Watch Alert.
+
+> Your session has expired. Please sign in again.
+
+Temporary failures should preserve customer intent whenever possible.
 
 ---
 
 # 14. Business Rules
 
-1. Wishlist and watchlist actions never reserve inventory.
-2. They never create entries, debits, holds, or wallet changes.
-3. Saving does not guarantee a future pool or price.
-4. Watching does not guarantee delivery.
-5. Alert conditions must be based on genuine state.
-6. Duplicate wishlist items and duplicate equivalent watches are prohibited.
-7. A user may create distinct watches for different conditions.
-8. Removing a wishlist item does not erase history.
-9. Removing a wishlist item does not silently delete a separate watch.
-10. Removing a watch does not remove the wishlist item.
-11. Completed pools stop progress alerts.
-12. Item-level watches may survive pool replacement; pool-level watches do not.
-13. Retired items may remain visible as unavailable.
-14. Users may pause alerts without deleting watches.
-15. Item Requests require moderation and cannot bypass catalog or legal review.
-16. Wishlist data may inform recommendations only according to user settings.
-17. Wishlist records and analytics events never become financial truth.
-18. Ownership is always verified server-side.
-19. Anonymous merges and alert delivery must be idempotent.
-20. Administrative actions must be audited.
+The Wishlist & Watchlist capability must remain completely independent from the financial systems of Project Zero-Loss.
+
+Business rules include:
+
+1. Wishlist items never reserve inventory.
+2. Wishlist items never purchase entries.
+3. Wishlist items never create wallet holds.
+4. Wishlist items never guarantee future availability.
+5. Watch Alerts never guarantee notification delivery.
+6. Alert conditions must use genuine marketplace data.
+7. Duplicate Wishlist items are prohibited.
+8. Duplicate equivalent Watch Alerts are prohibited.
+9. Multiple Watch conditions for the same item are permitted.
+10. Removing a Wishlist item does not erase customer history.
+11. Removing a Wishlist item does not automatically remove independent Watch Alerts.
+12. Removing a Watch Alert does not remove the Wishlist item.
+13. Completed pools stop pool-specific alerts.
+14. Item Watches may continue across future pools.
+15. Retired products may remain visible.
+16. Customers may pause notifications without deleting Watches.
+17. Item Requests require moderation.
+18. Wishlist personalization follows customer preferences.
+19. Wishlist data never becomes financial truth.
+20. Ownership is always verified server-side.
+21. Administrative actions are fully audited.
+
+The server remains the single authoritative source of Wishlist state.
 
 ---
 
-# 15. Suggested Data Model
+# 15. Data Model
 
-Final implementation must be reviewed against the Master Architecture.
+Final implementation should align with the Master Architecture specification.
 
-## `wishlists`
+Recommended entities include:
 
-- `id`
-- `user_id`
-- `name`
-- `is_default`
-- `visibility`
-- `created_at`
-- `updated_at`
-- `archived_at`
+### Wishlists
 
-Version 1 uses one default private wishlist.
+Stores each customer's Wishlist.
 
-## `wishlist_items`
+Typical fields include:
 
-- `id`
-- `wishlist_id`
-- `item_id`
-- `created_at`
-- `updated_at`
-- `source_surface`
-- `priority`
-- `notes`
-- `desired_price_cents`
-- `desired_retailer_id`
-- `target_date`
-- `metadata`
+- ID
+- User ID
+- Name
+- Default Flag
+- Visibility
+- Created Date
+- Updated Date
+- Archived Date
 
-Recommended uniqueness constraint:
-
-`UNIQUE (wishlist_id, item_id)`
-
-## `pool_watches`
-
-- `id`
-- `user_id`
-- `watch_scope`
-- `item_id`
-- `pool_id`
-- `alert_type`
-- `threshold_value`
-- `channel`
-- `frequency`
-- `enabled`
-- `paused_until`
-- `created_at`
-- `updated_at`
-- `last_evaluated_at`
-- `last_triggered_at`
-- `last_condition_state`
-- `deduplication_key`
-- `metadata`
-
-## `item_requests`
-
-- `id`
-- `user_id`
-- `request_text`
-- `product_name`
-- `brand_name`
-- `retailer_name`
-- `category_id`
-- `product_url`
-- `desired_value_min_cents`
-- `desired_value_max_cents`
-- `status`
-- `moderation_reason`
-- `duplicate_group_id`
-- `created_at`
-- `updated_at`
-- `reviewed_at`
-- `reviewed_by`
-
-## Required Integrity Rules
-
-- One default wishlist per user.
-- Unique item per wishlist.
-- Valid watch scope and threshold.
-- Valid entity references.
-- Valid request status.
-- User ownership.
-- Controlled archival where history matters.
+Version 1 supports one default private Wishlist.
 
 ---
 
-# 16. Server and API Requirements
+### Wishlist Items
 
-The server must derive the acting user from verified authentication.
+Each record represents one saved product.
 
-Required operations:
+Suggested fields include:
 
-- Create default wishlist.
-- Add and remove item.
-- List and batch-check wishlist state.
-- Create, update, pause, resume, disable, and delete watch.
-- Evaluate watch conditions.
-- Submit and list item requests.
-- Merge anonymous wishlist after sign-in.
+- Wishlist ID
+- Item ID
+- Date Added
+- Source Surface
+- Priority
+- Notes
+- Desired Price
+- Preferred Retailer
+- Target Date
+- Metadata
 
-Requirements:
+Recommended constraint:
 
-- Add, remove, merge, trigger processing, and retries must be idempotent.
-- Watch evaluation must use a durable job, event, or queue mechanism.
-- Product grids must use batch lookup, not one query per card.
-- Public data may be cached, but private wishlist state must never leak through shared caches.
-- Rate limits must protect wishlist mutations, watches, and item requests.
+One item may exist only once within a customer's Wishlist.
 
 ---
 
-# 17. Integrations
+### Watch Records
+
+Watch entities should include:
+
+- User
+- Item
+- Pool
+- Watch Type
+- Threshold
+- Notification Channel
+- Frequency
+- Enabled
+- Paused Until
+- Last Evaluated
+- Last Triggered
+- Current State
+- Metadata
+
+Each Watch should contain enough information to safely evaluate conditions without ambiguity.
+
+---
+
+### Item Requests
+
+Suggested fields include:
+
+- Product Name
+- Brand
+- Retailer
+- Category
+- Product URL
+- Desired Value
+- Status
+- Moderation Notes
+- Duplicate Group
+- Review Information
+
+Moderation data remains internal.
+
+---
+
+# 16. Server Requirements
+
+The server is responsible for all authoritative Wishlist operations.
+
+Required capabilities include:
+
+- Create default Wishlist
+- Add item
+- Remove item
+- Retrieve Wishlist
+- Batch Wishlist lookup
+- Create Watch
+- Update Watch
+- Pause Watch
+- Resume Watch
+- Delete Watch
+- Evaluate Watch conditions
+- Submit Item Request
+- Merge anonymous Wishlists
+
+All write operations should be idempotent.
+
+Batch endpoints should be used for product grids to avoid excessive database queries.
+
+Private Wishlist information must never leak through shared caches.
+
+---
+
+# 17. Capability Integrations
+
+Wishlist interacts with several other Project Zero-Loss capabilities.
+
+---
 
 ## Notifications
 
-Governed by `docs/capabilities/notifications.md`.
+Notifications deliver Watch Alerts according to customer preferences.
 
-- A watch is not unrestricted marketing consent.
-- Users choose channel and frequency.
-- Quiet hours are honored.
-- Duplicate deliveries are prevented.
-- Preview environments never send to production users.
-- Failed delivery does not delete the watch.
+Wishlist itself does not authorize marketing communications.
+
+Customers choose:
+
+- channel,
+- frequency,
+- quiet hours,
+- and delivery preferences.
+
+---
 
 ## Favorites
 
-Favorite, Wishlist, and Watchlist may coexist. The UI may simplify their controls, but their meanings remain distinct.
+Favorites and Wishlist represent different customer intent.
+
+Customers may:
+
+Favorite
+
+↓
+
+Wishlist
+
+without affecting either capability.
+
+---
 
 ## Recommendations
 
-Wishlist signals may influence recommendations only with explainable reasons, user control, and eligibility filtering.
+Wishlist activity may improve recommendations only when customers permit personalization.
+
+Recommendations should always explain why an item appears.
+
+---
 
 ## Search
 
-Search results should show wishlist and watch state and allow saving, watching, or requesting unavailable products.
+Search results should display Wishlist status.
+
+Customers should be able to:
+
+- add items,
+- remove items,
+- create Watches,
+- and request unavailable products directly from search results.
+
+---
 
 ## Catalog
 
-Catalog retirement must not corrupt lists. States may include Active, Coming Soon, Temporarily Unavailable, Retired, Prohibited, and Replaced.
+Catalog changes should never corrupt customer Wishlists.
+
+Unavailable products should display appropriate availability messaging rather than disappearing unexpectedly.
+
+---
 
 ## Activity History
 
-User-visible activity may include wishlist additions, watch creation, watch triggers, and request status changes. This remains separate from the financial ledger, audit logs, analytics, and notification delivery records.
+Customer-visible history may include:
+
+- Wishlist Added
+- Wishlist Removed
+- Watch Created
+- Watch Paused
+- Watch Triggered
+- Item Request Submitted
+- Item Request Updated
+
+These records remain independent from:
+
+- financial ledger entries,
+- audit logs,
+- notification delivery,
+- and analytics events.
+
+# 18. Security Requirements
+
+Wishlist and Watchlist data represent customer preferences and shopping intent.
+
+While they are not financial records, they must be protected with the same commitment to privacy and security applied throughout Project Zero-Loss.
 
 ---
-
-# 18. Security, Privacy, and Fraud
-
-- Users may access only their own records.
-- Row Level Security must be enabled and tested.
-- Wishlists remain private by default.
-- Item-request input must be sanitized and rate-limited.
-- Administrative access to named user intent should be restricted and logged.
-- Aggregate analytics should be preferred.
-
-Potential abuse:
-
-- Fake accounts inflating demand.
-- Bots creating watches.
-- Scraping.
-- Request spam.
-- Referral manipulation.
-- Fake popularity signals.
-
-Protections may include rate limits, bot detection, duplicate-account signals, request deduplication, velocity limits, suspicious-volume alerts, and fraud-filtered analytics.
-
-Wishlist and watch counts must never affect winners, odds, pool capacity, payouts, rebates, or financial benefits.
-
----
-
-# 19. Administrative Requirements
-
-The admin portal should support:
-
-- Most-wishlisted, most-watched, and most-requested items.
-- Demand by category, brand, retailer, and lawful geography.
-- Watch-trigger and notification-delivery health.
-- Suspicious activity alerts.
-- Request moderation and duplicate grouping.
-- Request-status changes.
-- Catalog conversion through normal approval.
-- Emergency pause.
-- Audit history.
-- Aggregate export.
-
-Administrative tools must not fabricate demand or silently modify user lists.
-
----
-
-# 20. Analytics Requirements
-
-Recommended events:
-
-- `wishlist_item_added`
-- `wishlist_item_removed`
-- `wishlist_page_viewed`
-- `wishlist_item_opened`
-- `watch_created`
-- `watch_updated`
-- `watch_paused`
-- `watch_resumed`
-- `watch_disabled`
-- `watch_triggered`
-- `watch_delivery_attempted`
-- `watch_delivery_failed`
-- `item_request_submitted`
-- `item_request_updated`
-- `anonymous_wishlist_created`
-- `anonymous_wishlist_merged`
-- `wishlist_merge_failed`
-
-Useful metrics:
-
-- Wishlist-to-entry conversion.
-- Wishlist-to-purchase conversion.
-- Watch-to-entry conversion.
-- Trigger open and click rates.
-- Time from save to entry or purchase.
-- Most-requested items and categories.
-- Request-to-catalog conversion.
-- Notification opt-out rate.
-- Suspicious watch velocity.
-
-Analytics never become the source of truth.
-
----
-
-# 21. Accessibility, Mobile, and Performance
-
-## Accessibility
-
-Controls must work by keyboard, have visible focus, include screen-reader labels, avoid color-only meaning, meet contrast requirements, support reduced motion, and announce state changes.
-
-## Mobile
-
-- Controls must be easily tappable.
-- Watch settings may use an accessible bottom sheet.
-- Threshold options must be clear.
-- Large lists should paginate or load incrementally.
-- Sign-in prompts must not repeatedly interrupt browsing.
-- Weak-network failures must show recovery options.
-
-## Performance
-
-Support batch lookup, indexed ownership queries, paginated lists, efficient watch evaluation, deduplicated jobs, controlled optimistic UI, and safe user-specific caching.
-
-Test large wishlists, many active watches, high-volume threshold crossings, concurrent updates, and multi-device synchronization.
-
----
-
-# 22. Failure and Edge Cases
-
-The implementation must address:
-
-- Duplicate add or remove requests.
-- Simultaneous multi-device changes.
-- Anonymous merge conflicts.
-- Item retirement after saving.
-- Pool completion before delivery.
-- Rapid pool-state changes.
-- Threshold reversal.
-- Provider failure and retry.
-- Duplicate events.
-- Preference changes after trigger creation.
-- Item removed while watch remains.
-- Watch removed while item remains.
-- Account suspension or deletion.
-- Malicious URLs or request text.
-- Excessive requests.
-- Replaced catalog items.
-- Local storage unavailable.
-- Partial batch failure.
-- Unauthorized access.
-- Bot-created watches.
-
-Each edge case needs safe server behavior, understandable messaging where relevant, logging, and tests.
-
----
-
-# 23. Testing Requirements
 
 ## Authorization
 
-- Users can read and modify only their own records.
-- Anonymous behavior follows approved local rules.
+Only authenticated customers may:
 
-## Data Integrity
+- create Wishlists,
+- modify Wishlist items,
+- create Watch Alerts,
+- pause Watches,
+- resume Watches,
+- delete Watches,
+- submit Item Requests,
+- and manage their own preferences.
 
-- Duplicates are prevented.
-- Add and remove operations are idempotent.
-- Invalid thresholds and references are rejected.
-- Retired items are safe.
+The server must derive ownership from the authenticated session.
 
-## Trigger Logic
-
-- Thresholds fire once.
-- Unchanged state does not resend.
-- Pool-level and item-level watches remain distinct.
-- Completed pools stop progress alerts.
-- Retries do not duplicate delivery.
-
-## User Experience
-
-- Empty, loading, unavailable, and error states render.
-- Optimistic rollback works.
-- Mobile and accessibility requirements pass.
-
-## Integration
-
-- Notification and recommendation preferences are honored.
-- Requests enter moderation.
-- Activity and analytics records are correct but nonauthoritative.
-
-## Performance
-
-- Grids use batch lookup.
-- Large lists paginate.
-- Watch evaluation remains bounded.
-- No unbounded queries occur.
+Client-provided ownership information must never be trusted.
 
 ---
 
-# 24. Acceptance Criteria
+## Row-Level Security
 
-Version 1 is complete only when:
+All Wishlist data must be protected by Row-Level Security (RLS).
 
-1. Users can add and remove wishlist items.
-2. Duplicate records cannot be created.
-3. Users can view the wishlist account page.
-4. Users can create, pause, resume, and disable supported watches.
-5. Alerts fire only on genuine state changes.
-6. Duplicate deliveries are prevented.
-7. Users control channel and frequency.
-8. Users cannot access another user's records.
-9. RLS is active and tested.
-10. Unavailable and retired items render safely.
-11. Item Requests are sanitized and moderated.
-12. Wishlist and watch actions never affect financial records or pool outcomes.
-13. Loading, empty, error, and unavailable states work.
-14. Mobile and keyboard interactions work.
-15. Anonymous merge, if implemented, is idempotent.
-16. Admin demand and moderation tools work.
-17. Fraud controls detect suspicious activity.
-18. Automated tests pass.
-19. Founder verification passes.
-20. Documentation matches implementation.
-21. Changes are committed to GitHub.
+Customers must never be able to:
+
+- read another customer's Wishlist,
+- modify another customer's Watches,
+- access another customer's Item Requests,
+- or enumerate private Wishlist information.
+
+All authorization decisions are enforced server-side.
 
 ---
 
-# 25. Founder Verification Checklist
+## Administrative Access
 
-1. Add an item to Wishlist.
-2. Refresh and confirm persistence.
-3. Open `/account/wishlist` and confirm the item appears.
-4. Create a new-pool watch.
-5. Confirm the selected frequency.
-6. Pause and resume the watch.
-7. Create an 80% threshold watch.
-8. Confirm duplicates are prevented.
-9. Remove the wishlist item and verify the approved watch behavior.
-10. Disable the watch.
-11. Test an unavailable item.
-12. Submit an Item Request.
-13. Confirm it appears in user history and admin moderation.
-14. Confirm another user cannot access the first user's records.
-15. Confirm no wallet, entry, pool-capacity, or ledger record changed.
-16. Test mobile and keyboard use.
-17. Test an expired session.
-18. Simulate delivery failure and confirm retry does not duplicate delivery.
+Administrative users should have only the minimum access required to perform operational duties.
+
+Administrative actions should require appropriate permissions and be fully audited.
+
+Administrative users must never:
+
+- silently modify customer Wishlists,
+- create Wishlist entries on behalf of customers,
+- fabricate Watch Alerts,
+- or manipulate customer shopping intent.
 
 ---
 
-# 26. Related Documents
+# 19. Privacy Requirements
 
-Review this capability with:
+Wishlist data represents personal shopping preferences.
 
-- `docs/project-index.md`
-- `docs/architecture/master-architecture.md`
-- `docs/architecture/ai-operating-rules.md`
-- `docs/architecture/output-contract.md`
-- `docs/core/product-vision.md`
-- `docs/core/product-concept.md`
-- `docs/capabilities/README.md`
-- `docs/capabilities/favorites.md`
-- `docs/capabilities/notifications.md`
-- `docs/capabilities/search.md`
-- `docs/capabilities/recommendations.md`
-- `docs/capabilities/user-preferences.md`
-- `docs/capabilities/activity-history.md`
-- `docs/capabilities/catalog.md`
-- `docs/capabilities/identity-and-profile.md`
-- `docs/product/homepage-spec.md`
-- `docs/product/item-page-spec.md`
-- `docs/product/account-wallet-spec.md`
-- `docs/product/design-system-spec.md`
-- `docs/operations/admin-portal-spec.md`
-- `docs/operations/analytics-spec.md`
-- `docs/operations/fraud-and-risk-spec.md`
+Customers should understand:
+
+- what information is stored,
+- how it is used,
+- how recommendations are generated,
+- and how notifications are triggered.
+
+Wishlist information should remain private by default.
+
+Future sharing features must always require explicit customer consent.
+
+Customers should be able to:
+
+- delete Wishlist items,
+- remove Watches,
+- disable personalization,
+- and manage notification preferences at any time.
+
+Wishlist information must never be used to infer sensitive personal characteristics or create discriminatory experiences.
 
 ---
 
-# 27. Guiding Statement
+# 20. Fraud Prevention
 
-The Wishlist and Watchlist capability exists to help users plan, save, and monitor products they genuinely care about.
+Although Wishlist activity has no financial impact, abuse prevention remains important.
 
-It must increase convenience without creating hidden financial commitments, false urgency, fake demand, or unwanted communication.
+Potential abuse includes:
 
-Users remain in control of what they save, what they watch, when they are contacted, and how their shopping intent is used.
+- automated Wishlist generation,
+- bot-created Watches,
+- artificial demand inflation,
+- scraping,
+- request spam,
+- referral abuse,
+- fake popularity,
+- and automated catalog manipulation.
+
+Recommended protections include:
+
+- rate limiting,
+- bot detection,
+- duplicate-account detection,
+- request deduplication,
+- anomaly detection,
+- suspicious activity monitoring,
+- velocity limits,
+- and abuse analytics.
+
+Wishlist metrics must never influence:
+
+- winner selection,
+- pool odds,
+- pool capacity,
+- rebates,
+- payouts,
+- ledger balances,
+- or financial outcomes.
+
+---
+
+# 21. Administrative Requirements
+
+The Administrative Portal should provide aggregate operational reporting while protecting individual customer privacy.
+
+Recommended dashboards include:
+
+- Most Wishlisted Items
+- Most Watched Items
+- Most Requested Products
+- Category Demand
+- Brand Demand
+- Retailer Demand
+- Watch Trigger Health
+- Notification Delivery Health
+- Request Moderation Queue
+- Duplicate Request Groups
+- Suspicious Activity
+- Aggregate Demand Trends
+
+Administrative tools should never manufacture demand or artificially influence customer behavior.
+
+Every administrative action should generate a permanent audit record.
+
+---
+
+# 22. Analytics
+
+Wishlist interactions provide valuable product insights.
+
+Recommended events include:
+
+- wishlist_item_added
+- wishlist_item_removed
+- wishlist_page_viewed
+- wishlist_item_opened
+- watch_created
+- watch_updated
+- watch_paused
+- watch_resumed
+- watch_disabled
+- watch_triggered
+- watch_notification_sent
+- item_request_submitted
+- item_request_reviewed
+
+Useful business metrics include:
+
+- Wishlist growth
+- Wishlist retention
+- Wishlist-to-entry conversion
+- Wishlist-to-purchase conversion
+- Watch engagement
+- Notification open rate
+- Notification click rate
+- Most Requested Products
+- Category demand
+- Brand demand
+- Retailer demand
+- Item Request approval rate
+
+Analytics provide reporting only.
+
+They never become the authoritative source of Wishlist data.
+
+---
+
+# 23. Accessibility
+
+Wishlist & Watchlist must be fully accessible.
+
+Requirements include:
+
+- complete keyboard navigation,
+- visible focus indicators,
+- descriptive screen-reader labels,
+- sufficient color contrast,
+- reduced-motion support,
+- touch-friendly controls,
+- and clear state announcements.
+
+Examples include:
+
+> Added to Wishlist.
+
+> Removed from Wishlist.
+
+> Watch Enabled.
+
+> Watch Paused.
+
+State changes should always be announced to assistive technologies.
+
+---
+
+# 24. Mobile Experience
+
+The mobile experience should prioritize simplicity and speed.
+
+Wishlist actions should remain easily accessible from:
+
+- product cards,
+- product pages,
+- search results,
+- recommendations,
+- and account pages.
+
+Watch configuration may use an accessible bottom sheet or modal.
+
+Large Wishlists should support:
+
+- pagination,
+- lazy loading,
+- efficient searching,
+- and filtering.
+
+Weak network conditions should never silently lose customer actions.
+
+---
+
+# 25. Performance Requirements
+
+Wishlist must scale efficiently as the platform grows.
+
+Recommended implementation includes:
+
+- indexed ownership queries,
+- batch Wishlist lookups,
+- efficient Watch evaluation,
+- paginated results,
+- deduplicated background jobs,
+- optimistic interface updates,
+- and safe customer-specific caching.
+
+Performance testing should include:
+
+- large Wishlists,
+- thousands of active Watches,
+- concurrent device updates,
+- high notification volume,
+- and heavy marketplace activity.
+
+---
+
+# 26. Failure and Edge Cases
+
+The implementation should safely handle situations including:
+
+- duplicate add requests,
+- duplicate remove requests,
+- simultaneous multi-device edits,
+- anonymous account merges,
+- retired products,
+- completed pools,
+- threshold reversals,
+- duplicate notification events,
+- notification provider failures,
+- deleted products,
+- Watch removal while Wishlist remains,
+- Wishlist removal while Watch remains,
+- account suspension,
+- malformed requests,
+- excessive submission attempts,
+- replaced catalog items,
+- unavailable local storage,
+- unauthorized access,
+- and automated bot activity.
+
+Every edge case should have:
+
+- predictable server behavior,
+- understandable customer messaging,
+- logging,
+- monitoring,
+- and automated testing.
+
+---
+
+# 27. Testing Requirements
+
+Testing should verify:
+
+### Authorization
+
+- Customers access only their own Wishlist.
+- Administrative permissions function correctly.
+
+### Data Integrity
+
+- Duplicate Wishlist entries are prevented.
+- Duplicate Watches are prevented.
+- Idempotent operations succeed.
+- Invalid references are rejected.
+
+### Watch Evaluation
+
+- Thresholds trigger once.
+- Duplicate notifications are prevented.
+- Pool Watches remain separate from Item Watches.
+- Completed pools stop progress notifications.
+
+### User Experience
+
+- Empty states function.
+- Loading states function.
+- Error recovery functions.
+- Mobile layouts pass testing.
+- Accessibility requirements pass testing.
+
+### Integration
+
+- Notification preferences are respected.
+- Recommendation preferences are respected.
+- Activity History records correctly.
+- Analytics remain non-authoritative.
+
+### Performance
+
+- Batch lookups function efficiently.
+- Large Wishlists remain responsive.
+- Background evaluation scales safely.
+
+---
+
+# 28. Acceptance Criteria
+
+Version 1 is complete when:
+
+1. Customers can create and manage a Wishlist.
+2. Duplicate Wishlist entries cannot be created.
+3. Watch Alerts function correctly.
+4. Alert thresholds evaluate accurately.
+5. Duplicate notifications are prevented.
+6. Customers control notification preferences.
+7. Wishlist synchronization works across devices.
+8. Unauthorized access is prevented.
+9. Row-Level Security is active.
+10. Item Requests enter moderation.
+11. Unavailable products display safely.
+12. Wishlist actions never affect financial systems.
+13. Mobile functionality is complete.
+14. Accessibility requirements pass.
+15. Administrative reporting functions correctly.
+16. Fraud protections operate correctly.
+17. Automated testing passes.
+18. Documentation reflects implemented behavior.
+
+---
+
+# 29. Related Specifications
+
+This capability should always be implemented alongside:
+
+- Master Architecture
+- AI Operating Rules
+- Output Contract
+- Product Vision
+- Product Concept
+- Favorites
+- Notifications
+- Search
+- Recommendations
+- User Preferences
+- Activity History
+- Catalog
+- Identity & Profile
+- Homepage Specification
+- Item Page Specification
+- Account Wallet Specification
+- Design System Specification
+- Administrative Portal Specification
+- Analytics Specification
+- Fraud & Risk Specification
+
+---
+
+# 30. Governance
+
+The Wishlist & Watchlist capability is the authoritative specification governing saved products, customer purchase intent, and marketplace monitoring within Project Zero-Loss.
+
+Future enhancements should strengthen:
+
+- customer organization,
+- transparency,
+- personalization,
+- accessibility,
+- operational performance,
+- and long-term customer trust.
+
+No implementation may introduce hidden financial commitments, artificial urgency, fabricated demand, misleading notifications, or behavior that conflicts with the core philosophy of Project Zero-Loss.
+

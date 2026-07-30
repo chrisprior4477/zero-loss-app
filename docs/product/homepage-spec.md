@@ -1,370 +1,885 @@
-# Project Zero-Loss Homepage Spec
+# Project Zero-Loss Homepage Specification
+## Public Storefront, Discovery Experience, and Primary Conversion Flow
 
-## Homepage, Storefront Shell, and Live Discovery Experience
-
-This document defines the homepage for Project Zero-Loss.
-
-It explains:
-- the purpose of the homepage,
-- the required layout structure,
-- the emotional goals of the page,
-- the critical UI modules that must appear,
-- and the interaction rules that make the storefront feel trustworthy, alive, and conversion-focused.
-
-This is the master spec for the public-facing homepage and primary storefront shell.
+**Version:** 1.1  
+**Status:** Authoritative  
+**Document Type:** Product Specification
 
 ---
 
-# 1. Homepage Goal
+# Purpose
 
-The homepage must function as the product’s opening handshake with the user.
+The homepage is the primary storefront of Project Zero-Loss.
 
-It should immediately explain, through both layout and messaging, that this is:
-- a real storefront,
-- a live platform,
-- a safer kind of entry-based commerce,
-- and a place where users can quickly discover products they already care about.
+It is responsible for introducing new visitors to the platform, building immediate trust, explaining the core concept, and guiding users toward participation with as little friction as possible.
 
-The homepage should feel:
+The homepage is not simply a landing page.
+
+It is simultaneously:
+
+- the public storefront,
+- the discovery engine,
+- the marketplace dashboard,
+- the trust builder,
+- and the platform's primary conversion experience.
+
+Every design decision should reinforce the Zero-Loss Promise while making the marketplace feel active, transparent, and premium.
+
+---
+
+# 1. Homepage Objectives
+
+The homepage has five primary objectives.
+
+## Explain
+
+A new visitor should immediately understand that Project Zero-Loss is a new way to shop rather than another traditional e-commerce website.
+
+---
+
+## Build Trust
+
+The homepage should establish credibility before asking the customer to participate.
+
+Trust should come from:
+
+- transparent messaging,
+- visible marketplace activity,
+- recognizable products,
+- clean design,
+- and financial clarity.
+
+---
+
+## Encourage Discovery
+
+Users should immediately begin exploring products.
+
+Navigation should require minimal effort.
+
+Customers should naturally scroll, browse, search, and filter without needing instructions.
+
+---
+
+## Create Momentum
+
+The homepage should feel active.
+
+Marketplace activity should communicate that:
+
+- products are moving,
+- pools are progressing,
+- customers are participating,
+- and the marketplace is alive.
+
+Momentum should come from genuine marketplace activity rather than artificial urgency.
+
+---
+
+## Convert
+
+The homepage should naturally guide customers toward:
+
+- viewing products,
+- creating an account,
+- funding a wallet,
+- entering pools,
+- and returning frequently.
+
+Every section should support this progression.
+
+---
+
+# 2. Experience Principles
+
+The homepage should consistently communicate five emotional responses.
+
+## Clarity
+
+Visitors immediately understand:
+
+- what the platform does,
+- how participation works,
+- and why it is different.
+
+---
+
+## Confidence
+
+Customers should feel financially safe.
+
+Nothing on the page should resemble misleading gambling or questionable promotions.
+
+---
+
+## Excitement
+
+The marketplace should feel energetic.
+
+Customers should become curious about products and opportunities.
+
+---
+
+## Momentum
+
+Activity throughout the interface should communicate a healthy marketplace.
+
+Customers should believe that meaningful participation is happening continuously.
+
+---
+
+## Simplicity
+
+Despite sophisticated business mechanics, the homepage should remain easy to understand.
+
+Complexity belongs behind the interface—not inside it.
+
+---
+
+# 3. Design Language
+
+The homepage establishes the visual identity of the platform.
+
+Its appearance should combine inspiration from:
+
+- premium fintech,
+- modern commerce,
+- live marketplaces,
+- and high-quality consumer applications.
+
+The overall aesthetic should be:
+
 - modern,
-- fast,
-- trustworthy,
-- slightly urgent,
-- and emotionally clear.
+- confident,
+- premium,
+- clean,
+- energetic,
+- and highly responsive.
 
-It must not feel like:
-- a flashing casino page,
-- a cluttered discount catalog,
-- or a confusing generic ecommerce homepage.
+The interface should avoid unnecessary decoration while remaining visually engaging.
 
 ---
 
-# 2. Core Design Direction
+# 4. Layout Structure
 
-The homepage should blend influence from three major UX models while becoming its own product experience.
+The homepage should follow a consistent vertical structure.
 
-## 2.1 DraftKings / PrizePicks Influence
+1. Sticky Header
+2. Category Navigation
+3. Hero Section
+4. Live Marketplace Activity
+5. Featured Products
+6. Product Discovery Grid
+7. Promotional Sections
+8. Trust & Transparency Section
+9. Footer
 
-The homepage shell should feel premium, dark, sharp, and high-signal.
-
-This includes:
-- a sticky top navigation structure,
-- strong visual hierarchy,
-- a clean dark-mode shell,
-- and a fintech-like sense of precision.
-
-## 2.2 Temu Influence
-
-The browsing grid should feel dense, quick, and immediately actionable.
-
-This includes:
-- a mobile-first card grid,
-- strong thumbnail visibility,
-- clear pricing and urgency messaging,
-- and a fast-scanning layout optimized for repeated browsing.
-
-## 2.3 StockX Influence
-
-The page must feel alive with proof of activity.
-
-This includes:
-- a live-looking ticker,
-- visible movement,
-- social proof,
-- and a sense that the marketplace is active right now.
+This sequence introduces the marketplace before encouraging participation.
 
 ---
 
-# 3. Emotional Purpose
+# 5. Sticky Header
 
-The homepage must accomplish four emotional outcomes at the same time:
+The sticky header remains visible throughout scrolling.
 
-1. **Clarity** — the user understands the basic idea quickly.
+Its responsibilities include:
 
-2. **Trust** — the user does not feel tricked, confused, or manipulated.
+- branding,
+- navigation,
+- search,
+- account access,
+- notifications,
+- wallet visibility,
+- and quick actions.
 
-3. **Urgency** — the user feels encouraged to act without the site feeling desperate.
-
-4. **Momentum** — the platform feels live, active, and socially validated.
-
-If the page has urgency without trust, it will feel scammy.
-
-If it has trust without momentum, it will feel dead.
-
-If it has clarity without energy, it will feel forgettable.
-
-The page must balance all three.
+The header should function as the customer's command center.
 
 ---
 
-# 4. Required Page Structure
+## Left Section
 
-The homepage should be built in this order from top to bottom:
+Contains:
 
-1. Sticky navigation header.
-2. Category filter tabs.
-3. Hero banner.
-4. Live ticker directly below the hero.
-5. Product discovery grid.
+- Project Zero-Loss logo
+- Home navigation
+- Primary navigation menu
 
-This order matters because it establishes:
-- control,
-- explanation,
-- live proof,
-- and then product discovery.
+The logo should always return the customer to the homepage.
 
 ---
 
-# 5. Sticky Navigation Header
+## Center Section
 
-The homepage header must remain visible and usable as the user scrolls.
+Contains the universal search experience.
 
-## 5.1 Left Section
+Search should support:
 
-The left side should contain the brand identity area, including:
-- logo,
-- clickable home return behavior,
-- and eventual access to global navigation as the platform grows.
-
-## 5.2 Center Section
-
-The center should contain a fast universal search field.
-
-This search should feel prominent and useful, not decorative.
-
-It should eventually support searching for:
-- items,
-- brands,
+- products,
 - categories,
-- and relevant product keywords.
+- brands,
+- merchants,
+- keywords,
+- and future recommendation results.
 
-## 5.3 Right Section
-
-The right side should contain:
-- account/profile access,
-- and the split-ledger balance tracker.
-
-The balance tracker should display:
-- playable balance,
-- rebate/store-credit balance,
-- and bright, clearly separated value indicators driven by live ledger-derived account data.
-
-The header should make the platform feel like both a storefront and a command center.
+Search should be immediately usable.
 
 ---
 
-# 6. Category Filter Tabs
+## Right Section
 
-Directly under the header or in a tightly integrated discovery rail, the homepage should include horizontal category pills.
+Contains customer controls including:
 
-The initial category set should include:
+- Sign In / Profile
+- Notifications
+- Wallet balances
+- Quick funding action
+- Account menu
+
+Authenticated customers should immediately see their financial status.
+
+---
+
+# 6. Wallet Visibility
+
+The wallet is one of the homepage's primary trust signals.
+
+Authenticated users should always have immediate visibility into:
+
+- Playable Balance
+- Rebate Credit Balance
+- Pending activity indicators
+- Notification status
+
+Balances should be derived from the authoritative ledger and updated in near real time.
+
+Financial visibility should reinforce transparency rather than encourage spending.
+
+---
+
+# 7. Category Navigation
+
+Immediately below the header, the homepage should provide horizontal category navigation.
+
+Launch categories include:
+
 - All
 - Groceries & Gas
 - Movie Night
 - Electronics
+- Home Essentials
+- Gift Cards
 - Trophy Vault
 
-These tabs should feel:
-- fast to tap,
-- visually clean,
-- easy to scan,
-- and suited for mobile-first usage.
+Categories should:
 
-The purpose of the tabs is to reduce search effort and create immediate browsing structure.
+- scroll horizontally on mobile,
+- remain touch friendly,
+- support quick filtering,
+- and provide immediate visual feedback.
 
----
-
-# 7. Hero Banner
-
-The hero banner must explain the concept quickly and memorably.
-
-## 7.1 Required Hero Message
-
-The homepage hero headline should communicate the idea that users can:
-
-**Win what they were going to buy anyway.**
-
-The supporting copy should explain the safety-net logic in plain language, making clear that non-winning entry spend still converts into useful store-linked value under the platform’s rules.
-
-## 7.2 Hero Purpose
-
-The hero must do three things:
-- introduce the concept,
-- lower fear,
-- and create curiosity.
-
-It should not overload the user with legal or mechanical detail.
-
-Its job is to create belief, not overwhelm.
+Browsing should feel effortless.
 
 ---
 
-# 8. Live Activity Ticker
+# 8. Hero Section
 
-Directly below the hero, the page must include a permanently visible live-style activity ticker.
+The hero introduces the marketplace.
 
-This ticker is a major trust module.
+Its objective is to explain the platform in seconds.
 
-Its purpose is to make the site feel:
-- active,
-- legitimate,
-- socially validated,
-- and already in motion.
+Primary messaging should communicate:
 
-## 8.1 Ticker Content Style
+**Win what you were already planning to buy.**
 
-The ticker should show outcome-style messages such as:
-- user wins,
-- community events,
-- major milestones,
-- and later other celebratory or trust-reinforcing updates.
+Supporting messaging should reinforce the Zero-Loss Promise by explaining that eligible non-winning participation continues creating value according to marketplace rules.
 
-## 8.2 Visual Behavior
-
-Each ticker item should include a pulsing live indicator or similar real-time signal.
-
-The motion should feel modern and confident, not tacky.
-
-## 8.3 Trust Rule
-
-The ticker must never become fake-looking spam.
-
-It should reinforce platform legitimacy, not damage it.
+The hero should include a primary call-to-action encouraging product discovery while avoiding excessive detail.
 
 ---
 
-# 9. Product Discovery Grid
+# 9. Hero Visual Experience
 
-The core body of the homepage is the product discovery section.
+Hero imagery should reinforce premium commerce rather than gambling.
 
-This is where the site begins converting curiosity into action.
+Visuals may include:
 
-## 9.1 Layout
+- featured products,
+- marketplace activity,
+- wallet illustrations,
+- celebration moments,
+- or subtle animated marketplace elements.
 
-The grid should be mobile-first and optimized around a dense 2-column browsing experience.
+Animation should feel refined and purposeful.
 
-It should present:
-- isolated product imagery,
-- compact but readable card information,
-- visible entry framing,
-- and strong progress/urgency signals.
-
-## 9.2 Card Role
-
-Each card should make it immediately obvious:
-- what the item is,
-- what the entry cost is,
-- how far the pool has progressed,
-- and whether urgency is increasing.
-
-The card should invite a tap without requiring too much thought.
+The hero should communicate optimism and confidence rather than urgency alone.
 
 ---
 
-# 10. Product Card Rules
+# 10. Live Marketplace Activity
 
-Each product card should include the following required elements:
+Immediately beneath the hero, the homepage should display a continuously updating marketplace activity section.
 
-- isolated product image,
-- product title or short label,
-- clear badge indicating the entry mechanic,
-- progress bar showing pool capacity,
-- and click/tap behavior that routes to the item detail page.
+This section demonstrates:
 
-## 10.1 Entry Badge
+- customer participation,
+- completed pools,
+- recent winners,
+- community achievements,
+- and marketplace momentum.
 
-A strong visual badge should make the low-friction entry proposition obvious, such as:
-- “$1 Entry to Win”
-- or equivalent platform-approved language.
+Live activity should always represent authentic platform events.
 
-## 10.2 Progress Bar
-
-Each card must display an urgency/progress bar tied to:
-- `tickets_sold`
-- versus
-- `ticket_cap`.
-
-This is one of the homepage’s most important conversion signals.
-
-## 10.3 High-Urgency Threshold
-
-When a pool passes the defined urgency threshold, the card should escalate visually and textually.
-
-At the threshold described in the source concept, the system should surface a pulsing urgency message such as:
-- “Only X spots left”
-- or equivalent urgent-but-clean language.
-
-The goal is to create momentum, not panic.
+Artificial or fabricated activity is prohibited.
 
 ---
 
-# 11. Routing and Click Behavior
+# 11. Marketplace Activity Principles
 
-Clicking a product card must route the user directly to the corresponding item detail page.
+Marketplace activity should strengthen trust.
 
-The homepage should not introduce unnecessary friction between discovery and conversion.
+Updates should feel:
 
-This means:
-- no confusing intermediate pages,
-- no forced detours,
-- and no bloated preview flow before the user reaches the item page.
+- authentic,
+- timely,
+- informative,
+- and encouraging.
 
-The homepage should act like a launch pad.
+Visual motion should remain subtle.
 
----
-
-# 12. Balance Visibility Rule
-
-A major distinguishing feature of the homepage shell is that it surfaces wallet state early rather than hiding it deep in account settings.
-
-When the user is authenticated, the homepage should expose:
-- playable balance,
-- rebate credit balance,
-- and later other clean account-relevant cues through the top shell.
-
-This helps the product feel transparent and fintech-grade rather than vague or game-like.
+The objective is to communicate marketplace health rather than create distraction.
 
 ---
 
-# 13. Mobile-First Rule
+# 12. Homepage Governance
 
-The homepage must be designed for mobile-first interaction.
+The homepage establishes the customer's first impression of Project Zero-Loss.
 
-That means:
-- fast vertical scanning,
-- thumb-friendly category filters,
-- readable card density,
-- sticky top-level controls,
-- and strong visual separation without clutter.
+Every future enhancement should strengthen:
 
-Desktop should feel like an expansion of a great mobile experience, not the other way around.
+- trust,
+- transparency,
+- clarity,
+- marketplace activity,
+- customer confidence,
+- and product discovery.
+
+If a proposed homepage feature weakens these principles, it should be redesigned before implementation.
+
+# 13. Featured Products Section
+
+Immediately following the Live Marketplace Activity section, the homepage should highlight a curated collection of featured opportunities.
+
+Featured products should represent:
+
+- the most popular pools,
+- newly launched pools,
+- limited-time opportunities,
+- promotional campaigns,
+- and editorial selections.
+
+This section serves as the customer's first invitation to begin participating.
+
+Featured products should rotate based on configurable business rules rather than hard-coded placement.
 
 ---
 
-# 14. Anti-Goals
+# 14. Product Discovery Grid
 
-The homepage must avoid the following failures:
+The Product Discovery Grid is the core browsing experience of the homepage.
 
-- fake casino energy,
-- cluttered bargain-bin merchandising,
-- loud flashing motion,
-- weak explanation of the concept,
-- hidden wallet context,
-- stale-looking activity signals,
-- or product cards that hide urgency/value too deeply.
+Its primary objective is to help customers discover products with minimal effort.
 
-If the homepage becomes messy, generic, or overdesigned, it is moving away from the intended product identity.
+The grid should emphasize:
+
+- recognizable product imagery,
+- clean information hierarchy,
+- quick scanning,
+- and immediate interaction.
+
+The layout should prioritize browsing speed over excessive detail.
 
 ---
 
-# 15. Final Homepage Rule
+## Mobile Layout
 
-If the homepage is doing its job correctly, a new user should land on it and understand three things within seconds:
+The default mobile layout should use a dense two-column grid optimized for thumb-first navigation.
 
-1. This is a real storefront.
+Cards should remain large enough for:
 
-2. I can try to win something I actually want for a very low entry cost.
+- product recognition,
+- progress visibility,
+- and comfortable interaction.
 
-3. If I do not win, the system still gives my spend useful value instead of making it feel wasted.
+---
 
-That is the standard this page must hit.
+## Tablet Layout
+
+Tablet layouts may expand spacing while preserving the same browsing flow.
+
+Additional whitespace should improve readability without reducing browsing efficiency.
+
+---
+
+## Desktop Layout
+
+Desktop layouts should expand naturally from the mobile experience.
+
+Additional screen space should support:
+
+- larger imagery,
+- improved filtering,
+- and enhanced product density,
+
+while maintaining visual consistency.
+
+---
+
+# 15. Product Card Specification
+
+Every product card should communicate the essential participation information at a glance.
+
+Required elements include:
+
+- Product image
+- Product title
+- Entry callout
+- Pool progress
+- Remaining availability
+- Product category
+- Primary action
+
+Each card should be independently understandable.
+
+Customers should not need to open the detail page to grasp the basic opportunity.
+
+---
+
+## Product Image
+
+Images should use isolated product photography on clean backgrounds whenever possible.
+
+Images should be:
+
+- high resolution,
+- consistently cropped,
+- optimized for fast loading,
+- and visually consistent across categories.
+
+---
+
+## Product Title
+
+Titles should remain concise while clearly identifying the product.
+
+Titles should prioritize recognition over marketing language.
+
+---
+
+## Entry Indicator
+
+The entry indicator should immediately communicate the participation model.
+
+Examples include:
+
+- "$1 Entry"
+- "$2 Entry"
+- "$5 Entry"
+
+Language should remain simple, consistent, and highly visible.
+
+---
+
+## Progress Indicator
+
+Every product card should display a visual progress component representing pool completion.
+
+Progress is calculated using:
+
+- Tickets Sold
+- Ticket Capacity
+
+The progress component should help customers quickly identify pools nearing completion.
+
+---
+
+## Urgency Messaging
+
+As participation approaches capacity, product cards should progressively communicate increasing urgency.
+
+Examples include:
+
+- Limited Spots Remaining
+- Almost Full
+- Closing Soon
+
+Urgency should always reflect real marketplace conditions.
+
+Artificial scarcity is prohibited.
+
+---
+
+# 16. Product Interaction
+
+Selecting a product card should immediately navigate the customer to the Product Detail Page.
+
+Customers should not encounter unnecessary intermediate screens.
+
+Interaction should feel immediate and responsive.
+
+---
+
+# 17. Search Experience
+
+Search is one of the homepage's highest-value discovery tools.
+
+Customers should be able to search using:
+
+- product names,
+- brands,
+- categories,
+- merchants,
+- keywords,
+- and future recommendation terms.
+
+Search should begin returning relevant suggestions as the customer types.
+
+Results should prioritize relevance rather than simple alphabetical ordering.
+
+---
+
+# 18. Category Filtering
+
+Category filtering should update product results without forcing full page reloads.
+
+Filtering should feel instantaneous.
+
+Customers should always understand which filters are currently active.
+
+Multiple filters may be supported in future versions without disrupting the simplicity of the browsing experience.
+
+---
+
+# 19. Sorting Options
+
+Customers should eventually be able to sort discovery results using options such as:
+
+- Featured
+- Newest
+- Ending Soon
+- Most Popular
+- Highest Value
+- Lowest Entry Cost
+
+Sorting behavior should remain predictable and easy to understand.
+
+---
+
+# 20. Promotional Modules
+
+Optional promotional sections may appear between discovery areas.
+
+Examples include:
+
+- seasonal campaigns,
+- merchant promotions,
+- featured collections,
+- membership offers,
+- referral campaigns,
+- and educational content.
+
+Promotions should complement—not interrupt—the primary shopping experience.
+
+---
+
+# 21. Trust & Transparency Section
+
+Near the lower portion of the homepage, customers should encounter a section reinforcing platform credibility.
+
+This section should communicate:
+
+- how participation works,
+- how customer value is protected,
+- financial transparency,
+- secure account management,
+- and frequently asked questions.
+
+Trust content should reduce hesitation without overwhelming first-time visitors.
+
+---
+
+# 22. Homepage Footer
+
+The footer serves as the final navigation and trust area.
+
+It should include links to:
+
+- About
+- How It Works
+- FAQ
+- Support
+- Terms
+- Privacy
+- Responsible Participation
+- Contact
+- Careers (future)
+- Press (future)
+
+The footer should reinforce professionalism and long-term platform credibility.
+
+---
+
+# 23. Performance Expectations
+
+The homepage should feel exceptionally responsive.
+
+Target experience includes:
+
+- fast initial rendering,
+- smooth scrolling,
+- responsive interactions,
+- optimized image loading,
+- and graceful loading states.
+
+Performance contributes directly to customer trust.
+
+# 24. Responsive Design Standards
+
+The homepage must provide a consistent experience across supported devices while remaining mobile-first.
+
+## Mobile
+
+Mobile is the primary design target.
+
+The experience should prioritize:
+
+- thumb-friendly interactions,
+- dense but readable product browsing,
+- sticky navigation,
+- smooth scrolling,
+- fast page loading,
+- and minimal cognitive effort.
+
+Customers should be able to complete their journey with one hand.
+
+---
+
+## Tablet
+
+Tablet layouts should increase spacing while preserving the same interaction model.
+
+Additional screen space should improve visibility without introducing unnecessary complexity.
+
+---
+
+## Desktop
+
+Desktop should expand the mobile experience rather than redesign it.
+
+Additional width should support:
+
+- larger hero content,
+- improved product density,
+- expanded search,
+- and enhanced promotional content,
+
+while maintaining identical navigation principles.
+
+---
+
+# 25. Motion and Animation
+
+Animation should reinforce marketplace activity without becoming distracting.
+
+Appropriate motion includes:
+
+- smooth page transitions,
+- subtle card hover effects,
+- progress bar updates,
+- live activity transitions,
+- wallet balance refresh animations,
+- and loading skeletons.
+
+Animations should communicate state changes rather than exist purely for decoration.
+
+---
+
+# 26. Loading States
+
+Every homepage component should provide meaningful loading feedback.
+
+Loading experiences should include:
+
+- skeleton product cards,
+- placeholder hero content,
+- loading indicators for wallet balances,
+- animated progress placeholders,
+- and graceful image loading.
+
+Customers should never feel that the interface has frozen.
+
+---
+
+# 27. Empty States
+
+When content is unavailable, the homepage should provide informative empty states.
+
+Examples include:
+
+- no search results,
+- empty product categories,
+- unavailable promotions,
+- or temporary marketplace maintenance.
+
+Empty states should explain the situation clearly while encouraging continued exploration.
+
+---
+
+# 28. Error Handling
+
+Errors should be handled gracefully.
+
+Examples include:
+
+- temporary network interruptions,
+- unavailable services,
+- failed content loading,
+- or marketplace synchronization delays.
+
+Customer-facing error messages should remain:
+
+- concise,
+- helpful,
+- actionable,
+- and reassuring.
+
+Technical details should never be exposed to end users.
+
+---
+
+# 29. Accessibility Standards
+
+The homepage should meet modern accessibility expectations.
+
+Design should support:
+
+- keyboard navigation,
+- screen readers,
+- sufficient color contrast,
+- scalable typography,
+- descriptive labels,
+- semantic page structure,
+- and accessible interactive components.
+
+Accessibility should be treated as a core product requirement rather than an optional enhancement.
+
+---
+
+# 30. Analytics and Product Insights
+
+The homepage should generate analytics that improve the marketplace without compromising customer privacy.
+
+Examples include:
+
+- homepage visits,
+- hero engagement,
+- category selections,
+- search activity,
+- product impressions,
+- product selections,
+- wallet funding clicks,
+- account creation starts,
+- and successful conversions.
+
+Analytics should focus on improving customer experience and operational decision-making.
+
+---
+
+# 31. Component Architecture
+
+The homepage should be constructed from reusable components.
+
+Core components include:
+
+- Sticky Header
+- Wallet Summary
+- Search Bar
+- Category Navigation
+- Hero Banner
+- Live Marketplace Activity
+- Featured Products
+- Product Card
+- Progress Indicator
+- Promotional Banner
+- Trust Section
+- Footer
+
+Reusable components improve consistency, maintainability, and future feature development.
+
+---
+
+# 32. Security Considerations
+
+The homepage must never expose sensitive customer information.
+
+Client-visible information should always be appropriate for the authenticated user's permissions.
+
+Wallet balances, notifications, and personalized recommendations should be obtained through secure, server-authorized APIs.
+
+The homepage should never rely on client-side assumptions for financial or identity-related decisions.
+
+---
+
+# 33. Relationship to Other Specifications
+
+The Homepage Specification defines the public storefront experience.
+
+Related specifications define other areas of the platform:
+
+**How It Works Specification**
+- Explains the customer education experience.
+
+**Item Page Specification**
+- Defines the detailed product participation workflow.
+
+**Marketing UX Specification**
+- Defines promotional messaging and campaign experiences.
+
+**Account & Wallet Specification**
+- Defines authenticated customer account management.
+
+Together, these documents create a consistent customer journey from discovery through participation and account management.
+
+---
+
+# 34. Homepage Governance
+
+The homepage is the platform's most important acquisition and conversion experience.
+
+Future enhancements should strengthen:
+
+- clarity,
+- trust,
+- transparency,
+- marketplace momentum,
+- product discovery,
+- financial confidence,
+- and conversion efficiency.
+
+Features that increase confusion, clutter, misleading urgency, or visual noise should be rejected or redesigned.
+
+---
+
+# 35. Final Homepage Standard
+
+A successful homepage should allow a first-time visitor to understand the marketplace within seconds.
+
+Before leaving the page, a customer should clearly understand:
+
+1. This is a legitimate online marketplace.
+2. I can participate for a low entry cost to try to obtain products I already want.
+3. My participation is supported by transparent financial systems and value-preserving marketplace rules.
+4. The marketplace is active, trustworthy, and professionally operated.
+5. I know exactly where to go next.
+
+When these outcomes are consistently achieved, the homepage fulfills its role as the front door of Project Zero-Loss and establishes the trust necessary for long-term customer relationships.
+

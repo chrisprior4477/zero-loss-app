@@ -1,257 +1,657 @@
 # Project Zero-Loss Output Contract
+## AI Delivery Standards for Code, SQL, Documentation, and Implementation Output
 
-## Required Delivery Format for Code, SQL, File Generation, and Founder Verification
-
-This document defines the exact output format that Perplexity and any future coding AI must follow when generating implementation files for Project Zero-Loss.
-
-It exists to guarantee that every delivery is:
-- copy/paste ready,
-- easy to save into Cursor,
-- easy to review in Word,
-- consistent across days,
-- and clear enough for a non-technical founder to execute without confusion.
-
-This file is not the product vision document.
-
-This file is not the architecture spine.
-
-This file defines how actual implementation output must be presented every time code or file content is delivered.
+**Version:** 1.1  
+**Status:** Authoritative  
+**Document Type:** Delivery Governance Standard
 
 ---
 
-# 1. Core Rule
+# Purpose
 
-When asked to generate a file, script, route, migration, schema block, or implementation step, the AI must deliver the result in a predictable, structured format.
+This document defines the mandatory delivery format that every AI assistant working on Project Zero-Loss must follow when producing implementation work.
 
-The AI must not output:
-- fragmented snippets,
-- partial files without warning,
-- floating explanation paragraphs before the actual file,
-- or vague pseudo-code when the founder asked for a real implementation block.
+It governs **how implementation is delivered**, not **what the application does**.
 
-The output must be immediately usable.
+Its purpose is to ensure every response is:
 
----
+- production-ready,
+- architecturally consistent,
+- copy/paste friendly,
+- easy to review,
+- easy to verify,
+- compatible with Cursor and Word,
+- and understandable by a non-technical founder.
 
-# 2. The 3 Required Delivery Zones
+This document complements—but does not replace—the following authoritative documents:
 
-Every code-delivery response must contain these 3 sections in order.
-
-## Zone A — File Path Block
-
-At the top of the response, the AI must print the exact target file path using this format:
-
-**📂 TARGET PATH:** `app/api/example/route.ts`
-
-This tells the founder exactly where the file belongs.
-
-## Zone B — Copy/Paste Snippet Box
-
-Immediately after the target path, the AI must provide one complete code block containing the full contents of the file from line 1 to the end.
-
-Rules for this zone:
-- one file per code block unless explicitly stated otherwise,
-- no missing top imports,
-- no omitted closing braces,
-- no “rest of code here” shortcuts,
-- no placeholder comments pretending to be final code,
-- and no splitting a single file across multiple disconnected code boxes unless absolutely necessary.
-
-## Zone C — Non-Technical Action Check
-
-At the bottom, the AI must provide a short founder-friendly checklist explaining:
-
-1. where to paste the file,
-2. what to run or click next,
-3. and how to verify that the file is working correctly.
-
-This section exists so the founder can move forward without guessing.
+- Master Architecture
+- AI Operating Rules
+- Product Vision
+- Architecture Decision Records (ADRs)
+- Product Specifications
+- Operations Specifications
 
 ---
 
-# 3. Standard Output Order
+# 1. Core Delivery Principle
 
-Unless explicitly instructed otherwise, the output order should be:
+Every implementation response should minimize uncertainty.
 
-1. `📂 TARGET PATH`
-2. complete code/file block
-3. short implementation notes only if necessary
-4. founder verification checklist
-5. proceed line when part of a day-by-day roadmap
+The founder should be able to:
 
-The AI should not bury the actual file underneath large introductions.
+- understand it,
+- save it,
+- copy it,
+- paste it,
+- execute it,
+- and verify it
+
+without reconstructing missing information.
+
+The AI must optimize for implementation clarity rather than conversational style.
 
 ---
 
-# 4. Code Completeness Rule
+# 2. Delivery Hierarchy
 
-If the founder asks for a file, the AI must provide a complete file, not a teaching fragment.
+When producing implementation output, the AI must follow this order of authority.
 
-A complete file means:
-- proper imports,
-- proper exports,
-- proper function wrappers,
-- proper schema qualification where required,
-- proper typing where required,
-- and fully closed syntax.
+1. Explicit founder instruction
+2. Master Architecture
+3. Approved ADRs
+4. Product Vision
+5. AI Operating Rules
+6. Output Contract (this document)
+7. Product Specifications
+8. Operations Specifications
+9. Capability Specifications
+10. Roadmap Documentation
+11. Engineering best practices
 
-If the response is not a complete file, the AI must explicitly label it as:
+Higher-authority documents always override lower-authority formatting preferences.
+
+---
+
+# 3. Complete Delivery Rule
+
+Unless explicitly requested otherwise, every implementation response should be complete.
+
+Complete means the founder should not need to invent or reconstruct missing sections.
+
+Examples include complete:
+
+- source files,
+- SQL migrations,
+- configuration files,
+- API routes,
+- components,
+- server actions,
+- utilities,
+- schemas,
+- documentation,
+- and deployment instructions.
+
+The AI must never disguise an incomplete implementation as a finished deliverable.
+
+---
+
+# 4. Standard Response Structure
+
+Technical implementation responses should follow a consistent structure.
+
+Whenever practical, responses should appear in this order:
+
+1. Target Path
+2. Complete implementation
+3. Brief implementation notes (only if necessary)
+4. Founder verification checklist
+5. Next implementation step (when appropriate)
+
+The implementation itself should always be the primary focus.
+
+---
+
+# 5. Target Path Rule
+
+Whenever the AI generates a project artifact, it must clearly identify its destination.
+
+Examples include:
+
+**📂 TARGET PATH:** `app/api/payments/webhook/route.ts`
+
+**📂 TARGET PATH:** `lib/supabase/server.ts`
+
+**📂 TARGET PATH:** `supabase/migrations/20260715_create_wallet_tables.sql`
+
+**📂 TARGET PATH:** `.env.local`
+
+The founder should never need to guess where generated content belongs.
+
+---
+
+# 6. Complete File Rule
+
+When generating a file, the AI must provide the complete file from beginning to end.
+
+Complete files include:
+
+- imports,
+- exports,
+- interfaces,
+- types,
+- wrappers,
+- validation,
+- configuration,
+- error handling,
+- and valid syntax.
+
+The AI must not use misleading shortcuts such as:
+
+- "rest of file omitted"
+- "existing code unchanged"
+- "add your implementation here"
+- "continue previous logic"
+- placeholder comments that imply completion
+
+If an example is intentionally incomplete, it must be explicitly labeled:
 
 **Partial Example Only**
 
-If it is intended to be a final deliverable, it must be complete.
+---
+
+# 7. Copy-and-Paste Rule
+
+Generated implementation should require minimal editing before use.
+
+The AI should avoid requiring the founder to manually assemble multiple disconnected fragments into a usable implementation.
+
+Whenever practical:
+
+- one file should equal one code block,
+- one migration should equal one SQL block,
+- one configuration file should equal one configuration block.
+
+The goal is immediate usability.
 
 ---
 
-# 5. Project-Specific Hardening Rule
+# 8. Multi-File Delivery Rule
 
-For this project, generated technical output should default to the hardened implementation style already established in the architecture and operating docs.
+When multiple files are requested, each file must remain independent.
 
-That means AI-generated implementation should automatically prefer:
-- server-side execution for sensitive logic,
-- `@supabase/ssr` patterns for authenticated server utilities,
-- `supabase.auth.getUser()` for trusted server identity verification,
-- `public.` schema qualification where appropriate,
-- append-only / auditable financial writes,
-- idempotency for payment and webhook logic,
-- and migration-safe database evolution.
+Each generated file should include:
 
-The founder should not have to re-argue those rules every time.
+- its own target path,
+- its own implementation,
+- its own verification checklist,
+- and any file-specific notes.
+
+Unrelated files should never be merged into a single implementation block.
 
 ---
 
-# 6. SQL Output Rule
+# 9. Explanation Rule
 
-When generating SQL for this project, the AI must aim for production-safe clarity rather than cleverness.
+Implementation comes before explanation.
 
-SQL output should:
-- be copy/paste ready,
-- use explicit schema references such as `public.`,
-- include function signatures clearly,
-- use `set search_path = public` where appropriate for functions,
-- and avoid vague placeholders in important logic.
+The AI may include brief explanations when they improve understanding.
 
-If a SQL file includes a function, trigger, table, view, or policy, the AI should make the object names explicit and readable.
+Explanations should be:
 
-If a migration assumes a prerequisite object already exists, the AI should say so clearly.
+- concise,
+- implementation-focused,
+- technically accurate,
+- and positioned after the implementation whenever practical.
+
+The AI should avoid lengthy introductions that delay delivery.
 
 ---
 
-# 7. TypeScript / Next.js Output Rule
+# 10. Founder Verification Rule
 
-When generating TypeScript or Next.js files, the AI must produce code that matches the locked project stack.
+Every meaningful implementation should conclude with a verification checklist.
 
-That means output should align with:
+Verification should explain:
+
+- what to do next,
+- where to navigate,
+- what to expect,
+- what visible evidence confirms success,
+- and what operational behavior should occur.
+
+Verification should be objective rather than vague.
+
+Good verification confirms observable outcomes rather than subjective impressions.
+
+---
+
+# 11. Roadmap Compatibility Rule
+
+When implementation is generated as part of a roadmap day, this Output Contract remains fully applicable.
+
+Roadmap structure may wrap around implementation.
+
+However, every generated implementation artifact must still follow the delivery standards defined within this document.
+
+The roadmap and Output Contract work together as complementary standards.
+
+---
+
+# 12. Documentation Delivery Rule
+
+Documentation files should follow the same quality expectations as implementation files.
+
+Documentation should be:
+
+- complete,
+- internally consistent,
+- well structured,
+- clearly versioned,
+- and aligned with the repository hierarchy.
+
+Documentation should never contain unresolved placeholders presented as final content.
+
+# 13. SQL Delivery Rule
+
+All SQL generated for Project Zero-Loss should be production-ready.
+
+SQL output should prioritize:
+
+- clarity,
+- explicitness,
+- auditability,
+- migration safety,
+- and long-term maintainability.
+
+SQL should avoid unnecessary shortcuts or hidden assumptions.
+
+Whenever appropriate, SQL should include:
+
+- explicit `public.` schema qualification,
+- clearly named database objects,
+- deterministic migration behavior,
+- readable formatting,
+- and transaction-safe operations.
+
+If a migration depends on an existing object, the dependency should be identified clearly.
+
+---
+
+# 14. TypeScript Delivery Rule
+
+TypeScript should align with the approved project architecture.
+
+Generated files should be compatible with:
+
 - Next.js App Router,
-- route handlers or server actions as appropriate,
-- server/client separation,
-- Supabase SSR patterns,
-- and secure handling of auth and secrets.
+- modern TypeScript,
+- server-first architecture,
+- Supabase SSR,
+- PostgreSQL,
+- Stripe,
+- and documented project conventions.
 
-The AI must not casually output patterns that belong to a different stack unless it explicitly says the file is only a conceptual example.
-
----
-
-# 8. Explanation Rule
-
-The AI may include brief explanations, but explanations must not get in the way of delivery.
-
-If explanation is needed, it should be:
-- short,
-- placed after the code block or in the checklist,
-- and focused on what the founder needs to know to use the file.
-
-The AI should not lecture before delivering the file.
+The AI should avoid introducing patterns from unrelated frameworks unless explicitly requested.
 
 ---
 
-# 9. Verification Rule
+# 15. Security Output Rule
 
-Every implementation response must include a short verification checklist tailored to the actual file.
+Generated implementation must default toward secure behavior.
 
-Good verification includes things like:
-- which page should load,
-- what database row should appear,
-- which API response should return,
-- what status should change,
-- what UI element should become visible,
-- or what table/query should prove success.
+Whenever practical, implementation should favor:
 
-The checklist must not be vague.
+- server-side execution,
+- authenticated requests,
+- trusted identity verification,
+- authorization checks,
+- input validation,
+- secure secret management,
+- and least-privilege access.
 
-Bad example:
-- “Test that it works.”
-
-Good example:
-- “Open `/account` and confirm the split balance cards render.”
-- “Check `public.wallet_transactions` and verify one new `BUYOUT_REFUND` row exists for each eligible loser.”
-- “Trigger the Stripe webhook twice and confirm the second run produces no duplicate wallet credit rows.”
+Security-sensitive operations should never depend solely upon browser logic.
 
 ---
 
-# 10. Multi-File Rule
+# 16. Financial Output Rule
 
-If the founder asks for multiple files in one turn, the AI must keep them clearly separated.
+Any implementation affecting money must preserve financial integrity.
 
-Each file should have:
-- its own `📂 TARGET PATH`,
-- its own full code block,
-- and its own small verification note if needed.
+Generated implementation should naturally support:
 
-The AI must not merge multiple unrelated files into one confusing code block.
+- append-only ledger history,
+- idempotent processing,
+- immutable financial events,
+- reconciliation,
+- transaction safety,
+- audit logging,
+- and deterministic balance calculation.
 
----
+The AI must never recommend directly modifying calculated balances.
 
-# 11. Day-by-Day Roadmap Rule
-
-When a code response belongs to a roadmap day, the delivery must still respect the broader day format defined in `docs/ai_operating_rules.md`.
-
-That means:
-- the day structure can wrap around the code,
-- but each implementation file inside that day must still follow this output contract.
-
-The two standards must work together, not compete.
+Balances should always derive from authoritative financial records.
 
 ---
 
-# 12. Word / Cursor Compatibility Rule
+# 17. Database Migration Rule
 
-Because the founder often moves content between Word and Cursor, formatting must remain clean and durable.
+Database migrations should be deterministic and repeatable.
 
-That means:
-- clean markdown headings,
-- standard fenced code blocks,
-- consistent spacing,
-- no exotic formatting,
-- and no weird nesting that breaks copy/paste behavior.
+Migration output should:
 
-The AI should optimize for practical usability, not visual gimmicks.
+- perform one clear responsibility,
+- avoid hidden side effects,
+- preserve existing production data,
+- support rollback planning where appropriate,
+- and follow established naming conventions.
 
----
-
-# 13. Missing Information Rule
-
-If the AI truly cannot generate a safe final file because a critical input is missing, it must say exactly what is missing.
-
-But the AI should not overuse this rule.
-
-If best practice can reasonably fill the gap, the AI should choose the strongest default and proceed.
-
-Only block output when the missing input would materially change the implementation.
+Migrations should never silently modify business behavior without corresponding documentation updates.
 
 ---
 
-# 14. Final Output Standard
+# 18. API Delivery Rule
 
-The final standard is simple:
+API endpoints should follow the project's architectural standards.
 
-Every technical delivery should feel like something a founder can:
-- copy,
-- paste,
-- save,
-- run,
-- and verify
+Generated APIs should clearly define:
 
-without having to reconstruct missing context or guess what the AI meant.
+- request validation,
+- authentication,
+- authorization,
+- response structure,
+- error handling,
+- logging,
+- and expected HTTP status codes.
 
-That is the required output contract for Project Zero-Loss.
+Business logic should remain on the server.
+
+Sensitive processing must never rely upon client-side enforcement.
+
+---
+
+# 19. UI Delivery Rule
+
+Frontend implementation should reinforce the product experience defined in the Product Vision.
+
+Generated UI should prioritize:
+
+- responsiveness,
+- accessibility,
+- consistency,
+- visual clarity,
+- and user confidence.
+
+Interactive components should communicate system state clearly while avoiding misleading or ambiguous behavior.
+
+---
+
+# 20. Error Reporting Rule
+
+Generated implementations should provide useful operational diagnostics.
+
+Errors should:
+
+- preserve security,
+- avoid exposing sensitive information,
+- assist troubleshooting,
+- and maintain system stability.
+
+User-facing messages should remain understandable while internal logs provide sufficient technical detail for investigation.
+
+---
+
+# 21. Verification Standard
+
+Every implementation should include meaningful verification guidance.
+
+Verification should identify:
+
+- expected application behavior,
+- affected database records,
+- expected API responses,
+- visible UI changes,
+- background processing,
+- and any operational confirmation steps.
+
+Verification should enable objective confirmation that implementation succeeded.
+
+---
+
+# 22. Configuration Rule
+
+Configuration should remain centralized.
+
+The AI should avoid scattering configurable business behavior throughout implementation.
+
+Whenever practical, configurable values should include:
+
+- feature flags,
+- environment variables,
+- application configuration,
+- operational limits,
+- business thresholds,
+- and deployment settings.
+
+Configuration should remain separate from business logic.
+
+---
+
+# 23. Documentation Synchronization Rule
+
+Whenever generated implementation introduces new functionality, the AI should identify documentation requiring updates.
+
+Implementation and documentation should evolve together.
+
+This includes:
+
+- architecture,
+- ADRs,
+- capability specifications,
+- operations documentation,
+- roadmap documentation,
+- and implementation manuals where applicable.
+
+Repository consistency is considered part of successful delivery.
+
+---
+
+# 24. Consistency Rule
+
+Implementation responses should remain consistent across the entire project.
+
+Consistency includes:
+
+- naming conventions,
+- formatting,
+- documentation structure,
+- code organization,
+- validation approaches,
+- logging practices,
+- and architectural terminology.
+
+The founder should experience predictable output regardless of feature area.
+
+# 25. Missing Information Rule
+
+The AI should generate complete implementation whenever reasonable defaults exist.
+
+Implementation should only be blocked when missing information would materially affect:
+
+- security,
+- financial integrity,
+- legal compliance,
+- data correctness,
+- or architectural consistency.
+
+When blocking is necessary, the AI must clearly identify:
+
+- what information is missing,
+- why it matters,
+- what assumptions cannot safely be made,
+- and what decision is required from the founder.
+
+The AI should never ask unnecessary clarification questions when established project standards already provide an appropriate default.
+
+---
+
+# 26. AI Consistency Rule
+
+All approved AI assistants working on Project Zero-Loss should produce implementation that is functionally consistent.
+
+Regardless of whether implementation is produced by:
+
+- ChatGPT,
+- Cursor,
+- Gemini,
+- Claude,
+- or future approved AI systems,
+
+responses should follow the same:
+
+- architecture,
+- documentation standards,
+- formatting,
+- implementation quality,
+- terminology,
+- and delivery structure.
+
+The repository—not the individual AI—is the permanent source of truth.
+
+---
+
+# 27. Cursor Compatibility Rule
+
+Implementation should integrate cleanly into Cursor.
+
+Generated files should:
+
+- preserve valid formatting,
+- avoid unnecessary markdown surrounding code,
+- use stable code fences,
+- include accurate target paths,
+- and remain easy to save directly into the repository.
+
+Output should require minimal cleanup before becoming part of the codebase.
+
+---
+
+# 28. Word Compatibility Rule
+
+Because project planning is maintained in Microsoft Word as well as the repository, implementation responses should remain durable when copied between environments.
+
+Formatting should emphasize:
+
+- clean headings,
+- predictable spacing,
+- standard markdown,
+- readable tables when appropriate,
+- consistent code fences,
+- and simple layouts.
+
+Formatting should survive copy-and-paste without losing readability.
+
+---
+
+# 29. Documentation Quality Rule
+
+Generated documentation should be treated with the same quality expectations as production code.
+
+Documentation should be:
+
+- complete,
+- internally consistent,
+- technically accurate,
+- version controlled,
+- easy to navigate,
+- and aligned with repository conventions.
+
+Documentation is a permanent project asset and should not be considered temporary supporting material.
+
+---
+
+# 30. Response Quality Rule
+
+Every implementation response should be evaluated against five quality standards.
+
+The response should be:
+
+1. Correct
+2. Complete
+3. Consistent
+4. Verifiable
+5. Maintainable
+
+If one of these qualities is missing, the implementation is considered incomplete.
+
+---
+
+# 31. Founder Experience Rule
+
+The AI should reduce cognitive load for the founder.
+
+Implementation should answer practical questions before they become obstacles.
+
+Where appropriate, responses should clearly communicate:
+
+- what was created,
+- where it belongs,
+- why it exists,
+- what happens next,
+- and how success is verified.
+
+The founder should spend time making product decisions—not deciphering implementation details.
+
+---
+
+# 32. Continuous Improvement Rule
+
+As Project Zero-Loss evolves, the AI should continuously improve implementation quality while preserving approved architectural decisions.
+
+Improvements should strengthen:
+
+- readability,
+- maintainability,
+- consistency,
+- security,
+- scalability,
+- documentation quality,
+- and operational excellence.
+
+Continuous improvement must never introduce undocumented architectural changes.
+
+---
+
+# 33. Repository Integrity Rule
+
+Every generated implementation should strengthen the repository as the project's single source of truth.
+
+The AI should avoid producing work that exists only within conversation history.
+
+Whenever implementation changes project behavior, corresponding repository documentation should also remain accurate.
+
+The repository should always represent the current state of the platform.
+
+---
+
+# 34. Final Delivery Standard
+
+Every implementation produced for Project Zero-Loss should feel production-ready.
+
+The founder should be able to:
+
+- review it,
+- understand it,
+- copy it,
+- paste it,
+- save it,
+- commit it,
+- execute it,
+- and verify it
+
+without reconstructing missing logic, searching for omitted sections, or guessing the AI's intent.
+
+Every response should reinforce the architecture, preserve customer trust, protect financial integrity, and move the project measurably closer to production.
+
+That is the required Output Contract for every AI contributing to Project Zero-Loss.
+

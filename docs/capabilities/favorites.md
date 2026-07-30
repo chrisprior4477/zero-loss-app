@@ -1,1289 +1,955 @@
 # Project Zero-Loss Favorites Capability Specification
+## Saved Items, Following, Personalized Discovery, and Customer Intent
 
-**Version:** 1.0
-**Status:** Draft for Founder Review
-**Document Owner:** Founder / Product Experience
-**Last Updated:** 2026-07-16
-**Target Path:** `docs/capabilities/favorites.md`
-
-**Related Documents:**
-
-* `docs/project-index.md`
-* `docs/capabilities/README.md`
-* `docs/capabilities/wishlist.md`
-* `docs/capabilities/notifications.md`
-* `docs/capabilities/search.md`
-* `docs/capabilities/recommendations.md`
-* `docs/capabilities/user-preferences.md`
-* `docs/capabilities/activity-history.md`
-* `docs/capabilities/catalog.md`
-* `docs/product/homepage-spec.md`
-* `docs/product/item-page-spec.md`
-* `docs/product/account-wallet-spec.md`
-* `docs/product/design-system-spec.md`
-* `docs/operations/admin-portal-spec.md`
-* `docs/operations/analytics-spec.md`
-* `docs/operations/fraud-and-risk-spec.md`
+**Version:** 1.1  
+**Status:** Authoritative  
+**Document Type:** Capability Specification
 
 ---
 
-# 1. Purpose
+# Purpose
 
-The Favorites capability allows users to save products, pools, brands, retailers, and categories they want to revisit.
+The Favorites capability allows customers to save products, pools, brands, retailers, and categories they want to revisit.
 
-Favorites reduce the effort required to find something again and create the foundation for:
+Rather than functioning as a purchasing mechanism, Favorites help customers organize interests, simplify product discovery, and personalize their marketplace experience.
 
-* personalized discovery,
-* relevant notifications,
-* recommendations,
-* saved shopping intent,
-* customer retention,
-* category and brand following,
-* and future wishlist or watchlist behavior.
+The capability exists to improve convenience while respecting customer choice.
 
-Favorites must feel like a useful shopping tool rather than a pressure tactic.
+Favoriting an item must never:
 
-Favoriting something must never:
+- purchase an entry,
+- reserve inventory,
+- create financial commitments,
+- modify wallet balances,
+- guarantee future availability,
+- or automatically enroll the customer in marketing communications.
 
-* purchase an entry,
-* reserve inventory,
-* change wallet balances,
-* guarantee future availability,
-* create unrestricted marketing consent,
-* or imply that a user is financially committed.
+Favorites are organizational tools—not financial actions.
+
+---
+
+# 1. Capability Objectives
+
+The Favorites capability should help customers:
+
+- quickly locate products they care about,
+- organize future shopping interests,
+- discover similar opportunities,
+- receive optional notifications,
+- personalize recommendations,
+- and maintain continuity across devices.
+
+The experience should reduce friction without encouraging impulsive behavior.
 
 ---
 
 # 2. Product Philosophy
 
-Favorites support the Zero-Loss product philosophy by helping users organize products they genuinely care about.
+Favorites reinforce Project Zero-Loss as a shopping-first marketplace.
 
-The capability should reinforce the idea that Zero-Loss is a shopping platform with an opportunity to win—not a gambling interface designed to encourage impulsive behavior.
+The capability should communicate that customers remain in complete control of:
 
-Favorites should provide:
+- what they save,
+- what they follow,
+- what notifications they receive,
+- and how their saved interests influence recommendations.
 
-* convenience,
-* control,
-* transparency,
-* continuity across devices,
-* and respectful personalization.
+Saved items should improve convenience—not create pressure.
 
-The system should never use a favorite to create misleading urgency or excessive messaging.
-
-A saved item may be used to improve the experience, but the user must remain in control of:
-
-* whether alerts are sent,
-* which channels are used,
-* how often alerts are delivered,
-* whether favorites affect recommendations,
-* and whether behavioral history is retained.
+The platform should never use Favorites to manufacture urgency or manipulate purchasing behavior.
 
 ---
 
 # 3. Definitions
 
-## 3.1 Favorite
+To maintain consistency across the platform, the following terms have distinct meanings.
+
+## Favorite
 
 A Favorite means:
 
-> “I like this and want to find it again.”
+> "I like this and want to find it again."
 
-A Favorite is a lightweight saved relationship.
+A Favorite represents a lightweight saved relationship between a customer and an entity.
 
-## 3.2 Wishlist
+---
 
-A Wishlist means:
+## Wishlist
 
-> “I may want to buy or win this item.”
+A Wishlist represents stronger purchase intent.
 
-Wishlist behavior is governed by:
+It generally means:
 
-`docs/capabilities/wishlist.md`
+> "I may want to buy or participate in this later."
 
-## 3.3 Watchlist
+Wishlist behavior is governed by the Wishlist Capability Specification.
 
-A Watchlist means:
+---
 
-> “Notify me when a specific condition occurs.”
+## Watch Alert
+
+A Watch Alert represents a notification preference.
+
+It means:
+
+> "Notify me when something important happens."
 
 Examples include:
 
-* a new pool opens,
-* an item becomes available,
-* a pool reaches a real capacity threshold,
-* or an upcoming item goes live.
+- a new pool opens,
+- an item returns,
+- inventory becomes available,
+- or a configured marketplace condition occurs.
 
-Watchlist behavior is governed by:
+Watch Alerts are governed by the Notifications Capability Specification.
 
-* `docs/capabilities/wishlist.md`
-* `docs/capabilities/notifications.md`
+---
 
-## 3.4 Follow
+## Follow
 
-A Follow means:
+Following applies to broader entities rather than individual products.
 
-> “I want to see more from this category, brand, or retailer.”
+Examples include:
 
-Examples:
+- categories,
+- brands,
+- retailers,
+- and future creator collections.
 
-* Follow Groceries.
-* Follow Publix.
-* Follow Apple.
-* Follow Milwaukee.
-* Follow Travel.
+Following tells the platform:
 
-## 3.5 Saved Entity
+> "Show me more opportunities like this."
 
-A Saved Entity is any supported object a user may favorite or follow.
+---
+
+## Saved Entity
+
+A Saved Entity is any supported object that may be favorited or followed.
+
+Supported entity types are defined later in this specification.
 
 ---
 
 # 4. Supported Favorite Types
 
-The platform should support the following favorite types.
+The Favorites capability supports several kinds of saved relationships.
 
-## 4.1 Item Favorite
-
-A specific catalog item.
-
-Examples:
-
-* $100 Publix Gift Card.
-* Apple AirPods Pro.
-* Milwaukee Drill Set.
-* Disney Vacation Package.
-* YETI Cooler.
-
-## 4.2 Pool Favorite
-
-A specific active, upcoming, completed, or temporarily unavailable pool.
-
-A pool favorite is useful when the user cares about one particular offering rather than every future pool for the underlying item.
-
-## 4.3 Brand Follow
-
-A brand the user wants to see more often.
-
-Examples:
-
-* Apple.
-* Milwaukee.
-* DeWalt.
-* LEGO.
-* YETI.
-* Ninja.
-* Traeger.
-* Sony.
-
-## 4.4 Retailer Follow
-
-A retailer, restaurant, travel provider, or service provider.
-
-Examples:
-
-* Publix.
-* Walmart.
-* Amazon.
-* Target.
-* Home Depot.
-* Lowe’s.
-* Delta.
-* Airbnb.
-* Domino’s.
-* Disney.
-
-## 4.5 Category Follow
-
-A broad interest or shopping category.
-
-Examples:
-
-* Groceries.
-* Restaurants.
-* Travel.
-* Electronics.
-* Gaming.
-* Automotive.
-* Car parts.
-* Tools.
-* Home improvement.
-* Kitchen.
-* Fitness.
-* Outdoors.
-* Camping.
-* Pets.
-* Family.
-* Fashion.
-* Gift cards.
-* Experiences.
-* Vacations.
-
-## 4.6 Subcategory Follow
-
-A narrower category.
-
-Examples:
-
-* Pizza.
-* Power tools.
-* Tires.
-* Exhaust systems.
-* Cruises.
-* Beach vacations.
-* Smart-home devices.
-* Gaming consoles.
-* Pet food.
-* Grocery gift cards.
+Each serves a different customer need while remaining visually consistent.
 
 ---
 
-# 5. Core User Outcomes
+## Item Favorite
 
-A user should be able to:
+An Item Favorite represents a specific catalog item.
 
-1. Favorite or unfavorite an item from any major product-discovery surface.
-2. Follow or unfollow a category, brand, or retailer.
-3. View saved items in one account area.
-4. See whether a saved item has an active, upcoming, completed, or unavailable pool.
-5. Move from a favorite into a wishlist or watchlist.
-6. Enable or disable alerts for a saved entity.
-7. Choose whether favorites influence recommendations.
-8. Remove a favorite without affecting entries, purchases, wallet activity, or prior notifications.
-9. Access saved favorites after signing in on another device.
-10. Understand why a recommendation is connected to a favorite.
-11. See when an item is unavailable without the item silently disappearing.
-12. Request similar or replacement items when a favorite is unavailable.
+Examples include:
+
+- Apple AirPods Pro
+- Publix Gift Card
+- Milwaukee Tool Set
+- Disney Vacation Package
+- YETI Cooler
+
+Saving an item helps customers quickly locate it again regardless of current pool availability.
 
 ---
 
-# 6. User Stories
+## Pool Favorite
 
-## 6.1 Saving an Item
+A Pool Favorite represents one specific marketplace pool.
 
-> As a user browsing the homepage, I want to save a Publix gift card so I can find it again later without searching.
+Customers may care about a particular live opportunity rather than every future offering for the same item.
 
-## 6.2 Following a Category
+Pool Favorites should remain independent from Item Favorites.
 
-> As a user interested in groceries, I want to follow the Grocery category so the site can show me relevant opportunities.
+---
 
-## 6.3 Following a Brand
+## Brand Follow
 
-> As a user who prefers Milwaukee tools, I want to follow Milwaukee so I can see new products and pools from that brand.
+Customers may follow brands they enjoy.
 
-## 6.4 Enabling an Alert
+Examples include:
 
-> As a user who saved an item, I want to be notified when a new pool opens without receiving unrelated messages.
+- Apple
+- LEGO
+- Milwaukee
+- Sony
+- Ninja
+- YETI
 
-## 6.5 Managing Favorites
+Following a brand allows the marketplace to surface future opportunities related to that brand.
 
-> As a user, I want one account page where I can review, filter, and remove saved items.
+---
 
-## 6.6 Unavailable Item
+## Retailer Follow
 
-> As a user, I want to understand that a saved item is temporarily unavailable rather than having it disappear from my account.
+Customers may follow retailers or service providers.
 
-## 6.7 Personalization Control
+Examples include:
 
-> As a user, I want to decide whether my favorites affect recommendations and marketing messages.
+- Publix
+- Walmart
+- Target
+- Home Depot
+- Airbnb
+- Delta
 
-## 6.8 Anonymous User
+Retailer follows help personalize future discovery experiences.
 
-> As a visitor who has not created an account yet, I want to save a few items temporarily and keep them if I later register.
+---
+
+## Category Follow
+
+Customers may follow broad shopping interests.
+
+Examples include:
+
+- Electronics
+- Travel
+- Groceries
+- Restaurants
+- Gaming
+- Home Improvement
+- Outdoors
+- Fitness
+- Gift Cards
+
+Category follows provide long-term personalization without requiring individual item selection.
+
+---
+
+## Subcategory Follow
+
+More specific interests may also be followed.
+
+Examples include:
+
+- Pizza
+- Cruises
+- Power Tools
+- Smart Home
+- Tires
+- Grocery Gift Cards
+
+Subcategories allow customers to fine-tune recommendations while avoiding unnecessary marketing noise.
+
+---
+
+# 5. Customer Outcomes
+
+A successful Favorites capability allows customers to:
+
+1. Save products from anywhere in the marketplace.
+2. Remove saved items at any time.
+3. Follow brands, retailers, and categories.
+4. Review all saved entities in one location.
+5. Understand whether saved items are currently available.
+6. Convert Favorites into Watch Alerts when desired.
+7. Decide whether Favorites influence recommendations.
+8. Access Favorites across every signed-in device.
+9. Understand why certain recommendations appear.
+10. Keep unavailable products visible rather than silently removing them.
+
+These outcomes prioritize customer organization over platform promotion.
+
+---
+
+# 6. Experience Principles
+
+The Favorites experience should consistently reinforce five principles.
+
+## Simplicity
+
+Saving something should require minimal effort.
+
+---
+
+## Transparency
+
+Customers always understand what has been saved.
+
+---
+
+## Customer Control
+
+Customers decide how Favorites affect their experience.
+
+---
+
+## Continuity
+
+Saved entities remain available across sessions and devices.
+
+---
+
+## Trust
+
+Favoriting something should never trigger unexpected financial or marketing consequences.
 
 ---
 
 # 7. Version 1 Scope
 
-The following are required for Version 1.
+The first release of Favorites should include the core functionality required to support product discovery and personalization.
 
-## 7.1 Required
+Required capabilities include:
 
-* Signed-in item favorites.
-* Category follows.
-* Favorite and unfavorite controls.
-* Favorites account page.
-* Saved-state persistence.
-* Duplicate prevention.
-* Basic filtering.
-* Active and unavailable status.
-* Mobile-responsive behavior.
-* Accessible controls.
-* Basic analytics.
-* Server-side ownership enforcement.
-* Row Level Security.
-* Optional notification opt-in.
-* Basic relationship with recommendations.
-* Empty, loading, unavailable, and error states.
-* Automated authorization and duplication tests.
+- signed-in Favorites,
+- category follows,
+- add and remove actions,
+- Favorites account page,
+- synchronization across devices,
+- duplicate prevention,
+- filtering,
+- optional notification preferences,
+- recommendation integration,
+- mobile support,
+- accessibility,
+- analytics,
+- server-side authorization,
+- and graceful loading, empty, and error states.
 
-## 7.2 Recommended
+Future enhancements are intentionally deferred to maintain a focused and reliable Version 1 experience.
 
-* Brand follows.
-* Retailer follows.
-* Anonymous local favorites.
-* Merge anonymous favorites after sign-in.
-* Move a favorite into a wishlist.
-* Add a watch alert from the favorites page.
-* Recently favorited section.
-* “Because you saved this” recommendation explanations.
+# 8. User Experience
 
-## 7.3 Future Enhancements
+The Favorites capability should be available throughout the marketplace without interrupting the customer's shopping experience.
 
-* Shared favorites.
-* Household lists.
-* Gift lists.
-* Public creator lists.
-* Seasonal collections.
-* Collaborative shopping lists.
-* Importing a wishlist from another service.
-* Price-target alerts.
-* Multiple favorite collections.
-* Personalized favorite ordering.
-* Family-account favorites.
-* Favorite notes.
-* Gift-recipient tagging.
-* Location-aware retailer availability.
-* Favorite-based email digests.
-* Smart grouping by brand or category.
+Favoriting an item should feel effortless, consistent, and immediately understandable.
+
+The interface should always communicate whether an entity is currently saved while allowing the customer to reverse the action at any time.
 
 ---
 
-# 8. Out of Scope for Version 1
+# 9. Favorite Controls
 
-Version 1 should not include:
+A Favorite control should appear anywhere a customer may reasonably want to save an item.
 
-* public social favorite counts,
-* public user favorite profiles,
-* collaborative lists,
-* automatic pool entry,
-* automatic purchasing,
-* automatic wallet deductions,
-* hidden marketing enrollment,
-* machine-learning-only recommendation logic,
-* guaranteed future inventory,
-* guaranteed price or pool availability,
-* fake favorite counts,
-* fake popularity,
-* or pressure messages based solely on a favorite.
+Recommended locations include:
+
+- Homepage product cards
+- Search results
+- Category pages
+- Brand pages
+- Retailer pages
+- Item detail pages
+- Recommendation modules
+- Recently viewed sections
+- Featured promotions
+- Coming Soon listings
+
+The control should remain visually consistent across every page.
 
 ---
 
-# 9. User Experience Requirements
+## Favorite Icon
 
-## 9.1 Favorite Control
+Version 1 should use a heart icon.
 
-The primary item-favorite control should use a familiar symbol such as:
+States include:
 
-* an outlined heart when not saved,
-* and a filled heart when saved.
+**Not Favorited**
 
-The control must also include an accessible text label.
+- Outlined heart
+- Accessible label: "Add to Favorites"
 
-Examples:
+**Favorited**
 
-* `Add to favorites`
-* `Remove from favorites`
+- Filled heart
+- Accessible label: "Remove from Favorites"
 
-The icon alone is not sufficient for screen-reader users.
+The icon should never be the only method of communicating state.
 
-## 9.2 Interaction Feedback
+Screen readers must receive descriptive labels.
 
-When a user favorites an entity:
+---
 
-* the state should update immediately,
-* a subtle confirmation may appear,
-* the control must remain usable,
-* and a failed save must be communicated clearly.
+# 10. Saving an Item
 
-The interface should avoid excessive celebration, confetti, spinning wheels, or casino-style feedback.
+When a customer selects the Favorite control:
 
-## 9.3 Unauthenticated User
+1. The interface should immediately reflect the new state.
+2. The request should be submitted to the server.
+3. The server validates ownership.
+4. The favorite is persisted.
+5. The interface confirms success.
 
-When an unauthenticated user favorites something, the platform may:
+Optimistic UI updates are encouraged provided the interface gracefully restores the previous state if the server rejects the request.
 
-1. save it temporarily in local browser storage,
-2. show a nonblocking sign-in suggestion,
-3. and offer to preserve the favorite after account creation.
+---
 
-The platform should not interrupt browsing with repeated mandatory sign-in screens.
+# 11. Removing a Favorite
 
-## 9.4 Signed-In User
-
-A signed-in user's favorite should be saved to the authoritative server-side record.
-
-The client may optimistically update the UI, but the server result remains authoritative.
-
-## 9.5 Removal
+Removing a favorite should be just as simple as adding one.
 
 Removing a favorite should:
 
-* require one clear action,
-* update the UI immediately,
-* not require a confirmation dialog in ordinary cases,
-* and optionally allow a brief undo action.
+- require only one action,
+- immediately update the interface,
+- support a short undo opportunity when practical,
+- and synchronize across devices.
 
-Removing a favorite must not delete:
+Removing a favorite must never remove:
 
-* entry history,
-* wallet history,
-* purchase history,
-* result history,
-* notifications already delivered,
-* or analytics records required for audit or aggregate reporting.
-
----
-
-# 10. Required Product Surfaces
-
-Favorites should be available where relevant on:
-
-* Homepage product cards.
-* Search results.
-* Category pages.
-* Brand pages.
-* Retailer pages.
-* Item pages.
-* Pool pages.
-* Coming-soon sections.
-* Recommendation modules.
-* Recently viewed sections.
-* Account dashboard.
-* Favorites account page.
-* Wishlist page.
-* Notification preferences.
-* Email digest controls.
-* Mobile navigation where appropriate.
+- purchase history,
+- entry history,
+- wallet history,
+- transaction history,
+- notifications already delivered,
+- audit records,
+- or analytics required for reporting.
 
 ---
 
-# 11. Favorites Account Page
+# 12. Following Brands, Categories, and Retailers
+
+Following broader entities allows customers to personalize discovery without saving individual products.
+
+Supported entities include:
+
+- Brands
+- Retailers
+- Categories
+- Subcategories
+
+Future versions may expand this capability to include:
+
+- creators,
+- influencers,
+- seasonal collections,
+- curated lists,
+- and promotional campaigns.
+
+Following should remain optional and customer-controlled.
+
+---
+
+# 13. Anonymous Visitors
+
+Visitors should be able to save products before creating an account.
+
+Temporary favorites may be stored locally within the browser.
+
+If the visitor later creates an account or signs in, the platform should offer to merge those favorites into the authenticated account.
+
+The merge process must:
+
+- avoid duplicates,
+- preserve timestamps where practical,
+- maintain customer intent,
+- and never overwrite existing records unnecessarily.
+
+---
+
+# 14. Signed-In Customers
+
+For authenticated customers, the server maintains the authoritative record.
+
+The client interface may temporarily display optimistic updates, but all favorite relationships must ultimately be derived from verified server-side data.
+
+Ownership must always be determined from authenticated identity.
+
+Client-supplied user identifiers must never be trusted.
+
+---
+
+# 15. Favorites Account Page
 
 Recommended route:
 
 `/account/favorites`
 
-## 11.1 Required Sections
+The page serves as the central location for managing every saved entity.
 
-* All Favorites.
-* Items.
-* Pools.
-* Brands.
-* Retailers.
-* Categories.
-* Available Now.
-* Coming Soon.
-* Temporarily Unavailable.
-* Completed or Historical, if shown.
+Customers should immediately understand:
 
-## 11.2 Required Card Information
-
-Each favorite card should show, when relevant:
-
-* Image.
-* Item or entity name.
-* Brand.
-* Retailer.
-* Category.
-* Retail value.
-* Entry price.
-* Pool state.
-* Pool capacity progress.
-* Genuine entries remaining.
-* Coming-soon date.
-* Safety-net summary.
-* Date saved.
-* Notification status.
-* Wishlist status.
-* Watchlist status.
-* Primary action.
-* Remove action.
-
-## 11.3 Filters
-
-Users should be able to filter by:
-
-* Entity type.
-* Category.
-* Brand.
-* Retailer.
-* Availability.
-* Active pools.
-* Upcoming pools.
-* Notifications enabled.
-* Recently saved.
-
-## 11.4 Sorting
-
-Possible sorting options:
-
-* Most recently saved.
-* Oldest saved.
-* Available now.
-* Coming soon.
-* Highest retail value.
-* Lowest entry price.
-* Pool closest to capacity.
-* Alphabetical.
-
-Urgency-based sorting must use real pool data.
+- what has been saved,
+- why it was saved,
+- whether it is available,
+- and what actions are available.
 
 ---
 
-# 12. Empty States
+## Primary Sections
 
-## 12.1 No Favorites
+The page should support logical organization including:
+
+- All Favorites
+- Items
+- Pools
+- Brands
+- Retailers
+- Categories
+- Available
+- Coming Soon
+- Unavailable
+- Archived (future)
+
+Each section should load independently without requiring a full page refresh.
+
+---
+
+# 16. Favorite Cards
+
+Each Favorite should appear as a reusable card using the shared Design System.
+
+Recommended information includes:
+
+- Product image
+- Item name
+- Brand
+- Retailer
+- Category
+- Retail value
+- Participation price
+- Current availability
+- Pool status
+- Pool progress
+- Date saved
+- Notification status
+- Watch Alert status
+- Primary action
+- Remove action
+
+Cards should never overwhelm customers with unnecessary information.
+
+Financial data should remain visually prominent.
+
+---
+
+# 17. Filtering
+
+Customers should be able to filter Favorites using combinations of:
+
+- Entity type
+- Category
+- Brand
+- Retailer
+- Availability
+- Active pools
+- Upcoming pools
+- Notification enabled
+- Recently saved
+
+Filters should update results immediately while preserving performance.
+
+---
+
+# 18. Sorting
+
+Recommended sorting options include:
+
+- Most Recently Saved
+- Oldest Saved
+- Alphabetical
+- Available Now
+- Coming Soon
+- Highest Retail Value
+- Lowest Participation Price
+- Closest to Capacity
+
+Any urgency-related sorting must always be based on authoritative server data.
+
+Artificial urgency is prohibited.
+
+---
+
+# 19. Empty States
+
+When customers have no Favorites, the experience should encourage exploration rather than frustration.
 
 Suggested message:
 
-> You have not saved anything yet.
+> You haven't saved anything yet.
 
-Suggested supporting text:
+Supporting text:
 
-> Save items, brands, retailers, or categories to find them quickly and receive only the alerts you choose.
+> Save products, brands, retailers, or categories so you can quickly find them again and receive only the updates you choose.
 
 Suggested actions:
 
-* Browse popular items.
-* Explore categories.
-* View coming soon.
-* Search products.
-
-## 12.2 Filter Has No Results
-
-Suggested message:
-
-> No saved items match these filters.
-
-Suggested action:
-
-* Clear filters.
-
-## 12.3 Item Unavailable
-
-Suggested message:
-
-> This item is not currently available.
-
-Possible actions:
-
-* Keep it saved.
-* Notify me when it returns.
-* View similar items.
-* Remove from favorites.
+- Browse Products
+- Explore Categories
+- View Coming Soon
+- Search Marketplace
 
 ---
 
-# 13. Loading and Error States
+# 20. Loading States
 
-## 13.1 Loading
+Loading should use skeleton components defined within the Design System.
 
-Use stable skeleton states or progressive loading that does not cause significant layout shifting.
+Skeletons should closely resemble the final layout to reduce perceived wait time.
 
-## 13.2 Save Failure
+Large layout shifts should be avoided.
 
-Suggested message:
-
-> We could not save this favorite. Please try again.
-
-The UI should restore the accurate state if an optimistic update fails.
-
-## 13.3 Removal Failure
-
-Suggested message:
-
-> We could not remove this favorite. Please try again.
-
-## 13.4 Authentication Expired
-
-Suggested message:
-
-> Your session expired. Sign in again to manage your favorites.
-
-The platform should preserve the user's intended action where safely possible.
-
-## 13.5 Item Removed from Catalog
-
-The interface should display a safe unavailable state instead of failing or exposing a broken reference.
+Loading indicators should remain subtle and never block unrelated interactions.
 
 ---
 
-# 14. Business Rules
+# 21. Error States
 
-1. A favorite does not reserve inventory.
-2. A favorite does not purchase an entry.
-3. A favorite does not create a financial hold.
-4. A favorite does not guarantee future pools.
-5. A favorite does not guarantee a particular price.
-6. A favorite does not equal marketing consent.
-7. A favorite may generate alerts only when the user explicitly enables them.
-8. Duplicate favorites for the same user and entity are prohibited.
-9. A user may favorite an item even when no pool is currently open.
-10. A retired catalog item may remain visible as unavailable.
-11. A deleted pool must not destroy the underlying item favorite.
-12. Favoriting a specific pool and favoriting the underlying item are separate actions.
-13. Removing a favorite does not remove notification delivery history.
-14. Removing a favorite should disable future favorite-derived alerts unless the user separately created a watchlist rule.
-15. A user may block a favorite from influencing recommendations.
-16. An administrator may retire an entity but must not silently manipulate a user's saved history.
-17. Favorites cannot directly modify wallet, ledger, entry, payout, prize, rebate, or pool-capacity records.
-18. Saved state must be derived from authoritative records, not analytics events.
-19. Account deletion must follow the approved data-retention and legal requirements.
-20. Preference merging after sign-in must be idempotent.
+Failures should always explain what happened without exposing technical details.
 
----
+Examples include:
 
-# 15. Favorites, Wishlist, and Watchlist Relationship
+**Save Failed**
 
-The platform should distinguish these behaviors while avoiding unnecessary user-interface clutter.
+> We couldn't save this favorite. Please try again.
 
-## Favorite
+**Remove Failed**
 
-> I like this.
+> We couldn't remove this favorite. Please try again.
 
-Suggested icon:
+**Session Expired**
 
-Heart.
+> Your session has expired. Please sign in again to continue managing your favorites.
 
-## Wishlist
+Whenever possible, the customer's intended action should be preserved after recovery.
 
-> I may want to buy or win this.
+# 22. Business Rules
 
-Suggested icon:
+The Favorites capability must remain independent from all financial operations within Project Zero-Loss.
 
-Bookmark, list, or shopping bag.
+The following rules govern Version 1.
 
-## Watchlist
-
-> Notify me when something specific happens.
-
-Suggested icon:
-
-Bell.
-
-## Version 1 Recommendation
-
-Version 1 may expose:
-
-* Favorites.
-* Watch Alerts.
-
-Wishlist may be introduced as a distinct visible concept if founder review determines that users will understand the difference.
-
-The underlying data model should remain extensible so the interface can evolve without major redesign.
+1. Favoriting an item does not reserve inventory.
+2. Favoriting an item does not purchase an entry.
+3. Favoriting an item does not create a financial hold.
+4. Favoriting an item does not guarantee future availability.
+5. Favoriting an item does not guarantee pricing.
+6. Favoriting an item does not grant priority access.
+7. Favoriting an item does not automatically subscribe the customer to notifications.
+8. Notification enrollment always requires customer consent.
+9. Duplicate favorites for the same customer and entity are prohibited.
+10. Customers may favorite items regardless of current pool availability.
+11. Retired catalog items may remain visible as unavailable.
+12. Favoriting an item and favoriting one of its pools are separate relationships.
+13. Removing a favorite does not erase historical activity.
+14. Removing a favorite disables only favorite-derived alerts.
+15. Customers may prevent favorites from influencing recommendations.
+16. Administrative actions must never silently alter customer favorites.
+17. Favorites must never modify ledger balances, wallet balances, entries, prizes, rebates, payouts, or pool capacity.
+18. The server remains the authoritative source of favorite state.
 
 ---
 
-# 16. Suggested Data Model
+# 23. Notifications Integration
 
-The final database implementation must be reviewed against the Master Architecture before migration approval.
+Favorites and Notifications work together but remain independent capabilities.
 
-## 16.1 `user_favorites`
+Saving an item should never automatically generate recurring communications.
 
-Suggested fields:
+Customers may optionally enable notifications such as:
 
-* `id`
-* `user_id`
-* `entity_type`
-* `entity_id`
-* `created_at`
-* `updated_at`
-* `source_surface`
-* `notification_enabled`
-* `recommendation_enabled`
-* `is_archived`
-* `metadata`
+- New pool available
+- Item available again
+- Similar products available
+- Daily digest
+- Weekly digest
+- Category updates
+- Brand updates
 
-Suggested entity types:
+Notification preferences are governed by the Notifications Capability Specification.
 
-* `item`
-* `pool`
-* `brand`
-* `retailer`
-* `category`
-* `subcategory`
+Removing a favorite should disable only alerts directly associated with that favorite.
 
-Recommended uniqueness constraint:
-
-`UNIQUE (user_id, entity_type, entity_id)`
-
-## 16.2 Possible Reference Tables
-
-The system may require:
-
-* `catalog_items`
-* `pools`
-* `brands`
-* `retailers`
-* `categories`
-* `subcategories`
-
-## 16.3 Polymorphic Relationship Warning
-
-A generalized `entity_type` plus `entity_id` design is flexible but may weaken direct database foreign-key enforcement.
-
-Before implementation, Cursor must evaluate and document alternatives such as:
-
-* separate favorite tables,
-* a generalized entity registry,
-* typed relationship tables,
-* or validated server-side references.
-
-Cursor must not silently choose a polymorphic structure without explaining the integrity tradeoffs.
+Watch Alerts created independently should remain active until explicitly removed.
 
 ---
 
-# 17. Server and API Requirements
+# 24. Recommendation Integration
 
-## 17.1 Server Authority
+Favorites provide valuable personalization signals.
 
-All signed-in favorite mutations must be validated server-side.
+Examples include:
 
-The server must derive the acting user from verified authentication.
+- Because you saved this item
+- More from this brand
+- Similar products
+- New items in categories you follow
+- Customers who saved this also explored...
 
-The client must never be trusted to provide the authoritative owner ID.
+Recommendation logic should remain transparent.
 
-## 17.2 Required Operations
+Customers should always understand why content appears.
 
-The capability should support:
+Users must be able to disable favorite-based personalization.
 
-* Add favorite.
-* Remove favorite.
-* List favorites.
-* Check favorite state.
-* Batch favorite-state lookup for product grids.
-* Update favorite notification setting.
-* Update recommendation setting.
-* Merge anonymous favorites after sign-in.
+Recommendations should never:
 
-## 17.3 Idempotency
+- manufacture urgency,
+- exploit prior spending,
+- exploit prior losses,
+- or disguise sponsored content.
 
-Adding an already-saved favorite should return a safe successful result rather than creating duplicates.
-
-Removing an already-removed favorite should produce a safe result rather than corrupting state.
-
-## 17.4 Batch Lookup
-
-Product grids may display many items.
-
-The implementation should avoid one database request per card.
-
-The server should support efficient batch lookup for all visible entities.
-
-## 17.5 Rate Limits
-
-The server should apply reasonable limits to prevent:
-
-* automated favorite spam,
-* scraping,
-* database abuse,
-* or intentional analytics manipulation.
-
-## 17.6 Caching
-
-Public item information may be cached.
-
-Private favorite state must remain user-specific and must not leak through shared caches.
+Sponsored recommendations must always be clearly identified.
 
 ---
 
-# 18. Security and Privacy
+# 25. Search Integration
 
-## 18.1 Ownership
+Search should recognize favorite relationships throughout the browsing experience.
 
-A user may read and modify only their own favorite records.
+Customers should be able to:
 
-## 18.2 Row Level Security
+- favorite directly from search,
+- identify saved products,
+- filter to favorites,
+- follow searched categories,
+- follow searched brands,
+- and save searches independently.
 
-Row Level Security must be enabled for user-owned favorite records.
+Saved Searches and Favorites are separate concepts.
 
-## 18.3 Authentication
+Each serves a different customer need.
 
-The server must use verified authenticated identity.
+---
 
-Client-supplied `user_id` values must never determine ownership.
+# 26. Activity History Integration
 
-## 18.4 Privacy
+Favorite activity may appear in the customer's Activity History.
 
-Favorites reveal shopping interests and may be considered personal information.
+Examples include:
+
+- Favorite Added
+- Favorite Removed
+- Category Followed
+- Brand Followed
+- Notification Enabled
+- Notification Disabled
+
+Activity History exists to help customers understand previous actions.
+
+Historical records should remain available even after a favorite is removed where required for auditing or customer history.
+
+---
+
+# 27. Security Requirements
+
+Customer favorites represent personal preference data.
+
+Access must remain private.
+
+Only authenticated customers may modify their own favorite records.
+
+The server must derive ownership from authenticated identity.
+
+Client-provided ownership information must never be trusted.
+
+Administrative access should be restricted to authorized personnel and recorded through the audit system.
+
+---
+
+# 28. Privacy Requirements
+
+Favorites reveal customer interests and should be treated as personal information.
 
 The platform should:
 
-* avoid exposing them publicly by default,
-* disclose how they affect recommendations,
-* allow users to clear them,
-* avoid inferring sensitive personal traits,
-* and minimize unnecessary retention.
+- avoid public exposure,
+- explain recommendation usage,
+- allow customers to delete favorites,
+- minimize unnecessary retention,
+- and respect customer privacy preferences.
 
-## 18.5 Sensitive Inferences
+Favorites must never be used to infer sensitive characteristics such as:
 
-The recommendation system must not use favorites to infer or target sensitive characteristics such as:
-
-* health conditions,
-* religion,
-* political affiliation,
-* race or ethnicity,
-* sexual orientation,
-* financial distress,
-* or other protected or highly sensitive attributes.
-
-## 18.6 Administrative Access
-
-Administrative access to individual favorite histories should be restricted and logged.
-
-Aggregate product-demand analytics should be preferred over unnecessary browsing of named user histories.
+- health conditions,
+- religion,
+- political affiliation,
+- race,
+- ethnicity,
+- sexual orientation,
+- financial hardship,
+- or other protected information.
 
 ---
 
-# 19. Fraud and Abuse Considerations
+# 29. Fraud Prevention
 
-Favorites are low-risk compared with financial transactions, but they can still be abused.
+Although Favorites do not directly affect financial outcomes, abuse protection remains important.
 
 Potential abuse includes:
 
-* automated accounts inflating demand,
-* fake favorite activity,
-* bot-driven popularity manipulation,
-* scraping,
-* promotional ranking manipulation,
-* and referral abuse linked to fake engagement.
+- automated favorite generation,
+- fake popularity,
+- scraping,
+- artificial demand inflation,
+- bot activity,
+- referral manipulation,
+- and promotional abuse.
 
-Required protections may include:
+Recommended protections include:
 
-* rate limits,
-* bot detection,
-* duplicate-account monitoring,
-* suspicious-volume analytics,
-* account-age signals,
-* and separation between favorite counts and financial or ranking authority.
+- rate limiting,
+- bot detection,
+- duplicate account monitoring,
+- suspicious activity detection,
+- behavioral analysis,
+- and anomaly monitoring.
 
-Public popularity labels must not rely solely on raw favorite counts without fraud filtering.
+Favorite counts should never directly determine:
 
-Favorites must never determine winners, pool outcomes, entry capacity, or financial benefits.
-
----
-
-# 20. Notification Integration
-
-Favoriting an entity must not automatically enroll the user in all alerts.
-
-The user may choose:
-
-* Notify me when a new pool opens.
-* Notify me when this item returns.
-* Notify me about similar items.
-* Include this in my daily digest.
-* Include this in my weekly digest.
-* Do not notify me.
-
-Notification channels and frequency are governed by:
-
-`docs/capabilities/notifications.md`
-
-If a favorite is removed:
-
-* favorite-derived alerts should be disabled,
-* separately created watchlist rules should remain unless the user removes them,
-* and delivered-message history should remain available where required.
+- marketplace ranking,
+- pool outcomes,
+- winner selection,
+- financial calculations,
+- or reward eligibility.
 
 ---
 
-# 21. Recommendation Integration
+# 30. Administrative Requirements
 
-Favorites may provide a strong recommendation signal.
+The administrative portal should provide aggregate reporting while protecting individual customer privacy.
 
-Possible recommendation labels:
+Recommended reporting includes:
 
-* Because you saved this item.
-* Because you follow Groceries.
-* New from a brand you follow.
-* Similar to your favorites.
-* More from Publix.
+- Most Favorited Items
+- Most Followed Brands
+- Most Followed Retailers
+- Most Followed Categories
+- Favorite Growth Trends
+- Favorite-to-Participation Conversion
+- Favorite-to-Purchase Conversion
+- Alert Opt-In Rates
+- Unavailable Product Demand
+- Suspicious Activity Detection
 
-Requirements:
+Administrative tools must never:
 
-1. Recommendation logic must remain explainable.
-2. Users may disable favorite-based personalization.
-3. Unavailable or ineligible offers must be excluded.
-4. Recommendations must not manufacture urgency.
-5. Favorite activity must not be used to exploit a user's prior losses or spending.
-6. Sponsored recommendations must be labeled.
+- create favorites on behalf of customers,
+- remove favorites without authorization,
+- manipulate popularity metrics,
+- or influence marketplace outcomes.
 
----
-
-# 22. Search Integration
-
-Search results should show whether an entity is already favorited.
-
-Users should be able to:
-
-* favorite directly from search,
-* filter search results to saved entities,
-* follow a searched category or brand,
-* and save a search separately.
-
-A saved search is not the same as a favorite.
-
-Saved-search behavior is governed by:
-
-`docs/capabilities/search.md`
+All administrative actions should be fully audited.
 
 ---
 
-# 23. Activity History Integration
+# 31. Analytics
 
-Favorite actions may appear in the user's activity history.
+Recommended analytics events include:
 
-Examples:
+- favorite_added
+- favorite_removed
+- favorite_viewed
+- favorites_page_viewed
+- favorite_notification_enabled
+- favorite_notification_disabled
+- brand_followed
+- retailer_followed
+- category_followed
 
-* Item saved.
-* Item removed.
-* Category followed.
-* Brand unfollowed.
-* Favorite alert enabled.
+Useful operational metrics include:
 
-The activity-history implementation should distinguish between:
+- Favorites created
+- Favorites removed
+- Favorite conversion rates
+- Notification opt-in rate
+- Recommendation engagement
+- Category popularity
+- Favorite retention
+- Demand trends
 
-* user-visible activity,
-* audit history,
-* analytics events,
-* and notification history.
+Analytics provide reporting only.
 
-Removing a favorite does not require deleting all historical evidence that the event occurred.
-
----
-
-# 24. Administrative Requirements
-
-The admin portal should support:
-
-* Aggregate favorite counts.
-* Top favorited items.
-* Top followed brands.
-* Top followed retailers.
-* Top followed categories.
-* Favorite-to-entry conversion.
-* Favorite-to-purchase conversion.
-* Favorite-to-alert opt-in.
-* Unavailable-item demand.
-* Suspicious favorite spikes.
-* Bot-related activity indicators.
-* Demand by geography where legally and ethically permitted.
-* Export of aggregate demand data.
-* Emergency disabling of favorite-related notifications.
-* Catalog planning based on genuine demand.
-
-Administrative tools must not:
-
-* alter a user's financial records,
-* fabricate popularity,
-* silently add favorites,
-* or use favorites to alter pool outcomes.
-
-Manual administrative changes must be audited.
+They must never become the authoritative source of favorite state.
 
 ---
 
-# 25. Analytics Requirements
+# 32. Accessibility
 
-Recommended events:
+Favorites must fully support accessible interaction.
 
-* `favorite_added`
-* `favorite_removed`
-* `favorite_viewed`
-* `favorites_page_viewed`
-* `favorite_opened`
-* `favorite_notification_enabled`
-* `favorite_notification_disabled`
-* `favorite_recommendation_enabled`
-* `favorite_recommendation_disabled`
-* `brand_followed`
-* `brand_unfollowed`
-* `retailer_followed`
-* `retailer_unfollowed`
-* `category_followed`
-* `category_unfollowed`
-* `anonymous_favorite_created`
-* `anonymous_favorites_merged`
-* `favorite_merge_failed`
+Requirements include:
 
-Useful metrics:
+- keyboard navigation,
+- visible focus indicators,
+- descriptive screen-reader labels,
+- sufficient color contrast,
+- touch-friendly controls,
+- reduced-motion support,
+- and clear status announcements.
 
-* Favorite-to-entry conversion.
-* Favorite-to-purchase conversion.
-* Favorite return rate.
-* Most saved items.
-* Most followed categories.
-* Alert opt-in rate.
-* Recommendation click-through from favorites.
-* Unavailable-item demand.
-* Time from favorite to entry.
-* Time from favorite to purchase.
-* Favorite removal rate after alerts.
-* Suspicious favorite velocity.
+State changes should be announced appropriately, including:
 
-Analytics events must never become the authoritative saved-state record.
+> Added to Favorites.
+
+and
+
+> Removed from Favorites.
 
 ---
 
-# 26. Accessibility Requirements
+# 33. Mobile Experience
 
-Favorite controls must:
+The mobile experience should prioritize speed and ease of use.
 
-* be keyboard accessible,
-* have visible focus states,
-* include screen-reader labels,
-* not depend on color alone,
-* meet contrast requirements,
-* communicate saved and unsaved state,
-* work with reduced-motion preferences,
-* and remain large enough for touch interaction.
+Favorite controls should remain:
 
-A screen reader should announce state changes such as:
+- easy to tap,
+- visually consistent,
+- unobtrusive,
+- and immediately recognizable.
 
-> Added to favorites.
+Customers should always have a simple route to the Favorites page from their account.
 
-or:
-
-> Removed from favorites.
-
-Animated feedback must remain subtle and optional under reduced-motion settings.
+Temporary network failures should present understandable recovery options rather than losing customer actions.
 
 ---
 
-# 27. Mobile Requirements
+# 34. Performance Requirements
 
-On mobile:
+The Favorites capability should scale efficiently.
 
-* Favorite controls must be easily tappable.
-* Product-card actions must not overlap images or pricing.
-* Accidental activation should be minimized.
-* Filters should use an accessible drawer or sheet.
-* Favorite state should remain visible without excessive card clutter.
-* Account navigation should provide a clear route to Favorites.
-* Sign-in prompts must not repeatedly interrupt browsing.
-* Offline or weak-network failures should display understandable recovery options.
+Implementation should support:
 
----
+- batch favorite-state retrieval,
+- indexed database queries,
+- efficient pagination,
+- server-side filtering,
+- optimistic updates,
+- and safe caching boundaries.
 
-# 28. Performance Requirements
-
-The favorites capability must not create one database query per product card.
-
-The implementation should support:
-
-* batch state lookup,
-* indexed ownership queries,
-* pagination,
-* efficient account-page filtering,
-* controlled optimistic UI,
-* and safe cache boundaries.
-
-Performance testing should include:
-
-* large favorite lists,
-* high-traffic homepage grids,
-* concurrent save actions,
-* and multi-device synchronization.
+Large favorite collections should remain responsive on both desktop and mobile devices.
 
 ---
 
-# 29. Failure and Edge Cases
+# 35. Acceptance Criteria
 
-The implementation must address:
+The Favorites capability is complete when:
 
-* Duplicate add requests.
-* Duplicate remove requests.
-* Simultaneous actions from two devices.
-* Anonymous favorite merged with an existing signed-in favorite.
-* Item removed from catalog.
-* Pool completed after the page loads.
-* User session expires during save.
-* Database timeout.
-* Network interruption.
-* Notification preference update failure.
-* Recommendation setting update failure.
-* User account suspended.
-* Account deletion.
-* Favorite references a retired brand or retailer.
-* Admin retires an entity while users are viewing it.
-* Browser local storage is unavailable.
-* User blocks cookies or local storage.
-* Batch lookup partially fails.
-* Large favorite list.
-* Unauthorized access attempt.
-* Suspicious bot activity.
-
-Each edge case should have:
-
-* a safe server response,
-* an understandable user message where relevant,
-* an audit or analytics record where appropriate,
-* and automated test coverage.
+1. Customers can add and remove favorites.
+2. Category follows function correctly.
+3. Duplicate favorites cannot be created.
+4. Favorite state synchronizes across devices.
+5. Favorite pages display accurate information.
+6. Customers cannot access another user's favorites.
+7. Unavailable items remain visible with appropriate messaging.
+8. Notification preferences function independently.
+9. Recommendation preferences are respected.
+10. Wallets, ledgers, entries, prizes, rebates, and payouts remain unaffected.
+11. Mobile interactions are fully supported.
+12. Accessibility requirements are satisfied.
+13. Administrative reporting functions correctly.
+14. Automated testing passes.
+15. Documentation accurately reflects implemented behavior.
 
 ---
 
-# 30. Testing Requirements
+# 36. Governance
 
-Automated tests should cover:
+The Favorites capability serves as the authoritative specification for all saved-item behavior within Project Zero-Loss.
 
-## Authorization
+Future enhancements should strengthen:
 
-* User can read their own favorites.
-* User cannot read another user's favorites.
-* User cannot modify another user's favorites.
-* Unauthenticated behavior follows the approved local-save rules.
+- customer organization,
+- personalization,
+- transparency,
+- accessibility,
+- performance,
+- and trust.
 
-## Data Integrity
+No future implementation should introduce hidden financial effects, misleading urgency, or behavior that conflicts with the platform's shopping-first philosophy.
 
-* Duplicate favorites are prevented.
-* Add operation is idempotent.
-* Remove operation is idempotent.
-* Invalid entity references are rejected.
-* Retired entities are handled safely.
-
-## User Experience
-
-* Saved state renders correctly.
-* Optimistic update rolls back on failure.
-* Empty states render.
-* Error states render.
-* Mobile controls are usable.
-* Accessibility labels are present.
-
-## Integration
-
-* Notification opt-in creates the correct preference.
-* Removing a favorite disables only favorite-derived alerts.
-* Recommendation preference is honored.
-* Anonymous favorites merge without duplication.
-* Activity history records appropriate actions.
-
-## Performance
-
-* Grid state uses batch lookup.
-* Large lists paginate.
-* No unbounded queries occur.
-
----
-
-# 31. Acceptance Criteria
-
-The Version 1 Favorites capability is complete only when:
-
-1. Signed-in users can add and remove item favorites.
-2. Signed-in users can follow and unfollow categories.
-3. Duplicate favorite records cannot be created.
-4. The favorites account page lists the correct records.
-5. Users cannot access another user's favorite data.
-6. Favorite state remains correct after refresh.
-7. Favorite state remains correct across signed-in devices.
-8. Unavailable items display a safe status.
-9. Favorite actions never alter wallet, ledger, entry, pool-capacity, prize, rebate, or payout records.
-10. Users may enable or disable favorite-derived alerts.
-11. Users may control whether favorites affect recommendations.
-12. The interface includes loading, empty, unavailable, and error states.
-13. Mobile and keyboard interactions work.
-14. Row Level Security is active and tested.
-15. Duplicate and concurrent requests are handled safely.
-16. Analytics events are recorded without becoming the source of truth.
-17. Admin aggregate reporting works without unnecessary exposure of individual preference histories.
-18. Automated tests pass.
-19. Founder verification steps pass.
-20. Documentation matches the implemented behavior.
-21. Changes are committed to GitHub.
-
----
-
-# 32. Founder Verification Checklist
-
-Before approving the capability, the founder should verify:
-
-1. Open the homepage.
-2. Favorite an item.
-3. Refresh the page.
-4. Confirm the item remains saved.
-5. Open the item page.
-6. Confirm the favorite state matches.
-7. Open the account favorites page.
-8. Confirm the item appears.
-9. Remove the item.
-10. Confirm the state updates everywhere.
-11. Follow a category.
-12. Confirm the category appears in account preferences.
-13. Enable a notification for a saved item.
-14. Confirm the chosen frequency is displayed.
-15. Disable the alert.
-16. Sign in on another browser or device.
-17. Confirm the favorite state synchronizes.
-18. Test an unavailable item.
-19. Confirm another test user cannot access the first user's records.
-20. Confirm no wallet or entry record changes after favorite actions.
-
----
-
-# 33. Future Enhancements
-
-Potential future capabilities include:
-
-* Shared favorite collections.
-* Household lists.
-* Public creator-curated lists.
-* Holiday shopping lists.
-* Gift-recipient tagging.
-* Favorite notes.
-* Desired purchase date.
-* Location-specific retailer favorites.
-* Price-change alerts.
-* Automatic grouping.
-* AI-assisted organization, if accurately disclosed.
-* Import from browser bookmarks.
-* Import from outside wishlists.
-* Collaborative group gifting.
-* Favorite-based budgeting tools.
-* Personalized category landing pages.
-* Family profiles.
-* Favorite trends over time.
-* Cross-device offline synchronization.
-
-Future enhancements must not be implemented simply because they appear here.
-
-They require separate approval and roadmap inclusion.
-
----
-
-# 34. Related Documents
-
-This capability should be reviewed alongside:
-
-* `docs/project-index.md`
-* `docs/architecture/master-architecture.md`
-* `docs/architecture/ai-operating-rules.md`
-* `docs/architecture/output-contract.md`
-* `docs/core/product-vision.md`
-* `docs/core/product-concept.md`
-* `docs/capabilities/README.md`
-* `docs/capabilities/wishlist.md`
-* `docs/capabilities/notifications.md`
-* `docs/capabilities/search.md`
-* `docs/capabilities/recommendations.md`
-* `docs/capabilities/user-preferences.md`
-* `docs/capabilities/activity-history.md`
-* `docs/capabilities/catalog.md`
-* `docs/capabilities/identity-and-profile.md`
-* `docs/product/homepage-spec.md`
-* `docs/product/item-page-spec.md`
-* `docs/product/account-wallet-spec.md`
-* `docs/product/design-system-spec.md`
-* `docs/operations/admin-portal-spec.md`
-* `docs/operations/analytics-spec.md`
-* `docs/operations/fraud-and-risk-spec.md`
-
----
-
-# 35. Guiding Statement
-
-Favorites exist to help users organize products and opportunities they genuinely care about.
-
-The capability should make Zero-Loss easier to use, easier to personalize, and easier to return to without creating hidden financial commitments, excessive notifications, or manipulative urgency.
-
-The user remains in control of what is saved, what influences recommendations, and what generates communication.

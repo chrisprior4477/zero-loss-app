@@ -1,8 +1,9 @@
 # Project Zero-Loss Documentation Index & Source of Truth
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Frozen
-**Last Updated:** 2026-07-13
+**Revision:** Clarification
+**Last Updated:** 2026-07-25
 
 ---
 
@@ -10,16 +11,19 @@
 
 This document is the official entry point for Project Zero-Loss.
 
-It exists to help founders, engineers, designers, operators, and AI systems (including ChatGPT, Gemini, Cursor, Claude, Perplexity, and future coding assistants) understand:
+It exists to help founders, engineers, designers, operators, and AI systems (including ChatGPT, Claude, Cursor, Perplexity, Gemini, and future engineering assistants) understand:
 
 * what Project Zero-Loss is,
 * where project documentation lives,
 * which documents are authoritative,
 * which order they should be read,
 * how conflicts between documents are resolved,
-* and how the documentation is maintained over time.
+* how documentation evolves,
+* and which document is considered the single source of truth for every architectural decision.
 
-Every new contributor should begin here before reading any other project document.
+Every contributor should begin here before reading any other project document.
+
+No implementation work should begin until the required reading order has been completed.
 
 ---
 
@@ -37,9 +41,13 @@ If the founder intentionally changes a requirement, that decision becomes the ne
 
 ## Level 2 — Master Architecture
 
-**File**
+**Canonical File**
 
 `docs/architecture/master-architecture.md`
+
+This is the **only authoritative Master Architecture document** for Project Zero-Loss.
+
+Duplicate or mirrored copies of this document must not exist elsewhere in the repository.
 
 This document governs:
 
@@ -53,7 +61,8 @@ This document governs:
 * migrations,
 * auditability,
 * security,
-* and enterprise engineering standards.
+* enterprise engineering standards,
+* and platform governance.
 
 No implementation should violate this document unless the founder explicitly supersedes it.
 
@@ -75,9 +84,10 @@ These documents define:
 * business model,
 * marketplace identity,
 * UX direction,
-* and long-term product goals.
+* long-term product goals,
+* and customer trust principles.
 
-If a technically correct implementation weakens the product philosophy, these documents take precedence.
+If a technically correct implementation weakens the product philosophy, these documents take precedence over technical convenience.
 
 ---
 
@@ -87,13 +97,14 @@ If a technically correct implementation weakens the product philosophy, these do
 
 `docs/architecture/ai-operating-rules.md`
 
-This document governs how AI assistants generate:
+This document governs how AI systems generate:
 
-* roadmap manuals,
 * implementation documents,
+* roadmap manuals,
 * technical explanations,
-* complete files,
-* and founder-facing guidance.
+* complete production-ready files,
+* migration guidance,
+* and founder-facing explanations.
 
 ---
 
@@ -103,18 +114,19 @@ This document governs how AI assistants generate:
 
 `docs/architecture/output-contract.md`
 
-This document defines the required format for generated implementation files, including:
+This document defines the required format for implementation output including:
 
 * target paths,
 * complete copy/paste-ready files,
 * verification steps,
+* testing expectations,
 * and delivery formatting.
 
 ---
 
 ## Level 6 — Feature Specifications
 
-These documents define the expected behavior of individual product areas.
+Feature specifications define the expected behavior of individual functional areas.
 
 Examples include:
 
@@ -125,23 +137,28 @@ Examples include:
 * Support & Status
 * Admin Portal
 
-Feature specifications must remain consistent with the Product Vision and Master Architecture.
+Feature specifications must always remain consistent with:
+
+* Founder Decisions
+* Master Architecture
+* Product Vision
+* Product Concept
 
 ---
 
 ## Level 7 — Roadmap Manuals
 
-Roadmap manuals describe the implementation sequence for building the project.
+Roadmap manuals describe the implementation sequence used to build the platform.
 
-Examples:
+Example:
 
 `docs/roadmap/day-1-master-manual.md`
 
-Roadmap documents exist to implement the architecture.
+Roadmap documents exist to implement the documented architecture.
 
-If a roadmap document accidentally conflicts with a higher-level document, the higher-level document is considered correct.
+If a roadmap document conflicts with a higher-level document, the higher-level document is considered correct.
 
-The roadmap should then be corrected rather than silently changing the architecture.
+The roadmap should then be updated rather than silently changing the architecture.
 
 ---
 
@@ -149,18 +166,18 @@ The roadmap should then be corrected rather than silently changing the architect
 
 ## Frozen Documents
 
-The following documents establish the baseline architecture and product direction.
+The following documents establish the long-term foundation of Project Zero-Loss.
 
-Their core principles are considered locked.
+Their architectural principles are considered stable.
 
-Future changes should be identified as:
+Future modifications should be categorized as one of the following:
 
 * Clarification
 * Expansion
 * Correction
 * Superseding Decision
 
-rather than silently rewriting previous decisions.
+rather than silently replacing previous decisions.
 
 ### Architecture
 
@@ -177,7 +194,7 @@ rather than silently rewriting previous decisions.
 
 ## Living Documents
 
-These documents are expected to evolve as the project grows.
+These documents are expected to evolve as implementation progresses.
 
 ### Product Specifications
 
@@ -194,13 +211,13 @@ These documents are expected to evolve as the project grows.
 
 ### Roadmaps
 
-All roadmap manuals are implementation guides and will naturally expand over time.
+Roadmap manuals are implementation guides and will naturally expand as the platform grows.
 
 ---
 
 # 3. Project Documentation Map
 
-```
+```text
 docs/
 
 ├── project-index.md
@@ -229,57 +246,48 @@ docs/
     └── day-1-master-manual.md
 ```
 
-This structure represents the official documentation organization for the project.
+This structure represents the official documentation organization for Project Zero-Loss.
 
 ---
 
 # 4. Required Reading Order
 
-Before writing code, modifying architecture, or generating implementation files, every developer or AI assistant should read the documentation in the following order.
+Before writing code, modifying architecture, or generating implementation files, every developer or AI system must read the documentation in the following order.
 
 1. `docs/project-index.md`
-
 2. `docs/core/product-vision.md`
-
 3. `docs/core/product-concept.md`
-
 4. `docs/architecture/master-architecture.md`
-
 5. `docs/architecture/ai-operating-rules.md`
-
 6. `docs/architecture/output-contract.md`
-
 7. The relevant feature specification.
-
 8. The applicable roadmap manual.
 
-This order ensures that implementation decisions are driven by the product vision and architecture before coding begins.
+Implementation should never begin before this reading sequence has been completed.
 
 ---
 
 # 5. Project Status
 
-Current Documentation Status
+| Area | Status |
+|--------------------------------|-------------|
+| Project Index | ✅ Complete |
+| Master Architecture | ✅ Complete |
+| Product Vision | ✅ Complete |
+| Product Concept | ✅ Complete |
+| AI Operating Rules | ✅ Complete |
+| Output Contract | ✅ Complete |
+| Homepage Specification | ✅ Complete |
+| How It Works Specification | ✅ Complete |
+| Item Page Specification | ✅ Complete |
+| Account & Wallet Specification | ✅ Complete |
+| Payments & Payouts Specification | ✅ Complete |
+| Support & Status Specification | ✅ Complete |
+| Admin Portal Specification | ✅ Complete |
+| Roadmap Day 1 | ✅ Complete |
+| Roadmap Day 2 | ⬜ Not Started |
 
-| Area                             | Status        |
-| -------------------------------- | ------------- |
-| Project Index                    | ✅ Complete    |
-| Master Architecture              | ✅ Complete    |
-| Product Vision                   | ✅ Complete    |
-| Product Concept                  | ✅ Complete    |
-| AI Operating Rules               | ✅ Complete    |
-| Output Contract                  | ✅ Complete    |
-| Homepage Specification           | ✅ Complete    |
-| How It Works Specification       | ✅ Complete    |
-| Item Page Specification          | ✅ Complete    |
-| Account & Wallet Specification   | ✅ Complete    |
-| Payments & Payouts Specification | ✅ Complete    |
-| Support & Status Specification   | ✅ Complete    |
-| Admin Portal Specification       | ✅ Complete    |
-| Roadmap Day 1                    | ✅ Complete    |
-| Roadmap Day 2                    | ⬜ Not Started |
-
-This section should be updated as new documentation and implementation milestones are completed.
+This section should be updated as implementation milestones are completed.
 
 ---
 
@@ -287,18 +295,18 @@ This section should be updated as new documentation and implementation milestone
 
 Project documentation should evolve deliberately.
 
-Changes should preserve history whenever practical.
+Documentation should never drift silently.
 
-Major architectural decisions should never be silently replaced.
+Major architectural decisions should always preserve historical intent.
 
-When a significant document changes, the update should be classified as one of the following:
+Every significant update should be categorized as one of the following:
 
 * Clarification
 * Expansion
 * Correction
 * Superseding Decision
 
-This maintains continuity and prevents confusion as the project grows.
+This governance model preserves continuity and prevents conflicting documentation from developing over time.
 
 ---
 
@@ -306,20 +314,32 @@ This maintains continuity and prevents confusion as the project grows.
 
 Project Zero-Loss is intended to be built as an enterprise-grade platform.
 
-When uncertainty exists, contributors should favor decisions that:
+Whenever uncertainty exists, contributors should favor decisions that:
 
-* strengthen user trust,
+* strengthen customer trust,
 * improve auditability,
 * preserve financial integrity,
+* protect server authority,
 * support future administrative tooling,
 * reduce long-term redesign,
-* and remain consistent with the established architecture and product vision.
+* and remain consistent with the documented architecture and product vision.
 
-Technical convenience should never silently override documented architectural decisions.
+Technical convenience must never silently override documented architectural decisions.
 
 ---
 
 # Change Log
+
+### Version 1.1 — 2026-07-25
+
+**Revision:** Clarification
+
+* Established the canonical Master Architecture location.
+* Explicitly prohibited duplicate Master Architecture documents.
+* Clarified documentation governance language.
+* Clarified AI onboarding expectations.
+* Improved hierarchy descriptions.
+* Improved wording for long-term maintainability.
 
 ### Version 1.0 — 2026-07-13
 

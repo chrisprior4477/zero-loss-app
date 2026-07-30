@@ -1,867 +1,793 @@
 # Project Zero-Loss Design System Specification
+## Visual Language, Component Standards, Interaction Patterns, and Brand Consistency
 
-**Version:** 1.0
-**Status:** Draft for Founder Review
-**Document Owner:** Founder / Product Design & User Experience
-**Last Updated:** 2026-07-16
-**Target Path:** `docs/product/design-system-spec.md`
-
-**Related Documents:**
-
-* `docs/project-index.md`
-* `docs/architecture/master-architecture.md`
-* `docs/core/product-vision.md`
-* `docs/core/product-concept.md`
-* `docs/product/homepage-spec.md`
-* `docs/product/how-it-works-spec.md`
-* `docs/product/item-page-spec.md`
-* `docs/product/marketing-ux-spec.md`
-* `docs/product/account-wallet-spec.md`
-* `docs/product/payments-and-payouts-spec.md`
-* `docs/product/support-status-spec.md`
-* All documents in `docs/capabilities/`
-* All documents in `docs/operations/`
+**Version:** 1.1  
+**Status:** Authoritative  
+**Document Type:** Product Specification
 
 ---
 
-# 1. Purpose
+# Purpose
 
-The Design System defines the visual language, interaction standards, reusable UI components, accessibility requirements, and implementation rules for Project Zero-Loss.
+The Design System Specification establishes the visual and interaction standards for every customer-facing and administrative interface within Project Zero-Loss.
 
-Its purpose is to ensure every page, feature, and administrative interface provides a consistent, intuitive, and accessible experience.
+Its purpose is to ensure every screen feels like part of a single, cohesive product regardless of when it is built or who builds it.
 
-The Design System serves as the single source of truth for frontend implementation.
+The Design System promotes:
 
----
+- visual consistency,
+- usability,
+- accessibility,
+- maintainability,
+- responsive behavior,
+- and long-term product scalability.
 
-# 2. Product Philosophy
+This document defines presentation standards only.
 
-The user interface should communicate trust, clarity, and simplicity.
-
-Every interaction should reduce cognitive effort while reinforcing confidence in the platform.
-
-The interface should feel:
-
-* Modern
-* Professional
-* Fast
-* Friendly
-* Consistent
-* Accessible
-
-Visual design should support functionality rather than distract from it.
+Business logic, financial rules, and marketplace behavior remain governed by the Master Architecture and related specifications.
 
 ---
 
-# 3. Guiding Principles
+# 1. Design Philosophy
 
-The Design System should be:
+Project Zero-Loss should immediately feel different from traditional e-commerce websites.
 
-* Consistent
-* Modular
-* Accessible
-* Responsive
-* Reusable
-* Scalable
-* Predictable
-* Performance-conscious
+The interface should communicate:
 
-Components should solve problems once and be reused throughout the platform.
+- confidence,
+- transparency,
+- momentum,
+- trust,
+- and premium quality.
 
----
+Customers should feel like they are interacting with a modern fintech platform that happens to include an exciting marketplace—not a gambling website or discount retailer.
 
-# 4. Scope
-
-Version 1 includes:
-
-* Design tokens
-* Color system
-* Typography
-* Grid system
-* Spacing
-* Icons
-* Illustrations
-* Buttons
-* Cards
-* Forms
-* Navigation
-* Tables
-* Modals
-* Drawers
-* Alerts
-* Toasts
-* Loading states
-* Empty states
-* Responsive behavior
-* Accessibility standards
-* Motion guidelines
-
-Future versions may expand into design tooling and advanced theming.
+Every interface decision should reinforce customer confidence.
 
 ---
 
-# 5. Brand Principles
+# 2. Brand Personality
 
-Project Zero-Loss should visually communicate:
+The visual identity should consistently communicate:
 
-* Trust
-* Transparency
-* Opportunity
-* Simplicity
-* Stability
-* Optimism
+- energetic,
+- modern,
+- optimistic,
+- trustworthy,
+- intelligent,
+- approachable,
+- and premium.
 
-Every design decision should reinforce these values.
+The experience should never feel:
 
----
-
-# 6. User Experience Principles
-
-The interface should prioritize:
-
-* Clear hierarchy
-* Minimal friction
-* Fast decision-making
-* Readable layouts
-* Predictable interactions
-* Helpful feedback
-* Progressive disclosure
-
-Users should rarely wonder what to do next.
+- cheap,
+- cluttered,
+- outdated,
+- confusing,
+- or visually overwhelming.
 
 ---
 
-# 7. Design Tokens
+# 3. Design Principles
 
-Version 1 should define reusable design tokens including:
+Every interface should follow the same core principles.
 
-* Colors
-* Typography
-* Font sizes
-* Font weights
-* Spacing
-* Border radius
-* Shadows
-* Animation timing
-* Elevation
-* Z-index layers
+## Clarity First
 
-All UI styling should reference tokens rather than hardcoded values.
+Important information should always be easy to locate and understand.
+
+Financial information should never compete with decorative elements.
 
 ---
 
-# 8. Color System
+## Transparency
 
-The platform should define semantic color roles rather than page-specific colors.
+Customers should understand:
 
-Suggested categories:
+- balances,
+- participation,
+- pricing,
+- progress,
+- and outcomes
 
-* Primary
-* Secondary
-* Accent
-* Success
-* Warning
-* Error
-* Information
-* Background
-* Surface
-* Border
-* Text
-* Disabled
-
-Colors should satisfy accessibility contrast requirements.
+without unnecessary explanation.
 
 ---
 
-# 9. Typography
+## Visual Hierarchy
 
-Typography should establish clear visual hierarchy.
+The interface should naturally guide attention toward the most important information.
 
-Suggested hierarchy includes:
+Primary actions should always stand out.
 
-* Display
-* Heading 1
-* Heading 2
-* Heading 3
-* Heading 4
-* Body Large
-* Body
-* Small Text
-* Caption
-* Labels
-* Button Text
-
-Typography should remain consistent across all devices.
+Secondary actions should remain available without competing for attention.
 
 ---
 
-# 10. Grid System
+## Consistency
 
-Layouts should use a responsive grid.
+Components should behave the same way throughout the platform.
 
-Recommended characteristics include:
-
-* Consistent column structure
-* Responsive breakpoints
-* Flexible containers
-* Predictable alignment
-* Balanced whitespace
-
-Grid behavior should remain consistent throughout the platform.
+Buttons, cards, navigation, progress indicators, and interactions should never change behavior between pages.
 
 ---
 
-# 11. Spacing System
+## Performance
 
-Spacing should use a standardized scale.
+Interfaces should feel responsive.
 
-Spacing should apply consistently to:
-
-* Sections
-* Cards
-* Forms
-* Lists
-* Navigation
-* Dialogs
-* Tables
-
-Whitespace should improve readability rather than simply fill space.
+Animations should enhance the experience rather than delay it.
 
 ---
 
-# 12. Icons
+# 4. Emotional Design Language
 
-Icons should:
+Project Zero-Loss should create positive emotional momentum throughout the customer journey.
 
-* Be visually consistent
-* Use a unified style
-* Support accessibility
-* Include descriptive labels where appropriate
+The interface should encourage:
 
-Icons should reinforce meaning rather than replace text.
+- curiosity,
+- confidence,
+- anticipation,
+- celebration,
+- reassurance,
+- and long-term trust.
 
----
-
-# 13. Illustrations
-
-Illustrations should be:
-
-* Friendly
-* Modern
-* Lightweight
-* Purposeful
-* Consistent with brand identity
-
-Illustrations should support onboarding, empty states, education, and marketing without distracting from core functionality.
+Emotional moments should arise naturally from customer actions rather than excessive visual effects.
 
 ---
 
-# 14. Buttons
+# 5. Color Philosophy
 
-Buttons should communicate importance through consistent visual hierarchy.
+Color should communicate meaning before decoration.
 
-Version 1 should support:
+Colors should reinforce:
 
-* Primary Buttons
-* Secondary Buttons
-* Tertiary Buttons
-* Text Buttons
-* Icon Buttons
-* Destructive Buttons
+- trust,
+- financial clarity,
+- progress,
+- success,
+- warnings,
+- and system status.
 
-Each button should define:
+Bright accent colors should be reserved for actions and achievements.
 
-* Default state
-* Hover state
-* Focus state
-* Active state
-* Disabled state
-* Loading state
-
-Button behavior should remain consistent across the platform.
+Neutral colors should support readability and information hierarchy.
 
 ---
 
-# 15. Cards
+# 6. Status Colors
 
-Cards are one of the primary layout components within Project Zero-Loss.
+Every status throughout the platform should use consistent color semantics.
 
-Cards should be used for:
+Examples include:
 
-* Products
-* Sweepstakes
-* Promotions
-* Notifications
-* Wallet summaries
-* Dashboard widgets
-* Help articles
-* Recommendations
+**Success**
 
-Cards should provide:
-
-* Consistent spacing
-* Predictable padding
-* Optional actions
-* Clear hierarchy
-* Responsive layouts
-
-Cards should never become overloaded with excessive information.
+- completed participation
+- successful deposits
+- confirmed actions
+- prize claims
 
 ---
 
-# 16. Forms
+**Information**
 
-Forms should minimize user effort while maximizing clarity.
-
-Forms should include:
-
-* Labels
-* Placeholder guidance
-* Helper text
-* Validation messages
-* Required indicators
-* Error messaging
-* Success confirmation
-
-Validation should occur:
-
-* During input when appropriate
-* Before submission
-* After submission when server validation is required
-
-Error messages should clearly explain how to resolve issues.
+- account updates
+- general notifications
+- informational banners
 
 ---
 
-# 17. Tables
+**Warning**
 
-Tables should support administrative and reporting interfaces.
+- expiring credits
+- pending verification
+- incomplete profile information
 
-Recommended features include:
+---
 
-* Sortable columns
-* Pagination
-* Search
-* Filtering
-* Column resizing (future)
-* Export support (future)
-* Responsive presentation
+**Critical**
 
-Tables should remain readable regardless of dataset size.
+- failed payments
+- security alerts
+- account restrictions
+- system errors
+
+Meaning should never rely on color alone.
+
+Icons and descriptive labels should always reinforce status.
+
+---
+
+# 7. Typography
+
+Typography should prioritize readability.
+
+The hierarchy should clearly distinguish:
+
+- page titles,
+- section headings,
+- card titles,
+- supporting information,
+- body text,
+- helper text,
+- and financial values.
+
+Numeric values should be especially easy to scan.
+
+Wallet balances, prices, credits, and participation costs should receive additional visual emphasis without appearing oversized.
+
+---
+
+# 8. Iconography
+
+Icons should improve comprehension rather than replace text.
+
+Icons should be:
+
+- simple,
+- recognizable,
+- modern,
+- and used consistently.
+
+Examples include:
+
+- wallet
+- trophy
+- ticket
+- notification
+- profile
+- search
+- settings
+- support
+- rewards
+- history
+
+Decorative icons should never reduce clarity.
+
+---
+
+# 9. Layout System
+
+The platform should use a predictable layout structure.
+
+Every page should follow the same general pattern:
+
+1. Header
+2. Primary content
+3. Supporting content
+4. Contextual actions
+5. Footer
+
+Customers should immediately understand where to look regardless of which page they visit.
+
+---
+
+# 10. Grid and Spacing
+
+Spacing should create visual rhythm and reduce cognitive load.
+
+Components should align consistently using a shared spacing scale.
+
+Adequate whitespace should separate:
+
+- cards,
+- sections,
+- actions,
+- forms,
+- and navigation.
+
+The interface should feel spacious without wasting screen real estate.
+
+---
+
+# 11. Responsive Philosophy
+
+Project Zero-Loss is designed using a mobile-first approach.
+
+Interfaces should gracefully scale across:
+
+- mobile phones,
+- tablets,
+- laptops,
+- and desktop monitors.
+
+Customers should experience the same logical organization regardless of screen size.
+
+Functionality should never be removed simply because a customer is using a smaller device.
+
+# 12. Component Library
+
+Every customer-facing interface should be constructed from reusable components rather than one-off page designs.
+
+Core components include:
+
+- Buttons
+- Input Fields
+- Search Bars
+- Cards
+- Wallet Cards
+- Progress Bars
+- Navigation
+- Tabs
+- Badges
+- Status Indicators
+- Alerts
+- Modals
+- Drawers
+- Toast Notifications
+- Tables
+- Lists
+- Empty States
+- Loading Skeletons
+- Pagination Controls
+
+Reusable components improve consistency while reducing development complexity.
+
+---
+
+# 13. Buttons
+
+Buttons should communicate action priority through consistent styling.
+
+Every button should belong to one of the following categories.
+
+## Primary Button
+
+Used for the most important action on a screen.
+
+Examples include:
+
+- Enter Pool
+- Add Funds
+- Claim Prize
+- Save Changes
+
+Only one primary button should dominate a section.
+
+---
+
+## Secondary Button
+
+Used for supporting actions.
+
+Examples include:
+
+- Learn More
+- View Details
+- Browse Products
+- Manage Account
+
+Secondary buttons should remain visually subordinate to primary actions.
+
+---
+
+## Tertiary Button
+
+Used for low-priority interactions.
+
+Examples include:
+
+- Cancel
+- Back
+- Close
+- Dismiss
+
+These buttons should remain available without distracting from primary workflows.
+
+---
+
+# 14. Cards
+
+Cards are the primary organizational component throughout Project Zero-Loss.
+
+Cards should contain related information within a clearly defined visual boundary.
+
+Examples include:
+
+- Product Cards
+- Wallet Cards
+- Active Entry Cards
+- Result Cards
+- Notification Cards
+- Membership Cards
+- Reward Cards
+
+Cards should maintain consistent spacing, padding, and corner radius throughout the platform.
+
+---
+
+# 15. Wallet Cards
+
+Wallet Cards communicate financial information.
+
+They should emphasize clarity over decoration.
+
+Each Wallet Card should clearly distinguish:
+
+- Playable Balance
+- Rebate Credits
+- Pending Funds (future)
+- Promotional Credits (future)
+
+Financial values should receive the highest visual priority.
+
+Supporting descriptions should explain how each balance type may be used.
+
+---
+
+# 16. Product Cards
+
+Product Cards are one of the most frequently used components within the marketplace.
+
+Every Product Card should consistently display:
+
+- product image,
+- product title,
+- retail value,
+- participation price,
+- progress indicator,
+- pool status,
+- and primary action.
+
+Customers should recognize Product Cards instantly regardless of where they appear.
+
+---
+
+# 17. Progress Indicators
+
+Progress indicators communicate marketplace activity.
+
+They should appear consistently throughout:
+
+- Homepage
+- Item Pages
+- Account
+- Search Results
+- Active Participation
+- Featured Products
+
+Progress should visually communicate momentum without exaggerating urgency.
+
+Animations should remain subtle and informative.
 
 ---
 
 # 18. Navigation
 
-Navigation should remain predictable throughout the application.
+Navigation should remain simple and predictable.
 
-Version 1 should define:
+Primary navigation should provide quick access to:
 
-* Global navigation
-* Mobile navigation
-* Breadcrumbs
-* Footer navigation
-* Administrative navigation
-* Contextual navigation
+- Home
+- Browse
+- Search
+- Favorites
+- Notifications
+- Account
 
-Users should always understand where they are within the platform.
+Navigation labels should remain consistent throughout the platform.
+
+Customers should never need to guess where a feature lives.
 
 ---
 
-# 19. Modals
+# 19. Forms
 
-Modal dialogs should be reserved for focused tasks.
+Forms should minimize customer effort.
+
+Every form should:
+
+- group related fields,
+- provide clear labels,
+- validate inputs immediately when appropriate,
+- explain errors clearly,
+- and preserve entered information whenever possible.
+
+Required fields should be obvious without overwhelming the customer.
+
+---
+
+# 20. Dialogs and Modals
+
+Dialogs should interrupt workflow only when necessary.
 
 Examples include:
 
-* Confirmations
-* Quick edits
-* Authentication prompts
-* Warnings
-* Success confirmations
+- Prize Claim
+- Identity Verification
+- Delete Confirmation
+- Payment Confirmation
+- Security Alerts
+- Pay-It-Forward Participation
 
-Modals should:
+Every modal should clearly communicate:
 
-* Trap keyboard focus
-* Support keyboard dismissal where appropriate
-* Clearly identify primary and secondary actions
+- why it appeared,
+- the available actions,
+- and the consequences of each choice.
 
-Critical confirmations should require explicit user intent.
-
----
-
-# 20. Drawers
-
-Drawers provide contextual interactions without leaving the current page.
-
-Appropriate uses include:
-
-* Filters
-* Shopping details
-* Notification panels
-* Wallet summaries
-* Administrative editing panels
-
-Drawers should preserve the user's context whenever practical.
+Customers should never feel trapped inside a dialog.
 
 ---
 
-# 21. Alerts
+# 21. Notifications
 
-Alerts communicate important information requiring user attention.
+Notifications communicate important information without disrupting workflow.
 
-Supported alert types:
+Notification categories include:
 
-* Success
-* Information
-* Warning
-* Error
+- Success
+- Information
+- Warning
+- Critical
 
-Alerts should use semantic color roles rather than custom styling.
+Notifications should appear only for meaningful events.
+
+Customers should never experience notification fatigue.
 
 ---
 
-# 22. Toast Notifications
+# 22. Tables and Lists
 
-Toast notifications should provide lightweight feedback.
+Tables should be reserved for structured financial or administrative information.
 
 Examples include:
 
-* Saved successfully
-* Item added
-* Payment completed
-* Entry submitted
-* Settings updated
+- Transaction History
+- Ledger Events
+- Prize History
+- Referral History
 
-Toasts should automatically dismiss after an appropriate duration while remaining accessible to assistive technologies.
+Customer-facing tables should prioritize readability over data density.
 
----
-
-# 23. Loading States
-
-Users should always receive visual feedback while waiting.
-
-Supported loading states include:
-
-* Skeleton screens
-* Progress indicators
-* Spinner animations
-* Progressive loading
-* Lazy loading
-
-Loading indicators should accurately represent application activity.
+Lists should be used whenever chronological information is more appropriate than tabular presentation.
 
 ---
 
-# 24. Empty States
+# 23. Empty States
 
-Empty states should educate rather than disappoint.
+Empty states should educate customers rather than simply announce missing information.
 
 Examples include:
 
-* No favorites yet
-* No wishlist items
-* No notifications
-* No sweepstakes entered
-* No search results
-* No purchase history
+- No Active Entries
+- No Favorites
+- No Notifications
+- No Rewards
+- No Search Results
 
-Each empty state should explain the situation and provide a clear next action.
+Each empty state should include:
 
----
+- a short explanation,
+- visual reinforcement,
+- and an appropriate next action.
 
-# 25. Error States
-
-Error experiences should be:
-
-* Clear
-* Actionable
-* Friendly
-* Recoverable
-
-Error pages should explain:
-
-* What happened
-* What the user can do next
-* How to obtain assistance if necessary
-
-Users should never encounter technical jargon.
+Empty states should encourage exploration rather than create frustration.
 
 ---
 
-# 26. Responsive Design
+# 24. Loading States
 
-The interface should adapt gracefully across devices.
+Loading experiences should reassure customers that information is actively being retrieved.
 
-Primary layouts should support:
+Loading states should use skeleton placeholders rather than animated spinners whenever practical.
 
-* Mobile
-* Tablet
-* Laptop
-* Desktop
-* Large desktop displays
+Components that support loading placeholders include:
 
-Components should reflow naturally without sacrificing usability.
+- Product Cards
+- Wallet Cards
+- Transaction History
+- Search Results
+- Notifications
+- Favorites
+- Recommendations
+
+Loading animations should feel smooth and unobtrusive.
+
+# 25. Motion and Animation
+
+Animation should reinforce understanding rather than distract from it.
+
+Motion should communicate:
+
+- successful actions,
+- state changes,
+- navigation,
+- loading,
+- progress,
+- and celebration.
+
+Animations should always feel:
+
+- smooth,
+- responsive,
+- intentional,
+- and premium.
+
+Excessive motion should be avoided.
+
+Customers should never wait for animations before completing important actions.
 
 ---
 
-# 27. Motion Guidelines
+# 26. Microinteractions
 
-Animations should communicate purpose rather than decoration.
+Small interactions should provide immediate feedback that confirms customer actions.
 
-Appropriate uses include:
+Examples include:
 
-* Navigation transitions
-* Loading indicators
-* Success confirmations
-* Expand/collapse interactions
-* Drawer animations
-* Modal transitions
+- button presses,
+- successful form submissions,
+- wallet balance updates,
+- notification acknowledgements,
+- favorite toggles,
+- wishlist additions,
+- and completed participation.
 
-Motion should remain subtle, fast, and optional for users who prefer reduced motion.
+Microinteractions should increase confidence without becoming visually distracting.
 
 ---
 
-# 28. Administrative Interface Standards
+# 27. Financial UI Standards
 
-Administrative interfaces should follow the same design language as the customer-facing application while prioritizing operational efficiency.
+Financial information represents the highest-priority content within the platform.
 
-Administrative pages should emphasize:
+Wallet balances, credits, pricing, rebates, and transaction amounts should always receive clear visual emphasis.
 
-* Information density
-* Readability
-* Efficient workflows
-* Keyboard accessibility
-* Bulk actions
-* Clear data hierarchy
-* Predictable layouts
+Financial values should:
 
-The Admin Portal should reuse shared design components wherever possible.
+- use consistent formatting,
+- align predictably,
+- clearly indicate positive and negative movement,
+- and remain easy to scan.
+
+Currency values should never compete visually with promotional messaging.
+
+Trust takes priority over decoration.
+
+---
+
+# 28. Marketplace Activity
+
+Marketplace activity should communicate that the platform is active without overwhelming customers.
+
+Examples include:
+
+- pool progress updates,
+- recent winners,
+- participation milestones,
+- community activity,
+- and featured opportunities.
+
+Activity indicators should encourage exploration while avoiding artificial urgency or misleading representations of marketplace behavior.
 
 ---
 
 # 29. Accessibility Standards
 
-Accessibility is a foundational requirement of the Project Zero-Loss Design System and is not an optional enhancement.
+Every interface should comply with modern accessibility expectations.
 
-The platform should conform to **WCAG 2.2 Level AA** standards wherever practical.
+The design system should support:
 
-Accessibility requirements include:
+- keyboard navigation,
+- screen reader compatibility,
+- semantic HTML structure,
+- accessible labels,
+- sufficient color contrast,
+- scalable typography,
+- logical focus order,
+- and descriptive error messaging.
 
-* Keyboard-only navigation
-* Visible focus indicators
-* Sufficient color contrast
-* Semantic HTML structure
-* Screen reader compatibility
-* Alternative text for meaningful images
-* Accessible form labels
-* Error identification and recovery
-* Reduced motion support
-* Scalable text without loss of functionality
-
-Accessibility should be considered during design, development, and testing—not added afterward.
+Accessibility should be considered a core design requirement rather than an optional enhancement.
 
 ---
 
-# 30. Component Naming Standards
+# 30. Design Tokens
 
-Reusable UI components should follow consistent naming conventions.
+The implementation should utilize centralized design tokens to ensure visual consistency across all applications.
 
-Examples include:
+Design tokens may include:
 
-* Button
-* Card
-* Input
-* Select
-* Checkbox
-* RadioGroup
-* Modal
-* Drawer
-* Toast
-* Alert
-* Badge
-* Avatar
-* Breadcrumb
-* Pagination
-* Table
-* Tabs
-* Accordion
-* Tooltip
-* Skeleton
-* EmptyState
-* LoadingIndicator
+- color palette,
+- typography scale,
+- spacing scale,
+- border radius,
+- elevation,
+- shadows,
+- animation durations,
+- icon sizing,
+- breakpoints,
+- and component dimensions.
 
-Component names should remain descriptive, predictable, and implementation-independent.
+Changes to design tokens should automatically propagate throughout the platform.
 
 ---
 
-# 31. Component Reuse Guidelines
+# 31. Component Governance
 
-New UI components should only be created when existing components cannot satisfy the required functionality.
+Every reusable component should have a single authoritative implementation.
 
-Before introducing a new component, designers and developers should evaluate whether an existing component can be:
+Components should not be duplicated or modified independently across pages.
 
-* Extended
-* Configured
-* Composed
-* Styled through approved design tokens
+When improvements are required:
 
-Reducing unnecessary component variation improves maintainability and user familiarity.
+- the shared component should be updated,
+- documentation should be revised,
+- and dependent pages should inherit the updated behavior automatically.
 
----
-
-# 32. Performance Considerations
-
-The Design System should encourage performant user interfaces.
-
-Recommended practices include:
-
-* Lazy loading where appropriate
-* Optimized images
-* Responsive image sizing
-* Efficient SVG usage
-* Limited animation complexity
-* Minimal layout shifts
-* Predictable rendering behavior
-
-Visual quality should never unnecessarily compromise application responsiveness.
+This approach reduces maintenance effort while preserving consistency.
 
 ---
 
-# 33. Testing Requirements
+# 32. Relationship to Other Specifications
 
-The Design System should be validated through automated and manual testing.
+The Design System supports every customer-facing and administrative specification within Project Zero-Loss.
 
-Testing should include:
+Related specifications include:
 
-* Visual regression testing
-* Responsive layout validation
-* Accessibility audits
-* Keyboard navigation
-* Screen reader testing
-* Component interaction testing
-* Cross-browser compatibility
-* Mobile usability
-* High contrast mode
-* Reduced motion settings
+**Homepage Specification**
+- Marketplace discovery and customer acquisition.
 
-Shared components should be tested before application-specific pages.
+**How It Works Specification**
+- Customer education and onboarding.
 
----
+**Item Page Specification**
+- Product participation experience.
 
-# 34. Acceptance Criteria
+**Marketing & UX Specification**
+- Emotional design and brand expression.
 
-Version 1 is complete when:
+**Account & Wallet Specification**
+- Customer financial dashboard.
 
-1. Design tokens are documented.
-2. Color roles are standardized.
-3. Typography hierarchy is defined.
-4. Grid and spacing systems are documented.
-5. Shared UI components are specified.
-6. Navigation standards are established.
-7. Form behaviors are documented.
-8. Responsive behavior is defined.
-9. Accessibility requirements are documented.
-10. Motion guidelines are complete.
-11. Administrative interfaces follow the shared design language.
-12. Founder verification passes.
+**Operations Specifications**
+- Administrative interfaces, fraud management, analytics, payments, support, and content management.
+
+All future interface specifications should reference this document rather than redefining visual behavior.
 
 ---
 
-# 35. Founder Verification Checklist
+# 33. Governance
 
-Before approving the Design System:
+The Design System is the single source of truth for interface design throughout Project Zero-Loss.
 
-1. Review all typography definitions.
-2. Verify semantic color usage.
-3. Confirm spacing consistency.
-4. Validate responsive layouts.
-5. Test button behavior across all states.
-6. Verify form validation patterns.
-7. Confirm navigation consistency.
-8. Review loading and empty states.
-9. Test keyboard navigation.
-10. Verify screen reader compatibility.
-11. Validate WCAG compliance.
-12. Review administrative interface consistency.
-13. Confirm reusable component standards.
+Future enhancements should strengthen:
 
----
+- consistency,
+- usability,
+- accessibility,
+- responsiveness,
+- maintainability,
+- and customer trust.
 
-# 36. Future Enhancements
+Future changes should never:
 
-The following capabilities are intentionally outside the scope of Version 1.
+- introduce inconsistent component behavior,
+- duplicate existing UI patterns,
+- weaken accessibility,
+- reduce financial clarity,
+- or create conflicting visual language between products.
 
----
-
-## 36.1 Dark Mode
-
-Future versions may support:
-
-* System preference detection
-* Manual theme selection
-* Theme persistence
-* Alternate semantic color tokens
-
-All themes should maintain accessibility compliance.
+Every interface should feel like it belongs to the same platform regardless of when it was built.
 
 ---
 
-## 36.2 Multi-Brand Support
+# 34. Final Design Standard
 
-Future architecture may support:
+A successful Design System ensures that every Project Zero-Loss experience feels immediately recognizable, trustworthy, and consistent.
 
-* White-label deployments
-* Brand-specific themes
-* Configurable color systems
-* Multiple logo packages
-* Tenant-specific branding
+Customers should experience:
 
-Brand customization should not require changes to shared components.
+1. Clear visual hierarchy.
+2. Consistent interaction patterns.
+3. Readable financial information.
+4. Responsive layouts across all devices.
+5. Accessible and inclusive interfaces.
+6. Meaningful animation and feedback.
+7. Reusable, predictable components.
+8. A cohesive visual identity across the entire platform.
 
----
-
-## 36.3 Advanced Motion System
-
-Future enhancements may include:
-
-* Page transition animations
-* Micro-interactions
-* Gesture-driven interactions
-* Advanced loading experiences
-* Contextual motion patterns
-
-Animations should continue to prioritize usability over decoration.
-
----
-
-## 36.4 Design Token Automation
-
-Future tooling may automate:
-
-* Token generation
-* CSS variable creation
-* Cross-platform synchronization
-* Figma integration
-* Documentation generation
-
-Automation should reduce manual maintenance while preserving a single source of truth.
-
----
-
-## 36.5 Component Documentation
-
-Future releases may include a dedicated component library with:
-
-* Interactive examples
-* Usage guidelines
-* Accessibility notes
-* Implementation references
-* Design rationale
-* Code examples
-
-This documentation should support both designers and developers.
-
----
-
-## 36.6 Internationalization Support
-
-Future design guidance may include:
-
-* Right-to-left (RTL) layouts
-* Variable text expansion
-* Localization-aware spacing
-* Regional typography adjustments
-* Language-specific UI considerations
-
-Internationalization should be supported without redesigning core components.
-
----
-
-# 37. Architecture Decisions Introduced
-
-This specification establishes the following architectural decisions.
-
----
-
-## Design Tokens Are the Single Source of Truth
-
-All visual styling should originate from centralized design tokens rather than hardcoded values.
-
-This ensures consistency, simplifies maintenance, and supports future theming.
-
----
-
-## Components Are Reusable
-
-Shared UI components should be used throughout customer-facing and administrative interfaces.
-
-Component duplication should be avoided whenever possible.
-
----
-
-## Accessibility Is Built In
-
-Accessibility requirements should be incorporated into every component and interaction from the beginning of the design process.
-
-Compliance is a core quality attribute of the platform.
-
----
-
-## Responsive Design Is the Default
-
-Every component should function effectively across supported screen sizes without requiring separate implementations.
-
-Responsive behavior should be defined within the component itself whenever practical.
-
----
-
-## Consistency Takes Priority
-
-Visual consistency should outweigh isolated design preferences.
-
-Shared interaction patterns reduce user learning time and improve overall usability.
-
----
-
-## Administrative Interfaces Share the Same System
-
-Administrative tools should reuse the same design language, design tokens, and component library as customer-facing experiences.
-
-Operational efficiency should be achieved through composition—not through a separate design system.
-
----
-
-# 38. Related Documents
-
-This specification should always be reviewed alongside:
-
-* `docs/project-index.md`
-* `docs/architecture/master-architecture.md`
-* `docs/core/product-vision.md`
-* `docs/core/product-concept.md`
-* All Product specifications
-* All Capability specifications
-* All Operations specifications
-
-Together, these documents define both the functionality and the presentation of Project Zero-Loss.
-
----
-
-# 39. Guiding Statement
-
-The Design System exists to ensure that every interaction within Project Zero-Loss is consistent, accessible, intuitive, and scalable.
-
-By defining a shared visual language, reusable components, standardized behaviors, and accessibility-first principles, the Design System enables designers and developers to deliver a cohesive user experience while reducing implementation complexity and supporting long-term platform evolution.
-
----
-
-# 40. Document Revision History
-
-| Version | Date       | Summary                                                                      |
-| ------- | ---------- | ---------------------------------------------------------------------------- |
-| 1.0     | 2026-07-16 | Initial enterprise specification created for Version 1 of Project Zero-Loss. |
-
----
-
+When these standards are consistently applied, the Design System fulfills its purpose as the visual foundation for Project Zero-Loss, enabling a scalable, maintainable, and customer-centered product experience.
 

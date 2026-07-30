@@ -1,9 +1,9 @@
 # Project Zero-Loss Capability Documentation Guide
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Frozen
 **Document Owner:** Founder / Product Architecture
-**Last Updated:** 2026-07-16
+**Last Updated:** 2026-07-27
 **Target Path:** `docs/capabilities/README.md`
 
 ---
@@ -12,73 +12,74 @@
 
 This document defines how cross-platform capabilities are specified, reviewed, approved, implemented, and maintained throughout Project Zero-Loss.
 
-A capability is a reusable product behavior that may appear across multiple pages, workflows, administrative tools, APIs, and database systems.
+A capability is a reusable product behavior that may appear across multiple pages, workflows, administrative tools, APIs, services, and database systems.
 
 Examples include:
 
-* Favorites
-* Notifications
-* Search
-* Recommendations
-* User preferences
-* Identity and profiles
-* Catalog management
-* Rewards and referrals
+- Favorites
+- Notifications
+- Search
+- Recommendations
+- User Preferences
+- Identity & Profile
+- Catalog
+- Rewards & Referrals
+- Communications
+- Activity History
 
 A capability is not limited to a single page.
 
 For example, Favorites may appear on:
 
-* the homepage,
-* search results,
-* item pages,
-* account pages,
-* recommendation modules,
-* notification settings,
-* and administrative analytics.
+- Homepage
+- Search Results
+- Item Pages
+- Account Pages
+- Recommendation Modules
+- Notification Settings
+- Administrative Tools
+- Analytics Dashboards
 
-Because a capability affects multiple parts of the platform, it requires one authoritative specification that defines its behavior everywhere.
+Because a capability affects multiple areas of the platform, it requires one authoritative specification that defines its behavior consistently everywhere it is used.
 
 ---
 
 # 2. Guiding Principle
 
-> **A capability is a behavior, not a page.**
+> **A capability defines reusable business behavior—not an individual page.**
 
-Page specifications define what a particular screen should display.
+Page specifications describe what a specific screen presents to a customer.
 
-Capability specifications define how a reusable product behavior works across the entire platform.
+Capability specifications describe how a reusable feature behaves across the entire platform.
 
-When a page specification and a capability specification address the same behavior, the capability specification governs the reusable behavior unless a higher-authority document says otherwise.
+When a page specification and a capability specification describe the same behavior, the capability specification governs that reusable behavior unless superseded by a higher-authority document.
 
 ---
 
 # 3. Documentation Authority
 
-Capability documents must follow the authority hierarchy established in:
-
-`docs/project-index.md`
+Capability specifications follow the documentation authority established by the Project Zero-Loss documentation hierarchy.
 
 Capability specifications must never override:
 
-1. Explicit founder decisions.
-2. The Master Architecture.
-3. The Product Vision.
-4. The Product Concept.
-5. AI Operating Rules.
-6. The Output Contract.
+1. Explicit Founder Decisions
+2. Master Architecture
+3. Product Vision
+4. Product Concept
+5. AI Operating Rules
+6. Output Contract
 
-Capability specifications may clarify and expand those documents, but they must remain consistent with them.
+Capability specifications expand and clarify higher-level documentation but must remain fully consistent with it.
 
-If a capability document conflicts with a higher-authority document, implementation must stop until the conflict is resolved.
+If a conflict exists between documents, implementation must stop until the conflict is resolved.
 
-Cursor or another AI assistant must not silently choose which conflicting rule to follow.
+Neither Cursor nor any AI assistant may silently choose between conflicting business rules.
 
 ---
 
 # 4. Capability Folder Structure
 
-The official capability folder is:
+The official capability directory is:
 
 ```text
 docs/
@@ -97,20 +98,20 @@ docs/
     └── communications.md
 ```
 
-Additional capability documents may be added when a behavior:
+Additional capability specifications may be introduced whenever a reusable feature:
 
-* affects multiple pages or systems,
-* has its own business rules,
-* requires persistent data,
-* requires administrative controls,
-* creates security or privacy obligations,
-* or would otherwise be duplicated across several page specifications.
+- spans multiple pages or systems,
+- contains unique business rules,
+- requires persistent data,
+- includes administrative controls,
+- introduces security or privacy requirements,
+- or would otherwise duplicate implementation logic across multiple specifications.
 
 ---
 
 # 5. Required Document Metadata
 
-Every capability specification must begin with:
+Every capability specification must begin with the following metadata:
 
 ```text
 Version:
@@ -120,270 +121,324 @@ Last Updated:
 Target Path:
 Related Documents:
 ```
-
 ## Version
 
-The current document version.
+The current approved version of the capability specification.
 
 Examples:
 
-* `1.0` — first approved version.
-* `1.1` — clarification or compatible expansion.
-* `2.0` — significant redesign or superseding decision.
+- **1.0** — Initial approved version.
+- **1.1** — Clarification or compatible enhancement.
+- **2.0** — Significant redesign or superseding implementation.
+
+Version numbers should accurately reflect meaningful changes while preserving document history.
+
+---
 
 ## Status
 
-Each document must use one of the following statuses:
+Every capability specification must use one of the following statuses.
 
 ### Draft
 
-The document is still being discussed and must not be treated as approved implementation authority.
+The capability is actively being designed and must not be treated as implementation authority.
 
 ### Review
 
-The document is complete enough for founder, architecture, security, legal, or technical review.
+The capability is complete enough for founder, product, architecture, legal, security, or technical review.
 
 ### Frozen
 
-The document is approved as the current implementation authority.
+The capability has been approved as the current implementation authority.
 
-A frozen document may still be changed, but changes must be intentional, versioned, and recorded.
+Frozen documents may still be updated, but every change must be intentional, reviewed, and versioned.
 
 ### Superseded
 
-The document has been replaced by a newer approved document or version.
+The capability has been replaced by a newer approved version and should no longer guide implementation.
 
 ### Archived
 
-The document is retained for historical reference but must not guide current implementation.
+The capability is retained only for historical reference and must not be used for new development.
+
+---
 
 ## Document Owner
 
-The person or role responsible for approving the capability.
+Identifies the person or role responsible for approving and maintaining the capability specification.
+
+---
 
 ## Last Updated
 
-The date of the most recent meaningful change.
+Records the date of the most recent meaningful revision.
+
+Minor formatting changes do not require updating this field.
+
+---
 
 ## Target Path
 
-The canonical location of the document in the repository.
+Identifies the canonical repository location of the specification.
+
+---
 
 ## Related Documents
 
-Other specifications, architecture documents, operations documents, or Architecture Decision Records that affect the capability.
+Lists all architecture documents, core documents, product specifications, operations specifications, and other capability specifications that influence or depend on this capability.
+
+Related Documents help developers and AI assistants understand how a capability fits into the broader Project Zero-Loss documentation ecosystem and ensure implementation remains consistent across the platform.
 
 ---
 
 # 6. Required Capability Sections
 
-Every capability document should include the following sections where relevant.
+Every capability specification should include the following sections whenever they are applicable.
 
 ## 6.1 Purpose
 
-Explain why the capability exists and what problem it solves.
+Explain why the capability exists and what customer or business problem it solves.
+
+---
 
 ## 6.2 Product Philosophy
 
-Explain how the capability supports the Zero-Loss experience, including:
+Describe how the capability supports the Project Zero-Loss vision by reinforcing:
 
-* customer trust,
-* shopping utility,
-* transparency,
-* responsible engagement,
-* and long-term platform value.
+- customer trust,
+- transparency,
+- shopping utility,
+- responsible participation,
+- operational integrity,
+- and long-term platform value.
+
+---
 
 ## 6.3 User Outcomes
 
-Describe what users should be able to accomplish.
+Describe what successful customers should be able to accomplish using the capability.
+
+---
 
 ## 6.4 User Stories
 
-Provide realistic examples using plain language.
+Provide realistic scenarios written in plain language.
 
 Example:
 
-> As a user who follows groceries, I want to be notified when a new grocery gift-card pool opens so I do not need to search manually every day.
+> As a customer who follows grocery gift cards, I want to receive notifications when a new grocery pool becomes available so I don't have to search every day.
+
+---
 
 ## 6.5 Version 1 Scope
 
-Define what must exist in the first production version.
+Define everything that must exist before Version 1 is considered complete.
+
+---
 
 ## 6.6 Future Enhancements
 
-Record useful ideas that are not required for Version 1.
+Record ideas that may improve the capability in future releases.
 
-Future ideas must not be implemented automatically unless they are intentionally promoted into the approved scope.
+Future enhancements must never be implemented automatically simply because they appear in the documentation.
+
+---
 
 ## 6.7 Out of Scope
 
-State what the capability intentionally does not include.
+Clearly define functionality that is intentionally excluded from the current implementation.
+
+---
 
 ## 6.8 User Experience Requirements
 
-Define:
+Document:
 
-* user-facing controls,
-* page locations,
-* navigation,
-* empty states,
-* loading states,
-* error states,
-* mobile behavior,
-* accessibility,
-* and understandable language.
+- user-facing controls,
+- page placement,
+- navigation,
+- loading states,
+- empty states,
+- error handling,
+- mobile behavior,
+- accessibility,
+- and customer-friendly language.
+
+---
 
 ## 6.9 Business Rules
 
-Define the rules that govern the capability.
+Define the business rules that govern the capability.
 
-Business rules must be explicit enough that Cursor or another engineer does not have to invent them.
+Business rules should be specific enough that engineers and AI assistants never need to invent platform behavior.
+
+---
 
 ## 6.10 Data Requirements
 
-Describe the information the capability needs to store or derive.
+Describe the information required to support the capability.
 
-Suggested tables and fields may be included, but final database implementation must remain consistent with the Master Architecture and approved migrations.
+Suggested database structures may be included, but implementation must remain consistent with the Master Architecture and approved database migrations.
+
+---
 
 ## 6.11 Server and API Requirements
 
-Describe:
+Document:
 
-* server-side responsibilities,
-* authorization,
-* idempotency where relevant,
-* validation,
-* rate limits,
-* external integrations,
-* and failure handling.
+- server-side responsibilities,
+- authorization,
+- validation,
+- idempotency,
+- rate limiting,
+- external integrations,
+- error handling,
+- and recovery behavior.
+
+---
 
 ## 6.12 Security and Privacy
 
 Document:
 
-* ownership rules,
-* Row Level Security requirements,
-* sensitive information,
-* consent,
-* retention,
-* abuse risks,
-* and administrative access.
-
-## 6.13 Administrative Requirements
-
-Define what operators need to:
-
-* review,
-* configure,
-* disable,
-* investigate,
-* moderate,
-* correct,
-* audit,
-* or report.
-
-## 6.14 Analytics Requirements
-
-Define what events and outcomes should be measured.
-
-Analytics records must never become the source of financial truth.
-
-## 6.15 Accessibility
-
-Define capability-specific accessibility expectations, including:
-
-* keyboard access,
-* screen-reader labels,
-* focus behavior,
-* contrast,
-* motion preferences,
-* and understandable error messages.
-
-## 6.16 Failure and Edge Cases
-
-Document realistic problems such as:
-
-* duplicate requests,
-* deleted records,
-* expired sessions,
-* unavailable items,
-* provider failures,
-* retry behavior,
-* concurrent requests,
-* or partial completion.
-
-## 6.17 Acceptance Criteria
-
-State the conditions that must be proven before the capability is considered complete.
-
-Acceptance criteria should be testable.
-
-## 6.18 Related Documents
-
-List all connected specifications and Architecture Decision Records.
+- ownership rules,
+- Row Level Security (RLS),
+- sensitive information,
+- consent requirements,
+- retention policies,
+- abuse prevention,
+- and administrative access.
 
 ---
 
+## 6.13 Administrative Requirements
+
+Describe how administrators can:
+
+- review,
+- configure,
+- disable,
+- investigate,
+- moderate,
+- correct,
+- audit,
+- and report on the capability.
+
+---
+
+## 6.14 Analytics Requirements
+
+Define which business events should be measured.
+
+Analytics data must never become the authoritative source of financial truth.
+
+---
+
+## 6.15 Accessibility
+
+Document capability-specific accessibility expectations, including:
+
+- keyboard navigation,
+- screen-reader compatibility,
+- focus management,
+- color contrast,
+- reduced-motion support,
+- and understandable validation and error messages.
+
+---
+
+## 6.16 Failure and Edge Cases
+
+Describe realistic operational scenarios including:
+
+- duplicate requests,
+- expired sessions,
+- deleted records,
+- unavailable resources,
+- third-party failures,
+- retry behavior,
+- concurrent requests,
+- and partially completed operations.
+
+---
+
+## 6.17 Acceptance Criteria
+
+Define objective, testable conditions that must be satisfied before the capability is considered complete.
+
+Acceptance criteria should support automated testing whenever practical.
+
+---
+
+## 6.18 Related Documents
+
+List every architecture, core, product, operations, and capability specification that directly affects the implementation of the capability.
+
+These references ensure developers and AI assistants review all relevant documentation before making implementation decisions.
+
 # 7. Version 1 Versus Future Scope
 
-The documentation may contain more ideas than Version 1 will implement.
+Capability specifications may contain ideas that extend beyond the initial production release.
 
 This is intentional.
 
-Each idea must be classified as one of the following:
+Every proposed feature must be clearly classified as one of the following:
 
-* **Required for Version 1**
-* **Recommended for Version 1**
-* **Future enhancement**
-* **Explicitly out of scope**
+- **Required for Version 1**
+- **Recommended for Version 1**
+- **Future Enhancement**
+- **Explicitly Out of Scope**
 
-Cursor must not implement every documented future enhancement simply because it appears in a specification.
+Neither Cursor nor any other AI assistant may implement future enhancements simply because they appear in a specification.
 
-Only the approved Version 1 scope and the active implementation manual authorize immediate development.
+Only the approved Version 1 scope and the active implementation roadmap authorize immediate development.
 
 ---
 
 # 8. Implementation Rules for Cursor and AI Assistants
 
-Before implementing a capability, Cursor or another AI assistant must:
+Before implementing any capability, Cursor or another AI assistant must:
 
-1. Read `docs/project-index.md`.
-2. Read the relevant architecture and core documents.
-3. Read this capability documentation guide.
-4. Read the targeted capability specification.
-5. Read every related page and operations specification.
-6. Identify conflicts or missing decisions before generating code.
-7. Explain the proposed implementation in plain language.
-8. Identify security, privacy, financial, and operational implications.
-9. Provide complete files or migrations according to the Output Contract.
-10. Include automated tests and founder verification steps.
+1. Read the Project Index.
+2. Read the Master Architecture.
+3. Read the Product Vision and Product Concept.
+4. Read the AI Operating Rules.
+5. Read the Output Contract.
+6. Read this Capability Documentation Guide.
+7. Read the target capability specification.
+8. Review every related architecture, product, operations, and capability document.
+9. Identify conflicts, ambiguities, or missing business decisions before writing code.
+10. Explain the proposed implementation in clear language.
+11. Identify any security, privacy, financial, legal, or operational considerations.
+12. Produce complete implementation artifacts that comply with the Output Contract.
+13. Include automated testing and founder verification steps.
 
-Cursor must not treat a Markdown document as proof that an implementation is secure.
+A Markdown document alone is never proof that an implementation is secure or production-ready.
 
-Security must be enforced through:
+Security must always be enforced through:
 
-* server-side authorization,
-* database constraints,
-* Row Level Security,
-* idempotency,
-* transaction design,
-* automated tests,
-* audit logs,
-* and targeted professional review where required.
+- Server-side authorization
+- Database constraints
+- Row Level Security (RLS)
+- Transaction integrity
+- Idempotent operations
+- Audit logging
+- Automated testing
+- Appropriate professional review where required
 
 ---
 
 # 9. Change Classification
 
-Every meaningful change to a frozen capability document must be classified.
+Every meaningful change to a frozen capability specification must be classified.
 
 ## Clarification
 
-Explains an existing rule without changing its intended behavior.
+Explains an existing requirement without changing its intended behavior.
 
 ## Expansion
 
-Adds compatible detail or future capability without invalidating the existing design.
+Adds compatible functionality or additional detail without invalidating previous decisions.
 
 ## Correction
 
@@ -391,123 +446,136 @@ Fixes an error, contradiction, omission, or unsafe assumption.
 
 ## Superseding Decision
 
-Replaces a previous approved decision.
+Replaces a previously approved implementation decision.
 
-Superseding decisions should be accompanied by an Architecture Decision Record when the change affects architecture, security, financial behavior, legal structure, or multiple systems.
-
----
-
-# 10. Architecture Decision Records
-
-Major capability decisions should be recorded in:
-
-`docs/decisions/`
-
-Examples include:
-
-* Why wallet balances are ledger-derived.
-* Why notification channels are introduced in phases.
-* Why Favorites, Wishlists, and Watchlists are separate or combined.
-* Why a recommendation system begins with rule-based ranking.
-* Why SMS is excluded from Version 1.
-* Why a third-party search engine is or is not used.
-
-The capability specification defines the current behavior.
-
-The Architecture Decision Record explains why a major decision was made.
+When a superseding decision affects architecture, security, financial behavior, legal compliance, or multiple platform domains, every impacted authoritative specification must be updated so the documentation remains internally consistent.
 
 ---
 
-# 11. Cross-Document Updates
+# 10. Cross-Document Updates
 
-When a capability is approved, all affected documents must be reviewed.
+Whenever a capability specification is approved or modified, every affected document must be reviewed for consistency.
 
-For example, approving Favorites may require updates to:
+For example, approving or modifying the Favorites capability may require updates to:
 
-* `homepage-spec.md`
-* `item-page-spec.md`
-* `search.md`
-* `recommendations.md`
-* `notifications.md`
-* `account-wallet-spec.md`
-* `admin-portal-spec.md`
-* `analytics-spec.md`
+- `homepage-spec.md`
+- `item-page-spec.md`
+- `search.md`
+- `recommendations.md`
+- `notifications.md`
+- `account-wallet-spec.md`
+- `admin-portal-spec.md`
+- `analytics-spec.md`
 
-A capability is not fully documented until its relationships with affected pages and operations are addressed.
-
----
-
-# 12. No Silent Assumptions
-
-If a specification does not answer an implementation question, Cursor must not invent a permanent business rule without disclosure.
-
-Cursor should:
-
-1. identify the missing decision,
-2. explain why it matters,
-3. propose a safe default,
-4. label the assumption clearly,
-5. and request founder approval before freezing it.
-
-Temporary implementation details may be used only when they do not create irreversible product, financial, legal, or security consequences.
+A capability is not fully documented until every affected specification accurately reflects the approved behavior.
 
 ---
 
-# 13. Simplicity and Trust
+# 11. No Silent Assumptions
 
-Capability design should prioritize:
+If a specification does not answer an implementation question, Cursor or another AI assistant must not invent a permanent business rule without disclosure.
 
-1. User understanding.
-2. User trust.
-3. Financial integrity.
-4. Operational control.
-5. Accessibility.
-6. Maintainability.
-7. Scalability.
-8. Responsible engagement.
+Instead, the AI assistant should:
 
-Technical convenience must not silently override documented product behavior.
+1. Identify the missing decision.
+2. Explain why the decision matters.
+3. Propose a safe implementation approach.
+4. Clearly label every assumption.
+5. Request founder approval before treating the assumption as authoritative.
 
-Engagement must not depend on:
-
-* fake scarcity,
-* fake winners,
-* misleading activity,
-* disguised advertising,
-* forced notification consent,
-* dark patterns,
-* or manufactured urgency.
+Temporary implementation details may only be used when they do not create irreversible product, financial, legal, operational, or security consequences.
 
 ---
 
-# 14. Completion Standard
+# 12. Simplicity and Trust
 
-A capability is not complete merely because its primary screen renders.
+Capability design should always prioritize:
 
-It is complete only when:
+1. User understanding
+2. User trust
+3. Financial integrity
+4. Operational control
+5. Accessibility
+6. Maintainability
+7. Scalability
+8. Responsible engagement
 
-* the approved user experience exists,
-* server-side authorization is enforced,
-* the data model is implemented through migrations,
-* required Row Level Security policies are active,
-* loading, empty, and error states work,
-* accessibility requirements are met,
-* analytics are captured appropriately,
-* administrative controls exist where required,
-* failure cases are handled,
-* automated tests pass,
-* founder verification steps pass,
-* documentation matches the implementation,
-* and the change has been committed to GitHub.
+Implementation must never sacrifice documented product behavior simply for technical convenience.
+
+Platform engagement must never rely upon:
+
+- fake scarcity,
+- fake winners,
+- misleading activity,
+- disguised advertising,
+- forced notification consent,
+- dark patterns,
+- or manufactured urgency.
+
+Customer trust is always more valuable than short-term engagement metrics.
+
+# 13. Completion Standard
+
+A capability is not considered complete simply because its primary user interface has been implemented.
+
+A capability is considered complete only when all of the following have been verified:
+
+- The approved user experience has been implemented.
+- Server-side authorization is fully enforced.
+- Database structures have been implemented through approved migrations.
+- Required Row Level Security (RLS) policies are active.
+- Loading, empty, success, and error states function correctly.
+- Accessibility requirements have been satisfied.
+- Analytics are captured appropriately.
+- Administrative controls exist where required.
+- Failure and recovery scenarios have been tested.
+- Automated tests pass successfully.
+- Founder verification has been completed.
+- Documentation accurately reflects the implementation.
+- The implementation has been committed to the project's source control repository.
+
+A capability should never be considered production-ready if any of these requirements remain incomplete.
 
 ---
 
-# 15. Guiding Statement
+# 14. Guiding Statement
 
-The capability specifications exist to give every engineer and AI assistant a consistent understanding of how Project Zero-Loss should behave.
+The Capability Specifications exist to provide every engineer, designer, reviewer, and AI assistant with a consistent understanding of how Project Zero-Loss should behave.
 
-They should provide enough direction to prevent guessing while remaining flexible enough to support safe implementation improvements.
+Their purpose is to eliminate unnecessary guessing while remaining flexible enough to support safe implementation improvements.
 
-The goal is not to create the largest possible collection of documents.
+The objective is not to produce the largest possible collection of documentation.
 
-The goal is to create a reliable Product Bible that allows Project Zero-Loss to be built consistently, reviewed intelligently, and improved without losing its original vision.
+The objective is to create a reliable Product Bible that enables Project Zero-Loss to be:
+
+- designed consistently,
+- implemented safely,
+- reviewed intelligently,
+- maintained confidently,
+- and expanded without losing its original vision.
+
+Every capability specification should strengthen the platform's commitment to:
+
+- customer trust,
+- financial integrity,
+- transparency,
+- operational excellence,
+- security,
+- accessibility,
+- maintainability,
+- and long-term product quality.
+
+Whenever uncertainty exists, implementation should favor clarity, safety, and documented business rules over convenience or assumption.
+
+This document serves as the implementation standard for every capability specification contained within the Project Zero-Loss repository.
+
+---
+
+# Document Complete
+
+This Capability Documentation Guide is the authoritative standard governing the creation, maintenance, review, and implementation of all capability specifications within Project Zero-Loss.
+
+All future capability documents should follow the structure, principles, and governance established in this guide to ensure consistency across the platform.
+
+
+

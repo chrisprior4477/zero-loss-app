@@ -1,309 +1,697 @@
-# Project Zero-Loss Account and Wallet Spec
+# Project Zero-Loss Account & Wallet Specification
+## Customer Command Center, Wallet Management, Financial Transparency, and Account Activity
 
-## Account Command Center, Split-Ledger Visibility, and User Financial History
+**Version:** 1.1  
+**Status:** Authoritative  
+**Document Type:** Product Specification
 
-This document defines the account and wallet experience for Project Zero-Loss.
+---
 
-It explains:
-- the purpose of the `/account` area,
-- the layout and modules that must appear,
-- how wallet balances should be presented,
-- how active entries and past outcomes should be shown,
-- and how the account area should build trust through transparency.
+# Purpose
 
-This is the master spec for the authenticated account command center.
+The Account & Wallet Specification defines the authenticated customer experience within Project Zero-Loss.
+
+The Account page serves as the customer's financial command center, providing a clear and trustworthy view of their relationship with the marketplace.
+
+It enables customers to:
+
+- understand their available balances,
+- monitor active participation,
+- review historical activity,
+- manage account preferences,
+- and confidently make financial decisions.
+
+This document governs the customer-facing account experience.
+
+It does not replace the authoritative financial architecture defined within the Master Architecture or ledger-related decisions.
 
 ---
 
 # 1. Route
 
-The account and wallet experience must live at:
+The Account experience is available at:
 
 `/account`
 
-This route should function as the user’s primary command center for understanding their money, entries, results, and available next actions.
+This route functions as the primary destination for authenticated customers.
 
-It should not feel like a generic settings page.
-
-It should feel like a fintech-grade activity hub.
+Rather than behaving like a traditional settings page, it should operate as a modern financial dashboard that combines wallet visibility, marketplace participation, and account management into a single experience.
 
 ---
 
-# 2. Page Goal
+# 2. Primary Objectives
 
-The goal of the account page is to make the user feel completely informed about their financial position and platform activity.
+The Account page should allow customers to answer important questions within seconds.
 
-The page must help the user quickly understand:
-- what money is available to use,
-- what value is time-sensitive,
-- which raffles they are currently in,
-- what happened in prior entries,
-- and what actions they can take next.
+Customers should immediately understand:
 
-The account page should reduce confusion, reduce support burden, and strengthen trust in the product.
+- available spending balance,
+- available rebate or promotional value,
+- recent account activity,
+- active marketplace participation,
+- pending actions,
+- membership status,
+- and available next steps.
 
----
-
-# 3. Emotional Purpose
-
-The account page must create four emotional outcomes:
-
-1. **Control** — the user feels they understand their account state.
-
-2. **Transparency** — money movement and outcome history are visible, not hidden.
-
-3. **Confidence** — the platform feels financially organized and trustworthy.
-
-4. **Continuity** — the user can move smoothly between wallet state, active entries, and historical outcomes.
-
-If this page feels vague or cluttered, the user will distrust the entire platform.
+Every element should reduce uncertainty while increasing customer confidence.
 
 ---
 
-# 4. Top-Level Layout
+# 3. Experience Principles
 
-The page should be built around a clean command-center structure with a strong top summary and clear lower sections.
+The Account experience should consistently reinforce five principles.
 
-The major page structure should include:
+## Transparency
 
-1. account identity banner,
-
-2. split-ledger balance module,
-
-3. account action controls,
-
-4. active entries section,
-
-5. past results section,
-
-6. and later expandable financial/activity history modules.
-
-This page should feel structured, not crowded.
+Customers always understand their financial position.
 
 ---
 
-# 5. Account Identity Banner
+## Control
 
-At the top of the page, the user should see a summary identity module.
-
-This should display:
-- account name,
-- subscription tier,
-- and a clear visual indicator of membership status such as FREE, BRONZE, SILVER, or GOLD.
-
-This top area helps orient the user and reinforce that the account page is a personalized command center.
+Customers can easily manage their account.
 
 ---
 
-# 6. Split-Ledger Balance Module
+## Trust
 
-The most important module on the page is the split-ledger balance display.
+Financial information is complete, accurate, and clearly presented.
 
-The page must not show a single blended balance that hides what kind of value the user holds.
+---
 
-Instead, it must separate at least the following balance types:
+## Continuity
 
-- **Playable Balance**
+Customers move naturally between wallet management, marketplace participation, and account history.
 
-- **Rebate Credits**
+---
 
-This separation is one of the core trust features of the product.
+## Simplicity
 
-## 6.1 Playable Balance Card
+Complex financial information is presented in an approachable way.
 
-The left-side or primary wallet card should display the user’s available playable capital.
+---
 
-This is the balance the user can use to buy new raffle tickets or participate in active pools.
+# 4. Overall Layout
 
-It must be derived from the underlying ledger rules and shown clearly as spendable entry capital.
+The page should follow a structured command-center layout.
 
-This card should include a prominent **Add Funds** action that maps to quick funding options such as:
+Major sections include:
+
+1. Account Header
+2. Wallet Summary
+3. Quick Actions
+4. Active Participation
+5. Recent Results
+6. Transaction History
+7. Rewards & Credits
+8. Membership
+9. Account Management
+
+Each section should feel visually connected while remaining easy to scan.
+
+---
+
+# 5. Account Header
+
+The Account Header introduces the customer's personalized workspace.
+
+It should display:
+
+- profile image or avatar,
+- display name,
+- account username,
+- membership tier,
+- account verification status,
+- and account creation date (optional).
+
+The header should immediately reassure customers that they are viewing their own secure account.
+
+---
+
+# 6. Wallet Summary
+
+The Wallet Summary is the most important financial component on the page.
+
+Rather than displaying one combined balance, the interface should present distinct balance categories that accurately reflect different types of customer value.
+
+Clear separation strengthens transparency and reduces financial confusion.
+
+---
+
+# 7. Playable Balance
+
+The Playable Balance represents funds immediately available for marketplace participation.
+
+This balance should always be prominently displayed.
+
+Customers should clearly understand that this balance may be used for eligible entries and other supported marketplace activities.
+
+The Playable Balance card should include:
+
+- current available balance,
+- recent balance movement,
+- Add Funds action,
+- transaction shortcut,
+- and wallet history access.
+
+Suggested quick funding options may include:
 
 - $10
-
 - $25
-
 - $50
-
 - $100
 
-## 6.2 Rebate Credits Card
-
-The second wallet card should display accumulated rebate/store-credit value generated by qualifying non-winning outcomes.
-
-This must remain visually distinct from playable balance so the user understands that not all value inside the account behaves the same way.
-
-Each rebate item should eventually support:
-- visible issue value,
-- expiration timing where applicable,
-- linked source context,
-- and clear indication of how long the user has left to use it.
-
-## 6.3 Countdown Visibility Rule
-
-If rebate credits expire on a timed basis, the countdown must be visible and easy to understand.
-
-The user should never feel ambushed by a disappearing credit.
-
-The system must surface remaining time clearly.
+Additional funding methods are defined within the Payments & Payouts Specification.
 
 ---
 
-# 7. Account Action Controls
+# 8. Rebate Credits
 
-The account page should include direct, obvious actions that map to the most common next steps.
+Rebate Credits represent qualifying value earned according to marketplace rules.
 
-At minimum, this should include:
-- add funds,
-- review active entries,
-- inspect past outcomes,
-- and access relevant linked flows such as prize claim or rebate usage when applicable.
+These credits must remain visually distinct from Playable Balance.
 
-The account page should not force the user to hunt through menus for common financial actions.
+Customers should never mistake rebate value for unrestricted wallet funds.
 
----
+Each rebate entry should display:
 
-# 8. Active Entries Section
+- credit amount,
+- source activity,
+- issue date,
+- expiration status (when applicable),
+- usage eligibility,
+- and remaining availability.
 
-The page must include a dedicated area for live participation.
-
-This section should show all current drawings or pools where the user actively holds entries.
-
-For each active entry, the interface should display:
-- item identity,
-- current progress state,
-- quick visual pool velocity,
-- and enough information to understand whether the opportunity is still moving toward completion.
-
-## 8.1 Progress Mini-View
-
-Each active entry card should include a compact progress bar or similar signal derived from the same urgency language used on the storefront.
-
-This lets the user monitor the live status of the pools they are already invested in without returning to the homepage.
-
-## 8.2 Emotional Rule
-
-This section should make the user feel connected to live activity, not abandoned after entry.
+The presentation should emphasize clarity rather than complexity.
 
 ---
 
-# 9. Past Results Section
+# 9. Expiration Visibility
 
-The account page must include a historical results feed.
+Whenever rebate credits include expiration rules, the remaining availability should be immediately visible.
 
-This is one of the most important trust modules in the user experience because it shows the user that the platform keeps a visible, understandable record of outcomes.
+The interface may present:
 
-Each result card should clearly identify whether the outcome was:
+- remaining days,
+- expiration dates,
+- progress indicators,
+- or countdown timers.
 
-- **WIN**
+Customers should receive sufficient notice before credits expire.
 
-- or
-
-- **NOT DRAWN**
-
-## 9.1 Win State
-
-If the user won, the result card should clearly say so and provide the secure next-step action, such as access to claim or reveal a digital pickup barcode when that applies.
-
-## 9.2 Not Drawn State
-
-If the user did not win, the card should clearly display the fallback value produced by the system, such as:
-- rebate amount,
-- credit value,
-- or the item-linked value that was created from the entry spend.
-
-The goal is to make the user feel informed, not defeated.
+The marketplace should never surprise customers with expired value.
 
 ---
 
-# 10. Financial Transparency Rule
+# 10. Quick Actions
 
-The account page should make the user feel that nothing important is hidden.
+The Account page should surface common actions without requiring customers to search through menus.
 
-That means it should clearly support visibility into:
-- balance type,
-- recent outcomes,
+Examples include:
+
+- Add Funds
+- Withdraw Funds (when available)
+- Browse Marketplace
+- View Active Entries
+- Redeem Credits
+- Claim Prize
+- Manage Profile
+- View Notifications
+- Contact Support
+
+Actions should adapt based on the customer's current account state.
+
+---
+
+# 11. Active Participation
+
+Customers should always understand where they are actively participating.
+
+The Active Participation section should summarize every live marketplace opportunity in which the customer currently holds entries.
+
+Each participation card should display:
+
+- product image,
+- product name,
+- participation status,
+- pool progress,
+- participation quantity,
+- estimated completion progress,
+- and quick access back to the Item Page.
+
+Customers should never feel disconnected after entering a pool.
+
+# 12. Participation Progress
+
+Each active participation should provide enough information for customers to understand the current state of the pool without returning to the homepage.
+
+Each participation card should include:
+
+- pool completion percentage,
+- remaining participation availability (when appropriate),
+- estimated progress,
+- current marketplace activity,
+- and quick navigation back to the Item Page.
+
+Progress indicators should remain consistent with the visual language used throughout the marketplace.
+
+---
+
+# 13. Results History
+
+The Account page should maintain a complete and understandable history of completed participation.
+
+Results should help customers understand both outcomes and the financial effects of those outcomes.
+
+Each result should clearly indicate one of the following states:
+
+- Winner
+- Not Selected
+- Prize Claimed
+- Prize Delivered
+- Credit Issued
+- Refunded (where applicable)
+
+Historical records strengthen customer trust by providing permanent visibility into marketplace activity.
+
+---
+
+## Winning Results
+
+Winning entries should display:
+
+- product won,
+- win date,
+- claim status,
+- fulfillment status,
+- shipment or pickup status (when applicable),
+- and access to supporting documentation.
+
+Customers should always know the current status of every awarded prize.
+
+---
+
+## Non-Winning Results
+
+When a customer does not win, the result should clearly explain any value created under the published rules of the applicable pool.
+
+Examples may include:
+
+- rebate credits,
+- promotional credits,
+- loyalty rewards,
+- or other qualifying customer benefits.
+
+The interface should communicate outcomes positively while remaining factually accurate.
+
+---
+
+# 14. Transaction History
+
+Customers should have access to a complete financial history.
+
+Transaction history should include:
+
+- wallet deposits,
+- withdrawals,
+- participation purchases,
+- rebate credits,
+- promotional credits,
+- refunds,
+- prize claims,
+- adjustments,
+- and other account activity.
+
+Each transaction should include:
+
+- transaction date,
+- transaction type,
+- amount,
+- resulting balance,
+- status,
+- and a unique transaction reference where appropriate.
+
+Transaction history should function as a customer-readable financial record.
+
+---
+
+# 15. Search, Filter, and Export
+
+As account history grows, customers should be able to quickly locate previous activity.
+
+Filtering options may include:
+
+- date range,
+- transaction type,
+- participation status,
+- prize status,
+- credit activity,
+- deposits,
+- withdrawals,
+- and completed claims.
+
+Future enhancements may include downloadable account statements and export functionality.
+
+---
+
+# 16. Rewards and Loyalty
+
+The Account page should surface customer rewards earned through marketplace participation.
+
+Examples include:
+
+- loyalty points,
+- referral rewards,
+- promotional bonuses,
+- membership achievements,
+- milestone rewards,
+- and seasonal campaigns.
+
+Rewards should be presented separately from wallet balances to avoid financial confusion.
+
+---
+
+# 17. Membership Center
+
+Membership information should be easy to locate and understand.
+
+The Membership section should display:
+
+- current membership tier,
+- tier benefits,
+- renewal information (if applicable),
+- qualification progress,
+- earned perks,
+- and available upgrades.
+
+Membership should feel like an enhancement to the customer experience rather than a requirement for participation.
+
+---
+
+# 18. Notifications Summary
+
+Customers should be able to review important account notifications directly from the Account page.
+
+Examples include:
+
+- prize updates,
+- wallet activity,
+- rebate expiration reminders,
+- participation confirmations,
+- security alerts,
+- support responses,
+- and promotional announcements.
+
+Unread notifications should be clearly distinguished from previously viewed messages.
+
+---
+
+# 19. Profile Management
+
+Customers should be able to manage their personal information through a dedicated profile section.
+
+Profile management may include:
+
+- display name,
+- contact information,
+- shipping address,
+- communication preferences,
+- password management,
+- two-factor authentication,
+- and identity verification status.
+
+Sensitive account changes should require appropriate security verification.
+
+---
+
+# 20. Security Center
+
+The Account page should reinforce customer confidence through visible security controls.
+
+The Security Center may include:
+
+- recent login history,
+- recognized devices,
+- active sessions,
+- password updates,
+- two-factor authentication management,
+- account recovery options,
+- and suspicious activity alerts.
+
+Customers should always feel in control of their account security.
+
+---
+
+# 21. Financial Transparency
+
+Every financial value displayed within the Account page should be understandable without requiring additional explanation.
+
+Customers should never need to guess:
+
+- where money originated,
+- how balances were calculated,
+- why credits exist,
+- or what actions remain available.
+
+Transparency reduces support requests while increasing long-term trust.
+
+---
+
+# 22. Ledger Awareness
+
+Although the Account page is a customer-facing interface, every displayed financial value must originate from the platform's authoritative server-side ledger.
+
+The client application must never calculate or invent balances independently.
+
+Displayed information should always reflect:
+
+- validated ledger entries,
+- completed financial events,
+- approved account activity,
+- and server-authoritative account state.
+
+The Account page serves as the customer's window into the platform's financial integrity rather than acting as the source of truth itself.
+
+# 23. Mobile Experience
+
+The Account page should be optimized for mobile-first usage while maintaining feature parity across supported devices.
+
+The mobile experience should prioritize:
+
+- quick balance visibility,
+- thumb-friendly navigation,
+- simplified financial summaries,
+- prominent action buttons,
+- and efficient scrolling.
+
+The most important information should always appear above the fold:
+
+- Wallet Summary
+- Membership Status
+- Active Participation
+- Pending Actions
+
+Secondary information, such as transaction history and profile management, may appear further down the page using expandable sections where appropriate.
+
+---
+
+# 24. Responsive Design
+
+The Account experience should adapt naturally across:
+
+## Mobile
+
+A vertically stacked command-center layout with sticky wallet actions.
+
+---
+
+## Tablet
+
+A hybrid layout that provides additional workspace while preserving the mobile interaction model.
+
+---
+
+## Desktop
+
+A dashboard layout that allows customers to view wallet information, participation, and account activity simultaneously through responsive panels and multiple content columns.
+
+Regardless of device, customers should immediately recognize the same organizational structure.
+
+---
+
+# 25. Accessibility
+
+The Account page should meet modern accessibility standards.
+
+The experience should support:
+
+- keyboard navigation,
+- screen readers,
+- semantic page structure,
+- accessible form controls,
+- descriptive labels,
+- sufficient color contrast,
+- scalable typography,
+- and clear focus indicators.
+
+Financial information should never rely solely on color to communicate meaning.
+
+Icons, labels, and supporting text should always reinforce important account states.
+
+---
+
+# 26. Loading States
+
+Customers should receive immediate visual feedback while account information is loading.
+
+Loading experiences should include skeleton placeholders for:
+
+- wallet balances,
 - active participation,
-- timing-sensitive credits,
-- and eventually deeper transaction history or event detail.
+- transaction history,
+- rewards,
+- membership information,
+- and recent notifications.
 
-This platform depends on trust, so the account area must function like evidence, not just decoration.
+Loading states should reassure customers that information is actively being retrieved.
 
----
-
-# 11. Ledger Awareness Rule
-
-Although the page itself is a user-facing interface, it must remain consistent with the platform’s ledger-first architecture.
-
-That means:
-- displayed balances should reflect derived ledger truth,
-- account financial states must not depend on fake front-end counters,
-- and the page should always mirror server-validated account reality.
-
-This is one of the reasons the account page can serve as a trust anchor for the entire platform.
+Blank screens should be avoided.
 
 ---
 
-# 12. Membership Visibility Rule
+# 27. Empty States
 
-If the user belongs to a subscription tier such as FREE, BRONZE, SILVER, or GOLD, that status should be surfaced clearly on the page.
+The Account page should gracefully handle situations where little or no customer activity exists.
 
-This matters because tier identity may later connect to:
-- benefits,
-- eligibility,
-- support handling,
-- whale-tax mechanics,
-- and loyalty/perk systems.
+Examples include:
 
-The account page should therefore be ready to act as the home base for membership visibility.
+- no active entries,
+- no transaction history,
+- no rebate credits,
+- no rewards,
+- or a newly created account.
 
----
+Each empty state should:
 
-# 13. UX Style Rule
+- explain why the section is empty,
+- educate the customer about its purpose,
+- and encourage an appropriate next action.
 
-The account experience should feel:
-- premium,
-- clean,
-- fintech-grade,
-- and emotionally calm.
-
-It should not feel like:
-- a generic account settings page,
-- a spreadsheet dump,
-- or a cluttered order history screen.
-
-The user must be able to scan the page quickly and understand what matters right now.
+Empty states should feel helpful rather than unfinished.
 
 ---
 
-# 14. Anti-Goals
+# 28. Error Handling
 
-The account page must avoid the following failures:
+When errors occur, the Account page should communicate them clearly and professionally.
 
-- combining balances into one confusing number,
-- hiding expiration rules,
-- burying active entries,
-- making past outcomes hard to understand,
-- vague credit descriptions,
-- weak membership visibility,
-- or forcing users to guess what happened to their money.
+Examples include:
 
-If the user leaves the account page with more questions than answers, the page is failing.
+- temporary service interruptions,
+- failed balance retrieval,
+- unavailable transaction history,
+- expired sessions,
+- network interruptions,
+- or account synchronization delays.
+
+Error messages should:
+
+- explain the issue,
+- provide guidance,
+- avoid technical terminology,
+- and reassure customers that their financial information remains protected.
+
+The interface must never expose internal system details or implementation-specific errors.
 
 ---
 
-# 15. Final Account Page Rule
+# 29. Analytics and Product Insights
 
-If the account page is doing its job correctly, the user should be able to answer these questions within seconds:
+The Account page should generate analytics that help improve customer experience while respecting customer privacy.
 
-1. How much playable balance do I have?
+Examples include:
 
-2. How much rebate/store-credit value do I have?
+- account page visits,
+- wallet funding initiation,
+- quick action usage,
+- transaction history searches,
+- reward views,
+- rebate redemption,
+- membership interactions,
+- profile updates,
+- notification engagement,
+- and support requests initiated from the account area.
 
-3. What is expiring soon?
+Analytics should improve usability and customer satisfaction rather than encourage unnecessary financial activity.
 
-4. Which raffles am I currently in?
+---
 
-5. What happened in my past entries?
+# 30. Relationship to Other Specifications
 
-That is the standard this page must meet.
+The Account & Wallet Specification works together with several core Project Zero-Loss specifications.
+
+**Homepage Specification**
+- Introduces the marketplace and customer journey.
+
+**How It Works Specification**
+- Explains marketplace mechanics and customer education.
+
+**Item Page Specification**
+- Defines product participation and entry experiences.
+
+**Marketing & UX Specification**
+- Establishes emotional design, branding, and customer engagement principles.
+
+**Payments & Payouts Specification**
+- Governs deposits, withdrawals, payment processing, and financial settlement.
+
+**Support & Status Specification**
+- Defines customer support, operational communication, and platform status visibility.
+
+Together, these specifications provide a complete and consistent customer experience from discovery through long-term account management.
+
+---
+
+# 31. Governance
+
+The Account page serves as the customer's primary source of financial truth within the user interface.
+
+Future enhancements should strengthen:
+
+- financial transparency,
+- customer confidence,
+- account security,
+- operational clarity,
+- and ease of use.
+
+Future changes should never:
+
+- merge distinct balance types,
+- obscure transaction history,
+- hide expiration rules,
+- reduce visibility into account activity,
+- bypass server-authoritative ledger validation,
+- or introduce financial ambiguity.
+
+Every enhancement should increase customer understanding rather than system complexity.
+
+---
+
+# 32. Final Account Standard
+
+A successful Account page allows customers to understand their complete relationship with Project Zero-Loss within moments of signing in.
+
+Every customer should quickly know:
+
+1. Their available Playable Balance.
+2. Their available Rebate Credits.
+3. Any credits approaching expiration.
+4. Active marketplace participation.
+5. Historical participation outcomes.
+6. Recent financial activity.
+7. Membership status and benefits.
+8. Available next actions.
+9. The overall health and security of their account.
+
+When these outcomes are consistently achieved, the Account & Wallet Specification fulfills its purpose as the trusted financial command center for Project Zero-Loss, reinforcing transparency, customer confidence, and the platform's ledger-first architecture.
+
