@@ -448,6 +448,8 @@ Only the presentation should change.
 
 The meaning should remain constant.
 
+**Dark Mode is the default and primary experience.** ZeroLoss should launch customers into Dark Mode by default, reflecting the premium, confident, Apple-like feel described throughout this brand system. Light Mode remains fully supported and must meet the same standards described above — it is not deprioritized in quality, only in default presentation.
+
 ---
 
 ## 17. Color and Mobile Devices

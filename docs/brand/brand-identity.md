@@ -364,6 +364,8 @@ The page remains calm.
 
 The marketplace feels alive.
 
+**Default appearance: Dark.** ZeroLoss defaults to Dark Mode, reinforcing the premium, confident, Apple-like feel described above. Light Mode remains a fully supported, equally high-quality experience — see `docs/brand/color-system.md` Section 16 — but Dark is the mode customers see first.
+
 ---
 
 ## 10. Customer Experience Principles
