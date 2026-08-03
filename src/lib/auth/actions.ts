@@ -15,10 +15,33 @@ export type AuthActionState = {
   message: string | null;
   pendingVerification?: boolean;
   email?: string;
+  /** Non-secret fields to re-populate after a validation error. */
+  values?: {
+    legal_first_name: string;
+    legal_last_name: string;
+    date_of_birth: string;
+    email: string;
+  };
+  /** Field-scoped error for confirm password (shown next to that input). */
+  confirmPasswordError?: string | null;
 };
 
 function asTrimmedString(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function preservedSignupValues(input: {
+  legalFirstName: string;
+  legalLastName: string;
+  dateOfBirth: string;
+  email: string;
+}): AuthActionState["values"] {
+  return {
+    legal_first_name: input.legalFirstName,
+    legal_last_name: input.legalLastName,
+    date_of_birth: input.dateOfBirth,
+    email: input.email,
+  };
 }
 
 async function getSiteOrigin(): Promise<string> {
@@ -48,18 +71,30 @@ export async function signUpAction(
   const password = typeof formData.get("password") === "string"
     ? (formData.get("password") as string)
     : "";
+  const confirmPassword =
+    typeof formData.get("confirm_password") === "string"
+      ? (formData.get("confirm_password") as string)
+      : "";
   const acceptedTerms = formData.get("accepted_terms") === "on";
+  const values = preservedSignupValues({
+    legalFirstName,
+    legalLastName,
+    dateOfBirth,
+    email,
+  });
 
   if (
     !legalFirstName ||
     !legalLastName ||
     !dateOfBirth ||
     !email ||
-    !password
+    !password ||
+    !confirmPassword
   ) {
     return {
       ok: false,
       message: "Please fill in all required fields.",
+      values,
     };
   }
 
@@ -67,6 +102,7 @@ export async function signUpAction(
     return {
       ok: false,
       message: "You must agree to the Terms of Service and Privacy Policy.",
+      values,
     };
   }
 
@@ -74,6 +110,16 @@ export async function signUpAction(
     return {
       ok: false,
       message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
+      values,
+    };
+  }
+
+  if (password !== confirmPassword) {
+    return {
+      ok: false,
+      message: null,
+      confirmPasswordError: "Passwords do not match.",
+      values,
     };
   }
 
@@ -81,6 +127,7 @@ export async function signUpAction(
     return {
       ok: false,
       message: `You must be at least ${MIN_ACCOUNT_AGE_YEARS} years old to create an account.`,
+      values,
     };
   }
 
@@ -144,12 +191,14 @@ export async function signUpAction(
         ok: false,
         message:
           "Unable to create this account. Try signing in, or use a different email.",
+        values,
       };
     }
 
     return {
       ok: false,
       message: error.message,
+      values,
     };
   }
 
@@ -164,6 +213,7 @@ export async function signUpAction(
       ok: false,
       message:
         "Unable to create this account. Try signing in, or use a different email.",
+      values,
     };
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo } from "react";
+import { useActionState, useMemo, useState } from "react";
 import {
   signUpAction,
   type AuthActionState,
@@ -18,10 +18,15 @@ const initialState: AuthActionState = {
   message: null,
 };
 
+const PASSWORD_MISMATCH = "Passwords do not match.";
+
 export function SignUpForm() {
   const [state, formAction, pending] = useActionState(
     signUpAction,
     initialState
+  );
+  const [clientConfirmError, setClientConfirmError] = useState<string | null>(
+    null
   );
 
   const maxDob = useMemo(() => {
@@ -35,6 +40,18 @@ export function SignUpForm() {
     );
     return cutoff.toISOString().slice(0, 10);
   }, []);
+
+  const confirmError =
+    clientConfirmError ?? state.confirmPasswordError ?? null;
+
+  const formKey = [
+    state.values?.legal_first_name ?? "",
+    state.values?.legal_last_name ?? "",
+    state.values?.date_of_birth ?? "",
+    state.values?.email ?? "",
+    state.confirmPasswordError ?? "",
+    state.message ?? "",
+  ].join("|");
 
   if (state.ok && state.pendingVerification) {
     return (
@@ -68,8 +85,54 @@ export function SignUpForm() {
     );
   }
 
+  function syncConfirmValidity(form: HTMLFormElement) {
+    const password = form.elements.namedItem("password");
+    const confirm = form.elements.namedItem("confirm_password");
+    if (
+      !(password instanceof HTMLInputElement) ||
+      !(confirm instanceof HTMLInputElement)
+    ) {
+      return;
+    }
+
+    if (confirm.value && confirm.value !== password.value) {
+      confirm.setCustomValidity(PASSWORD_MISMATCH);
+      setClientConfirmError(PASSWORD_MISMATCH);
+    } else {
+      confirm.setCustomValidity("");
+      setClientConfirmError(null);
+    }
+  }
+
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <form
+      key={formKey}
+      action={formAction}
+      className="space-y-4"
+      onSubmit={(event) => {
+        const form = event.currentTarget;
+        const password = form.elements.namedItem("password");
+        const confirm = form.elements.namedItem("confirm_password");
+
+        if (
+          password instanceof HTMLInputElement &&
+          confirm instanceof HTMLInputElement &&
+          password.value !== confirm.value
+        ) {
+          event.preventDefault();
+          confirm.setCustomValidity(PASSWORD_MISMATCH);
+          setClientConfirmError(PASSWORD_MISMATCH);
+          confirm.focus();
+          confirm.reportValidity();
+          return;
+        }
+
+        setClientConfirmError(null);
+        if (confirm instanceof HTMLInputElement) {
+          confirm.setCustomValidity("");
+        }
+      }}
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label
@@ -84,6 +147,7 @@ export function SignUpForm() {
             type="text"
             autoComplete="given-name"
             required
+            defaultValue={state.values?.legal_first_name ?? ""}
             className="mt-1.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
           />
         </div>
@@ -100,6 +164,7 @@ export function SignUpForm() {
             type="text"
             autoComplete="family-name"
             required
+            defaultValue={state.values?.legal_last_name ?? ""}
             className="mt-1.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
           />
         </div>
@@ -118,6 +183,7 @@ export function SignUpForm() {
           type="date"
           required
           max={maxDob}
+          defaultValue={state.values?.date_of_birth ?? ""}
           onChange={(event) => {
             const value = event.target.value;
             if (value && !isAtLeastAge(value)) {
@@ -148,6 +214,7 @@ export function SignUpForm() {
           type="email"
           autoComplete="email"
           required
+          defaultValue={state.values?.email ?? ""}
           className="mt-1.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
         />
       </div>
@@ -174,12 +241,55 @@ export function SignUpForm() {
             } else {
               event.target.setCustomValidity("");
             }
+
+            if (event.currentTarget.form) {
+              syncConfirmValidity(event.currentTarget.form);
+            }
           }}
           className="mt-1.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
         />
         <p className="mt-1 text-xs text-[var(--muted)]">
           Minimum {MIN_PASSWORD_LENGTH} characters.
         </p>
+        {confirmError ? (
+          <p className="mt-1 text-sm text-red-400" role="status">
+            Please re-enter your password.
+          </p>
+        ) : null}
+      </div>
+
+      <div>
+        <label
+          htmlFor="confirm_password"
+          className="block text-sm font-medium text-[var(--foreground)]"
+        >
+          Confirm password
+        </label>
+        <input
+          id="confirm_password"
+          name="confirm_password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={MIN_PASSWORD_LENGTH}
+          onChange={(event) => {
+            if (event.currentTarget.form) {
+              syncConfirmValidity(event.currentTarget.form);
+            }
+          }}
+          className="mt-1.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+          aria-invalid={confirmError ? true : undefined}
+          aria-describedby={confirmError ? "confirm_password_error" : undefined}
+        />
+        {confirmError ? (
+          <p
+            id="confirm_password_error"
+            role="alert"
+            className="mt-1 text-sm text-red-400"
+          >
+            {confirmError}
+          </p>
+        ) : null}
       </div>
 
       <label className="flex items-start gap-3 text-sm text-[var(--muted)]">
