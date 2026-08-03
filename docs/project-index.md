@@ -202,12 +202,12 @@ These documents are expected to evolve as implementation progresses.
 * how-it-works-spec.md
 * item-page-spec.md
 * account-wallet-spec.md
-* payments-and-payouts-spec.md
-* support-status-spec.md
 
 ### Operations
 
 * admin-portal-spec.md
+* payments-and-payouts-spec.md
+* support-status-spec.md
 
 ### Roadmaps
 
@@ -235,12 +235,12 @@ docs/
 │   ├── homepage-spec.md
 │   ├── how-it-works-spec.md
 │   ├── item-page-spec.md
-│   ├── account-wallet-spec.md
-│   ├── payments-and-payouts-spec.md
-│   └── support-status-spec.md
+│   └── account-wallet-spec.md
 
 ├── operations/
-│   └── admin-portal-spec.md
+│   ├── admin-portal-spec.md
+│   ├── payments-and-payouts-spec.md
+│   └── support-status-spec.md
 
 └── roadmap/
     └── day-1-master-manual.md
