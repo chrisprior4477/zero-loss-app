@@ -9,12 +9,12 @@ export function HeaderAuthControls({ firstName }: HeaderAuthControlsProps) {
   if (firstName) {
     return (
       <div className="flex items-center gap-2">
-        <span className="hidden max-w-[10rem] truncate text-sm text-[var(--muted)] sm:inline">
-          Signed in as{" "}
-          <span className="font-medium text-[var(--foreground)]">
-            {firstName}
-          </span>
-        </span>
+        <Link
+          href="/account"
+          className="rounded-md border border-[var(--border)] px-3 py-2 text-sm text-[var(--foreground)] transition-colors hover:bg-[var(--surface-elevated)]"
+        >
+          Account
+        </Link>
         <form action={signOutAction}>
           <button
             type="submit"
