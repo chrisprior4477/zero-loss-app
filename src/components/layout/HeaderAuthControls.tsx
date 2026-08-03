@@ -37,7 +37,7 @@ export function HeaderAuthControls({ firstName }: HeaderAuthControlsProps) {
       </Link>
       <Link
         href="/signup"
-        className="hidden rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)] sm:inline-flex"
+        className="inline-flex rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[var(--accent-foreground)]"
       >
         Sign up
       </Link>

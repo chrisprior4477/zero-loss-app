@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useState } from "react";
 import {
   signUpAction,
   type AuthActionState,
 } from "@/lib/auth/actions";
+import { DateOfBirthSelects } from "@/components/auth/DateOfBirthSelects";
 import {
-  MIN_ACCOUNT_AGE_YEARS,
   MIN_PASSWORD_LENGTH,
-  isAtLeastAge,
   isPasswordValid,
 } from "@/lib/auth/validation";
 
@@ -28,18 +27,6 @@ export function SignUpForm() {
   const [clientConfirmError, setClientConfirmError] = useState<string | null>(
     null
   );
-
-  const maxDob = useMemo(() => {
-    const today = new Date();
-    const cutoff = new Date(
-      Date.UTC(
-        today.getUTCFullYear() - MIN_ACCOUNT_AGE_YEARS,
-        today.getUTCMonth(),
-        today.getUTCDate()
-      )
-    );
-    return cutoff.toISOString().slice(0, 10);
-  }, []);
 
   const confirmError =
     clientConfirmError ?? state.confirmPasswordError ?? null;
@@ -170,36 +157,7 @@ export function SignUpForm() {
         </div>
       </div>
 
-      <div>
-        <label
-          htmlFor="date_of_birth"
-          className="block text-sm font-medium text-[var(--foreground)]"
-        >
-          Date of birth
-        </label>
-        <input
-          id="date_of_birth"
-          name="date_of_birth"
-          type="date"
-          required
-          max={maxDob}
-          defaultValue={state.values?.date_of_birth ?? ""}
-          onChange={(event) => {
-            const value = event.target.value;
-            if (value && !isAtLeastAge(value)) {
-              event.target.setCustomValidity(
-                `You must be at least ${MIN_ACCOUNT_AGE_YEARS} years old to create an account.`
-              );
-            } else {
-              event.target.setCustomValidity("");
-            }
-          }}
-          className="mt-1.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
-        />
-        <p className="mt-1 text-xs text-[var(--muted)]">
-          You must be at least {MIN_ACCOUNT_AGE_YEARS} years old.
-        </p>
-      </div>
+      <DateOfBirthSelects defaultValue={state.values?.date_of_birth ?? ""} />
 
       <div>
         <label
