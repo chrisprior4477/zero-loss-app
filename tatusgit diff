@@ -1,0 +1,93 @@
+warning: in the working copy of 'src/components/layout/SiteHeader.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/components/layout/SiteHeader.tsx b/src/components/layout/SiteHeader.tsx[m
+[1mindex 07c7a92..e542266 100644[m
+[1m--- a/src/components/layout/SiteHeader.tsx[m
+[1m+++ b/src/components/layout/SiteHeader.tsx[m
+[36m@@ -1,8 +1,27 @@[m
+ import Link from "next/link";[m
+ import { MainNav } from "@/components/layout/MainNav";[m
+ import { MobileNav } from "@/components/layout/MobileNav";[m
+[32m+[m[32mimport { HeaderAuthControls } from "@/components/layout/HeaderAuthControls";[m
+[32m+[m[32mimport { createClient } from "@/lib/supabase/server";[m
+[32m+[m
+[32m+[m[32mexport async function SiteHeader() {[m
+[32m+[m[32m  const supabase = await createClient();[m
+[32m+[m[32m  const {[m
+[32m+[m[32m    data: { user },[m
+[32m+[m[32m  } = await supabase.auth.getUser();[m
+[32m+[m
+[32m+[m[32m  let firstName: string | null = null;[m
+[32m+[m
+[32m+[m[32m  if (user) {[m
+[32m+[m[32m    const { data: profile } = await supabase[m
+[32m+[m[32m      .from("customer_profiles")[m
+[32m+[m[32m      .select("legal_first_name")[m
+[32m+[m[32m      .eq("customer_id", user.id)[m
+[32m+[m[32m      .maybeSingle();[m
+[32m+[m
+[32m+[m[32m    firstName = profile?.legal_first_name ?? "there";[m
+[32m+[m[32m  }[m
+ [m
+[31m-export function SiteHeader() {[m
+   return ([m
+     <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80">[m
+       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6 lg:px-8">[m
+[36m@@ -37,15 +56,7 @@[m [mexport function SiteHeader() {[m
+           >[m
+             Wallet · Coming soon[m
+           </span>[m
+[31m-          <button[m
+[31m-            type="button"[m
+[31m-            disabled[m
+[31m-            aria-disabled="true"[m
+[31m-            title="Sign in will be available in a later release"[m
+[31m-            className="cursor-not-allowed rounded-md border border-[var(--border)] px-3 py-2 text-sm text-[var(--muted)] opacity-70"[m
+[31m-          >[m
+[31m-            Sign in[m
+[31m-          </button>[m
+[32m+[m[32m          <HeaderAuthControls firstName={firstName} />[m
+           <MobileNav />[m
+         </div>[m
+       </div>[m
+[1mdiff --git a/src/lib/supabase/client.ts b/src/lib/supabase/client.ts[m
+[1mindex 92c976b..26ddeb6 100644[m
+[1m--- a/src/lib/supabase/client.ts[m
+[1m+++ b/src/lib/supabase/client.ts[m
+[36m@@ -1,10 +1,8 @@[m
+[31m-import { createClient } from "@supabase/supabase-js";[m
+[32m+[m[32mimport { createBrowserClient } from "@supabase/ssr";[m
+ [m
+[31m-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;[m
+[31m-const supabasePublishableKey =[m
+[31m-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;[m
+[31m-[m
+[31m-export const supabase = createClient([m
+[31m-  supabaseUrl,[m
+[31m-  supabasePublishableKey[m
+[31m-);[m
+\ No newline at end of file[m
+[32m+[m[32mexport function createClient() {[m
+[32m+[m[32m  return createBrowserClient([m
+[32m+[m[32m    process.env.NEXT_PUBLIC_SUPABASE_URL!,[m
+[32m+[m[32m    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY![m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[1mdiff --git a/src/lib/supabase/server.ts b/src/lib/supabase/server.ts[m
+[1mindex 7ba6f12..d337096 100644[m
+[1m--- a/src/lib/supabase/server.ts[m
+[1m+++ b/src/lib/supabase/server.ts[m
+[36m@@ -20,11 +20,11 @@[m [mexport async function createClient() {[m
+           } catch {[m
+             /*[m
+              * Server Components cannot always write cookies.[m
+[31m-             * This is expected when session refreshing is handled elsewhere.[m
+[32m+[m[32m             * Session refresh is handled in proxy.ts.[m
+              */[m
+           }[m
+         },[m
+       },[m
+     }[m
+   );[m
+[31m-}[m
+\ No newline at end of file[m
+[32m+[m[32m}[m

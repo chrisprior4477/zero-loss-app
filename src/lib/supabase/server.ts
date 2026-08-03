@@ -20,7 +20,7 @@ export async function createClient() {
           } catch {
             /*
              * Server Components cannot always write cookies.
-             * This is expected when session refreshing is handled elsewhere.
+             * Session refresh is handled in proxy.ts.
              */
           }
         },

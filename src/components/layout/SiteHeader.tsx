@@ -1,8 +1,27 @@
 import Link from "next/link";
 import { MainNav } from "@/components/layout/MainNav";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { HeaderAuthControls } from "@/components/layout/HeaderAuthControls";
+import { createClient } from "@/lib/supabase/server";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let firstName: string | null = null;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("customer_profiles")
+      .select("legal_first_name")
+      .eq("customer_id", user.id)
+      .maybeSingle();
+
+    firstName = profile?.legal_first_name ?? "there";
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6 lg:px-8">
@@ -37,15 +56,7 @@ export function SiteHeader() {
           >
             Wallet · Coming soon
           </span>
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            title="Sign in will be available in a later release"
-            className="cursor-not-allowed rounded-md border border-[var(--border)] px-3 py-2 text-sm text-[var(--muted)] opacity-70"
-          >
-            Sign in
-          </button>
+          <HeaderAuthControls firstName={firstName} />
           <MobileNav />
         </div>
       </div>
