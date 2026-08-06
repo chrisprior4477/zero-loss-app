@@ -230,6 +230,12 @@ Admins should be able to inspect:
 
 This allows the operations team to deal with real platform problems through the product itself.
 
+## 12.1 Chargeback / Dispute Action
+
+The admin portal should include a "Chargeback / Dispute" action, launchable from a flagged transaction, that auto-compiles the relevant evidence from the existing Ledger and audit trail (signup details, funding details, transaction history, proof of delivery/redemption). A human reviewer must explicitly approve the compiled evidence before it is submitted — this approval is itself written to the immutable audit trail (reviewer identity, timestamp, decision). Approved evidence is submitted to the payment processor's dispute-resolution system.
+
+Full rule detail: see `docs/product/marketplace-financial-rules-spec.md`, Section 6.1.
+
 ---
 
 # 13. Support and Ticketing Layer
@@ -260,7 +266,16 @@ Admins should be able to view:
 - impacted users or modules where available,
 - and status timeline/history.
 
-This aligns with the platform’s broader transparency model.
+This aligns with the platform's broader transparency model.
+
+## 14.1 Fulfillment Outage Alert Queue and Petty-Cash Substitution
+
+When a prize-provider fulfillment request fails to complete, the portal should surface it as an incident-style alert, repeating every 15 minutes while unresolved, so that multiple simultaneously affected winners are never missed. The alert view should show elapsed time since the fulfillment attempt began, so an operator can see at a glance which cases are approaching the substitution threshold.
+
+Past the defined outage duration, an authorized operator may release a substitute prize (a generic prepaid card of equal value) from the platform's standing reserve. This action must always require explicit human authorization — it must never be fully automated — and it must be written to the immutable audit trail like any other admin action.
+
+Full rule detail, including the escalation timeline: see `docs/product/marketplace-financial-rules-spec.md`, Section 7.1.
+
 
 ---
 
