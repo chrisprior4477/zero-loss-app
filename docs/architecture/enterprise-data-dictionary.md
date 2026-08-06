@@ -1877,6 +1877,8 @@ len_01J...
 | related_pool_id | string | No | Pool associated with this entry, if applicable |
 | related_entry_id | string | No | Entry (Pools domain) associated with this entry, if applicable |
 | corrects_ledger_entry_id | string | No | Set only when this entry is a compensating correction of a prior entry |
+| funding_ip_address | string | No | IP address at time of funding — populated for DEPOSIT-type entries, used as chargeback-dispute evidence |
+| funding_device_fingerprint | string | No | Device/browser fingerprint at time of funding — populated for DEPOSIT-type entries, used as chargeback-dispute evidence |
 | created_at | timestamp | Yes | Immutable creation time |
 
 ---
@@ -2001,6 +2003,121 @@ Catalog Item:
 - never owns financial records, balances, or Ledger data
 - preserves a stable identifier even if archived, so historical Pool/Entry/Prize references remain meaningful
 - may be referenced by many Pools over time without duplication
+
+---
+
+# Canonical Membership Entity
+
+## Definition
+
+A Membership represents a Customer's current subscription tier and its associated entry entitlements. Membership does not own billing execution (Payments & Payouts does) or financial truth (Ledger does) — it owns tier status and the entitlement rules Pools & Sweepstakes references when calculating a Customer's allowed entries in a given Pool.
+
+---
+
+## Authoritative Owner
+
+```text
+Membership
+```
+
+---
+
+## Canonical Identifier
+
+```text
+membership_id
+```
+
+Example:
+
+```text
+mem_01J...
+```
+
+---
+
+## Core Membership Fields
+
+| Field | Type | Required | Meaning |
+|--------|------|----------|---------|
+| membership_id | string | Yes | Stable identifier |
+| customer_id | string | Yes | Owning customer |
+| tier | enum | Yes | FREE or PAID |
+| status | enum | Yes | active, cancelled |
+| price_at_purchase | integer | Conditional | Price locked at time of purchase, minor currency units (required when tier = PAID) |
+| current_period_start | timestamp | Conditional | Start of current billing period (PAID only) |
+| current_period_end | timestamp | Conditional | End of current billing period — access remains through this date even if cancelled (PAID only) |
+| cancelled_at | timestamp | No | When cancellation was requested, if applicable |
+| auto_renew | boolean | Yes | Whether the membership renews automatically |
+| created_at | timestamp | Yes | Creation time |
+| updated_at | timestamp | Yes | Last update time |
+| record_version | integer | Yes | Aggregate version |
+
+---
+
+## Membership Invariants
+
+Membership:
+
+- never owns billing execution — Payments & Payouts executes the actual charge
+- never owns financial truth — Ledger remains authoritative for all monetary facts
+- charges are final and non-refundable for the billing period once purchased (see `docs/product/marketplace-financial-rules-spec.md`, Section 4.4) — cancellation affects only future renewal, never the current period already paid for
+- entries and entry allowances calculated from a Membership's tier are fixed at the moment an Entry is purchased, never retroactively recalculated if tier or status changes afterward
+
+---
+
+# Canonical Tax Document Entity
+
+## Definition
+
+A Tax Document represents a placeholder record for a tax-reporting document (expected to be an IRS Form W-2G) potentially owed to a Customer for a given tax year. This entity provides storage and account-visibility infrastructure only. The threshold that determines when a document must actually be generated, and which party is the correct legal issuer, are not yet determined and must not be inferred from this entity's existence — see `docs/product/marketplace-financial-rules-spec.md`, Section 6.4.
+
+---
+
+## Authoritative Owner
+
+```text
+Identity & Profile
+```
+
+---
+
+## Canonical Identifier
+
+```text
+tax_document_id
+```
+
+Example:
+
+```text
+txd_01J...
+```
+
+---
+
+## Core Tax Document Fields
+
+| Field | Type | Required | Meaning |
+|--------|------|----------|---------|
+| tax_document_id | string | Yes | Stable identifier |
+| customer_id | string | Yes | Owning customer |
+| tax_year | integer | Yes | The tax year this document applies to |
+| document_type | string | No | Expected to be "W-2G" — left unconfirmed pending legal review |
+| status | enum | Yes | not_required, pending, generated |
+| file_reference | string | No | Reference to the generated downloadable document, once one exists |
+| generated_at | timestamp | No | When the document was generated, if applicable |
+| created_at | timestamp | Yes | Record creation time |
+
+---
+
+## Tax Document Invariants
+
+Tax Document:
+
+- exists as account-visible infrastructure only — no document generation logic, threshold, or issuing-party decision may be implemented against this entity until confirmed by a licensed tax professional
+- never determines its own generation trigger — the trigger is a business rule to be added later, not inferred from this schema
+- is never treated as tax or legal advice to the Customer
 
 ---
 
@@ -2193,7 +2310,7 @@ This specification must remain consistent with:
 | 1.0 | July 2026 | Initial enterprise data dictionary |
 | 2.0 | July 2026 | Expanded and consolidated authoritative enterprise architecture edition |
 | 2.1 | July 2026 | Added Canonical Ledger, Wallet, and Catalog Item entities to close the gap flagged in the implementation-readiness audit. |
-
+| 2.2 | August 2026 | Added Canonical Membership and Tax Document entities; added funding_ip_address and funding_device_fingerprint fields to Ledger Entry for chargeback-evidence support. |
 ---
 
 # Guiding Statement
