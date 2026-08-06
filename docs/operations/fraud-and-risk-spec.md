@@ -330,6 +330,12 @@ Examples include:
 
 Enforcement actions should be proportional to the identified risk and documented through the audit system.
 
+## New-Account Fulfillment Hold
+
+Accounts with no prior successful, unreversed transaction history that win a prize valued at $50 or more have fulfillment of that specific win held for 24 hours, during which basic automated risk checks run. Entering pools, funding, and browsing are never held — only fulfillment of a qualifying win on an unproven account. Wins under $50 on new accounts are never held. Customer-facing language must read as standard order-processing language, never as a fraud accusation.
+
+Full rule detail: see `docs/product/marketplace-financial-rules-spec.md`, Section 6.2.
+
 ---
 
 # 15. Referral Fraud Prevention
@@ -382,6 +388,16 @@ Examples include:
 
 The Fraud & Risk capability evaluates suspicious activity while the Wallet and Ledger remain the authoritative financial records.
 
+## Chargeback Dispute Workflow
+
+Dispute evidence is compiled from the existing immutable Ledger and audit trail (IP/device at signup and funding, full transaction history, proof of delivery/redemption) — no separate evidence system is required. An admin-facing "Chargeback / Dispute" action auto-compiles this evidence for a flagged transaction; a human employee reviews and explicitly approves before submission; the approval is written to an immutable audit record; approved evidence is submitted via the payment processor's Disputes API. A baseline dispute-loss rate is accepted as a normal operating cost — not every dispute is contested, and dispute rate is tracked as an ongoing metric.
+
+## Fulfillment Continuity — Provider Outage and Breach Response
+
+If a gift-card/prize provider is unavailable at draw or fulfillment time, or discloses a security breach, the platform follows a defined escalation timeline and, for breaches, cross-references the provider's disclosed compromised range against the platform's own issued-codes Ledger to precisely identify affected customers.
+
+Full rule detail, including the escalation timeline and petty-cash substitution policy: see `docs/product/marketplace-financial-rules-spec.md`, Sections 7.1 and 7.2.
+
 ---
 
 # 18. Identity Verification Integration
@@ -397,6 +413,12 @@ Potential verification triggers include:
 * Elevated risk score
 
 Identity verification workflows should balance security with a positive user experience.
+
+## Multi-Account and Pool-Cornering Prevention
+
+Tiered KYC identity verification (government ID, AI-assisted data extraction, live facial-match selfie via a licensed third-party provider) is required above a defined value threshold for high-value and scarce-item pools. One verified identity corresponds to one entry-cap allowance across all associated accounts. The full KYC infrastructure is to be built ahead of activation — implemented now, but not required or enforced until real usage data justifies specific thresholds.
+
+Full rule detail: see `docs/product/marketplace-financial-rules-spec.md`, Section 6.3.
 
 ---
 
