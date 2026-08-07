@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MainNav } from "@/components/layout/MainNav";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { HeaderAuthControls } from "@/components/layout/HeaderAuthControls";
@@ -22,20 +23,44 @@ export async function SiteHeader() {
     firstName = profile?.legal_first_name ?? "there";
   }
 
+  const isSignedIn = Boolean(firstName);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6 lg:px-8">
-        <div className="flex min-w-0 flex-1 items-center gap-6">
+    // Blur lives on a non-interactive underlay — not on <header> itself — so
+    // sticky + backdrop-filter does not create a containing/stacking context
+    // that traps or breaks taps on header controls (esp. iOS Safari).
+    <header className="relative sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/95">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80"
+      />
+      {/*
+        Two-column grid below lg (search is display:none and out of flow).
+        Logo column uses pointer-events-none so any overflow cannot steal taps
+        from the controls column on real mobile viewports.
+      */}
+      <div className="relative z-10 mx-auto grid h-16 max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 sm:gap-3 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)_auto] lg:px-8">
+        <div className="pointer-events-none relative z-0 flex min-w-0 items-center gap-4 overflow-hidden md:gap-6">
           <Link
             href="/"
-            className="shrink-0 text-lg font-semibold tracking-tight text-[var(--foreground)]"
+            className="pointer-events-auto relative z-0 block min-w-0 max-w-full overflow-hidden"
+            aria-label="ZeroLoss home"
           >
-            ZeroLoss
+            <Image
+              src="/zeroloss-logo.svg"
+              alt=""
+              width={174}
+              height={32}
+              className="h-5 w-auto max-w-full object-contain object-left sm:h-6 md:h-8"
+              style={{ width: "auto", maxWidth: "100%" }}
+              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 174px"
+              priority
+            />
           </Link>
-          <MainNav className="hidden md:block" />
+          <MainNav className="pointer-events-auto hidden shrink-0 md:block" />
         </div>
 
-        <div className="hidden min-w-0 flex-1 justify-center md:flex">
+        <div className="relative z-0 hidden min-w-0 lg:block">
           <label className="sr-only" htmlFor="shell-search">
             Search
           </label>
@@ -45,19 +70,21 @@ export async function SiteHeader() {
             disabled
             placeholder="Search coming soon"
             aria-disabled="true"
-            className="w-full max-w-md cursor-not-allowed rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)] placeholder:text-[var(--muted)]"
+            className="w-full cursor-not-allowed rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)] placeholder:text-[var(--muted)]"
           />
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="relative z-50 flex items-center justify-end gap-1.5 sm:gap-2">
           <span
-            className="hidden rounded-md border border-dashed border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)] sm:inline-flex"
+            className="hidden rounded-md border border-dashed border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)] xl:inline-flex"
             title="Wallet balances will appear here in a later release"
           >
             Wallet · Coming soon
           </span>
-          <HeaderAuthControls firstName={firstName} />
-          <MobileNav />
+          <div className="hidden md:block">
+            <HeaderAuthControls firstName={firstName} />
+          </div>
+          <MobileNav isSignedIn={isSignedIn} />
         </div>
       </div>
     </header>
