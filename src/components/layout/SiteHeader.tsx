@@ -3,7 +3,13 @@ import Image from "next/image";
 import { MainNav } from "@/components/layout/MainNav";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { HeaderAuthControls } from "@/components/layout/HeaderAuthControls";
+import { WalletBalanceDisplay } from "@/components/layout/WalletBalanceDisplay";
 import { createClient } from "@/lib/supabase/server";
+import {
+  EMPTY_WALLET_BALANCES,
+  type WalletBalances,
+} from "@/lib/wallet/money";
+import { getWalletBalancesForCustomer } from "@/lib/wallet/get-wallet-balances";
 
 export async function SiteHeader() {
   const supabase = await createClient();
@@ -12,15 +18,20 @@ export async function SiteHeader() {
   } = await supabase.auth.getUser();
 
   let firstName: string | null = null;
+  let walletBalances: WalletBalances = EMPTY_WALLET_BALANCES;
 
   if (user) {
-    const { data: profile } = await supabase
-      .from("customer_profiles")
-      .select("legal_first_name")
-      .eq("customer_id", user.id)
-      .maybeSingle();
+    const [{ data: profile }, balances] = await Promise.all([
+      supabase
+        .from("customer_profiles")
+        .select("legal_first_name")
+        .eq("customer_id", user.id)
+        .maybeSingle(),
+      getWalletBalancesForCustomer(user.id),
+    ]);
 
     firstName = profile?.legal_first_name ?? "there";
+    walletBalances = balances;
   }
 
   const isSignedIn = Boolean(firstName);
@@ -75,16 +86,21 @@ export async function SiteHeader() {
         </div>
 
         <div className="relative z-50 flex items-center justify-end gap-1.5 sm:gap-2">
-          <span
-            className="hidden rounded-md border border-dashed border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)] xl:inline-flex"
-            title="Wallet balances will appear here in a later release"
-          >
-            Wallet · Coming soon
-          </span>
+          {isSignedIn ? (
+            <WalletBalanceDisplay
+              playableBalanceCents={walletBalances.playableBalanceCents}
+              rebateBalanceCents={walletBalances.rebateBalanceCents}
+              className="hidden lg:inline-flex"
+            />
+          ) : null}
           <div className="hidden md:block">
             <HeaderAuthControls firstName={firstName} />
           </div>
-          <MobileNav isSignedIn={isSignedIn} />
+          <MobileNav
+            isSignedIn={isSignedIn}
+            playableBalanceCents={walletBalances.playableBalanceCents}
+            rebateBalanceCents={walletBalances.rebateBalanceCents}
+          />
         </div>
       </div>
     </header>
