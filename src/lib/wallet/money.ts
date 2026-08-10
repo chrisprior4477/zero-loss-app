@@ -16,6 +16,9 @@ export function formatUsdFromCents(cents: number): string {
   const dollars = Math.trunc(absolute / 100);
   const remainder = absolute % 100;
   const sign = negative ? "-" : "";
+  if (remainder === 0) {
+    return `${sign}$${dollars}`;
+  }
   return `${sign}$${dollars}.${remainder.toString().padStart(2, "0")}`;
 }
 
