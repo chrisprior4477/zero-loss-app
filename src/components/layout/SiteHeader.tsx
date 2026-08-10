@@ -3,7 +3,9 @@ import Image from "next/image";
 import { MainNav } from "@/components/layout/MainNav";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { HeaderAuthControls } from "@/components/layout/HeaderAuthControls";
+import { WalletBalanceDisplay } from "@/components/layout/WalletBalanceDisplay";
 import { createClient } from "@/lib/supabase/server";
+import { getPlayableBalanceLabel } from "@/lib/wallet/balance";
 
 export async function SiteHeader() {
   const supabase = await createClient();
@@ -12,6 +14,7 @@ export async function SiteHeader() {
   } = await supabase.auth.getUser();
 
   let firstName: string | null = null;
+  let balanceLabel: string | null = null;
 
   if (user) {
     const { data: profile } = await supabase
@@ -21,6 +24,13 @@ export async function SiteHeader() {
       .maybeSingle();
 
     firstName = profile?.legal_first_name ?? "there";
+
+    try {
+      balanceLabel = await getPlayableBalanceLabel(user.id);
+    } catch {
+      // Header must stay up even if ledger read fails; keep placeholder.
+      balanceLabel = null;
+    }
   }
 
   const isSignedIn = Boolean(firstName);
@@ -75,16 +85,22 @@ export async function SiteHeader() {
         </div>
 
         <div className="relative z-50 flex items-center justify-end gap-1.5 sm:gap-2">
-          <span
-            className="hidden rounded-md border border-dashed border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)] xl:inline-flex"
-            title="Wallet balances will appear here in a later release"
-          >
-            Wallet · Coming soon
-          </span>
+          {isSignedIn && balanceLabel != null ? (
+            <WalletBalanceDisplay
+              balanceLabel={balanceLabel}
+              href="/account/wallet"
+              className="hidden md:inline-flex"
+            />
+          ) : (
+            <WalletBalanceDisplay
+              balanceLabel={null}
+              className="hidden xl:inline-flex"
+            />
+          )}
           <div className="hidden md:block">
             <HeaderAuthControls firstName={firstName} />
           </div>
-          <MobileNav isSignedIn={isSignedIn} />
+          <MobileNav isSignedIn={isSignedIn} balanceLabel={balanceLabel} />
         </div>
       </div>
     </header>

@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
 import { MainNav } from "@/components/layout/MainNav";
+import { WalletBalanceDisplay } from "@/components/layout/WalletBalanceDisplay";
 import { signOutAction } from "@/lib/auth/actions";
 
 type MobileNavProps = {
   isSignedIn: boolean;
+  /** Formatted playable balance when signed in; null when unavailable / signed out. */
+  balanceLabel: string | null;
 };
 
 /**
@@ -17,7 +20,7 @@ type MobileNavProps = {
  * Panel is position:fixed in-flow (not portaled). Safe now that backdrop-blur
  * is no longer on <header> (that was the containing-block clip).
  */
-export function MobileNav({ isSignedIn }: MobileNavProps) {
+export function MobileNav({ isSignedIn, balanceLabel }: MobileNavProps) {
   const reactId = useId();
   const toggleId = `mobile-nav-toggle-${reactId.replace(/:/g, "")}`;
   const checkboxRef = useRef<HTMLInputElement>(null);
@@ -127,6 +130,14 @@ export function MobileNav({ isSignedIn }: MobileNavProps) {
             <div className="mt-4 border-t border-[var(--border)] pt-4">
               {isSignedIn ? (
                 <ul className="flex flex-col gap-1">
+                  <li className="px-3 py-2">
+                    <WalletBalanceDisplay
+                      balanceLabel={balanceLabel}
+                      href={
+                        balanceLabel != null ? "/account/wallet" : undefined
+                      }
+                    />
+                  </li>
                   <li>
                     <Link
                       href="/account"
@@ -149,6 +160,9 @@ export function MobileNav({ isSignedIn }: MobileNavProps) {
                 </ul>
               ) : (
                 <ul className="flex flex-col gap-1">
+                  <li className="px-3 py-2">
+                    <WalletBalanceDisplay balanceLabel={null} />
+                  </li>
                   <li>
                     <Link
                       href="/login"

@@ -35,3 +35,30 @@ body {
 ::selection {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
+
+/*
+  Homepage hero stagger — CSS only.
+  Base rule keeps content visible if animations are disabled.
+  `both` fill-mode only applies while the animation runs; reduced-motion
+  turns animation off so opacity stays at the base (visible) value.
+*/
+@keyframes home-hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.home-hero-enter {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-hero-enter {
+    animation: home-hero-enter 0.5s ease-out both;
+  }
+}
