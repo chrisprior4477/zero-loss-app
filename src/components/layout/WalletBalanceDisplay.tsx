@@ -138,7 +138,7 @@ function IconTeaser({ icon, label, description }: IconTeaserProps) {
           id={panelId}
           role="dialog"
           aria-label={label}
-          className="absolute right-0 top-full z-50 mt-2 w-72 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-4 text-sm shadow-lg"
+          className="fixed right-3 top-16 z-[110] mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-4 text-sm shadow-lg md:absolute md:right-0 md:top-full md:z-50"
         >
           <p className="font-medium text-[var(--foreground)]">{label}</p>
           <p className="mt-1.5 text-[var(--muted)]">{description}</p>
