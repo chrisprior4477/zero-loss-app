@@ -91,9 +91,9 @@ A losing entry converts into a right to complete the purchase of that specific i
 
 A losing entry on a scarce-item pool converts into credit redeemable toward **any everyday/on-demand item on the platform** — never toward "more of" the scarce item, since additional units of a scarce item do not exist. Same self-funding mechanic as 3.1: the platform incurs no further cost unless the customer redeems.
 
-## 3.3 Prohibited Mechanics (Locked)
+## 3.3 🔴 Flagged — Unredeemed Rebate/Loser Credit Expiration
 
-Any form of short-window credit expiration where unredeemed value reverts to platform profit is permanently prohibited. This includes but is not limited to the previously-considered "48-hour expiration" mechanic. Unredeemed customer credit is a real, ongoing Ledger liability — never a revenue source. If a credit expiration policy is ever introduced for recordkeeping/bookkeeping purposes, it must be long enough (e.g., measured in years, consistent with applicable gift-card/stored-value law) that it functions as housekeeping, never as a profit mechanism.
+Amended 2026-08-13 — supersedes prior Locked version: Unredeemed rebate/loser credit expires 30 days after issuance. Rationale: comparable, familiar window to standard retail return policies; deliberate founder decision, made after reviewing why the prior rule prohibited short-window expiration. 🔴 Flagged — requires legal review before implementation. Potential exposure: federal CARD Act minimum-duration requirements for stored-value instruments; state-level gift-card/stored-value expiration laws (several states prohibit expiration entirely). Do not implement enforcement of this expiration until reviewed.
 
 ---
 
@@ -240,7 +240,7 @@ Not being built as part of the current implementation. Recorded here so the conc
 - Backup-bidder mechanic: if the winning bidder fails to complete payment within approximately 7 days, the next-highest bidder (2nd, then 3rd, then 4th place, in order) receives the option. This mirrors established auction-house practice.
 - Requires a genuine **payment-method authorization hold** for the bid amount — a point-in-time balance check is explicitly insufficient, since funds can be moved before or after a simple balance snapshot.
 - Requires identity verification (KYC), likely more stringent than the threshold used for standard high-value/scarce pools.
-- **Explicitly rejected:** distributing a pro-rata share of the whale-tier surcharge back to non-whale losers in the standard pool. This was found to reintroduce the same "profit depends on people not noticing small amounts" pattern already prohibited in Part 3.3.
+- **Explicitly rejected:** distributing a pro-rata share of the whale-tier surcharge back to non-whale losers in the standard pool. This was found to reintroduce the same "profit depends on people not noticing small amounts" pattern. The prior Part 3.3 blanket prohibition on short-window credit expiration shared that concern; the 2026-08-13 amendment narrowed 3.3 to a 30-day rebate/loser-credit window (still 🔴 Flagged for legal review). This whale-tier rejection is unchanged.
 - The exact whale-tier dollar threshold is not defined and requires real research into industry norms before it is ever proposed as a hard number.
 
 ---
