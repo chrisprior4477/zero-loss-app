@@ -124,7 +124,9 @@ export function HeroBannerCarousel() {
     programmaticScrollRef.current = programmatic;
     track.scrollTo({
       left,
-      behavior: "smooth",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
     });
 
     if (programmatic) {
@@ -298,7 +300,7 @@ export function HeroBannerCarousel() {
 
       <div
         ref={trackRef}
-        className="flex gap-3 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
+        className="flex gap-3 overflow-x-auto scroll-smooth motion-reduce:scroll-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
         tabIndex={0}
         aria-label="Highlight banners"
         onKeyDown={(event) => {
