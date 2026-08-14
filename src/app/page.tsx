@@ -1,4 +1,5 @@
-import { HomeHero } from "@/components/home/HomeHero";
+import { HeroBannerCarousel } from "@/components/home/HeroBannerCarousel";
+
 import { PageContainer } from "@/components/layout/PageContainer";
 
 const categories = [
@@ -35,7 +36,10 @@ export default function HomePage() {
     <>
       {/* Tight top padding so the story starts immediately under the nav */}
       <PageContainer className="pb-6 pt-3 sm:pb-8 sm:pt-4">
-        <HomeHero />
+       
+        <div className="mt-3 sm:mt-4">
+          <HeroBannerCarousel />
+        </div>
       </PageContainer>
 
       <div className="border-y border-[var(--border)] bg-[var(--surface)]">
