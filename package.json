@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "prepare": "husky",
+    "scan:secrets": "gitleaks git --redact --no-banner --verbose"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",
@@ -27,6 +29,7 @@
     "@vitejs/plugin-react": "^6.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
+    "husky": "^9.1.7",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4",
     "typescript": "^5",

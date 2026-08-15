@@ -13,8 +13,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_PUBLIC_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 
 # Stripe placeholder keys — to be populated in later days
-STRIPE_SECRET_KEY=sk_test_placeholder
-STRIPE_WEBHOOK_SECRET=whsec_placeholder
+STRIPE_SECRET_KEY=sk_test_<your-key-here>
+STRIPE_WEBHOOK_SECRET=whsec_<your-webhook-secret-here>
 Replace YOUR-PROJECT.supabase.co, YOUR_ANON_PUBLIC_KEY, and YOUR_SERVICE_ROLE_KEY with your real values from Supabase.  Non-Technical Action CheckSave .env.local.  Restart npm run dev so Next.js picks up new environment variables.  Confirm there are no environment-related errors in the dev console.  Plain-English: Day 1 ensures secrets and public keys are separated correctly, with server-only and client-safe vars defined.  Step 4 — Create the Shared Server-Side Supabase UtilityYou will create a server-side Supabase client helper that uses @supabase/ssr for SSR auth.  📂 TARGET PATHsrc/lib/supabaseServer.ts  📋 COPY / PASTE BLOCKTypeScriptimport { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 

@@ -1,0 +1,12 @@
+# Fingerprints of reviewed, non-secret gitleaks findings.
+# Each entry is scoped to one commit + file + rule + line, so it suppresses
+# only that specific finding and weakens detection nowhere else.
+
+# docs/roadmap/day-1-master-manual.md line 16 is an example .env.local block.
+# The matched value was a documentation placeholder, never a real Stripe key.
+# The line has since been changed to an inert angle-bracket form, but the
+# original commit remains in history and would otherwise be reported by every
+# full-history scan.
+# (Note: do not quote the offending literal in this file - gitleaks scans it
+# too, and repeating the pattern here creates a fresh finding.)
+27c205fa2941ef3ff419b8c19d5a70a4ec625471:docs/roadmap/day-1-master-manual.md:stripe-access-token:16

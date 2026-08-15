@@ -1,0 +1,9 @@
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks is not installed or not on PATH."
+  echo "  Windows: winget install Gitleaks.Gitleaks --source winget"
+  echo "  macOS:   brew install gitleaks"
+  echo "Commit blocked - secret scanning is required."
+  exit 1
+fi
+
+gitleaks git --staged --redact --no-banner --verbose
