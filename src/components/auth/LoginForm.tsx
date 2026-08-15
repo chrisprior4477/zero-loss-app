@@ -14,15 +14,20 @@ const initialState: AuthActionState = {
 
 type LoginFormProps = {
   initialError?: string | null;
+  initialNotice?: string | null;
 };
 
-export function LoginForm({ initialError = null }: LoginFormProps) {
+export function LoginForm({
+  initialError = null,
+  initialNotice = null,
+}: LoginFormProps) {
   const [state, formAction, pending] = useActionState(
     signInAction,
     initialState
   );
 
   const message = state.message ?? initialError;
+  const notice = state.message ? null : initialNotice;
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
@@ -59,6 +64,15 @@ export function LoginForm({ initialError = null }: LoginFormProps) {
           className="mt-1.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
         />
       </div>
+
+      {notice ? (
+        <p
+          role="status"
+          className="rounded-md border border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-3 py-2 text-sm text-[var(--foreground)]"
+        >
+          {notice}
+        </p>
+      ) : null}
 
       {message ? (
         <p

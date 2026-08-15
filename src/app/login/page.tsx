@@ -1,21 +1,36 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Sign in",
 };
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; verified?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user?.email_confirmed_at) {
+    redirect("/account");
+  }
+
   const params = await searchParams;
   const initialError =
     params.error === "verification_failed"
       ? "Email verification failed or expired. Request a new link by signing up again, or contact support."
+      : null;
+  const initialNotice =
+    params.verified === "1"
+      ? "Email verified. Sign in to continue."
       : null;
 
   return (
@@ -37,7 +52,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </Link>
         </p>
         <div className="mt-8 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8">
-          <LoginForm initialError={initialError} />
+          <LoginForm
+            initialError={initialError}
+            initialNotice={initialNotice}
+          />
         </div>
       </div>
     </PageContainer>

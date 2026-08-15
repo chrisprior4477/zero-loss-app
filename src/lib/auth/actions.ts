@@ -135,52 +135,21 @@ export async function signUpAction(
   const origin = await getSiteOrigin();
   const termsAcceptedAt = new Date().toISOString();
 
-  let data: Awaited<ReturnType<typeof supabase.auth.signUp>>["data"];
-  let error: Awaited<ReturnType<typeof supabase.auth.signUp>>["error"];
-
-  try {
-    const result = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${origin}/auth/confirm?next=/login`,
-        data: {
-          legal_first_name: legalFirstName,
-          legal_last_name: legalLastName,
-          date_of_birth: dateOfBirth,
-          terms_accepted_at: termsAcceptedAt,
-        },
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${origin}/auth/confirm`,
+      data: {
+        legal_first_name: legalFirstName,
+        legal_last_name: legalLastName,
+        date_of_birth: dateOfBirth,
+        terms_accepted_at: termsAcceptedAt,
       },
-    });
-    data = result.data;
-    error = result.error;
-  } catch (thrown) {
-    // TEMPORARY debug logging — remove after diagnosing "fetch failed"
-    console.error("[signUpAction] supabase.auth.signUp threw", thrown);
-    if (thrown && typeof thrown === "object" && "cause" in thrown) {
-      console.error("[signUpAction] thrown.cause", (thrown as { cause: unknown }).cause);
-    }
-    console.error(
-      "[signUpAction] thrown JSON",
-      JSON.stringify(thrown, Object.getOwnPropertyNames(thrown as object))
-    );
-    throw thrown;
-  }
+    },
+  });
 
   if (error) {
-    // TEMPORARY debug logging — remove after diagnosing signup failures
-    console.error("[signUpAction] supabase.auth.signUp returned error", error);
-    if (error && typeof error === "object" && "cause" in error) {
-      console.error(
-        "[signUpAction] error.cause",
-        (error as { cause: unknown }).cause
-      );
-    }
-    console.error(
-      "[signUpAction] error JSON",
-      JSON.stringify(error, Object.getOwnPropertyNames(error))
-    );
-
     const lowered = error.message.toLowerCase();
     if (
       lowered.includes("already registered") ||
@@ -292,7 +261,7 @@ export async function signInAction(
     };
   }
 
-  redirect("/");
+  redirect("/account");
 }
 
 export async function signOutAction(): Promise<void> {

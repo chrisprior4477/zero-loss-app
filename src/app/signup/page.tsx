@@ -1,13 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { SignUpForm } from "@/components/auth/SignUpForm";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Sign up",
 };
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user?.email_confirmed_at) {
+    redirect("/account");
+  }
+
   return (
     <PageContainer>
       <div className="mx-auto max-w-lg">
