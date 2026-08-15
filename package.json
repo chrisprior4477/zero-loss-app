@@ -31,6 +31,7 @@
     "eslint-config-next": "16.2.11",
     "husky": "^9.1.7",
     "jsdom": "^30.0.1",
+    "supabase": "^2.114.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"
