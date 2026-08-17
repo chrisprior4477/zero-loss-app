@@ -45,10 +45,14 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP"
           base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
-          curl -fsSL -o gitleaks.tar.gz "${base}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          curl -fsSL -o checksums.txt  "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
-          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz\$" checksums.txt | sha256sum -c -
-          tar -xzf gitleaks.tar.gz gitleaks
+          # The archive must keep its published filename: sha256sum -c reads
+          # the name out of the checksums line and opens that file, so saving
+          # it as anything else makes verification fail to find it.
+          tar_name="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "$tar_name"   "${base}/${tar_name}"
+          curl -fsSL -o checksums.txt "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " ${tar_name}\$" checksums.txt | sha256sum -c -
+          tar -xzf "$tar_name" gitleaks
           sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
           gitleaks version
 
