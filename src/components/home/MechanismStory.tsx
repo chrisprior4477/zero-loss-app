@@ -90,14 +90,14 @@ function cardSurfaceClass(index: number) {
   return "border-[color-mix(in_srgb,var(--accent)_72%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface-elevated))] shadow-[0_16px_40px_-14px_color-mix(in_srgb,var(--accent)_70%,transparent),0_0_0_1px_color-mix(in_srgb,var(--accent)_28%,transparent)] sm:-translate-y-2";
 }
 
-/** Try → Win → Plot twist sequence. CSS stagger via `.home-hero-enter`. */
+/** Try → Win → Plot twist sequence. CSS stagger via `.stagger-enter`. */
 export function MechanismStory() {
   return (
     <ul className="grid gap-3 sm:grid-cols-3 sm:items-start sm:gap-4">
       {differentiators.map((item, index) => (
         <li
           key={item.label}
-          className={`home-hero-enter rounded-xl border p-4 sm:p-5 ${cardSurfaceClass(index)}`}
+          className={`stagger-enter rounded-xl border p-4 sm:p-5 ${cardSurfaceClass(index)}`}
           style={{ animationDelay: `${index * STAGGER_MS}ms` }}
         >
           <div
