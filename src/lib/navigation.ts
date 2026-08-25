@@ -26,6 +26,10 @@ export const footerLinkGroups: {
       { href: "/faq", label: "FAQ" },
       { href: "/support", label: "Support" },
       { href: "/contact", label: "Contact" },
+      {
+        href: "/responsible-participation",
+        label: "Responsible Participation",
+      },
     ],
   },
   {
