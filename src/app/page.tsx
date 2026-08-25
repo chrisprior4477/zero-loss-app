@@ -1,85 +1,78 @@
+import { CategoryNav } from "@/components/home/CategoryNav";
+import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { HeroBannerCarousel } from "@/components/home/HeroBannerCarousel";
-
+import { HeroSection } from "@/components/home/HeroSection";
+import { HomeSection } from "@/components/home/HomeSection";
+import { LiveActivityFeed } from "@/components/home/LiveActivityFeed";
+import { ProductDiscoveryGrid } from "@/components/home/ProductDiscoveryGrid";
+import { TrustSection } from "@/components/home/TrustSection";
 import { PageContainer } from "@/components/layout/PageContainer";
+import {
+  placeholderDiscoveryProducts,
+  placeholderFeaturedProducts,
+} from "@/lib/home/placeholder-data";
 
-const categories = [
-  "All",
-  "Groceries & Gas",
-  "Movie Night",
-  "Electronics",
-  "Home Essentials",
-  "Gift Cards",
-  "Trophy Vault",
-];
-
-const skeletonSections = [
-  {
-    title: "Live marketplace activity",
-    body: "Live ticker and recent participation will appear here once marketplace data is connected.",
-  },
-  {
-    title: "Featured products",
-    body: "Featured product highlights will land in this section in a later release.",
-  },
-  {
-    title: "Product discovery",
-    body: "The discovery grid will surface catalog items once catalog browsing is implemented.",
-  },
-  {
-    title: "Trust & transparency",
-    body: "Trust messaging and transparency modules will reinforce the ZeroLoss promise here.",
-  },
-];
-
+/**
+ * Homepage composition (spec §4 layout structure).
+ *
+ * Order: sticky header (AppShell) → category nav → hero → carousel →
+ * live activity → featured → discovery grid → trust → footer (AppShell).
+ *
+ * This stays a Server Component and performs NO data access. Product values
+ * come from `@/lib/home/placeholder-data` and the activity feed is
+ * deliberately empty (spec §10 prohibits fabricated activity). Wallet and
+ * identity remain owned by SiteHeader — nothing here reads the ledger or the
+ * session (spec §32).
+ */
 export default function HomePage() {
   return (
     <>
-      {/* Tight top padding so the story starts immediately under the nav */}
-      <PageContainer className="pb-6 pt-3 sm:pb-8 sm:pt-4">
-       
-        <div className="mt-3 sm:mt-4">
+      <div className="border-b border-[var(--border)] bg-[var(--surface)]">
+        <PageContainer className="py-3 sm:py-3">
+          <CategoryNav />
+        </PageContainer>
+      </div>
+
+      <PageContainer className="pb-6 pt-5 sm:pb-8 sm:pt-6">
+        <HeroSection />
+
+        <div className="mt-4 sm:mt-5">
           <HeroBannerCarousel />
         </div>
       </PageContainer>
 
-      <div className="border-y border-[var(--border)] bg-[var(--surface)]">
-        <PageContainer className="py-3 sm:py-3">
-          <nav aria-label="Categories">
-            <ul className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {categories.map((category, index) => (
-                <li key={category} className="shrink-0">
-                  <span
-                    className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-medium ${
-                      index === 0
-                        ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--foreground)]"
-                        : "border-[var(--border)] text-[var(--muted)]"
-                    }`}
-                  >
-                    {category}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </PageContainer>
-      </div>
+      <PageContainer className="space-y-10 pt-2 sm:space-y-12">
+        <HomeSection
+          id="live-activity"
+          title="Live marketplace activity"
+          description="What's happening on the platform right now."
+        >
+          <LiveActivityFeed items={[]} />
+        </HomeSection>
 
-      <PageContainer className="pt-6 sm:pt-8">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {skeletonSections.map((section) => (
-            <section
-              key={section.title}
-              className="rounded-xl border border-dashed border-[var(--section-line)] bg-[var(--surface)]/60 p-5"
-            >
-              <h2 className="text-base font-semibold text-[var(--foreground)]">
-                {section.title}
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-                {section.body}
-              </p>
-            </section>
-          ))}
-        </div>
+        <HomeSection
+          id="featured"
+          title="Featured opportunities"
+          description="A rotating selection of pools worth a look."
+        >
+          <FeaturedProducts products={placeholderFeaturedProducts} />
+        </HomeSection>
+
+        <HomeSection
+          id="discovery"
+          title="Browse the marketplace"
+          description="Everyday items you were probably buying anyway."
+        >
+          <ProductDiscoveryGrid products={placeholderDiscoveryProducts} />
+        </HomeSection>
+
+        <HomeSection
+          id="trust"
+          title="Built to be worth trusting"
+          description="How your participation is protected."
+        >
+          <TrustSection />
+        </HomeSection>
       </PageContainer>
     </>
   );

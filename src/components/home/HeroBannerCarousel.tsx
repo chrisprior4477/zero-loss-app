@@ -17,9 +17,13 @@ type BannerSlide =
 
 const SLIDES: BannerSlide[] = [
   {
-    id: "tagline",
+    // TEMPORARY PLACEHOLDER COPY — needs real marketing copy.
+    // The hero owns the Brand Promise headline, so this slide must not repeat
+    // it verbatim now that the carousel sits directly beneath the hero. This
+    // line is a stand-in chosen to avoid that duplication, not approved copy.
+    id: "value-promise",
     kind: "primary",
-    title: "Shopping should never feel like losing.",
+    title: "Every entry keeps its value.",
   },
   {
     id: "featured",
