@@ -1,47 +1,49 @@
 import { CategoryNav } from "@/components/home/CategoryNav";
+import { CreditBanner } from "@/components/home/CreditBanner";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
-import { HeroBannerCarousel } from "@/components/home/HeroBannerCarousel";
 import { HeroSection } from "@/components/home/HeroSection";
 import { HomeSection } from "@/components/home/HomeSection";
 import { LiveActivityFeed } from "@/components/home/LiveActivityFeed";
 import { ProductDiscoveryGrid } from "@/components/home/ProductDiscoveryGrid";
+import { PromoTileCarousel } from "@/components/home/PromoTileCarousel";
+import { ShopByPrice } from "@/components/home/ShopByPrice";
 import { TrustSection } from "@/components/home/TrustSection";
 import { PageContainer } from "@/components/layout/PageContainer";
 import {
-  placeholderDiscoveryProducts,
-  placeholderFeaturedProducts,
+  placeholderDiscoveryOpportunities,
+  placeholderFeaturedOpportunities,
 } from "@/lib/home/placeholder-data";
 
 /**
- * Homepage composition (spec §4 layout structure).
+ * Homepage composition (spec §4), following the Checkpoint 2 artboards with
+ * the C1-C10 review decisions applied.
  *
- * Order: sticky header (AppShell) → category nav → hero → carousel →
- * live activity → featured → discovery grid → trust → footer (AppShell).
+ * Order: sticky header (AppShell) → category nav → hero → promo rail →
+ * live activity → featured → discovery grid → credit banner → shop by price →
+ * trust → footer (AppShell).
  *
- * This stays a Server Component and performs NO data access. Product values
- * come from `@/lib/home/placeholder-data` and the activity feed is
- * deliberately empty (spec §10 prohibits fabricated activity). Wallet and
- * identity remain owned by SiteHeader — nothing here reads the ledger or the
- * session (spec §32).
+ * The artboard's stats bar is deliberately absent (C9), and its winner ticker
+ * of fabricated names is not built — the activity feed ships empty (C3, and
+ * spec §10, which prohibits fabricated activity outright).
+ *
+ * This stays a Server Component and performs NO data access. Values come from
+ * `@/lib/home/placeholder-data`; wallet and identity remain owned by
+ * SiteHeader, the single place that reads the ledger (spec §32).
  */
 export default function HomePage() {
   return (
     <>
-      <div className="border-b border-[var(--border)] bg-[var(--surface)]">
-        <PageContainer className="py-3 sm:py-3">
-          <CategoryNav />
-        </PageContainer>
-      </div>
+      <CategoryNav />
 
-      <PageContainer className="pb-6 pt-5 sm:pb-8 sm:pt-6">
+      <PageContainer className="pb-10 pt-8 sm:pb-12 sm:pt-10">
         <HeroSection />
 
-        <div className="mt-4 sm:mt-5">
-          <HeroBannerCarousel />
+        <div className="mt-12">
+          <PromoTileCarousel />
         </div>
       </PageContainer>
 
-      <PageContainer className="space-y-10 pt-2 sm:space-y-12">
+      <PageContainer className="space-y-14 pb-16 pt-0 sm:space-y-16">
         <HomeSection
           id="live-activity"
           title="Live marketplace activity"
@@ -55,7 +57,7 @@ export default function HomePage() {
           title="Featured opportunities"
           description="A rotating selection of pools worth a look."
         >
-          <FeaturedProducts products={placeholderFeaturedProducts} />
+          <FeaturedProducts opportunities={placeholderFeaturedOpportunities} />
         </HomeSection>
 
         <HomeSection
@@ -63,7 +65,15 @@ export default function HomePage() {
           title="Browse the marketplace"
           description="Everyday items you were probably buying anyway."
         >
-          <ProductDiscoveryGrid products={placeholderDiscoveryProducts} />
+          <ProductDiscoveryGrid
+            opportunities={placeholderDiscoveryOpportunities}
+          />
+        </HomeSection>
+
+        <CreditBanner amount="$18" />
+
+        <HomeSection id="shop-by-price" title="Shop by price">
+          <ShopByPrice />
         </HomeSection>
 
         <HomeSection
