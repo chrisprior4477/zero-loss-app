@@ -1,5 +1,5 @@
 import { ProductCard } from "@/components/product/ProductCard";
-import type { PlaceholderProduct } from "@/lib/home/placeholder-data";
+import type { PlaceholderOpportunity } from "@/lib/home/placeholder-data";
 
 /**
  * Featured opportunities (homepage spec §13).
@@ -12,13 +12,13 @@ import type { PlaceholderProduct } from "@/lib/home/placeholder-data";
  */
 
 type FeaturedProductsProps = {
-  products: PlaceholderProduct[];
+  opportunities: PlaceholderOpportunity[];
 };
 
-export function FeaturedProducts({ products }: FeaturedProductsProps) {
-  if (products.length === 0) {
+export function FeaturedProducts({ opportunities }: FeaturedProductsProps) {
+  if (opportunities.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[var(--section-line)] bg-[var(--surface)]/60 p-5">
+      <div className="rounded-2xl border border-dashed border-[var(--section-line)] bg-[var(--surface)]/50 p-6">
         <p className="text-sm text-[var(--muted)]">
           Featured opportunities will appear here once the catalog is live.
         </p>
@@ -27,10 +27,10 @@ export function FeaturedProducts({ products }: FeaturedProductsProps) {
   }
 
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
-      {products.map((product) => (
-        <li key={product.id}>
-          <ProductCard product={product} />
+    <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {opportunities.map((opportunity) => (
+        <li key={opportunity.id}>
+          <ProductCard opportunity={opportunity} />
         </li>
       ))}
     </ul>

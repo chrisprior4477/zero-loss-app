@@ -36,7 +36,7 @@ const trustPoints = [
 
 export function TrustSection() {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-7">
+    <div className="rounded-2xl bg-[var(--surface)] p-6 sm:p-8">
       <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {trustPoints.map((point) => (
           <li key={point.title}>
@@ -50,10 +50,10 @@ export function TrustSection() {
         ))}
       </ul>
 
-      <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-[var(--border)] pt-5 text-sm">
+      <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-[var(--border)] pt-5 text-sm">
         <Link
           href="/how-it-works"
-          className="text-[var(--accent)] transition-opacity hover:opacity-80"
+          className="font-semibold text-[var(--accent)] transition-opacity hover:opacity-80"
         >
           How it works
         </Link>

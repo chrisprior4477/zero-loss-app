@@ -1,5 +1,5 @@
 import { ProductCard } from "@/components/product/ProductCard";
-import type { PlaceholderProduct } from "@/lib/home/placeholder-data";
+import type { PlaceholderOpportunity } from "@/lib/home/placeholder-data";
 
 /**
  * Product discovery grid (homepage spec §14).
@@ -9,13 +9,13 @@ import type { PlaceholderProduct } from "@/lib/home/placeholder-data";
  */
 
 type ProductDiscoveryGridProps = {
-  products: PlaceholderProduct[];
+  opportunities: PlaceholderOpportunity[];
 };
 
-export function ProductDiscoveryGrid({ products }: ProductDiscoveryGridProps) {
-  if (products.length === 0) {
+export function ProductDiscoveryGrid({ opportunities }: ProductDiscoveryGridProps) {
+  if (opportunities.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[var(--section-line)] bg-[var(--surface)]/60 p-5">
+      <div className="rounded-2xl border border-dashed border-[var(--section-line)] bg-[var(--surface)]/50 p-6">
         <p className="text-sm font-medium text-[var(--foreground)]">
           Nothing to browse just yet.
         </p>
@@ -27,10 +27,10 @@ export function ProductDiscoveryGrid({ products }: ProductDiscoveryGridProps) {
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-      {products.map((product) => (
-        <li key={product.id}>
-          <ProductCard product={product} />
+    <ul className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+      {opportunities.map((opportunity) => (
+        <li key={opportunity.id}>
+          <ProductCard opportunity={opportunity} />
         </li>
       ))}
     </ul>

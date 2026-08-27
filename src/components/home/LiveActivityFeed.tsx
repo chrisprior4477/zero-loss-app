@@ -26,7 +26,7 @@ type LiveActivityFeedProps = {
 export function LiveActivityFeed({ items = [] }: LiveActivityFeedProps) {
   if (items.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[var(--section-line)] bg-[var(--surface)]/60 p-5">
+      <div className="rounded-2xl border border-dashed border-[var(--section-line)] bg-[var(--surface)]/50 p-6">
         <p className="text-sm font-medium text-[var(--foreground)]">
           The marketplace is just getting started.
         </p>

@@ -1,15 +1,14 @@
-import Link from "next/link";
+import { HeroImageFan } from "@/components/home/HeroImageFan";
+import { HeroSearchRow } from "@/components/home/HeroSearchRow";
+import { HowItWorksToggle } from "@/components/home/HowItWorksToggle";
 
 /**
- * Homepage hero (spec §8).
+ * Homepage hero (spec §8), styled to the Checkpoint 2 artboards.
  *
- * Replaces the deleted HomeHero, which was unused and carried a headline with
- * no supporting copy and no call-to-action.
- *
- * Headline is the Brand Promise. `marketplace-financial-rules-spec.md`
- * (Purpose) makes the Brand Promise governing where a rule and the promise
- * could read as conflicting, so it leads and the spec §8 line
- * ("Win what you were already planning to buy") supports it beneath.
+ * Headline is the Brand Promise (C6). The artboards read "Shopping should
+ * never feel like a loss"; the approved wording is "...like losing", and
+ * marketplace-financial-rules-spec.md makes the Brand Promise governing where
+ * a rule and the promise could read as conflicting.
  *
  * Copy constraint: financial rules §5.1 — public-facing content must never
  * mention or imply cash redemption of a prize.
@@ -18,34 +17,33 @@ export function HeroSection() {
   return (
     <section
       aria-labelledby="home-hero-heading"
-      className="rounded-2xl border border-[var(--border)] bg-[linear-gradient(165deg,var(--surface-elevated)_0%,var(--surface)_48%,var(--background)_100%)] px-4 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10"
+      className="grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12"
     >
-      <h1
-        id="home-hero-heading"
-        className="max-w-xl text-2xl font-semibold tracking-tight text-[var(--foreground)] sm:text-3xl lg:text-[2rem] lg:leading-tight"
-      >
-        Shopping should never feel like losing.
-      </h1>
-
-      <p className="mt-3 max-w-lg text-sm leading-relaxed text-[var(--muted)] sm:text-base">
-        Win what you were already planning to buy — and if you don&apos;t win,
-        what you spent goes toward buying it instead.
-      </p>
-
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <Link
-          href="/browse"
-          className="inline-flex items-center rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-foreground)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+      <div>
+        <h1
+          id="home-hero-heading"
+          className="text-[34px] font-extrabold leading-[1.05] tracking-[-0.03em] text-[var(--foreground)] text-balance sm:text-[42px] lg:text-[52px]"
         >
-          Browse the marketplace
-        </Link>
-        <Link
-          href="/how-it-works"
-          className="inline-flex items-center rounded-md border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--foreground)] transition-colors hover:bg-[var(--surface-elevated)]"
-        >
-          How it works
-        </Link>
+          Shopping should never feel like losing.
+        </h1>
+
+        <p className="mt-4 max-w-lg text-[15px] leading-[1.55] text-[var(--muted)] sm:text-base">
+          Win what you were already planning to buy. Don&apos;t win? What you
+          spent still counts toward buying it instead.
+        </p>
+
+        {/* No standalone shop CTA here: the hero action row below carries the
+            design.s Shop button, so a second one duplicated it. */}
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <HowItWorksToggle />
+        </div>
+
+        <div className="mt-6">
+          <HeroSearchRow />
+        </div>
       </div>
+
+      <HeroImageFan />
     </section>
   );
 }

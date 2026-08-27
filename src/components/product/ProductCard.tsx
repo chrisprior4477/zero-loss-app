@@ -1,74 +1,89 @@
+import Image from "next/image";
 import Link from "next/link";
 import { PoolProgress } from "@/components/product/PoolProgress";
-import type { PlaceholderProduct } from "@/lib/home/placeholder-data";
+import type {
+  OpportunityStatus,
+  PlaceholderOpportunity,
+} from "@/lib/home/placeholder-data";
 
 /**
- * Product card (homepage spec §15).
+ * Opportunity card (homepage spec §15), styled to the Checkpoint 2 artboards:
+ * a white card on the deep-blue page, photo on top, a status pill and entry
+ * count, then the pool bar, title, and a retail / entry footer row.
  *
  * Presentational only — every value arrives as a prop. The card never reads
  * the catalog, a pool, or the ledger, and it never derives an entry count
- * from anything (financial rules §1.1: entries come from displayed face
- * value only, and acquisition cost must never be customer-inferable).
- *
- * Imagery: renders a neutral category tile rather than product photography.
- * Financial rules §2.3 prohibits scraping or reproducing brand product
- * photos, so no <Image> is wired up until licensed or generated art exists.
+ * from anything (financial rules §1.1: entries come from displayed face value
+ * only, and acquisition cost must never be customer-inferable).
  */
 
 type ProductCardProps = {
-  product: PlaceholderProduct;
+  opportunity: PlaceholderOpportunity;
   /** Where the card navigates. Spec §16 — no intermediate screens. */
   href?: string;
 };
 
-function EntryBadge({ label }: { label: string }) {
-  return (
-    <span className="inline-flex shrink-0 items-center rounded-full border border-[color-mix(in_srgb,var(--accent)_45%,var(--border))] bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)]">
-      {label}
-    </span>
-  );
-}
+/* C4: the orange pill takes black text. Green marks live activity, cyan is
+   neutral emphasis — these roles are not interchangeable with decoration. */
+const STATUS_STYLE: Record<
+  OpportunityStatus,
+  { background: string; color: string }
+> = {
+  closing: { background: "var(--urgent)", color: "#000" },
+  new: { background: "var(--live)", color: "var(--live-ink)" },
+  popular: { background: "var(--accent)", color: "var(--ink)" },
+};
 
-function PlaceholderArt() {
-  return (
-    <div
-      aria-hidden="true"
-      className="flex aspect-[4/3] w-full items-center justify-center rounded-lg border border-[var(--border)] bg-[linear-gradient(150deg,var(--surface-elevated)_0%,var(--surface)_100%)]"
-    >
-      <span className="h-7 w-7 rounded-md border border-dashed border-[var(--section-line)]" />
-    </div>
-  );
-}
+export function ProductCard({ opportunity, href = "/browse" }: ProductCardProps) {
+  const status = STATUS_STYLE[opportunity.status];
 
-export function ProductCard({ product, href = "/browse" }: ProductCardProps) {
   return (
-    <article className="group h-full">
+    <article className="h-full">
       <Link
         href={href}
-        className="flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 transition-colors hover:bg-[var(--surface-elevated)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:p-4"
+        className="flex h-full flex-col rounded-2xl bg-[var(--card)] p-4 transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] motion-reduce:transform-none"
       >
-        <PlaceholderArt />
+        <div className="relative mb-4 h-[168px] overflow-hidden rounded-lg bg-[#f2f2f2]">
+          <Image
+            src={opportunity.image}
+            alt=""
+            aria-hidden="true"
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 320px"
+            className="object-contain p-2"
+          />
+        </div>
 
-        <p className="mt-3 text-[0.7rem] font-medium uppercase tracking-[0.12em] text-[var(--muted)]">
-          {product.category}
-        </p>
-
-        <h3 className="mt-1 text-sm font-semibold leading-snug text-[var(--foreground)]">
-          {product.title}
-        </h3>
-
-        <div className="mt-2 flex items-center gap-2">
-          <EntryBadge label={product.entryPriceLabel} />
-          <span className="text-xs text-[var(--muted)]">
-            {product.faceValueLabel} value
+        <div className="mb-2.5 flex items-center gap-2">
+          <span
+            className="rounded-full px-2.5 py-1 font-mono text-[9.5px] font-bold uppercase leading-none tracking-[0.08em]"
+            style={status}
+          >
+            {opportunity.statusLabel}
+          </span>
+          <span className="font-mono text-[10.5px] font-medium text-[rgba(0,0,0,0.45)]">
+            {opportunity.category}
           </span>
         </div>
 
-        <div className="mt-auto pt-3">
+        <div className="mb-2.5 mt-3">
           <PoolProgress
-            ticketsSold={product.ticketsSold}
-            ticketCapacity={product.ticketCapacity}
+            ticketsSold={opportunity.ticketsSold}
+            ticketCapacity={opportunity.ticketCapacity}
           />
+        </div>
+
+        <h3 className="mb-1.5 text-[17px] font-bold leading-[1.25] text-[var(--ink-strong)]">
+          {opportunity.title}
+        </h3>
+
+        <div className="mt-auto flex items-baseline justify-between border-t border-[rgba(0,0,0,0.1)] pt-3">
+          <span className="text-[13px] text-[var(--ink-soft)]">
+            {opportunity.faceValueLabel} value
+          </span>
+          <span className="text-[15px] font-bold text-[var(--background)]">
+            {opportunity.entryPriceLabel}
+          </span>
         </div>
       </Link>
     </article>

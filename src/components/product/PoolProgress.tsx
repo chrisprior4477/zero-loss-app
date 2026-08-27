@@ -1,64 +1,62 @@
 /**
- * Pool completion indicator (homepage spec §15).
+ * Pool completion indicator (homepage spec §15), styled to the Checkpoint 2
+ * artboards: an 11px pill-shaped track on the white card, with a floating
+ * "N left" label pinned to the right edge above it.
  *
- * Pure presentation: progress and urgency are derived only from the two props
- * passed in. Nothing here fetches, and no urgency state can be set by hand —
- * spec §15 prohibits artificial scarcity, so the label must always be a
- * function of real remaining capacity.
+ * Pure presentation. Progress, remaining count and urgency are derived only
+ * from the two props passed in — there is no prop to set an urgency state by
+ * hand, because spec §15 prohibits artificial scarcity.
+ *
+ * The fill colour carries the semantic role: cyan while a pool is filling
+ * normally, orange once it crosses into genuine urgency.
  */
 
 type PoolProgressProps = {
   ticketsSold: number;
   ticketCapacity: number;
-  /** Hide the text row and render the bar alone. */
-  barOnly?: boolean;
 };
 
-/** Spec §15 urgency ladder. Thresholds are presentation-only for now. */
-function urgencyLabel(percentComplete: number): string | null {
-  if (percentComplete >= 95) return "Closing Soon";
-  if (percentComplete >= 85) return "Almost Full";
-  if (percentComplete >= 70) return "Limited Spots Remaining";
-  return null;
-}
+const URGENT_THRESHOLD = 85;
 
 export function PoolProgress({
   ticketsSold,
   ticketCapacity,
-  barOnly = false,
 }: PoolProgressProps) {
   const safeCapacity = Math.max(1, ticketCapacity);
   const clampedSold = Math.min(Math.max(0, ticketsSold), safeCapacity);
   const percentComplete = Math.round((clampedSold / safeCapacity) * 100);
   const remaining = safeCapacity - clampedSold;
-  const urgency = urgencyLabel(percentComplete);
+  const isUrgent = percentComplete >= URGENT_THRESHOLD;
 
   return (
-    <div>
+    <div className="relative">
+      <div
+        className="absolute bottom-full right-0 mb-1 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold leading-none tracking-[0.04em]"
+        style={{
+          background: isUrgent ? "var(--urgent)" : "var(--accent-deep)",
+          /* C4: orange pills carry black text, not white. */
+          color: isUrgent ? "#000" : "#fff",
+        }}
+      >
+        {remaining.toLocaleString()} left
+      </div>
+
       <div
         role="progressbar"
         aria-valuenow={percentComplete}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`Pool ${percentComplete}% complete`}
-        className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]"
+        aria-label={`Pool ${percentComplete}% complete, ${remaining} entries remaining`}
+        className="h-[11px] overflow-hidden rounded-full bg-[rgba(0,71,149,0.12)]"
       >
         <div
-          className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-500 motion-reduce:transition-none"
-          style={{ width: `${percentComplete}%` }}
+          className="zl-bar-fill h-full rounded-full"
+          style={{
+            ["--zl-target" as string]: `${percentComplete}%`,
+            background: isUrgent ? "var(--urgent)" : "var(--accent)",
+          }}
         />
       </div>
-
-      {barOnly ? null : (
-        <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
-          <span className="text-[var(--muted)] tabular-nums">
-            {remaining.toLocaleString()} of {safeCapacity.toLocaleString()} left
-          </span>
-          {urgency ? (
-            <span className="font-medium text-[var(--accent)]">{urgency}</span>
-          ) : null}
-        </div>
-      )}
     </div>
   );
 }
