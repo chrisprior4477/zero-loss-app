@@ -12,6 +12,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import {
   placeholderDiscoveryOpportunities,
   placeholderFeaturedOpportunities,
+  placeholderRebateCreditAmount,
 } from "@/lib/home/placeholder-data";
 
 /**
@@ -70,7 +71,10 @@ export default function HomePage() {
           />
         </HomeSection>
 
-        <CreditBanner amount="$18" />
+        <CreditBanner
+          amount={placeholderRebateCreditAmount}
+          isDevelopmentPlaceholder
+        />
 
         <HomeSection id="shop-by-price" title="Shop by price">
           <ShopByPrice />

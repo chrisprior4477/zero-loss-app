@@ -160,6 +160,13 @@ export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
 ];
 
 /**
+ * Development-only rebate amount used to exercise the homepage banner layout.
+ * This is not a customer balance and must be replaced by an authoritative
+ * ledger-derived value before the banner is presented as account data.
+ */
+export const placeholderRebateCreditAmount = "$18";
+
+/**
  * Category strip, ordered to match the Checkpoint 2 artboards.
  *
  * "Ending Soon" and "Everyday Items" lead, as they do in the design. An
