@@ -39,10 +39,10 @@ export async function SiteHeader() {
     // Blur lives on a non-interactive underlay — not on <header> itself — so
     // sticky + backdrop-filter does not create a containing/stacking context
     // that traps or breaks taps on header controls (esp. iOS Safari).
-    <header className="relative sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/95">
+    <header className="relative sticky top-0 z-40 bg-[var(--header)]">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80"
+        className="pointer-events-none absolute inset-0 -z-10 backdrop-blur supports-[backdrop-filter]:bg-[var(--header)]/90"
       />
       {/*
         Two-column grid below lg (search is display:none and out of flow).
@@ -80,7 +80,7 @@ export async function SiteHeader() {
             disabled
             placeholder="Search coming soon"
             aria-disabled="true"
-            className="w-full cursor-not-allowed rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)] placeholder:text-[var(--muted)]"
+            className="w-full cursor-not-allowed rounded-full border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--muted)] placeholder:text-[var(--muted-soft)]"
           />
         </div>
 
@@ -103,6 +103,13 @@ export async function SiteHeader() {
           <MobileNav isSignedIn={isSignedIn} balanceLabel={balanceLabel} />
         </div>
       </div>
+
+      {/* 4-stop brand rule separating the header from the category strip. */}
+      <div
+        aria-hidden="true"
+        className="h-[3px] w-full"
+        style={{ background: "var(--brand-rule)" }}
+      />
     </header>
   );
 }

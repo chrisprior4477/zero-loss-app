@@ -29,8 +29,8 @@ export function MainNav({ className = "", onNavigate }: MainNavProps) {
                 aria-current={isActive ? "page" : undefined}
                 className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-[var(--surface-elevated)] text-[var(--foreground)]"
-                    : "text-[var(--muted)] hover:bg-[var(--surface-elevated)] hover:text-[var(--foreground)]"
+                    ? "text-[var(--foreground)] md:rounded-none md:border-b-2 md:border-[var(--accent)]"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
                 }`}
               >
                 {item.label}
