@@ -13,30 +13,36 @@ export const footerLinkGroups: {
   links: NavLink[];
 }[] = [
   {
-    title: "Explore",
+    title: "Marketplace",
     links: [
-      { href: "/browse", label: "Browse" },
+      { href: "/browse", label: "All Rewards" },
+      { href: "/browse?sort=ending-soon", label: "Ending Soon" },
+      { href: "/browse?view=winners", label: "Winners" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
       { href: "/how-it-works", label: "How It Works" },
-      { href: "/about", label: "About" },
+      { href: "/about", label: "About Us" },
+      { href: "/contact", label: "Careers" },
+      { href: "/about", label: "Blog" },
     ],
   },
   {
     title: "Support",
     links: [
+      { href: "/support", label: "Help Center" },
+      { href: "/contact", label: "Contact Us" },
       { href: "/faq", label: "FAQ" },
-      { href: "/support", label: "Support" },
-      { href: "/contact", label: "Contact" },
-      {
-        href: "/responsible-participation",
-        label: "Responsible Participation",
-      },
     ],
   },
   {
     title: "Legal",
     links: [
-      { href: "/terms", label: "Terms" },
-      { href: "/privacy", label: "Privacy" },
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/privacy", label: "Privacy Policy" },
+      { href: "/responsible-participation", label: "Responsible Play" },
     ],
   },
 ];

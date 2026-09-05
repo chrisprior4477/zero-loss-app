@@ -166,6 +166,26 @@ export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
  */
 export const placeholderRebateCreditAmount = "$18";
 
+export type PlaceholderCategoryCard = {
+  id: string;
+  label: string;
+  image: string;
+};
+
+/** Development-only homepage category artwork and ordering. */
+export const placeholderCategoryCards: PlaceholderCategoryCard[] = [
+  { id: "groceries", label: "Groceries", image: "/design/5a-c3.webp" },
+  { id: "everyday-items", label: "Everyday Items", image: "/design/lady-with-bag.webp" },
+  { id: "gas", label: "Gas", image: "/design/2a-espresso.webp" },
+  { id: "electronics", label: "Electronics", image: "/design/2a-headphones.webp" },
+  { id: "gift-cards", label: "Gift Cards", image: "/design/5a-c3.webp" },
+];
+
+/** Development ordering only. Production ranking must come from real data. */
+export const placeholderPopularBrands = [
+  "Nike", "Apple", "Amazon", "Costco", "Walmart", "Target",
+] as const;
+
 /**
  * Category strip, ordered to match the Checkpoint 2 artboards.
  *
@@ -200,8 +220,14 @@ export const placeholderPromoTiles = [
   { id: "promo-7", label: "TROPHY VAULT", href: "/browse" },
 ] as const;
 
-/** "Shop by price" tiers from the artboards. */
-export const shopByPriceTiers = ["$25", "$50", "$75", "$100"] as const;
+/** Development-only price navigation. Production links will use live catalog filters. */
+export const shopByPriceTiers = [
+  { price: "$25", detail: "and under" },
+  { price: "$50", detail: "and under" },
+  { price: "$75", detail: "and under" },
+  { price: "$100", detail: "and under" },
+  { price: "$100+", detail: "premium prizes" },
+] as const;
 
 /**
  * Category → subcategory taxonomy for the nav dropdowns, transcribed from the

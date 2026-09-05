@@ -5,29 +5,41 @@ export function SiteFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-[var(--border)] bg-[var(--header)]">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-4 lg:px-8">
-        <div className="md:col-span-1">
-          <p className="text-lg font-semibold tracking-tight text-[var(--foreground)]">
-            ZeroLoss
+    <footer className="mt-auto border-t border-cyan-300/10 bg-[#000f25]">
+      <div className="mx-auto grid max-w-[1600px] gap-8 px-[clamp(3rem,6vw,7rem)] py-8 md:grid-cols-[1.5fr_repeat(4,1fr)]">
+        <div>
+          <p className="text-[22px] font-extrabold uppercase tracking-[-0.04em] text-white">
+            Zero<span className="text-[#73e72d]">Loss</span>
           </p>
-          <p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--muted)]">
-            A calmer way to shop with marketplace energy — built for trust,
-            clarity, and confidence.
+          <p className="mt-2 max-w-[250px] text-[12px] leading-relaxed text-white/60">
+            A fair way to play for real rewards.<br />
+            Real shots. Real wins. Zero loss.
           </p>
+          <div className="mt-4 flex gap-2" aria-label="Social media links coming soon">
+            {[
+              ["f", "Facebook"],
+              ["𝕏", "X"],
+              ["◎", "Instagram"],
+              ["▶", "YouTube"],
+            ].map(([symbol, label]) => (
+              <span key={label} title={`${label} coming soon`} aria-label={`${label} coming soon`} className="grid h-7 w-7 place-items-center rounded-full border border-white/10 bg-white/10 text-[11px] font-bold text-white/80">
+                {symbol}
+              </span>
+            ))}
+          </div>
         </div>
 
         {footerLinkGroups.map((group) => (
           <div key={group.title}>
-            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--accent)]">
+            <p className="text-[12px] font-extrabold text-white">
               {group.title}
             </p>
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-2 space-y-1.5">
               {group.links.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
+                    className="text-[11px] text-white/58 transition-colors hover:text-cyan-300"
                   >
                     {link.label}
                   </Link>
@@ -38,8 +50,8 @@ export function SiteFooter() {
         ))}
       </div>
 
-      <div className="border-t border-[var(--border)]">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+      <div className="border-t border-white/8">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-2 px-[clamp(3rem,6vw,7rem)] py-3 text-[10px] text-white/38 sm:flex-row sm:items-center sm:justify-between">
           <p>© {year} ZeroLoss. All rights reserved.</p>
           <p>Shopping should never feel like losing.</p>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { ZeroLossJourney } from "@/components/home/ZeroLossJourney";
 
 /**
  * The hero's HOW IT WORKS control, from the Checkpoint 2 artboards.
@@ -42,16 +43,19 @@ export function HowItWorksToggle() {
       {open ? (
         <div
           id={panelId}
-          className="mt-1 w-full rounded-lg bg-[var(--urgent)] px-4 py-3.5"
+          className="mt-3 w-full rounded-2xl border border-white/10 bg-[#00132e] px-4 py-5"
         >
-          <p className="text-sm leading-[1.5] text-black">
+          <p className="text-sm leading-[1.5] text-white/80">
             On everyday items, what you spend applies toward buying that exact
             item at full price.
           </p>
-          <p className="mt-2.5 text-sm leading-[1.5] text-black">
+          <p className="mt-2.5 text-sm leading-[1.5] text-white/80">
             On scarce, one-off items, it converts to credit toward any other
             everyday item on the platform.
           </p>
+          <div className="mt-5 border-t border-white/10 pt-5">
+            <ZeroLossJourney compact />
+          </div>
         </div>
       ) : null}
     </>

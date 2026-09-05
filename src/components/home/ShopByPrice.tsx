@@ -7,17 +7,17 @@ import { shopByPriceTiers } from "@/lib/home/placeholder-data";
  */
 export function ShopByPrice() {
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
       {shopByPriceTiers.map((tier) => (
-        <li key={tier}>
+        <li key={tier.price}>
           <Link
             href="/browse"
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--border-strong)] bg-[linear-gradient(180deg,var(--accent-deep),var(--accent))] px-5 py-6 text-base text-[var(--foreground)] transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] motion-reduce:transform-none"
+            className="flex min-h-[82px] flex-col items-center justify-center rounded-[10px] border border-[#218df0] bg-[linear-gradient(145deg,#0759c9_0%,#0879e8_52%,#0caaf4_100%)] px-4 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_7px_18px_rgba(0,44,110,0.25)] transition-all hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 motion-reduce:transform-none"
           >
-            <span className="text-[26px] font-extrabold leading-none text-[var(--urgent)] [text-shadow:2px_2px_3px_rgba(0,47,110,0.55)]">
-              {tier}
+            <span className="text-[25px] font-extrabold leading-none text-white [text-shadow:0_2px_5px_rgba(0,38,92,0.4)]">
+              {tier.price}
             </span>
-            and above
+            <span className="mt-1 text-[12px] font-semibold leading-none text-white/90">{tier.detail}</span>
           </Link>
         </li>
       ))}

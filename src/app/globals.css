@@ -14,9 +14,9 @@
 */
 :root {
   /* Base surfaces, darkest to lightest */
-  --header: #002f6e;
-  --background: #004795;
-  --surface: #003a6e;
+  --header: #00132e;
+  --background: #031b44;
+  --surface: #031b44;
   --surface-elevated: #0060ce;
   --card: #ffffff;
 
@@ -79,7 +79,70 @@
 */
 html,
 body {
+  background: #031b44;
   overflow-x: clip;
+}
+
+@keyframes winner-roll-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.winner-roll-entry {
+  animation: winner-roll-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes winner-cylinder-roll {
+  from {
+    opacity: 0;
+    transform: translateY(72%) rotateX(-32deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+  }
+}
+
+.winner-cylinder-entry {
+  animation: winner-cylinder-roll 560ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
+  transform-origin: center bottom;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .winner-roll-entry {
+    animation: none;
+  }
+
+  .winner-cylinder-entry {
+    animation: none;
+  }
+}
+
+@keyframes social-feed-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.social-feed-track {
+  animation: social-feed-scroll 18s linear infinite;
+  will-change: transform;
+}
+
+.group:hover .social-feed-track,
+.group:focus-within .social-feed-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social-feed-track {
+    animation: none;
+  }
 }
 
 body {
@@ -179,5 +242,31 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .zl-pulse-live {
     animation: none;
+  }
+}
+
+/* Desktop Live Pulse demo ribbon. Hover pauses the continuous loop. */
+@keyframes zl-live-pulse-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.zl-live-pulse-track {
+  animation: zl-live-pulse-scroll 42s linear infinite;
+  will-change: transform;
+}
+
+.group:hover > .zl-live-pulse-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zl-live-pulse-track {
+    animation: none;
+    transform: none;
   }
 }

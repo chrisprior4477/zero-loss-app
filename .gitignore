@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local browser captures and generated visual-review screenshots
+/.chrome-capture/
+/.edge-capture*/
+/.tmp-*.png
+/ZeroLoss-*.png

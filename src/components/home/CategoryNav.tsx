@@ -95,7 +95,7 @@ export function CategoryNav() {
     : undefined;
 
   return (
-    <nav aria-label="Categories" className="bg-[var(--surface)]">
+    <nav aria-label="Categories" className="bg-[var(--surface)] lg:hidden">
       <div ref={wrapperRef} className="relative mx-auto max-w-6xl">
         <ul
           ref={railRef}
