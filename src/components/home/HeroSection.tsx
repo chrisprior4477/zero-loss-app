@@ -87,7 +87,7 @@ function DesktopHeroCarousel() {
                 sizes="100vw"
                 className={
                   slide.id === "real-shots"
-                    ? "scale-50 object-contain object-right drop-shadow-[0_0_24px_rgba(255,92,0,0.5)] lg:hidden"
+                    ? "scale-75 object-contain object-right mix-blend-screen drop-shadow-[0_0_28px_rgba(255,92,0,0.58)] lg:hidden"
                     : "object-cover object-center opacity-100 drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:hidden"
                 }
                 preload={index === 0}
