@@ -76,7 +76,7 @@ export function DollarChoiceCarouselLight() {
       <div className="relative z-20 mx-auto flex max-w-[1600px] items-start justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 id="dollar-choice-light-title" className="text-[22px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Your Next Everyday Upgrade</h2>
+            <h2 id="dollar-choice-light-title" className="text-[20px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Your Next Everyday Upgrade</h2>
             <span className="rounded-full border border-cyan-200/50 bg-[#00132e]/45 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-200">Layout test</span>
           </div>
           <p className="mt-1 text-[13px] text-white/70">A cleaner product-feed treatment designed for ordinary vendor images.</p>
@@ -96,7 +96,7 @@ export function DollarChoiceCarouselLight() {
 
         <div
           ref={trackRef}
-          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-5 overflow-x-auto px-4 pb-5 pt-2 active:cursor-grabbing sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
+          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-3 overflow-x-auto px-4 pb-5 pt-2 active:cursor-grabbing sm:gap-5 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -113,9 +113,9 @@ export function DollarChoiceCarouselLight() {
           {dollarChoiceDemoItems.map((item) => {
             const meterColor = item.percentFilled >= 90 ? "#f32343" : item.percentFilled >= 75 ? "#ff6b22" : item.percentFilled >= 50 ? "#0787e8" : "#25c46a";
             return (
-              <article key={item.id} className="group relative w-[244px] shrink-0 overflow-hidden rounded-[22px] border border-[#a9bfd0] bg-white shadow-[0_16px_35px_rgba(0,19,46,0.2)] transition-transform duration-300 hover:-translate-y-1">
+              <article key={item.id} className="group relative w-[196px] shrink-0 overflow-hidden rounded-2xl border border-[#a9bfd0] bg-white shadow-[0_16px_35px_rgba(0,19,46,0.2)] transition-transform duration-300 hover:-translate-y-1 sm:w-[244px] sm:rounded-[22px]">
                 <Link href={item.href} draggable={false} className="block p-3 pb-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500">
-                  <div className="relative h-[150px] overflow-hidden rounded-[15px] border border-slate-200 bg-[linear-gradient(145deg,#ffffff,#f3f5f6)]">
+                  <div className="relative h-[116px] overflow-hidden rounded-[13px] border border-slate-200 bg-[linear-gradient(145deg,#ffffff,#f3f5f6)] sm:h-[150px] sm:rounded-[15px]">
                     <span aria-hidden="true" className="absolute inset-x-5 bottom-2 h-7 rounded-full opacity-20 blur-lg" style={{ backgroundColor: item.accent }} />
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="244px" className="relative z-10 object-contain p-3 drop-shadow-[0_10px_9px_rgba(0,19,46,0.2)] transition-transform duration-300 group-hover:scale-[1.04]" />
                   </div>

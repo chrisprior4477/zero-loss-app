@@ -127,7 +127,7 @@ export function DesktopMarketplaceRails() {
       <div>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-[24px] font-bold tracking-[-0.02em] text-white">Shop by category</h2>
+            <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Shop by category</h2>
             <p className="mt-1 text-[13px] text-white/60">Find the kinds of products you already shop for.</p>
           </div>
           <Link href="/browse" className="text-[14px] font-semibold text-cyan-300 hover:text-cyan-200">See all</Link>
@@ -136,14 +136,14 @@ export function DesktopMarketplaceRails() {
         <div className="relative">
           <div
             ref={categoriesRef}
-            className="zl-noscroll flex cursor-grab touch-pan-y select-none gap-4 overflow-x-auto px-1 pb-1 active:cursor-grabbing"
+            className="zl-noscroll flex cursor-grab touch-pan-y select-none gap-3 overflow-x-auto px-1 pb-1 active:cursor-grabbing sm:gap-4"
             onDragStart={(event) => event.preventDefault()}
             {...categoryDrag}
           >
             {desktopCategories.map((category) => (
             <div
               key={category.id}
-              className="group relative h-[178px] w-[210px] shrink-0 overflow-hidden rounded-2xl border border-white/20 bg-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
+              className="group relative h-[128px] w-[150px] shrink-0 overflow-hidden rounded-xl border border-white/20 bg-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:h-[178px] sm:w-[210px] sm:rounded-2xl"
             >
               <Link href="/browse" draggable={false} className="absolute inset-0">
                 <Image
@@ -156,7 +156,7 @@ export function DesktopMarketplaceRails() {
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#00132e] via-transparent to-transparent" />
-                <span className="absolute inset-x-0 bottom-0 px-4 pb-3 text-[16px] font-bold text-white">{category.label}</span>
+                <span className="absolute inset-x-0 bottom-0 px-3 pb-2.5 text-[14px] font-bold text-white sm:px-4 sm:pb-3 sm:text-[16px]">{category.label}</span>
               </Link>
             </div>
             ))}
@@ -169,7 +169,7 @@ export function DesktopMarketplaceRails() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[24px] font-bold tracking-[-0.02em] text-white">Ending Soon</h2>
+              <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Ending Soon</h2>
               <span className="rounded-full border border-cyan-300/50 px-2 py-1 text-[9px] uppercase tracking-[0.08em] text-cyan-300">Demo data</span>
             </div>
             <p className="mt-1 text-[13px] text-white/60">Popular opportunities closest to completion.</p>
@@ -204,14 +204,14 @@ export function DesktopMarketplaceRails() {
             return (
               <article
                 key={item.id}
-                className="relative w-[220px] shrink-0 overflow-hidden rounded-2xl bg-white text-[#00132e] transition-transform hover:-translate-y-0.5"
+                className="relative w-[172px] shrink-0 overflow-hidden rounded-xl bg-white text-[#00132e] transition-transform hover:-translate-y-0.5 sm:w-[220px] sm:rounded-2xl"
               >
                 <Link
                   href="/browse"
                   draggable={false}
                   className="block h-full p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500"
                 >
-                  <div className="relative h-[105px] overflow-hidden rounded-xl bg-[#f2f4f7]">
+                  <div className="relative h-[82px] overflow-hidden rounded-lg bg-[#f2f4f7] sm:h-[105px] sm:rounded-xl">
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="220px" className="object-contain p-2" />
                   </div>
                   <h3 className="mt-2.5 min-h-9 text-[13px] font-bold leading-[1.2]">{item.title}</h3>
@@ -254,7 +254,7 @@ export function DesktopMarketplaceRails() {
       <div>
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h2 className="text-[24px] font-bold tracking-[-0.02em] text-white">Popular Rewards</h2>
+            <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Popular Rewards</h2>
             <span className="rounded-full border border-cyan-300/50 px-2 py-1 text-[9px] uppercase tracking-[0.08em] text-cyan-300">Demo order</span>
           </div>
           <Link href="/browse" className="text-[14px] font-semibold text-cyan-300 hover:text-cyan-200">See all</Link>
@@ -263,7 +263,7 @@ export function DesktopMarketplaceRails() {
         <div className="relative">
           <div
             ref={brandsRef}
-            className="zl-noscroll flex cursor-grab touch-pan-y select-none gap-7 overflow-x-auto px-1 py-2 active:cursor-grabbing"
+            className="zl-noscroll flex cursor-grab touch-pan-y select-none gap-3 overflow-x-auto px-1 py-2 active:cursor-grabbing sm:gap-7"
             onDragStart={(event) => event.preventDefault()}
             {...brandsDrag}
           >
@@ -272,10 +272,10 @@ export function DesktopMarketplaceRails() {
                 key={brand.name}
                 href="/browse"
                 draggable={false}
-                className="group flex w-[116px] shrink-0 flex-col items-center gap-2.5 focus-visible:outline-none"
+                className="group flex w-[84px] shrink-0 flex-col items-center gap-2 focus-visible:outline-none sm:w-[116px] sm:gap-2.5"
               >
                 <span
-                  className="grid h-[104px] w-[104px] place-items-center rounded-full border border-white/15 px-3 text-center text-[15px] font-bold leading-tight text-white shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-transform group-hover:-translate-y-1 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-cyan-300"
+                  className="grid h-[74px] w-[74px] place-items-center rounded-full border border-white/15 px-2 text-center text-[11px] font-bold leading-tight text-white shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-transform group-hover:-translate-y-1 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-cyan-300 sm:h-[104px] sm:w-[104px] sm:px-3 sm:text-[15px]"
                   style={{ background: brand.color }}
                 >
                   {brand.name}

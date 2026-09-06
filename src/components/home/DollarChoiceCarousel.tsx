@@ -52,7 +52,7 @@ export function DollarChoiceCarousel() {
       <div className="relative z-20 mx-auto mb-1 flex max-w-[1600px] items-start justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[22px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Where would you put your $1?</h2>
+            <h2 className="text-[20px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Where would you put your $1?</h2>
             <span className="rounded-full border border-cyan-300/40 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-300">Demo data</span>
           </div>
           <p className="mt-1 text-[13px] text-white/60">Real products. One dollar. You choose.</p>
@@ -93,11 +93,11 @@ export function DollarChoiceCarousel() {
           {dollarChoiceDemoItems.map((item) => {
             const meterColor = item.percentFilled >= 80 ? "#ff630f" : item.percentFilled >= 60 ? "#31e800" : "#00b9ff";
             return (
-              <article key={item.id} className="group relative w-[230px] shrink-0">
+              <article key={item.id} className="group relative w-[176px] shrink-0 sm:w-[230px]">
                 <Link href={item.href} draggable={false} className="block rounded-2xl px-2 pb-3 pt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
-                  <span className="absolute left-2 top-1 z-20 grid h-11 w-11 place-items-center rounded-full bg-[#74e72d] text-[17px] font-extrabold text-[#00132e] shadow-[0_0_18px_rgba(49,232,0,0.55)]">$1</span>
+                  <span className="absolute left-2 top-1 z-20 grid h-9 w-9 place-items-center rounded-full bg-[#74e72d] text-[14px] font-extrabold text-[#00132e] shadow-[0_0_18px_rgba(49,232,0,0.55)] sm:h-11 sm:w-11 sm:text-[17px]">$1</span>
                   <div
-                    className="relative h-[174px] overflow-visible rounded-[44%] transition-transform duration-300 group-hover:-translate-y-1"
+                    className="relative h-[128px] overflow-visible rounded-[44%] transition-transform duration-300 group-hover:-translate-y-1 sm:h-[174px]"
                     style={{ background: `radial-gradient(circle at center, ${item.accentSoft} 0%, rgba(0,19,46,0.42) 48%, transparent 72%)` }}
                   >
                     <span aria-hidden="true" className="absolute inset-[18%] rounded-full blur-2xl" style={{ backgroundColor: item.accentSoft, boxShadow: `0 0 42px ${item.accent}` }} />

@@ -19,9 +19,9 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
   const ticketsLeft = movement?.spotsLeft ?? Math.max(25, Math.round((100 - item.percentFilled) * 12));
 
   return (
-    <article className="group relative w-[320px] shrink-0 overflow-hidden rounded-[22px] border border-cyan-200/20 bg-[#031a3d] shadow-[0_18px_40px_rgba(0,0,0,0.28)]">
+    <article className="group relative w-[248px] shrink-0 overflow-hidden rounded-2xl border border-cyan-200/20 bg-[#031a3d] shadow-[0_18px_40px_rgba(0,0,0,0.28)] sm:w-[320px] sm:rounded-[22px]">
       <Link href={item.href} draggable={false} className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
-        <div className="relative h-[196px] overflow-hidden bg-[linear-gradient(145deg,#fff,#e9eef2)]">
+        <div className="relative h-[154px] overflow-hidden bg-[linear-gradient(145deg,#fff,#e9eef2)] sm:h-[196px]">
           <span aria-hidden="true" className="absolute inset-x-[20%] bottom-3 h-10 rounded-full opacity-20 blur-xl" style={{ backgroundColor: item.accent }} />
           <Image
             src={item.image}
@@ -55,9 +55,9 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
 
 function CompactCard({ item }: { item: (typeof products)[number] }) {
   return (
-    <article className="group relative h-[123px] w-[230px] overflow-hidden rounded-[20px] border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)]">
+    <article className="group relative h-[104px] w-[190px] overflow-hidden rounded-2xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:h-[123px] sm:w-[230px] sm:rounded-[20px]">
       <Link href={item.href} draggable={false} className="flex h-full items-center gap-3 px-3 pr-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
-        <div className="relative h-[94px] w-[92px] shrink-0 overflow-hidden rounded-[16px] bg-[radial-gradient(circle,#f9fbfc_0%,#dce8ef_66%,rgba(116,231,45,0.18)_100%)]">
+        <div className="relative h-[76px] w-[70px] shrink-0 overflow-hidden rounded-xl bg-[radial-gradient(circle,#f9fbfc_0%,#dce8ef_66%,rgba(116,231,45,0.18)_100%)] sm:h-[94px] sm:w-[92px] sm:rounded-[16px]">
           <span aria-hidden="true" className="absolute inset-4 rounded-full opacity-20 blur-xl" style={{ backgroundColor: item.accent }} />
           <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="92px" className="object-contain p-2 drop-shadow-[0_10px_10px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-105" />
         </div>
