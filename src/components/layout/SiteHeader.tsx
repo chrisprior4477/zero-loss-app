@@ -55,7 +55,7 @@ export async function SiteHeader() {
           >
             <span
               aria-hidden="true"
-              className="inline-block h-[23px] w-[34px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:hidden"
+              className="inline-block h-[23px] w-[34px] shrink-0 -translate-x-[5px] bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:hidden"
               style={{
                 backgroundSize: "76px 34px",
                 backgroundPosition: "0 -4px",
