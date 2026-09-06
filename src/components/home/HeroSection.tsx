@@ -259,7 +259,13 @@ function DesktopHeroCarousel() {
         ref={howItWorksPanelRef}
         id="desktop-how-it-works-panel"
         aria-label="How ZeroLoss works"
-        className="relative left-1/2 w-screen -translate-x-1/2 border-y border-cyan-300/20 bg-[#00132e] px-4 py-7 sm:px-6 lg:px-[clamp(4rem,8vw,10rem)]"
+        role="button"
+        tabIndex={0}
+        onClick={() => setShowHowItWorks(false)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") setShowHowItWorks(false);
+        }}
+        className="relative left-1/2 w-screen -translate-x-1/2 cursor-pointer border-y border-cyan-300/20 bg-[#00132e] px-4 py-7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--live)] sm:px-6 lg:px-[clamp(4rem,8vw,10rem)]"
       >
         <div className="mx-auto max-w-[1440px]">
           <Image
