@@ -281,33 +281,6 @@ body {
   animation: dollar-tile-breathe 3.4s ease-in-out infinite;
 }
 
-@keyframes dollar-coin-charge {
-  0%, 100% { transform: scale(0.97); filter: brightness(0.98); }
-  50% { transform: scale(1.04); filter: brightness(1.22); }
-}
-
-@keyframes dollar-solar-orbit {
-  from { transform: translate(-50%, -50%) rotate(18deg); }
-  to { transform: translate(-50%, -50%) rotate(378deg); }
-}
-
-.dollar-solar-orbit {
-  animation: dollar-solar-orbit 5.5s linear infinite;
-}
-
-.dollar-solar-orbit-reverse {
-  animation-direction: reverse;
-  animation-duration: 7s;
-}
-
-.dollar-solar-orbit-slow {
-  animation-duration: 9s;
-}
-
-.dollar-coin-core {
-  animation: dollar-coin-charge 2.8s ease-in-out infinite;
-}
-
 .dollar-tile-button:hover,
 .dollar-tile-button:focus-visible {
   z-index: 20;
@@ -315,9 +288,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dollar-mystery-tile,
-  .dollar-coin-core,
-  .dollar-solar-orbit {
+  .dollar-mystery-tile {
     animation: none;
   }
 }

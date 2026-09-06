@@ -42,7 +42,11 @@ const sheetUrls: Record<PhotoSheet, string> = {
   kayak: "/dollar-wall-kayak-v2.png",
 };
 
-const tileAccents = ["#18bfff", "#8b5cf6", "#74e72d", "#ff6b22", "#ec4899", "#22d3ee"];
+const solarOrbitPositions = [
+  "5.8% 17%", "50% 17%", "94.2% 17%",
+  "5.8% 52.1%", "50% 52.1%", "94.2% 52.1%",
+  "5.8% 87%", "50% 87%", "94.2% 87%",
+];
 
 export function DollarWall() {
   const [items, setItems] = useState(starters);
@@ -92,25 +96,12 @@ export function DollarWall() {
         {items.map((item, index) => {
           const chosen = picks.some((pickItem) => pickItem.id === item.id);
           const isRevealed = revealed === item.id;
-          const accent = tileAccents[index % tileAccents.length];
           return <button key={item.id} type="button" onMouseEnter={() => !chosen && setRevealed(item.id)} onMouseLeave={() => !chosen && setRevealed(null)} onClick={() => tap(item)} disabled={!chosen && picks.length >= 5} aria-label={`${item.name}${chosen ? ", selected; tap to remove" : ", tap once to reveal and again to add"}`} className={`dollar-tile-button group relative aspect-[1.15/1] min-h-[58px] touch-manipulation [perspective:700px] focus-visible:outline-2 focus-visible:outline-cyan-300 sm:min-h-[48px] ${index >= 18 ? "hidden sm:block" : ""} ${chosen ? "cursor-pointer rounded-lg shadow-[0_0_0_2px_#74e72d,0_0_20px_rgba(116,231,45,.65)]" : ""}`}>
             <span className={`absolute inset-0 [transform-style:preserve-3d] transition-transform duration-500 [transition-timing-function:cubic-bezier(.2,.75,.25,1)] ${chosen || isRevealed ? "[transform:rotateY(180deg)]" : ""}`}>
               <span
-                className="dollar-mystery-tile absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-lg border text-white shadow-[0_6px_16px_rgba(0,0,0,.3),inset_0_0_18px_rgba(255,255,255,.035)] transition-[filter,box-shadow] group-hover:brightness-125 group-hover:shadow-[0_0_22px_rgba(24,191,255,.28)] [backface-visibility:hidden]"
-                style={{ borderColor: `${accent}88`, background: `radial-gradient(circle at 50% 46%,${accent}42,transparent 42%),linear-gradient(145deg,${accent}30,#0a1524 64%)`, animationDelay: `${index * 120}ms` }}
-              >
-                <span aria-hidden="true" className="absolute inset-[2px] rounded-[6px] bg-[radial-gradient(circle_at_50%_48%,rgba(12,42,82,.5),#020b19_76%)]" />
-                <span aria-hidden="true" className="dollar-solar-orbit absolute left-1/2 top-1/2 z-[2] h-[62%] w-[88%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border" style={{ borderColor: accent, boxShadow: `0 0 8px ${accent},inset 0 0 5px ${accent}` }}>
-                  <span className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-white" style={{ boxShadow: `0 0 5px 2px white,0 0 12px 5px ${accent}` }} />
-                  <span className="absolute -right-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-white" style={{ boxShadow: `0 0 5px 2px white,0 0 12px 5px ${accent}` }} />
-                </span>
-                <span aria-hidden="true" className="dollar-solar-orbit dollar-solar-orbit-reverse absolute left-1/2 top-1/2 z-[2] h-[78%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border opacity-90" style={{ borderColor: `${accent}cc`, boxShadow: `0 0 7px ${accent}` }} />
-                <span aria-hidden="true" className="dollar-solar-orbit dollar-solar-orbit-slow absolute left-1/2 top-1/2 z-[2] h-[48%] w-[94%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border opacity-75" style={{ borderColor: `${accent}aa` }} />
-                <span className="dollar-coin-core relative z-10 grid h-14 w-14 place-items-center rounded-full border bg-[radial-gradient(circle_at_45%_38%,#173968,#06152d_65%,#020814)] text-[21px] font-black leading-none text-white sm:h-11 sm:w-11 sm:text-[17px]" style={{ borderColor: `${accent}aa`, boxShadow: `0 0 18px 5px ${accent}88,inset 0 0 16px ${accent}44` }}>
-                  $1
-                  <span className="absolute inset-1 rounded-full border border-white/10" />
-                </span>
-              </span>
+                className="dollar-mystery-tile absolute inset-0 overflow-hidden rounded-lg bg-[#03152f] bg-no-repeat shadow-[0_6px_18px_rgba(0,0,0,.42)] transition-[filter,transform] group-hover:brightness-110 [backface-visibility:hidden]"
+                style={{ backgroundImage: "url('/solar-orbit-tiles.png')", backgroundSize: "340.6% 404.8%", backgroundPosition: solarOrbitPositions[index % solarOrbitPositions.length], animationDelay: `${index * 120}ms` }}
+              />
               <span className={`absolute inset-0 overflow-hidden rounded-lg border bg-[#071627] [backface-visibility:hidden] [transform:rotateY(180deg)] ${chosen ? "border-[#74e72d]" : "border-cyan-300/40"}`}>
                 <span className="absolute inset-0 bg-[length:600%_400%]" style={{ backgroundImage: `url(${sheetUrls[item.sheet ?? "main"]})`, backgroundPosition: photoPosition(item.photo) }} />
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#00132e] via-[#00132e]/85 to-transparent px-1 pb-1 pt-3 text-center text-[8px] font-bold leading-tight text-white">{item.name}</span>
