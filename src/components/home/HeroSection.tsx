@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ZeroLossJourney } from "@/components/home/ZeroLossJourney";
 
@@ -60,25 +60,26 @@ function DesktopHeroCarousel() {
     setActiveSlide((index + HERO_SLIDES.length) % HERO_SLIDES.length);
   };
 
-  const startSwipe = (event: React.TouchEvent<HTMLElement>) => {
+  const startSwipe = (event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType !== "touch") return;
     if ((event.target as Element).closest("button, a")) return;
-    const touch = event.touches[0];
-    swipeRef.current = { startX: touch.clientX, startY: touch.clientY, currentX: touch.clientX, currentY: touch.clientY, active: true };
+    swipeRef.current = { startX: event.clientX, startY: event.clientY, currentX: event.clientX, currentY: event.clientY, active: true };
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const trackSwipe = (event: React.TouchEvent<HTMLElement>) => {
+  const trackSwipe = (event: ReactPointerEvent<HTMLElement>) => {
     if (!swipeRef.current.active) return;
-    const touch = event.touches[0];
-    swipeRef.current.currentX = touch.clientX;
-    swipeRef.current.currentY = touch.clientY;
+    swipeRef.current.currentX = event.clientX;
+    swipeRef.current.currentY = event.clientY;
   };
 
-  const finishSwipe = () => {
+  const finishSwipe = (event: ReactPointerEvent<HTMLElement>) => {
     if (!swipeRef.current.active) return;
     const deltaX = swipeRef.current.currentX - swipeRef.current.startX;
     const deltaY = swipeRef.current.currentY - swipeRef.current.startY;
     swipeRef.current.active = false;
-    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (Math.abs(deltaX) < 25 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
     showSlide(activeSlide + (deltaX < 0 ? 1 : -1));
   };
 
@@ -87,10 +88,10 @@ function DesktopHeroCarousel() {
     <section
       aria-roledescription="carousel"
       aria-label="ZeroLoss highlights"
-      onTouchStart={startSwipe}
-      onTouchMove={trackSwipe}
-      onTouchEnd={finishSwipe}
-      onTouchCancel={() => { swipeRef.current.active = false; }}
+      onPointerDown={startSwipe}
+      onPointerMove={trackSwipe}
+      onPointerUp={finishSwipe}
+      onPointerCancel={() => { swipeRef.current.active = false; }}
       className="relative left-1/2 w-screen touch-pan-y -translate-x-1/2 overflow-hidden bg-transparent"
     >
       <div
