@@ -19,6 +19,21 @@ type SpeechRecognitionInstance = {
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
 
+function HeaderMicrophoneIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 32 32" className="h-6 w-6" fill="none">
+      <rect x="10" y="2" width="12" height="18" rx="6" fill="currentColor" />
+      <path
+        d="M6 14v1.5a10 10 0 0 0 20 0V14M16 25.5V30M10 30h12"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function DesktopHeaderSearch() {
   const [query, setQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -85,11 +100,7 @@ export function DesktopHeaderSearch() {
             : "text-[#087feb] hover:bg-[#087feb]/10"
         }`}
       >
-        <span aria-hidden="true" className="relative block h-5 w-4">
-          <span className="absolute left-1/2 top-0 h-3.5 w-2 -translate-x-1/2 rounded-full border-2 border-current" />
-          <span className="absolute left-1/2 top-[10px] h-2.5 w-3 -translate-x-1/2 rounded-b-full border-b-2 border-x-2 border-current" />
-          <span className="absolute bottom-0 left-1/2 h-1.5 w-0.5 -translate-x-1/2 bg-current" />
-        </span>
+        <HeaderMicrophoneIcon />
       </button>
     </form>
   );
