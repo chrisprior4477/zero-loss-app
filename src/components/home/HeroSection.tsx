@@ -187,13 +187,16 @@ function DesktopHeroCarousel() {
               <p className="mt-3 max-w-[390px] text-[14px] leading-[1.4] text-white/88">
                 {slide.id === "real-shots" ? (
                   <>
-                    <span className="block whitespace-nowrap">Pay a dollar for a real shot at a</span>
-                    <span className="block">product.</span>
+                    <span className="block whitespace-nowrap">Pay $1 for a real shot.</span>
+                    <span className="block whitespace-nowrap">At a product. Don&apos;t win? What</span>
+                    <span className="block whitespace-nowrap">you spent still counts.</span>
                   </>
                 ) : (
-                  <span className="block">Pay $1 for a real shot at a product.</span>
+                  <>
+                    <span className="block">Pay $1 for a real shot at a product.</span>
+                    <span className="block">Don&apos;t win? What you spent still counts.</span>
+                  </>
                 )}
-                <span className="block">Don&apos;t win? What you spent still counts.</span>
               </p>
               <button
                 data-how-it-works-trigger
@@ -201,7 +204,7 @@ function DesktopHeroCarousel() {
                 aria-expanded={showHowItWorks}
                 aria-controls="desktop-how-it-works-panel"
                 onClick={() => setShowHowItWorks((current) => !current)}
-                className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-[#087feb] px-4 text-[13px] font-bold text-white shadow-[0_0_0_1px_rgba(91,190,255,0.4)] transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)]"
+                className={`${slide.id === "real-shots" ? "mt-5" : "mt-3"} inline-flex h-9 items-center gap-2 rounded-lg bg-[#087feb] px-4 text-[13px] font-bold text-white shadow-[0_0_0_1px_rgba(91,190,255,0.4)] transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)]`}
               >
                 How It Works
                 <span aria-hidden="true">{showHowItWorks ? "↑" : "↓"}</span>
