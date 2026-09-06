@@ -8,18 +8,21 @@ const HERO_SLIDES = [
   {
     id: "real-shots",
     lines: ["Real shots.", "Real wins.", "Zero loss."],
+    desktopLines: ["Real shots.", "Real wins.", "Zero loss."],
     image: "/hero-tech-transparent.png",
     mobileImage: "/mobile-hero-zero-loss-coin-transparent.png",
   },
   {
     id: "shopping",
     lines: ["Shopping should", "never feel like", "a loss."],
+    desktopLines: ["Shopping should", "never feel like a loss."],
     image: "/hero-marketplace.png",
     mobileImage: "/hero-marketplace.png",
   },
   {
     id: "real-products",
     lines: ["Real products.", "Real winners.", "Zero loss."],
+    desktopLines: ["Real products.", "Real winners.", "Zero loss."],
     image: "/hero-everyday-2400x800.png",
     mobileImage: "/hero-everyday-2400x800.png",
   },
@@ -166,7 +169,7 @@ function DesktopHeroCarousel() {
             />
             <div aria-hidden="true" className="absolute inset-0 hidden bg-gradient-to-r from-[#031b44] via-[#031b44]/70 to-transparent lg:block" />
             <div className="relative z-10 flex min-h-[230px] max-w-[620px] flex-col items-start justify-center lg:min-h-[calc(clamp(240px,20vw,290px)-2.5rem)]">
-              <h1 className="max-w-[82%] text-[34px] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[42px] lg:max-w-none lg:text-[clamp(38px,3.5vw,54px)]">
+              <h1 className="max-w-[82%] text-[34px] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[42px] lg:hidden">
                 {slide.lines.map((line) =>
                   slide.id === "shopping" && line === "a loss." ? (
                     <span key={line} className="block">
@@ -184,7 +187,20 @@ function DesktopHeroCarousel() {
                   )
                 )}
               </h1>
-              <p className="mt-3 max-w-[390px] text-[14px] leading-[1.4] text-white/88">
+              <h1 className="hidden text-[clamp(38px,3.5vw,54px)] font-extrabold leading-[0.98] tracking-[-0.045em] text-white lg:block">
+                {slide.desktopLines.map((line) =>
+                  slide.id === "shopping" && line === "never feel like a loss." ? (
+                    <span key={line} className="block">
+                      never feel like a <span className="text-[var(--live)]">loss.</span>
+                    </span>
+                  ) : (
+                    <span key={line} className={`block ${line === "Zero loss." ? "text-[var(--live)]" : ""}`}>
+                      {line}
+                    </span>
+                  )
+                )}
+              </h1>
+              <p className="mt-3 max-w-[390px] text-[14px] leading-[1.4] text-white/88 lg:hidden">
                 {slide.id === "real-shots" ? (
                   <>
                     <span className="block whitespace-nowrap">Pay $1 for a real shot</span>
@@ -199,13 +215,17 @@ function DesktopHeroCarousel() {
                   </>
                 )}
               </p>
+              <p className="mt-3 hidden max-w-[390px] text-[14px] leading-[1.4] text-white/88 lg:block">
+                <span className="block">Pay $1 for a real shot at a product.</span>
+                <span className="block">Don&apos;t win? What you spent still counts.</span>
+              </p>
               <button
                 data-how-it-works-trigger
                 type="button"
                 aria-expanded={showHowItWorks}
                 aria-controls="desktop-how-it-works-panel"
                 onClick={() => setShowHowItWorks((current) => !current)}
-                className={`${slide.id === "real-shots" ? "mt-6" : "mt-3"} inline-flex h-9 items-center gap-2 rounded-lg bg-[#087feb] px-4 text-[13px] font-bold text-white shadow-[0_0_0_1px_rgba(91,190,255,0.4)] transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)]`}
+                className={`${slide.id === "real-shots" ? "mt-6" : "mt-3"} inline-flex h-9 items-center gap-2 rounded-lg bg-[#087feb] px-4 text-[13px] font-bold text-white shadow-[0_0_0_1px_rgba(91,190,255,0.4)] transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)] lg:mt-3`}
               >
                 How It Works
                 <span aria-hidden="true">{showHowItWorks ? "↑" : "↓"}</span>
