@@ -31,7 +31,7 @@ export function RecentWinnerRoll() {
         <span className="rounded-full border border-cyan-300/30 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-300">Demo activity</span>
       </div>
 
-      <Link key={`${winner.name}-${activeIndex}`} href={winner.href} className="winner-cylinder-entry group relative flex min-h-[118px] items-center gap-3 overflow-hidden px-4 py-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
+      <Link key={`${winner.name}-${activeIndex}`} href={winner.href} className="winner-cylinder-entry group relative flex min-h-[92px] items-center gap-3 overflow-hidden px-4 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:min-h-[118px] sm:py-4">
         <span aria-hidden="true" className="absolute -right-8 -top-16 h-44 w-44 rounded-full bg-cyan-300/10 blur-3xl" />
         <span style={{ width: 68, height: 68, minWidth: 68, minHeight: 68 }} className="relative block shrink-0 overflow-hidden rounded-full border-2 border-cyan-300/55 bg-white shadow-[0_0_22px_rgba(0,185,255,.25)]">
           <Image src={winner.avatar} alt="" aria-hidden="true" fill sizes="68px" className="object-cover object-top" />
