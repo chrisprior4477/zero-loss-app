@@ -9,8 +9,10 @@ import { dollarChoiceDemoItems, marketplaceMovementDemoItems } from "@/lib/home/
 
 const products = dollarChoiceDemoItems;
 
-function EntryButton() {
-  return <span className="grid h-7 min-w-[58px] shrink-0 place-items-center whitespace-nowrap rounded-md bg-[#73e72d] px-1.5 text-[9px] font-extrabold text-[#00132e] shadow-[0_0_14px_rgba(49,232,0,0.22)] sm:h-9 sm:min-w-[78px] sm:px-3 sm:text-[12px]">$1 Entry</span>;
+function EntryButton({ compact = false }: { compact?: boolean }) {
+  return <span className={compact
+    ? "grid h-6 min-w-[38px] shrink-0 place-items-center rounded-md bg-[#73e72d] px-2 text-[11px] font-black text-[#00132e] shadow-[0_0_12px_rgba(49,232,0,0.24)] sm:h-7 sm:min-w-[48px] sm:text-[12px]"
+    : "grid h-7 min-w-[58px] shrink-0 place-items-center whitespace-nowrap rounded-md bg-[#73e72d] px-1.5 text-[9px] font-extrabold text-[#00132e] shadow-[0_0_14px_rgba(49,232,0,0.22)] sm:h-9 sm:min-w-[78px] sm:px-3 sm:text-[12px]"}>{compact ? "$1" : "$1 Entry"}</span>;
 }
 
 function FeatureCard({ item }: { item: (typeof products)[number] }) {
@@ -56,15 +58,15 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
 function CompactCard({ item }: { item: (typeof products)[number] }) {
   return (
     <article className="group relative h-[95px] w-[125px] overflow-hidden rounded-xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:h-[123px] sm:w-[230px] sm:rounded-[20px]">
-      <Link href={item.href} draggable={false} className="flex h-full items-center gap-1.5 px-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:gap-3 sm:px-3 sm:pr-4">
-        <div className="relative h-[62px] w-[44px] shrink-0 overflow-hidden rounded-lg bg-[radial-gradient(circle,#f9fbfc_0%,#dce8ef_66%,rgba(116,231,45,0.18)_100%)] sm:h-[94px] sm:w-[92px] sm:rounded-[16px]">
+      <Link href={item.href} draggable={false} className="flex h-full items-center gap-1.5 px-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:gap-2 sm:px-2.5 sm:pr-3">
+        <div className="relative h-[78px] w-[62px] shrink-0 overflow-hidden rounded-lg bg-[radial-gradient(circle,#f9fbfc_0%,#dce8ef_66%,rgba(116,231,45,0.18)_100%)] sm:h-[106px] sm:w-[110px] sm:rounded-[16px]">
           <span aria-hidden="true" className="absolute inset-4 rounded-full opacity-20 blur-xl" style={{ backgroundColor: item.accent }} />
-          <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="92px" className="object-contain p-2 drop-shadow-[0_10px_10px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-105" />
+          <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="110px" className="object-contain p-0.5 drop-shadow-[0_10px_10px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-105 sm:p-1" />
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="line-clamp-2 text-[9px] font-extrabold leading-tight text-white sm:text-[14px]">{item.title}</h3>
           <p className="mt-1 text-[8px] font-semibold text-white/55 sm:mt-2 sm:text-[11px]">{item.percentFilled}% filled</p>
-          <div className="mt-1 sm:mt-2"><EntryButton /></div>
+          <div className="mt-1 sm:mt-2"><EntryButton compact /></div>
         </div>
       </Link>
       <FavoriteButton itemName={`${item.title} marketplace`} className="absolute right-2 top-2 z-20" />
