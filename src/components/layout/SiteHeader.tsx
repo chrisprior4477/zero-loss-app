@@ -51,13 +51,13 @@ export async function SiteHeader() {
           <Link
             href={balanceLabel != null ? "/account/wallet" : "/signup"}
             aria-label="12 available tickets"
-            className="flex items-center gap-1 text-white transition-opacity hover:opacity-80 sm:gap-2.5"
+            className="inline-flex min-w-max items-center gap-1.5 text-white transition-opacity hover:opacity-80 sm:gap-2.5"
           >
             <span
               aria-hidden="true"
-              className="inline-block h-[22px] w-[28px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:hidden"
+              className="inline-block h-[23px] w-[34px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:hidden"
               style={{
-                backgroundSize: "70px 32px",
+                backgroundSize: "76px 34px",
                 backgroundPosition: "0 -4px",
               }}
             />
@@ -66,7 +66,7 @@ export async function SiteHeader() {
               className="hidden h-[28px] w-[42px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:inline-block"
               style={{ backgroundSize: "95px 43px", backgroundPosition: "0 -6px" }}
             />
-            <span className="text-[14px] font-bold leading-none tabular-nums sm:text-[20px] lg:text-[22px]">12</span>
+            <span className="shrink-0 text-[14px] font-bold leading-none tabular-nums sm:text-[20px] lg:text-[22px]">12</span>
           </Link>
 
           <Link
