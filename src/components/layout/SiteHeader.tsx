@@ -51,7 +51,7 @@ export async function SiteHeader() {
           <Link
             href={balanceLabel != null ? "/account/wallet" : "/signup"}
             aria-label="12 available tickets"
-            className="inline-flex min-w-max items-center gap-1.5 text-white transition-opacity hover:opacity-80 sm:gap-2.5"
+            className="inline-flex min-w-max items-center gap-2.5 text-white transition-opacity hover:opacity-80"
           >
             <span
               aria-hidden="true"

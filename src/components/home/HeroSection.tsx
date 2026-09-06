@@ -29,6 +29,7 @@ function DesktopHeroCarousel() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const howItWorksPanelRef = useRef<HTMLElement>(null);
+  const swipeRef = useRef({ startX: 0, startY: 0, currentX: 0, currentY: 0, active: false });
 
   useEffect(() => {
     if (!showHowItWorks) return;
@@ -59,12 +60,38 @@ function DesktopHeroCarousel() {
     setActiveSlide((index + HERO_SLIDES.length) % HERO_SLIDES.length);
   };
 
+  const startSwipe = (event: React.TouchEvent<HTMLElement>) => {
+    if ((event.target as Element).closest("button, a")) return;
+    const touch = event.touches[0];
+    swipeRef.current = { startX: touch.clientX, startY: touch.clientY, currentX: touch.clientX, currentY: touch.clientY, active: true };
+  };
+
+  const trackSwipe = (event: React.TouchEvent<HTMLElement>) => {
+    if (!swipeRef.current.active) return;
+    const touch = event.touches[0];
+    swipeRef.current.currentX = touch.clientX;
+    swipeRef.current.currentY = touch.clientY;
+  };
+
+  const finishSwipe = () => {
+    if (!swipeRef.current.active) return;
+    const deltaX = swipeRef.current.currentX - swipeRef.current.startX;
+    const deltaY = swipeRef.current.currentY - swipeRef.current.startY;
+    swipeRef.current.active = false;
+    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    showSlide(activeSlide + (deltaX < 0 ? 1 : -1));
+  };
+
   return (
     <>
     <section
       aria-roledescription="carousel"
       aria-label="ZeroLoss highlights"
-      className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-transparent"
+      onTouchStart={startSwipe}
+      onTouchMove={trackSwipe}
+      onTouchEnd={finishSwipe}
+      onTouchCancel={() => { swipeRef.current.active = false; }}
+      className="relative left-1/2 w-screen touch-pan-y -translate-x-1/2 overflow-hidden bg-transparent"
     >
       <div
         className="flex transition-transform duration-500 ease-out motion-reduce:transition-none"
