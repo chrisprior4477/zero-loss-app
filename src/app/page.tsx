@@ -24,7 +24,7 @@ export default function HomePage() {
     <>
       <LivePulseTicker />
 
-      <PageContainer className="pb-3 pt-0 sm:pb-12 sm:pt-0">
+      <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0">
         <HeroSection />
         <DesktopMarketplaceRails />
       </PageContainer>

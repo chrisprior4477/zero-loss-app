@@ -46,7 +46,7 @@ export function DollarChoiceCarousel() {
   return (
     <section
       data-testid="dollar-choice-carousel"
-      className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] py-7"
+      className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] pb-2 pt-0 sm:py-7"
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_48%,rgba(117,65,255,0.18),transparent_22%),radial-gradient(circle_at_39%_54%,rgba(0,185,255,0.16),transparent_23%),radial-gradient(circle_at_63%_50%,rgba(49,232,0,0.12),transparent_22%),radial-gradient(circle_at_84%_48%,rgba(201,70,255,0.16),transparent_22%)]" />
       <div className="relative z-20 mx-auto mb-1 flex max-w-[1600px] items-start justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">

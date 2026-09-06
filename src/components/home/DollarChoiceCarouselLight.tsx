@@ -69,7 +69,7 @@ export function DollarChoiceCarouselLight() {
   return (
     <section
       aria-labelledby="dollar-choice-light-title"
-      className="relative left-1/2 mt-0 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] py-5 sm:mt-8 sm:py-8"
+      className="relative left-1/2 mt-0 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] pb-2 pt-0 sm:mt-8 sm:py-8"
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-[7vw] bottom-[12%] top-[17%] bg-[radial-gradient(ellipse_at_center,rgba(43,125,191,0.26)_0%,rgba(12,74,130,0.17)_48%,transparent_82%)] blur-2xl" />
 
