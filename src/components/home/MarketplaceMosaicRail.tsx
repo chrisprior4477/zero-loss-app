@@ -103,12 +103,15 @@ export function MarketplaceMosaicRail() {
   return (
     <section aria-labelledby="marketplace-mosaic-title" className="relative left-1/2 mt-0 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] pb-2 pt-0 sm:mt-8 sm:py-8">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_24%_50%,rgba(0,185,255,0.09),transparent_30%),radial-gradient(circle_at_72%_50%,rgba(49,232,0,0.07),transparent_31%)]" />
-      <div className="relative z-10 mx-auto mb-5 flex max-w-[1600px] items-end justify-between px-4 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
-        <div className="border-l-4 border-[#31e800] pl-4">
-          <h2 id="marketplace-mosaic-title" className="text-[22px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Browse the marketplace</h2>
-          <p className="mt-1 text-[13px] text-white/58">Discover all rewards</p>
+      <div className="relative z-10 mx-auto mb-5 block max-w-[1600px] px-4 sm:flex sm:items-end sm:justify-between sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
+        <div className="border-l-4 border-[#31e800] pl-3 sm:pl-4">
+          <h2 id="marketplace-mosaic-title" className="whitespace-nowrap text-[20px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Browse the marketplace</h2>
+          <div className="mt-1 flex items-center justify-between gap-4 sm:block">
+            <p className="text-[13px] text-white/58">Discover all rewards</p>
+            <Link href="/browse" className="shrink-0 text-[12px] font-bold text-cyan-300 hover:text-white sm:hidden">See all rewards</Link>
+          </div>
         </div>
-        <Link href="/browse" className="text-[13px] font-bold text-cyan-300 hover:text-white">See all rewards</Link>
+        <Link href="/browse" className="hidden text-[13px] font-bold text-cyan-300 hover:text-white sm:block">See all rewards</Link>
       </div>
 
       <div className="relative">
