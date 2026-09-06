@@ -214,9 +214,9 @@ export function DesktopMarketplaceRails() {
                   <div className="relative h-[72px] overflow-hidden rounded-lg bg-[#f2f4f7] sm:h-[105px] sm:rounded-xl">
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="220px" className="object-contain p-2" />
                   </div>
-                  <h3 className="mt-2.5 min-h-9 text-[13px] font-bold leading-[1.2]">{item.title}</h3>
+                  <h3 className="mt-2.5 h-8 overflow-hidden text-[13px] font-bold leading-[1.2]">{item.title}</h3>
                   <p className="mt-1 text-[11px] text-slate-500">{item.ticketCapacity.toLocaleString()} entries</p>
-                  <div className="mt-3 flex gap-1" aria-label={`${Math.round(percent)}% filled`}>
+                  <div className="mt-2 flex gap-1" aria-label={`${Math.round(percent)}% filled`}>
                   {Array.from({ length: 10 }, (_, segment) => (
                     <span
                       key={segment}
@@ -229,7 +229,7 @@ export function DesktopMarketplaceRails() {
                     />
                   ))}
                   </div>
-                  <div className="mt-2.5 flex items-center gap-2.5">
+                  <div className="mt-1.5 flex items-center gap-2.5">
                   <span
                     aria-hidden="true"
                     className="relative grid h-9 w-[54px] shrink-0 place-items-center overflow-hidden rounded-[4px] bg-[#e31937] text-[19px] font-extrabold leading-none text-white before:absolute before:-left-1.5 before:top-1/2 before:h-3 before:w-3 before:-translate-y-1/2 before:rounded-full before:bg-white after:absolute after:-right-1.5 after:top-1/2 after:h-3 after:w-3 after:-translate-y-1/2 after:rounded-full after:bg-white"
