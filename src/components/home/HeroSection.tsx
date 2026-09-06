@@ -9,7 +9,7 @@ const HERO_SLIDES = [
     id: "real-shots",
     lines: ["Real shots.", "Real wins.", "Zero loss."],
     image: "/hero-tech-transparent.png",
-    mobileImage: "/mobile-hero-flaming-coin.png",
+    mobileImage: "/mobile-hero-zero-loss-coin-transparent.png",
   },
   {
     id: "shopping",
@@ -87,7 +87,7 @@ function DesktopHeroCarousel() {
                 sizes="100vw"
                 className={
                   slide.id === "real-shots"
-                    ? "scale-50 object-contain object-right mix-blend-screen drop-shadow-[0_0_24px_rgba(255,92,0,0.5)] lg:hidden"
+                    ? "scale-50 object-contain object-right drop-shadow-[0_0_24px_rgba(255,92,0,0.5)] lg:hidden"
                     : "object-cover object-center opacity-100 drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:hidden"
                 }
                 preload={index === 0}
@@ -102,9 +102,9 @@ function DesktopHeroCarousel() {
                 preload={index === 0}
               />
             </div>
-            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-[#031b44] via-[#031b44]/90 to-[#031b44]/15 lg:via-[#031b44]/70 lg:to-transparent" />
+            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-[#031b44] via-[#031b44]/85 via-[40%] to-transparent lg:via-[#031b44]/70" />
             <div className="relative z-10 flex min-h-[230px] max-w-[620px] flex-col items-start justify-center lg:min-h-[calc(clamp(240px,20vw,290px)-2.5rem)]">
-              <h1 className="max-w-[82%] text-[34px] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[42px] lg:max-w-none lg:text-[clamp(38px,3.5vw,54px)]">
+              <h1 className={`${slide.id === "real-shots" ? "max-w-[44%] text-[28px] sm:max-w-[46%] sm:text-[38px]" : "max-w-[82%] text-[34px] sm:text-[42px]"} font-extrabold leading-[0.98] tracking-[-0.045em] text-white lg:max-w-none lg:text-[clamp(38px,3.5vw,54px)]`}>
                 {slide.lines.map((line) =>
                   slide.id === "shopping" && line === "never feel like a loss." ? (
                     <span key={line} className="block">
@@ -122,7 +122,7 @@ function DesktopHeroCarousel() {
                   )
                 )}
               </h1>
-              <p className="mt-3 max-w-[390px] text-[14px] leading-[1.4] text-white/88">
+              <p className={`${slide.id === "real-shots" ? "max-w-[44%] text-[12px] sm:max-w-[46%]" : "max-w-[390px] text-[14px]"} mt-3 leading-[1.4] text-white/88 sm:text-[14px] lg:max-w-[390px]`}>
                 <span className="block">Pay $1 for a real shot at a product.</span>
                 <span className="block">Don&apos;t win? What you spent still counts.</span>
               </p>
