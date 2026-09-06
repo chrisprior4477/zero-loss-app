@@ -55,13 +55,18 @@ export async function SiteHeader() {
           >
             <span
               aria-hidden="true"
-              className="inline-block h-[28px] w-[34px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:w-[42px]"
+              className="inline-block h-[22px] w-[28px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:hidden"
               style={{
-                backgroundSize: "95px 43px",
-                backgroundPosition: "-5px -6px",
+                backgroundSize: "70px 32px",
+                backgroundPosition: "-4px -4px",
               }}
             />
-            <span className="text-[17px] font-bold leading-none tabular-nums sm:text-[20px] lg:text-[22px]">12</span>
+            <span
+              aria-hidden="true"
+              className="hidden h-[28px] w-[42px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:inline-block"
+              style={{ backgroundSize: "95px 43px", backgroundPosition: "-5px -6px" }}
+            />
+            <span className="text-[14px] font-bold leading-none tabular-nums sm:text-[20px] lg:text-[22px]">12</span>
           </Link>
 
           <Link
@@ -71,13 +76,18 @@ export async function SiteHeader() {
           >
             <span
               aria-hidden="true"
-              className="inline-block h-[30px] w-[34px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:w-[42px]"
+              className="inline-block h-[22px] w-[28px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:hidden"
               style={{
-                backgroundSize: "95px 43px",
-                backgroundPosition: "-54px -4px",
+                backgroundSize: "70px 32px",
+                backgroundPosition: "-40px -3px",
               }}
             />
-            <span className="text-[17px] font-bold leading-none tabular-nums sm:text-[20px] lg:text-[22px]">$247</span>
+            <span
+              aria-hidden="true"
+              className="hidden h-[30px] w-[42px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:inline-block"
+              style={{ backgroundSize: "95px 43px", backgroundPosition: "-54px -4px" }}
+            />
+            <span className="text-[14px] font-bold leading-none tabular-nums sm:text-[20px] lg:text-[22px]">$247</span>
           </Link>
 
           <Link
@@ -92,6 +102,10 @@ export async function SiteHeader() {
             </span>
           </Link>
         </div>
+      </div>
+
+      <div className="relative z-10 flex h-[52px] items-center border-t border-white/8 px-3 md:hidden">
+        <DesktopHeaderSearch />
       </div>
 
       <div className="relative z-10 flex h-12 w-full items-center overflow-visible border-t border-white/8 bg-[var(--header)] px-0 sm:px-2 lg:px-4 xl:px-6">

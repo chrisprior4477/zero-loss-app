@@ -57,7 +57,7 @@ export function DesktopHeaderSearch() {
   return (
     <form
       action="/browse"
-      className="mx-auto flex h-10 min-w-[240px] max-w-[760px] flex-1 items-center rounded-full bg-[#f5f7fa] px-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)]"
+      className="mx-auto flex h-9 min-w-0 max-w-[760px] flex-1 items-center rounded-full bg-[#f5f7fa] px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] sm:h-10 sm:min-w-[240px] sm:px-4"
     >
       <span aria-hidden="true" className="relative mr-3 h-5 w-5 shrink-0 text-[#087feb]">
         <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />

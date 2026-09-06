@@ -103,7 +103,7 @@ export function DesktopCategoryNav() {
                 <div
                   role="menu"
                   aria-label={`${category} menu`}
-                  className="fixed left-0 top-[108px] z-50 w-screen border-y border-white/10 bg-[#00132e]/[0.98] px-4 py-5 shadow-[0_22px_48px_rgba(0,0,0,0.42)] backdrop-blur-md sm:px-6 lg:px-[clamp(3rem,8vw,10rem)] lg:py-7"
+                  className="fixed left-0 top-[160px] z-50 w-screen border-y border-white/10 bg-[#00132e]/[0.98] px-4 py-5 shadow-[0_22px_48px_rgba(0,0,0,0.42)] backdrop-blur-md sm:px-6 md:top-[108px] lg:px-[clamp(3rem,8vw,10rem)] lg:py-7"
                 >
                   <div className="mx-auto max-w-[1440px]">
                     <p className="mb-4 text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--accent)]">
