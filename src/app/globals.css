@@ -271,7 +271,7 @@ body {
   }
 }
 
-/* Mystery-dollar tiles: restrained motion makes the wall feel discoverable. */
+/* Mystery-dollar wall: deliberately high-energy discovery treatment. */
 @keyframes dollar-tile-breathe {
   0%, 100% { filter: brightness(0.95); }
   50% { filter: brightness(1.14); }
@@ -291,9 +291,56 @@ body {
   animation: dollar-tile-shine 4.6s ease-in-out infinite;
 }
 
+@keyframes dollar-aurora-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes dollar-coin-charge {
+  0%, 100% { transform: scale(0.94); filter: brightness(0.9); }
+  48% { transform: scale(1.09); filter: brightness(1.35); }
+  55% { transform: scale(1.02); filter: brightness(1.12); }
+}
+
+@keyframes dollar-orbit {
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes dollar-wall-scan {
+  0% { transform: translateY(-120%); opacity: 0; }
+  15% { opacity: 0.65; }
+  70% { opacity: 0.3; }
+  100% { transform: translateY(720%); opacity: 0; }
+}
+
+.dollar-tile-aurora {
+  animation: dollar-aurora-spin 4.8s linear infinite;
+}
+
+.dollar-coin-core {
+  animation: dollar-coin-charge 2.2s ease-in-out infinite;
+}
+
+.dollar-orbit-spark {
+  animation: dollar-orbit 3s linear infinite;
+}
+
+.dollar-wall-scan {
+  animation: dollar-wall-scan 7s ease-in-out infinite;
+}
+
+.dollar-tile-button:hover,
+.dollar-tile-button:focus-visible {
+  z-index: 20;
+  transform: translateY(-3px) scale(1.06) rotate(-1deg);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dollar-mystery-tile,
-  .dollar-tile-shine {
+  .dollar-tile-shine,
+  .dollar-tile-aurora,
+  .dollar-coin-core,
+  .dollar-orbit-spark,
+  .dollar-wall-scan {
     animation: none;
   }
 }

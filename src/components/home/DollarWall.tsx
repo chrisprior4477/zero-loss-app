@@ -77,6 +77,7 @@ export function DollarWall() {
   return <section aria-labelledby="dollar-wall-title" className="relative overflow-hidden rounded-[22px] border border-cyan-300/30 bg-[radial-gradient(circle_at_15%_12%,rgba(0,185,255,.2),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(139,92,246,.2),transparent_34%),linear-gradient(135deg,#041d42,#020d20_58%,#071936)] px-5 py-6 shadow-[0_18px_44px_rgba(0,0,0,.3),inset_0_1px_0_rgba(125,230,255,.1)] sm:px-7">
     <span aria-hidden="true" className="pointer-events-none absolute -left-16 top-1/3 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
     <span aria-hidden="true" className="pointer-events-none absolute -right-14 bottom-4 h-44 w-44 rounded-full bg-violet-500/15 blur-3xl" />
+    <span aria-hidden="true" className="dollar-wall-scan pointer-events-none absolute inset-x-0 top-0 z-[2] h-20 bg-gradient-to-b from-transparent via-cyan-300/15 to-transparent blur-md" />
     <div className="relative z-10 grid items-start gap-6 lg:grid-cols-[220px_1fr]">
       <div>
         <h2 id="dollar-wall-title" className="text-[25px] font-extrabold leading-[1.04] tracking-[-.035em] text-white drop-shadow-[0_0_18px_rgba(0,185,255,.24)]">A dollar can land<br/><span className="bg-gradient-to-r from-[#9cff58] via-[#74e72d] to-cyan-300 bg-clip-text text-transparent">almost anywhere.</span></h2>
@@ -93,22 +94,27 @@ export function DollarWall() {
           const chosen = picks.some((pickItem) => pickItem.id === item.id);
           const isRevealed = revealed === item.id;
           const accent = tileAccents[index % tileAccents.length];
-          return <button key={item.id} type="button" onMouseEnter={() => !chosen && setRevealed(item.id)} onMouseLeave={() => !chosen && setRevealed(null)} onClick={() => tap(item)} disabled={!chosen && picks.length >= 5} aria-label={`${item.name}${chosen ? ", selected; tap to remove" : ", tap once to reveal and again to add"}`} className={`group relative aspect-[1.15/1] min-h-[58px] touch-manipulation [perspective:700px] focus-visible:outline-2 focus-visible:outline-cyan-300 sm:min-h-[48px] ${index >= 18 ? "hidden sm:block" : ""} ${chosen ? "cursor-pointer rounded-lg shadow-[0_0_0_2px_#74e72d,0_0_20px_rgba(116,231,45,.65)]" : ""}`}>
+          return <button key={item.id} type="button" onMouseEnter={() => !chosen && setRevealed(item.id)} onMouseLeave={() => !chosen && setRevealed(null)} onClick={() => tap(item)} disabled={!chosen && picks.length >= 5} aria-label={`${item.name}${chosen ? ", selected; tap to remove" : ", tap once to reveal and again to add"}`} className={`dollar-tile-button group relative aspect-[1.15/1] min-h-[58px] touch-manipulation [perspective:700px] focus-visible:outline-2 focus-visible:outline-cyan-300 sm:min-h-[48px] ${index >= 18 ? "hidden sm:block" : ""} ${chosen ? "cursor-pointer rounded-lg shadow-[0_0_0_2px_#74e72d,0_0_20px_rgba(116,231,45,.65)]" : ""}`}>
             <span className={`absolute inset-0 [transform-style:preserve-3d] transition-transform duration-500 [transition-timing-function:cubic-bezier(.2,.75,.25,1)] ${chosen || isRevealed ? "[transform:rotateY(180deg)]" : ""}`}>
               <span
                 className="dollar-mystery-tile absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-lg border text-white shadow-[0_6px_16px_rgba(0,0,0,.3),inset_0_0_18px_rgba(255,255,255,.035)] transition-[filter,box-shadow] group-hover:brightness-125 group-hover:shadow-[0_0_22px_rgba(24,191,255,.28)] [backface-visibility:hidden]"
                 style={{ borderColor: `${accent}88`, background: `radial-gradient(circle at 50% 46%,${accent}42,transparent 42%),linear-gradient(145deg,${accent}30,#0a1524 64%)`, animationDelay: `${index * 120}ms` }}
               >
+                <span aria-hidden="true" className="dollar-tile-aurora absolute -inset-[75%] rounded-full opacity-80" style={{ background: `conic-gradient(from 0deg,transparent 0 8%,${accent} 16%,#00b9ff 28%,#8b5cf6 43%,#ec4899 58%,#ff6b22 72%,#74e72d 86%,transparent 100%)` }} />
+                <span aria-hidden="true" className="absolute inset-[2px] rounded-[6px] bg-[radial-gradient(circle_at_50%_48%,rgba(9,34,73,.42),#020b19_72%)] shadow-[inset_0_0_20px_rgba(0,185,255,.2)]" />
+                <span aria-hidden="true" className="absolute left-1/2 top-1/2 z-[1] h-px w-[135%] -translate-x-1/2 -translate-y-1/2 rotate-[22deg] bg-gradient-to-r from-transparent via-cyan-300/55 to-transparent" />
+                <span aria-hidden="true" className="absolute left-1/2 top-1/2 z-[1] h-px w-[125%] -translate-x-1/2 -translate-y-1/2 -rotate-[28deg] bg-gradient-to-r from-transparent via-fuchsia-400/45 to-transparent" />
                 <span className="absolute left-1.5 top-1.5 h-1 w-1 rounded-full bg-white shadow-[0_0_7px_2px_white]" />
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: accent, boxShadow: `0 0 9px 2px ${accent}` }} />
                 <span className="absolute left-2 top-1/2 h-1 w-1 rounded-full opacity-75" style={{ backgroundColor: accent, boxShadow: `0 0 7px ${accent}` }} />
-                <span className="mb-1 text-[6px] font-black uppercase tracking-[0.18em] text-white/55 sm:hidden">Mystery pick</span>
-                <span className="relative grid h-11 w-11 place-items-center rounded-full border-2 bg-[#031326]/80 text-[17px] font-black leading-none text-white sm:h-9 sm:w-9 sm:text-[15px]" style={{ borderColor: accent, boxShadow: `0 0 14px ${accent}99,inset 0 0 10px ${accent}44` }}>
+                <span className="relative z-10 mb-1 text-[6px] font-black uppercase tracking-[0.18em] text-white/70 sm:hidden">Mystery pick</span>
+                <span className="dollar-coin-core relative z-10 grid h-11 w-11 place-items-center rounded-full border-2 bg-[#031326]/90 text-[17px] font-black leading-none text-white sm:h-9 sm:w-9 sm:text-[15px]" style={{ borderColor: accent, boxShadow: `0 0 18px 2px ${accent}bb,inset 0 0 12px ${accent}66` }}>
                   $1
                   <span className="absolute inset-1 rounded-full border border-white/10" />
+                  <span aria-hidden="true" className="dollar-orbit-spark absolute -inset-2 rounded-full border border-dashed opacity-70" style={{ borderColor: `${accent}aa` }} />
                 </span>
-                <span className="mt-1 text-[6px] font-extrabold uppercase tracking-[0.14em] text-white/60 sm:hidden">Tap to reveal</span>
-                <span aria-hidden="true" className="dollar-tile-shine absolute -inset-y-8 -left-1/2 w-8 rotate-[24deg] bg-gradient-to-r from-transparent via-white/35 to-transparent blur-[1px]" />
+                <span className="relative z-10 mt-1 text-[6px] font-extrabold uppercase tracking-[0.14em] text-cyan-100/80 sm:hidden">Tap to reveal</span>
+                <span aria-hidden="true" className="dollar-tile-shine absolute -inset-y-8 -left-1/2 z-20 w-8 rotate-[24deg] bg-gradient-to-r from-transparent via-white/60 to-transparent blur-[1px]" />
               </span>
               <span className={`absolute inset-0 overflow-hidden rounded-lg border bg-[#071627] [backface-visibility:hidden] [transform:rotateY(180deg)] ${chosen ? "border-[#74e72d]" : "border-cyan-300/40"}`}>
                 <span className="absolute inset-0 bg-[length:600%_400%]" style={{ backgroundImage: `url(${sheetUrls[item.sheet ?? "main"]})`, backgroundPosition: photoPosition(item.photo) }} />
