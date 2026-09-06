@@ -57,7 +57,7 @@ export async function SiteHeader() {
               <span aria-hidden="true" className="grid h-[28px] w-[38px] shrink-0 place-items-center overflow-hidden rounded-md">
                 <span
                   className="block h-[23px] w-[34px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen"
-                  style={{ backgroundSize: "76px 34px", backgroundPosition: "0 -4px" }}
+                  style={{ backgroundSize: "76px 34px", backgroundPosition: "-4px -4px" }}
                 />
               </span>
               <span className="inline-flex h-[28px] min-w-[27px] shrink-0 items-center justify-center rounded-md px-1 text-[14px] font-bold leading-none tabular-nums">12</span>
