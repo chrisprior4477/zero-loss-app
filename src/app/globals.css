@@ -270,3 +270,30 @@ body {
     transform: none;
   }
 }
+
+/* Mystery-dollar tiles: restrained motion makes the wall feel discoverable. */
+@keyframes dollar-tile-breathe {
+  0%, 100% { filter: brightness(0.95); }
+  50% { filter: brightness(1.14); }
+}
+
+@keyframes dollar-tile-shine {
+  0%, 62% { transform: translateX(-180%) rotate(24deg); opacity: 0; }
+  70% { opacity: 0.9; }
+  88%, 100% { transform: translateX(520%) rotate(24deg); opacity: 0; }
+}
+
+.dollar-mystery-tile {
+  animation: dollar-tile-breathe 3.4s ease-in-out infinite;
+}
+
+.dollar-tile-shine {
+  animation: dollar-tile-shine 4.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dollar-mystery-tile,
+  .dollar-tile-shine {
+    animation: none;
+  }
+}
