@@ -36,15 +36,60 @@ const STEPS = [
 ] as const;
 
 export function ZeroLossJourney({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <section aria-labelledby="mobile-zero-loss-journey">
+        <div className="mb-4">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#55b5ff]">
+            How ZeroLoss works
+          </p>
+          <h2
+            id="mobile-zero-loss-journey"
+            className="mt-1 text-[22px] font-extrabold tracking-[-0.03em] text-white"
+          >
+            Four simple steps. <span className="text-[var(--live)]">Swipe to explore.</span>
+          </h2>
+        </div>
+
+        <div className="zl-noscroll -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6">
+          {STEPS.map((step, index) => (
+            <article
+              key={step.number}
+              role="img"
+              aria-label={`Step ${step.number}: ${step.eyebrow}. ${step.title} ${step.description}`}
+              className="relative aspect-[.59/1] w-[min(78vw,310px)] shrink-0 snap-center overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#00132e] shadow-[0_16px_36px_rgba(0,0,0,0.32)]"
+            >
+              <Image
+                src="/perfect-zero-loss-four-card-v3.png"
+                alt=""
+                aria-hidden="true"
+                width={1774}
+                height={887}
+                sizes="312vw"
+                className="absolute top-0 h-auto w-[400%] max-w-none"
+                style={{ left: `-${index * 100}%` }}
+                priority
+              />
+            </article>
+          ))}
+        </div>
+
+        <p className="mt-2 text-center text-[12px] font-semibold text-white/65">
+          Win it, or use what you spent toward buying the product you already wanted.
+        </p>
+      </section>
+    );
+  }
+
   return (
-    <section aria-labelledby={compact ? "mobile-zero-loss-journey" : "desktop-zero-loss-journey"}>
-      <div className={compact ? "mb-4" : "mb-5 text-center"}>
+    <section aria-labelledby="desktop-zero-loss-journey">
+      <div className="mb-5 text-center">
         <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#55b5ff]">
           The ZeroLoss journey
         </p>
         <h2
-          id={compact ? "mobile-zero-loss-journey" : "desktop-zero-loss-journey"}
-          className={`${compact ? "text-[22px]" : "text-[30px]"} mt-1 font-extrabold tracking-[-0.03em] text-white`}
+          id="desktop-zero-loss-journey"
+          className="mt-1 text-[30px] font-extrabold tracking-[-0.03em] text-white"
         >
           Pick it. Take your shot. <span className="text-[var(--live)]">Keep the value.</span>
         </h2>
@@ -56,7 +101,7 @@ export function ZeroLossJourney({ compact = false }: { compact?: boolean }) {
             key={step.number}
             className="overflow-hidden rounded-2xl border border-white/12 bg-[#031b44] shadow-[0_16px_36px_rgba(0,0,0,0.3)]"
           >
-            <div className={`relative ${compact ? "aspect-[16/11] sm:aspect-[4/5]" : "aspect-[4/5]"} overflow-hidden`}>
+            <div className="relative aspect-[4/5] overflow-hidden">
               <Image
                 src={step.image}
                 alt=""
