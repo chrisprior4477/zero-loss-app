@@ -287,10 +287,12 @@ export function DesktopMarketplaceRails() {
         </div>
       </div>
 
-      <DollarChoiceCarousel />
-      <div className="mt-0 grid grid-cols-1 gap-3 sm:mt-8 sm:gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <RecentWinnerRoll />
-        <SocialActivityFeed />
+      <div>
+        <DollarChoiceCarousel />
+        <div className="mt-0 grid grid-cols-1 gap-3 sm:mt-8 sm:gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+          <RecentWinnerRoll />
+          <SocialActivityFeed />
+        </div>
       </div>
       <MarketplaceMosaicRail />
       <DollarChoiceCarouselLight />

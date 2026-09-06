@@ -19,8 +19,8 @@ export function RecentWinnerRoll() {
   const winner = recentWinnerDemoItems[activeIndex];
 
   return (
-    <section aria-labelledby="recent-winners-title" className="overflow-hidden rounded-[22px] border border-cyan-300/20 bg-[linear-gradient(135deg,#00142f,#042654)] shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
-      <div className="flex items-center justify-between border-b border-white/8 px-5 py-3">
+    <section aria-label="Someone just won" className="overflow-hidden rounded-[22px] border border-cyan-300/20 bg-[linear-gradient(135deg,#00142f,#042654)] shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+      <div className="hidden items-center justify-between border-b border-white/8 px-5 py-3 sm:flex">
         <div className="flex items-center gap-2.5">
           <span className="relative grid h-7 w-7 place-items-center rounded-full bg-[#72e82e]/15 text-[14px] text-[#7df33c]">
             <span aria-hidden="true">★</span>
@@ -37,7 +37,7 @@ export function RecentWinnerRoll() {
           <Image src={winner.avatar} alt="" aria-hidden="true" fill sizes="68px" className="object-cover object-top" />
         </span>
         <span className="relative min-w-0 flex-1">
-          <span className="block text-[9px] font-bold uppercase tracking-[0.12em] text-[#7def3b]">Winner confirmed</span>
+          <span className="block text-[18px] font-bold uppercase tracking-[0.06em] text-[#7def3b] sm:text-[9px] sm:tracking-[0.12em]">Winner confirmed</span>
           <span className="mt-1 block text-[17px] font-black leading-tight tracking-[-0.02em] text-white">
             {winner.name} <span className="font-semibold text-white/70">has won</span>
           </span>

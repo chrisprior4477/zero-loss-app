@@ -63,7 +63,7 @@ export function DollarChoiceCarousel() {
       </div>
 
       <div className="relative mt-1">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-[42px] z-[1] h-[220px] opacity-80 mix-blend-screen">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[150px] opacity-80 mix-blend-screen sm:top-[42px] sm:h-[220px]">
           <Image
             src="/dollar-choice-energy-trails.png"
             alt=""
