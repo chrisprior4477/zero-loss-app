@@ -185,7 +185,14 @@ function DesktopHeroCarousel() {
                 )}
               </h1>
               <p className="mt-3 max-w-[390px] text-[14px] leading-[1.4] text-white/88">
-                <span className="block">Pay $1 for a real shot at a product.</span>
+                {slide.id === "real-shots" ? (
+                  <>
+                    <span className="block whitespace-nowrap">Pay a dollar for a real shot at a</span>
+                    <span className="block">product.</span>
+                  </>
+                ) : (
+                  <span className="block">Pay $1 for a real shot at a product.</span>
+                )}
                 <span className="block">Don&apos;t win? What you spent still counts.</span>
               </p>
               <button
