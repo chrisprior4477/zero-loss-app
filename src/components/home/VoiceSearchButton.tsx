@@ -5,8 +5,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 /**
  * Voice input for the hero search field.
  *
- * The mic glyph is the artboard's: an orange capsule, a U-shaped cradle, and
- * a short stem. The artboard only reveals it while the field has focus; here
+ * The mic glyph uses a familiar solid capsule, heavy U-shaped cradle, and
+ * wide base. It stays visible on both mobile and desktop; here
  * it is always visible, on mobile and desktop, because it is a control people
  * are meant to reach for directly rather than discover after focusing.
  *
@@ -42,16 +42,22 @@ function getRecognitionCtor(): RecognitionCtor | null {
 }
 
 function MicGlyph({ listening }: { listening: boolean }) {
-  const color = listening ? "var(--live)" : "var(--urgent)";
+  const color = listening ? "#26c6ff" : "#087feb";
   return (
     <svg
       aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="block h-[21px] w-[21px] shrink-0"
-      fill={color}
+      viewBox="0 0 32 32"
+      className="block h-6 w-6 shrink-0"
+      fill="none"
     >
-      <rect x="8" y="2" width="8" height="13" rx="4" />
-      <path d="M5 11.5a1 1 0 0 1 2 0 5 5 0 0 0 10 0 1 1 0 1 1 2 0 7 7 0 0 1-6 6.92V21h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2.58A7 7 0 0 1 5 11.5Z" />
+      <rect x="10" y="2" width="12" height="18" rx="6" fill={color} />
+      <path
+        d="M6 14v1.5a10 10 0 0 0 20 0V14M16 25.5V30M10 30h12"
+        stroke={color}
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
