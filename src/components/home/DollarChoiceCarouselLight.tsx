@@ -113,14 +113,14 @@ export function DollarChoiceCarouselLight() {
           {dollarChoiceDemoItems.map((item) => {
             const meterColor = item.percentFilled >= 90 ? "#f32343" : item.percentFilled >= 75 ? "#ff6b22" : item.percentFilled >= 50 ? "#0787e8" : "#25c46a";
             return (
-              <article key={item.id} className="group relative w-[174px] shrink-0 overflow-hidden rounded-2xl border border-[#a9bfd0] bg-white shadow-[0_16px_35px_rgba(0,19,46,0.2)] transition-transform duration-300 hover:-translate-y-1 sm:w-[244px] sm:rounded-[22px]">
-                <Link href={item.href} draggable={false} className="block p-3 pb-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500">
+              <article key={item.id} className="group relative flex h-[250px] w-[174px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#a9bfd0] bg-white shadow-[0_16px_35px_rgba(0,19,46,0.2)] transition-transform duration-300 hover:-translate-y-1 sm:h-[292px] sm:w-[244px] sm:rounded-[22px]">
+                <Link href={item.href} draggable={false} className="flex min-h-0 flex-1 flex-col p-3 pb-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500">
                   <div className="relative h-[102px] overflow-hidden rounded-[13px] border border-slate-200 bg-[linear-gradient(145deg,#ffffff,#f3f5f6)] sm:h-[150px] sm:rounded-[15px]">
                     <span aria-hidden="true" className="absolute inset-x-5 bottom-2 h-7 rounded-full opacity-20 blur-lg" style={{ backgroundColor: item.accent }} />
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="244px" className="relative z-10 object-contain p-3 drop-shadow-[0_10px_9px_rgba(0,19,46,0.2)] transition-transform duration-300 group-hover:scale-[1.04]" />
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-2">
-                    <h3 style={{ maxWidth: 150, minHeight: 62 }} className="text-left text-[15px] font-extrabold leading-[1.22] text-[#00132e]">{item.title}</h3>
+                    <h3 className="line-clamp-3 min-h-12 min-w-0 flex-1 text-left text-[13px] font-extrabold leading-[1.22] text-[#00132e] sm:min-h-[62px] sm:text-[15px]">{item.title}</h3>
                     <CircularProgress percent={item.percentFilled} color={meterColor} label={`${item.title} pool filled`} />
                   </div>
                 </Link>
@@ -128,7 +128,7 @@ export function DollarChoiceCarouselLight() {
                   href={item.href}
                   draggable={false}
                   style={{ backgroundColor: "#087ff5", margin: "0 10px 10px", borderRadius: 10 }}
-                  className="grid h-9 place-items-center text-[14px] font-extrabold text-white shadow-[0_6px_14px_rgba(8,127,245,0.24)] transition hover:brightness-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+                  className="mt-auto grid h-9 shrink-0 place-items-center text-[14px] font-extrabold text-white shadow-[0_6px_14px_rgba(8,127,245,0.24)] transition hover:brightness-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
                 >
                   Enter $1
                 </Link>
