@@ -51,43 +51,45 @@ export async function SiteHeader() {
           <Link
             href={balanceLabel != null ? "/account/wallet" : "/signup"}
             aria-label="12 available tickets"
-            className="inline-flex min-w-max items-center gap-2.5 text-white transition-opacity hover:opacity-80"
+            className="inline-flex min-w-max items-center text-white transition-opacity hover:opacity-80"
           >
-            <span
-              aria-hidden="true"
-              className="inline-block h-[23px] w-[34px] shrink-0 -translate-x-[5px] bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:hidden"
-              style={{
-                backgroundSize: "76px 34px",
-                backgroundPosition: "0 -4px",
-              }}
-            />
+            <span className="inline-flex min-w-max items-center gap-1.5 sm:hidden">
+              <span aria-hidden="true" className="grid h-[28px] w-[38px] shrink-0 place-items-center overflow-hidden rounded-md">
+                <span
+                  className="block h-[23px] w-[34px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen"
+                  style={{ backgroundSize: "76px 34px", backgroundPosition: "0 -4px" }}
+                />
+              </span>
+              <span className="inline-flex h-[28px] min-w-[27px] shrink-0 items-center justify-center rounded-md px-1 text-[14px] font-bold leading-none tabular-nums">12</span>
+            </span>
             <span
               aria-hidden="true"
               className="hidden h-[28px] w-[42px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:inline-block"
               style={{ backgroundSize: "95px 43px", backgroundPosition: "0 -6px" }}
             />
-            <span className="shrink-0 text-[14px] font-bold leading-none tabular-nums sm:text-[20px] lg:text-[22px]">12</span>
+            <span className="hidden shrink-0 text-[20px] font-bold leading-none tabular-nums sm:inline lg:text-[22px]">12</span>
           </Link>
 
           <Link
             href={balanceLabel != null ? "/account/wallet" : "/signup"}
             aria-label="$247 credit value"
-            className="flex items-center gap-1.5 text-white transition-opacity hover:opacity-80"
+            className="inline-flex min-w-max items-center text-white transition-opacity hover:opacity-80 sm:gap-1.5"
           >
-            <span
-              aria-hidden="true"
-              className="inline-block h-[22px] w-[28px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:hidden"
-              style={{
-                backgroundSize: "70px 32px",
-                backgroundPosition: "-40px -3px",
-              }}
-            />
+            <span className="inline-flex min-w-max items-center gap-1.5 sm:hidden">
+              <span aria-hidden="true" className="grid h-[28px] w-[31px] shrink-0 place-items-center overflow-hidden rounded-md">
+                <span
+                  className="block h-[23px] w-[29px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen"
+                  style={{ backgroundSize: "70px 32px", backgroundPosition: "-40px -3px" }}
+                />
+              </span>
+              <span className="inline-flex h-[28px] min-w-[45px] shrink-0 items-center justify-center rounded-md px-1 text-[14px] font-bold leading-none tabular-nums">$247</span>
+            </span>
             <span
               aria-hidden="true"
               className="hidden h-[30px] w-[42px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:inline-block"
               style={{ backgroundSize: "95px 43px", backgroundPosition: "-54px -4px" }}
             />
-            <span className="text-[14px] font-bold leading-none tabular-nums sm:text-[20px] lg:text-[22px]">$247</span>
+            <span className="hidden text-[20px] font-bold leading-none tabular-nums sm:inline lg:text-[22px]">$247</span>
           </Link>
 
           <Link
