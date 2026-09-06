@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { Fragment } from "react";
 
 const STEPS = [
   {
@@ -54,7 +53,7 @@ export function ZeroLossJourney({ compact = false }: { compact?: boolean }) {
 
         <div className="zl-noscroll -mx-4 flex touch-auto gap-3 overflow-x-auto overscroll-x-contain px-4 pb-3 sm:-mx-6 sm:px-6">
           {STEPS.map((step, index) => (
-            <Fragment key={step.number}>
+            <div key={step.number} className="relative shrink-0">
               <article
                 role="img"
                 aria-label={`Step ${step.number}: ${step.eyebrow}. ${step.title} ${step.description}`}
@@ -75,14 +74,15 @@ export function ZeroLossJourney({ compact = false }: { compact?: boolean }) {
               {index < STEPS.length - 1 ? (
                 <span
                   aria-hidden="true"
-                  className="relative z-20 -mx-[22px] w-8 shrink-0"
+                  className="pointer-events-none absolute -right-[25px] top-1/2 z-30 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border-2 border-[#c8ff9f] bg-[#79ed31] text-[#00132e] shadow-[0_0_10px_3px_rgba(121,237,49,0.72),0_4px_12px_rgba(0,0,0,0.5)]"
                 >
-                  <span className="absolute left-1/2 top-1/2 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-[#b8ff83] bg-[#74e72d] text-[20px] font-black leading-none text-[#00132e] shadow-[0_0_18px_rgba(116,231,45,0.78)]">
-                    →
-                  </span>
+                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h13" />
+                    <path d="m13 6 6 6-6 6" />
+                  </svg>
                 </span>
               ) : null}
-            </Fragment>
+            </div>
           ))}
         </div>
 

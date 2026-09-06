@@ -44,23 +44,20 @@ function getRecognitionCtor(): RecognitionCtor | null {
 function MicGlyph({ listening }: { listening: boolean }) {
   const color = listening ? "var(--live)" : "var(--urgent)";
   return (
-    <span
+    <svg
       aria-hidden="true"
-      className="relative block h-[19px] w-3 shrink-0"
+      viewBox="0 0 24 24"
+      className="block h-5 w-5 shrink-0"
+      fill="none"
+      stroke={color}
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     >
-      <span
-        className="absolute left-[2px] top-0 block h-[11px] w-2 rounded"
-        style={{ background: color }}
-      />
-      <span
-        className="absolute left-0 top-2 box-border block h-[7px] w-3 rounded-b-lg border-2 border-t-0"
-        style={{ borderColor: color }}
-      />
-      <span
-        className="absolute left-[5px] top-[15px] block h-1 w-0.5"
-        style={{ background: color }}
-      />
-    </span>
+      <rect x="8" y="2.5" width="8" height="12" rx="4" />
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" />
+      <path d="M12 18v3.5M8.5 21.5h7" />
+    </svg>
   );
 }
 

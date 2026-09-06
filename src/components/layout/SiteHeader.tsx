@@ -58,13 +58,13 @@ export async function SiteHeader() {
               className="inline-block h-[22px] w-[28px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:hidden"
               style={{
                 backgroundSize: "70px 32px",
-                backgroundPosition: "-4px -4px",
+                backgroundPosition: "0 -4px",
               }}
             />
             <span
               aria-hidden="true"
               className="hidden h-[28px] w-[42px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:inline-block"
-              style={{ backgroundSize: "95px 43px", backgroundPosition: "-5px -6px" }}
+              style={{ backgroundSize: "95px 43px", backgroundPosition: "0 -6px" }}
             />
             <span className="text-[14px] font-bold leading-none tabular-nums sm:text-[20px] lg:text-[22px]">12</span>
           </Link>
