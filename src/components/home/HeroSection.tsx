@@ -9,16 +9,19 @@ const HERO_SLIDES = [
     id: "real-shots",
     lines: ["Real shots.", "Real wins.", "Zero loss."],
     image: "/hero-tech-transparent.png",
+    mobileImage: "/mobile-hero-flaming-coin.png",
   },
   {
     id: "shopping",
     lines: ["Shopping should", "never feel like a loss."],
     image: "/hero-marketplace.png",
+    mobileImage: "/hero-marketplace.png",
   },
   {
     id: "real-products",
     lines: ["Real products.", "Real winners.", "Zero loss."],
     image: "/hero-everyday-2400x800.png",
+    mobileImage: "/hero-everyday-2400x800.png",
   },
 ] as const;
 
@@ -77,12 +80,21 @@ function DesktopHeroCarousel() {
           >
             <div className="absolute inset-0 overflow-hidden lg:left-auto lg:w-[72%]">
               <Image
+                src={slide.mobileImage}
+                alt=""
+                aria-hidden="true"
+                fill
+                sizes="100vw"
+                className="object-cover object-center opacity-100 drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:hidden"
+                preload={index === 0}
+              />
+              <Image
                 src={slide.image}
                 alt=""
                 aria-hidden="true"
                 fill
                 sizes="(min-width: 1024px) 72vw, 100vw"
-                className="scale-[0.97] object-cover object-center opacity-65 drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:opacity-100"
+                className="hidden scale-[0.97] object-cover object-center drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:block"
                 preload={index === 0}
               />
             </div>
