@@ -88,7 +88,7 @@ function DesktopHeroCarousel() {
                 className={
                   slide.id === "real-shots"
                     ? "origin-right translate-x-[45px] scale-[1.275] object-contain object-right mix-blend-screen drop-shadow-[0_0_30px_rgba(255,92,0,0.68)] lg:hidden"
-                    : "object-cover object-center opacity-100 drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:hidden"
+                    : "object-cover object-center brightness-[1.22] contrast-[1.08] saturate-[1.35] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:hidden"
                 }
                 preload={index === 0}
               />
@@ -109,7 +109,7 @@ function DesktopHeroCarousel() {
                 background:
                   slide.id === "real-shots"
                     ? "linear-gradient(to right, #031b44 0%, #031b44 38%, rgba(3,27,68,0.78) 44%, rgba(3,27,68,0) 56%)"
-                    : "linear-gradient(to right, #031b44 0%, rgba(3,27,68,0.9) 50%, rgba(3,27,68,0.15) 100%)",
+                    : "linear-gradient(to right, #031b44 0%, #031b44 38%, rgba(3,27,68,0.76) 44%, rgba(3,27,68,0) 58%)",
               }}
             />
             <div aria-hidden="true" className="absolute inset-0 hidden bg-gradient-to-r from-[#031b44] via-[#031b44]/70 to-transparent lg:block" />
