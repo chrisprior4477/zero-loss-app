@@ -85,11 +85,17 @@ export function DesktopCategoryNav() {
                 aria-expanded={isOpen}
                 aria-haspopup="menu"
                 onFocus={() => setOpenCategory(category)}
-                onClick={() =>
+                onClick={() => {
                   setOpenCategory((current) =>
                     current === category ? null : category
-                  )
-                }
+                  );
+                  if (isEndingSoon) {
+                    document.getElementById("ending-soon")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }
+                }}
                 className={
                   isEndingSoon
                     ? "inline-flex h-8 items-center rounded-full bg-[var(--urgent)] px-3 text-[13px] font-medium text-white shadow-[0_2px_0_rgba(0,0,0,0.14)] transition-colors hover:bg-[#ff7a24] sm:px-4 sm:text-[15px] lg:text-[16px]"

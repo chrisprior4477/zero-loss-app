@@ -70,7 +70,7 @@ function useDragRail(ref: React.RefObject<HTMLDivElement | null>) {
 
   return {
     onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (event.pointerType === "mouse" && event.button !== 0) return;
+      if (event.pointerType !== "mouse" || event.button !== 0) return;
       const track = ref.current;
       if (!track) return;
       event.preventDefault();
@@ -136,7 +136,7 @@ export function DesktopMarketplaceRails() {
         <div className="relative">
           <div
             ref={categoriesRef}
-            className="zl-noscroll flex cursor-grab touch-pan-y select-none gap-3 overflow-x-auto px-1 pb-1 active:cursor-grabbing sm:gap-4"
+            className="zl-noscroll flex cursor-grab touch-auto select-none gap-3 overflow-x-auto overscroll-x-contain px-1 pb-1 active:cursor-grabbing sm:gap-4"
             onDragStart={(event) => event.preventDefault()}
             {...categoryDrag}
           >
@@ -165,7 +165,7 @@ export function DesktopMarketplaceRails() {
         </div>
       </div>
 
-      <div>
+      <div id="ending-soon" className="scroll-mt-[180px] md:scroll-mt-[128px]">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ export function DesktopMarketplaceRails() {
         <div className="relative">
           <div
             ref={endingRef}
-            className="zl-noscroll flex cursor-grab touch-pan-y select-none gap-4 overflow-x-auto px-1 pb-1 pt-3 active:cursor-grabbing"
+            className="zl-noscroll flex cursor-grab touch-auto select-none gap-4 overflow-x-auto overscroll-x-contain px-1 pb-1 pt-3 active:cursor-grabbing"
             onDragStart={(event) => event.preventDefault()}
             {...endingDrag}
           >
@@ -263,7 +263,7 @@ export function DesktopMarketplaceRails() {
         <div className="relative">
           <div
             ref={brandsRef}
-            className="zl-noscroll flex cursor-grab touch-pan-y select-none gap-3 overflow-x-auto px-1 py-2 active:cursor-grabbing sm:gap-7"
+            className="zl-noscroll flex cursor-grab touch-auto select-none gap-3 overflow-x-auto overscroll-x-contain px-1 py-2 active:cursor-grabbing sm:gap-7"
             onDragStart={(event) => event.preventDefault()}
             {...brandsDrag}
           >

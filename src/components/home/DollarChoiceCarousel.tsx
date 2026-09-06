@@ -15,7 +15,7 @@ export function DollarChoiceCarousel() {
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
     const track = trackRef.current;
     if (!track) return;
     event.preventDefault();
@@ -76,7 +76,7 @@ export function DollarChoiceCarousel() {
         <div
           ref={trackRef}
           data-testid="dollar-choice-track"
-          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-2 overflow-x-auto px-4 pb-2 pt-3 active:cursor-grabbing sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
+          className="zl-noscroll relative z-10 flex cursor-grab touch-auto select-none gap-2 overflow-x-auto overscroll-x-contain px-4 pb-2 pt-3 active:cursor-grabbing sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

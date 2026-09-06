@@ -77,7 +77,7 @@ export function MarketplaceMosaicRail() {
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
     const track = trackRef.current;
     if (!track) return;
     event.preventDefault();
@@ -114,7 +114,7 @@ export function MarketplaceMosaicRail() {
       <div className="relative">
         <div
           ref={trackRef}
-          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-3 overflow-x-auto px-4 pb-3 active:cursor-grabbing sm:gap-5 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
+          className="zl-noscroll relative z-10 flex cursor-grab touch-auto select-none gap-3 overflow-x-auto overscroll-x-contain px-4 pb-3 active:cursor-grabbing sm:gap-5 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

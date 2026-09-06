@@ -51,13 +51,13 @@ export function ZeroLossJourney({ compact = false }: { compact?: boolean }) {
           </h2>
         </div>
 
-        <div className="zl-noscroll -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6">
+        <div className="zl-noscroll -mx-4 flex touch-auto gap-3 overflow-x-auto overscroll-x-contain px-4 pb-3 sm:-mx-6 sm:px-6">
           {STEPS.map((step, index) => (
             <article
               key={step.number}
               role="img"
               aria-label={`Step ${step.number}: ${step.eyebrow}. ${step.title} ${step.description}`}
-              className="relative aspect-[.59/1] w-[min(78vw,310px)] shrink-0 snap-center overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#00132e] shadow-[0_16px_36px_rgba(0,0,0,0.32)]"
+              className="relative aspect-[.59/1] w-[min(78vw,310px)] shrink-0 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#00132e] shadow-[0_16px_36px_rgba(0,0,0,0.32)]"
             >
               <Image
                 src="/perfect-zero-loss-four-card-v3.png"
