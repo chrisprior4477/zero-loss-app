@@ -13,7 +13,7 @@ const HERO_SLIDES = [
   },
   {
     id: "shopping",
-    lines: ["Shopping should", "never feel like a loss."],
+    lines: ["Shopping should", "never feel like", "a loss."],
     image: "/hero-marketplace.png",
     mobileImage: "/hero-marketplace.png",
   },
@@ -116,9 +116,9 @@ function DesktopHeroCarousel() {
             <div className="relative z-10 flex min-h-[230px] max-w-[620px] flex-col items-start justify-center lg:min-h-[calc(clamp(240px,20vw,290px)-2.5rem)]">
               <h1 className="max-w-[82%] text-[34px] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[42px] lg:max-w-none lg:text-[clamp(38px,3.5vw,54px)]">
                 {slide.lines.map((line) =>
-                  slide.id === "shopping" && line === "never feel like a loss." ? (
+                  slide.id === "shopping" && line === "a loss." ? (
                     <span key={line} className="block">
-                      never feel like a <span className="text-[var(--live)]">loss.</span>
+                      a <span className="text-[var(--live)]">loss.</span>
                     </span>
                   ) : (
                     <span
