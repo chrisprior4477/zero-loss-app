@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Fragment } from "react";
 
 const STEPS = [
   {
@@ -53,24 +54,35 @@ export function ZeroLossJourney({ compact = false }: { compact?: boolean }) {
 
         <div className="zl-noscroll -mx-4 flex touch-auto gap-3 overflow-x-auto overscroll-x-contain px-4 pb-3 sm:-mx-6 sm:px-6">
           {STEPS.map((step, index) => (
-            <article
-              key={step.number}
-              role="img"
-              aria-label={`Step ${step.number}: ${step.eyebrow}. ${step.title} ${step.description}`}
-              className="relative aspect-[.59/1] w-[min(78vw,310px)] shrink-0 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#00132e] shadow-[0_16px_36px_rgba(0,0,0,0.32)]"
-            >
-              <Image
-                src="/perfect-zero-loss-four-card-v3.png"
-                alt=""
-                aria-hidden="true"
-                width={1774}
-                height={887}
-                sizes="312vw"
-                className="absolute top-0 h-auto w-[400%] max-w-none"
-                style={{ left: `-${index * 100}%` }}
-                priority
-              />
-            </article>
+            <Fragment key={step.number}>
+              <article
+                role="img"
+                aria-label={`Step ${step.number}: ${step.eyebrow}. ${step.title} ${step.description}`}
+                className="relative aspect-[.59/1] w-[min(78vw,310px)] shrink-0 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#00132e] shadow-[0_16px_36px_rgba(0,0,0,0.32)]"
+              >
+                <Image
+                  src="/perfect-zero-loss-four-card-v3.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={1774}
+                  height={887}
+                  sizes="312vw"
+                  className="absolute top-0 h-auto w-[400%] max-w-none"
+                  style={{ left: `-${index * 100}%` }}
+                  priority
+                />
+              </article>
+              {index < STEPS.length - 1 ? (
+                <span
+                  aria-hidden="true"
+                  className="relative z-20 -mx-[22px] w-8 shrink-0"
+                >
+                  <span className="absolute left-1/2 top-1/2 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-[#b8ff83] bg-[#74e72d] text-[20px] font-black leading-none text-[#00132e] shadow-[0_0_18px_rgba(116,231,45,0.78)]">
+                    →
+                  </span>
+                </span>
+              ) : null}
+            </Fragment>
           ))}
         </div>
 
