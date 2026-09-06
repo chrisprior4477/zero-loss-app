@@ -1,6 +1,6 @@
 "use client";
 
-import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, type TransitionEvent as ReactTransitionEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ZeroLossJourney } from "@/components/home/ZeroLossJourney";
 
@@ -27,6 +27,8 @@ const HERO_SLIDES = [
 
 function DesktopHeroCarousel() {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [trackSlide, setTrackSlide] = useState(1);
+  const [animateTrack, setAnimateTrack] = useState(true);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const howItWorksPanelRef = useRef<HTMLElement>(null);
   const swipeRef = useRef({ startX: 0, startY: 0, currentX: 0, currentY: 0, active: false });
@@ -57,7 +59,26 @@ function DesktopHeroCarousel() {
   }, [showHowItWorks]);
 
   const showSlide = (index: number) => {
-    setActiveSlide((index + HERO_SLIDES.length) % HERO_SLIDES.length);
+    if (index < 0) {
+      setActiveSlide(HERO_SLIDES.length - 1);
+      setTrackSlide(0);
+      return;
+    }
+    if (index >= HERO_SLIDES.length) {
+      setActiveSlide(0);
+      setTrackSlide(HERO_SLIDES.length + 1);
+      return;
+    }
+    setActiveSlide(index);
+    setTrackSlide(index + 1);
+  };
+
+  const settleInfiniteTrack = (event: ReactTransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (trackSlide !== 0 && trackSlide !== HERO_SLIDES.length + 1) return;
+    setAnimateTrack(false);
+    setTrackSlide(trackSlide === 0 ? HERO_SLIDES.length : 1);
+    requestAnimationFrame(() => requestAnimationFrame(() => setAnimateTrack(true)));
   };
 
   const startSwipe = (event: ReactPointerEvent<HTMLElement>) => {
@@ -95,12 +116,15 @@ function DesktopHeroCarousel() {
       className="relative left-1/2 w-screen touch-pan-y -translate-x-1/2 overflow-hidden bg-transparent"
     >
       <div
-        className="flex transition-transform duration-500 ease-out motion-reduce:transition-none"
-        style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+        onTransitionEnd={settleInfiniteTrack}
+        className={`flex duration-500 ease-out motion-reduce:transition-none ${animateTrack ? "transition-transform" : "transition-none"}`}
+        style={{ transform: `translateX(-${trackSlide * 100}%)` }}
       >
-        {HERO_SLIDES.map((slide, index) => (
+        {[HERO_SLIDES[HERO_SLIDES.length - 1], ...HERO_SLIDES, HERO_SLIDES[0]].map((slide, renderIndex) => {
+          const index = (renderIndex - 1 + HERO_SLIDES.length) % HERO_SLIDES.length;
+          return (
           <article
-            key={slide.id}
+            key={`${slide.id}-${renderIndex}`}
             aria-roledescription="slide"
             aria-label={`${index + 1} of ${HERO_SLIDES.length}`}
             aria-hidden={activeSlide !== index}
@@ -118,7 +142,7 @@ function DesktopHeroCarousel() {
                     ? "origin-right translate-x-[45px] scale-[1.275] object-contain object-right mix-blend-screen drop-shadow-[0_0_30px_rgba(255,92,0,0.68)] lg:hidden"
                     : "object-cover object-center brightness-[1.22] contrast-[1.08] saturate-[1.35] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:hidden"
                 }
-                preload={index === 0}
+                preload={renderIndex === 1}
               />
               <Image
                 src={slide.image}
@@ -127,7 +151,7 @@ function DesktopHeroCarousel() {
                 fill
                 sizes="(min-width: 1024px) 72vw, 100vw"
                 className="hidden scale-[0.97] object-cover object-center drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:block"
-                preload={index === 0}
+                preload={renderIndex === 1}
               />
             </div>
             <div
@@ -177,7 +201,8 @@ function DesktopHeroCarousel() {
               </button>
             </div>
           </article>
-        ))}
+          );
+        })}
       </div>
 
       <button
