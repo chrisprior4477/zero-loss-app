@@ -1,4 +1,3 @@
-import { CategoryNav } from "@/components/home/CategoryNav";
 import { DesktopMarketplaceRails } from "@/components/home/DesktopMarketplaceRails";
 import { DollarWall } from "@/components/home/DollarWall";
 import { HeroSection } from "@/components/home/HeroSection";
@@ -23,7 +22,6 @@ import { PageContainer } from "@/components/layout/PageContainer";
 export default function HomePage() {
   return (
     <>
-      <CategoryNav />
       <LivePulseTicker />
 
       <PageContainer className="pb-10 pt-8 sm:pb-12 sm:pt-10 lg:pt-0">

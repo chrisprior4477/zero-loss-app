@@ -30,9 +30,9 @@ export function LivePulseTicker() {
   return (
     <section
       aria-label="Live Pulse sample marketplace activity"
-      className="group relative hidden h-10 overflow-hidden border-y border-cyan-300/15 bg-[#020d20] lg:flex lg:items-center"
+      className="group relative flex h-10 items-center overflow-hidden border-y border-cyan-300/15 bg-[#020d20]"
     >
-      <div className="absolute inset-y-0 left-0 z-10 flex items-center bg-[#020d20] pl-[clamp(3rem,6vw,7rem)] pr-5 shadow-[18px_0_24px_#020d20]">
+      <div className="absolute inset-y-0 left-0 z-10 flex items-center bg-[#020d20] pl-3 pr-3 shadow-[18px_0_24px_#020d20] sm:pl-6 sm:pr-5 lg:pl-[clamp(3rem,6vw,7rem)]">
         <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#31e800] shadow-[0_0_10px_rgba(49,232,0,0.8)]" aria-hidden="true" />
         <span className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.16em] text-white">
           Live Pulse
@@ -41,7 +41,7 @@ export function LivePulseTicker() {
           Demo
         </span>
       </div>
-      <div className="zl-live-pulse-track flex w-max pl-48 motion-reduce:translate-x-0">
+      <div className="zl-live-pulse-track flex w-max pl-36 motion-reduce:translate-x-0 sm:pl-48">
         <TickerSequence />
         <TickerSequence hidden />
       </div>

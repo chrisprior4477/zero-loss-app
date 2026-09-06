@@ -65,10 +65,10 @@ export function DesktopCategoryNav() {
     <nav
       ref={navRef}
       aria-label="Marketplace categories"
-      className="min-w-0 self-stretch flex-1"
+      className="min-w-0 self-stretch flex-1 overflow-x-auto zl-noscroll"
       onMouseLeave={() => setOpenCategory(null)}
     >
-      <ul className="flex h-full items-center justify-center gap-1 xl:gap-2">
+      <ul className="flex h-full w-max min-w-full items-center justify-start gap-1 px-2 lg:justify-center lg:px-0 xl:gap-2">
         {desktopCategories.map((category, index) => {
           const isOpen = openCategory === category;
           const isEndingSoon = index === 0;
@@ -92,8 +92,8 @@ export function DesktopCategoryNav() {
                 }
                 className={
                   isEndingSoon
-                    ? "inline-flex h-8 items-center rounded-full bg-[var(--urgent)] px-4 text-[16px] font-medium text-white shadow-[0_2px_0_rgba(0,0,0,0.14)] transition-colors hover:bg-[#ff7a24]"
-                    : "inline-flex h-7 items-center rounded-md px-2 text-[16px] font-medium text-white/90 transition-colors hover:bg-white/8 hover:text-white"
+                    ? "inline-flex h-8 items-center rounded-full bg-[var(--urgent)] px-3 text-[13px] font-medium text-white shadow-[0_2px_0_rgba(0,0,0,0.14)] transition-colors hover:bg-[#ff7a24] sm:px-4 sm:text-[15px] lg:text-[16px]"
+                    : "inline-flex h-7 items-center rounded-md px-2 text-[13px] font-medium text-white/90 transition-colors hover:bg-white/8 hover:text-white sm:text-[15px] lg:text-[16px]"
                 }
               >
                 {category}
@@ -103,13 +103,13 @@ export function DesktopCategoryNav() {
                 <div
                   role="menu"
                   aria-label={`${category} menu`}
-                  className="fixed left-0 top-[108px] z-50 w-screen border-y border-white/10 bg-[#00132e]/[0.98] px-[clamp(3rem,8vw,10rem)] py-7 shadow-[0_22px_48px_rgba(0,0,0,0.42)] backdrop-blur-md"
+                  className="fixed left-0 top-[108px] z-50 w-screen border-y border-white/10 bg-[#00132e]/[0.98] px-4 py-5 shadow-[0_22px_48px_rgba(0,0,0,0.42)] backdrop-blur-md sm:px-6 lg:px-[clamp(3rem,8vw,10rem)] lg:py-7"
                 >
                   <div className="mx-auto max-w-[1440px]">
                     <p className="mb-4 text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--accent)]">
                       {category}
                     </p>
-                    <div className="grid grid-cols-3 gap-x-10 gap-y-1 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-x-10 gap-y-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {items.map((item) => (
                       <Link
                         key={item}
