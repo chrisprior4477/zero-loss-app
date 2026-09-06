@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { HeroImageFan } from "@/components/home/HeroImageFan";
-import { HeroSearchRow } from "@/components/home/HeroSearchRow";
-import { HowItWorksToggle } from "@/components/home/HowItWorksToggle";
+import { ZeroLossJourney } from "@/components/home/ZeroLossJourney";
 
 const HERO_SLIDES = [
   {
@@ -63,7 +61,7 @@ function DesktopHeroCarousel() {
     <section
       aria-roledescription="carousel"
       aria-label="ZeroLoss highlights"
-      className="relative left-1/2 hidden w-screen -translate-x-1/2 overflow-hidden bg-transparent lg:block"
+      className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-transparent"
     >
       <div
         className="flex transition-transform duration-500 ease-out motion-reduce:transition-none"
@@ -75,21 +73,22 @@ function DesktopHeroCarousel() {
             aria-roledescription="slide"
             aria-label={`${index + 1} of ${HERO_SLIDES.length}`}
             aria-hidden={activeSlide !== index}
-            className="relative min-h-[clamp(240px,20vw,290px)] w-full shrink-0 overflow-hidden px-[clamp(4.5rem,7vw,8rem)] py-5"
+            className="relative min-h-[270px] w-full shrink-0 overflow-hidden px-5 py-5 sm:px-8 lg:min-h-[clamp(240px,20vw,290px)] lg:px-[clamp(4.5rem,7vw,8rem)]"
           >
-            <div className="absolute inset-y-0 right-0 w-[72%] overflow-hidden">
+            <div className="absolute inset-0 overflow-hidden lg:left-auto lg:w-[72%]">
               <Image
                 src={slide.image}
                 alt=""
                 aria-hidden="true"
                 fill
-                sizes="72vw"
-                className="scale-[0.97] object-cover object-center drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)]"
+                sizes="(min-width: 1024px) 72vw, 100vw"
+                className="scale-[0.97] object-cover object-center opacity-65 drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:opacity-100"
                 preload={index === 0}
               />
             </div>
-            <div className="relative z-10 flex min-h-[calc(clamp(240px,20vw,290px)-2.5rem)] max-w-[620px] flex-col items-start justify-center">
-              <h1 className="text-[clamp(38px,3.5vw,54px)] font-extrabold leading-[0.98] tracking-[-0.045em] text-white">
+            <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-[#031b44] via-[#031b44]/90 to-[#031b44]/15 lg:via-[#031b44]/70 lg:to-transparent" />
+            <div className="relative z-10 flex min-h-[230px] max-w-[620px] flex-col items-start justify-center lg:min-h-[calc(clamp(240px,20vw,290px)-2.5rem)]">
+              <h1 className="max-w-[82%] text-[34px] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[42px] lg:max-w-none lg:text-[clamp(38px,3.5vw,54px)]">
                 {slide.lines.map((line) =>
                   slide.id === "shopping" && line === "never feel like a loss." ? (
                     <span key={line} className="block">
@@ -170,7 +169,7 @@ function DesktopHeroCarousel() {
         ref={howItWorksPanelRef}
         id="desktop-how-it-works-panel"
         aria-label="How ZeroLoss works"
-        className="relative left-1/2 hidden w-screen -translate-x-1/2 border-y border-cyan-300/20 bg-[#00132e] px-[clamp(4rem,8vw,10rem)] py-7 lg:block"
+        className="relative left-1/2 w-screen -translate-x-1/2 border-y border-cyan-300/20 bg-[#00132e] px-4 py-7 sm:px-6 lg:px-[clamp(4rem,8vw,10rem)]"
       >
         <div className="mx-auto max-w-[1440px]">
           <Image
@@ -179,11 +178,14 @@ function DesktopHeroCarousel() {
             width={1774}
             height={887}
             sizes="(min-width: 1024px) 84vw, 100vw"
-            className="mb-9 h-auto w-full rounded-2xl shadow-[0_18px_42px_rgba(0,0,0,0.32)]"
+            className="mb-9 hidden h-auto w-full rounded-2xl shadow-[0_18px_42px_rgba(0,0,0,0.32)] lg:block"
             priority
           />
+          <div className="mb-8 lg:hidden">
+            <ZeroLossJourney compact />
+          </div>
           <h2 className="text-[22px] font-bold text-white">How ZeroLoss works</h2>
-          <div className="mt-4 grid grid-cols-2 gap-8">
+          <div className="mt-4 grid gap-5 sm:grid-cols-2 sm:gap-8">
             <div className="border-l-2 border-[var(--live)] pl-4">
               <h3 className="text-[14px] font-bold text-[var(--live)]">Everyday items</h3>
               <p className="mt-1.5 max-w-[560px] text-[14px] leading-[1.55] text-white/80">
@@ -209,38 +211,5 @@ function DesktopHeroCarousel() {
 }
 
 export function HeroSection() {
-  return (
-    <>
-      <DesktopHeroCarousel />
-
-      <section
-        aria-labelledby="home-hero-heading"
-        className="grid items-center gap-8 lg:hidden"
-      >
-        <div>
-          <h1
-            id="home-hero-heading"
-            className="text-[34px] font-extrabold leading-[1.05] tracking-[-0.03em] text-[var(--foreground)] text-balance sm:text-[42px]"
-          >
-            Shopping should never feel like losing.
-          </h1>
-
-          <p className="mt-4 max-w-lg text-[15px] leading-[1.55] text-[var(--muted)] sm:text-base">
-            Win what you were already planning to buy. Don&apos;t win? What you
-            spent still counts toward buying it instead.
-          </p>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <HowItWorksToggle />
-          </div>
-
-          <div className="mt-6">
-            <HeroSearchRow />
-          </div>
-        </div>
-
-        <HeroImageFan />
-      </section>
-    </>
-  );
+  return <DesktopHeroCarousel />;
 }

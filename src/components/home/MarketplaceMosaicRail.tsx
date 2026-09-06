@@ -103,9 +103,9 @@ export function MarketplaceMosaicRail() {
   return (
     <section aria-labelledby="marketplace-mosaic-title" className="relative left-1/2 mt-8 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] py-8">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_24%_50%,rgba(0,185,255,0.09),transparent_30%),radial-gradient(circle_at_72%_50%,rgba(49,232,0,0.07),transparent_31%)]" />
-      <div className="relative z-10 mx-auto mb-5 flex max-w-[1600px] items-end justify-between px-[clamp(3rem,6vw,7rem)]">
+      <div className="relative z-10 mx-auto mb-5 flex max-w-[1600px] items-end justify-between px-4 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
         <div className="border-l-4 border-[#31e800] pl-4">
-          <h2 id="marketplace-mosaic-title" className="text-[26px] font-extrabold tracking-[-0.035em] text-white">Browse the marketplace</h2>
+          <h2 id="marketplace-mosaic-title" className="text-[22px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Browse the marketplace</h2>
           <p className="mt-1 text-[13px] text-white/58">Discover all rewards</p>
         </div>
         <Link href="/browse" className="text-[13px] font-bold text-cyan-300 hover:text-white">See all rewards</Link>
@@ -114,7 +114,7 @@ export function MarketplaceMosaicRail() {
       <div className="relative">
         <div
           ref={trackRef}
-          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-5 overflow-x-auto px-[clamp(3rem,6vw,7rem)] pb-3 active:cursor-grabbing"
+          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-5 overflow-x-auto px-4 pb-3 active:cursor-grabbing sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -141,8 +141,8 @@ export function MarketplaceMosaicRail() {
         </div>
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[8vw] bg-gradient-to-r from-[#031b44] to-transparent" />
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[8vw] bg-gradient-to-l from-[#031b44] to-transparent" />
-        <button type="button" aria-label="Scroll marketplace left" onClick={() => scroll(-1)} className="absolute left-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-[#00132e]/95 text-2xl text-white hover:border-cyan-300">‹</button>
-        <button type="button" aria-label="Scroll marketplace right" onClick={() => scroll(1)} className="absolute right-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-[#00132e]/95 text-2xl text-white hover:border-cyan-300">›</button>
+        <button type="button" aria-label="Scroll marketplace left" onClick={() => scroll(-1)} className="absolute left-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-[#00132e]/95 text-2xl text-white hover:border-cyan-300 sm:grid">‹</button>
+        <button type="button" aria-label="Scroll marketplace right" onClick={() => scroll(1)} className="absolute right-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-[#00132e]/95 text-2xl text-white hover:border-cyan-300 sm:grid">›</button>
       </div>
     </section>
   );

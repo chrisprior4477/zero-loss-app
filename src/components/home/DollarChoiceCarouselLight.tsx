@@ -73,15 +73,15 @@ export function DollarChoiceCarouselLight() {
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-[7vw] bottom-[12%] top-[17%] bg-[radial-gradient(ellipse_at_center,rgba(43,125,191,0.26)_0%,rgba(12,74,130,0.17)_48%,transparent_82%)] blur-2xl" />
 
-      <div className="relative z-20 mx-auto flex max-w-[1600px] items-start justify-between gap-6 px-[clamp(3rem,6vw,7rem)]">
+      <div className="relative z-20 mx-auto flex max-w-[1600px] items-start justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 id="dollar-choice-light-title" className="text-[26px] font-extrabold tracking-[-0.035em] text-white">Your Next Everyday Upgrade</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="dollar-choice-light-title" className="text-[22px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Your Next Everyday Upgrade</h2>
             <span className="rounded-full border border-cyan-200/50 bg-[#00132e]/45 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-200">Layout test</span>
           </div>
           <p className="mt-1 text-[13px] text-white/70">A cleaner product-feed treatment designed for ordinary vendor images.</p>
         </div>
-        <Link href="/browse" className="shrink-0 rounded-lg border border-cyan-200/35 bg-[#05265a] px-4 py-2.5 text-[12px] font-bold text-cyan-200 transition-colors hover:border-cyan-200 hover:text-white">
+        <Link href="/browse" className="hidden shrink-0 rounded-lg border border-cyan-200/35 bg-[#05265a] px-4 py-2.5 text-[12px] font-bold text-cyan-200 transition-colors hover:border-cyan-200 hover:text-white sm:block">
           See all prizes
         </Link>
       </div>
@@ -96,7 +96,7 @@ export function DollarChoiceCarouselLight() {
 
         <div
           ref={trackRef}
-          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-5 overflow-x-auto px-[clamp(3rem,6vw,7rem)] pb-5 pt-2 active:cursor-grabbing"
+          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-5 overflow-x-auto px-4 pb-5 pt-2 active:cursor-grabbing sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -140,8 +140,8 @@ export function DollarChoiceCarouselLight() {
 
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[11vw] bg-gradient-to-r from-[#031b44] via-[#031b44]/80 to-transparent" />
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[11vw] bg-gradient-to-l from-[#031b44] via-[#031b44]/80 to-transparent" />
-        <button type="button" aria-label="Scroll alternate prizes left" onClick={() => scroll(-1)} className="absolute left-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300">‹</button>
-        <button type="button" aria-label="Scroll alternate prizes right" onClick={() => scroll(1)} className="absolute right-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300">›</button>
+        <button type="button" aria-label="Scroll alternate prizes left" onClick={() => scroll(-1)} className="absolute left-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid">‹</button>
+        <button type="button" aria-label="Scroll alternate prizes right" onClick={() => scroll(1)} className="absolute right-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid">›</button>
       </div>
     </section>
   );

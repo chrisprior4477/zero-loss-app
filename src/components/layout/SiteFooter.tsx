@@ -6,7 +6,7 @@ export function SiteFooter() {
 
   return (
     <footer className="mt-auto border-t border-cyan-300/10 bg-[#000f25]">
-      <div className="mx-auto grid max-w-[1600px] gap-8 px-[clamp(3rem,6vw,7rem)] py-8 md:grid-cols-[1.5fr_repeat(4,1fr)]">
+      <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-8 sm:px-6 md:grid-cols-[1.5fr_repeat(4,1fr)] lg:px-[clamp(3rem,6vw,7rem)]">
         <div>
           <p className="text-[22px] font-extrabold uppercase tracking-[-0.04em] text-white">
             Zero<span className="text-[#73e72d]">Loss</span>
@@ -51,7 +51,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/8">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-2 px-[clamp(3rem,6vw,7rem)] py-3 text-[10px] text-white/38 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-2 px-4 py-3 text-[10px] text-white/38 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
           <p>© {year} ZeroLoss. All rights reserved.</p>
           <p>Shopping should never feel like losing.</p>
         </div>

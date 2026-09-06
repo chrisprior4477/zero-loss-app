@@ -49,15 +49,15 @@ export function DollarChoiceCarousel() {
       className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] py-7"
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_48%,rgba(117,65,255,0.18),transparent_22%),radial-gradient(circle_at_39%_54%,rgba(0,185,255,0.16),transparent_23%),radial-gradient(circle_at_63%_50%,rgba(49,232,0,0.12),transparent_22%),radial-gradient(circle_at_84%_48%,rgba(201,70,255,0.16),transparent_22%)]" />
-      <div className="relative z-20 mx-auto mb-1 flex max-w-[1600px] items-start justify-between gap-6 px-[clamp(3rem,6vw,7rem)]">
+      <div className="relative z-20 mx-auto mb-1 flex max-w-[1600px] items-start justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-[26px] font-extrabold tracking-[-0.035em] text-white">Where would you put your $1?</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[22px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Where would you put your $1?</h2>
             <span className="rounded-full border border-cyan-300/40 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-300">Demo data</span>
           </div>
           <p className="mt-1 text-[13px] text-white/60">Real products. One dollar. You choose.</p>
         </div>
-        <Link href="/browse" className="shrink-0 rounded-lg border border-cyan-300/25 bg-[#05265a] px-4 py-2.5 text-[12px] font-bold text-cyan-300 transition-colors hover:border-cyan-300/60 hover:text-white">
+        <Link href="/browse" className="hidden shrink-0 rounded-lg border border-cyan-300/25 bg-[#05265a] px-4 py-2.5 text-[12px] font-bold text-cyan-300 transition-colors hover:border-cyan-300/60 hover:text-white sm:block">
           See all prizes
         </Link>
       </div>
@@ -76,7 +76,7 @@ export function DollarChoiceCarousel() {
         <div
           ref={trackRef}
           data-testid="dollar-choice-track"
-          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-2 overflow-x-auto px-[clamp(3rem,6vw,7rem)] pb-2 pt-3 active:cursor-grabbing"
+          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-2 overflow-x-auto px-4 pb-2 pt-3 active:cursor-grabbing sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -120,8 +120,8 @@ export function DollarChoiceCarousel() {
 
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[9vw] bg-gradient-to-r from-[#031b44] via-[#031b44]/85 to-transparent" />
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[9vw] bg-gradient-to-l from-[#031b44] via-[#031b44]/85 to-transparent" />
-        <button type="button" aria-label="Scroll prizes left" onClick={() => scroll(-1)} className="absolute left-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300">‹</button>
-        <button type="button" aria-label="Scroll prizes right" onClick={() => scroll(1)} className="absolute right-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300">›</button>
+        <button type="button" aria-label="Scroll prizes left" onClick={() => scroll(-1)} className="absolute left-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid">‹</button>
+        <button type="button" aria-label="Scroll prizes right" onClick={() => scroll(1)} className="absolute right-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/25 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid">›</button>
       </div>
     </section>
   );

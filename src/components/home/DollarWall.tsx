@@ -84,7 +84,7 @@ export function DollarWall() {
         <button type="button" disabled={picks.length < 2} onClick={() => setCreated(true)} className="mt-3 w-full rounded-lg bg-[#74e72d] px-3 py-2.5 text-[11px] font-extrabold text-[#00132e] enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35">Create bundle</button>
         <div className="mt-3 flex gap-2"><button type="button" onClick={() => setHelp(!help)} className="flex-1 rounded-md border border-cyan-300/25 px-2 py-2 text-[10px] font-bold text-cyan-300 hover:bg-cyan-300/10">How it works</button>{picks.length > 0 && <button type="button" onClick={reset} className="flex-1 rounded-md border border-white/20 px-2 py-2 text-[10px] font-bold text-white/70 hover:bg-white/10">Clear all</button>}</div>
       </div>
-      <div className="grid grid-cols-6 gap-2 sm:grid-cols-8" aria-label="Interactive one dollar product wall">
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8" aria-label="Interactive one dollar product wall">
         {items.map((item) => {
           const chosen = picks.some((pickItem) => pickItem.id === item.id);
           const isRevealed = revealed === item.id;

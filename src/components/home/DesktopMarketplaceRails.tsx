@@ -49,7 +49,7 @@ function SideRailButtons({ onScroll }: { onScroll: (direction: -1 | 1) => void }
         type="button"
         aria-label="Scroll left"
         onClick={() => onScroll(-1)}
-        className="absolute left-2 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300"
+        className="absolute left-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid"
       >
         ‹
       </button>
@@ -57,7 +57,7 @@ function SideRailButtons({ onScroll }: { onScroll: (direction: -1 | 1) => void }
         type="button"
         aria-label="Scroll right"
         onClick={() => onScroll(1)}
-        className="absolute right-2 top-1/2 z-20 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300"
+        className="absolute right-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid"
       >
         ›
       </button>
@@ -123,7 +123,7 @@ export function DesktopMarketplaceRails() {
   };
 
   return (
-    <section className="relative left-1/2 mt-8 hidden w-screen -translate-x-1/2 space-y-8 px-[clamp(3rem,6vw,7rem)] lg:block">
+    <section className="relative left-1/2 mt-8 w-screen -translate-x-1/2 space-y-8 px-4 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
       <div>
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -288,7 +288,7 @@ export function DesktopMarketplaceRails() {
       </div>
 
       <DollarChoiceCarousel />
-      <div className="mt-8 grid grid-cols-[360px_minmax(0,1fr)] gap-6">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <RecentWinnerRoll />
         <SocialActivityFeed />
       </div>
