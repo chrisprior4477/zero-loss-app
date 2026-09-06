@@ -123,7 +123,7 @@ export function DesktopMarketplaceRails() {
   };
 
   return (
-    <section className="relative left-1/2 mt-8 w-screen -translate-x-1/2 space-y-8 px-4 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
+    <section className="relative left-1/2 mt-3 w-screen -translate-x-1/2 space-y-4 px-4 sm:mt-8 sm:space-y-8 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
       <div>
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -288,7 +288,7 @@ export function DesktopMarketplaceRails() {
       </div>
 
       <DollarChoiceCarousel />
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="mt-0 grid grid-cols-1 gap-3 sm:mt-8 sm:gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <RecentWinnerRoll />
         <SocialActivityFeed />
       </div>
