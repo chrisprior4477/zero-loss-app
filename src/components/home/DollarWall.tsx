@@ -84,7 +84,7 @@ export function DollarWall() {
     <div className="relative z-10 grid items-start gap-6 lg:grid-cols-[220px_1fr]">
       <div>
         <h2 id="dollar-wall-title" className="text-[25px] font-extrabold leading-[1.04] tracking-[-.035em] text-white drop-shadow-[0_0_18px_rgba(0,185,255,.24)]">A dollar can land<br/><span className="bg-gradient-to-r from-[#9cff58] via-[#74e72d] to-cyan-300 bg-clip-text text-transparent">almost anywhere.</span></h2>
-        <p className="mt-3 text-[12px] leading-relaxed text-white/60">Hover to reveal.<br/>Click to add it forever.</p>
+        <p className="mt-3 max-w-none text-[15px] font-medium leading-snug tracking-[-.01em] text-white/80">Hover to reveal. Click to add it forever.</p>
         <div className="mt-4 min-h-[100px] rounded-xl border border-cyan-300/20 bg-[#00132e]/65 p-3 shadow-[inset_0_0_22px_rgba(0,185,255,.06)]">
           <div className="flex justify-between"><h3 className="text-[11px] font-extrabold uppercase tracking-[.1em] text-cyan-300">Your bundle</h3><span className="text-[10px] text-white/45">{picks.length}/5</span></div>
           {picks.length ? <ul className="mt-2 space-y-1.5">{picks.map((item) => <li key={item.id} className="flex items-center justify-between gap-2 text-[10px] text-white/75"><span className="min-w-0 truncate"><span className="mr-1.5 text-[#74e72d]">✓</span>{item.name}</span><button type="button" onClick={() => remove(item)} aria-label={`Remove ${item.name}`} className="shrink-0 rounded-md border border-red-300/30 px-2 py-1 font-bold text-red-200 hover:bg-red-400/15">Remove</button></li>)}</ul> : <p className="mt-3 text-[10px] leading-relaxed text-white/40">Your picks will appear here.</p>}
