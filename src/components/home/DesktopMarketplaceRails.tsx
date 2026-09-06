@@ -143,7 +143,7 @@ export function DesktopMarketplaceRails() {
             {desktopCategories.map((category) => (
             <div
               key={category.id}
-              className="group relative h-[128px] w-[150px] shrink-0 overflow-hidden rounded-xl border border-white/20 bg-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:h-[178px] sm:w-[210px] sm:rounded-2xl"
+              className="group relative h-[112px] w-[130px] shrink-0 overflow-hidden rounded-xl border border-white/20 bg-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:h-[178px] sm:w-[210px] sm:rounded-2xl"
             >
               <Link href="/browse" draggable={false} className="absolute inset-0">
                 <Image
@@ -204,14 +204,14 @@ export function DesktopMarketplaceRails() {
             return (
               <article
                 key={item.id}
-                className="relative w-[172px] shrink-0 overflow-hidden rounded-xl bg-white text-[#00132e] transition-transform hover:-translate-y-0.5 sm:w-[220px] sm:rounded-2xl"
+                className="relative w-[150px] shrink-0 overflow-hidden rounded-xl bg-white text-[#00132e] transition-transform hover:-translate-y-0.5 sm:w-[220px] sm:rounded-2xl"
               >
                 <Link
                   href="/browse"
                   draggable={false}
                   className="block h-full p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500"
                 >
-                  <div className="relative h-[82px] overflow-hidden rounded-lg bg-[#f2f4f7] sm:h-[105px] sm:rounded-xl">
+                  <div className="relative h-[72px] overflow-hidden rounded-lg bg-[#f2f4f7] sm:h-[105px] sm:rounded-xl">
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="220px" className="object-contain p-2" />
                   </div>
                   <h3 className="mt-2.5 min-h-9 text-[13px] font-bold leading-[1.2]">{item.title}</h3>
@@ -272,10 +272,10 @@ export function DesktopMarketplaceRails() {
                 key={brand.name}
                 href="/browse"
                 draggable={false}
-                className="group flex w-[84px] shrink-0 flex-col items-center gap-2 focus-visible:outline-none sm:w-[116px] sm:gap-2.5"
+                className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 focus-visible:outline-none sm:w-[116px] sm:gap-2.5"
               >
                 <span
-                  className="grid h-[74px] w-[74px] place-items-center rounded-full border border-white/15 px-2 text-center text-[11px] font-bold leading-tight text-white shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-transform group-hover:-translate-y-1 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-cyan-300 sm:h-[104px] sm:w-[104px] sm:px-3 sm:text-[15px]"
+                  className="grid h-[62px] w-[62px] place-items-center rounded-full border border-white/15 px-1.5 text-center text-[10px] font-bold leading-tight text-white shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-transform group-hover:-translate-y-1 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-cyan-300 sm:h-[104px] sm:w-[104px] sm:px-3 sm:text-[15px]"
                   style={{ background: brand.color }}
                 >
                   {brand.name}

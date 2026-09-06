@@ -10,7 +10,7 @@ import { dollarChoiceDemoItems, marketplaceMovementDemoItems } from "@/lib/home/
 const products = dollarChoiceDemoItems;
 
 function EntryButton() {
-  return <span style={{ minWidth: 78 }} className="grid h-9 shrink-0 place-items-center whitespace-nowrap rounded-md bg-[#73e72d] px-3 text-[12px] font-extrabold text-[#00132e] shadow-[0_0_14px_rgba(49,232,0,0.22)]">$1 Entry</span>;
+  return <span className="grid h-7 min-w-[58px] shrink-0 place-items-center whitespace-nowrap rounded-md bg-[#73e72d] px-1.5 text-[9px] font-extrabold text-[#00132e] shadow-[0_0_14px_rgba(49,232,0,0.22)] sm:h-9 sm:min-w-[78px] sm:px-3 sm:text-[12px]">$1 Entry</span>;
 }
 
 function FeatureCard({ item }: { item: (typeof products)[number] }) {
@@ -19,9 +19,9 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
   const ticketsLeft = movement?.spotsLeft ?? Math.max(25, Math.round((100 - item.percentFilled) * 12));
 
   return (
-    <article className="group relative w-[248px] shrink-0 overflow-hidden rounded-2xl border border-cyan-200/20 bg-[#031a3d] shadow-[0_18px_40px_rgba(0,0,0,0.28)] sm:w-[320px] sm:rounded-[22px]">
+    <article className="group relative w-[190px] shrink-0 overflow-hidden rounded-2xl border border-cyan-200/20 bg-[#031a3d] shadow-[0_18px_40px_rgba(0,0,0,0.28)] sm:w-[320px] sm:rounded-[22px]">
       <Link href={item.href} draggable={false} className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
-        <div className="relative h-[154px] overflow-hidden bg-[linear-gradient(145deg,#fff,#e9eef2)] sm:h-[196px]">
+        <div className="relative h-[136px] overflow-hidden bg-[linear-gradient(145deg,#fff,#e9eef2)] sm:h-[196px]">
           <span aria-hidden="true" className="absolute inset-x-[20%] bottom-3 h-10 rounded-full opacity-20 blur-xl" style={{ backgroundColor: item.accent }} />
           <Image
             src={item.image}
@@ -30,20 +30,20 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
             draggable={false}
             fill
             sizes="320px"
-            style={{ paddingRight: 92, objectPosition: "left center" }}
-            className="object-contain p-4 drop-shadow-[0_15px_14px_rgba(0,19,46,0.22)] transition-transform duration-300 group-hover:scale-[1.035]"
+            style={{ objectPosition: "left center" }}
+            className="object-contain p-3 pr-[68px] drop-shadow-[0_15px_14px_rgba(0,19,46,0.22)] transition-transform duration-300 group-hover:scale-[1.035] sm:p-4 sm:pr-[92px]"
           />
-          <span style={{ position: "absolute", right: 14, top: 76 }} className="z-10 text-right text-[10px] font-extrabold uppercase leading-tight tracking-[0.04em] text-slate-500">
+          <span style={{ position: "absolute", right: 10, top: 48 }} className="z-10 text-right text-[8px] font-extrabold uppercase leading-tight tracking-[0.04em] text-slate-500 sm:right-[14px] sm:top-[76px] sm:text-[10px]">
             <span className="block text-[15px] leading-none text-[#00132e]">{ticketsLeft.toLocaleString()}</span>
             tickets left
           </span>
-          <span style={{ position: "absolute", right: 16, bottom: 20 }} className="z-10">
+          <span className="absolute bottom-2 right-2 z-10 scale-[.76] sm:bottom-5 sm:right-4 sm:scale-100">
             <CircularProgress percent={item.percentFilled} color={meterColor} label={`${item.title} pool filled`} />
           </span>
         </div>
-        <div className="flex min-h-[68px] items-center justify-between gap-4 px-5 py-3">
+        <div className="flex min-h-[68px] items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-5 sm:py-3">
           <div style={{ maxWidth: 180 }} className="min-w-0">
-            <h3 className="text-[15px] font-extrabold leading-tight text-white">{item.title}</h3>
+            <h3 className="text-[11px] font-extrabold leading-tight text-white sm:text-[15px]">{item.title}</h3>
           </div>
           <EntryButton />
         </div>
@@ -55,16 +55,16 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
 
 function CompactCard({ item }: { item: (typeof products)[number] }) {
   return (
-    <article className="group relative h-[104px] w-[190px] overflow-hidden rounded-2xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:h-[123px] sm:w-[230px] sm:rounded-[20px]">
-      <Link href={item.href} draggable={false} className="flex h-full items-center gap-3 px-3 pr-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
-        <div className="relative h-[76px] w-[70px] shrink-0 overflow-hidden rounded-xl bg-[radial-gradient(circle,#f9fbfc_0%,#dce8ef_66%,rgba(116,231,45,0.18)_100%)] sm:h-[94px] sm:w-[92px] sm:rounded-[16px]">
+    <article className="group relative h-[95px] w-[125px] overflow-hidden rounded-xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:h-[123px] sm:w-[230px] sm:rounded-[20px]">
+      <Link href={item.href} draggable={false} className="flex h-full items-center gap-1.5 px-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:gap-3 sm:px-3 sm:pr-4">
+        <div className="relative h-[62px] w-[44px] shrink-0 overflow-hidden rounded-lg bg-[radial-gradient(circle,#f9fbfc_0%,#dce8ef_66%,rgba(116,231,45,0.18)_100%)] sm:h-[94px] sm:w-[92px] sm:rounded-[16px]">
           <span aria-hidden="true" className="absolute inset-4 rounded-full opacity-20 blur-xl" style={{ backgroundColor: item.accent }} />
           <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="92px" className="object-contain p-2 drop-shadow-[0_10px_10px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-105" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-[14px] font-extrabold leading-tight text-white">{item.title}</h3>
-          <p className="mt-2 text-[11px] font-semibold text-white/55">{item.percentFilled}% filled</p>
-          <div className="mt-2"><EntryButton /></div>
+          <h3 className="line-clamp-2 text-[9px] font-extrabold leading-tight text-white sm:text-[14px]">{item.title}</h3>
+          <p className="mt-1 text-[8px] font-semibold text-white/55 sm:mt-2 sm:text-[11px]">{item.percentFilled}% filled</p>
+          <div className="mt-1 sm:mt-2"><EntryButton /></div>
         </div>
       </Link>
       <FavoriteButton itemName={`${item.title} marketplace`} className="absolute right-2 top-2 z-20" />
@@ -114,7 +114,7 @@ export function MarketplaceMosaicRail() {
       <div className="relative">
         <div
           ref={trackRef}
-          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-5 overflow-x-auto px-4 pb-3 active:cursor-grabbing sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
+          className="zl-noscroll relative z-10 flex cursor-grab touch-pan-y select-none gap-3 overflow-x-auto px-4 pb-3 active:cursor-grabbing sm:gap-5 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}

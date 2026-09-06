@@ -93,11 +93,11 @@ export function DollarChoiceCarousel() {
           {dollarChoiceDemoItems.map((item) => {
             const meterColor = item.percentFilled >= 80 ? "#ff630f" : item.percentFilled >= 60 ? "#31e800" : "#00b9ff";
             return (
-              <article key={item.id} className="group relative w-[176px] shrink-0 sm:w-[230px]">
+              <article key={item.id} className="group relative w-[156px] shrink-0 sm:w-[230px]">
                 <Link href={item.href} draggable={false} className="block rounded-2xl px-2 pb-3 pt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
                   <span className="absolute left-2 top-1 z-20 grid h-9 w-9 place-items-center rounded-full bg-[#74e72d] text-[14px] font-extrabold text-[#00132e] shadow-[0_0_18px_rgba(49,232,0,0.55)] sm:h-11 sm:w-11 sm:text-[17px]">$1</span>
                   <div
-                    className="relative h-[128px] overflow-visible rounded-[44%] transition-transform duration-300 group-hover:-translate-y-1 sm:h-[174px]"
+                    className="relative h-[112px] overflow-visible rounded-[44%] transition-transform duration-300 group-hover:-translate-y-1 sm:h-[174px]"
                     style={{ background: `radial-gradient(circle at center, ${item.accentSoft} 0%, rgba(0,19,46,0.42) 48%, transparent 72%)` }}
                   >
                     <span aria-hidden="true" className="absolute inset-[18%] rounded-full blur-2xl" style={{ backgroundColor: item.accentSoft, boxShadow: `0 0 42px ${item.accent}` }} />

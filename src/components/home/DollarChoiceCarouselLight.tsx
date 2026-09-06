@@ -113,9 +113,9 @@ export function DollarChoiceCarouselLight() {
           {dollarChoiceDemoItems.map((item) => {
             const meterColor = item.percentFilled >= 90 ? "#f32343" : item.percentFilled >= 75 ? "#ff6b22" : item.percentFilled >= 50 ? "#0787e8" : "#25c46a";
             return (
-              <article key={item.id} className="group relative w-[196px] shrink-0 overflow-hidden rounded-2xl border border-[#a9bfd0] bg-white shadow-[0_16px_35px_rgba(0,19,46,0.2)] transition-transform duration-300 hover:-translate-y-1 sm:w-[244px] sm:rounded-[22px]">
+              <article key={item.id} className="group relative w-[174px] shrink-0 overflow-hidden rounded-2xl border border-[#a9bfd0] bg-white shadow-[0_16px_35px_rgba(0,19,46,0.2)] transition-transform duration-300 hover:-translate-y-1 sm:w-[244px] sm:rounded-[22px]">
                 <Link href={item.href} draggable={false} className="block p-3 pb-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500">
-                  <div className="relative h-[116px] overflow-hidden rounded-[13px] border border-slate-200 bg-[linear-gradient(145deg,#ffffff,#f3f5f6)] sm:h-[150px] sm:rounded-[15px]">
+                  <div className="relative h-[102px] overflow-hidden rounded-[13px] border border-slate-200 bg-[linear-gradient(145deg,#ffffff,#f3f5f6)] sm:h-[150px] sm:rounded-[15px]">
                     <span aria-hidden="true" className="absolute inset-x-5 bottom-2 h-7 rounded-full opacity-20 blur-lg" style={{ backgroundColor: item.accent }} />
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="244px" className="relative z-10 object-contain p-3 drop-shadow-[0_10px_9px_rgba(0,19,46,0.2)] transition-transform duration-300 group-hover:scale-[1.04]" />
                   </div>
