@@ -271,61 +271,41 @@ body {
   }
 }
 
-/* Mystery-dollar wall: deliberately high-energy discovery treatment. */
+/* Mystery-dollar wall: glowing solar-orbit treatment. */
 @keyframes dollar-tile-breathe {
   0%, 100% { filter: brightness(0.95); }
   50% { filter: brightness(1.14); }
-}
-
-@keyframes dollar-tile-shine {
-  0%, 62% { transform: translateX(-180%) rotate(24deg); opacity: 0; }
-  70% { opacity: 0.9; }
-  88%, 100% { transform: translateX(520%) rotate(24deg); opacity: 0; }
 }
 
 .dollar-mystery-tile {
   animation: dollar-tile-breathe 3.4s ease-in-out infinite;
 }
 
-.dollar-tile-shine {
-  animation: dollar-tile-shine 4.6s ease-in-out infinite;
-}
-
-@keyframes dollar-aurora-spin {
-  to { transform: rotate(360deg); }
-}
-
 @keyframes dollar-coin-charge {
-  0%, 100% { transform: scale(0.94); filter: brightness(0.9); }
-  48% { transform: scale(1.09); filter: brightness(1.35); }
-  55% { transform: scale(1.02); filter: brightness(1.12); }
+  0%, 100% { transform: scale(0.97); filter: brightness(0.98); }
+  50% { transform: scale(1.04); filter: brightness(1.22); }
 }
 
-@keyframes dollar-orbit {
-  to { transform: rotate(-360deg); }
+@keyframes dollar-solar-orbit {
+  from { transform: translate(-50%, -50%) rotate(18deg); }
+  to { transform: translate(-50%, -50%) rotate(378deg); }
 }
 
-@keyframes dollar-wall-scan {
-  0% { transform: translateY(-120%); opacity: 0; }
-  15% { opacity: 0.65; }
-  70% { opacity: 0.3; }
-  100% { transform: translateY(720%); opacity: 0; }
+.dollar-solar-orbit {
+  animation: dollar-solar-orbit 5.5s linear infinite;
 }
 
-.dollar-tile-aurora {
-  animation: dollar-aurora-spin 4.8s linear infinite;
+.dollar-solar-orbit-reverse {
+  animation-direction: reverse;
+  animation-duration: 7s;
+}
+
+.dollar-solar-orbit-slow {
+  animation-duration: 9s;
 }
 
 .dollar-coin-core {
-  animation: dollar-coin-charge 2.2s ease-in-out infinite;
-}
-
-.dollar-orbit-spark {
-  animation: dollar-orbit 3s linear infinite;
-}
-
-.dollar-wall-scan {
-  animation: dollar-wall-scan 7s ease-in-out infinite;
+  animation: dollar-coin-charge 2.8s ease-in-out infinite;
 }
 
 .dollar-tile-button:hover,
@@ -336,11 +316,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .dollar-mystery-tile,
-  .dollar-tile-shine,
-  .dollar-tile-aurora,
   .dollar-coin-core,
-  .dollar-orbit-spark,
-  .dollar-wall-scan {
+  .dollar-solar-orbit {
     animation: none;
   }
 }
