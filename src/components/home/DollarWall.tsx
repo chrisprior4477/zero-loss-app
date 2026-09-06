@@ -42,6 +42,8 @@ const sheetUrls: Record<PhotoSheet, string> = {
   kayak: "/dollar-wall-kayak-v2.png",
 };
 
+const tileAccents = ["#18bfff", "#8b5cf6", "#74e72d", "#ff6b22", "#ec4899", "#22d3ee"];
+
 export function DollarWall() {
   const [items, setItems] = useState(starters);
   const [picks, setPicks] = useState<Item[]>([]);
@@ -72,25 +74,28 @@ export function DollarWall() {
     pick(item);
   }
 
-  return <section aria-labelledby="dollar-wall-title" className="overflow-hidden rounded-[22px] border border-cyan-300/15 bg-[radial-gradient(circle_at_55%_50%,rgba(0,112,255,.1),transparent_38%),linear-gradient(135deg,#03172f,#020e20)] px-5 py-6 shadow-[0_16px_38px_rgba(0,0,0,.18)] sm:px-7">
-    <div className="grid items-start gap-6 lg:grid-cols-[220px_1fr]">
+  return <section aria-labelledby="dollar-wall-title" className="relative overflow-hidden rounded-[22px] border border-cyan-300/30 bg-[radial-gradient(circle_at_15%_12%,rgba(0,185,255,.2),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(139,92,246,.2),transparent_34%),linear-gradient(135deg,#041d42,#020d20_58%,#071936)] px-5 py-6 shadow-[0_18px_44px_rgba(0,0,0,.3),inset_0_1px_0_rgba(125,230,255,.1)] sm:px-7">
+    <span aria-hidden="true" className="pointer-events-none absolute -left-16 top-1/3 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
+    <span aria-hidden="true" className="pointer-events-none absolute -right-14 bottom-4 h-44 w-44 rounded-full bg-violet-500/15 blur-3xl" />
+    <div className="relative z-10 grid items-start gap-6 lg:grid-cols-[220px_1fr]">
       <div>
-        <h2 id="dollar-wall-title" className="text-[25px] font-extrabold leading-[1.04] tracking-[-.035em] text-white">A dollar can land<br/><span className="text-[#74e72d]">almost anywhere.</span></h2>
+        <h2 id="dollar-wall-title" className="text-[25px] font-extrabold leading-[1.04] tracking-[-.035em] text-white drop-shadow-[0_0_18px_rgba(0,185,255,.24)]">A dollar can land<br/><span className="bg-gradient-to-r from-[#9cff58] via-[#74e72d] to-cyan-300 bg-clip-text text-transparent">almost anywhere.</span></h2>
         <p className="mt-3 text-[12px] leading-relaxed text-white/60">Hover to reveal.<br/>Click to add it forever.</p>
-        <div className="mt-4 min-h-[100px] rounded-xl border border-white/10 bg-black/15 p-3">
+        <div className="mt-4 min-h-[100px] rounded-xl border border-cyan-300/20 bg-[#00132e]/65 p-3 shadow-[inset_0_0_22px_rgba(0,185,255,.06)]">
           <div className="flex justify-between"><h3 className="text-[11px] font-extrabold uppercase tracking-[.1em] text-cyan-300">Your bundle</h3><span className="text-[10px] text-white/45">{picks.length}/5</span></div>
           {picks.length ? <ul className="mt-2 space-y-1.5">{picks.map((item) => <li key={item.id} className="flex items-center justify-between gap-2 text-[10px] text-white/75"><span className="min-w-0 truncate"><span className="mr-1.5 text-[#74e72d]">✓</span>{item.name}</span><button type="button" onClick={() => remove(item)} aria-label={`Remove ${item.name}`} className="shrink-0 rounded-md border border-red-300/30 px-2 py-1 font-bold text-red-200 hover:bg-red-400/15">Remove</button></li>)}</ul> : <p className="mt-3 text-[10px] leading-relaxed text-white/40">Your picks will appear here.</p>}
         </div>
         <button type="button" disabled={picks.length < 2} onClick={() => setCreated(true)} className="mt-3 w-full rounded-lg bg-[#74e72d] px-3 py-2.5 text-[11px] font-extrabold text-[#00132e] enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35">Create bundle</button>
         <div className="mt-3 flex gap-2"><button type="button" onClick={() => setHelp(!help)} className="flex-1 rounded-md border border-cyan-300/25 px-2 py-2 text-[10px] font-bold text-cyan-300 hover:bg-cyan-300/10">How it works</button>{picks.length > 0 && <button type="button" onClick={reset} className="flex-1 rounded-md border border-white/20 px-2 py-2 text-[10px] font-bold text-white/70 hover:bg-white/10">Clear all</button>}</div>
       </div>
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8" aria-label="Interactive one dollar product wall">
-        {items.map((item) => {
+      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6 sm:gap-2 md:grid-cols-8" aria-label="Interactive one dollar product wall">
+        {items.map((item, index) => {
           const chosen = picks.some((pickItem) => pickItem.id === item.id);
           const isRevealed = revealed === item.id;
-          return <button key={item.id} type="button" onMouseEnter={() => !chosen && setRevealed(item.id)} onMouseLeave={() => !chosen && setRevealed(null)} onClick={() => tap(item)} disabled={!chosen && picks.length >= 5} aria-label={`${item.name}${chosen ? ", selected; tap to remove" : ", tap once to reveal and again to add"}`} className={`group relative aspect-[1.15/1] min-h-[48px] touch-manipulation [perspective:700px] focus-visible:outline-2 focus-visible:outline-cyan-300 ${chosen ? "cursor-pointer rounded-lg shadow-[0_0_0_2px_#74e72d,0_0_20px_rgba(116,231,45,.65)]" : ""}`}>
+          const accent = tileAccents[index % tileAccents.length];
+          return <button key={item.id} type="button" onMouseEnter={() => !chosen && setRevealed(item.id)} onMouseLeave={() => !chosen && setRevealed(null)} onClick={() => tap(item)} disabled={!chosen && picks.length >= 5} aria-label={`${item.name}${chosen ? ", selected; tap to remove" : ", tap once to reveal and again to add"}`} className={`group relative aspect-[1.15/1] min-h-[58px] touch-manipulation [perspective:700px] focus-visible:outline-2 focus-visible:outline-cyan-300 sm:min-h-[48px] ${index >= 18 ? "hidden sm:block" : ""} ${chosen ? "cursor-pointer rounded-lg shadow-[0_0_0_2px_#74e72d,0_0_20px_rgba(116,231,45,.65)]" : ""}`}>
             <span className={`absolute inset-0 [transform-style:preserve-3d] transition-transform duration-500 [transition-timing-function:cubic-bezier(.2,.75,.25,1)] ${chosen || isRevealed ? "[transform:rotateY(180deg)]" : ""}`}>
-              <span className="absolute inset-0 grid place-items-center rounded-lg border border-white/[.07] bg-[linear-gradient(145deg,#142236,#0a1524)] text-[15px] font-extrabold text-white/65 shadow-[0_5px_12px_rgba(0,0,0,.24)] [backface-visibility:hidden]">$1</span>
+              <span className="absolute inset-0 grid place-items-center rounded-lg border text-[17px] font-extrabold text-white/80 shadow-[0_6px_16px_rgba(0,0,0,.3)] transition-[filter,box-shadow] group-hover:brightness-125 group-hover:shadow-[0_0_18px_rgba(24,191,255,.18)] [backface-visibility:hidden] sm:text-[15px]" style={{ borderColor: `${accent}55`, background: `linear-gradient(145deg,${accent}2e,#0a1524 62%)` }}>$1</span>
               <span className={`absolute inset-0 overflow-hidden rounded-lg border bg-[#071627] [backface-visibility:hidden] [transform:rotateY(180deg)] ${chosen ? "border-[#74e72d]" : "border-cyan-300/40"}`}>
                 <span className="absolute inset-0 bg-[length:600%_400%]" style={{ backgroundImage: `url(${sheetUrls[item.sheet ?? "main"]})`, backgroundPosition: photoPosition(item.photo) }} />
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#00132e] via-[#00132e]/85 to-transparent px-1 pb-1 pt-3 text-center text-[8px] font-bold leading-tight text-white">{item.name}</span>
