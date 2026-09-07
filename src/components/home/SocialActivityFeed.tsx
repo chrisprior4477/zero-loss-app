@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { socialActivityDemoItems } from "@/lib/home/demo-data";
 
 type Platform = "x" | "facebook" | "instagram" | "tiktok";
@@ -30,6 +30,8 @@ function PlatformIcon({ platform }: { platform: Platform }) {
 export function SocialActivityFeed() {
   const [platform, setPlatform] = useState<Platform>("x");
   const [paused, setPaused] = useState(false);
+  const trackViewportRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
   const items = useMemo(
     () => socialActivityDemoItems.filter((item) => item.platform === platform),
@@ -43,6 +45,7 @@ export function SocialActivityFeed() {
   );
 
   useEffect(() => {
+    if (paused) return;
     const timer = window.setInterval(() => {
       setPlatform((current) => {
         const index = platforms.findIndex((item) => item.id === current);
@@ -50,7 +53,55 @@ export function SocialActivityFeed() {
       });
     }, 20000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [paused]);
+
+  useEffect(() => {
+    const viewport = trackViewportRef.current;
+    if (!viewport) return;
+    if (paused) return;
+
+    let frame = 0;
+    let previousTime = performance.now();
+    const move = (time: number) => {
+      const elapsed = Math.min(time - previousTime, 50);
+      previousTime = time;
+      viewport.scrollLeft += elapsed * 0.035;
+      const loopPoint = viewport.scrollWidth / 2;
+      if (loopPoint > 0 && viewport.scrollLeft >= loopPoint) {
+        viewport.scrollLeft -= loopPoint;
+      }
+      frame = requestAnimationFrame(move);
+    };
+    frame = requestAnimationFrame(move);
+    return () => cancelAnimationFrame(frame);
+  }, [paused, platform, stripItems.length]);
+
+  useEffect(() => {
+    if (trackViewportRef.current) trackViewportRef.current.scrollLeft = 0;
+  }, [platform]);
+
+  const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    setPaused(true);
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    const viewport = trackViewportRef.current;
+    if (!viewport) return;
+    dragRef.current = { active: true, moved: false, startX: event.clientX, scrollLeft: viewport.scrollLeft };
+    viewport.setPointerCapture(event.pointerId);
+  };
+
+  const moveDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const viewport = trackViewportRef.current;
+    if (!viewport || !dragRef.current.active) return;
+    const distance = event.clientX - dragRef.current.startX;
+    if (Math.abs(distance) > 5) dragRef.current.moved = true;
+    viewport.scrollLeft = dragRef.current.scrollLeft - distance;
+  };
+
+  const finishDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    dragRef.current.active = false;
+    const viewport = trackViewportRef.current;
+    if (viewport?.hasPointerCapture(event.pointerId)) viewport.releasePointerCapture(event.pointerId);
+  };
 
   return (
     <section aria-labelledby="social-activity-title" className="min-w-0 overflow-hidden rounded-[22px] border border-cyan-300/20 bg-[#071426] shadow-[0_16px_40px_rgba(0,0,0,.22)]">
@@ -73,8 +124,22 @@ export function SocialActivityFeed() {
           ))}
         </nav>
 
-        <div className="min-w-0 flex-1 overflow-hidden" aria-label={`${platform} posts`}>
-          <div className="social-feed-track flex h-full w-max" style={{ animationPlayState: paused ? "paused" : undefined, animationDuration: `${stripItems.length * 3.5}s` }}>
+        <div
+          ref={trackViewportRef}
+          className="zl-noscroll min-w-0 flex-1 cursor-grab touch-pan-x overflow-x-auto overscroll-x-contain active:cursor-grabbing"
+          aria-label={`${platform} posts`}
+          onPointerDown={startDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={finishDrag}
+          onPointerCancel={() => { dragRef.current.active = false; }}
+          onClickCapture={(event) => {
+            if (!dragRef.current.moved) return;
+            event.preventDefault();
+            event.stopPropagation();
+            dragRef.current.moved = false;
+          }}
+        >
+          <div className="flex h-full w-max">
             {[0, 1].map((copy) => (
               <div key={copy} aria-hidden={copy === 1} className="flex h-full gap-3 pr-3">
                 {stripItems.map(({ item, repetition }) => {

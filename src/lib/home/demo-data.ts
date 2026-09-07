@@ -8,7 +8,7 @@
 export const livePulseDemoItems = [
   { label: "AirPods pool", value: "94% filled", tone: "urgent" },
   { label: "Home essentials drop", value: "18 entries left", tone: "urgent" },
-  { label: "Reward credit issued", value: "$25.00", tone: "live" },
+  { label: "Reward credit issued", value: "$25", tone: "live" },
   { label: "Gaming bundle", value: "68% filled", tone: "neutral" },
   { label: "Coffee reward", value: "72% filled", tone: "neutral" },
   { label: "Fulfillment batch", value: "38 orders verified", tone: "live" },
@@ -48,7 +48,7 @@ export const dollarChoiceDemoItems = [
     accent: "#8b5cf6",
     accentSoft: "rgba(139,92,246,0.34)",
     percentFilled: 72,
-    prizeValue: 549,
+    prizeValue: 550,
   },
   {
     id: "dollar-espresso",
