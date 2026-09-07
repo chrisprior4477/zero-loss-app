@@ -153,7 +153,7 @@ function DesktopHeroCarousel() {
                 aria-hidden="true"
                 fill
                 sizes="(min-width: 1024px) 72vw, 100vw"
-                className="hidden scale-[0.97] object-cover object-center brightness-[1.25] contrast-[1.1] saturate-[1.4] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] md:block"
+                className="hidden scale-[0.97] object-cover object-center brightness-[1.32] contrast-[1.12] saturate-[1.55] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] md:block"
                 preload={renderIndex === 1}
               />
             </div>
@@ -167,7 +167,11 @@ function DesktopHeroCarousel() {
                     : "linear-gradient(to right, #031b44 0%, #031b44 38%, rgba(3,27,68,0.76) 44%, rgba(3,27,68,0) 58%)",
               }}
             />
-            <div aria-hidden="true" className="absolute inset-0 hidden bg-gradient-to-r from-[#031b44] via-[#031b44]/45 to-transparent md:block" />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 hidden md:block"
+              style={{ background: "linear-gradient(to right,#031b44 0%,#031b44 20%,rgba(3,27,68,.48) 29%,rgba(3,27,68,.08) 38%,transparent 46%)" }}
+            />
             <div className="relative z-10 flex min-h-[230px] max-w-[620px] flex-col items-start justify-center md:min-h-[calc(clamp(240px,20vw,290px)-2.5rem)]">
               <h1 className="max-w-[82%] text-[34px] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[42px] md:hidden">
                 {slide.lines.map((line) =>
