@@ -24,12 +24,12 @@ export default function HomePage() {
     <>
       <LivePulseTicker />
 
-      <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0">
+      <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0 md:pb-4">
         <HeroSection />
         <DesktopMarketplaceRails />
       </PageContainer>
 
-      <PageContainer className="space-y-3 pb-3 pt-0 sm:space-y-16 sm:pb-16">
+      <PageContainer className="space-y-3 pb-3 pt-0 sm:space-y-16 sm:pb-16 md:space-y-4 md:pb-4">
         <DollarWall />
 
         <HomeSection id="shop-by-price" title="Shop by price" description="Find rewards in your price range.">

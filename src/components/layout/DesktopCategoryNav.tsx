@@ -115,7 +115,7 @@ export function DesktopCategoryNav() {
                     <p className="mb-4 text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--accent)]">
                       {category}
                     </p>
-                    <div className="grid grid-cols-1 gap-x-10 gap-y-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:gap-x-10 lg:grid-cols-3 xl:grid-cols-4">
                       {items.map((item) => (
                       <Link
                         key={item}
@@ -127,6 +127,14 @@ export function DesktopCategoryNav() {
                         {item}
                       </Link>
                       ))}
+                      <Link
+                        href="/browse"
+                        role="menuitem"
+                        onClick={() => setOpenCategory(null)}
+                        className="col-span-2 mt-2 flex min-h-11 items-center justify-center rounded-lg border border-[var(--accent)]/55 bg-[var(--accent)]/10 px-4 text-[14px] font-extrabold text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] md:hidden"
+                      >
+                        See All {category}
+                      </Link>
                     </div>
                   </div>
                 </div>

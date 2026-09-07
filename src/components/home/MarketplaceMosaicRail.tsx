@@ -111,7 +111,7 @@ export function MarketplaceMosaicRail() {
   const scroll = (direction: -1 | 1) => trackRef.current?.scrollBy({ left: direction * 760, behavior: "smooth" });
 
   return (
-    <section aria-labelledby="marketplace-mosaic-title" className="relative left-1/2 mt-0 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] pb-2 pt-0 sm:mt-8 sm:py-8">
+    <section aria-labelledby="marketplace-mosaic-title" className="relative left-1/2 mt-0 w-screen -translate-x-1/2 overflow-hidden bg-[#031b44] pb-2 pt-0 sm:mt-8 sm:py-8 md:mt-0 md:py-4">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_24%_50%,rgba(0,185,255,0.09),transparent_30%),radial-gradient(circle_at_72%_50%,rgba(49,232,0,0.07),transparent_31%)]" />
       <div className="relative z-10 mx-auto mb-5 block max-w-[1600px] px-4 sm:flex sm:items-end sm:justify-between sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
         <div className="border-l-4 border-[#31e800] pl-3 sm:pl-4">
