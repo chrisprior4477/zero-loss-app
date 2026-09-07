@@ -5,6 +5,26 @@ import { DesktopHeaderSearch } from "@/components/layout/DesktopHeaderSearch";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayableBalanceLabel } from "@/lib/wallet/balance";
 
+function HeaderTicketIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 54 36" className="h-[24px] w-[36px] overflow-visible sm:h-[30px] sm:w-[45px]" fill="none">
+      <path d="M3 3h48v9a6 6 0 0 0 0 12v9H3v-9a6 6 0 0 0 0-12V3Z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+      <circle cx="27" cy="18" r="7.5" stroke="currentColor" strokeWidth="2.2" />
+      <path d="m20.5 25 13-14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function HeaderCreditIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 54 36" className="h-[24px] w-[36px] overflow-visible sm:h-[30px] sm:w-[45px]" fill="none">
+      <circle cx="18" cy="18" r="14.5" stroke="currentColor" strokeWidth="2.4" />
+      <circle cx="18" cy="18" r="7.5" stroke="currentColor" strokeWidth="2.2" />
+      <path d="m11.5 25 13-14M37 10h13M39 18h11M37 26h13" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export async function SiteHeader() {
   const supabase = await createClient();
   const {
@@ -43,7 +63,7 @@ export async function SiteHeader() {
           />
         </Link>
 
-        <div className="hidden min-w-0 flex-1 md:flex">
+        <div className="hidden min-w-0 max-w-[640px] flex-1 md:flex xl:max-w-[700px]">
           <DesktopHeaderSearch />
         </div>
 
@@ -51,45 +71,23 @@ export async function SiteHeader() {
           <Link
             href={balanceLabel != null ? "/account/wallet" : "/signup"}
             aria-label="12 available tickets"
-            className="inline-flex min-w-max items-center text-white transition-opacity hover:opacity-80"
+            className="inline-grid min-w-max grid-cols-[max-content_max-content] items-center gap-1.5 text-white transition-opacity hover:opacity-80 sm:gap-2.5"
           >
-            <span className="inline-flex min-w-max items-center gap-1.5 sm:hidden">
-              <span aria-hidden="true" className="grid h-[28px] w-[38px] shrink-0 place-items-center overflow-hidden rounded-md">
-                <span
-                  className="block h-[23px] w-[34px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen"
-                  style={{ backgroundSize: "76px 34px", backgroundPosition: "-4px -4px" }}
-                />
-              </span>
-              <span className="inline-flex h-[28px] min-w-[27px] shrink-0 items-center justify-center rounded-md px-1 text-[14px] font-bold leading-none tabular-nums">12</span>
+            <span className="grid h-[28px] w-[38px] shrink-0 place-items-center sm:h-[34px] sm:w-[48px]">
+              <HeaderTicketIcon />
             </span>
-            <span
-              aria-hidden="true"
-              className="hidden h-[28px] w-[42px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:inline-block"
-              style={{ backgroundSize: "95px 43px", backgroundPosition: "0 -6px" }}
-            />
-            <span className="hidden shrink-0 text-[20px] font-bold leading-none tabular-nums sm:inline lg:text-[22px]">12</span>
+            <span className="inline-flex h-[28px] min-w-[27px] w-fit items-center justify-center px-1 text-[14px] font-bold leading-none tabular-nums sm:h-[34px] sm:min-w-[34px] sm:px-1.5 sm:text-[20px] lg:text-[22px]">12</span>
           </Link>
 
           <Link
             href={balanceLabel != null ? "/account/wallet" : "/signup"}
             aria-label="$247 credit value"
-            className="inline-flex min-w-max items-center text-white transition-opacity hover:opacity-80 sm:gap-1.5"
+            className="inline-grid min-w-max grid-cols-[max-content_max-content] items-center gap-1.5 text-white transition-opacity hover:opacity-80 sm:gap-2"
           >
-            <span className="inline-flex min-w-max items-center gap-1.5 sm:hidden">
-              <span aria-hidden="true" className="grid h-[28px] w-[31px] shrink-0 place-items-center overflow-hidden rounded-md">
-                <span
-                  className="block h-[23px] w-[29px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen"
-                  style={{ backgroundSize: "70px 32px", backgroundPosition: "-40px -3px" }}
-                />
-              </span>
-              <span className="inline-flex h-[28px] min-w-[45px] shrink-0 items-center justify-center rounded-md px-1 text-[14px] font-bold leading-none tabular-nums">$247</span>
+            <span className="grid h-[28px] w-[38px] shrink-0 place-items-center sm:h-[34px] sm:w-[48px]">
+              <HeaderCreditIcon />
             </span>
-            <span
-              aria-hidden="true"
-              className="hidden h-[30px] w-[42px] shrink-0 bg-[url('/header-ticket-credit-icons.png')] bg-no-repeat mix-blend-screen sm:inline-block"
-              style={{ backgroundSize: "95px 43px", backgroundPosition: "-54px -4px" }}
-            />
-            <span className="hidden text-[20px] font-bold leading-none tabular-nums sm:inline lg:text-[22px]">$247</span>
+            <span className="inline-flex h-[28px] min-w-[45px] w-fit items-center justify-center px-1 text-[14px] font-bold leading-none tabular-nums sm:h-[34px] sm:min-w-[64px] sm:px-1.5 sm:text-[20px] lg:text-[22px]">$247</span>
           </Link>
 
           <Link
