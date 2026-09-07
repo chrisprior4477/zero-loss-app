@@ -6,10 +6,10 @@ export function SiteFooter() {
 
   return (
     <footer className="mt-auto border-t border-cyan-300/10 bg-[#000f25]">
-      <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-8 sm:px-6 md:grid-cols-[1.5fr_repeat(4,1fr)] lg:px-[clamp(3rem,6vw,7rem)]">
+      <div className="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 sm:px-6 md:grid-cols-[1.5fr_repeat(4,1fr)] md:gap-8 md:py-8 lg:px-[clamp(3rem,6vw,7rem)]">
         <div>
           <p className="text-[22px] font-extrabold uppercase tracking-[-0.04em] text-white">
-            Zero<span className="text-[#73e72d]">Loss</span>
+            ZERØ<span className="text-[#73e72d]">LØSS</span>
           </p>
           <p className="mt-2 max-w-[250px] text-[12px] leading-relaxed text-white/60">
             A fair way to play for real rewards.<br />
@@ -29,25 +29,27 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {footerLinkGroups.map((group) => (
-          <div key={group.title}>
-            <p className="text-[12px] font-extrabold text-white">
-              {group.title}
-            </p>
-            <ul className="mt-2 space-y-1.5">
-              {group.links.map((link) => (
-                <li key={`${link.label}-${link.href}`}>
-                  <Link
-                    href={link.href}
-                    className="text-[11px] text-white/58 transition-colors hover:text-cyan-300"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <div className="grid grid-cols-3 gap-x-4 gap-y-6 md:contents">
+          {footerLinkGroups.map((group) => (
+            <div key={group.title} className="min-w-0">
+              <p className="text-[11px] font-extrabold text-white sm:text-[12px]">
+                {group.title}
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {group.links.map((link) => (
+                  <li key={`${link.label}-${link.href}`}>
+                    <Link
+                      href={link.href}
+                      className="text-[10px] leading-tight text-white/58 transition-colors hover:text-cyan-300 sm:text-[11px]"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="border-t border-white/8">
