@@ -31,7 +31,7 @@ export function SocialActivityFeed() {
   const [platform, setPlatform] = useState<Platform>("x");
   const [paused, setPaused] = useState(false);
   const trackViewportRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
+  const dragRef = useRef({ active: false, moved: false, wasPaused: false, startX: 0, scrollLeft: 0 });
 
   const items = useMemo(
     () => socialActivityDemoItems.filter((item) => item.platform === platform),
@@ -81,11 +81,12 @@ export function SocialActivityFeed() {
   }, [platform]);
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    dragRef.current.wasPaused = paused;
     setPaused(true);
     if (event.pointerType !== "mouse" || event.button !== 0) return;
     const viewport = trackViewportRef.current;
     if (!viewport) return;
-    dragRef.current = { active: true, moved: false, startX: event.clientX, scrollLeft: viewport.scrollLeft };
+    dragRef.current = { active: true, moved: false, wasPaused: paused, startX: event.clientX, scrollLeft: viewport.scrollLeft };
     viewport.setPointerCapture(event.pointerId);
   };
 
@@ -104,24 +105,15 @@ export function SocialActivityFeed() {
   };
 
   return (
-    <section aria-labelledby="social-activity-title" className="relative min-w-0 overflow-hidden rounded-[22px] border border-orange-300/35 bg-[radial-gradient(ellipse_at_12%_-10%,rgba(255,170,55,.68)_0%,transparent_39%),radial-gradient(ellipse_at_88%_115%,rgba(255,78,16,.6)_0%,transparent_45%),linear-gradient(135deg,#071a3b_0%,#ff6b22_49%,#071426_100%)] shadow-[0_16px_40px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,211,145,.2)]">
-      <svg aria-hidden="true" viewBox="0 0 1000 220" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full opacity-45">
-        <path d="M-40 62C120 8 214 118 370 65S626 8 782 67s214 38 292-3" fill="none" stroke="rgba(255,153,46,.68)" strokeWidth="18" strokeLinecap="round" />
-        <path d="M-55 166c151-67 274 31 413-8s267-71 397-17 233 53 321 6" fill="none" stroke="rgba(255,96,20,.55)" strokeWidth="28" strokeLinecap="round" />
-        <path d="M-20 111c148-42 251 46 398 4s250-55 390-8 214 29 276-5" fill="none" stroke="rgba(255,220,146,.36)" strokeWidth="3" strokeLinecap="round" />
+    <section aria-labelledby="social-activity-title" className="relative min-w-0 overflow-hidden rounded-[22px] border border-orange-300/45 bg-[radial-gradient(ellipse_at_8%_-15%,rgba(255,177,67,.82)_0%,transparent_38%),radial-gradient(ellipse_at_92%_115%,rgba(255,78,16,.78)_0%,transparent_44%),linear-gradient(125deg,#ff7417_0%,#ff620f_48%,#ff7b1c_70%,#10254a_100%)] shadow-[0_16px_40px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,220,166,.28)]">
+      <h2 id="social-activity-title" className="sr-only">Social Activity Live Feed</h2>
+      <svg aria-hidden="true" viewBox="0 0 1000 220" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 top-5 h-full w-full opacity-55">
+        <path d="M-40 62C120 8 214 118 370 65S626 8 782 67s214 38 292-3" fill="none" stroke="rgba(255,187,82,.82)" strokeWidth="18" strokeLinecap="round" />
+        <path d="M-55 166c151-67 274 31 413-8s267-71 397-17 233 53 321 6" fill="none" stroke="rgba(255,75,8,.72)" strokeWidth="28" strokeLinecap="round" />
+        <path d="M-20 111c148-42 251 46 398 4s250-55 390-8 214 29 276-5" fill="none" stroke="rgba(255,232,188,.55)" strokeWidth="3" strokeLinecap="round" />
       </svg>
-      <header className="relative z-10 flex h-[49px] items-center justify-between border-b border-orange-100/10 bg-[#071426]/30 px-4 backdrop-blur-[2px]">
-        <div className="flex items-center gap-2.5">
-          <h2 id="social-activity-title" className="text-[15px] font-extrabold text-white">Social Activity Live Feed</h2>
-          <span className="rounded-full border border-cyan-300/35 px-2 py-0.5 text-[8px] font-black uppercase tracking-[.14em] text-cyan-300">Live stream</span>
-        </div>
-        <button type="button" onClick={() => setPaused((value) => !value)} aria-label={paused ? "Play social activity" : "Pause social activity"} className="grid h-8 w-8 place-items-center rounded-full bg-[#24334a] text-[11px] font-black text-white transition hover:bg-[#30435f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
-          {paused ? "▶" : "Ⅱ"}
-        </button>
-      </header>
-
       <div className="group relative z-10 flex h-[152px] gap-3 p-3">
-        <nav aria-label="Filter social activity" className="flex w-[48px] shrink-0 flex-col items-center justify-center gap-1 rounded-[16px] border border-white/10 bg-[#06101f] py-1">
+        <nav aria-label="Filter social activity" className="flex w-[48px] shrink-0 flex-col items-center justify-center gap-1 py-1">
           {platforms.map((item) => (
             <button key={item.id} type="button" onClick={() => setPlatform(item.id)} aria-label={item.label} aria-pressed={platform === item.id} className="grid h-9 w-9 place-items-center rounded-full border text-[12px] font-black transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" style={{ color: item.id === "x" ? "#071426" : "white", background: item.color, borderColor: platform === item.id ? "white" : "rgba(255,255,255,.12)", boxShadow: platform === item.id ? `0 0 0 2px #071426, 0 0 0 4px ${item.color}` : "none" }}>
               <PlatformIcon platform={item.id} />
@@ -138,10 +130,13 @@ export function SocialActivityFeed() {
           onPointerUp={finishDrag}
           onPointerCancel={() => { dragRef.current.active = false; }}
           onClickCapture={(event) => {
-            if (!dragRef.current.moved) return;
             event.preventDefault();
             event.stopPropagation();
-            dragRef.current.moved = false;
+            if (dragRef.current.moved) {
+              dragRef.current.moved = false;
+              return;
+            }
+            if (dragRef.current.wasPaused) setPaused(false);
           }}
         >
           <div className="flex h-full w-max">

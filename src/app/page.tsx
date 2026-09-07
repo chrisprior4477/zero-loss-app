@@ -29,7 +29,7 @@ export default function HomePage() {
         <DesktopMarketplaceRails />
       </PageContainer>
 
-      <PageContainer className="space-y-14 pb-16 pt-0 sm:space-y-16">
+      <PageContainer className="space-y-3 pb-3 pt-0 sm:space-y-16 sm:pb-16">
         <DollarWall />
 
         <HomeSection id="shop-by-price" title="Shop by price" description="Find rewards in your price range.">
