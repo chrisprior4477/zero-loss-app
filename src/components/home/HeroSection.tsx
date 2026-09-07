@@ -133,7 +133,7 @@ function DesktopHeroCarousel() {
             aria-hidden={activeSlide !== index}
             className="relative min-h-[270px] w-full shrink-0 overflow-hidden px-5 py-5 sm:px-8 md:min-h-[clamp(240px,20vw,290px)] md:px-[clamp(4.5rem,7vw,8rem)]"
           >
-            <div className="absolute inset-0 overflow-hidden md:left-auto md:w-[72%]">
+            <div className="absolute inset-0 overflow-hidden md:left-auto md:w-[80%] lg:w-[72%]">
               <Image
                 src={slide.mobileImage}
                 alt=""
@@ -153,7 +153,7 @@ function DesktopHeroCarousel() {
                 aria-hidden="true"
                 fill
                 sizes="(min-width: 1024px) 72vw, 100vw"
-                className="hidden scale-[0.97] object-cover object-center drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] md:block"
+                className="hidden scale-[0.97] object-contain object-right drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] md:block lg:object-cover lg:object-center"
                 preload={renderIndex === 1}
               />
             </div>
