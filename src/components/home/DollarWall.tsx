@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Category = "travel" | "gaming" | "theater" | "kitchen" | "outdoors";
 type PhotoSheet = "main" | "travel" | "gaming" | "theater" | "kitchen" | "outdoors" | "kayak";
@@ -51,9 +51,14 @@ const solarOrbitPositions = [
 export function DollarWall() {
   const [items, setItems] = useState(starters);
   const [picks, setPicks] = useState<Item[]>([]);
-  const [help, setHelp] = useState(false);
   const [created, setCreated] = useState(false);
   const [revealed, setRevealed] = useState<string | null>(null);
+  const mobileCreatedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!created || !window.matchMedia("(max-width: 767px)").matches) return;
+    mobileCreatedRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [created]);
 
   function pick(item: Item) {
     if (picks.length >= 5 || picks.some((chosen) => chosen.id === item.id)) return;
@@ -78,6 +83,16 @@ export function DollarWall() {
     pick(item);
   }
 
+  const bundleControls = (mobile = false) => <>
+    <div className="min-h-[100px] rounded-xl border border-cyan-300/20 bg-[#00132e]/65 p-3 shadow-[inset_0_0_22px_rgba(0,185,255,.06)]">
+      <div className="flex justify-between"><h3 className="text-[11px] font-extrabold uppercase tracking-[.1em] text-cyan-300">Your bundle</h3><span className="text-[10px] text-white/45">{picks.length}/5</span></div>
+      {picks.length ? <ul className="mt-2 space-y-1.5">{picks.map((item) => <li key={item.id} className="flex items-center justify-between gap-2 text-[10px] text-white/75"><span className="min-w-0 truncate"><span className="mr-1.5 text-[#74e72d]">✓</span>{item.name}</span><button type="button" onClick={() => remove(item)} aria-label={`Remove ${item.name}`} className="shrink-0 rounded-md border border-red-300/30 px-2 py-1 font-bold text-red-200 hover:bg-red-400/15">Remove</button></li>)}</ul> : <p className="mt-3 text-[10px] leading-relaxed text-white/40">Your picks will appear here.</p>}
+    </div>
+    <button type="button" disabled={picks.length < 2} onClick={() => setCreated(true)} className="mt-3 w-full rounded-lg bg-[#74e72d] px-3 py-2.5 text-[11px] font-extrabold text-[#00132e] enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35">Create bundle</button>
+    {picks.length > 0 && <button type="button" onClick={reset} className="mt-3 w-full rounded-md border border-white/20 px-2 py-2 text-[10px] font-bold text-white/70 hover:bg-white/10">Clear all</button>}
+    {mobile && created && <div ref={mobileCreatedRef} className="mt-4 rounded-xl border border-[#74e72d]/35 bg-[#74e72d]/10 px-5 py-5 text-center"><strong className="text-sm text-[#9cf45c]">Your bundle is ready.</strong><p className="mt-1 text-[11px] text-white/65">{picks.map((item) => item.name).join(" + ")}</p><div className="mx-auto mt-4 flex max-w-md items-center justify-between rounded-lg bg-[#00132e]/70 px-4 py-3"><span className="text-xs text-white/65">{picks.length} items × $1</span><strong className="text-lg text-white">${picks.length} total</strong></div><button type="button" className="mt-3 rounded-lg bg-[#74e72d] px-6 py-2.5 text-xs font-extrabold text-[#00132e]">Enter ${picks.length}</button></div>}
+  </>;
+
   return <section aria-labelledby="dollar-wall-title" className="relative overflow-hidden rounded-[22px] border border-cyan-300/30 bg-[radial-gradient(circle_at_15%_12%,rgba(0,185,255,.2),transparent_30%),radial-gradient(circle_at_88%_82%,rgba(139,92,246,.2),transparent_34%),linear-gradient(135deg,#041d42,#020d20_58%,#071936)] px-5 py-6 shadow-[0_18px_44px_rgba(0,0,0,.3),inset_0_1px_0_rgba(125,230,255,.1)] sm:px-7">
     <span aria-hidden="true" className="pointer-events-none absolute -left-16 top-1/3 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
     <span aria-hidden="true" className="pointer-events-none absolute -right-14 bottom-4 h-44 w-44 rounded-full bg-violet-500/15 blur-3xl" />
@@ -85,12 +100,7 @@ export function DollarWall() {
       <div>
         <h2 id="dollar-wall-title" className="text-[25px] font-extrabold leading-[1.04] tracking-[-.035em] text-white drop-shadow-[0_0_18px_rgba(0,185,255,.24)]">A dollar can land<br/><span className="bg-gradient-to-r from-[#9cff58] via-[#74e72d] to-cyan-300 bg-clip-text text-transparent">almost anywhere.</span></h2>
         <p className="mt-3 max-w-none text-[15px] font-medium leading-snug tracking-[-.01em] text-white/80">Hover to reveal. Click to add it forever.</p>
-        <div className="mt-4 min-h-[100px] rounded-xl border border-cyan-300/20 bg-[#00132e]/65 p-3 shadow-[inset_0_0_22px_rgba(0,185,255,.06)]">
-          <div className="flex justify-between"><h3 className="text-[11px] font-extrabold uppercase tracking-[.1em] text-cyan-300">Your bundle</h3><span className="text-[10px] text-white/45">{picks.length}/5</span></div>
-          {picks.length ? <ul className="mt-2 space-y-1.5">{picks.map((item) => <li key={item.id} className="flex items-center justify-between gap-2 text-[10px] text-white/75"><span className="min-w-0 truncate"><span className="mr-1.5 text-[#74e72d]">✓</span>{item.name}</span><button type="button" onClick={() => remove(item)} aria-label={`Remove ${item.name}`} className="shrink-0 rounded-md border border-red-300/30 px-2 py-1 font-bold text-red-200 hover:bg-red-400/15">Remove</button></li>)}</ul> : <p className="mt-3 text-[10px] leading-relaxed text-white/40">Your picks will appear here.</p>}
-        </div>
-        <button type="button" disabled={picks.length < 2} onClick={() => setCreated(true)} className="mt-3 w-full rounded-lg bg-[#74e72d] px-3 py-2.5 text-[11px] font-extrabold text-[#00132e] enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35">Create bundle</button>
-        <div className="mt-3 flex gap-2"><button type="button" onClick={() => setHelp(!help)} className="flex-1 rounded-md border border-cyan-300/25 px-2 py-2 text-[10px] font-bold text-cyan-300 hover:bg-cyan-300/10">How it works</button>{picks.length > 0 && <button type="button" onClick={reset} className="flex-1 rounded-md border border-white/20 px-2 py-2 text-[10px] font-bold text-white/70 hover:bg-white/10">Clear all</button>}</div>
+        <div className="mt-4 hidden md:block">{bundleControls()}</div>
       </div>
       <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6 sm:gap-2 md:grid-cols-8" aria-label="Interactive one dollar product wall">
         {items.map((item, index) => {
@@ -111,8 +121,8 @@ export function DollarWall() {
           </button>;
         })}
       </div>
+      <div className="md:hidden">{bundleControls(true)}</div>
     </div>
-    {help && <div className="mt-5 border-t border-white/10 pt-4 text-center text-[12px] text-white/65">Start with any surprise. That choice fills the wall with matching extras. Pick two to five items. Tap a green card again—or use its Remove button—to change your mind.</div>}
-    {created && <div className="mt-5 rounded-xl border border-[#74e72d]/35 bg-[#74e72d]/10 px-5 py-5 text-center"><strong className="text-sm text-[#9cf45c]">Your bundle is ready.</strong><p className="mt-1 text-[11px] text-white/65">{picks.map((item) => item.name).join(" + ")}</p><div className="mx-auto mt-4 flex max-w-md items-center justify-between rounded-lg bg-[#00132e]/70 px-4 py-3"><span className="text-xs text-white/65">{picks.length} items × $1</span><strong className="text-lg text-white">${picks.length} total</strong></div><button type="button" className="mt-3 rounded-lg bg-[#74e72d] px-6 py-2.5 text-xs font-extrabold text-[#00132e]">Enter ${picks.length}</button></div>}
+    {created && <div className="mt-5 hidden rounded-xl border border-[#74e72d]/35 bg-[#74e72d]/10 px-5 py-5 text-center md:block"><strong className="text-sm text-[#9cf45c]">Your bundle is ready.</strong><p className="mt-1 text-[11px] text-white/65">{picks.map((item) => item.name).join(" + ")}</p><div className="mx-auto mt-4 flex max-w-md items-center justify-between rounded-lg bg-[#00132e]/70 px-4 py-3"><span className="text-xs text-white/65">{picks.length} items × $1</span><strong className="text-lg text-white">${picks.length} total</strong></div><button type="button" className="mt-3 rounded-lg bg-[#74e72d] px-6 py-2.5 text-xs font-extrabold text-[#00132e]">Enter ${picks.length}</button></div>}
   </section>;
 }

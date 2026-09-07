@@ -227,6 +227,7 @@ export const shopByPriceTiers = [
   { price: "$75", detail: "and under" },
   { price: "$100", detail: "and under" },
   { price: "$100+", detail: "premium prizes" },
+  { price: "ONE OF A KIND", detail: "rare prizes" },
 ] as const;
 
 /**

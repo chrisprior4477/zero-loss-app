@@ -6,8 +6,8 @@ export function SiteFooter() {
 
   return (
     <footer className="mt-auto border-t border-cyan-300/10 bg-[#000f25]">
-      <div className="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 sm:px-6 md:grid-cols-[1.5fr_repeat(4,1fr)] md:gap-8 md:py-8 lg:px-[clamp(3rem,6vw,7rem)]">
-        <div>
+      <div className="mx-auto grid max-w-[1600px] grid-cols-3 gap-x-4 gap-y-4 px-4 py-5 sm:px-6 md:grid-cols-[1.5fr_repeat(4,1fr)] md:gap-8 md:py-8 lg:px-[clamp(3rem,6vw,7rem)]">
+        <div className="col-span-2 md:col-span-1">
           <p className="text-[22px] font-extrabold uppercase tracking-[-0.04em] text-white">
             ZERØ<span className="text-[#73e72d]">LØSS</span>
           </p>
@@ -29,7 +29,7 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-4 gap-y-6 md:contents">
+        <div className="contents">
           {footerLinkGroups.map((group) => (
             <div key={group.title} className="min-w-0">
               <p className="text-[11px] font-extrabold text-white sm:text-[12px]">
@@ -53,7 +53,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/8">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-2 px-4 py-3 text-[10px] text-white/38 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-1 px-4 py-2 text-[10px] text-white/38 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-6 sm:py-3 lg:px-[clamp(3rem,6vw,7rem)]">
           <p>© {year} ZeroLoss. All rights reserved.</p>
           <p>Shopping should never feel like losing.</p>
         </div>

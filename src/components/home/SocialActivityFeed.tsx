@@ -104,8 +104,13 @@ export function SocialActivityFeed() {
   };
 
   return (
-    <section aria-labelledby="social-activity-title" className="min-w-0 overflow-hidden rounded-[22px] border border-cyan-300/20 bg-[#071426] shadow-[0_16px_40px_rgba(0,0,0,.22)]">
-      <header className="flex h-[49px] items-center justify-between border-b border-white/8 px-4">
+    <section aria-labelledby="social-activity-title" className="relative min-w-0 overflow-hidden rounded-[22px] border border-orange-300/35 bg-[radial-gradient(ellipse_at_12%_-10%,rgba(255,170,55,.68)_0%,transparent_39%),radial-gradient(ellipse_at_88%_115%,rgba(255,78,16,.6)_0%,transparent_45%),linear-gradient(135deg,#071a3b_0%,#ff6b22_49%,#071426_100%)] shadow-[0_16px_40px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,211,145,.2)]">
+      <svg aria-hidden="true" viewBox="0 0 1000 220" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full opacity-45">
+        <path d="M-40 62C120 8 214 118 370 65S626 8 782 67s214 38 292-3" fill="none" stroke="rgba(255,153,46,.68)" strokeWidth="18" strokeLinecap="round" />
+        <path d="M-55 166c151-67 274 31 413-8s267-71 397-17 233 53 321 6" fill="none" stroke="rgba(255,96,20,.55)" strokeWidth="28" strokeLinecap="round" />
+        <path d="M-20 111c148-42 251 46 398 4s250-55 390-8 214 29 276-5" fill="none" stroke="rgba(255,220,146,.36)" strokeWidth="3" strokeLinecap="round" />
+      </svg>
+      <header className="relative z-10 flex h-[49px] items-center justify-between border-b border-orange-100/10 bg-[#071426]/30 px-4 backdrop-blur-[2px]">
         <div className="flex items-center gap-2.5">
           <h2 id="social-activity-title" className="text-[15px] font-extrabold text-white">Social Activity Live Feed</h2>
           <span className="rounded-full border border-cyan-300/35 px-2 py-0.5 text-[8px] font-black uppercase tracking-[.14em] text-cyan-300">Live stream</span>
@@ -115,7 +120,7 @@ export function SocialActivityFeed() {
         </button>
       </header>
 
-      <div className="group flex h-[152px] gap-3 p-3">
+      <div className="group relative z-10 flex h-[152px] gap-3 p-3">
         <nav aria-label="Filter social activity" className="flex w-[48px] shrink-0 flex-col items-center justify-center gap-1 rounded-[16px] border border-white/10 bg-[#06101f] py-1">
           {platforms.map((item) => (
             <button key={item.id} type="button" onClick={() => setPlatform(item.id)} aria-label={item.label} aria-pressed={platform === item.id} className="grid h-9 w-9 place-items-center rounded-full border text-[12px] font-black transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" style={{ color: item.id === "x" ? "#071426" : "white", background: item.color, borderColor: platform === item.id ? "white" : "rgba(255,255,255,.12)", boxShadow: platform === item.id ? `0 0 0 2px #071426, 0 0 0 4px ${item.color}` : "none" }}>
@@ -145,7 +150,7 @@ export function SocialActivityFeed() {
                 {stripItems.map(({ item, repetition }) => {
                   const decorativeCopy = copy === 1 || repetition > 0;
                   return (
-                  <Link href="/browse?view=winners" aria-hidden={decorativeCopy || undefined} tabIndex={decorativeCopy ? -1 : undefined} key={`${copy}-${repetition}-${item.id}`} className="flex h-full w-[225px] min-w-0 flex-col rounded-[15px] border border-white/10 bg-white/[.055] p-3 transition hover:border-cyan-300/50 hover:bg-white/[.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
+                  <Link href="/browse?view=winners" aria-hidden={decorativeCopy || undefined} tabIndex={decorativeCopy ? -1 : undefined} key={`${copy}-${repetition}-${item.id}`} className={`flex h-full w-[225px] min-w-0 flex-col rounded-[15px] border p-3 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${item.platform === "tiktok" ? "border-cyan-100/35 bg-[#087ff5]/90 shadow-[inset_0_1px_0_rgba(255,255,255,.22),0_8px_20px_rgba(8,127,245,.3)] hover:bg-[#1692ff]" : "border-white/10 bg-[#071426]/65 hover:border-orange-200/50 hover:bg-[#071426]/80"}`}>
                     <span className="flex min-w-0 items-center gap-2.5">
                       <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/25" style={{ backgroundColor: item.accent }}>
                         <Image src={item.avatar} alt={`${item.name} profile`} fill sizes="40px" className="object-cover object-top" />
