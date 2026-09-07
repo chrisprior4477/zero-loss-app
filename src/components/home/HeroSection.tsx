@@ -143,7 +143,9 @@ function DesktopHeroCarousel() {
                 className={
                   slide.id === "real-shots"
                     ? "origin-right translate-x-[45px] scale-[1.275] object-contain object-right mix-blend-screen drop-shadow-[0_0_30px_rgba(255,92,0,0.68)] md:hidden"
-                    : "object-cover object-center brightness-[1.22] contrast-[1.08] saturate-[1.35] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] md:hidden"
+                    : slide.id === "real-products"
+                      ? "origin-left translate-x-[95px] object-cover object-left brightness-[1.22] contrast-[1.08] saturate-[1.35] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] md:hidden"
+                      : "object-cover object-center brightness-[1.22] contrast-[1.08] saturate-[1.35] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] md:hidden"
                 }
                 preload={renderIndex === 1}
               />

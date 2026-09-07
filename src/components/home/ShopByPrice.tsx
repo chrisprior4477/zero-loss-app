@@ -18,10 +18,18 @@ export function ShopByPrice() {
           >
             {oneOfAKind && <>
               <span aria-hidden="true" className="absolute -left-5 -top-8 h-20 w-20 rounded-full bg-cyan-200/25 blur-xl transition-transform duration-500 group-hover:translate-x-6" />
-              <svg aria-hidden="true" viewBox="0 0 120 100" className="absolute left-1/2 top-1/2 h-[70px] w-[84px] -translate-x-1/2 -translate-y-1/2 fill-none stroke-[#001b44]/65 stroke-[5] transition-transform duration-500 group-hover:scale-105">
-                <path d="M18 42h84v48H18zM12 30h96v17H12zM60 30v60" strokeLinejoin="round" />
-                <path d="M59 29C45 27 34 20 35 12c1-6 8-8 14-4 6 4 10 12 11 21Zm2 0c14-2 25-9 24-17-1-6-8-8-14-4-6 4-10 12-10 21Z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              {(["left", "right"] as const).map((side) => (
+                <svg aria-hidden="true" key={side} viewBox="0 0 120 100" className={`absolute top-[58%] h-[40px] w-[40px] -translate-y-1/2 fill-none transition-transform duration-500 group-hover:scale-110 ${side === "left" ? "left-1 -rotate-12" : "right-1 rotate-12"}`}>
+                  <g stroke="#00bfff" strokeWidth="9" opacity=".85" className="drop-shadow-[0_0_5px_rgba(0,207,255,.95)]">
+                    <path d="M30 39h60v54H30zM24 28h72v16H24zM60 28v65" strokeLinejoin="round" />
+                    <path d="M59 29C45 27 34 20 35 12c1-6 8-8 14-4 6 4 10 12 11 21Zm2 0c14-2 25-9 24-17-1-6-8-8-14-4-6 4-10 12-10 21Z" strokeLinecap="round" strokeLinejoin="round" />
+                  </g>
+                  <g stroke="#effeff" strokeWidth="2.3">
+                    <path d="M30 39h60v54H30zM24 28h72v16H24zM60 28v65" strokeLinejoin="round" />
+                    <path d="M59 29C45 27 34 20 35 12c1-6 8-8 14-4 6 4 10 12 11 21Zm2 0c14-2 25-9 24-17-1-6-8-8-14-4-6 4-10 12-10 21Z" strokeLinecap="round" strokeLinejoin="round" />
+                  </g>
+                </svg>
+              ))}
               <span aria-hidden="true" className="absolute right-2 top-1 text-[12px] text-cyan-100 drop-shadow-[0_0_7px_white]">✦</span>
             </>}
             <span className={`relative font-extrabold leading-none text-white [text-shadow:0_2px_5px_rgba(0,38,92,0.4)] ${oneOfAKind ? "text-[15px] tracking-[.05em] sm:text-[17px]" : "text-[25px]"}`}>
