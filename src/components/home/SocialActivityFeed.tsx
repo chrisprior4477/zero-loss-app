@@ -105,12 +105,24 @@ export function SocialActivityFeed() {
   };
 
   return (
-    <section aria-labelledby="social-activity-title" className="relative min-w-0 overflow-hidden rounded-[22px] border border-orange-300/45 bg-[radial-gradient(ellipse_at_8%_-15%,rgba(255,177,67,.82)_0%,transparent_38%),radial-gradient(ellipse_at_92%_115%,rgba(255,78,16,.78)_0%,transparent_44%),linear-gradient(125deg,#ff7417_0%,#ff620f_48%,#ff7b1c_70%,#10254a_100%)] shadow-[0_16px_40px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,220,166,.28)]">
+    <section aria-labelledby="social-activity-title" className="relative min-w-0 overflow-hidden rounded-[22px] border border-orange-300/45 bg-[radial-gradient(ellipse_at_8%_-15%,rgba(255,176,58,.78)_0%,transparent_36%),radial-gradient(ellipse_at_92%_115%,rgba(255,67,8,.7)_0%,transparent_43%),linear-gradient(125deg,#d94b0b_0%,#f65c0d_42%,#c9400a_72%,#10254a_100%)] shadow-[0_16px_40px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,220,166,.28)]">
       <h2 id="social-activity-title" className="sr-only">Social Activity Live Feed</h2>
-      <svg aria-hidden="true" viewBox="0 0 1000 220" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 top-5 h-full w-full opacity-55">
-        <path d="M-40 62C120 8 214 118 370 65S626 8 782 67s214 38 292-3" fill="none" stroke="rgba(255,187,82,.82)" strokeWidth="18" strokeLinecap="round" />
-        <path d="M-55 166c151-67 274 31 413-8s267-71 397-17 233 53 321 6" fill="none" stroke="rgba(255,75,8,.72)" strokeWidth="28" strokeLinecap="round" />
-        <path d="M-20 111c148-42 251 46 398 4s250-55 390-8 214 29 276-5" fill="none" stroke="rgba(255,232,188,.55)" strokeWidth="3" strokeLinecap="round" />
+      <svg aria-hidden="true" viewBox="0 0 1000 220" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 top-5 h-full w-full opacity-75">
+        <path d="M-40 62C120 8 214 118 370 65S626 8 782 67s214 38 292-3" fill="none" stroke="rgba(255,125,22,.92)" strokeWidth="24" strokeLinecap="round" />
+        <path d="M-55 166c151-67 274 31 413-8s267-71 397-17 233 53 321 6" fill="none" stroke="rgba(255,65,5,.88)" strokeWidth="36" strokeLinecap="round" />
+        <path d="M-20 111c148-42 251 46 398 4s250-55 390-8 214 29 276-5" fill="none" stroke="rgba(255,190,92,.72)" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+      <svg aria-hidden="true" viewBox="0 0 1000 220" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
+        <defs>
+          <filter id="social-orange-neon-glow" x="-30%" y="-40%" width="160%" height="180%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+        <path d="M-25 31C92 2 171 18 258 70S432 108 548 55 706 26 799 83 918 153 1025 31 M-20 91C105 156 199 143 301 105S470 152 583 146 720 49 823 67 923 146 1024 185 M-20 187C91 130 180 206 289 185S433 117 550 142 670 217 784 181 906 91 1020 72" fill="none" stroke="#ff9400" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" filter="url(#social-orange-neon-glow)" />
+        <path d="M-25 31C92 2 171 18 258 70S432 108 548 55 706 26 799 83 918 153 1025 31 M-20 91C105 156 199 143 301 105S470 152 583 146 720 49 823 67 923 146 1024 185 M-20 187C91 130 180 206 289 185S433 117 550 142 670 217 784 181 906 91 1020 72" fill="none" stroke="#fff0a6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M-20 67C118 114 201 27 335 53S488 182 612 157 757 91 1025 126 M-20 132C96 88 185 170 299 154S438 49 559 63 702 176 819 146 921 95 1020 101 M68 214C208 151 309 194 419 174S559 83 670 104 808 191 948 170" fill="none" stroke="#ffc04a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" filter="url(#social-orange-neon-glow)" />
+        <path d="M-20 67C118 114 201 27 335 53S488 182 612 157 757 91 1025 126 M-20 132C96 88 185 170 299 154S438 49 559 63 702 176 819 146 921 95 1020 101 M68 214C208 151 309 194 419 174S559 83 670 104 808 191 948 170" fill="none" stroke="#fff8d7" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div className="group relative z-10 flex h-[152px] gap-3 p-3">
         <nav aria-label="Filter social activity" className="flex w-[48px] shrink-0 flex-col items-center justify-center gap-1 py-1">
@@ -155,7 +167,7 @@ export function SocialActivityFeed() {
                         <span className="block truncate text-[10px] text-white/50">{item.handle}</span>
                       </span>
                     </span>
-                    <span className="mt-auto line-clamp-2 block pt-2 text-[11px] font-medium leading-[1.35] text-white/90">{item.message}</span>
+                    <span className="mt-auto line-clamp-2 block pt-2 text-[13px] font-bold leading-[1.3] text-white/95">{item.message}</span>
                   </Link>
                   );
                 })}
