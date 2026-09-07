@@ -131,9 +131,9 @@ function DesktopHeroCarousel() {
             aria-roledescription="slide"
             aria-label={`${index + 1} of ${HERO_SLIDES.length}`}
             aria-hidden={activeSlide !== index}
-            className="relative min-h-[270px] w-full shrink-0 overflow-hidden px-5 py-5 sm:px-8 lg:min-h-[clamp(240px,20vw,290px)] lg:px-[clamp(4.5rem,7vw,8rem)]"
+            className="relative min-h-[270px] w-full shrink-0 overflow-hidden px-5 py-5 sm:px-8 md:min-h-[clamp(240px,20vw,290px)] md:px-[clamp(4.5rem,7vw,8rem)]"
           >
-            <div className="absolute inset-0 overflow-hidden lg:left-auto lg:w-[72%]">
+            <div className="absolute inset-0 overflow-hidden md:left-auto md:w-[72%]">
               <Image
                 src={slide.mobileImage}
                 alt=""
@@ -142,8 +142,8 @@ function DesktopHeroCarousel() {
                 sizes="100vw"
                 className={
                   slide.id === "real-shots"
-                    ? "origin-right translate-x-[45px] scale-[1.275] object-contain object-right mix-blend-screen drop-shadow-[0_0_30px_rgba(255,92,0,0.68)] lg:hidden"
-                    : "object-cover object-center brightness-[1.22] contrast-[1.08] saturate-[1.35] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:hidden"
+                    ? "origin-right translate-x-[45px] scale-[1.275] object-contain object-right mix-blend-screen drop-shadow-[0_0_30px_rgba(255,92,0,0.68)] md:hidden"
+                    : "object-cover object-center brightness-[1.22] contrast-[1.08] saturate-[1.35] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] md:hidden"
                 }
                 preload={renderIndex === 1}
               />
@@ -153,13 +153,13 @@ function DesktopHeroCarousel() {
                 aria-hidden="true"
                 fill
                 sizes="(min-width: 1024px) 72vw, 100vw"
-                className="hidden scale-[0.97] object-cover object-center drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] lg:block"
+                className="hidden scale-[0.97] object-cover object-center brightness-[1.25] contrast-[1.1] saturate-[1.4] drop-shadow-[0_18px_32px_rgba(0,0,0,0.3)] md:block"
                 preload={renderIndex === 1}
               />
             </div>
             <div
               aria-hidden="true"
-              className="absolute inset-0 lg:hidden"
+              className="absolute inset-0 md:hidden"
               style={{
                 background:
                   slide.id === "real-shots"
@@ -167,9 +167,9 @@ function DesktopHeroCarousel() {
                     : "linear-gradient(to right, #031b44 0%, #031b44 38%, rgba(3,27,68,0.76) 44%, rgba(3,27,68,0) 58%)",
               }}
             />
-            <div aria-hidden="true" className="absolute inset-0 hidden bg-gradient-to-r from-[#031b44] via-[#031b44]/70 to-transparent lg:block" />
-            <div className="relative z-10 flex min-h-[230px] max-w-[620px] flex-col items-start justify-center lg:min-h-[calc(clamp(240px,20vw,290px)-2.5rem)]">
-              <h1 className="max-w-[82%] text-[34px] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[42px] lg:hidden">
+            <div aria-hidden="true" className="absolute inset-0 hidden bg-gradient-to-r from-[#031b44] via-[#031b44]/45 to-transparent md:block" />
+            <div className="relative z-10 flex min-h-[230px] max-w-[620px] flex-col items-start justify-center md:min-h-[calc(clamp(240px,20vw,290px)-2.5rem)]">
+              <h1 className="max-w-[82%] text-[34px] font-extrabold leading-[0.98] tracking-[-0.045em] text-white sm:text-[42px] md:hidden">
                 {slide.lines.map((line) =>
                   slide.id === "shopping" && line === "a loss." ? (
                     <span key={line} className="block">
@@ -187,7 +187,7 @@ function DesktopHeroCarousel() {
                   )
                 )}
               </h1>
-              <h1 className="hidden text-[clamp(38px,3.5vw,54px)] font-extrabold leading-[0.98] tracking-[-0.045em] text-white lg:block">
+              <h1 className="hidden text-[clamp(38px,3.5vw,54px)] font-extrabold leading-[0.98] tracking-[-0.045em] text-white md:block">
                 {slide.desktopLines.map((line) =>
                   slide.id === "shopping" && line === "never feel like a loss." ? (
                     <span key={line} className="block">
@@ -200,7 +200,7 @@ function DesktopHeroCarousel() {
                   )
                 )}
               </h1>
-              <p className="mt-3 max-w-[390px] text-[14px] leading-[1.4] text-white/88 lg:hidden">
+              <p className="mt-3 max-w-[390px] text-[14px] leading-[1.4] text-white/88 md:hidden">
                 {slide.id === "real-shots" ? (
                   <>
                     <span className="block whitespace-nowrap">Pay $1 for a real shot</span>
@@ -215,7 +215,7 @@ function DesktopHeroCarousel() {
                   </>
                 )}
               </p>
-              <p className="mt-3 hidden max-w-[390px] text-[14px] leading-[1.4] text-white/88 lg:block">
+              <p className="mt-3 hidden max-w-[390px] text-[14px] leading-[1.4] text-white/88 md:block">
                 <span className="block">Pay $1 for a real shot at a product.</span>
                 <span className="block">Don&apos;t win? What you spent still counts.</span>
               </p>
@@ -225,7 +225,7 @@ function DesktopHeroCarousel() {
                 aria-expanded={showHowItWorks}
                 aria-controls="desktop-how-it-works-panel"
                 onClick={() => setShowHowItWorks((current) => !current)}
-                className={`${slide.id === "real-shots" ? "mt-6" : "mt-3"} inline-flex h-9 items-center gap-2 rounded-lg bg-[#087feb] px-4 text-[13px] font-bold text-white shadow-[0_0_0_1px_rgba(91,190,255,0.4)] transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)] lg:mt-3`}
+                className={`${slide.id === "real-shots" ? "mt-6" : "mt-3"} inline-flex h-9 items-center gap-2 rounded-lg bg-[#087feb] px-4 text-[13px] font-bold text-white shadow-[0_0_0_1px_rgba(91,190,255,0.4)] transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)] md:mt-3`}
               >
                 How It Works
                 <span aria-hidden="true">{showHowItWorks ? "↑" : "↓"}</span>
@@ -285,7 +285,7 @@ function DesktopHeroCarousel() {
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") setShowHowItWorks(false);
         }}
-        className="relative left-1/2 w-screen -translate-x-1/2 cursor-pointer border-y border-cyan-300/20 bg-[#00132e] px-4 py-7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--live)] sm:px-6 lg:px-[clamp(4rem,8vw,10rem)]"
+        className="relative left-1/2 w-screen -translate-x-1/2 cursor-pointer border-y border-cyan-300/20 bg-[#00132e] px-4 py-7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--live)] sm:px-6 md:px-[clamp(4rem,8vw,10rem)]"
       >
         <div className="mx-auto max-w-[1440px]">
           <Image
@@ -294,10 +294,10 @@ function DesktopHeroCarousel() {
             width={1774}
             height={887}
             sizes="(min-width: 1024px) 84vw, 100vw"
-            className="mb-9 hidden h-auto w-full rounded-2xl shadow-[0_18px_42px_rgba(0,0,0,0.32)] lg:block"
+            className="mb-9 hidden h-auto w-full rounded-2xl shadow-[0_18px_42px_rgba(0,0,0,0.32)] md:block"
             priority
           />
-          <div className="mb-8 lg:hidden">
+          <div className="mb-8 md:hidden">
             <ZeroLossJourney compact />
           </div>
           <h2 className="text-[22px] font-bold text-white">How ZeroLoss works</h2>
