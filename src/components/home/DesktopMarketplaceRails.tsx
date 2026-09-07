@@ -24,10 +24,17 @@ const desktopCategories = [
   { id: "movie-night", label: "Movie Night", image: "/category-movie-night-v2.png" },
 ];
 
+const endingSoonRemaining = [1, 1, 1, 5, 7, 8, 12, 14, 21] as const;
+
 const endingSoon = [
   ...placeholderFeaturedOpportunities,
   ...placeholderDiscoveryOpportunities,
-];
+]
+  .map((item, index) => ({
+    item,
+    remaining: endingSoonRemaining[index] ?? 21,
+  }))
+  .sort((a, b) => a.remaining - b.remaining);
 
 const popularBrands = [
   { name: "Amazon", color: "linear-gradient(145deg,#ffb11b,#ff6b00)" },
@@ -63,6 +70,76 @@ function SideRailButtons({ onScroll }: { onScroll: (direction: -1 | 1) => void }
       </button>
     </>
   );
+}
+
+function EndingSoonArtwork({ item }: { item: (typeof placeholderDiscoveryOpportunities)[number] }) {
+  if (item.id === "placeholder-discovery-1") {
+    return (
+      <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_50%_0%,#fff7ec_0%,#ffe7c4_58%,#ffc77d_100%)] p-2">
+        <div className="grid aspect-[1.62/1] w-[82%] place-items-center rounded-md border border-[#ff8a00]/50 bg-white text-center shadow-[0_5px_12px_rgba(105,48,0,0.2)] -rotate-2">
+          <span className="text-[12px] font-black uppercase leading-none tracking-[-0.06em] sm:text-[17px]">
+            <span className="text-[#f58220]">Dunkin&apos;</span>{" "}
+            <span className="text-[#e11383]">Donuts</span>
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (item.id === "placeholder-discovery-2") {
+    return (
+      <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_50%_0%,#fff_0%,#f6f1e7_58%,#e9dfcd_100%)] p-2">
+        <div className="grid aspect-[1.62/1] w-[82%] place-items-center rounded-md border border-[#d8cbb7] bg-white text-center shadow-[0_5px_12px_rgba(48,38,24,0.18)] -rotate-2">
+          <span className="text-[13px] font-black tracking-[-0.06em] text-[#111] sm:text-[18px]">HomeGoods</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (item.id === "placeholder-discovery-3") {
+    return (
+      <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_50%_0%,#eef8ff_0%,#d8ebf7_58%,#bdd9e8_100%)] p-2">
+        <div className="grid aspect-[1.62/1] w-[82%] place-items-center rounded-md border border-[#004990]/35 bg-[#004990] text-center shadow-[0_5px_12px_rgba(0,38,79,0.28)] rotate-2">
+          <span className="text-[17px] font-black italic tracking-[-0.05em] text-white sm:text-[24px]">LOWE&apos;S</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (item.id === "placeholder-discovery-4") {
+    return (
+      <div className="relative h-full bg-[radial-gradient(circle_at_50%_0%,#fff_0%,#eef2f8_58%,#dce3ed_100%)]">
+        <div className="absolute left-[9%] top-[16%] grid aspect-[1.62/1] w-[64%] place-items-center rounded-md bg-[#1747ff] px-2 text-center text-[7px] font-black leading-tight text-white shadow-[0_5px_12px_rgba(0,19,46,0.25)] -rotate-6 sm:text-[10px]">
+          BED BATH &amp; BEYOND
+        </div>
+        <div className="absolute bottom-[13%] right-[8%] grid aspect-[1.62/1] w-[64%] place-items-center rounded-md bg-[#7b2cbf] text-center text-[12px] font-black italic text-white shadow-[0_5px_12px_rgba(0,19,46,0.3)] rotate-6 sm:text-[17px]">
+          wayfair
+        </div>
+      </div>
+    );
+  }
+
+  if (item.id === "placeholder-discovery-6") {
+    return (
+      <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_50%_35%,#2b0508_0%,#080808_62%,#000_100%)] p-2">
+        <div className="grid aspect-[1.62/1] w-[82%] place-items-center rounded-md border border-white/10 bg-[#090909] text-[30px] font-black text-[#e50914] shadow-[0_5px_15px_rgba(229,9,20,0.35)] sm:text-[42px]">
+          N
+        </div>
+      </div>
+    );
+  }
+
+  if (item.id === "placeholder-discovery-5") {
+    return (
+      <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_50%_0%,#fffbdc_0%,#fff29b_58%,#f5dd35_100%)] p-2">
+        <div className="grid aspect-[1.62/1] w-[82%] place-items-center rounded-md border border-[#003b64]/25 bg-[#fff200] text-center shadow-[0_5px_12px_rgba(0,34,59,0.22)] -rotate-2">
+          <span className="text-[15px] font-black tracking-[-0.07em] text-[#003b64] sm:text-[21px]">BEST BUY</span>
+        </div>
+      </div>
+    );
+  }
+
+  return <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="220px" className="object-contain p-2" />;
 }
 
 function useDragRail(ref: React.RefObject<HTMLDivElement | null>) {
@@ -184,10 +261,9 @@ export function DesktopMarketplaceRails() {
             onDragStart={(event) => event.preventDefault()}
             {...endingDrag}
           >
-            {endingSoon.map((item, index) => {
-            const demoRemaining = [5, 8, 12, 25, 32, 18, 7, 14, 21][index] ?? 5;
+            {endingSoon.map(({ item, remaining }) => {
             const percent = Math.min(
-              ((item.ticketCapacity - demoRemaining) / item.ticketCapacity) * 100,
+              ((item.ticketCapacity - remaining) / item.ticketCapacity) * 100,
               100
             );
             const filledSegments = Math.round(percent / 10);
@@ -199,7 +275,7 @@ export function DesktopMarketplaceRails() {
                   : percent >= 45
                     ? "#0787e8"
                     : "#70c51c";
-            const urgencyLabel = demoRemaining <= 10 ? "Almost gone!" : "Going fast!";
+            const urgencyLabel = remaining <= 10 ? "Almost gone!" : "Going fast!";
 
             return (
               <article
@@ -212,10 +288,14 @@ export function DesktopMarketplaceRails() {
                   className="block h-full p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500"
                 >
                   <div className="relative h-[72px] overflow-hidden rounded-lg bg-[#f2f4f7] sm:h-[105px] sm:rounded-xl">
-                    <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="220px" className="object-contain p-2" />
+                    <EndingSoonArtwork item={item} />
                   </div>
                   <h3 className="mt-2.5 h-8 overflow-hidden text-[13px] font-bold leading-[1.2]">{item.title}</h3>
-                  <p className="mt-1 text-[11px] text-slate-500">{item.ticketCapacity.toLocaleString()} entries</p>
+                  <p className="mt-1 whitespace-nowrap text-[10px] font-semibold text-slate-500 sm:text-[11px]">
+                    <span className="text-[#00132e]">{item.faceValueLabel} value</span>
+                    <span aria-hidden="true"> · </span>
+                    <span>{item.ticketCapacity.toLocaleString()} entries</span>
+                  </p>
                   <div className="mt-2 flex gap-1" aria-label={`${Math.round(percent)}% filled`}>
                   {Array.from({ length: 10 }, (_, segment) => (
                     <span
@@ -234,10 +314,10 @@ export function DesktopMarketplaceRails() {
                     aria-hidden="true"
                     className="relative grid h-9 w-[54px] shrink-0 place-items-center overflow-hidden rounded-[4px] bg-[#e31937] text-[19px] font-extrabold leading-none text-white before:absolute before:-left-1.5 before:top-1/2 before:h-3 before:w-3 before:-translate-y-1/2 before:rounded-full before:bg-white after:absolute after:-right-1.5 after:top-1/2 after:h-3 after:w-3 after:-translate-y-1/2 after:rounded-full after:bg-white"
                   >
-                    {demoRemaining}
+                    {remaining}
                   </span>
                   <span className="leading-tight">
-                    <span className="block text-[14px] font-bold text-[#e31937]">{demoRemaining} left</span>
+                    <span className="block text-[14px] font-bold text-[#e31937]">{remaining} left</span>
                     <span className="mt-1 block text-[12px] font-semibold text-slate-500">{urgencyLabel}</span>
                   </span>
                   </div>
