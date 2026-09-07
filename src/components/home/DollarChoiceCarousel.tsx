@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
-import { dollarChoiceDemoItems } from "@/lib/home/demo-data";
+import { dollarChoiceDemoItems, entryCapacityForValue } from "@/lib/home/demo-data";
 
 export function DollarChoiceCarousel() {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -92,6 +92,7 @@ export function DollarChoiceCarousel() {
         >
           {dollarChoiceDemoItems.map((item) => {
             const meterColor = item.percentFilled >= 80 ? "#ff630f" : item.percentFilled >= 60 ? "#31e800" : "#00b9ff";
+            const entryCapacity = entryCapacityForValue(item.prizeValue);
             return (
               <article key={item.id} className="group relative w-[156px] shrink-0 sm:w-[230px]">
                 <Link href={item.href} draggable={false} className="block rounded-2xl px-2 pb-3 pt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
@@ -104,12 +105,14 @@ export function DollarChoiceCarousel() {
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="230px" className="relative z-10 object-contain p-1 drop-shadow-[0_18px_18px_rgba(0,0,0,0.42)] transition-transform duration-300 group-hover:scale-105" />
                   </div>
                   <h3 className="mt-2 min-h-10 text-center text-[14px] font-bold leading-[1.25] text-white">{item.title}</h3>
+                  <p className="mt-1 text-center text-[10px] font-semibold text-white/70 sm:text-[11px]">
+                    ${item.prizeValue.toLocaleString()} value · {entryCapacity.toLocaleString()} entries
+                  </p>
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/12" role="progressbar" aria-label={`${item.title} pool filled`} aria-valuenow={item.percentFilled} aria-valuemin={0} aria-valuemax={100}>
                     <span className="block h-full rounded-full" style={{ width: `${item.percentFilled}%`, backgroundColor: meterColor }} />
                   </div>
-                  <div className="mt-2 flex items-center justify-between text-[11px]">
+                  <div className="mt-2 text-center text-[11px]">
                     <span className="font-bold text-white">{item.percentFilled}% filled</span>
-                    <span className="text-white/55">Ending in {item.timeRemaining}</span>
                   </div>
                 </Link>
                 <FavoriteButton itemName={item.title} className="absolute right-1 top-1 z-30" />

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
-import { dollarChoiceDemoItems } from "@/lib/home/demo-data";
+import { dollarChoiceDemoItems, entryCapacityForValue } from "@/lib/home/demo-data";
 
 export function CircularProgress({ percent, color, label }: { percent: number; color: string; label: string }) {
   return (
@@ -112,6 +112,7 @@ export function DollarChoiceCarouselLight() {
         >
           {dollarChoiceDemoItems.map((item) => {
             const meterColor = item.percentFilled >= 90 ? "#f32343" : item.percentFilled >= 75 ? "#ff6b22" : item.percentFilled >= 50 ? "#0787e8" : "#25c46a";
+            const entryCapacity = entryCapacityForValue(item.prizeValue);
             return (
               <article key={item.id} className="group relative flex h-[250px] w-[174px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#a9bfd0] bg-white shadow-[0_16px_35px_rgba(0,19,46,0.2)] transition-transform duration-300 hover:-translate-y-1 sm:h-[292px] sm:w-[244px] sm:rounded-[22px]">
                 <Link href={item.href} draggable={false} className="flex min-h-0 flex-1 flex-col p-3 pb-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500">
@@ -120,7 +121,12 @@ export function DollarChoiceCarouselLight() {
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="244px" className="relative z-10 object-contain p-3 drop-shadow-[0_10px_9px_rgba(0,19,46,0.2)] transition-transform duration-300 group-hover:scale-[1.04]" />
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-2">
-                    <h3 className="line-clamp-3 min-h-12 min-w-0 flex-1 text-left text-[13px] font-extrabold leading-[1.22] text-[#00132e] sm:min-h-[62px] sm:text-[15px]">{item.title}</h3>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="line-clamp-2 text-left text-[13px] font-extrabold leading-[1.22] text-[#00132e] sm:text-[15px]">{item.title}</h3>
+                      <p className="mt-1 text-[9px] font-semibold leading-tight text-slate-500 sm:text-[11px]">
+                        ${item.prizeValue.toLocaleString()} value<br />{entryCapacity.toLocaleString()} entries
+                      </p>
+                    </div>
                     <CircularProgress percent={item.percentFilled} color={meterColor} label={`${item.title} pool filled`} />
                   </div>
                 </Link>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { CircularProgress } from "@/components/home/DollarChoiceCarouselLight";
-import { dollarChoiceDemoItems, marketplaceMovementDemoItems } from "@/lib/home/demo-data";
+import { dollarChoiceDemoItems, entryCapacityForValue, marketplaceMovementDemoItems } from "@/lib/home/demo-data";
 
 const products = dollarChoiceDemoItems;
 
@@ -19,6 +19,7 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
   const meterColor = item.percentFilled >= 90 ? "#f32343" : item.percentFilled >= 75 ? "#ff6b22" : item.percentFilled >= 50 ? "#0787e8" : "#25c46a";
   const movement = marketplaceMovementDemoItems.find((entry) => entry.itemId === item.id);
   const ticketsLeft = movement?.spotsLeft ?? Math.max(25, Math.round((100 - item.percentFilled) * 12));
+  const entryCapacity = entryCapacityForValue(item.prizeValue);
 
   return (
     <article className="group relative w-[190px] shrink-0 overflow-hidden rounded-2xl border border-cyan-200/20 bg-[#031a3d] shadow-[0_18px_40px_rgba(0,0,0,0.28)] sm:w-[320px] sm:rounded-[22px]">
@@ -46,6 +47,9 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
         <div className="flex min-h-[68px] items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-5 sm:py-3">
           <div style={{ maxWidth: 180 }} className="min-w-0">
             <h3 className="text-[11px] font-extrabold leading-tight text-white sm:text-[15px]">{item.title}</h3>
+            <p className="mt-1 text-[8px] font-semibold leading-tight text-white/60 sm:text-[10px]">
+              ${item.prizeValue.toLocaleString()} value · {entryCapacity.toLocaleString()} entries
+            </p>
           </div>
           <EntryButton />
         </div>
@@ -56,6 +60,7 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
 }
 
 function CompactCard({ item }: { item: (typeof products)[number] }) {
+  const entryCapacity = entryCapacityForValue(item.prizeValue);
   return (
     <article className="group relative h-[95px] w-[125px] overflow-hidden rounded-xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:h-[123px] sm:w-[230px] sm:rounded-[20px]">
       <Link href={item.href} draggable={false} className="flex h-full items-center gap-1.5 px-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:gap-2 sm:px-2.5 sm:pr-3">
@@ -65,7 +70,10 @@ function CompactCard({ item }: { item: (typeof products)[number] }) {
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="line-clamp-2 text-[9px] font-extrabold leading-tight text-white sm:text-[14px]">{item.title}</h3>
-          <p className="mt-1 text-[8px] font-semibold text-white/55 sm:mt-2 sm:text-[11px]">{item.percentFilled}% filled</p>
+          <p className="mt-1 text-[7px] font-semibold leading-tight text-white/60 sm:text-[9px]">
+            ${item.prizeValue.toLocaleString()} · {entryCapacity.toLocaleString()} entries
+          </p>
+          <p className="mt-0.5 text-[8px] font-semibold text-white/55 sm:mt-1 sm:text-[10px]">{item.percentFilled}% filled</p>
           <div className="mt-1 sm:mt-2"><EntryButton compact /></div>
         </div>
       </Link>

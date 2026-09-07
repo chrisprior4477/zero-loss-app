@@ -9,7 +9,7 @@ export const livePulseDemoItems = [
   { label: "AirPods pool", value: "94% filled", tone: "urgent" },
   { label: "Home essentials drop", value: "18 entries left", tone: "urgent" },
   { label: "Reward credit issued", value: "$25.00", tone: "live" },
-  { label: "Gaming bundle", value: "closes in 08:42", tone: "neutral" },
+  { label: "Gaming bundle", value: "68% filled", tone: "neutral" },
   { label: "Coffee reward", value: "72% filled", tone: "neutral" },
   { label: "Fulfillment batch", value: "38 orders verified", tone: "live" },
   { label: "Grocery reward", value: "11 entries left", tone: "urgent" },
@@ -48,7 +48,7 @@ export const dollarChoiceDemoItems = [
     accent: "#8b5cf6",
     accentSoft: "rgba(139,92,246,0.34)",
     percentFilled: 72,
-    timeRemaining: "12m",
+    prizeValue: 549,
   },
   {
     id: "dollar-espresso",
@@ -58,7 +58,7 @@ export const dollarChoiceDemoItems = [
     accent: "#ff7a22",
     accentSoft: "rgba(255,122,34,0.32)",
     percentFilled: 88,
-    timeRemaining: "45m",
+    prizeValue: 1890,
   },
   {
     id: "dollar-gaming",
@@ -68,7 +68,7 @@ export const dollarChoiceDemoItems = [
     accent: "#00b9ff",
     accentSoft: "rgba(0,185,255,0.34)",
     percentFilled: 68,
-    timeRemaining: "2h 22m",
+    prizeValue: 1200,
   },
   {
     id: "dollar-bike",
@@ -78,7 +78,7 @@ export const dollarChoiceDemoItems = [
     accent: "#31e800",
     accentSoft: "rgba(49,232,0,0.28)",
     percentFilled: 56,
-    timeRemaining: "3h 7m",
+    prizeValue: 4200,
   },
   {
     id: "dollar-gift-card",
@@ -88,7 +88,7 @@ export const dollarChoiceDemoItems = [
     accent: "#c946ff",
     accentSoft: "rgba(201,70,255,0.32)",
     percentFilled: 41,
-    timeRemaining: "4h 15m",
+    prizeValue: 100,
   },
   {
     id: "dollar-home",
@@ -98,7 +98,7 @@ export const dollarChoiceDemoItems = [
     accent: "#ff3f8e",
     accentSoft: "rgba(255,63,142,0.28)",
     percentFilled: 34,
-    timeRemaining: "6h 40m",
+    prizeValue: 300,
   },
   {
     id: "dollar-lg-oled-c6",
@@ -108,9 +108,13 @@ export const dollarChoiceDemoItems = [
     accent: "#7cff22",
     accentSoft: "rgba(124,255,34,0.3)",
     percentFilled: 29,
-    timeRemaining: "8h 25m",
+    prizeValue: 2700,
   },
 ] as const;
+
+export function entryCapacityForValue(prizeValue: number) {
+  return prizeValue * 3;
+}
 
 export const marketplaceMovementDemoItems = [
   { itemId: "dollar-headphones", spotsLeft: 183 },
