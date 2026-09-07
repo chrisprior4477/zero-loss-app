@@ -207,10 +207,17 @@ function DesktopHeroCarousel() {
                     <span className="block whitespace-nowrap">What you spent still</span>
                     <span className="block whitespace-nowrap">counts.</span>
                   </>
+                ) : slide.id === "shopping" ? (
+                  <>
+                    <span className="block whitespace-nowrap">Pay $1 for a real shot at a</span>
+                    <span className="block whitespace-nowrap">product. Don&apos;t win? What you</span>
+                    <span className="block whitespace-nowrap">spent still counts.</span>
+                  </>
                 ) : (
                   <>
-                    <span className="block">Pay $1 for a real shot at a product.</span>
-                    <span className="block">Don&apos;t win? What you spent still counts.</span>
+                    <span className="block whitespace-nowrap">Pay $1 for a real shot at</span>
+                    <span className="block whitespace-nowrap">a product. Don&apos;t win? What</span>
+                    <span className="block whitespace-nowrap">you spent still counts.</span>
                   </>
                 )}
               </p>
@@ -224,7 +231,7 @@ function DesktopHeroCarousel() {
                 aria-expanded={showHowItWorks}
                 aria-controls="desktop-how-it-works-panel"
                 onClick={() => setShowHowItWorks((current) => !current)}
-                className={`${slide.id === "real-shots" ? "mt-6" : "mt-3"} inline-flex h-9 items-center gap-2 rounded-lg bg-[#087feb] px-4 text-[13px] font-bold text-white shadow-[0_0_0_1px_rgba(91,190,255,0.4)] transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)] md:mt-3`}
+                className={`${slide.id === "real-shots" ? "mt-6" : "mt-5"} inline-flex h-9 items-center gap-2 rounded-lg bg-[#087feb] px-4 text-[13px] font-bold text-white shadow-[0_0_0_1px_rgba(91,190,255,0.4)] transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)] md:mt-3`}
               >
                 How It Works
                 <span aria-hidden="true">{showHowItWorks ? "↑" : "↓"}</span>
