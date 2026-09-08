@@ -6,12 +6,12 @@
  * becoming buried in presentation components.
  */
 export const livePulseDemoItems = [
-  { label: "AirPods pool", value: "94% filled", tone: "urgent" },
-  { label: "Home essentials drop", value: "18 entries left", tone: "urgent" },
-  { label: "Reward credit issued", value: "$25", tone: "live" },
-  { label: "Gaming bundle", value: "68% filled", tone: "neutral" },
-  { label: "Coffee reward", value: "72% filled", tone: "neutral" },
-  { label: "Fulfillment batch", value: "38 orders verified", tone: "live" },
+  { label: "AirPod Pros", value: "Only 2 left", tone: "urgent" },
+  { label: "Popular Publix gift card", value: "$100", tone: "live" },
+  { label: "Dunkin' Donuts $25 card", value: "97% full", tone: "neutral" },
+  { label: "Nintendo Switch", value: "6 tickets left", tone: "danger" },
+  { label: "Darden Restaurants $100 gift card", value: "42 tickets left", tone: "urgent" },
+  { label: "193 winners", value: "TODAY!", tone: "live" },
   { label: "Grocery reward", value: "11 entries left", tone: "urgent" },
   { label: "Active prize pools", value: "142", tone: "neutral" },
 ] as const;

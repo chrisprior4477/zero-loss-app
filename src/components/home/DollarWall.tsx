@@ -120,6 +120,18 @@ export function DollarWall() {
       <path d="M-20 105C128 115 207 65 334 96S491 160 602 128 783 98 1020 103 M-20 218C82 154 169 226 277 204S420 146 529 168 645 235 761 220 890 129 1020 134" fill="none" stroke="#19dcff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" filter="url(#dollar-wall-neon-glow)" />
       <path d="M-20 105C128 115 207 65 334 96S491 160 602 128 783 98 1020 103 M-20 218C82 154 169 226 277 204S420 146 529 168 645 235 761 220 890 129 1020 134" fill="none" stroke="#dffcff" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+    <svg aria-hidden="true" viewBox="0 0 1000 260" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 top-0 h-[310px] w-full md:hidden">
+      <defs>
+        <filter id="dollar-wall-mobile-accent-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <path d="M-25 118C78 158 185 204 310 190S465 124 575 140 700 190 820 165 930 150 1020 140" fill="none" stroke="#17dfff" strokeWidth="4" strokeLinecap="round" filter="url(#dollar-wall-mobile-accent-glow)" />
+      <path d="M-25 118C78 158 185 204 310 190S465 124 575 140 700 190 820 165 930 150 1020 140" fill="none" stroke="#e6fdff" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M-25 205C120 170 235 130 360 145S565 200 660 180 815 82 1020 60" fill="none" stroke="#00cfff" strokeWidth="12" strokeLinecap="round" filter="url(#dollar-wall-mobile-accent-glow)" />
+      <path d="M-25 205C120 170 235 130 360 145S565 200 660 180 815 82 1020 60" fill="none" stroke="#dffcff" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
     <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 hidden w-[4vw] bg-gradient-to-r from-[#031b44] via-[#031b44]/85 to-transparent lg:block" />
     <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 hidden w-[4vw] bg-gradient-to-l from-[#031b44] via-[#031b44]/85 to-transparent lg:block" />
     <span aria-hidden="true" className="pointer-events-none absolute -left-16 top-1/3 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
