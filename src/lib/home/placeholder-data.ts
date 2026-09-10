@@ -24,6 +24,8 @@
  * from the artboards is not used.
  */
 
+import { repeatedHomepageProducts } from "@/lib/home/demo-data";
+
 /** Status pill on a card. Semantic roles only — green is live activity,
  *  orange is genuine urgency, cyan is neutral emphasis. */
 export type OpportunityStatus = "closing" | "new" | "popular";
@@ -48,36 +50,36 @@ export type PlaceholderOpportunity = {
 export const placeholderFeaturedOpportunities: PlaceholderOpportunity[] = [
   {
     id: "placeholder-featured-1",
-    title: "Espresso machine, dual boiler",
+    title: repeatedHomepageProducts.espresso.title,
     category: "Home Essentials",
-    faceValueLabel: "$1,890",
+    faceValueLabel: `$${repeatedHomepageProducts.espresso.prizeValue.toLocaleString()}`,
     entryPriceLabel: "$1 Entry",
-    ticketCapacity: 5670,
-    ticketsSold: 5669,
+    ticketCapacity: repeatedHomepageProducts.espresso.entryCapacity,
+    ticketsSold: repeatedHomepageProducts.espresso.entriesSold,
     status: "closing",
     statusLabel: "Closing soon",
     image: "/design/2a-espresso.webp",
   },
   {
     id: "placeholder-featured-2",
-    title: "Road bike, carbon frame 54cm",
+    title: repeatedHomepageProducts.bike.title,
     category: "Trophy Vault",
-    faceValueLabel: "$4,200",
+    faceValueLabel: `$${repeatedHomepageProducts.bike.prizeValue.toLocaleString()}`,
     entryPriceLabel: "$1 Entry",
-    ticketCapacity: 12600,
-    ticketsSold: 12599,
+    ticketCapacity: repeatedHomepageProducts.bike.entryCapacity,
+    ticketsSold: repeatedHomepageProducts.bike.entriesSold,
     status: "new",
     statusLabel: "Just listed",
     image: "/design/2a-bike.webp",
   },
   {
     id: "placeholder-featured-3",
-    title: "Noise-cancelling headphones",
+    title: repeatedHomepageProducts.headphones.title,
     category: "Electronics",
-    faceValueLabel: "$550",
+    faceValueLabel: `$${repeatedHomepageProducts.headphones.prizeValue.toLocaleString()}`,
     entryPriceLabel: "$1 Entry",
-    ticketCapacity: 1650,
-    ticketsSold: 1649,
+    ticketCapacity: repeatedHomepageProducts.headphones.entryCapacity,
+    ticketsSold: repeatedHomepageProducts.headphones.entriesSold,
     status: "popular",
     statusLabel: "Popular",
     image: "/design/2a-headphones.webp",

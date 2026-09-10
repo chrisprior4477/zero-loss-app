@@ -5,6 +5,31 @@
  * stats pod. Keeping the values here prevents sample marketplace claims from
  * becoming buried in presentation components.
  */
+export const repeatedHomepageProducts = {
+  headphones: {
+    title: "Noise-cancelling headphones",
+    prizeValue: 550,
+    entryCapacity: 1650,
+    entriesSold: 1649,
+  },
+  espresso: {
+    title: "Espresso machine, dual boiler",
+    prizeValue: 1890,
+    entryCapacity: 5670,
+    entriesSold: 5669,
+  },
+  bike: {
+    title: "Road bike, carbon frame 54cm",
+    prizeValue: 4200,
+    entryCapacity: 12600,
+    entriesSold: 12599,
+  },
+} as const;
+
+function percentFilled(entriesSold: number, entryCapacity: number) {
+  return Math.floor((entriesSold / entryCapacity) * 100);
+}
+
 export const livePulseDemoItems = [
   { label: "AirPod Pros", value: "Only 2 left", tone: "urgent" },
   { label: "Popular Publix gift card", value: "$100", tone: "live" },
@@ -42,23 +67,23 @@ export const transparencyStatsDemo = [
 export const dollarChoiceDemoItems = [
   {
     id: "dollar-headphones",
-    title: "Noise-cancelling headphones",
+    title: repeatedHomepageProducts.headphones.title,
     image: "/dollar-choice-headphones.png",
     href: "/browse",
     accent: "#8b5cf6",
     accentSoft: "rgba(139,92,246,0.34)",
-    percentFilled: 72,
-    prizeValue: 550,
+    percentFilled: percentFilled(repeatedHomepageProducts.headphones.entriesSold, repeatedHomepageProducts.headphones.entryCapacity),
+    prizeValue: repeatedHomepageProducts.headphones.prizeValue,
   },
   {
     id: "dollar-espresso",
-    title: "Dual-boiler espresso machine",
+    title: repeatedHomepageProducts.espresso.title,
     image: "/dollar-choice-espresso.png",
     href: "/browse",
     accent: "#ff7a22",
     accentSoft: "rgba(255,122,34,0.32)",
-    percentFilled: 88,
-    prizeValue: 1890,
+    percentFilled: percentFilled(repeatedHomepageProducts.espresso.entriesSold, repeatedHomepageProducts.espresso.entryCapacity),
+    prizeValue: repeatedHomepageProducts.espresso.prizeValue,
   },
   {
     id: "dollar-gaming",
@@ -72,13 +97,13 @@ export const dollarChoiceDemoItems = [
   },
   {
     id: "dollar-bike",
-    title: "Carbon-frame road bike",
+    title: repeatedHomepageProducts.bike.title,
     image: "/dollar-choice-bike-v2.png",
     href: "/browse",
     accent: "#31e800",
     accentSoft: "rgba(49,232,0,0.28)",
-    percentFilled: 56,
-    prizeValue: 4200,
+    percentFilled: percentFilled(repeatedHomepageProducts.bike.entriesSold, repeatedHomepageProducts.bike.entryCapacity),
+    prizeValue: repeatedHomepageProducts.bike.prizeValue,
   },
   {
     id: "dollar-gift-card",
@@ -117,10 +142,10 @@ export function entryCapacityForValue(prizeValue: number) {
 }
 
 export const marketplaceMovementDemoItems = [
-  { itemId: "dollar-headphones", spotsLeft: 183 },
-  { itemId: "dollar-espresso", spotsLeft: 221 },
+  { itemId: "dollar-headphones", spotsLeft: repeatedHomepageProducts.headphones.entryCapacity - repeatedHomepageProducts.headphones.entriesSold },
+  { itemId: "dollar-espresso", spotsLeft: repeatedHomepageProducts.espresso.entryCapacity - repeatedHomepageProducts.espresso.entriesSold },
   { itemId: "dollar-gaming", spotsLeft: 456 },
-  { itemId: "dollar-bike", spotsLeft: 678 },
+  { itemId: "dollar-bike", spotsLeft: repeatedHomepageProducts.bike.entryCapacity - repeatedHomepageProducts.bike.entriesSold },
   { itemId: "dollar-gift-card", spotsLeft: 1203 },
 ] as const;
 
