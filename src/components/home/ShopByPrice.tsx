@@ -19,7 +19,7 @@ export function ShopByPrice() {
             {oneOfAKind && <>
               <span aria-hidden="true" className="absolute -left-5 -top-8 h-20 w-20 rounded-full bg-cyan-200/25 blur-xl transition-transform duration-500 group-hover:translate-x-6" />
               {(["left", "right"] as const).map((side) => (
-                <svg aria-hidden="true" key={side} viewBox="0 0 120 100" className={`absolute top-[58%] h-[40px] w-[40px] -translate-y-1/2 fill-none transition-transform duration-500 group-hover:scale-110 ${side === "left" ? "left-1 -rotate-12" : "right-1 rotate-12"}`}>
+                <svg aria-hidden="true" key={side} viewBox="0 0 120 100" className={`absolute top-[calc(58%+5px)] h-[40px] w-[40px] -translate-y-1/2 fill-none transition-transform duration-500 group-hover:scale-110 sm:top-[58%] ${side === "left" ? "left-1 -rotate-12" : "right-1 rotate-12"}`}>
                   <g stroke="#00bfff" strokeWidth="9" opacity=".85" className="drop-shadow-[0_0_5px_rgba(0,207,255,.95)]">
                     <path d="M30 39h60v54H30zM24 28h72v16H24zM60 28v65" strokeLinejoin="round" />
                     <path d="M59 29C45 27 34 20 35 12c1-6 8-8 14-4 6 4 10 12 11 21Zm2 0c14-2 25-9 24-17-1-6-8-8-14-4-6 4-10 12-10 21Z" strokeLinecap="round" strokeLinejoin="round" />
