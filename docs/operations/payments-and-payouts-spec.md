@@ -156,7 +156,9 @@ One of the defining mechanics of the platform is that non-winning activity can s
 
 ## 7.1 Rebate Generation Rule
 
-When a qualifying non-winning outcome occurs, the system should create the appropriate rebate or store-credit value under the rules configured for that pool or item.
+When marketplace rules create a rebate for an outcome, the system should create the appropriate value under the rules configured for that pool or item.
+
+A non-selected entry governed by Part 3 of the Marketplace Financial Rules Specification does not create general-purpose store credit or a wallet balance. It creates an entry-bound completion option: for an everyday/on-demand item, an option to complete purchase of the exact originating product; for a genuinely scarce item that cannot be resupplied, a proposed and currently inactive option to purchase a gift card from the same supplying retailer. In either case, the paid entry amount applies and the customer pays the remaining balance. Completion options may not be transferred, stacked, moved to another retailer or offering, withdrawn, used for another entry, or combined with Playable Balance.
 
 ## 7.2 User Visibility Rule
 

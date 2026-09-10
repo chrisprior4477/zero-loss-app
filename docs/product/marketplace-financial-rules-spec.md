@@ -4,7 +4,7 @@
 **Status:** Active
 **Priority:** Core Repository Document
 **Owner:** Founder
-**Last Updated:** August 2026
+**Last Updated:** September 2026
 
 ---
 
@@ -81,19 +81,25 @@ Do not scrape or reproduce brand product photography — real copyright risk. Us
 
 ---
 
-# Part 3 — Loser Credit Mechanics
+# Part 3 — Non-Selected Entry Completion Mechanics
 
-## 3.1 Everyday-Item Losers (Locked)
+## 3.1 Everyday/On-Demand Non-Selected Entries (Locked)
 
-A losing entry converts into a right to complete the purchase of that specific item at its full remaining value (entry price paid + additional payment = full face value). This is never a cash refund. The platform incurs no further cost unless and until the customer chooses to pay the remaining balance.
+A non-selected entry creates an option to complete the purchase of the exact product associated with that entry. The paid entry amount applies toward that purchase, and the customer pays the remaining balance. This option is never a cash refund, general-purpose Zero Loss credit, or additional marketplace entry.
 
-## 3.2 Scarce-Item Losers (Locked)
+## 3.2 Genuinely Scarce-Item Non-Selected Entries (Superseding Decision; Fallback Not Active)
 
-A losing entry on a scarce-item pool converts into credit redeemable toward **any everyday/on-demand item on the platform** — never toward "more of" the scarce item, since additional units of a scarce item do not exist. Same self-funding mechanic as 3.1: the platform incurs no further cost unless the customer redeems.
+**Amended 2026-09-10 — supersedes prior Locked version:** When a genuinely scarce item cannot be resupplied, the proposed fallback for a non-selected entry is an option to purchase a gift card from the **same retailer that supplied the scarce item**. The paid entry amount applies toward that gift-card purchase, and the customer pays the remaining balance. The entry does not automatically convert into stored credit or a wallet balance.
 
-## 3.3 🔴 Flagged — Unredeemed Rebate/Loser Credit Expiration
+**Example:** if Dick's Sporting Goods supplied the scarce item, the completion option may apply only to the purchase of a Dick's Sporting Goods gift card. It may not be redirected to Walmart, Target, another retailer, or another marketplace offering.
 
-Amended 2026-08-13 — supersedes prior Locked version: Unredeemed rebate/loser credit expires 30 days after issuance. Rationale: comparable, familiar window to standard retail return policies; deliberate founder decision, made after reviewing why the prior rule prohibited short-window expiration. 🔴 Flagged — requires legal review before implementation. Potential exposure: federal CARD Act minimum-duration requirements for stored-value instruments; state-level gift-card/stored-value expiration laws (several states prohibit expiration entirely). Do not implement enforcement of this expiration until reviewed.
+**Restrictions applying to completion options under 3.1 and 3.2:** each option belongs to its originating entry and result. It may not be transferred, stacked or combined with another completion option, moved to another retailer or offering, withdrawn, used to purchase another entry, or combined with Playable Balance. No value is fulfilled unless and until the customer exercises the option and pays the required remaining balance.
+
+**Unresolved and inactive:** the permitted scarce-item gift-card denomination or denominations, completion window, vendor authorization flow, customer disclosures, accounting treatment, and legal classification have not been decided. Scarce-item completion functionality must not be activated or represented as available until the founder has made the required decisions and the necessary professional review has occurred. Implementers must not infer or invent these rules.
+
+## 3.3 🔴 Flagged — Completion Window and Expiration
+
+**Amended 2026-09-10 — supersedes the 2026-08-13 blanket proposal:** no completion window or expiration rule for the proposed scarce-item fallback is currently authorized for implementation. Its completion window remains unresolved, together with its legal classification and accounting treatment. No scarce-item countdown, forfeiture, expiration enforcement, or customer-facing expiration promise may be implemented until the founder records a further decision following the required professional review. This section does not establish or change a completion window for everyday/on-demand entries.
 
 ---
 
@@ -240,8 +246,32 @@ Not being built as part of the current implementation. Recorded here so the conc
 - Backup-bidder mechanic: if the winning bidder fails to complete payment within approximately 7 days, the next-highest bidder (2nd, then 3rd, then 4th place, in order) receives the option. This mirrors established auction-house practice.
 - Requires a genuine **payment-method authorization hold** for the bid amount — a point-in-time balance check is explicitly insufficient, since funds can be moved before or after a simple balance snapshot.
 - Requires identity verification (KYC), likely more stringent than the threshold used for standard high-value/scarce pools.
-- **Explicitly rejected:** distributing a pro-rata share of the whale-tier surcharge back to non-whale losers in the standard pool. This was found to reintroduce the same "profit depends on people not noticing small amounts" pattern. The prior Part 3.3 blanket prohibition on short-window credit expiration shared that concern; the 2026-08-13 amendment narrowed 3.3 to a 30-day rebate/loser-credit window (still 🔴 Flagged for legal review). This whale-tier rejection is unchanged.
+- **Explicitly rejected:** distributing a pro-rata share of the whale-tier surcharge back to non-selected entries in the standard pool. This was found to reintroduce the same "profit depends on people not noticing small amounts" pattern. Part 3.3 now leaves the scarce-item completion window unresolved and inactive pending a founder decision and professional review. This whale-tier rejection is unchanged.
 - The exact whale-tier dollar threshold is not defined and requires real research into industry norms before it is ever proposed as a hard number.
+
+---
+
+# Deferred Terminology and Disclosure Audit
+
+This audit records follow-up work without changing or activating any financial mechanic.
+
+## Legitimate Future Promotional or Loyalty Value
+
+Generic references to rebate credits, promotional credits, and loyalty rewards in the Product Vision, Product Concept, Account & Wallet Specification, and Payments & Payouts Specification may describe distinct future benefit programs. They are not entry-completion value and must remain separately named, governed, and ledgered if implemented.
+
+## Ambiguous References Requiring a Later Decision
+
+Generic `Rebate Credit Balance` terminology in the Homepage, Item Page, How It Works, and Design System specifications, along with the currently unused `CreditBanner` presentation component, requires review before those surfaces become functional. Each reference must be classified as a genuine future promotion/loyalty program, replaced with an entry-bound result action where that was the intent, or removed. No classification is made by this audit.
+
+The upcoming catalog pass must define explicit internal `everyday`, `on_demand`, and inactive `scarce` classifications before product records or completion behavior are implemented. This requirement does not authorize product-record changes in the current pass.
+
+## Forbidden General Completion Credit
+
+A non-selected entry must never create reusable, transferable, stackable, withdrawable, cross-retailer, cross-offering, entry-purchasing, or Playable-Balance-combinable Zero Loss credit. Any future copy or implementation that gives an entry-completion option those properties conflicts with Part 3 and must be corrected before release.
+
+## Deferred Demo Data Disclosure Review
+
+Review Demo Data disclosure coverage across homepage statistics, countdowns, balances, entries, results, and customer activity. Existing disclosures may already be present but may be inconsistent. Do not add a global banner during the drawer task.
 
 ---
 

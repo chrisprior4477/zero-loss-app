@@ -1,7 +1,7 @@
 # Project Zero-Loss Account & Wallet Specification
 ## Customer Command Center, Wallet Management, Financial Transparency, and Account Activity
 
-**Version:** 1.1  
+**Version:** 1.2
 **Status:** Authoritative  
 **Document Type:** Product Specification
 
@@ -165,13 +165,21 @@ Additional funding methods are defined within the Payments & Payouts Specificati
 
 ---
 
-# 8. Rebate Credits
+# 8. Rebate Credits and Entry-Bound Completion Options
 
-Rebate Credits represent qualifying value earned according to marketplace rules.
+Rebate Credits represent qualifying value earned under marketplace rules other than the entry-bound completion options defined in Part 3 of the Marketplace Financial Rules Specification.
 
 These credits must remain visually distinct from Playable Balance.
 
 Customers should never mistake rebate value for unrestricted wallet funds.
+
+An everyday/on-demand non-selected entry creates an option to complete the purchase of its exact originating product by applying the paid entry amount and paying the remaining balance. The proposed fallback for a genuinely scarce item is an option to purchase a gift card from the same retailer that supplied that item, with the paid entry amount applied and the customer paying the remaining balance. These are entry-bound completion options—not Rebate Credit balances.
+
+Every completion option must remain attached to its originating entry and result. It must not be displayed or treated as general-purpose Zero Loss credit, transferable or withdrawable value, Playable Balance, or payment for another entry. It must not be moved to another retailer or offering, stacked with another completion option, or combined with Playable Balance.
+
+The wallet and activity experience should present an eligible completion option as an action belonging to the originating result, not as an amount added to any wallet balance. The record should identify the originating entry, exact everyday product or proposed same-retailer scarce fallback, paid entry amount to be applied, and remaining balance required to complete the purchase.
+
+The scarce-item fallback remains inactive. Its permitted gift-card denomination or denominations, completion window, vendor authorization, disclosures, accounting treatment, and legal classification are unresolved and must not be inferred, displayed as settled, or activated.
 
 Each rebate entry should display:
 
@@ -179,7 +187,7 @@ Each rebate entry should display:
 - source activity,
 - issue date,
 - expiration status (when applicable),
-- usage eligibility,
+- precise usage eligibility,
 - and remaining availability.
 
 The presentation should emphasize clarity rather than complexity.
@@ -263,14 +271,19 @@ The Account page should maintain a complete and understandable history of comple
 
 Results should help customers understand both outcomes and the financial effects of those outcomes.
 
-Each result should clearly indicate one of the following states:
+Each result should clearly indicate the applicable outcome and lifecycle state or states:
 
 - Winner
 - Not Selected
 - Prize Claimed
 - Prize Delivered
-- Credit Issued
+- Completion Option Available
+- Completion Purchase Initiated
+- Completion Purchase Completed
+- Completion Option Expired (reserved and inactive; only where a future legally reviewed rule explicitly permits it)
 - Refunded (where applicable)
+
+Completion-option states describe actions attached to the originating entry and result. They must not be represented as wallet credit issuance. The reserved expiration state does not authorize a completion window, countdown, forfeiture, or expiration behavior.
 
 Historical records strengthen customer trust by providing permanent visibility into marketplace activity.
 
@@ -291,16 +304,18 @@ Customers should always know the current status of every awarded prize.
 
 ---
 
-## Non-Winning Results
+## Non-Selected Results
 
-When a customer does not win, the result should clearly explain any value created under the published rules of the applicable pool.
+When a customer's entry is not selected, the result should clearly explain the available action under the published rules of the applicable pool.
 
 Examples may include:
 
-- rebate credits,
+- an entry-bound option to complete purchase of the exact everyday/on-demand product,
 - promotional credits,
 - loyalty rewards,
 - or other qualifying customer benefits.
+
+Promotional credits, loyalty rewards, and other qualifying benefits are distinct value programs. They must not replace, rename, or be combined with an entry-bound completion option.
 
 The interface should communicate outcomes positively while remaining factually accurate.
 

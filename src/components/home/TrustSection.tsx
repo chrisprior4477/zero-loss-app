@@ -7,10 +7,10 @@ import Link from "next/link";
  * `docs/product/marketplace-financial-rules-spec.md`:
  *   - §5.1  public-facing content must NEVER mention or imply that a prize
  *           can be redeemed for cash, under any circumstance.
- *   - §3.1  a non-winning entry becomes the right to complete the purchase of
- *           that item — it is never described as a refund.
- *   - §3.3  rebate/loser-credit expiration is 🔴 Flagged pending legal review,
- *           so no expiration window is asserted anywhere in this copy.
+ *   - §3.1  an everyday/on-demand non-selected entry creates an option to
+ *           complete that exact product purchase — never a refund or balance.
+ *   - §3.2–3.3 scarce-item fallback and timing remain unresolved and inactive,
+ *           so this copy makes no promise about either.
  *   - §4.6  paid-tier entry scaling is 🔴 Flagged, so membership mechanics are
  *           not promoted here.
  */
@@ -18,7 +18,7 @@ import Link from "next/link";
 const trustPoints = [
   {
     title: "You always keep the value",
-    body: "If you don't win, what you spent goes toward buying that item instead. Your participation keeps its worth.",
+    body: "For eligible everyday items, a non-selected entry can be applied toward buying that exact product. You pay the remaining balance.",
   },
   {
     title: "Clear, published rules",
