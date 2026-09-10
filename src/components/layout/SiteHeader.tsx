@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { DesktopCategoryNav } from "@/components/layout/DesktopCategoryNav";
 import { DesktopHeaderSearch } from "@/components/layout/DesktopHeaderSearch";
+import { AccountDrawer } from "@/components/layout/AccountDrawer";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayableBalanceLabel } from "@/lib/wallet/balance";
 
@@ -41,6 +42,10 @@ export async function SiteHeader() {
       balanceLabel = null;
     }
   }
+
+  const displayName = user
+    ? String(user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email?.split("@")[0] ?? "Account")
+    : "Chris P.";
 
   return (
     // Blur lives on a non-interactive underlay — not on <header> itself — so
@@ -90,17 +95,7 @@ export async function SiteHeader() {
             <span className="inline-flex h-[28px] min-w-[45px] w-fit items-center justify-center px-1 text-[14px] font-bold leading-none tabular-nums sm:h-[34px] sm:min-w-[64px] sm:px-1.5 sm:text-[20px] lg:text-[22px]">$247</span>
           </Link>
 
-          <Link
-            href="/about"
-            aria-label="Open menu"
-            className="grid h-8 w-8 place-items-center rounded-md text-white/75 transition-colors hover:bg-white/8 hover:text-white"
-          >
-            <span aria-hidden="true" className="flex w-[17px] flex-col gap-[3px]">
-              <span className="h-px w-full bg-current" />
-              <span className="h-px w-full bg-current" />
-              <span className="h-px w-full bg-current" />
-            </span>
-          </Link>
+          <AccountDrawer isSignedIn={Boolean(user)} displayName={displayName} />
         </div>
       </div>
 
