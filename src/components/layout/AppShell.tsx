@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { InstallAppPrompt } from "@/components/layout/InstallAppPrompt";
 
 type AppShellProps = {
   children: ReactNode;
@@ -20,6 +21,7 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
       <SiteFooter />
+      <InstallAppPrompt />
     </div>
   );
 }

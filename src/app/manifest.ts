@@ -7,6 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description:
       "Zero Loss — a calmer way to shop with marketplace energy, built for trust and clarity.",
     start_url: "/",
+    id: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#00132e",
     theme_color: "#00132e",
