@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { categorySubcategories } from "@/lib/home/placeholder-data";
+import {
+  categorySubcategories,
+  endingSoonItemHrefs,
+} from "@/lib/home/placeholder-data";
 
 const desktopCategories = [
   "Ending Soon",
@@ -119,7 +122,7 @@ export function DesktopCategoryNav() {
                       {items.map((item) => (
                       <Link
                         key={item}
-                        href="/browse"
+                        href={endingSoonItemHrefs[item] ?? "/browse"}
                         role="menuitem"
                         onClick={() => setOpenCategory(null)}
                         className="flex min-h-11 items-center border-b border-white/8 px-1 text-[16px] font-medium text-white/85 transition-colors hover:border-[var(--accent)] hover:text-white focus-visible:border-[var(--accent)] focus-visible:text-white focus-visible:outline-none"

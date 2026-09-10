@@ -16,9 +16,10 @@
  *           Acquisition cost is never an input, here or anywhere else.
  *   - §1.2  entry counts are clean numbers ending in 25, 50, 75, or 00.
  *
- * Imagery is the design's own art (AI-generated / supplied through the
- * Checkpoint 2 export), not scraped or reproduced brand product photography,
- * which §2.3 prohibits.
+ * The first catalog pass uses founder-directed retailer product imagery for
+ * the private investor demo. This is a deliberate temporary exception that
+ * conflicts with financial-rules §2.3; licensing/authorization and the locked
+ * rule must be reconciled before public launch.
  *
  * Vocabulary follows C10: Opportunity, Entry, Prize, Pool. The word "drop"
  * from the artboards is not used.
@@ -43,46 +44,51 @@ export type PlaceholderOpportunity = {
   ticketsSold: number;
   status: OpportunityStatus;
   statusLabel: string;
-  /** Path under /public. Design-supplied art, never scraped photography. */
+  /** Path under /public. Demo imagery; confirm production usage rights before launch. */
   image: string;
+  /** Product-detail route when this fixture has a built demo item page. */
+  href?: string;
 };
 
 export const placeholderFeaturedOpportunities: PlaceholderOpportunity[] = [
   {
     id: "placeholder-featured-1",
-    title: repeatedHomepageProducts.espresso.title,
-    category: "Home Essentials",
-    faceValueLabel: `$${repeatedHomepageProducts.espresso.prizeValue.toLocaleString()}`,
+    title: repeatedHomepageProducts.tv.title,
+    category: "Electronics",
+    faceValueLabel: `$${repeatedHomepageProducts.tv.prizeValue.toLocaleString()}`,
     entryPriceLabel: "$1 Entry",
-    ticketCapacity: repeatedHomepageProducts.espresso.entryCapacity,
-    ticketsSold: repeatedHomepageProducts.espresso.entriesSold,
+    ticketCapacity: repeatedHomepageProducts.tv.entryCapacity,
+    ticketsSold: repeatedHomepageProducts.tv.entriesSold,
     status: "closing",
     statusLabel: "Closing soon",
-    image: "/design/2a-espresso.webp",
+    image: "/catalog/samsung-m70h-tv-real.png",
+    href: "/items/samsung-m70h-tv",
   },
   {
     id: "placeholder-featured-2",
-    title: repeatedHomepageProducts.bike.title,
+    title: repeatedHomepageProducts.shoes.title,
     category: "Trophy Vault",
-    faceValueLabel: `$${repeatedHomepageProducts.bike.prizeValue.toLocaleString()}`,
+    faceValueLabel: `$${repeatedHomepageProducts.shoes.prizeValue.toLocaleString()}`,
     entryPriceLabel: "$1 Entry",
-    ticketCapacity: repeatedHomepageProducts.bike.entryCapacity,
-    ticketsSold: repeatedHomepageProducts.bike.entriesSold,
-    status: "new",
-    statusLabel: "Just listed",
-    image: "/design/2a-bike.webp",
+    ticketCapacity: repeatedHomepageProducts.shoes.entryCapacity,
+    ticketsSold: repeatedHomepageProducts.shoes.entriesSold,
+    status: "closing",
+    statusLabel: "Closing soon",
+    image: "/catalog/nike-court-shot-side-cutout.png",
+    href: "/items/nike-court-shot-shoes",
   },
   {
     id: "placeholder-featured-3",
-    title: repeatedHomepageProducts.headphones.title,
-    category: "Electronics",
-    faceValueLabel: `$${repeatedHomepageProducts.headphones.prizeValue.toLocaleString()}`,
+    title: repeatedHomepageProducts.babyEssentials.title,
+    category: "Home Essentials",
+    faceValueLabel: `$${repeatedHomepageProducts.babyEssentials.prizeValue.toLocaleString()}`,
     entryPriceLabel: "$1 Entry",
-    ticketCapacity: repeatedHomepageProducts.headphones.entryCapacity,
-    ticketsSold: repeatedHomepageProducts.headphones.entriesSold,
-    status: "popular",
-    statusLabel: "Popular",
-    image: "/design/2a-headphones.webp",
+    ticketCapacity: repeatedHomepageProducts.babyEssentials.entryCapacity,
+    ticketsSold: repeatedHomepageProducts.babyEssentials.entriesSold,
+    status: "closing",
+    statusLabel: "Closing soon",
+    image: "/catalog/babys-essentials-bundle-angled-real.png",
+    href: "/items/babys-essentials-bundle",
   },
 ];
 
@@ -324,8 +330,9 @@ export const categorySubcategories: Record<string, readonly string[]> = {
    artboards. "Ending Soon" lists individual items rather than subcategories,
    which is why it reads differently from the taxonomy menus above. */
 categorySubcategories["Ending Soon"] = [
-  "Espresso machine, dual boiler",
-  "Noise-cancelling headphones",
+  'Samsung 50" M70H Smart TV',
+  "Nike Men's Court Shot Shoes",
+  "Baby's Essentials Bundle",
   "Stand mixer",
   "Cordless drill set",
   "4K OLED TV",
@@ -335,6 +342,13 @@ categorySubcategories["Ending Soon"] = [
   "Robot vacuum",
   "Instant Pot",
 ];
+
+/** Detail routes available in the current investor-demo catalog. */
+export const endingSoonItemHrefs: Record<string, string> = {
+  'Samsung 50" M70H Smart TV': "/items/samsung-m70h-tv",
+  "Nike Men's Court Shot Shoes": "/items/nike-court-shot-shoes",
+  "Baby's Essentials Bundle": "/items/babys-essentials-bundle",
+};
 
 categorySubcategories["Everyday Items"] = [
   "Groceries & Gas",

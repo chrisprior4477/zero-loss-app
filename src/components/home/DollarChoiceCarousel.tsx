@@ -18,14 +18,12 @@ export function DollarChoiceCarousel() {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
     const track = trackRef.current;
     if (!track) return;
-    event.preventDefault();
     dragRef.current = {
       active: true,
       moved: false,
       startX: event.clientX,
       scrollLeft: track.scrollLeft,
     };
-    track.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -33,6 +31,12 @@ export function DollarChoiceCarousel() {
     if (!track || !dragRef.current.active) return;
     const distance = event.clientX - dragRef.current.startX;
     if (Math.abs(distance) > 5) dragRef.current.moved = true;
+    if (dragRef.current.moved) {
+      event.preventDefault();
+      if (!track.hasPointerCapture(event.pointerId)) {
+        track.setPointerCapture(event.pointerId);
+      }
+    }
     track.scrollLeft = dragRef.current.scrollLeft - distance;
   };
 
@@ -104,7 +108,8 @@ export function DollarChoiceCarousel() {
                     <span aria-hidden="true" className="absolute inset-[18%] rounded-full blur-2xl" style={{ backgroundColor: item.accentSoft, boxShadow: `0 0 42px ${item.accent}` }} />
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="230px" className="relative z-10 object-contain p-1 drop-shadow-[0_18px_18px_rgba(0,0,0,0.42)] transition-transform duration-300 group-hover:scale-105" />
                   </div>
-                  <h3 className="mt-2 min-h-10 text-center text-[14px] font-bold leading-[1.25] text-white">{item.title}</h3>
+                  {item.endingSoon && <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.1em] text-[#ff7a22]">Ending soon</p>}
+                  <h3 className={`${item.endingSoon ? "mt-0.5" : "mt-2"} min-h-10 text-center text-[14px] font-bold leading-[1.25] text-white`}>{item.title}</h3>
                   <p className="mt-1 text-center text-[10px] font-semibold text-white/70 sm:text-[11px]">
                     ${item.prizeValue.toLocaleString()} value · {entryCapacity.toLocaleString()} entries
                   </p>

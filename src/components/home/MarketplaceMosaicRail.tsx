@@ -46,6 +46,7 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
         </div>
         <div className="flex min-h-[68px] items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-5 sm:py-3">
           <div style={{ maxWidth: 180 }} className="min-w-0">
+            {item.endingSoon && <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#ff8a35] sm:text-[9px]">Ending soon</p>}
             <h3 className="text-[11px] font-extrabold leading-tight text-white sm:text-[15px]">{item.title}</h3>
             <p className="mt-1 text-[8px] font-semibold leading-tight text-white/60 sm:text-[10px]">
               ${item.prizeValue.toLocaleString()} value · {entryCapacity.toLocaleString()} entries
@@ -69,6 +70,7 @@ function CompactCard({ item }: { item: (typeof products)[number] }) {
           <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="110px" className="object-contain p-0.5 drop-shadow-[0_10px_10px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-105 sm:p-1" />
         </div>
         <div className="min-w-0 flex-1">
+          {item.endingSoon && <p className="mb-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-[#ff8a35] sm:text-[8px]">Ending soon</p>}
           <h3 className="line-clamp-2 text-[9px] font-extrabold leading-tight text-white sm:text-[14px]">{item.title}</h3>
           <p className="mt-1 text-[7px] font-semibold leading-tight text-white/60 sm:text-[9px]">
             ${item.prizeValue.toLocaleString()} · {entryCapacity.toLocaleString()} entries
@@ -90,9 +92,7 @@ export function MarketplaceMosaicRail() {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
     const track = trackRef.current;
     if (!track) return;
-    event.preventDefault();
     dragRef.current = { active: true, moved: false, startX: event.clientX, scrollLeft: track.scrollLeft };
-    track.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -100,6 +100,12 @@ export function MarketplaceMosaicRail() {
     if (!track || !dragRef.current.active) return;
     const distance = event.clientX - dragRef.current.startX;
     if (Math.abs(distance) > 5) dragRef.current.moved = true;
+    if (dragRef.current.moved) {
+      event.preventDefault();
+      if (!track.hasPointerCapture(event.pointerId)) {
+        track.setPointerCapture(event.pointerId);
+      }
+    }
     track.scrollLeft = dragRef.current.scrollLeft - distance;
   };
 
@@ -142,8 +148,8 @@ export function MarketplaceMosaicRail() {
           onDragStart={(event) => event.preventDefault()}
         >
           <FeatureCard item={products[1]} />
-          <div className="flex shrink-0 flex-col gap-[14px]"><CompactCard item={products[0]} /><CompactCard item={products[5]} /></div>
-          <FeatureCard item={products[2]} />
+          <div className="flex shrink-0 flex-col gap-[14px]"><CompactCard item={products[0]} /><CompactCard item={products[2]} /></div>
+          <FeatureCard item={products[5]} />
           <div className="flex shrink-0 flex-col gap-[14px]"><CompactCard item={products[4]} /><CompactCard item={products[3]} /></div>
           <FeatureCard item={products[6]} />
           <div className="flex shrink-0 flex-col gap-[14px]"><CompactCard item={products[3]} /><CompactCard item={products[0]} /></div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   categorySubcategories,
+  endingSoonItemHrefs,
   homeCategories,
 } from "@/lib/home/placeholder-data";
 
@@ -160,7 +161,7 @@ export function CategoryNav() {
             {openSubcategories.map((subcategory) => (
               <Link
                 key={subcategory}
-                href="/browse"
+                href={endingSoonItemHrefs[subcategory] ?? "/browse"}
                 role="menuitem"
                 onClick={() => setOpenCategory(null)}
                 className="flex min-h-[44px] items-center whitespace-nowrap border-l-2 border-transparent px-[18px] text-[13px] font-medium text-[var(--foreground)] transition-colors hover:border-[var(--accent)] hover:bg-[rgba(255,255,255,0.08)] focus-visible:border-[var(--accent)] focus-visible:bg-[rgba(255,255,255,0.08)] focus-visible:outline-none"

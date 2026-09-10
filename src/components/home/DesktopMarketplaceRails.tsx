@@ -150,21 +150,24 @@ function useDragRail(ref: React.RefObject<HTMLDivElement | null>) {
       if (event.pointerType !== "mouse" || event.button !== 0) return;
       const track = ref.current;
       if (!track) return;
-      event.preventDefault();
       drag.current = {
         active: true,
         moved: false,
         startX: event.clientX,
         scrollLeft: track.scrollLeft,
       };
-      track.setPointerCapture(event.pointerId);
     },
     onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => {
       const track = ref.current;
       if (!track || !drag.current.active) return;
       const distance = event.clientX - drag.current.startX;
       if (Math.abs(distance) > 5) drag.current.moved = true;
-      if (drag.current.moved) event.preventDefault();
+      if (drag.current.moved) {
+        event.preventDefault();
+        if (!track.hasPointerCapture(event.pointerId)) {
+          track.setPointerCapture(event.pointerId);
+        }
+      }
       track.scrollLeft = drag.current.scrollLeft - distance;
     },
     onPointerUp: (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -283,7 +286,7 @@ export function DesktopMarketplaceRails() {
                 className="relative w-[150px] shrink-0 overflow-hidden rounded-xl bg-white text-[#00132e] transition-transform hover:-translate-y-0.5 sm:w-[220px] sm:rounded-2xl"
               >
                 <Link
-                  href="/browse"
+                  href={item.href ?? "/browse"}
                   draggable={false}
                   className="block h-full p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500"
                 >

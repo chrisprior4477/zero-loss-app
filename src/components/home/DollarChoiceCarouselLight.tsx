@@ -48,9 +48,7 @@ export function DollarChoiceCarouselLight() {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
     const track = trackRef.current;
     if (!track) return;
-    event.preventDefault();
     dragRef.current = { active: true, moved: false, startX: event.clientX, scrollLeft: track.scrollLeft };
-    track.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -58,6 +56,12 @@ export function DollarChoiceCarouselLight() {
     if (!track || !dragRef.current.active) return;
     const distance = event.clientX - dragRef.current.startX;
     if (Math.abs(distance) > 5) dragRef.current.moved = true;
+    if (dragRef.current.moved) {
+      event.preventDefault();
+      if (!track.hasPointerCapture(event.pointerId)) {
+        track.setPointerCapture(event.pointerId);
+      }
+    }
     track.scrollLeft = dragRef.current.scrollLeft - distance;
   };
 
@@ -122,6 +126,7 @@ export function DollarChoiceCarouselLight() {
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
+                      {item.endingSoon && <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#e94f10] sm:text-[9px]">Ending soon</p>}
                       <h3 className="line-clamp-2 text-left text-[13px] font-extrabold leading-[1.22] text-[#00132e] sm:text-[15px]">{item.title}</h3>
                       <p className="mt-1 text-[9px] font-semibold leading-tight text-slate-500 sm:text-[11px]">
                         ${item.prizeValue.toLocaleString()} value<br />{entryCapacity.toLocaleString()} entries
