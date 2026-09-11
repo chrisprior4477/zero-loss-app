@@ -22,16 +22,17 @@ export default async function ItemPage({ params }: PageProps) {
   const { id } = await params;
   const product = getDemoProduct(id);
   if (!product) notFound();
+  const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
       <div className="mx-auto max-w-7xl">
         <Link href="/#ending-soon" className="inline-flex items-center gap-2 text-sm font-bold text-cyan-300 hover:text-white">← Back to marketplace</Link>
 
-        <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)] lg:items-start">
-          <div>
+        <div className="mt-6 flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)] lg:items-start">
+          <div className="contents lg:block">
             <ProductGallery gallery={product.gallery} title={product.title} />
-            <section className="mt-8 rounded-3xl border border-white/12 bg-white/5 p-5 sm:p-8">
+            <section className="order-3 rounded-3xl border border-white/12 bg-white/5 p-5 sm:p-8 lg:mt-8">
               <h2 className="text-2xl font-extrabold">Product details</h2>
               <p className="mt-3 max-w-3xl leading-7 text-white/75">{product.summary}</p>
               <div className="mt-7 grid gap-8 md:grid-cols-2">
@@ -61,13 +62,17 @@ export default async function ItemPage({ params }: PageProps) {
             </section>
           </div>
 
-          <div className="lg:sticky lg:top-32">
+          <div className="order-2 lg:sticky lg:top-32 lg:order-none">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">{product.category}</p>
             <h1 className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">{product.title}</h1>
             <div className="mt-4 rounded-2xl border border-cyan-300/30 bg-cyan-300/8 px-4 py-3">
               <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-cyan-300">Digital retailer fulfillment</p>
-              <p className="mt-1 font-bold">Issued through {product.retailer}</p>
-              <p className="mt-1 text-xs leading-5 text-white/60">If awarded or completed, this offering is delivered as a retailer-specific digital gift card to the Rewards &amp; Fulfillment area of your Zero Loss Wallet—not as Playable Balance or withdrawable cash.</p>
+              <p className="mt-1 font-bold">Issued as ${product.value.toLocaleString()} in {product.retailer} digital gift-card value</p>
+              {isGiftCardOffering ? (
+                <p className="mt-1 text-xs leading-5 text-white/60">If awarded or completed, the retailer-specific digital gift card is delivered to the Rewards &amp; Fulfillment area of your Zero Loss Wallet—not as Playable Balance or withdrawable cash.</p>
+              ) : (
+                <p className="mt-1 text-xs leading-5 text-white/60">You will not receive the displayed {product.title} directly from Zero Loss. If awarded or completed, you receive the retailer-specific digital gift-card value in your Zero Loss Wallet to purchase it from {product.retailer}, either online or in a participating store where supported.</p>
+              )}
             </div>
             <div className="my-6 flex items-baseline gap-2 border-y border-white/12 py-4">
               <span className="text-sm text-white/60">Retail value</span>
