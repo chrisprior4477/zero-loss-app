@@ -292,3 +292,128 @@ body {
     animation: none;
   }
 }
+
+.amo-print-sheet {
+  display: none;
+}
+
+.amo-paper-preview {
+  position: relative;
+  box-sizing: border-box;
+  width: 8.5in;
+  height: 11in;
+  margin: 0 auto;
+  padding-top: 1in;
+  background: white;
+  box-shadow: 0 24px 70px rgba(0, 19, 46, 0.24);
+}
+
+.amo-postcard-cutout {
+  position: relative;
+  box-sizing: border-box;
+  width: 3.75in;
+  height: 2.5in;
+  margin: 0 auto;
+  padding: 0.08in;
+  border: 2px dashed #64748b;
+  background: #fff;
+}
+
+.amo-postcard-inner {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0.15in 0.18in;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.08in;
+  background: #fffdf7;
+}
+
+.amo-cut-label {
+  position: absolute;
+  right: 0.16in;
+  bottom: -0.16in;
+  padding: 0 0.08in;
+  background: white;
+  color: #64748b;
+  font-size: 8pt;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 8.5in;
+    height: 11in;
+    margin: 0;
+    overflow: hidden;
+    background: white;
+  }
+
+  .amo-free-entry-page {
+    width: 8.5in !important;
+    height: 11in !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .amo-free-entry-page * {
+    visibility: hidden;
+  }
+
+  .amo-print-sheet,
+  .amo-print-sheet * {
+    visibility: visible;
+  }
+
+  .amo-print-sheet {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    width: 8.5in;
+    height: 11in;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 1in;
+    color: #00132e;
+    background: white;
+  }
+
+  .amo-print-insert {
+    box-sizing: border-box;
+    width: 5.75in;
+    min-height: 3.25in;
+    padding: 0.28in;
+    border: 2px dashed #64748b;
+    background: #fffdf7;
+  }
+
+  .amo-print-document-page {
+    width: 8.5in !important;
+    height: 11in !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .amo-print-controls {
+    display: none !important;
+  }
+
+  .amo-paper-preview {
+    width: 8.5in;
+    height: 11in;
+    margin: 0;
+    box-shadow: none;
+  }
+}

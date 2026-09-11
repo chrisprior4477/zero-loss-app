@@ -12,7 +12,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   const product = (offering ? getDemoProduct(offering) : undefined) ?? demoProducts[0];
 
   return (
-    <main className="min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
+    <main className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
       <div className="mx-auto max-w-4xl">
         <Link href={`/items/${product.slug}`} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to {product.title}</Link>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#31e800]">Alternative method of entry prototype</p>

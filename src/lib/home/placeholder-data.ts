@@ -339,14 +339,12 @@ categorySubcategories["Ending Soon"] = [
   'Samsung 50" M70H Smart TV',
   "Nike Men's Court Shot Shoes",
   "Baby's Essentials Bundle",
-  "Stand mixer",
-  "Cordless drill set",
-  "4K OLED TV",
-  "Air fryer",
-  "4-person camping tent",
-  "Electric grill",
-  "Robot vacuum",
-  "Instant Pot",
+  "$25 Dunkin' Donuts Gift Card",
+  "$75 HomeGoods Gift Card",
+  "$150 Lowe's Appliance Gift Card",
+  "$50 Bed Bath & Beyond + Wayfair Bundle",
+  "$100 Best Buy Gift Card",
+  "$25 Netflix Gift Card",
 ];
 
 /** Detail routes available in the current investor-demo catalog. */
@@ -354,6 +352,12 @@ export const endingSoonItemHrefs: Record<string, string> = {
   'Samsung 50" M70H Smart TV': "/items/samsung-m70h-tv",
   "Nike Men's Court Shot Shoes": "/items/nike-court-shot-shoes",
   "Baby's Essentials Bundle": "/items/babys-essentials-bundle",
+  "$25 Dunkin' Donuts Gift Card": "/items/dunkin-25-gift-card",
+  "$75 HomeGoods Gift Card": "/items/homegoods-75-gift-card",
+  "$150 Lowe's Appliance Gift Card": "/items/lowes-150-gift-card",
+  "$50 Bed Bath & Beyond + Wayfair Bundle": "/items/home-style-50-gift-card-bundle",
+  "$100 Best Buy Gift Card": "/items/best-buy-100-gift-card",
+  "$25 Netflix Gift Card": "/items/netflix-25-gift-card",
 };
 
 categorySubcategories["Everyday Items"] = [
