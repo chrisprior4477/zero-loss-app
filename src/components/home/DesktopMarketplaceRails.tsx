@@ -13,6 +13,7 @@ import {
   placeholderDiscoveryOpportunities,
   placeholderFeaturedOpportunities,
 } from "@/lib/home/placeholder-data";
+import { popularRewardBrands } from "@/lib/catalog/popular-rewards";
 
 const desktopCategories = [
   { id: "groceries", label: "Groceries", image: "/category-groceries-v2.png" },
@@ -35,19 +36,6 @@ const endingSoon = [
     remaining: endingSoonRemaining[index] ?? 21,
   }))
   .sort((a, b) => a.remaining - b.remaining);
-
-const popularBrands = [
-  { name: "Amazon", color: "linear-gradient(145deg,#ffb11b,#ff6b00)" },
-  { name: "Walmart", color: "linear-gradient(145deg,#1599df,#0572bd)" },
-  { name: "Starbucks", color: "linear-gradient(145deg,#138f68,#006241)" },
-  { name: "DoorDash", color: "linear-gradient(145deg,#ff5a4d,#e92819)" },
-  { name: "The Home Depot", color: "linear-gradient(145deg,#ff9c22,#f26822)" },
-  { name: "Nintendo", color: "linear-gradient(145deg,#f04444,#d51625)" },
-  { name: "CVS", color: "linear-gradient(145deg,#f54b5c,#cc1634)" },
-  { name: "Uber Eats", color: "linear-gradient(145deg,#37c875,#078c50)" },
-  { name: "Adidas", color: "linear-gradient(145deg,#344961,#101820)" },
-  { name: "PetSmart", color: "linear-gradient(145deg,#238ed0,#005696)" },
-];
 
 function SideRailButtons({ onScroll }: { onScroll: (direction: -1 | 1) => void }) {
   return (
@@ -73,6 +61,20 @@ function SideRailButtons({ onScroll }: { onScroll: (direction: -1 | 1) => void }
 }
 
 function EndingSoonArtwork({ item }: { item: (typeof placeholderDiscoveryOpportunities)[number] }) {
+  if (item.image.startsWith("/catalog/")) {
+    return (
+      <Image
+        src={item.image}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        fill
+        sizes="220px"
+        className="object-contain p-2"
+      />
+    );
+  }
+
   if (item.id === "placeholder-discovery-1") {
     return (
       <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_50%_0%,#fff7ec_0%,#ffe7c4_58%,#ffc77d_100%)] p-2">
@@ -204,7 +206,7 @@ export function DesktopMarketplaceRails() {
 
   return (
     <section className="relative left-1/2 mt-3 w-screen -translate-x-1/2 space-y-4 px-4 sm:mt-8 sm:space-y-8 sm:px-6 md:mt-3 md:space-y-4 lg:px-[clamp(3rem,6vw,7rem)]">
-      <div>
+      <div id="popular-rewards" className="scroll-mt-28">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Shop by category</h2>
@@ -350,16 +352,16 @@ export function DesktopMarketplaceRails() {
             onDragStart={(event) => event.preventDefault()}
             {...brandsDrag}
           >
-            {popularBrands.map((brand) => (
+            {popularRewardBrands.map((brand) => (
               <Link
                 key={brand.name}
-                href="/browse"
+                href={`/rewards/${brand.slug}`}
                 draggable={false}
                 className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 focus-visible:outline-none sm:w-[116px] sm:gap-2.5"
               >
                 <span
                   className="grid h-[62px] w-[62px] place-items-center rounded-full border border-white/15 px-1.5 text-center text-[10px] font-bold leading-tight text-white shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-transform group-hover:-translate-y-1 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-cyan-300 sm:h-[104px] sm:w-[104px] sm:px-3 sm:text-[15px]"
-                  style={{ background: brand.color }}
+                  style={{ background: brand.homeColor, color: "white" }}
                 >
                   {brand.name}
                 </span>

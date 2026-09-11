@@ -149,7 +149,9 @@ The pay-more-get-more-entries mechanic (Section 4.1, Paid tier) risks crossing f
 
 A scarce-item win is **never** convertible to cash or platform credit. The winner receives the specific item, in full, and nothing else.
 
-The winner **may transfer or gift** their win to another named ZeroLoss account, as a free courtesy feature. This must never be advertised, implied, or presented anywhere as a cash-out mechanism. **The platform's public-facing content must never mention that cash redemption of any prize is possible, under any circumstance.**
+**Amended 2026-09-10 — winner recipient designation:** A verified winner may designate another eligible person as the recipient of the awarded prize or retailer-specific digital gift card after the result is confirmed and before fulfillment is issued. This is a prize-delivery instruction—not a transfer of the winning entry, account, wallet value, or non-selected completion option. The original winner remains the winner of record, and recipient eligibility, identity, sanctions, fraud, tax-reporting, territorial, age, and retailer restrictions must be satisfied before fulfillment. Once the fulfillment instrument has been issued, the designation is final. The workflow must never be advertised, implied, or presented as a cash-out mechanism.
+
+Entries themselves and all non-selected completion options remain non-transferable. They cannot be gifted, sold, assigned, moved to another ZeroLoss account, or redirected to a different retailer or offering. **The platform's public-facing content must never mention that cash redemption of any prize is possible, under any circumstance.** Final recipient-designation language and operational controls require counsel and fulfillment-provider approval before production activation.
 
 ## 5.2 Unclaimed Scarce-Item Wins (Locked)
 

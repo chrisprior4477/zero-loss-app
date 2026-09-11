@@ -164,25 +164,25 @@ export const recentWinnerDemoItems = [
     name: "Tracy S.",
     reward: 'a Samsung 50" smart TV',
     avatar: "/design/lady-with-bag.webp",
-    href: "/browse",
+    href: "/items/samsung-m70h-tv",
   },
   {
     name: "Tim M.",
     reward: "a $100 Walmart gift card",
     avatar: "/design/buyer-mobile.webp",
-    href: "/browse",
+    href: "/items/publix-100-gift-card",
   },
   {
     name: "Jordan R.",
     reward: "a PlayStation 5 Slim",
     avatar: "/how-it-works-journey-winner.png",
-    href: "/browse",
+    href: "/items/playstation-5-slim",
   },
   {
     name: "Maya L.",
     reward: "Nike Court Shot shoes",
     avatar: "/how-it-works-clear-win.png",
-    href: "/browse",
+    href: "/items/nike-court-shot-shoes",
   },
 ] as const;
 
@@ -196,6 +196,7 @@ export const socialActivityDemoItems = [
     avatar: "/design/lady-with-bag.webp",
     message: "That Samsung 50-inch smart TV is officially mine. Movie night just got a major upgrade!",
     accent: "#05bdf6",
+    href: "/items/samsung-m70h-tv",
   },
   {
     id: "social-facebook-1",
@@ -206,6 +207,7 @@ export const socialActivityDemoItems = [
     avatar: "/design/buyer-mobile.webp",
     message: "My $100 Walmart shopping reward arrived today. Zero Loss made my week!",
     accent: "#1877f2",
+    href: "/browse?view=winners",
   },
   {
     id: "social-instagram-1",
@@ -216,6 +218,7 @@ export const socialActivityDemoItems = [
     avatar: "/how-it-works-journey-winner.png",
     message: "Unboxed my PlayStation 5 Slim today. This setup is unreal!",
     accent: "#d946ef",
+    href: "/items/playstation-5-slim",
   },
   {
     id: "social-x-2",
@@ -226,6 +229,7 @@ export const socialActivityDemoItems = [
     avatar: "/how-it-works-clear-win.png",
     message: "One dollar, one seriously clean pair of Nike Court Shot shoes. They fit perfectly!",
     accent: "#05bdf6",
+    href: "/items/nike-court-shot-shoes",
   },
   {
     id: "social-tiktok-1",
@@ -236,6 +240,7 @@ export const socialActivityDemoItems = [
     avatar: "/how-it-works-journey-reclaim.png",
     message: "Come unbox the Baby's Essentials Bundle I won. This is the most practical prize ever!",
     accent: "#111827",
+    href: "/items/babys-essentials-bundle",
   },
   {
     id: "social-facebook-2",
@@ -246,6 +251,7 @@ export const socialActivityDemoItems = [
     avatar: "/how-it-works-clear-fallback.png",
     message: "The new television is finally on the wall. Movie night just got a major upgrade!",
     accent: "#1877f2",
+    href: "/items/lg-oled-c6-65-tv",
   },
   {
     id: "social-instagram-2",
@@ -256,6 +262,7 @@ export const socialActivityDemoItems = [
     avatar: "/design/lady-with-bag.webp",
     message: "Swipe to see the home refresh kit completely transform my kitchen counter.",
     accent: "#d946ef",
+    href: "/items/dyson-v8-cordless-vacuum",
   },
   {
     id: "social-tiktok-2",
@@ -266,5 +273,6 @@ export const socialActivityDemoItems = [
     avatar: "/design/buyer-mobile.webp",
     message: "Testing my new premium headphones on a flight—now I understand the hype.",
     accent: "#111827",
+    href: "/browse?view=winners",
   },
 ] as const;

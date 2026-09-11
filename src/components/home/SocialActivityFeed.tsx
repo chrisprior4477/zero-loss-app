@@ -157,7 +157,7 @@ export function SocialActivityFeed() {
                 {stripItems.map(({ item, repetition }) => {
                   const decorativeCopy = copy === 1 || repetition > 0;
                   return (
-                  <Link href="/browse?view=winners" aria-hidden={decorativeCopy || undefined} tabIndex={decorativeCopy ? -1 : undefined} key={`${copy}-${repetition}-${item.id}`} className={`flex h-full w-[225px] min-w-0 flex-col rounded-[15px] border p-3 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${item.platform === "tiktok" ? "border-cyan-100/35 bg-[#087ff5]/90 shadow-[inset_0_1px_0_rgba(255,255,255,.22),0_8px_20px_rgba(8,127,245,.3)] hover:bg-[#1692ff]" : "border-white/10 bg-[#071426]/65 hover:border-orange-200/50 hover:bg-[#071426]/80"}`}>
+                  <Link href={item.href} aria-hidden={decorativeCopy || undefined} tabIndex={decorativeCopy ? -1 : undefined} key={`${copy}-${repetition}-${item.id}`} className={`flex h-full w-[225px] min-w-0 flex-col rounded-[15px] border p-3 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${item.platform === "tiktok" ? "border-cyan-100/35 bg-[#087ff5]/90 shadow-[inset_0_1px_0_rgba(255,255,255,.22),0_8px_20px_rgba(8,127,245,.3)] hover:bg-[#1692ff]" : "border-white/10 bg-[#071426]/65 hover:border-orange-200/50 hover:bg-[#071426]/80"}`}>
                     <span className="flex min-w-0 items-center gap-2.5">
                       <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/25" style={{ backgroundColor: item.accent }}>
                         <Image src={item.avatar} alt={`${item.name} profile`} fill sizes="40px" className="object-cover object-top" />

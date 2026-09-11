@@ -17,7 +17,7 @@ export function ProductGallery({ gallery, title }: Pick<DemoProduct, "gallery" |
           fill
           priority
           sizes="(max-width: 768px) 100vw, 54vw"
-          className={image.fit === "cover" ? "object-cover" : "object-contain p-5 sm:p-9"}
+          className={image.fit === "cover" ? "object-cover" : image.fit === "reward" ? "object-contain p-2 sm:p-3" : "object-contain p-5 sm:p-9"}
         />
       </div>
       <div className="mt-3 flex gap-3 overflow-x-auto pb-1" aria-label={`${title} image gallery`}>
@@ -30,7 +30,7 @@ export function ProductGallery({ gallery, title }: Pick<DemoProduct, "gallery" |
             aria-pressed={selected === index}
             className={`relative h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-white transition ${selected === index ? "ring-3 ring-cyan-300" : "border border-white/25 opacity-75 hover:opacity-100"}`}
           >
-            <Image src={galleryImage.src} alt="" fill sizes="96px" className="object-contain p-2" />
+            <Image src={galleryImage.src} alt="" fill sizes="96px" className={galleryImage.fit === "reward" ? "object-contain p-1" : "object-contain p-2"} />
           </button>
         ))}
       </div>

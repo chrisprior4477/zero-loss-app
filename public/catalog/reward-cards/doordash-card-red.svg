@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-labelledby="title desc">
+  <title id="title">DoorDash gift card</title>
+  <desc id="desc">A solid red DoorDash digital gift card with white branding.</desc>
+  <rect width="960" height="600" rx="48" fill="#ff3008"/>
+  <path fill="#fff" d="M238 217h244c73 0 133 55 141 126 9 79-53 150-132 150H355l70-70h67c38 0 68-34 61-72-6-31-34-54-66-54H318l-80-80Zm0 0 80 80h169c32 0 60 23 66 54H388L238 217Z"/>
+  <text x="480" y="150" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="74" font-weight="800" letter-spacing="8">DOORDASH</text>
+  <text x="480" y="540" text-anchor="middle" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="30" font-weight="700">Your favorite restaurants, delivered.</text>
+</svg>

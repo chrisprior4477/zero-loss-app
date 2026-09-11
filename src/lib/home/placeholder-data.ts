@@ -103,7 +103,8 @@ export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
     ticketsSold: 71,
     status: "closing",
     statusLabel: "Closing soon",
-    image: "/design/2a-espresso.webp",
+    image: "/catalog/dunkin-25-gift-card.svg",
+    href: "/items/dunkin-25-gift-card",
   },
   {
     id: "placeholder-discovery-2",
@@ -115,7 +116,8 @@ export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
     ticketsSold: 118,
     status: "popular",
     statusLabel: "Popular",
-    image: "/design/5a-c3.webp",
+    image: "/catalog/homegoods-75-gift-card.svg",
+    href: "/items/homegoods-75-gift-card",
   },
   {
     id: "placeholder-discovery-3",
@@ -127,7 +129,8 @@ export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
     ticketsSold: 203,
     status: "popular",
     statusLabel: "Popular",
-    image: "/design/2a-espresso.webp",
+    image: "/catalog/lowes-150-gift-card.svg",
+    href: "/items/lowes-150-gift-card",
   },
   {
     id: "placeholder-discovery-4",
@@ -139,7 +142,8 @@ export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
     ticketsSold: 24,
     status: "new",
     statusLabel: "Just listed",
-    image: "/design/5a-c3.webp",
+    image: "/catalog/home-style-50-gift-card-bundle.svg",
+    href: "/items/home-style-50-gift-card-bundle",
   },
   {
     id: "placeholder-discovery-5",
@@ -151,7 +155,8 @@ export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
     ticketsSold: 288,
     status: "closing",
     statusLabel: "Closing soon",
-    image: "/design/2a-headphones.webp",
+    image: "/catalog/best-buy-100-gift-card.svg",
+    href: "/items/best-buy-100-gift-card",
   },
   {
     id: "placeholder-discovery-6",
@@ -163,7 +168,8 @@ export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
     ticketsSold: 39,
     status: "new",
     statusLabel: "Just listed",
-    image: "/design/2a-bike.webp",
+    image: "/catalog/netflix-25-gift-card.svg",
+    href: "/items/netflix-25-gift-card",
   },
 ];
 
