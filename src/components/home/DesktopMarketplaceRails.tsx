@@ -374,7 +374,7 @@ export function DesktopMarketplaceRails() {
 
       <div>
         <DollarChoiceCarousel />
-        <div className="mt-0 grid grid-cols-1 gap-3 sm:mt-8 sm:gap-6 md:mt-3 md:gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="mt-0 grid grid-cols-1 gap-3 sm:mt-8 sm:gap-6 md:mt-3 md:grid-cols-[280px_minmax(0,1fr)] md:gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
           <RecentWinnerRoll />
           <SocialActivityFeed />
         </div>

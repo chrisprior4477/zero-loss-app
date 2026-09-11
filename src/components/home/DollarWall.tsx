@@ -42,11 +42,7 @@ const sheetUrls: Record<PhotoSheet, string> = {
   kayak: "/dollar-wall-kayak-v2.png",
 };
 
-const solarOrbitPositions = [
-  "5.8% 17%", "50% 17%", "94.2% 17%",
-  "5.8% 52.1%", "50% 52.1%", "94.2% 52.1%",
-  "5.8% 87%", "50% 87%", "94.2% 87%",
-];
+const mysteryTileColors = ["#00b9ff", "#9d5cff", "#74e72d", "#ff630f"];
 
 export function DollarWall() {
   const [items, setItems] = useState(starters);
@@ -148,12 +144,35 @@ export function DollarWall() {
           {items.map((item, index) => {
           const chosen = picks.some((pickItem) => pickItem.id === item.id);
           const isRevealed = revealed === item.id;
+          const mysteryColor = mysteryTileColors[index % mysteryTileColors.length];
           return <button key={item.id} type="button" onMouseEnter={() => !chosen && setRevealed(item.id)} onMouseLeave={() => !chosen && setRevealed(null)} onClick={() => tap(item)} disabled={!chosen && picks.length >= 5} aria-label={`${item.name}${chosen ? ", selected; tap to remove" : ", tap once to reveal and again to add"}`} className={`dollar-tile-button group relative aspect-[1.15/1] min-h-[58px] touch-manipulation [perspective:700px] focus-visible:outline-2 focus-visible:outline-cyan-300 sm:min-h-[48px] ${index >= 12 ? "hidden sm:block" : ""} ${chosen ? "cursor-pointer rounded-lg shadow-[0_0_0_2px_#74e72d,0_0_20px_rgba(116,231,45,.65)]" : ""}`}>
             <span className={`absolute inset-0 [transform-style:preserve-3d] transition-transform duration-500 [transition-timing-function:cubic-bezier(.2,.75,.25,1)] ${chosen || isRevealed ? "[transform:rotateY(180deg)]" : ""}`}>
               <span
-                className="dollar-mystery-tile absolute inset-0 overflow-hidden rounded-lg bg-[#03152f] bg-no-repeat shadow-[0_6px_18px_rgba(0,0,0,.42)] transition-[filter,transform] group-hover:brightness-110 [backface-visibility:hidden]"
-                style={{ backgroundImage: "url('/solar-orbit-tiles.png')", backgroundSize: "340.6% 404.8%", backgroundPosition: solarOrbitPositions[index % solarOrbitPositions.length], animationDelay: `${index * 120}ms` }}
-              />
+                className="dollar-mystery-tile absolute inset-0 overflow-hidden rounded-lg border shadow-[0_6px_18px_rgba(0,0,0,.42)] transition-[filter,transform] group-hover:brightness-110 [backface-visibility:hidden]"
+                style={{
+                  background: `radial-gradient(circle at 50% 45%, ${mysteryColor}38 0%, #03152f 67%)`,
+                  borderColor: `${mysteryColor}70`,
+                  animationDelay: `${index * 120}ms`,
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-[4%]"
+                  style={{
+                    backgroundColor: mysteryColor,
+                    WebkitMaskImage: "url('/zeroloss-favicon.svg')",
+                    maskImage: "url('/zeroloss-favicon.svg')",
+                    WebkitMaskPosition: "center",
+                    maskPosition: "center",
+                    WebkitMaskRepeat: "no-repeat",
+                    maskRepeat: "no-repeat",
+                    WebkitMaskSize: "contain",
+                    maskSize: "contain",
+                    filter: `drop-shadow(0 0 8px ${mysteryColor})`,
+                  }}
+                />
+                <span aria-hidden="true" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[clamp(14px,2.8vw,22px)] font-black leading-none text-white [text-shadow:-2px_-1px_0_#03152f,2px_-1px_0_#03152f,-2px_1px_0_#03152f,2px_1px_0_#03152f,0_0_8px_#03152f]">$1</span>
+              </span>
               <span className={`absolute inset-0 overflow-hidden rounded-lg border bg-[#071627] [backface-visibility:hidden] [transform:rotateY(180deg)] ${chosen ? "border-[#74e72d]" : "border-cyan-300/40"}`}>
                 <span className="absolute inset-0 bg-[length:600%_400%]" style={{ backgroundImage: `url(${sheetUrls[item.sheet ?? "main"]})`, backgroundPosition: photoPosition(item.photo) }} />
                 <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#00132e] via-[#00132e]/85 to-transparent px-1 pb-1 pt-3 text-center text-[8px] font-bold leading-tight text-white">{item.name}</span>

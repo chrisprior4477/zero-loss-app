@@ -99,8 +99,16 @@ export function DollarChoiceCarousel() {
             const entryCapacity = entryCapacityForValue(item.prizeValue);
             return (
               <article key={item.id} className="group relative w-[156px] shrink-0 sm:w-[230px]">
+                <Link
+                  href={`${item.href}#enter-entry`}
+                  draggable={false}
+                  aria-label={`Enter $1 for ${item.title}`}
+                  className="absolute left-2 top-0 z-30 flex flex-col items-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
+                >
+                  <span className="relative z-10 rounded-full bg-[#00132e] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.11em] text-[#8cff62] shadow-[0_3px_8px_rgba(0,0,0,.35)] sm:text-[8px]">Enter</span>
+                  <span className="-mt-0.5 grid h-9 w-9 place-items-center rounded-full bg-[#74e72d] text-[14px] font-extrabold text-[#00132e] shadow-[0_0_18px_rgba(49,232,0,0.55)] transition-transform hover:scale-110 sm:h-11 sm:w-11 sm:text-[17px]">$1</span>
+                </Link>
                 <Link href={item.href} draggable={false} className="block rounded-2xl px-2 pb-3 pt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
-                  <span className="absolute left-2 top-1 z-20 grid h-9 w-9 place-items-center rounded-full bg-[#74e72d] text-[14px] font-extrabold text-[#00132e] shadow-[0_0_18px_rgba(49,232,0,0.55)] sm:h-11 sm:w-11 sm:text-[17px]">$1</span>
                   <div
                     className="relative h-[112px] overflow-visible rounded-[44%] transition-transform duration-300 group-hover:-translate-y-1 sm:h-[174px]"
                     style={{ background: `radial-gradient(circle at center, ${item.accentSoft} 0%, rgba(0,19,46,0.42) 48%, transparent 72%)` }}

@@ -36,7 +36,7 @@ export function DemoParticipationPanel({ productTitle, retailer, productValue, e
   };
 
   return (
-    <aside className="rounded-3xl border border-cyan-300/30 bg-[#001b3d] p-5 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-7">
+    <aside id="enter-entry" className="scroll-mt-32 rounded-3xl border border-cyan-300/30 bg-[#001b3d] p-5 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-7">
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.13em] text-cyan-300">Entry price</p>
