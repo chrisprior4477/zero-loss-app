@@ -64,8 +64,8 @@ function BusinessInterestForm() {
   );
 }
 
-export function SignUpExperience() {
-  const [accountPath, setAccountPath] = useState<AccountPath>("pleasure");
+export function SignUpExperience({ initialAccountPath = "pleasure" }: { initialAccountPath?: AccountPath }) {
+  const [accountPath, setAccountPath] = useState<AccountPath>(initialAccountPath);
   const isPleasure = accountPath === "pleasure";
 
   return (

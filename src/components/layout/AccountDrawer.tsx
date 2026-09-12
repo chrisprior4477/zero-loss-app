@@ -20,7 +20,6 @@ const primaryLinks = [
 ] as const;
 
 const secondaryLinks = [
-  ["How Zero Loss Works", "/how-it-works"],
   ["Official Rules & Free Entry (Draft)", "/account/preview/official-rules"],
   ["Fairness & Verification", "/about"],
   ["Responsible Use", "/responsible-participation"],
@@ -201,8 +200,9 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
                   </div>
                 </div>
 
-                <Link href="/signup" onClick={close} className="grid min-h-12 w-full place-items-center rounded-xl bg-[#087feb] px-4 text-sm font-black text-white transition hover:bg-[#1692ff]">Sign up</Link>
+                <Link href={accountPath === "business" ? "/signup?account=business" : "/signup"} onClick={close} className="grid min-h-12 w-full place-items-center rounded-xl bg-[#087feb] px-4 text-sm font-black text-white transition hover:bg-[#1692ff]">Sign up</Link>
                 <p className="text-center text-xs text-white/50">Already registered? <Link href="/login" onClick={close} className="font-bold text-cyan-300 hover:underline">Sign in</Link></p>
+                <Link href="/how-it-works" onClick={close} className="grid min-h-11 w-full place-items-center rounded-xl border border-cyan-300/35 bg-cyan-300/8 px-4 text-sm font-bold text-cyan-200 transition hover:bg-cyan-300 hover:text-[#00132e]">How It Works</Link>
               </section>}
 
               <div className="mt-3 border-t border-cyan-200/15 pt-3">

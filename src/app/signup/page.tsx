@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Sign up" };
 
-export default async function SignUpPage() {
+export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ account?: string }> }) {
+  const { account } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user?.email_confirmed_at) redirect("/account");
@@ -24,7 +25,7 @@ export default async function SignUpPage() {
           </div>
         </section>
         <section className="bg-[linear-gradient(155deg,rgba(7,49,91,.86),rgba(0,19,46,.96))] p-6 sm:p-9 lg:p-12">
-          <SignUpExperience />
+          <SignUpExperience initialAccountPath={account === "business" ? "business" : "pleasure"} />
         </section>
       </div>
     </main>
