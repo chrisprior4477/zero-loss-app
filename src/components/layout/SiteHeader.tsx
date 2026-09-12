@@ -15,14 +15,21 @@ export async function SiteHeader() {
   } = await supabase.auth.getUser();
 
   let balanceLabel: string | null = null;
+  let avatarUrl: string | null = null;
 
   if (user) {
-    try {
-      balanceLabel = await getPlayableBalanceLabel(user.id);
-    } catch {
-      // Header must stay up even if ledger read fails; keep placeholder.
-      balanceLabel = null;
-    }
+    const [{ data: profile }, balanceResult] = await Promise.all([
+      supabase
+        .from("customer_profiles")
+        .select("avatar_reference")
+        .eq("customer_id", user.id)
+        .maybeSingle(),
+      getPlayableBalanceLabel(user.id).catch(() => null),
+    ]);
+    balanceLabel = balanceResult;
+    avatarUrl = profile?.avatar_reference
+      ? supabase.storage.from("profile-photos").getPublicUrl(profile.avatar_reference).data.publicUrl
+      : null;
   }
 
   const displayName = user
@@ -56,7 +63,7 @@ export async function SiteHeader() {
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-4 lg:gap-5">
           <HeaderAccountMetrics isSignedIn={Boolean(user)} liveBalance={balanceLabel} />
-          <AccountDrawer isSignedIn={Boolean(user)} displayName={displayName} />
+          <AccountDrawer isSignedIn={Boolean(user)} displayName={displayName} avatarUrl={avatarUrl} />
         </div>
       </div>
 

@@ -34,6 +34,9 @@ export default async function AccountPage() {
     [firstName, lastName].filter(Boolean).join(" ") || "Zero Loss member";
   const email = user.email ?? "—";
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || "ZL";
+  const avatarUrl = profile?.avatar_reference
+    ? supabase.storage.from("profile-photos").getPublicUrl(profile.avatar_reference).data.publicUrl
+    : null;
   const status = customer?.verification_status === "email_verified" ? "Verified" : "Pending verification";
   let balance = "$0.00";
   try {
@@ -60,7 +63,12 @@ export default async function AccountPage() {
         </header>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[1.05fr_1.4fr]">
-          <ProfilePhotoCard initials={initials} fullName={fullName} email={email} />
+          <ProfilePhotoCard
+            initials={initials}
+            fullName={fullName}
+            email={email}
+            initialAvatarUrl={avatarUrl}
+          />
 
           <article className="overflow-hidden rounded-[28px] border border-[#31e800]/25 bg-[linear-gradient(135deg,#06375a_0%,#07533f_100%)]">
             <div className="p-6 sm:p-7">

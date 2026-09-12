@@ -9,9 +9,7 @@ import { signOutAction } from "@/lib/auth/actions";
 import { investorDemoAccount } from "@/lib/demo/account-drawer";
 import { accountHref, accountModeFromPath } from "@/lib/account/mode";
 
-type AccountDrawerProps = { isSignedIn: boolean; displayName: string };
-type AvatarCrop = { x: number; y: number; zoom: number };
-const defaultAvatarCrop: AvatarCrop = { x: 0, y: 0, zoom: 1 };
+type AccountDrawerProps = { isSignedIn: boolean; displayName: string; avatarUrl: string | null };
 
 const primaryLinks = [
   ["My Entries", "entries", String(investorDemoAccount.activeEntries)],
@@ -42,38 +40,38 @@ function DrawerLink({ label, href, badge, onNavigate }: { label: string; href: s
   );
 }
 
-export function AccountDrawer({ isSignedIn, displayName }: AccountDrawerProps) {
+function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initials: string; size: "small" | "large" }) {
+  const dimension = size === "small" ? "h-9 w-9" : "h-11 w-11";
+  return avatar ? (
+    <span className={`relative ${dimension} shrink-0 overflow-hidden rounded-full border-2 border-cyan-300/50`}>
+      <Image src={avatar} alt="" fill unoptimized className="object-cover" />
+    </span>
+  ) : (
+    <span aria-hidden="true" className={`grid ${dimension} shrink-0 place-items-center rounded-full border border-cyan-300/40 bg-[#07533f] text-[11px] font-black text-[#72ff9f]`}>
+      {initials}
+    </span>
+  );
+}
+
+export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDrawerProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [avatar, setAvatar] = useState<string | null>(null);
-  const [avatarCrop, setAvatarCrop] = useState<AvatarCrop>(defaultAvatarCrop);
+  const [avatar, setAvatar] = useState<string | null>(avatarUrl);
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (!isSignedIn) return;
-    const frame = window.requestAnimationFrame(() => {
-      setAvatar(window.localStorage.getItem("zero-loss-profile-photo"));
-      try {
-        setAvatarCrop(JSON.parse(window.localStorage.getItem("zero-loss-profile-photo-crop") ?? "") as AvatarCrop);
-      } catch {
-        setAvatarCrop(defaultAvatarCrop);
-      }
-    });
+    setAvatar(avatarUrl);
     const updateAvatar = (event: Event) => {
-      const detail = (event as CustomEvent<{ photo: string; crop: AvatarCrop }>).detail;
+      const detail = (event as CustomEvent<{ photo: string }>).detail;
       setAvatar(detail.photo);
-      setAvatarCrop(detail.crop);
     };
     window.addEventListener("zero-loss-avatar-updated", updateAvatar);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("zero-loss-avatar-updated", updateAvatar);
-    };
-  }, [isSignedIn]);
+    return () => window.removeEventListener("zero-loss-avatar-updated", updateAvatar);
+  }, [avatarUrl]);
 
   useEffect(() => {
     if (!open) return;
@@ -131,22 +129,7 @@ export function AccountDrawer({ isSignedIn, displayName }: AccountDrawerProps) {
         className={`grid h-9 w-9 place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${isSignedIn ? "rounded-full border border-cyan-300/40 bg-[#07533f] text-[11px] font-black text-[#72ff9f] hover:border-cyan-200" : "rounded-md text-white/75 hover:bg-white/8 hover:text-white"}`}
       >
         {isSignedIn ? (
-          avatar ? (
-            <span className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-cyan-300/50">
-              <Image
-                src={avatar}
-                alt=""
-                fill
-                unoptimized
-                className="object-cover"
-                style={{ transform: `translate(${avatarCrop.x * 0.140625}px, ${avatarCrop.y * 0.140625}px) scale(${avatarCrop.zoom})` }}
-              />
-            </span>
-          ) : (
-            <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-full border border-cyan-300/40 bg-[#07533f] text-[11px] font-black text-[#72ff9f]">
-              {initials}
-            </span>
-          )
+          <DrawerAvatar avatar={avatar} initials={initials} size="small" />
         ) : (
           <span aria-hidden="true" className="flex w-[17px] flex-col gap-[3px]"><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /></span>
         )}
@@ -157,7 +140,7 @@ export function AccountDrawer({ isSignedIn, displayName }: AccountDrawerProps) {
           <button type="button" aria-label="Close account menu" onClick={close} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
           <aside ref={drawerRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="absolute inset-y-0 right-0 flex h-dvh w-[min(100%,420px)] flex-col overflow-hidden border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]">
             <div className="flex shrink-0 items-center gap-3 border-b border-cyan-200/15 px-5 py-4">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#07533f] text-[14px] font-extrabold text-[#55f0a0]">{initials}</div>
+              <DrawerAvatar avatar={isSignedIn ? avatar : null} initials={initials} size="large" />
               <div className="min-w-0 flex-1">
                 <h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2>
                 <p className="text-[12px] text-white/55">{isSignedIn ? (isDemoMode ? "Demo account" : "Live account") : investorDemoAccount.accountLabel}</p>

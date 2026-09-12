@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ChangeEvent, PointerEvent, useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 const PHOTO_KEY = "zero-loss-profile-photo";
 const CROP_KEY = "zero-loss-profile-photo-crop";
@@ -34,30 +35,99 @@ function AvatarImage({ photo, crop, offsetScale = 1 }: { photo: string; crop: Cr
   );
 }
 
+async function renderCroppedPhoto(photo: string, crop: Crop): Promise<Blob> {
+  const image = new window.Image();
+  image.src = photo;
+  await image.decode();
+
+  const size = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Photo editor is not available in this browser.");
+
+  const scale = Math.max(size / image.naturalWidth, size / image.naturalHeight) * crop.zoom;
+  const width = image.naturalWidth * scale;
+  const height = image.naturalHeight * scale;
+  const x = (size - width) / 2 + crop.x * 2;
+  const y = (size - height) / 2 + crop.y * 2;
+  context.drawImage(image, x, y, width, height);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => blob ? resolve(blob) : reject(new Error("We could not prepare that photo.")),
+      "image/webp",
+      0.9,
+    );
+  });
+}
+
 export function ProfilePhotoCard({
   initials,
   fullName,
   email,
+  initialAvatarUrl,
 }: {
   initials: string;
   fullName: string;
   email: string;
+  initialAvatarUrl: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{ x: number; y: number; cropX: number; cropY: number } | null>(null);
-  const [photo, setPhoto] = useState<string | null>(null);
+  const migrationStarted = useRef(false);
+  const [photo, setPhoto] = useState<string | null>(initialAvatarUrl);
   const [draftPhoto, setDraftPhoto] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>(defaultCrop);
   const [draftCrop, setDraftCrop] = useState<Crop>(defaultCrop);
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function persistPhoto(source: string, sourceCrop: Crop) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Please sign in again before saving your photo.");
+
+    const blob = await renderCroppedPhoto(source, sourceCrop);
+    const reference = `${user.id}/avatar.webp`;
+    const { error: uploadError } = await supabase.storage
+      .from("profile-photos")
+      .upload(reference, blob, { contentType: "image/webp", upsert: true });
+    if (uploadError) throw uploadError;
+
+    const { error: profileError } = await supabase.rpc("update_customer_profile_preferences", {
+      p_updates: { avatar_reference: reference },
+    });
+    if (profileError) throw profileError;
+
+    const publicUrl = supabase.storage.from("profile-photos").getPublicUrl(reference).data.publicUrl;
+    const refreshedUrl = `${publicUrl}?v=${Date.now()}`;
+    setPhoto(refreshedUrl);
+    setCrop(defaultCrop);
+    window.localStorage.removeItem(PHOTO_KEY);
+    window.localStorage.removeItem(CROP_KEY);
+    window.dispatchEvent(new CustomEvent(AVATAR_EVENT, { detail: { photo: refreshedUrl } }));
+    return refreshedUrl;
+  }
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      setPhoto(window.localStorage.getItem(PHOTO_KEY));
-      setCrop(readCrop());
+    const frame = window.requestAnimationFrame(async () => {
+      if (initialAvatarUrl || migrationStarted.current) return;
+      const legacyPhoto = window.localStorage.getItem(PHOTO_KEY);
+      if (!legacyPhoto) return;
+      migrationStarted.current = true;
+      try {
+        await persistPhoto(legacyPhoto, readCrop());
+      } catch {
+        setPhoto(legacyPhoto);
+        setCrop(readCrop());
+        setError("Your existing photo is still on this device. Open the editor and save it to sync everywhere.");
+      }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [initialAvatarUrl]);
 
   function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -92,16 +162,18 @@ export function ProfilePhotoCard({
     }));
   }
 
-  function savePhoto() {
+  async function savePhoto() {
     if (!draftPhoto) return;
-    window.localStorage.setItem(PHOTO_KEY, draftPhoto);
-    window.localStorage.setItem(CROP_KEY, JSON.stringify(draftCrop));
-    setPhoto(draftPhoto);
-    setCrop(draftCrop);
-    setEditing(false);
-    window.dispatchEvent(new CustomEvent(AVATAR_EVENT, {
-      detail: { photo: draftPhoto, crop: draftCrop },
-    }));
+    setSaving(true);
+    setError(null);
+    try {
+      await persistPhoto(draftPhoto, draftCrop);
+      setEditing(false);
+    } catch {
+      setError("We could not sync your photo. Please check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function openEditor() {
@@ -139,8 +211,9 @@ export function ProfilePhotoCard({
           </div>
         </div>
         <p className="mt-5 border-t border-white/10 pt-4 text-sm leading-6 text-white/50">
-          Your photo becomes the account-menu button at the top of this browser.
+          Your photo becomes the account-menu button and follows your account across devices.
         </p>
+        {error ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
       </article>
 
       {editing && draftPhoto ? (
@@ -175,8 +248,8 @@ export function ProfilePhotoCard({
               <button type="button" onClick={() => setEditing(false)} className="min-h-12 rounded-xl border border-white/20 text-sm font-bold text-white hover:bg-white/8">
                 Cancel
               </button>
-              <button type="button" onClick={savePhoto} className="min-h-12 rounded-xl bg-[#31e800] text-sm font-black text-[#002719] hover:bg-[#72ff4e]">
-                Save photo
+              <button type="button" disabled={saving} onClick={savePhoto} className="min-h-12 rounded-xl bg-[#31e800] text-sm font-black text-[#002719] hover:bg-[#72ff4e] disabled:cursor-wait disabled:opacity-60">
+                {saving ? "Saving…" : "Save photo"}
               </button>
             </div>
             <button type="button" onClick={() => inputRef.current?.click()} className="mt-4 w-full text-sm font-bold text-cyan-300 hover:text-cyan-100">
