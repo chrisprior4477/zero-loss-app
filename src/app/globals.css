@@ -427,3 +427,55 @@ body:has(.auth-signup-page) [data-demo-account-metric] {
 body:has(.auth-signup-page) .auth-demo-header-link {
   display: inline-flex;
 }
+
+@keyframes business-demo-file-drop {
+  0% { opacity: 0; transform: translate(90px, -70px) rotate(12deg) scale(.8); }
+  55% { opacity: 1; transform: translate(0, 8px) rotate(-2deg) scale(1.04); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); }
+}
+
+@keyframes business-demo-reveal {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.business-demo-file {
+  opacity: 0;
+  animation: business-demo-file-drop .78s cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+.business-demo-reveal {
+  animation: business-demo-reveal .45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .business-demo-file,
+  .business-demo-reveal { animation-duration: .01ms; animation-delay: 0ms !important; }
+}
+
+@media print {
+  body:has(.business-campaign-print) {
+    width: 8.5in !important;
+    height: 11in !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  body:has(.business-campaign-print) * { visibility: hidden !important; }
+
+  body:has(.business-campaign-print) .business-campaign-print,
+  body:has(.business-campaign-print) .business-campaign-print * { visibility: visible !important; }
+
+  body:has(.business-campaign-print) .business-campaign-print {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 8.5in !important;
+    max-width: none !important;
+    height: 11in !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

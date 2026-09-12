@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SignUpExperience } from "@/components/auth/SignUpExperience";
+import { BusinessOnboardingForm } from "@/components/auth/BusinessOnboardingForm";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Sign up" };
@@ -12,6 +13,14 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
   const { data: { user } } = await supabase.auth.getUser();
   if (user?.email_confirmed_at) redirect("/account");
 
+  if (initialAccountPath === "business") {
+    return (
+      <main className="min-h-[calc(100vh-163px)] max-w-[100vw] overflow-x-hidden bg-[radial-gradient(circle_at_90%_10%,rgba(0,185,255,.14),transparent_28%),linear-gradient(145deg,#00132e,#031b44)] px-3 py-5 sm:px-6 sm:py-10 lg:px-8">
+        <div className="mx-auto w-full min-w-0 max-w-7xl"><BusinessOnboardingForm /></div>
+      </main>
+    );
+  }
+
   return (
     <main className="auth-signup-page min-h-[calc(100vh-163px)] overflow-hidden bg-[radial-gradient(circle_at_12%_12%,rgba(0,185,255,.2),transparent_27%),radial-gradient(circle_at_90%_82%,rgba(255,99,15,.18),transparent_28%),linear-gradient(145deg,#00132e_0%,#031b44_52%,#001a3a_100%)] px-0 pb-8 pt-0 text-white sm:px-6 sm:py-12 lg:px-8">
       <div className="mx-auto grid max-w-6xl overflow-hidden rounded-b-[28px] border-x border-b border-cyan-200/20 bg-[#001b3d]/90 shadow-[0_32px_90px_rgba(0,0,0,.4)] backdrop-blur sm:rounded-[28px] sm:border md:grid-cols-[.82fr_1.18fr]">
@@ -19,7 +28,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
           <div aria-hidden="true" className="absolute -left-8 -top-8 h-52 w-52 bg-[#ff630f]/55 drop-shadow-[0_0_28px_rgba(255,99,15,.3)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
           <div aria-hidden="true" className="absolute -bottom-12 -right-10 h-72 w-72 bg-[#31e800]/16 [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
           <div className="relative z-10">
-            <div aria-hidden="true" className="mb-5 h-14 w-14 bg-[#69edff] drop-shadow-[0_0_16px_rgba(105,237,255,.42)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] sm:h-20 sm:w-20" />
+            <div aria-hidden="true" className="absolute right-0 top-0 h-14 w-14 bg-[#69edff] drop-shadow-[0_0_16px_rgba(105,237,255,.42)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] sm:h-20 sm:w-20" />
             <h1 className="max-w-md text-4xl font-black leading-[.98] tracking-[-0.055em] sm:text-5xl">One account.<br /><span className="text-[#31e800]">Every $1 shot counts.</span></h1>
             <p className="mt-5 max-w-md text-base leading-7 text-white/72">Save entries, review outcomes, and keep retailer-specific rewards and completion options organized in one secure place.</p>
           </div>

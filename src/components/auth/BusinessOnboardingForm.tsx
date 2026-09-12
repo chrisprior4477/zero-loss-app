@@ -1,160 +1,356 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import Link from "next/link";
+import QRCode from "qrcode";
+import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 
-const inputClassName =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none transition placeholder:text-white/25 hover:border-white/25 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10";
+type Partnership = "products" | "fulfillment" | "campaign" | "other";
+type DemoCase = Partnership | "restaurant" | "tools";
+type FormValues = Record<string, string | boolean>;
 
-const choiceClassName =
-  "flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-white/12 bg-white/[.04] px-4 py-3 text-sm font-bold text-white/75 transition hover:border-cyan-300/45 has-[:checked]:border-cyan-300 has-[:checked]:bg-cyan-300/10 has-[:checked]:text-cyan-200";
+const steps = ["Business", "Partnership", "Details", "Assets", "Review"] as const;
+const draftKey = "zero-loss-business-partnership-draft-v1";
+const fieldClass = "mt-2 min-h-12 w-full rounded-xl border border-cyan-200/25 bg-[#001b3d] px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10";
+const labelClass = "block text-sm font-bold text-white/90";
 
-const platforms = ["Instagram", "TikTok", "Facebook", "YouTube", "X", "Zero Loss"];
+const partnerships: Array<{ id: Partnership; icon: string; title: string; description: string }> = [
+  { id: "products", icon: "◇", title: "Offer products or rewards", description: "Supply merchandise, services, experiences, gift cards, or customer rewards." },
+  { id: "fulfillment", icon: "➤", title: "Provide digital fulfillment", description: "Deliver gift cards, codes, vouchers, memberships, or digital rewards at scale." },
+  { id: "campaign", icon: "⌁", title: "Create a brand campaign", description: "Sponsor a one-time or recurring promotion around your brand or offer." },
+  { id: "other", icon: "✧", title: "Explore another partnership", description: "Distribution, technology, content, creators, or something we have not listed." },
+];
 
-function SectionHeading({ number, title, description }: { number: string; title: string; description: string }) {
-  return (
-    <div className="flex gap-3">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-300 font-black text-[#00132e]">{number}</span>
-      <div>
-        <h3 className="text-lg font-black text-white">{title}</h3>
-        <p className="mt-1 text-sm leading-5 text-white/50">{description}</p>
-      </div>
-    </div>
-  );
+const initialValues: FormValues = { partnership: "products", relationship: "one-time", fulfillment_owner: "business", asset_rights: false, submit_authority: false, creator_notice: false };
+const demoBusinessByPartnership: Record<Partnership, FormValues> = { products: {
+  business_name: "Harbor Coffee Company",
+  address_line_1: "125 Market Street",
+  address_line_2: "Suite 400",
+  city: "Wilmington",
+  region: "NC",
+  postal_code: "28401",
+  country: "United States",
+  contact_name: "Jordan Lee",
+  work_email: "jordan@harborcoffee.example",
+  phone: "(910) 555-0147",
+  website: "https://harborcoffee.example",
+  business_type: "retail",
+  service_area: "nationwide",
+}, fulfillment: { business_name: "Northstar Digital Rewards", address_line_1: "410 Aurora Avenue", address_line_2: "Floor 8", city: "Minneapolis", region: "MN", postal_code: "55401", country: "United States", contact_name: "Avery Brooks", work_email: "avery@northstar-rewards.example", phone: "(612) 555-0182", website: "https://northstar-rewards.example", business_type: "provider", service_area: "online" }, campaign: { business_name: "Trailbound Adventures", address_line_1: "82 Summit Way", address_line_2: "", city: "Boulder", region: "CO", postal_code: "80302", country: "United States", contact_name: "Sam Rivera", work_email: "sam@trailbound-adventures.example", phone: "(303) 555-0176", website: "https://trailbound-adventures.example", business_type: "service", service_area: "nationwide" }, other: { business_name: "Build With Maya Studio", address_line_1: "225 Creator Lane", address_line_2: "Studio 12", city: "Austin", region: "TX", postal_code: "78701", country: "United States", contact_name: "Maya Chen", work_email: "maya@buildwithmaya.example", phone: "(512) 555-0164", website: "https://buildwithmaya.example", business_type: "other", service_area: "online" } };
+const extraDemoBusiness: Record<"restaurant" | "tools", FormValues> = {
+  restaurant: { business_name: "Bellamora Italian Kitchen", address_line_1: "180 Piazza Lane", address_line_2: "", city: "Charlotte", region: "NC", postal_code: "28202", country: "United States", contact_name: "Elena Moretti", work_email: "elena@bellamora.example", phone: "(704) 555-0138", website: "https://bellamora.example", business_type: "retail", service_area: "states" },
+  tools: { business_name: "Forge & Field Supply", address_line_1: "8800 Foundry Parkway", address_line_2: "Partner Operations", city: "Columbus", region: "OH", postal_code: "43215", country: "United States", contact_name: "Morgan Reed", work_email: "partners@forgeandfield.example", phone: "(614) 555-0100", website: "https://forgeandfield.example", business_type: "retail", service_area: "nationwide" },
+};
+
+type DemoCampaign = { brand: string; shortBrand: string; asset: string; filenames: string[]; eyebrow: string; headline: string; accent: string; body: string; cta: string; value: string; category: string; catalog?: string[] };
+type PartnerListing = { title: string; brand: string; category: string; value: number; entryPrice: number; capacity: number; summary: string; highlights: string[]; specifications: Array<[string, string]>; included: string[]; fulfillment: string; availability: string };
+
+const toolListingNames = ["Cordless drill kit","Professional wrench set","Portable jobsite table saw","Telescoping work lantern","Rolling tool chest","Wet-dry shop vacuum","Angle grinder kit","Mechanic socket set","Heavy-duty workbench","Portable power station"];
+const toolValues = [199,129,899,89,749,159,139,219,499,699];
+const toolModels = ["FF-20V-BL2","FF-WR12","FF-TS10P","FF-LANTERN-360","FF-CHEST-46","FF-VAC16","FF-AG45","FF-SOCKET-192","FF-WB72","FF-POWER-1000"];
+const toolFeatures = ["Brushless motor and two 20V batteries","12-piece chrome-vanadium combination set","10-inch carbide blade and folding rolling stand","Three light modes with telescoping mast","46-inch cabinet with soft-close drawers","16-gallon tank with wet and dry accessories","4½-inch grinder with guard and side handle","192-piece mechanic set in molded case","72-inch hardwood work surface and steel frame","1,000Wh portable battery with AC and USB outputs"];
+const restaurantListingNames = ["Spaghetti & meatballs dinner","Chicken parmesan dinner","Seafood linguine dinner","Wood-fired pizza night","Bellamora lasagna dinner","Tiramisu dessert experience","Antipasto tasting for two","Warm bread & olive oil tasting","Chef's table dinner for two","$150 Bellamora dining card"];
+const restaurantValues = [72,78,92,65,76,48,58,42,225,150];
+
+const partnerListings: Record<"restaurant" | "tools", PartnerListing[]> = {
+  tools: toolListingNames.map((title, index) => ({ title, brand: "Forge & Field", category: "Tools", value: toolValues[index], entryPrice: 1, capacity: toolValues[index] * 3, summary: `${toolFeatures[index]}. A complete Forge & Field marketplace listing with item-specific inventory and fulfillment terms.`, highlights: [toolFeatures[index], "Professional-grade fictional demonstration product", "Nationwide tracked fulfillment", "Item-specific warranty and return terms"], specifications: [["Model",toolModels[index]],["Brand","Forge & Field"],["Department","Tools & jobsite equipment"],["Condition","New"],["Warranty","Three-year limited demonstration warranty"]], included: [`One ${title.toLowerCase()}`,"Manufacturer documentation","Eligible accessories shown in the approved listing"], fulfillment: "Ships from a Forge & Field regional distribution center with tracking.", availability: "Continental United States; inventory confirmed before launch." })),
+  restaurant: restaurantListingNames.map((title, index) => ({ title, brand: "Bellamora Italian Kitchen", category: "Dining", value: restaurantValues[index], entryPrice: 1, capacity: restaurantValues[index] * 3, summary: index === 9 ? "A $150 Bellamora dining card for eligible food and nonalcoholic beverage purchases at participating locations." : `A complete Bellamora ${title.toLowerCase()} experience prepared and fulfilled by participating Bellamora locations.`, highlights: [index === 9 ? "$150 dining value" : "Made-to-order Italian dining experience","Redeem at participating Bellamora locations","Reservation and location availability apply","Gratuity and alcohol are not included"], specifications: [["Business","Bellamora Italian Kitchen"],["Category","Dining experience"],["Service area","Participating Southeast locations"],["Reservation",index === 9 ? "Subject to restaurant availability" : "Recommended"],["Expiration","Shown in the approved offering terms"]], included: [index === 9 ? "One $150 Bellamora dining card" : `One ${title.toLowerCase()}`,"Applicable food and nonalcoholic beverages described in the offering"], fulfillment: "Redeemed directly with a participating Bellamora location after eligibility and availability confirmation.", availability: "Participating locations and dates shown before entry." })),
+};
+const demoCampaigns: Record<DemoCase, DemoCampaign> = {
+  products: { brand: "Harbor Coffee Company", shortBrand: "HARBOR COFFEE", asset: "/business-demo/harbor-coffee-board.png", filenames: ["explorer-box.jpg", "morning-routine.jpg", "roast-packaging.jpg", "tasting-flatlay.jpg"], eyebrow: "THE COFFEE EXPLORER COLLECTION", headline: "Win a better morning.", accent: "One year of remarkable coffee.", body: "A premium home brewing collection plus fresh small-batch coffee delivered all year.", cta: "ENTER FOR A $1 SHOT", value: "$249", category: "Home & lifestyle" },
+  fulfillment: { brand: "Northstar Digital Rewards", shortBrand: "NORTHSTAR REWARDS", asset: "/business-demo/northstar-rewards-board.png", filenames: ["reward-catalog.jpg", "mobile-redemption.jpg", "category-grid.jpg", "delivery-network.jpg"], eyebrow: "Find Your Next Reward", headline: "A reward made for you.", accent: "$150 dining and travel reward.", body: "Choose from a flexible catalog of digital rewards and redeem from your phone.", cta: "ENTER FOR A $1 SHOT", value: "$150", category: "Gift cards" },
+  campaign: { brand: "Trailbound Adventures", shortBrand: "TRAILBOUND", asset: "/business-demo/trailbound-adventures-board.png", filenames: ["mountain-cabin.jpg", "adventure-kit.jpg", "group-hike.jpg", "fireside-evening.jpg"], eyebrow: "THE WEEKEND RESET", headline: "Trade the routine for the ridgeline.", accent: "A mountain escape built for four.", body: "Cabin stay, guided trail day, and a complete outdoor gear package.", cta: "TAKE YOUR $1 SHOT", value: "$1,200", category: "Travel & experiences" },
+  other: { brand: "Build With Maya Studio", shortBrand: "BUILD WITH MAYA", asset: "/business-demo/maya-chen-creator-board.png", filenames: ["creator-hero.jpg", "desk-build.jpg", "component-review.jpg", "media-kit-portrait.jpg"], eyebrow: "MAYA'S DREAM DESK BUILD", headline: "Build the setup you actually want.", accent: "A creator-curated performance PC package.", body: "Maya picked every component, explained every choice, and built a desk worth sharing.", cta: "TAKE YOUR $1 SHOT", value: "$2,499", category: "Electronics" },
+  restaurant: { brand: "Bellamora Italian Kitchen", shortBrand: "BELLAMORA ITALIAN KITCHEN", asset: "/business-demo/bellamora-originals.png", filenames: ["dining-room.jpg","spaghetti-meatballs.jpg","chicken-parmesan.jpg","seafood-linguine.jpg","wood-fired-pizza.jpg","lasagna.jpg","tiramisu.jpg","antipasto.jpg","warm-bread.jpg","gift-card.jpg"], eyebrow: "$150 BELLAMORA DINNER", headline: "Dinner is on us.", accent: "Explore Bellamora's complete dining collection.", body: "Choose from ten Bellamora dining listings, each with its own value, availability, specifications, and fulfillment terms.", cta: "ENTER FOR A $1 SHOT", value: "$150", category: "Dining", catalog: restaurantListingNames },
+  tools: { brand: "Forge & Field Supply", shortBrand: "FORGE & FIELD SUPPLY", asset: "/business-demo/forge-field-originals.png", filenames: ["cordless-drill.jpg","wrench-set.jpg","table-saw.jpg","telescoping-lantern.jpg","tool-chest.jpg","shop-vacuum.jpg","angle-grinder.jpg","socket-set.jpg","workbench.jpg","power-station.jpg"], eyebrow: "FORGE & FIELD MARKETPLACE", headline: "Build more. Spend less.", accent: "Explore the complete Forge & Field collection.", body: "Choose from ten individual Forge & Field listings, each with its own value, specifications, inventory, and fulfillment terms.", cta: "ENTER FOR A $1 SHOT", value: "$299", category: "Tools", catalog: toolListingNames },
+};
+const demoLabels: Record<DemoCase, string> = { products: "Harbor Coffee Demo", fulfillment: "North Star Rewards Demo", campaign: "Trailbound Adventures Demo", other: "Build With Maya Demo", restaurant: "Bellamora Italian Dining Demo", tools: "Forge & Field National Tools Demo" };
+const campaignArtwork: Record<DemoCase, string> = { products: "/business-demo/harbor-coffee-campaign.png", fulfillment: "/business-demo/northstar-rewards-campaign.png", campaign: "/business-demo/trailbound-adventures-campaign.png", other: "/business-demo/maya-chen-creator-campaign.png", restaurant: "/business-demo/bellamora-campaign.png", tools: "/business-demo/forge-field-campaign.png" };
+const demoPartnership: Record<DemoCase, Partnership> = { products: "products", fulfillment: "fulfillment", campaign: "campaign", other: "other", restaurant: "products", tools: "products" };
+const demoChoices: DemoCase[] = ["products", "fulfillment", "campaign", "other", "restaurant", "tools"];
+
+const demoDetailsByPartnership: Record<Partnership, FormValues> = {
+  products: {
+    offer_name: "Harbor Coffee Explorer Collection",
+    offer_type: "physical",
+    description: "A curated collection of four small-batch coffees with a brewer, tasting guide, and reusable travel mug.",
+    retail_value: "$249.00",
+    supply_terms: "$142 per collection, including standard shipping",
+    quantity: "500 collections",
+    variants: "Whole bean or ground; light, medium, or dark roast",
+    relationship: "recurring",
+    fulfillment_owner: "business",
+    availability: "Available monthly beginning October 2026",
+    geography: "Continental United States",
+    redemption: "Must be claimed within 30 days of notification",
+    delivery: "Ships within three business days with tracking",
+    customer_terms: "Damaged items are replaced within 14 days. Coffee is not returnable after opening.",
+  },
+  fulfillment: {
+    provider_name: "Northstar Digital Rewards",
+    reward_types: "Digital gift cards, subscription codes, vouchers, and memberships",
+    catalog: "More than 250 national retail, dining, travel, and entertainment brands",
+    denominations: "$5–$500, depending on brand",
+    coverage: "United States and Canada",
+    delivery_method: "api",
+    delivery_time: "Usually under 60 seconds",
+    inventory_limits: "Some travel and entertainment brands require 24-hour notice for large batches.",
+    pricing_terms: "Proposed volume discounts vary from 2% to 8% by brand and monthly volume.",
+    integration_docs: "https://northstar-rewards.example/developers",
+    support_rules: "Codes do not expire unless the issuing brand requires it. Failed deliveries receive automated replacement review.",
+    technical_contact: "Alex Morgan — integrations@northstar-rewards.example",
+  },
+  campaign: {
+    campaign_name: "Trailbound Weekend Reset",
+    campaign_offer: "Mountain cabin escape, guided trail day, and outdoor gear package",
+    objective: "Introduce Trailbound Adventures to travelers looking for an approachable premium outdoor weekend.",
+    relationship: "recurring",
+    launch_window: "January–March 2027",
+    campaign_capacity: "Four monthly featured packages",
+    campaign_value: "$1,200 per package",
+    campaign_supply: "Cabin accommodations, guide services, gear package, destination photography, and trip-planning support.",
+    fulfillment_owner: "business",
+    target_geography: "Continental United States",
+    audience: "Couples, friend groups, and first-time adventure travelers looking for a planned mountain escape.",
+    channels: "Website, email, Instagram, TikTok, Facebook, creators, and in-store QR displays",
+    campaign_notes: "Measure qualified visits, completed purchases, redemptions, and repeat customer activity. Avoid health or productivity guarantees.",
+    creator_notice: true,
+  },
+  other: {
+    other_partnership: "Build With Maya would curate complete desktop-computer packages, create short-form build videos, and share trackable campaign links across YouTube, TikTok, Instagram, Facebook, and X. Maya would provide her media kit, prior campaign examples, original photography, and component explainers; Zero Loss would provide the package page, customer journey, attribution, and reporting.",
+  },
+};
+const extraDemoDetails: Record<"restaurant" | "tools", FormValues> = {
+  restaurant: { offer_name: "$150 Bellamora Dinner Gift Card", offer_type: "gift-card", description: "A $150 dining gift card for handmade Italian dishes, dessert, and hospitality at participating Bellamora locations.", retail_value: "$150.00", supply_terms: "Gift cards supplied at agreed partner terms", quantity: "450 gift cards available", variants: "Digital or physical gift card", relationship: "recurring", fulfillment_owner: "business", availability: "Monthly beginning November 2026", geography: "North Carolina, South Carolina, and Georgia", redemption: "Valid at participating locations; alcohol and gratuity excluded", delivery: "Digital card within one business day or physical card by mail", customer_terms: "Subject to approved gift-card and campaign terms.", listing_count: "1", recurrence: "monthly", recurrence_limit: "12", auto_relist: false, card_billing: false, capacity_ack: false },
+  tools: { offer_name: "Forge & Field Launch Catalog", offer_type: "physical", description: "Ten separate professional tool and jobsite equipment listings for the Zero Loss marketplace.", retail_value: "$100–$899 per listing", supply_terms: "Partner-supplied inventory and nationwide fulfillment", quantity: "Up to 300 units per $100 of displayed value, per approved listing", variants: "Ten launch listings with model-specific specifications", relationship: "recurring", fulfillment_owner: "business", availability: "Rolling national launch beginning January 2027", geography: "Continental United States", redemption: "Each approved listing carries its own availability and completion terms", delivery: "Ships from regional distribution centers with tracking", customer_terms: "Warranty, returns, safety disclosures, and fulfillment service levels supplied per item.", listing_count: "10", recurrence: "auto-relist", recurrence_limit: "10", auto_relist: true, card_billing: false, capacity_ack: false },
+};
+
+function Field({ label, name, values, onChange, required = false, type = "text", placeholder, autoComplete }: { label: string; name: string; values: FormValues; onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void; required?: boolean; type?: string; placeholder?: string; autoComplete?: string }) {
+  return <label className={labelClass}>{label}{required ? <span className="text-[#72ff4e]"> *</span> : null}<input name={name} value={String(values[name] ?? "")} onChange={onChange} required={required} type={type} placeholder={placeholder} autoComplete={autoComplete} className={fieldClass} /></label>;
+}
+
+function TextArea({ label, name, values, onChange, required = false, placeholder, rows = 4 }: { label: string; name: string; values: FormValues; onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void; required?: boolean; placeholder?: string; rows?: number }) {
+  return <label className={labelClass}>{label}{required ? <span className="text-[#72ff4e]"> *</span> : null}<textarea name={name} value={String(values[name] ?? "")} onChange={onChange} required={required} rows={rows} placeholder={placeholder} className={`${fieldClass} py-3`} /></label>;
+}
+
+function SelectField({ label, name, values, onChange, options, required = false }: { label: string; name: string; values: FormValues; onChange: (event: ChangeEvent<HTMLSelectElement>) => void; options: Array<[string, string]>; required?: boolean }) {
+  return <label className={labelClass}>{label}{required ? <span className="text-[#72ff4e]"> *</span> : null}<select name={name} value={String(values[name] ?? "")} onChange={onChange} required={required} className={fieldClass}><option value="">Choose one</option>{options.map(([value, text]) => <option value={value} key={value}>{text}</option>)}</select></label>;
+}
+
+function StepHeading({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
+  return <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0 flex-1"><h2 className="text-2xl font-black tracking-[-0.03em] text-white sm:text-3xl">{title}</h2><p className="mt-2 text-sm leading-6 text-white/60 sm:text-base">{description}</p></div>{action}</div>;
 }
 
 export function BusinessOnboardingForm() {
-  const [submitted, setSubmitted] = useState(false);
-  const [schedule, setSchedule] = useState("one-time");
-  const [marketing, setMarketing] = useState("list-only");
-  const [assetPlan, setAssetPlan] = useState("provide");
+  const [step, setStep] = useState(0);
+  const [values, setValues] = useState<FormValues>(initialValues);
+  const [ready, setReady] = useState(false);
+  const [draftMessage, setDraftMessage] = useState("");
+  const [errors, setErrors] = useState<string[]>([]);
+  const [demoCase, setDemoCase] = useState<DemoCase | null>(null);
 
-  function submitPreview(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitted(true);
+  useEffect(() => {
+    const restoreDraft = window.setTimeout(() => {
+      try {
+        const saved = window.localStorage.getItem(draftKey);
+        if (saved) setValues({ ...initialValues, ...JSON.parse(saved) as FormValues });
+      } catch { /* Browser storage may be disabled. */ }
+    }, 0);
+    return () => window.clearTimeout(restoreDraft);
+  }, []);
+
+  const partnership = values.partnership as Partnership;
+  const selected = partnerships.find((option) => option.id === partnership) ?? partnerships[0];
+  const mainProposal = String(values.offer_name || values.provider_name || values.campaign_name || values.other_partnership || "Not provided yet");
+
+  const missing = useMemo(() => {
+    const required: Array<[string, string]> = [["business_name", "Business name"], ["address_line_1", "Street address"], ["city", "City"], ["region", "State or region"], ["postal_code", "ZIP or postal code"], ["country", "Country"], ["contact_name", "Authorized contact"], ["work_email", "Work email"], ["business_type", "Business type"], ["service_area", "Service area"]];
+    if (partnership === "products") required.push(["offer_name", "Offer name"], ["offer_type", "Offer type"], ["description", "Customer-facing description"], ["retail_value", "Retail value"], ["quantity", "Quantity or capacity"], ["relationship", "Relationship"], ["fulfillment_owner", "Fulfillment responsibility"]);
+    if (partnership === "fulfillment") required.push(["provider_name", "Provider name"], ["reward_types", "Reward types"], ["coverage", "Geographic coverage"], ["delivery_method", "Delivery method"], ["delivery_time", "Delivery time"], ["pricing_terms", "Pricing terms"], ["technical_contact", "Technical contact"]);
+    if (partnership === "campaign") required.push(["campaign_name", "Campaign name"], ["campaign_offer", "Campaign offer"], ["objective", "Campaign objective"], ["relationship", "Relationship"], ["campaign_supply", "What the business supplies"], ["audience", "Intended audience"]);
+    if (partnership === "other") required.push(["other_partnership", "Partnership explanation"]);
+    const absent = required.filter(([key]) => !String(values[key] ?? "").trim()).map(([, name]) => name);
+    if (!values.capacity_ack) absent.push("Fulfillment-capacity acknowledgment");
+    if (values.auto_relist && !values.card_billing) absent.push("Card-on-file billing authorization");
+    return absent;
+  }, [partnership, values]);
+
+  function change(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
+    const target = event.target;
+    setValues((current) => ({ ...current, [target.name]: target instanceof HTMLInputElement && target.type === "checkbox" ? target.checked : target.value }));
+    setDraftMessage("");
   }
 
-  if (submitted) {
-    return (
-      <div role="status" className="rounded-2xl border border-[#31e800]/35 bg-[#31e800]/10 p-7 text-center">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#72ff4e]">Setup preview complete</p>
-        <h3 className="mt-3 text-2xl font-black">Your campaign is ready for review.</h3>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-white/65">In production, routine offers can move through automated identity, content, inventory, and policy checks. Only exceptions or enterprise campaigns need a conversation.</p>
-        <button type="button" onClick={() => setSubmitted(false)} className="mt-5 rounded-full border border-cyan-300/40 px-5 py-2.5 text-sm font-bold text-cyan-200 hover:bg-cyan-300 hover:text-[#00132e]">Edit campaign setup</button>
-        <p className="mt-5 text-xs text-white/40">Interactive preview only — no company information was submitted.</p>
-      </div>
-    );
+  function saveDraft() {
+    try { window.localStorage.setItem(draftKey, JSON.stringify(values)); setDraftMessage("Draft saved on this device."); }
+    catch { setDraftMessage("This browser blocked local draft storage."); }
   }
 
-  return (
-    <form onSubmit={submitPreview} className="space-y-8">
-      <section className="space-y-5 rounded-2xl border border-white/10 bg-white/[.025] p-5 sm:p-6">
-        <SectionHeading number="1" title="Create your business account" description="Tell us who owns the offer and where the business operates." />
-        <div>
-          <label htmlFor="business_name" className="block text-sm font-bold text-white/85">Business name</label>
-          <input id="business_name" name="business_name" required autoComplete="organization" className={inputClassName} />
-        </div>
-        <fieldset>
-          <legend className="text-sm font-bold text-white/85">Business address</legend>
-          <p className="mt-1 text-xs leading-5 text-white/40">Your browser can fill a saved address now. Search suggestions can be connected before launch.</p>
-          <input aria-label="Street address" name="address_line_1" required autoComplete="address-line1" placeholder="Street address" className={inputClassName} />
-          <input aria-label="Suite, unit, or floor" name="address_line_2" autoComplete="address-line2" placeholder="Suite, unit, or floor (optional)" className={inputClassName} />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input aria-label="City" name="city" required autoComplete="address-level2" placeholder="City" className={inputClassName} />
-            <input aria-label="State or region" name="region" required autoComplete="address-level1" placeholder="State or region" className={inputClassName} />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input aria-label="Postal code" name="postal_code" required autoComplete="postal-code" placeholder="Postal code" className={inputClassName} />
-            <input aria-label="Country" name="country" required autoComplete="country-name" placeholder="Country" className={inputClassName} />
-          </div>
-        </fieldset>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="business_contact" className="block text-sm font-bold text-white/85">Account owner</label>
-            <input id="business_contact" name="business_contact" required autoComplete="name" className={inputClassName} />
-          </div>
-          <div>
-            <label htmlFor="business_email" className="block text-sm font-bold text-white/85">Work email</label>
-            <input id="business_email" name="business_email" type="email" required autoComplete="email" className={inputClassName} />
-          </div>
-        </div>
-        <div>
-          <label htmlFor="business_website" className="block text-sm font-bold text-white/85">Company website <span className="font-normal text-white/40">(optional)</span></label>
-          <input id="business_website" name="business_website" type="url" inputMode="url" placeholder="https://" autoComplete="url" className={inputClassName} />
-        </div>
-      </section>
+  function fillDemoBusiness(chosenDemo: DemoCase) {
+    const chosenPartnership = demoPartnership[chosenDemo];
+    const business = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoBusiness[chosenDemo] : demoBusinessByPartnership[chosenDemo];
+    const details = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoDetails[chosenDemo] : demoDetailsByPartnership[chosenDemo];
+    setValues({ ...initialValues, partnership: chosenPartnership, demo_variant: chosenDemo, listing_count: chosenDemo === "tools" ? "10" : "1", recurrence: String(details.recurrence || details.relationship || "one-time"), recurrence_limit: chosenDemo === "tools" ? "10" : "1", ...business, ...details, capacity_ack: true, asset_rights: true, card_billing: false });
+    setDemoCase(chosenDemo);
+    setErrors([]);
+    setDraftMessage(`${demoCampaigns[chosenDemo].brand} demo selected. Its matching partnership path is ready.`);
+  }
 
-      <section className="space-y-5 rounded-2xl border border-white/10 bg-white/[.025] p-5 sm:p-6">
-        <SectionHeading number="2" title="Build the offer" description="Define what customers can get, how much is available, and when it runs." />
-        <fieldset>
-          <legend className="text-sm font-bold text-white/85">What are you offering?</legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3">
-            {["Product", "Reward or gift card", "Experience or package"].map((item, index) => (
-              <label className={choiceClassName} key={item}><input type="radio" name="offer_type" value={item} defaultChecked={index === 0} className="accent-cyan-300" />{item}</label>
-            ))}
-          </div>
-        </fieldset>
-        <div>
-          <label htmlFor="offer_title" className="block text-sm font-bold text-white/85">Offer title</label>
-          <input id="offer_title" name="offer_title" required placeholder="Example: Ultimate home office setup" className={inputClassName} />
-        </div>
-        <div>
-          <label htmlFor="offer_description" className="block text-sm font-bold text-white/85">Product or reward description</label>
-          <textarea id="offer_description" name="offer_description" required rows={4} placeholder="What is included, why people want it, and any important restrictions" className={`${inputClassName} py-3`} />
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div><label htmlFor="retail_value" className="block text-sm font-bold text-white/85">Retail value</label><input id="retail_value" name="retail_value" inputMode="decimal" placeholder="$0.00" className={inputClassName} /></div>
-          <div><label htmlFor="quantity" className="block text-sm font-bold text-white/85">Quantity available</label><input id="quantity" name="quantity" type="number" min="1" placeholder="1" className={inputClassName} /></div>
-        </div>
-        <fieldset>
-          <legend className="text-sm font-bold text-white/85">Campaign schedule</legend>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            <label className={choiceClassName}><input type="radio" name="schedule" value="one-time" checked={schedule === "one-time"} onChange={() => setSchedule("one-time")} className="accent-cyan-300" />One-time campaign</label>
-            <label className={choiceClassName}><input type="radio" name="schedule" value="recurring" checked={schedule === "recurring"} onChange={() => setSchedule("recurring")} className="accent-cyan-300" />Recurring campaign</label>
-          </div>
-        </fieldset>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div><label htmlFor="start_date" className="block text-sm font-bold text-white/85">Preferred start</label><input id="start_date" name="start_date" type="date" className={inputClassName} /></div>
-          {schedule === "one-time" ? <div><label htmlFor="end_date" className="block text-sm font-bold text-white/85">End date</label><input id="end_date" name="end_date" type="date" className={inputClassName} /></div> : <div><label htmlFor="cadence" className="block text-sm font-bold text-white/85">Repeat</label><select id="cadence" name="cadence" defaultValue="monthly" className={inputClassName}><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="seasonal">Seasonally</option><option value="custom">Custom schedule</option></select></div>}
-        </div>
-      </section>
+  function fillDemoDetails() {
+    const chosenDemo = demoCase && demoPartnership[demoCase] === partnership ? demoCase : partnership;
+    const business = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoBusiness[chosenDemo] : demoBusinessByPartnership[chosenDemo];
+    const details = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoDetails[chosenDemo] : demoDetailsByPartnership[chosenDemo];
+    setValues((current) => ({ ...current, listing_count: chosenDemo === "tools" ? "10" : "1", recurrence: String(details.recurrence || details.relationship || "one-time"), recurrence_limit: chosenDemo === "tools" ? "10" : "1", ...business, ...details, capacity_ack: true, asset_rights: true, card_billing: false, demo_variant: chosenDemo }));
+    setDemoCase(chosenDemo);
+    setErrors([]);
+    setDraftMessage(`${demoCampaigns[chosenDemo].brand} demo information filled. It has not been saved or submitted.`);
+  }
+  function loadDemoAssets() {
+    const chosenDemo: DemoCase = demoCase && demoPartnership[demoCase] === partnership ? demoCase : partnership;
+    const business = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoBusiness[chosenDemo] : demoBusinessByPartnership[chosenDemo];
+    const details = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoDetails[chosenDemo] : demoDetailsByPartnership[chosenDemo];
+    setDemoCase(chosenDemo); setValues((current) => ({ ...current, listing_count: chosenDemo === "tools" ? "10" : "1", ...business, ...details, capacity_ack: true, asset_rights: true, card_billing: false, demo_variant: chosenDemo }));
+  }
 
-      <section className="space-y-5 rounded-2xl border border-white/10 bg-white/[.025] p-5 sm:p-6">
-        <SectionHeading number="3" title="Add creative assets" description="Bring finished artwork or ask Zero Loss to build campaign-ready creative." />
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className={choiceClassName}><input type="radio" name="asset_plan" value="provide" checked={assetPlan === "provide"} onChange={() => setAssetPlan("provide")} className="accent-cyan-300" />We’ll provide images and video</label>
-          <label className={choiceClassName}><input type="radio" name="asset_plan" value="create" checked={assetPlan === "create"} onChange={() => setAssetPlan("create")} className="accent-cyan-300" />Create the campaign for us</label>
-        </div>
-        {assetPlan === "provide" ? (
-          <label className="block cursor-pointer rounded-2xl border border-dashed border-cyan-300/40 bg-cyan-300/[.06] p-7 text-center transition hover:bg-cyan-300/10">
-            <span className="block font-black text-cyan-200">Choose images or videos</span>
-            <span className="mt-1 block text-xs text-white/45">Product shots, logos, campaign artwork, and short-form video</span>
-            <input type="file" name="creative_assets" multiple accept="image/*,video/*" className="sr-only" />
-          </label>
-        ) : (
-          <div><label htmlFor="creative_direction" className="block text-sm font-bold text-white/85">Creative direction</label><textarea id="creative_direction" name="creative_direction" rows={4} placeholder="Describe the audience, tone, must-say points, and anything we should avoid" className={`${inputClassName} py-3`} /></div>
-        )}
-      </section>
+  function next() {
+    const businessRequired = ["business_name", "address_line_1", "city", "region", "postal_code", "country", "contact_name", "work_email", "business_type", "service_area"];
+    const businessMissing = businessRequired.filter((key) => !String(values[key] ?? "").trim());
+    if (step === 0 && businessMissing.length) { setErrors(["Complete every starred business field"]); return; }
+    if (step === 2 && missing.length) { setErrors(missing); return; }
+    setErrors([]); setStep((current) => Math.min(4, current + 1)); window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function back() { setErrors([]); setStep((current) => Math.max(0, current - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function submitPreview(event: FormEvent) { event.preventDefault(); if (missing.length || !values.submit_authority) { setErrors(missing.length ? missing : ["Submission authorization"]); return; } setReady(true); }
 
-      <section className="space-y-5 rounded-2xl border border-white/10 bg-white/[.025] p-5 sm:p-6">
-        <SectionHeading number="4" title="Choose promotion" description="Publish the offer only, or add a managed campaign and budget." />
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className={choiceClassName}><input type="radio" name="marketing" value="list-only" checked={marketing === "list-only"} onChange={() => setMarketing("list-only")} className="accent-cyan-300" />List on Zero Loss</label>
-          <label className={choiceClassName}><input type="radio" name="marketing" value="managed" checked={marketing === "managed"} onChange={() => setMarketing("managed")} className="accent-cyan-300" />Add Zero Loss marketing</label>
-        </div>
-        {marketing === "managed" && (
-          <div className="space-y-5 rounded-xl border border-cyan-300/20 bg-cyan-300/[.05] p-4">
-            <fieldset><legend className="text-sm font-bold text-white/85">Promotion channels</legend><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">{platforms.map((platform) => <label className={choiceClassName} key={platform}><input type="checkbox" name="platforms" value={platform} className="accent-cyan-300" />{platform}</label>)}</div></fieldset>
-            <div><label htmlFor="marketing_budget" className="block text-sm font-bold text-white/85">Marketing budget</label><select id="marketing_budget" name="marketing_budget" defaultValue="" className={inputClassName}><option value="" disabled>Select a working range</option><option value="under-2500">Under $2,500</option><option value="2500-10000">$2,500–$10,000</option><option value="10000-50000">$10,000–$50,000</option><option value="50000-plus">$50,000+</option><option value="planning">Help me plan it</option></select></div>
-          </div>
-        )}
-      </section>
+  if (ready) return <div className="rounded-[28px] border border-[#31e800]/35 bg-[#073153] p-8 text-center text-white sm:p-12"><p className="text-xs font-black uppercase tracking-[.18em] text-[#72ff4e]">Partner preview</p><h2 className="mt-4 text-3xl font-black">Your request is ready to submit.</h2><p className="mx-auto mt-4 max-w-xl leading-7 text-white/65">The application is complete. Secure account-owned submissions and private file storage must be connected before this can honestly be marked “under review.”</p><button type="button" onClick={() => setReady(false)} className="mt-7 rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200">Return to review</button></div>;
 
-      <div className="rounded-2xl border border-[#31e800]/25 bg-[#31e800]/[.07] p-5">
-        <p className="font-black text-[#72ff4e]">Routine campaigns stay self-service.</p>
-        <p className="mt-2 text-sm leading-6 text-white/60">Automated review checks business identity, offer details, inventory, assets, dates, and policy readiness. A Zero Loss specialist steps in only when the campaign is unusually large or needs custom terms.</p>
-      </div>
-      <button type="submit" className="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-[#00b9ff] px-5 text-base font-black text-[#00132e] transition hover:bg-cyan-200">Continue to automated review</button>
-      <p className="text-center text-xs leading-5 text-white/40">Interactive investor preview — this form does not submit or upload information yet.</p>
-    </form>
-  );
+  return <div style={{ boxSizing: "border-box", width: "min(100%, calc(100vw - 24px))" }} className="min-w-0 overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[radial-gradient(circle_at_100%_0%,rgba(49,232,0,.14),transparent_30%),#021d43] p-5 text-white shadow-2xl sm:p-8 lg:p-10">
+    <div className="flex items-center justify-between gap-4"><p className="text-xs font-black tracking-[.18em]">ZER<span className="text-[#31e800]">Ø LØ</span>SS <span className="text-white/45">/ BUSINESS</span></p><span className="rounded-full border border-cyan-300/40 px-4 py-2 text-xs text-cyan-200 sm:text-sm">Partner preview</span></div>
+    <header className="mt-10 min-w-0 max-w-4xl"><p className="text-xs font-black uppercase tracking-[.16em] text-[#ff7a2d] sm:text-sm sm:tracking-[.2em]">Bring something worth winning</p><h1 className="mt-4 break-words text-3xl font-black leading-[1.02] tracking-[-.04em] sm:text-5xl">Your product. Your audience.<br/><span className="text-[#31e800]">A whole new way to promote it.</span></h1><p className="mt-5 break-words text-sm leading-7 text-white/70 sm:text-lg">Tell us what you want to offer. Zero Loss will review the opportunity and show you the next step—without forcing you through a sales call first.</p></header>
+    <div className="mt-9 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <aside className="h-fit min-w-0 rounded-2xl border border-cyan-300/25 bg-[#073153] p-3 lg:sticky lg:top-6 lg:p-5"><p className="text-xs uppercase tracking-wide text-white/50">Application</p><ol className="mt-4 grid grid-cols-5 gap-0.5 lg:grid-cols-1 lg:gap-2">{steps.map((name, index) => <li className="min-w-0" key={name}><button type="button" onClick={() => index <= step && setStep(index)} disabled={index > step} aria-current={index === step ? "step" : undefined} className={`flex min-h-11 w-full min-w-0 items-center justify-center gap-3 rounded-xl border px-0 text-left text-xs transition lg:min-h-12 lg:justify-start lg:px-3 lg:text-sm ${index === step ? "border-white bg-[#124876] text-white" : "border-transparent text-white/55"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full lg:h-8 lg:w-8 ${index === step ? "bg-[#31e800] text-[#00132e]" : "bg-[#0b426b]"}`}>{index + 1}</span><span className="hidden lg:inline">{name}</span></button></li>)}</ol><p className="mt-5 hidden border-t border-cyan-200/15 pt-5 text-sm leading-6 text-white/55 lg:block">Save your progress and return on this device before submitting.</p></aside>
+      <form onSubmit={submitPreview} noValidate className="min-w-0">
+        <section className="rounded-2xl border border-cyan-300/25 bg-[#073153] p-5 sm:p-7">
+          {step === 0 && <div className="space-y-5"><StepHeading title="Start with your business" description="Enter a real business below, or choose one of six complete fictional walkthroughs."/><div className="rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-4 sm:p-5"><div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">Choose a walkthrough</p><p className="mt-1 text-xs leading-5 text-white/50">Includes a local restaurant and a ten-listing national retailer.</p></div>{demoCase && <span className="rounded-full bg-[#31e800]/12 px-3 py-1 text-[11px] font-bold text-[#9bff83]">Selected</span>}</div><div className="mt-4 grid gap-2 sm:grid-cols-2">{demoChoices.map((choice) => { const active = demoCase === choice; const path = partnerships.find((option) => option.id === demoPartnership[choice]); return <button key={choice} type="button" onClick={() => fillDemoBusiness(choice)} aria-pressed={active} className={`min-h-16 rounded-xl border px-4 py-3 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/25 ${active ? "border-[#31e800] bg-[#31e800]/10" : "border-cyan-200/20 bg-[#073153] hover:border-cyan-200/50"}`}><strong className="block text-sm text-white">{demoLabels[choice]}</strong><span className="mt-1 block text-xs text-white/50">{choice === "tools" ? "Ten marketplace listings" : choice === "restaurant" ? "Local dining reward" : path?.title}</span></button>; })}</div></div><p className="text-xs leading-5 text-white/45">Address entry is for application review and is not business verification.</p><Field label="Business name" name="business_name" values={values} onChange={change} required autoComplete="organization"/><div className="grid gap-4 sm:grid-cols-2"><Field label="Street address" name="address_line_1" values={values} onChange={change} required autoComplete="address-line1"/><Field label="Address line 2 (optional)" name="address_line_2" values={values} onChange={change} autoComplete="address-line2"/><Field label="City" name="city" values={values} onChange={change} required autoComplete="address-level2"/><Field label="State or region" name="region" values={values} onChange={change} required autoComplete="address-level1"/><Field label="ZIP or postal code" name="postal_code" values={values} onChange={change} required autoComplete="postal-code"/><Field label="Country" name="country" values={values} onChange={change} required autoComplete="country-name"/><Field label="Authorized contact" name="contact_name" values={values} onChange={change} required autoComplete="name"/><Field label="Work email" name="work_email" values={values} onChange={change} required type="email" autoComplete="email"/><Field label="Phone (optional)" name="phone" values={values} onChange={change} type="tel" autoComplete="tel"/><Field label="Website (optional)" name="website" values={values} onChange={change} type="url" autoComplete="url"/><SelectField label="Business type" name="business_type" values={values} onChange={change} required options={[["retail","Retailer or ecommerce"],["brand","Brand or manufacturer"],["service","Service business"],["provider","Fulfillment provider"],["other","Other"]]}/><SelectField label="Service area" name="service_area" values={values} onChange={change} required options={[["local","Local"],["states","Selected states"],["nationwide","Nationwide"],["online","Online only"]]}/></div></div>}
+          {step === 1 && <div><StepHeading title="What do you want to build with us?" description="Choose the closest fit. You can explain something different under Another partnership."/><div className="mt-6 grid gap-3 sm:grid-cols-2">{partnerships.map((option) => <label key={option.id} className={`cursor-pointer rounded-2xl border p-5 transition focus-within:ring-4 focus-within:ring-cyan-300/15 ${partnership === option.id ? "border-[#31e800] bg-[#31e800]/10" : "border-cyan-200/25 bg-[#001b3d] hover:border-cyan-200/50"}`}><input type="radio" name="partnership" value={option.id} checked={partnership === option.id} onChange={change} className="sr-only"/><span className="text-xl">{option.icon}</span><strong className="mt-2 block text-lg">{option.title}</strong><span className="mt-2 block text-sm leading-6 text-white/60">{option.description}</span></label>)}</div></div>}
+          {step === 2 && <Details partnership={partnership} demoCase={demoCase} values={values} change={change} onFillDemo={fillDemoDetails}/>}
+          {step === 3 && <AssetsStep partnership={partnership} demoCase={demoCase} onLoadDemo={loadDemoAssets} values={values} change={change}/>}
+          {step === 4 && <ReviewStep partnership={partnership} demoCase={demoCase} values={values} change={change} selectedTitle={selected.title} mainProposal={mainProposal} missing={missing}/>}
+        </section>
+        {errors.length ? <p role="alert" className="mt-4 rounded-xl border border-red-300/35 bg-red-400/10 p-4 text-sm text-red-100">Please complete: {errors.join(", ")}.</p> : null}
+        <div className="mt-5 flex flex-wrap items-center gap-3"><button type="button" onClick={back} disabled={step === 0} className="min-h-12 rounded-xl border border-cyan-300/30 px-5 font-bold disabled:opacity-35">Back</button><button type="button" onClick={saveDraft} className="min-h-12 rounded-xl border border-cyan-300/45 px-5 font-bold text-cyan-100">Save draft</button><span role="status" className="text-xs text-white/55">{draftMessage}</span>{step < 4 ? <button type="button" onClick={next} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e]">Continue</button> : <button type="submit" disabled={missing.length > 0 || !values.submit_authority} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e] disabled:cursor-not-allowed disabled:opacity-40">Submit for review</button>}</div>
+        <p className="mt-4 text-xs leading-5 text-white/40">Preview behavior only. Drafts are stored on this device; no application or files are transmitted.</p>
+      </form>
+    </div><div className="mt-8 text-center"><Link href="/signup" className="text-sm font-bold text-cyan-200 hover:underline">← Return to personal signup</Link></div>
+  </div>;
+}
+
+function AssetTile({ demo, index, label }: { demo: DemoCase; index: number; label: string }) {
+  return <div className="min-w-0"><DemoGalleryImage demo={demo} index={index} className="aspect-square rounded-xl border border-cyan-200/20"/><p className="mt-2 truncate text-[11px] text-white/55">{label}</p></div>;
+}
+
+function AssetsStep({ partnership, demoCase, onLoadDemo, values, change }: { partnership: Partnership; demoCase: DemoCase | null; onLoadDemo: () => void; values: FormValues; change: (event: ChangeEvent<HTMLInputElement>) => void }) {
+  const activeDemo: DemoCase = demoCase && demoPartnership[demoCase] === partnership ? demoCase : partnership;
+  const campaign = demoCampaigns[activeDemo];
+  const hasMatchingDemo = Boolean(demoCase && demoPartnership[demoCase] === partnership);
+  const [animation, setAnimation] = useState(hasMatchingDemo ? 1 : 0);
+  useEffect(() => {
+    if (!hasMatchingDemo) return;
+    const timer = window.setTimeout(() => setAnimation(2), 1750);
+    return () => window.clearTimeout(timer);
+  }, [hasMatchingDemo, partnership]);
+  function playDemo() { onLoadDemo(); setAnimation(0); window.setTimeout(() => setAnimation(1), 30); window.setTimeout(() => setAnimation(2), 1780); }
+  return <div className="space-y-6"><StepHeading title="Add the material we should review" description="See how campaign files come together here. Real partner uploads will remain private after account-owned storage is connected." action={<button type="button" onClick={playDemo} className="inline-flex min-h-10 items-center rounded-full border border-cyan-300/45 bg-cyan-300/10 px-4 text-xs font-black text-cyan-100 hover:bg-cyan-300 hover:text-[#00132e]">{hasMatchingDemo ? "Replay demo upload" : "Load demo campaign assets"}</button>}/>
+    <div className="relative min-h-56 overflow-hidden rounded-2xl border border-dashed border-cyan-300/45 bg-[#001b3d] p-6 text-center sm:p-8">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-cyan-300/10 text-2xl text-cyan-200">⇩</div><strong className="mt-3 block text-lg">Drop private campaign files here</strong><p className="mt-1 text-sm text-white/50">Images, video, logos, descriptions, specifications, media kits, or fulfillment documents</p>
+      {animation === 1 && <div aria-live="polite" className="absolute inset-0 bg-[#001b3d]/90"><div className="absolute left-1/2 top-1/2 w-[85%] -translate-x-1/2 -translate-y-1/2"><p className="mb-4 text-xs font-black uppercase tracking-[.18em] text-cyan-200">Building {campaign.shortBrand} campaign</p><div className="flex flex-wrap justify-center gap-2">{campaign.filenames.map((name, index) => <div key={name} style={{ animationDelay: `${index * 120}ms` }} className="business-demo-file grid h-12 w-11 place-items-center rounded-lg border border-cyan-200/40 bg-[#124876] text-lg shadow-xl">▧</div>)}</div><p className="mt-4 text-sm text-white/65">Dropping {campaign.filenames.length} files…</p></div></div>}
+      {!hasMatchingDemo && <p className="mt-6 text-xs text-orange-100/70">Demo only: no files are transmitted from this preview.</p>}
+    </div>
+    {hasMatchingDemo && animation === 2 && <div className="business-demo-reveal"><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">{campaign.filenames.length} demo assets ready</p><p className="mt-1 text-sm text-white/55">Original partner-supplied imagery for {campaign.brand}</p></div><span className="rounded-full bg-[#31e800]/12 px-3 py-1 text-xs text-[#9bff83]">Demo files</span></div><div className={`mt-4 grid grid-cols-2 gap-3 ${campaign.filenames.length > 4 ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>{campaign.filenames.map((name, index) => <AssetTile key={name} demo={activeDemo} index={index} label={name}/>)}</div></div>}
+    <label className="flex gap-3 text-sm font-bold leading-6 text-white/80"><input type="checkbox" name="asset_rights" checked={Boolean(values.asset_rights)} onChange={change} className="mt-1 accent-[#31e800]"/>I own these materials or am authorized to provide them to Zero Loss for partnership review.</label>
+  </div>;
+}
+
+function CampaignPreview({ partnership }: { partnership: DemoCase }) {
+  const campaign = demoCampaigns[partnership];
+  const [selectedItem, setSelectedItem] = useState<number | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [headline, setHeadline] = useState(campaign.headline);
+  const [description, setDescription] = useState(campaign.body);
+  const items = campaign.catalog ?? [campaign.eyebrow];
+  const detailedItems = partnership === "restaurant" || partnership === "tools" ? partnerListings[partnership] : null;
+  const listingValues = detailedItems?.map((item) => item.value) ?? [Number(campaign.value.replace(/[^0-9.]/g, "")) || 1];
+  const detail = selectedItem !== null ? detailedItems?.[selectedItem] : undefined;
+  return <><div className={`mx-auto grid gap-4 ${campaign.catalog ? "max-w-5xl grid-cols-2 md:grid-cols-3 lg:grid-cols-5" : "max-w-[320px]"}`}>{items.map((title, index) => <button key={title} type="button" onClick={() => setSelectedItem(index)} className="overflow-hidden rounded-2xl bg-white p-3 text-left text-[#00132e] shadow-xl transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30"><DemoGalleryImage demo={partnership} index={index} className="h-36 rounded-lg"/><div className="mt-3 flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wide text-black/45"><span>{campaign.category}</span><span className="text-[#058bc1]">42 left</span></div><h3 className="mt-2 min-h-10 text-sm font-black leading-tight">{campaign.catalog ? title : headline}</h3><div className="mt-2 flex justify-between border-t border-black/10 pt-2 text-xs"><span>{campaign.catalog ? `$${listingValues[index]}` : campaign.value} value</span><strong>Enter for $1</strong></div><span className="mt-3 block w-full rounded-lg bg-[#00b9ff] px-3 py-2 text-center text-xs font-black">Enter for $1</span></button>)}</div><button type="button" onClick={() => setEditorOpen(true)} className="mx-auto mt-5 block rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-5 py-3 text-sm font-black text-cyan-100">Change listing content &amp; presentation</button>{selectedItem !== null && <div role="dialog" aria-modal="true" aria-label="Listing detail preview" className="fixed inset-0 z-[210] grid overflow-y-auto bg-[#000b1d]/95 p-4"><div className="relative m-auto w-full max-w-4xl rounded-3xl border border-cyan-300/25 bg-[#021d43] p-5 sm:p-8"><button type="button" onClick={() => setSelectedItem(null)} className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full bg-[#00132e] text-2xl text-white" aria-label="Close listing detail">×</button><div className="grid gap-6 md:grid-cols-[1.15fr_.85fr]"><div><DemoGalleryImage demo={partnership} index={selectedItem} className="aspect-square rounded-2xl"/><div className="mt-3 grid grid-cols-4 gap-2">{campaign.filenames.slice(0, Math.min(10,campaign.filenames.length)).map((name, index) => <button type="button" key={name} onClick={() => setSelectedItem(index)} aria-label={`View ${name}`}><DemoGalleryImage demo={partnership} index={index} className="aspect-square rounded-lg"/></button>)}</div></div><div className="self-center"><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">{campaign.brand}</p><h3 className="mt-3 text-3xl font-black">{campaign.catalog ? items[selectedItem] : headline}</h3><p className="mt-4 leading-7 text-white/65">{detail?.summary ?? description}</p>{detail && <><div className="mt-5"><h4 className="font-black">Highlights</h4><ul className="mt-2 grid gap-2 text-sm text-white/65">{detail.highlights.map((item) => <li key={item}>✓ {item}</li>)}</ul></div><dl className="mt-5 divide-y divide-white/10 rounded-xl border border-white/10 px-4">{detail.specifications.map(([label,value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><dt className="text-white/50">{label}</dt><dd className="text-right font-bold">{value}</dd></div>)}</dl><div className="mt-5 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[#001b3d] p-4"><strong>What is included</strong><ul className="mt-2 space-y-1 text-xs leading-5 text-white/60">{detail.included.map((item) => <li key={item}>• {item}</li>)}</ul></div><div className="rounded-xl bg-[#001b3d] p-4"><strong>Fulfillment &amp; availability</strong><p className="mt-2 text-xs leading-5 text-white/60">{detail.fulfillment}</p><p className="mt-2 text-xs leading-5 text-white/60">{detail.availability}</p></div></div></>}<div className="mt-6 rounded-2xl bg-[#001b3d] p-5"><div className="flex justify-between"><span className="text-white/55">Retail value</span><strong>{campaign.catalog ? `$${listingValues[selectedItem]}` : campaign.value}</strong></div><div className="mt-3 flex justify-between"><span className="text-white/55">Entry</span><strong>$1</strong></div>{detail && <div className="mt-3 flex justify-between"><span className="text-white/55">Entry capacity</span><strong>{detail.capacity.toLocaleString()}</strong></div>}<button type="button" className="mt-5 w-full rounded-xl bg-[#00b9ff] px-4 py-3 font-black text-[#00132e]">Enter for $1</button></div><p className="mt-4 text-xs text-white/45">Interactive partner preview. No entry or purchase is created.</p></div></div></div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Listing editor" className="fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4"><div className="m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6"><h3 className="text-2xl font-black">Edit the listing preview</h3><p className="mt-2 text-sm leading-6 text-white/60">Adjust the customer-facing headline and description before submitting the concept.</p><label className={`${labelClass} mt-5`}>Headline<input value={headline} onChange={(event) => setHeadline(event.target.value)} className={fieldClass}/></label><label className={`${labelClass} mt-4`}>Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} className={`${fieldClass} py-3`}/></label><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => { setHeadline(campaign.headline); setDescription(campaign.body); }} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Reset</button><button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e]">Apply preview changes</button></div></div></div>}</>;
+}
+
+function DemoGalleryImage({ demo, index, className }: { demo: DemoCase; index: number; className: string }) {
+  const wideGrid = demo === "restaurant" || demo === "tools"; const column = wideGrid ? index % 5 : index % 2; const row = wideGrid ? Math.floor(index / 5) : Math.floor(index / 2);
+  return <span role="img" aria-label={demoCampaigns[demo].filenames[index] ?? demoCampaigns[demo].brand} className={`block bg-cover bg-no-repeat ${className}`} style={{ backgroundImage: `url(${demoCampaigns[demo].asset})`, backgroundSize: wideGrid ? "540% 216%" : "200% 200%", backgroundPosition: `${wideGrid ? column * 25 : column * 100}% ${row * 100}%` }}/>;
+}
+
+function PreviewQr({ partnership, size = 72 }: { partnership: DemoCase; size?: number }) {
+  const [url, setUrl] = useState("");
+  useEffect(() => { const destination = partnership === "tools" ? "forge-field" : partnership === "restaurant" ? "bellamora" : partnership; QRCode.toDataURL(`${window.location.origin}/business-preview/${destination}`, { width: size * 2, margin: 1, color: { dark: "#00132e", light: "#ffffff" } }).then(setUrl).catch(() => setUrl("")); }, [partnership, size]);
+  return <span aria-label="Demo QR code" className="block shrink-0 rounded-md bg-white" style={{ width: size, height: size, backgroundImage: url ? `url(${url})` : undefined, backgroundSize: "cover" }}/>;
+}
+
+function PostcardProof({ partnership, enlarged = false, generated = false }: { partnership: DemoCase; enlarged?: boolean; generated?: boolean }) {
+  const campaign = demoCampaigns[partnership];
+  const originalScale = partnership === "restaurant" || partnership === "tools" ? "560% 224%" : "200% 200%";
+  return <div className={`relative mx-auto aspect-[3/2] w-full overflow-hidden rounded-xl bg-[#00132e] text-white shadow-2xl ${enlarged ? "max-w-5xl" : "max-w-[520px]"}`}><div className="absolute inset-y-0 right-0 w-1/2 bg-cover bg-center" style={{ backgroundImage: `url(${generated ? campaignArtwork[partnership] : campaign.asset})`, backgroundSize: generated ? "cover" : originalScale, backgroundPosition: generated ? "center" : "0% 0%" }}/><div className="absolute inset-y-0 left-0 w-[52%] bg-gradient-to-r from-[#00132e] via-[#00132e] to-[#00132e]/85"/><div className="absolute inset-0 flex flex-col p-[5%]"><p className="max-w-[46%] text-[clamp(7px,1.35vw,14px)] font-black tracking-[.12em] text-cyan-200">{campaign.shortBrand}</p><h4 className="mt-[4%] max-w-[46%] text-[clamp(15px,3vw,38px)] font-black leading-[.94] tracking-[-.045em]">{campaign.headline}</h4><p className="mt-[3%] max-w-[44%] text-[clamp(7px,1.2vw,13px)] leading-snug text-white/75">{campaign.accent}</p><div className="mt-[4%] flex w-fit max-w-[46%] items-center gap-2 rounded-lg bg-white p-2 text-[#00132e]"><PreviewQr partnership={partnership} size={enlarged ? 86 : 48}/><strong className="max-w-20 text-[clamp(6px,1.05vw,11px)] leading-tight">Enter through<br/>Zero Loss</strong></div><div className="mt-auto max-w-[46%]"><strong className="text-[clamp(9px,1.8vw,20px)] text-[#72ff4e]">{campaign.value} value</strong><p className="mt-1 text-[clamp(7px,1vw,11px)]">Enter for $1</p></div></div></div>;
+}
+
+function FlyerProof({ partnership, enlarged = false, generated = false }: { partnership: DemoCase; enlarged?: boolean; generated?: boolean }) {
+  const campaign = demoCampaigns[partnership];
+  const originalScale = partnership === "restaurant" || partnership === "tools" ? "500% 200%" : "200% 200%";
+  return <div className={`mx-auto flex aspect-[8.5/11] w-full flex-col overflow-hidden bg-[#f4efe4] text-[#00132e] shadow-2xl ${enlarged ? "max-w-[720px]" : "max-w-[360px]"}`}><div className="relative h-[52%] bg-cover bg-center" style={{ backgroundImage: `linear-gradient(0deg,rgba(0,19,46,.78),transparent 65%),url(${generated ? campaignArtwork[partnership] : campaign.asset})`, backgroundSize: generated ? "cover" : originalScale, backgroundPosition: generated ? "center" : "0% 0%" }}><p className="absolute left-[7%] top-[6%] text-[clamp(9px,1.8vw,17px)] font-black tracking-[.14em] text-white">ZERØ LØSS × {campaign.shortBrand}</p><h4 className="absolute bottom-[7%] left-[7%] max-w-[78%] text-[clamp(22px,5vw,54px)] font-black leading-[.9] tracking-[-.05em] text-white">{campaign.headline}</h4></div><div className="flex flex-1 flex-col p-[7%]"><p className="text-[clamp(9px,2vw,20px)] font-black text-[#178b00]">{campaign.accent}</p><p className="mt-[3%] text-[clamp(7px,1.4vw,14px)] leading-relaxed text-slate-600">{campaign.body}</p><div className="mt-auto flex items-end justify-between gap-3 border-t border-[#00132e]/15 pt-[5%]"><div><strong className="block text-[clamp(18px,4vw,40px)]">Enter for $1</strong><span className="text-[clamp(7px,1.2vw,12px)] text-slate-500">{campaign.value} retail value · Scan for details</span></div><div className="flex items-center gap-2"><PreviewQr partnership={partnership} size={enlarged ? 116 : 66}/><strong className="max-w-24 text-[clamp(7px,1.2vw,12px)] leading-tight">Enter through<br/>Zero Loss</strong></div></div></div></div>;
+}
+
+function PrintKitPreviews({ partnership }: { partnership: DemoCase }) {
+  const [openProof, setOpenProof] = useState<"postcard" | "flyer" | null>(null);
+  const [editorOpen, setEditorOpen] = useState<"postcard" | "flyer" | null>(null);
+  const [generated, setGenerated] = useState(false);
+  const [redos, setRedos] = useState(3);
+  const [feedback, setFeedback] = useState("");
+  const requestRedo = () => { if (redos > 0) { setRedos((value) => value - 1); setGenerated(true); setEditorOpen(null); } };
+  const editorButton = (format: "postcard" | "flyer") => <button type="button" onClick={() => setEditorOpen(format)} className="mt-3 block w-full rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-center text-sm font-black text-cyan-100">Don&apos;t like the design? Edit it · {redos} free redo{redos === 1 ? "" : "s"}</button>;
+  return <><div className="mt-5 flex justify-center gap-2"><button type="button" onClick={() => setGenerated(false)} className={`rounded-full px-4 py-2 text-xs font-black ${!generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>Original uploaded image</button><button type="button" onClick={() => setGenerated(true)} className={`rounded-full px-4 py-2 text-xs font-black ${generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>AI-created variation</button></div><div className="mt-6 space-y-8"><section><button type="button" onClick={() => setOpenProof("postcard")} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge landscape postcard preview"><PostcardProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[520px]"><strong className="block">Landscape table card</strong><span className="mt-1 block text-xs leading-5 text-white/50">A finished sideways 4 × 6 card. Click it to inspect the design.</span>{editorButton("postcard")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=cards&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#00b9ff] px-4 py-3 text-center text-sm font-black text-[#00132e]">Download landscape card PDF</a></div></section><section><button type="button" onClick={() => setOpenProof("flyer")} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge full-page flyer preview"><FlyerProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[360px]"><strong className="block">Full-page promotional flyer</strong><span className="mt-1 block text-xs leading-5 text-white/50">Click the finished 8½ × 11 proof to inspect it.</span>{editorButton("flyer")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=flyer&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#ff630f] px-4 py-3 text-center text-sm font-black text-white">Download full-page flyer PDF</a></div></section></div>{openProof && <div role="dialog" aria-modal="true" aria-label={`${openProof} enlarged preview`} className="fixed inset-0 z-[200] grid overflow-y-auto bg-[#000b1d]/95 p-4 sm:p-8"><button type="button" onClick={() => setOpenProof(null)} className="fixed right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full border border-cyan-200/40 bg-[#001b3d] text-2xl text-white" aria-label="Close enlarged preview">×</button><div className="m-auto w-full py-12">{openProof === "postcard" ? <PostcardProof partnership={partnership} generated={generated} enlarged/> : <FlyerProof partnership={partnership} generated={generated} enlarged/>}</div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Design editor" className="fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4"><div className="m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6"><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">{redos} included redesigns remaining</p><h3 className="mt-2 text-2xl font-black">What should change?</h3><p className="mt-2 text-sm leading-6 text-white/60">The original uploads stay available. A redesign creates a separate visual treatment for the {editorOpen === "postcard" ? "4 × 6 card" : "full-page flyer"}.</p><textarea value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={5} placeholder="Example: Keep the sunset visible, use less dark overlay, make the food warmer, or move the headline." className={`${fieldClass} py-3`}/><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setEditorOpen(null)} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Cancel</button><button type="button" disabled={!feedback.trim() || redos === 0} onClick={requestRedo} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e] disabled:opacity-40">Preview redesigned version</button></div><p className="mt-4 text-xs text-white/40">Walkthrough behavior only. Connecting live image generation and retaining revision history is a later production integration.</p></div></div>}</>;
+}
+
+function ReviewStep({ partnership, demoCase, values, change, selectedTitle, mainProposal, missing }: { partnership: Partnership; demoCase: DemoCase | null; values: FormValues; change: (event: ChangeEvent<HTMLInputElement>) => void; selectedTitle: string; mainProposal: string; missing: string[] }) {
+  const hasDemo = Boolean(demoCase && demoPartnership[demoCase] === partnership);
+  const activeDemo: DemoCase = hasDemo && demoCase ? demoCase : partnership;
+  return <div className="space-y-6"><StepHeading title="Review and submit" description="Review the application and, for this walkthrough, see how the supplied material can become a campaign concept. Submission still requires Zero Loss review and does not publish or approve anything."/>
+    {hasDemo && <><div className="rounded-2xl border border-cyan-300/20 bg-[#001b3d] p-4 sm:p-6"><div className="mb-5"><p className="text-xs font-black uppercase tracking-[.18em] text-cyan-200">Zero Loss listing preview</p><p className="mt-1 text-sm text-white/55">Click a listing to inspect the customer-facing detail view.</p></div><CampaignPreview partnership={activeDemo}/></div><div className="rounded-2xl border border-cyan-300/20 bg-[#001b3d] p-4 sm:p-6"><p className="text-xs font-black uppercase tracking-[.18em] text-[#72ff4e]">Partner print kit</p><h3 className="mt-2 text-xl font-black">Review, revise, and download</h3><p className="mt-2 text-sm leading-6 text-white/55">Both designs preserve the partner-uploaded imagery by default. Three included redesign requests can create an alternate treatment.</p><PrintKitPreviews partnership={activeDemo}/><p className="mt-5 text-[11px] leading-5 text-orange-100/65">Demo artwork only. QR destination, eligibility language, dates, rules, and final claims require approval before publication.</p></div></>}
+    {!hasDemo && <p className="rounded-xl border border-cyan-300/25 bg-[#001b3d] p-4 text-sm text-white/65">Add demo campaign assets in Step 4 to generate the matching printable concept here.</p>}
+    <dl className="grid gap-3 sm:grid-cols-2">{[["Business",String(values.business_name || "Not provided")],["Partnership",selectedTitle],["Main proposal",mainProposal],["Listings requested",String(values.listing_count || "1")],["Publishing frequency",String(values.recurrence || values.relationship || "One time")],["Release limit",String(values.recurrence_limit || "1")],["Automatic relisting",values.auto_relist ? "Requested — separate billing authorization required" : "No"],["Fulfillment",String(values.fulfillment_owner || "Not provided")],["Demo assets",hasDemo ? `${demoCampaigns[activeDemo].filenames.length} original images` : "None"]].map(([label,value]) => <div key={label} className="rounded-xl bg-[#001b3d] p-4"><dt className="text-xs text-white/45">{label}</dt><dd className="mt-1 break-words text-sm text-white">{value}</dd></div>)}</dl>
+    {missing.length ? <div role="alert" className="rounded-xl border border-[#ff8a45]/35 bg-[#ff8a45]/10 p-4"><strong className="text-orange-100">Missing required information</strong><p className="mt-1 text-sm text-white/65">{missing.join(", ")}</p></div> : <p className="rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-4 text-sm font-bold text-[#9bff83]">All required preview information is complete.</p>}
+    <label className="flex gap-3 text-sm font-bold leading-6 text-white/85"><input type="checkbox" name="submit_authority" checked={Boolean(values.submit_authority)} onChange={change} className="mt-1 accent-[#31e800]"/>I am authorized to submit this information and the supplied materials for review.</label>
+  </div>;
+}
+
+function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
+  const [listings, setListings] = useState(() => partnerListings[demo].map((item) => ({ ...item, highlights: [...item.highlights], specifications: [...item.specifications], included: [...item.included] })));
+  const [selected, setSelected] = useState(0);
+  const [listingFiles, setListingFiles] = useState<Array<{ name: string; listingIndex: number }>>([]);
+  const [addedMessage, setAddedMessage] = useState("");
+  const listing = listings[selected];
+  function update<K extends keyof PartnerListing>(field: K, value: PartnerListing[K]) { setListings((current) => current.map((item, index) => index === selected ? { ...item, [field]: value } : item)); }
+  function addProduct() {
+    const next: PartnerListing = { title: "New product listing", brand: demo === "tools" ? "Forge & Field" : "Bellamora Italian Kitchen", category: demo === "tools" ? "Tools" : "Dining", value: 100, entryPrice: 1, capacity: 300, summary: "Describe exactly what the customer receives.", highlights: ["Add the first customer-facing highlight"], specifications: [["Model or offer","Add details"]], included: ["Describe what is included"], fulfillment: "Describe who fulfills this listing and how.", availability: "Describe inventory, locations, dates, and geographic limits." };
+    setListings((current) => [next, ...current]); setSelected(0); setAddedMessage("New product added and opened below.");
+  }
+  function addFiles(files: FileList | null) { if (!files) return; setListingFiles((current) => [...current, ...Array.from(files).map((file) => ({ name: file.name, listingIndex: selected }))]); }
+  return <section className="mt-8 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">Individual marketplace listings</p><h3 className="mt-2 text-xl font-black">Complete every product before review</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Each item receives its own Zero Loss page, value, entry capacity, description, specifications, included items, inventory, and fulfillment terms.</p></div><button type="button" onClick={addProduct} className="rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#00132e]">+ Add a product</button></div>{addedMessage && <p role="status" className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-3 text-sm font-bold text-[#9bff83]">{addedMessage}</p>}<div className="mt-5 flex gap-2 overflow-x-auto pb-2">{listings.map((item,index) => <button type="button" key={`${item.title}-${index}`} onClick={() => setSelected(index)} className={`min-w-40 rounded-xl border px-3 py-2 text-left text-xs ${selected === index ? "border-[#31e800] bg-[#31e800]/10 text-white" : "border-white/15 text-white/60"}`}><strong className="block">Listing {index + 1}</strong><span className="mt-1 block truncate">{item.title}</span></button>)}</div><div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" value={listing.value} onChange={(event) => { const value = Number(event.target.value); update("value",value); update("capacity",value * 3); }} className={fieldClass}/></label><label className={labelClass}>Entry price<input type="number" value={listing.entryPrice} onChange={(event) => update("entryPrice",Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Required capacity<input type="number" value={listing.capacity} onChange={(event) => update("capacity",Number(event.target.value))} className={fieldClass}/></label></div><label className={`${labelClass} mt-4`}>Customer-facing summary<textarea value={listing.summary} onChange={(event) => update("summary",event.target.value)} rows={4} className={`${fieldClass} py-3`}/></label><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Highlights, one per line<textarea value={listing.highlights.join("\n")} onChange={(event) => update("highlights",event.target.value.split("\n"))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Specifications, Label: Value<textarea value={listing.specifications.map(([label,value]) => `${label}: ${value}`).join("\n")} onChange={(event) => update("specifications",event.target.value.split("\n").map((line) => { const [label,...rest] = line.split(":"); return [label,rest.join(":").trim()] as [string,string]; }))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>What is included, one per line<textarea value={listing.included.join("\n")} onChange={(event) => update("included",event.target.value.split("\n"))} rows={4} className={`${fieldClass} py-3`}/></label><div className="space-y-4"><label className={labelClass}>Fulfillment<textarea value={listing.fulfillment} onChange={(event) => update("fulfillment",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Inventory and availability<textarea value={listing.availability} onChange={(event) => update("availability",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label></div></div><div className="mt-5 rounded-2xl border border-dashed border-cyan-300/45 bg-[#073153] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><strong className="block">Photos for Listing {selected + 1}: {listing.title}</strong><p className="mt-1 text-xs text-white/50">Upload multiple angles here, or reassign any uploaded image to another product below.</p></div><label className="cursor-pointer rounded-xl bg-[#00b9ff] px-4 py-3 text-sm font-black text-[#00132e]">Choose photos<input type="file" accept="image/*" multiple className="sr-only" onChange={(event) => addFiles(event.target.files)}/></label></div><div onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files); }} className="mt-4 grid min-h-28 place-items-center rounded-xl border border-dashed border-white/20 p-4 text-center text-sm text-white/50">Drop as many product images and alternate angles as needed</div>{listingFiles.length > 0 && <div className="mt-4 grid gap-3 sm:grid-cols-2">{listingFiles.map((file,index) => <div key={`${file.name}-${index}`} className="rounded-xl bg-[#001b3d] p-3"><span className="block truncate text-xs font-bold">{file.name}</span><label className="mt-2 block text-[11px] text-white/50">Assign to product<select value={file.listingIndex} onChange={(event) => setListingFiles((current) => current.map((item,itemIndex) => itemIndex === index ? { ...item, listingIndex: Number(event.target.value) } : item))} className="mt-1 min-h-10 w-full rounded-lg border border-white/15 bg-[#073153] px-2 text-xs text-white">{listings.map((item,itemIndex) => <option key={`${item.title}-${itemIndex}`} value={itemIndex}>Listing {itemIndex + 1}: {item.title}</option>)}</select></label></div>)}</div>}</div><p className="mt-5 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-xs leading-5 text-orange-50">The capacity starts at three times the displayed retail value for this demonstration. Each listing must still be reviewed for verified inventory, fulfillment, restrictions, returns, warranty, safety information, and final contractual terms.</p></section>;
+}
+
+function Details({ partnership, demoCase, values, change, onFillDemo }: { partnership: Partnership; demoCase: DemoCase | null; values: FormValues; change: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void; onFillDemo: () => void }) {
+  const demoButton = <button type="button" onClick={onFillDemo} className="inline-flex min-h-10 shrink-0 items-center rounded-full border border-cyan-300/45 bg-cyan-300/10 px-4 text-xs font-black text-cyan-100 transition hover:bg-cyan-300 hover:text-[#00132e] focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/25">Fill with demo info</button>;
+  return <div className="space-y-5"><StepHeading title={partnership === "products" ? "Describe your products or rewards" : partnership === "fulfillment" ? "Describe your fulfillment capability" : partnership === "campaign" ? "Outline the brand campaign" : "Tell us about the partnership"} description="Give us enough detail to evaluate the opportunity without scheduling an introductory call." action={demoButton}/>
+    {partnership === "products" && <><div className="grid gap-4 sm:grid-cols-2"><Field label="Offer name" name="offer_name" values={values} onChange={change} required/><SelectField label="Offer type" name="offer_type" values={values} onChange={change} required options={[["physical","Physical product"],["service","Service"],["experience","Experience"],["gift-card","Gift card"],["digital","Digital reward"],["other","Other"]]}/><Field label="Retail value" name="retail_value" values={values} onChange={change} required placeholder="$0.00"/><Field label="Proposed supply price or commercial terms" name="supply_terms" values={values} onChange={change}/><Field label="Quantity or capacity" name="quantity" values={values} onChange={change} required/><Field label="Variants, if applicable" name="variants" values={values} onChange={change}/><SelectField label="Relationship" name="relationship" values={values} onChange={change} required options={[["one-time","One-time opportunity"],["recurring","Recurring"],["ongoing","Ongoing inventory"]]}/><SelectField label="Who fulfills it" name="fulfillment_owner" values={values} onChange={change} required options={[["business","Our business fulfills it"],["zero-loss","Zero Loss fulfills it"],["third-party","Third party fulfills it"]]}/><Field label="Desired availability dates" name="availability" values={values} onChange={change}/><Field label="Geographic restrictions" name="geography" values={values} onChange={change}/></div><TextArea label="Customer-facing description" name="description" values={values} onChange={change} required/><TextArea label="Expiration or redemption restrictions" name="redemption" values={values} onChange={change}/><TextArea label="Shipping or delivery expectations" name="delivery" values={values} onChange={change}/><TextArea label="Returns, cancellations, warranty, and anything else customers must know" name="customer_terms" values={values} onChange={change}/></>}
+    {partnership === "fulfillment" && <><div className="grid gap-4 sm:grid-cols-2"><Field label="Provider name" name="provider_name" values={values} onChange={change} required/><Field label="Types of rewards supported" name="reward_types" values={values} onChange={change} required/><Field label="Available brands or catalog" name="catalog" values={values} onChange={change}/><Field label="Denominations" name="denominations" values={values} onChange={change}/><Field label="Geographic coverage" name="coverage" values={values} onChange={change} required/><SelectField label="Delivery method" name="delivery_method" values={values} onChange={change} required options={[["api","API"],["batch","Batch file"],["portal","Secure portal"],["manual","Manual fulfillment"],["other","Other"]]}/><Field label="Typical delivery time" name="delivery_time" values={values} onChange={change} required/><Field label="Technical integration contact" name="technical_contact" values={values} onChange={change} required/></div><TextArea label="Inventory or availability limitations" name="inventory_limits" values={values} onChange={change}/><TextArea label="Proposed pricing or discount terms" name="pricing_terms" values={values} onChange={change} required/><Field label="Public integration documentation (optional)" name="integration_docs" values={values} onChange={change} type="url"/><TextArea label="Redemption, expiration, refund, and support rules" name="support_rules" values={values} onChange={change}/><p className="rounded-xl border border-[#ff8a45]/30 bg-[#ff8a45]/10 p-4 text-sm text-orange-100">Do not provide credentials, API secrets, private keys, or production access here.</p></>}
+    {partnership === "campaign" && <><div className="grid gap-4 sm:grid-cols-2"><Field label="Campaign or offer name" name="campaign_name" values={values} onChange={change} required/><Field label="Product, service, experience, or reward" name="campaign_offer" values={values} onChange={change} required/><Field label="Campaign objective" name="objective" values={values} onChange={change} required/><SelectField label="Relationship" name="relationship" values={values} onChange={change} required options={[["one-time","One-time campaign"],["recurring","Recurring campaign"]]}/><Field label="Preferred launch window" name="launch_window" values={values} onChange={change}/><Field label="Quantity or campaign capacity" name="campaign_capacity" values={values} onChange={change}/><Field label="Retail value" name="campaign_value" values={values} onChange={change}/><Field label="Target geography" name="target_geography" values={values} onChange={change}/></div><TextArea label="What the business will supply" name="campaign_supply" values={values} onChange={change} required/><SelectField label="Fulfillment responsibility" name="fulfillment_owner" values={values} onChange={change} options={[["business","Our business"],["zero-loss","Zero Loss"],["third-party","Third party"]]}/><TextArea label="Intended audience" name="audience" values={values} onChange={change} required/><TextArea label="Where you expect to share it" name="channels" values={values} onChange={change} placeholder="Website, email, text, TikTok, Instagram, Facebook, X, in-store, creators, or other"/><TextArea label="Existing assets, restrictions, timing, and desired measurement" name="campaign_notes" values={values} onChange={change}/><label className="flex gap-3 text-sm text-white/70"><input type="checkbox" name="creator_notice" checked={Boolean(values.creator_notice)} onChange={change} className="mt-1 accent-[#31e800]"/>Notify me when Zero Loss introduces expanded promotional and creator services.</label></>}
+    {partnership === "other" && <TextArea label="What kind of partnership would you like to explore?" name="other_partnership" values={values} onChange={change} required rows={7} placeholder="Tell us what you have in mind, what your company would contribute, and what you would want Zero Loss to provide."/>}
+    {(demoCase === "restaurant" || demoCase === "tools") && <ProductListingBuilder key={demoCase} demo={demoCase}/>}<div className="mt-8 space-y-5 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">Volume, recurrence, and fulfillment</p><p className="mt-2 text-sm leading-6 text-white/60">Tell us how many listings you want and whether approved opportunities should repeat.</p></div><div className="grid gap-4 sm:grid-cols-2"><Field label="Number of listings requested" name="listing_count" values={values} onChange={change} type="number" placeholder="1"/><SelectField label="Publishing frequency" name="recurrence" values={values} onChange={change} options={[["one-time","One time"],["five-times","Five releases"],["weekly","Every week"],["monthly","Every month"],["auto-relist","Automatically relist after completion"]]}/><Field label="Maximum number of releases" name="recurrence_limit" values={values} onChange={change} type="number" placeholder="1"/></div><label className="flex gap-3 text-sm font-bold leading-6 text-white/80"><input type="checkbox" name="auto_relist" checked={Boolean(values.auto_relist)} onChange={change} className="mt-1 accent-[#31e800]"/>Automatically recreate an approved listing after it completes, up to the limit above.</label>{values.auto_relist && <label className="flex gap-3 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-sm font-bold leading-6 text-orange-50"><input type="checkbox" name="card_billing" checked={Boolean(values.card_billing)} onChange={change} className="mt-1 accent-[#31e800]"/>I authorize disclosed, approved relisting charges to the card on file. Final pricing and cancellation terms must be accepted before activation.</label>}<div className="rounded-xl border border-[#ff7a2d]/35 bg-[#ff7a2d]/10 p-4"><strong className="text-orange-100">Potential 3× fulfillment requirement</strong><p className="mt-2 text-sm leading-6 text-white/65">For planning purposes, an offering displaying $100 in value may require capacity to supply as many as 300 units under a 3-to-1 program structure. Final quantities depend on the approved listing, agreement, inventory schedule, and governing terms.</p></div><label className="flex gap-3 text-sm font-bold leading-6 text-white/85"><input type="checkbox" name="capacity_ack" checked={Boolean(values.capacity_ack)} onChange={change} className="mt-1 accent-[#31e800]"/>I confirm that the quantities, inventory, and fulfillment information supplied are accurate, and I understand that approved capacity commitments will become contractual obligations under the final partner agreement.</label></div>
+  </div>;
 }

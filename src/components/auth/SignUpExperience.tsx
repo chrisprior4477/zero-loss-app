@@ -3,22 +3,25 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { useRouter } from "next/navigation";
 import { SignUpForm } from "@/components/auth/SignUpForm";
-import { BusinessOnboardingForm } from "@/components/auth/BusinessOnboardingForm";
 
 type AccountPath = "pleasure" | "business";
 
 export function SignUpExperience({ initialAccountPath = "pleasure" }: { initialAccountPath?: AccountPath }) {
   const [accountPath, setAccountPath] = useState<AccountPath>(initialAccountPath);
+  const router = useRouter();
   const setupRef = useRef<HTMLDivElement>(null);
   const isPleasure = accountPath === "pleasure";
 
   function chooseAccountPath(nextPath: AccountPath) {
+    if (nextPath === "business") {
+      router.push("/signup?account=business");
+      return;
+    }
     flushSync(() => setAccountPath(nextPath));
     setupRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    const firstField = setupRef.current?.querySelector<HTMLInputElement>(
-      nextPath === "business" ? "#business_name" : "#legal_first_name",
-    );
+    const firstField = setupRef.current?.querySelector<HTMLInputElement>("#legal_first_name");
     firstField?.focus({ preventScroll: true });
   }
 
@@ -43,11 +46,7 @@ export function SignUpExperience({ initialAccountPath = "pleasure" }: { initialA
           {isPleasure ? <>Already registered? <Link href="/login" className="font-bold text-cyan-300 underline-offset-4 hover:underline">Sign in instead</Link></> : "Create the account, offer, creative plan, and campaign in one guided flow."}
         </p>
         <div className="mt-7">
-          {isPleasure ? (
-            <SignUpForm />
-          ) : (
-            <BusinessOnboardingForm />
-          )}
+          <SignUpForm />
         </div>
       </div>
 
