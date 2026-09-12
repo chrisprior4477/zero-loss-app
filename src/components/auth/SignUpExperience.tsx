@@ -73,7 +73,7 @@ export function SignUpExperience() {
       <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff8a45]">What brings you to Zero Loss?</p>
       <div className="mt-3 grid grid-cols-2 gap-3" role="group" aria-label="Choose account type">
         <button type="button" aria-pressed={isPleasure} onClick={() => setAccountPath("pleasure")} className={`min-h-[76px] rounded-2xl border px-3 py-3 text-left transition ${isPleasure ? "border-[#31e800] bg-[#31e800]/12" : "border-white/12 bg-white/5 hover:border-white/25"}`}>
-          <strong className={`block text-base font-black ${isPleasure ? "text-[#72ff4e]" : "text-white"}`}>For pleasure</strong>
+          <strong className={`block text-base font-black ${isPleasure ? "text-[#72ff4e]" : "text-white"}`}>For personal use</strong>
           <span className="mt-1 block text-xs leading-4 text-white/50">Enter and explore</span>
         </button>
         <button type="button" aria-pressed={!isPleasure} onClick={() => setAccountPath("business")} className={`min-h-[76px] rounded-2xl border px-3 py-3 text-left transition ${!isPleasure ? "border-cyan-300 bg-cyan-300/12" : "border-white/12 bg-white/5 hover:border-white/25"}`}>
