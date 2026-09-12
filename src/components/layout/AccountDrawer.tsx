@@ -185,8 +185,8 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
               </> : <section className="space-y-4">
                 <div className="relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#001b3d] p-5">
                   <span aria-hidden="true" className="absolute -left-5 -top-6 h-32 w-32 bg-[#ff630f]/65 [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
-                  <span aria-hidden="true" className="absolute right-4 top-4 h-12 w-12 bg-[#69edff] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
-                  <div className="relative z-10 pt-7">
+                  <div className="relative z-10">
+                    <span aria-hidden="true" className="mb-4 block h-12 w-12 bg-[#69edff] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">Your Zero Loss account</p>
                     <h3 className="mt-3 text-3xl font-black leading-[.95] tracking-[-0.05em] text-white">One account.<br /><span className="text-[#31e800]">Every $1 shot counts.</span></h3>
                   </div>

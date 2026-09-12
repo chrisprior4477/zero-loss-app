@@ -18,8 +18,8 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
         <section className="relative overflow-hidden border-b border-white/10 p-6 sm:p-9 md:border-b-0 md:border-r lg:p-12">
           <div aria-hidden="true" className="absolute -left-8 -top-8 h-52 w-52 bg-[#ff630f]/55 drop-shadow-[0_0_28px_rgba(255,99,15,.3)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
           <div aria-hidden="true" className="absolute -bottom-12 -right-10 h-72 w-72 bg-[#31e800]/16 [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
-          <div aria-hidden="true" className="absolute right-5 top-14 h-14 w-14 bg-[#69edff] drop-shadow-[0_0_16px_rgba(105,237,255,.42)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] sm:right-8 sm:top-8 sm:h-20 sm:w-20" />
           <div className="relative z-10">
+            <div aria-hidden="true" className="mb-5 h-14 w-14 bg-[#69edff] drop-shadow-[0_0_16px_rgba(105,237,255,.42)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] sm:h-20 sm:w-20" />
             <h1 className="max-w-md text-4xl font-black leading-[.98] tracking-[-0.055em] sm:text-5xl">One account.<br /><span className="text-[#31e800]">Every $1 shot counts.</span></h1>
             <p className="mt-5 max-w-md text-base leading-7 text-white/72">Save entries, review outcomes, and keep retailer-specific rewards and completion options organized in one secure place.</p>
           </div>
