@@ -80,10 +80,12 @@ function clampDay(
 
 type DateOfBirthSelectsProps = {
   defaultValue?: string;
+  idPrefix?: string;
 };
 
 export function DateOfBirthSelects({
   defaultValue = "",
+  idPrefix = "",
 }: DateOfBirthSelectsProps) {
   const initial = useMemo(() => parseInitial(defaultValue), [defaultValue]);
   const years = useMemo(() => yearOptions(), []);
@@ -99,25 +101,26 @@ export function DateOfBirthSelects({
     isoDate && !isAtLeastAge(isoDate)
       ? `You must be at least ${MIN_ACCOUNT_AGE_YEARS} years old to create an account.`
       : "";
+  const id = (name: string) => `${idPrefix}${name}`;
 
   return (
     <div>
       <p
-        id="date_of_birth_label"
+        id={id("date_of_birth_label")}
         className="block text-sm font-medium text-[var(--foreground)]"
       >
         Date of birth
       </p>
       <div className="mt-1.5 grid grid-cols-3 gap-2">
         <div>
-          <label htmlFor="dob_month" className="sr-only">
+          <label htmlFor={id("dob_month")} className="sr-only">
             Month
           </label>
           <select
-            id="dob_month"
+            id={id("dob_month")}
             required
             value={month === "" ? "" : String(month)}
-            aria-labelledby="date_of_birth_label"
+            aria-labelledby={id("date_of_birth_label")}
             className={selectClassName}
             onChange={(event) => {
               const nextMonth =
@@ -136,14 +139,14 @@ export function DateOfBirthSelects({
         </div>
 
         <div>
-          <label htmlFor="dob_day" className="sr-only">
+          <label htmlFor={id("dob_day")} className="sr-only">
             Day
           </label>
           <select
-            id="dob_day"
+            id={id("dob_day")}
             required
             value={day === "" ? "" : String(day)}
-            aria-labelledby="date_of_birth_label"
+            aria-labelledby={id("date_of_birth_label")}
             className={selectClassName}
             onChange={(event) => {
               setDay(
@@ -163,14 +166,14 @@ export function DateOfBirthSelects({
         </div>
 
         <div>
-          <label htmlFor="dob_year" className="sr-only">
+          <label htmlFor={id("dob_year")} className="sr-only">
             Year
           </label>
           <select
-            id="dob_year"
+            id={id("dob_year")}
             required
             value={year === "" ? "" : String(year)}
-            aria-labelledby="date_of_birth_label"
+            aria-labelledby={id("date_of_birth_label")}
             className={selectClassName}
             onChange={(event) => {
               const nextYear =
@@ -190,7 +193,7 @@ export function DateOfBirthSelects({
       </div>
 
       <input
-        id="date_of_birth"
+        id={id("date_of_birth")}
         name="date_of_birth"
         type="hidden"
         value={isoDate}

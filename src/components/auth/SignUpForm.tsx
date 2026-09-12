@@ -20,7 +20,7 @@ const initialState: AuthActionState = {
 
 const PASSWORD_MISMATCH = "Passwords do not match.";
 
-export function SignUpForm() {
+export function SignUpForm({ idPrefix = "", compact = false }: { idPrefix?: string; compact?: boolean } = {}) {
   const [state, formAction, pending] = useActionState(
     signUpAction,
     initialState
@@ -32,6 +32,7 @@ export function SignUpForm() {
 
   const confirmError =
     clientConfirmError ?? state.confirmPasswordError ?? null;
+  const id = (name: string) => `${idPrefix}${name}`;
 
   const formKey = [
     state.values?.legal_first_name ?? "",
@@ -128,7 +129,7 @@ export function SignUpForm() {
     <form
       key={formKey}
       action={formAction}
-      className="space-y-5"
+      className={compact ? "space-y-4" : "space-y-5"}
       onSubmit={(event) => {
         const form = event.currentTarget;
         const password = form.elements.namedItem("password");
@@ -153,16 +154,16 @@ export function SignUpForm() {
         }
       }}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={`grid gap-4 ${compact ? "" : "sm:grid-cols-2"}`}>
         <div>
           <label
-            htmlFor="legal_first_name"
+            htmlFor={id("legal_first_name")}
             className="block text-sm font-medium text-[var(--foreground)]"
           >
             First name
           </label>
           <input
-            id="legal_first_name"
+            id={id("legal_first_name")}
             name="legal_first_name"
             type="text"
             autoComplete="given-name"
@@ -173,13 +174,13 @@ export function SignUpForm() {
         </div>
         <div>
           <label
-            htmlFor="legal_last_name"
+            htmlFor={id("legal_last_name")}
             className="block text-sm font-medium text-[var(--foreground)]"
           >
             Last name
           </label>
           <input
-            id="legal_last_name"
+            id={id("legal_last_name")}
             name="legal_last_name"
             type="text"
             autoComplete="family-name"
@@ -190,17 +191,17 @@ export function SignUpForm() {
         </div>
       </div>
 
-      <DateOfBirthSelects defaultValue={state.values?.date_of_birth ?? ""} />
+      <DateOfBirthSelects defaultValue={state.values?.date_of_birth ?? ""} idPrefix={idPrefix} />
 
       <div>
         <label
-          htmlFor="email"
+          htmlFor={id("email")}
           className="block text-sm font-medium text-[var(--foreground)]"
         >
           Email
         </label>
         <input
-          id="email"
+          id={id("email")}
           name="email"
           type="email"
           autoComplete="email"
@@ -213,13 +214,13 @@ export function SignUpForm() {
 
       <div>
         <label
-          htmlFor="password"
+          htmlFor={id("password")}
           className="block text-sm font-medium text-[var(--foreground)]"
         >
           Password
         </label>
         <input
-          id="password"
+          id={id("password")}
           name="password"
           type="password"
           autoComplete="new-password"
@@ -252,13 +253,13 @@ export function SignUpForm() {
 
       <div>
         <label
-          htmlFor="confirm_password"
+          htmlFor={id("confirm_password")}
           className="block text-sm font-medium text-[var(--foreground)]"
         >
           Confirm password
         </label>
         <input
-          id="confirm_password"
+          id={id("confirm_password")}
           name="confirm_password"
           type="password"
           autoComplete="new-password"
@@ -271,11 +272,11 @@ export function SignUpForm() {
           }}
           className="mt-1.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
           aria-invalid={confirmError ? true : undefined}
-          aria-describedby={confirmError ? "confirm_password_error" : undefined}
+          aria-describedby={confirmError ? id("confirm_password_error") : undefined}
         />
         {confirmError ? (
           <p
-            id="confirm_password_error"
+            id={id("confirm_password_error")}
             role="alert"
             className="mt-1 text-sm text-red-400"
           >

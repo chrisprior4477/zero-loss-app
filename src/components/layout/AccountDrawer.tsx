@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { signOutAction } from "@/lib/auth/actions";
 import { investorDemoAccount } from "@/lib/demo/account-drawer";
 import { accountHref, accountModeFromPath } from "@/lib/account/mode";
+import { SignUpForm } from "@/components/auth/SignUpForm";
 
 type AccountDrawerProps = { isSignedIn: boolean; displayName: string; avatarUrl: string | null };
 
@@ -57,6 +58,7 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [signUpOpen, setSignUpOpen] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(avatarUrl);
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +66,6 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
   const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    setAvatar(avatarUrl);
     const updateAvatar = (event: Event) => {
       const detail = (event as CustomEvent<{ photo: string }>).detail;
       setAvatar(detail.photo);
@@ -141,7 +142,11 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
           <button type="button" aria-label="Close account menu" onClick={close} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
           <aside ref={drawerRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="absolute inset-y-0 right-0 flex h-dvh w-[min(100%,420px)] flex-col overflow-hidden border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]">
             <div className="flex shrink-0 items-center gap-3 border-b border-cyan-200/15 px-5 py-4">
-              <DrawerAvatar avatar={isSignedIn && !isDemoMode ? avatar : null} initials={initials} size="large" />
+              {!showAccountContent ? (
+                <Link href="/signup" onClick={close} aria-label="Create a Zero Loss account" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/55 bg-[#31e800]/12 transition hover:bg-[#31e800]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
+                  <span aria-hidden="true" className="h-7 w-7 bg-[#73e72d] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
+                </Link>
+              ) : <DrawerAvatar avatar={isSignedIn && !isDemoMode ? avatar : null} initials={initials} size="large" />}
               <div className="min-w-0 flex-1">
                 <h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2>
                 <p className="text-[12px] text-white/55">{isDemoMode ? investorDemoAccount.accountLabel : isSignedIn ? "Live account" : "Sign in or create an account"}</p>
@@ -179,10 +184,17 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
                 <DrawerLink label="Profile & dashboard" href={accountMode === "demo" ? "/account/preview/entries" : "/account"} onNavigate={close} />
                 {primaryLinks.map(([label, section, badge]) => <DrawerLink key={label} label={label} href={accountHref(accountMode, section)} badge={isDemoMode && badge ? badge : undefined} onNavigate={close} />)}
               </nav>
-              </> : <div className="rounded-2xl border border-cyan-300/20 bg-[#0b3155] p-5">
-                <p className="text-base font-bold text-white">Your Zero Loss account starts here.</p>
-                <p className="mt-2 text-sm leading-6 text-white/65">Sign in to see your balance, entries, results, orders, and account settings. Or switch to Demo above for the complete investor walkthrough.</p>
-              </div>}
+              </> : <section>
+                <button type="button" onClick={() => setSignUpOpen((current) => !current)} aria-expanded={signUpOpen} aria-controls="drawer-signup-form" className="flex min-h-12 w-full items-center justify-between rounded-xl bg-[#00b9ff] px-4 text-left text-sm font-black text-[#00132e] transition hover:bg-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+                  <span>{signUpOpen ? "Close account setup" : "Create your account"}</span><span aria-hidden="true" className={`text-lg transition-transform ${signUpOpen ? "rotate-180" : ""}`}>⌄</span>
+                </button>
+                {signUpOpen ? (
+                  <div id="drawer-signup-form" className="mt-4 rounded-2xl border border-cyan-300/20 bg-[#082846] p-4">
+                    <p className="mb-4 text-xs font-black uppercase tracking-[0.15em] text-[#ff8a45]">Let’s get you set up.</p>
+                    <SignUpForm idPrefix="drawer_" compact />
+                  </div>
+                ) : <p className="mt-3 px-1 text-sm leading-6 text-white/60">Open a free account here, or switch to Demo above for the complete investor walkthrough.</p>}
+              </section>}
 
               <div className="mt-3 border-t border-cyan-200/15 pt-3">
                 <button type="button" onClick={() => setMoreOpen((current) => !current)} aria-expanded={moreOpen} aria-controls="account-drawer-help-links" className="flex min-h-12 w-full items-center justify-between rounded-lg px-2 text-left text-[14px] font-semibold text-white/88 hover:bg-white/7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
