@@ -3,28 +3,10 @@ import Image from "next/image";
 import { DesktopCategoryNav } from "@/components/layout/DesktopCategoryNav";
 import { DesktopHeaderSearch } from "@/components/layout/DesktopHeaderSearch";
 import { AccountDrawer } from "@/components/layout/AccountDrawer";
+import { AccountModeSwitch } from "@/components/layout/AccountModeSwitch";
+import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayableBalanceLabel } from "@/lib/wallet/balance";
-
-function HeaderTicketIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 54 36" className="h-[24px] w-[36px] overflow-visible sm:h-[30px] sm:w-[45px]" fill="none">
-      <path d="M3 3h48v9a6 6 0 0 0 0 12v9H3v-9a6 6 0 0 0 0-12V3Z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
-      <circle cx="27" cy="18" r="7.5" stroke="currentColor" strokeWidth="2.2" />
-      <path d="m20.5 25 13-14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function HeaderCreditIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 54 36" className="h-[24px] w-[36px] overflow-visible sm:h-[30px] sm:w-[45px]" fill="none">
-      <circle cx="18" cy="18" r="14.5" stroke="currentColor" strokeWidth="2.4" />
-      <circle cx="18" cy="18" r="7.5" stroke="currentColor" strokeWidth="2.2" />
-      <path d="m11.5 25 13-14M37 10h13M39 18h11M37 26h13" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export async function SiteHeader() {
   const supabase = await createClient();
@@ -73,28 +55,7 @@ export async function SiteHeader() {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-4 lg:gap-5">
-          <Link
-            href={balanceLabel != null ? "/account/wallet" : "/signup"}
-            aria-label="12 available tickets"
-            className="inline-grid min-w-max grid-cols-[max-content_max-content] items-center gap-1.5 text-white transition-opacity hover:opacity-80 sm:gap-2.5"
-          >
-            <span className="grid h-[28px] w-[38px] shrink-0 place-items-center sm:h-[34px] sm:w-[48px]">
-              <HeaderTicketIcon />
-            </span>
-            <span className="inline-flex h-[28px] min-w-[27px] w-fit items-center justify-center px-1 text-[14px] font-bold leading-none tabular-nums sm:h-[34px] sm:min-w-[34px] sm:px-1.5 sm:text-[20px] lg:text-[22px]">12</span>
-          </Link>
-
-          <Link
-            href={balanceLabel != null ? "/account/wallet" : "/signup"}
-            aria-label="$247 credit value"
-            className="inline-grid min-w-max grid-cols-[max-content_max-content] items-center gap-1.5 text-white transition-opacity hover:opacity-80 sm:gap-2"
-          >
-            <span className="grid h-[28px] w-[38px] shrink-0 place-items-center sm:h-[34px] sm:w-[48px]">
-              <HeaderCreditIcon />
-            </span>
-            <span className="inline-flex h-[28px] min-w-[45px] w-fit items-center justify-center px-1 text-[14px] font-bold leading-none tabular-nums sm:h-[34px] sm:min-w-[64px] sm:px-1.5 sm:text-[20px] lg:text-[22px]">$247</span>
-          </Link>
-
+          <HeaderAccountMetrics isSignedIn={Boolean(user)} liveBalance={balanceLabel} />
           <AccountDrawer isSignedIn={Boolean(user)} displayName={displayName} />
         </div>
       </div>
@@ -112,6 +73,7 @@ export async function SiteHeader() {
         className="h-[3px] w-full"
         style={{ background: "var(--brand-rule)" }}
       />
+      <AccountModeSwitch isSignedIn={Boolean(user)} />
     </header>
   );
 }

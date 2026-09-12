@@ -13,6 +13,7 @@ import {
 export type AuthActionState = {
   ok: boolean;
   message: string | null;
+  accountMayExist?: boolean;
   pendingVerification?: boolean;
   email?: string;
   /** Non-secret fields to re-populate after a validation error. */
@@ -24,6 +25,11 @@ export type AuthActionState = {
   };
   /** Field-scoped error for confirm password (shown next to that input). */
   confirmPasswordError?: string | null;
+};
+
+export type ResendVerificationState = {
+  ok: boolean;
+  message: string | null;
 };
 
 function asTrimmedString(value: FormDataEntryValue | null): string {
@@ -158,8 +164,9 @@ export async function signUpAction(
     ) {
       return {
         ok: false,
+        accountMayExist: true,
         message:
-          "Unable to create this account. Try signing in, or use a different email.",
+          "An account may already exist for this email. Sign in or request a new verification email.",
         values,
       };
     }
@@ -180,8 +187,9 @@ export async function signUpAction(
   ) {
     return {
       ok: false,
+      accountMayExist: true,
       message:
-        "Unable to create this account. Try signing in, or use a different email.",
+        "An account may already exist for this email. Sign in or request a new verification email.",
       values,
     };
   }
@@ -196,6 +204,37 @@ export async function signUpAction(
     message: null,
     pendingVerification: true,
     email,
+  };
+}
+
+export async function resendVerificationAction(
+  _prev: ResendVerificationState,
+  formData: FormData
+): Promise<ResendVerificationState> {
+  const email = asTrimmedString(formData.get("verification_email")).toLowerCase();
+
+  if (!email) {
+    return { ok: false, message: "Enter the email address used to create your account." };
+  }
+
+  const supabase = await createClient();
+  const origin = await getSiteOrigin();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: `${origin}/auth/confirm` },
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: "We could not send a new verification email yet. Please wait a moment and try again.",
+    };
+  }
+
+  return {
+    ok: true,
+    message: "If that account is waiting for verification, a new email is on its way.",
   };
 }
 

@@ -7,6 +7,7 @@ import {
   type AuthActionState,
 } from "@/lib/auth/actions";
 import { DateOfBirthSelects } from "@/components/auth/DateOfBirthSelects";
+import { ResendVerificationForm } from "@/components/auth/ResendVerificationForm";
 import {
   MIN_PASSWORD_LENGTH,
   isPasswordValid,
@@ -27,6 +28,7 @@ export function SignUpForm() {
   const [clientConfirmError, setClientConfirmError] = useState<string | null>(
     null
   );
+  const [email, setEmail] = useState(state.values?.email ?? "");
 
   const confirmError =
     clientConfirmError ?? state.confirmPasswordError ?? null;
@@ -39,6 +41,36 @@ export function SignUpForm() {
     state.confirmPasswordError ?? "",
     state.message ?? "",
   ].join("|");
+
+  if (state.accountMayExist) {
+    const accountEmail = state.values?.email ?? "your email";
+
+    return (
+      <div className="rounded-2xl border border-cyan-300/25 bg-cyan-300/8 p-5 sm:p-6">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
+          Continue with your account
+        </p>
+        <h3 className="mt-3 text-2xl font-black text-white">You may already be registered.</h3>
+        <p className="mt-3 break-words text-sm leading-6 text-white/65">
+          An account is associated with <strong className="text-white">{accountEmail}</strong>, or that address is waiting for verification.
+        </p>
+        <Link
+          href="/login"
+          className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#00b9ff] px-5 text-base font-black text-[#00132e] transition hover:bg-cyan-200"
+        >
+          Sign in
+        </Link>
+        <ResendVerificationForm email={state.values?.email ?? ""} />
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-4 w-full text-center text-sm font-bold text-white/55 underline-offset-4 hover:text-white hover:underline"
+        >
+          Use a different email
+        </button>
+      </div>
+    );
+  }
 
   if (state.ok && state.pendingVerification) {
     return (
@@ -92,10 +124,11 @@ export function SignUpForm() {
   }
 
   return (
+    <>
     <form
       key={formKey}
       action={formAction}
-      className="space-y-4"
+      className="space-y-5"
       onSubmit={(event) => {
         const form = event.currentTarget;
         const password = form.elements.namedItem("password");
@@ -172,7 +205,8 @@ export function SignUpForm() {
           type="email"
           autoComplete="email"
           required
-          defaultValue={state.values?.email ?? ""}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           className="mt-1.5 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
         />
       </div>
@@ -293,5 +327,7 @@ export function SignUpForm() {
         {pending ? "Creating account…" : "Create account"}
       </button>
     </form>
+    <ResendVerificationForm email={email} />
+    </>
   );
 }

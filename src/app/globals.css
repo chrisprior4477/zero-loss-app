@@ -417,3 +417,13 @@ body {
     box-shadow: none;
   }
 }
+
+/* Authentication pages trade the investor-demo counters for an explicit,
+   non-authenticating preview control. */
+body:has(.auth-signup-page) [data-demo-account-metric] {
+  display: none;
+}
+
+body:has(.auth-signup-page) .auth-demo-header-link {
+  display: inline-flex;
+}
