@@ -8,7 +8,6 @@ import { createPortal } from "react-dom";
 import { signOutAction } from "@/lib/auth/actions";
 import { investorDemoAccount } from "@/lib/demo/account-drawer";
 import { accountHref, accountModeFromPath } from "@/lib/account/mode";
-import { SignUpForm } from "@/components/auth/SignUpForm";
 
 type AccountDrawerProps = { isSignedIn: boolean; displayName: string; avatarUrl: string | null };
 
@@ -58,7 +57,7 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [signUpOpen, setSignUpOpen] = useState(false);
+  const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
   const [avatar, setAvatar] = useState<string | null>(avatarUrl);
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -184,16 +183,26 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
                 <DrawerLink label="Profile & dashboard" href={accountMode === "demo" ? "/account/preview/entries" : "/account"} onNavigate={close} />
                 {primaryLinks.map(([label, section, badge]) => <DrawerLink key={label} label={label} href={accountHref(accountMode, section)} badge={isDemoMode && badge ? badge : undefined} onNavigate={close} />)}
               </nav>
-              </> : <section>
-                <button type="button" onClick={() => setSignUpOpen((current) => !current)} aria-expanded={signUpOpen} aria-controls="drawer-signup-form" className="flex min-h-12 w-full items-center justify-between rounded-xl bg-[#00b9ff] px-4 text-left text-sm font-black text-[#00132e] transition hover:bg-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
-                  <span>{signUpOpen ? "Close account setup" : "Create your account"}</span><span aria-hidden="true" className={`text-lg transition-transform ${signUpOpen ? "rotate-180" : ""}`}>⌄</span>
-                </button>
-                {signUpOpen ? (
-                  <div id="drawer-signup-form" className="mt-4 rounded-2xl border border-cyan-300/20 bg-[#082846] p-4">
-                    <p className="mb-4 text-xs font-black uppercase tracking-[0.15em] text-[#ff8a45]">Let’s get you set up.</p>
-                    <SignUpForm idPrefix="drawer_" compact />
+              </> : <section className="space-y-4">
+                <div className="relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#001b3d] p-5">
+                  <span aria-hidden="true" className="absolute -left-5 -top-6 h-32 w-32 bg-[#ff630f]/65 [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
+                  <span aria-hidden="true" className="absolute right-4 top-4 h-12 w-12 bg-[#69edff] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
+                  <div className="relative z-10 pt-7">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-300">Your Zero Loss account</p>
+                    <h3 className="mt-3 text-3xl font-black leading-[.95] tracking-[-0.05em] text-white">One account.<br /><span className="text-[#31e800]">Every $1 shot counts.</span></h3>
                   </div>
-                ) : <p className="mt-3 px-1 text-sm leading-6 text-white/60">Open a free account here, or switch to Demo above for the complete investor walkthrough.</p>}
+                </div>
+
+                <div>
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#ff8a45]">What brings you to Zero Loss?</p>
+                  <div className="grid grid-cols-2 gap-2" role="group" aria-label="Choose account type">
+                    <button type="button" aria-pressed={accountPath === "pleasure"} onClick={() => setAccountPath("pleasure")} className={`min-h-16 rounded-xl border p-3 text-left transition ${accountPath === "pleasure" ? "border-[#31e800] bg-[#31e800]/12" : "border-white/12 bg-white/5"}`}><strong className={accountPath === "pleasure" ? "text-[#72ff4e]" : "text-white"}>For pleasure</strong><span className="mt-1 block text-[11px] text-white/50">Enter and explore</span></button>
+                    <button type="button" aria-pressed={accountPath === "business"} onClick={() => setAccountPath("business")} className={`min-h-16 rounded-xl border p-3 text-left transition ${accountPath === "business" ? "border-cyan-300 bg-cyan-300/12" : "border-white/12 bg-white/5"}`}><strong className={accountPath === "business" ? "text-cyan-300" : "text-white"}>For business</strong><span className="mt-1 block text-[11px] text-white/50">Offer products or rewards</span></button>
+                  </div>
+                </div>
+
+                <Link href="/signup" onClick={close} className="grid min-h-12 w-full place-items-center rounded-xl bg-[#087feb] px-4 text-sm font-black text-white transition hover:bg-[#1692ff]">Sign up</Link>
+                <p className="text-center text-xs text-white/50">Already registered? <Link href="/login" onClick={close} className="font-bold text-cyan-300 hover:underline">Sign in</Link></p>
               </section>}
 
               <div className="mt-3 border-t border-cyan-200/15 pt-3">
@@ -204,9 +213,9 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
               </div>
             </div>
 
-            <div className="shrink-0 border-t border-cyan-200/15 px-5 py-3">
+            {showAccountContent ? <div className="shrink-0 border-t border-cyan-200/15 px-5 py-3">
               {isSignedIn ? <form action={signOutAction}><button type="submit" className="min-h-11 w-full rounded-lg px-2 text-left text-[14px] font-semibold text-[#ff796c] hover:bg-red-400/8">↪ &nbsp; Sign out</button></form> : <div className="grid grid-cols-2 gap-3"><Link href="/login" onClick={close} className="grid min-h-11 place-items-center rounded-lg border border-cyan-200/25 text-[13px] font-bold text-white">Sign in</Link><Link href="/signup" onClick={close} className="grid min-h-11 place-items-center rounded-lg bg-[#087feb] text-[13px] font-bold text-white">Sign up</Link></div>}
-            </div>
+            </div> : null}
           </aside>
         </div>,
         document.body,
