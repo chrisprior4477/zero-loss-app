@@ -20,8 +20,9 @@ export function HeaderAccountMetrics({
   liveBalance: string | null;
 }) {
   const pathname = usePathname();
+  const isDemo = accountModeFromPath(pathname) === "demo";
 
-  if (!isSignedIn) {
+  if (!isSignedIn && !isDemo) {
     return (
       <div className="flex items-center gap-2">
         <Link href="/login" className="grid min-h-9 place-items-center px-2 text-xs font-bold text-white sm:px-3 sm:text-sm">Sign in</Link>
@@ -30,7 +31,6 @@ export function HeaderAccountMetrics({
     );
   }
 
-  const isDemo = pathname.startsWith("/account") && accountModeFromPath(pathname) === "demo";
   const ticketCount = isDemo ? "12" : "0";
   const balance = isDemo ? "$247" : liveBalance ?? "$0.00";
   const walletHref = isDemo ? "/account/preview/wallet" : "/account/wallet";

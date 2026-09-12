@@ -6,14 +6,18 @@ import { accountHref, accountModeFromPath, accountSectionFromPath } from "@/lib/
 export function AccountModeSwitch({ isSignedIn }: { isSignedIn: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
-  if (!isSignedIn || !pathname.startsWith("/account")) return null;
 
   const mode = accountModeFromPath(pathname);
   const section = accountSectionFromPath(pathname);
 
   function changeMode(nextMode: "live" | "demo") {
     window.localStorage.setItem("zero-loss-account-mode", nextMode);
-    router.push(accountHref(nextMode, section));
+    if (nextMode === "demo") {
+      router.push(accountHref("demo", section));
+      return;
+    }
+
+    router.push(isSignedIn ? accountHref("live", section) : "/");
   }
 
   return (

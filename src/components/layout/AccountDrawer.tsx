@@ -113,10 +113,11 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
   }, [open]);
 
   const close = () => setOpen(false);
-  const shownName = isSignedIn ? displayName : investorDemoAccount.customerName;
-  const initials = shownName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ZL";
   const accountMode = pathname.startsWith("/account") ? accountModeFromPath(pathname) : "live";
   const isDemoMode = accountMode === "demo";
+  const showAccountContent = isSignedIn || isDemoMode;
+  const shownName = isDemoMode ? investorDemoAccount.customerName : isSignedIn ? displayName : "Welcome";
+  const initials = shownName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ZL";
 
   return (
     <>
@@ -140,19 +141,19 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
           <button type="button" aria-label="Close account menu" onClick={close} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
           <aside ref={drawerRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="absolute inset-y-0 right-0 flex h-dvh w-[min(100%,420px)] flex-col overflow-hidden border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]">
             <div className="flex shrink-0 items-center gap-3 border-b border-cyan-200/15 px-5 py-4">
-              <DrawerAvatar avatar={isSignedIn ? avatar : null} initials={initials} size="large" />
+              <DrawerAvatar avatar={isSignedIn && !isDemoMode ? avatar : null} initials={initials} size="large" />
               <div className="min-w-0 flex-1">
                 <h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2>
-                <p className="text-[12px] text-white/55">{isSignedIn ? (isDemoMode ? "Demo account" : "Live account") : investorDemoAccount.accountLabel}</p>
+                <p className="text-[12px] text-white/55">{isDemoMode ? investorDemoAccount.accountLabel : isSignedIn ? "Live account" : "Sign in or create an account"}</p>
                 {isDemoMode ? <p className="mt-1 text-[9px] font-bold uppercase tracking-[.12em] text-cyan-300">Demo data</p> : null}
               </div>
               <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className="grid h-10 w-10 place-items-center rounded-lg text-2xl font-light text-white/65 hover:bg-white/8 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <div className="mb-2 flex items-center justify-between">
+              {showAccountContent ? <><div className="mb-2 flex items-center justify-between">
                 <p className="text-[10px] font-bold uppercase tracking-[.13em] text-white/45">Account snapshot</p>
-                <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[.1em] text-cyan-200">Demo Data</span>
+                {isDemoMode ? <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[.1em] text-cyan-200">Demo Data</span> : null}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl bg-[#0b3155] px-4 py-3">
@@ -178,6 +179,10 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
                 <DrawerLink label="Profile & dashboard" href={accountMode === "demo" ? "/account/preview/entries" : "/account"} onNavigate={close} />
                 {primaryLinks.map(([label, section, badge]) => <DrawerLink key={label} label={label} href={accountHref(accountMode, section)} badge={isDemoMode && badge ? badge : undefined} onNavigate={close} />)}
               </nav>
+              </> : <div className="rounded-2xl border border-cyan-300/20 bg-[#0b3155] p-5">
+                <p className="text-base font-bold text-white">Your Zero Loss account starts here.</p>
+                <p className="mt-2 text-sm leading-6 text-white/65">Sign in to see your balance, entries, results, orders, and account settings. Or switch to Demo above for the complete investor walkthrough.</p>
+              </div>}
 
               <div className="mt-3 border-t border-cyan-200/15 pt-3">
                 <button type="button" onClick={() => setMoreOpen((current) => !current)} aria-expanded={moreOpen} aria-controls="account-drawer-help-links" className="flex min-h-12 w-full items-center justify-between rounded-lg px-2 text-left text-[14px] font-semibold text-white/88 hover:bg-white/7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
