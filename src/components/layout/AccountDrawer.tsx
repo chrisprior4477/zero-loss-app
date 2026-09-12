@@ -293,7 +293,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 </div>
 
                 <Link href={accountPath === "business" ? "/signup?account=business" : "/signup"} onClick={close} className="grid min-h-12 w-full place-items-center rounded-xl bg-[#087feb] px-4 text-sm font-black text-white transition hover:bg-[#1692ff]">Sign up</Link>
-                <p className="text-center text-xs text-white/50">Already registered? <Link href="/login" onClick={close} className="font-bold text-cyan-300 hover:underline">Sign in</Link></p>
+                <p className="text-center text-xs text-white/50">Already registered? <Link href="/login?focus=email#login-form" onClick={close} className="font-bold text-cyan-300 hover:underline">Sign in</Link></p>
                 <Link href="/how-it-works" onClick={close} className="grid min-h-11 w-full place-items-center rounded-xl border border-[#ff7a2d] bg-[#ff630f] px-4 text-sm font-black text-white transition hover:bg-[#ff7a2d]">How It Works</Link>
               </section>}
 

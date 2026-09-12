@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string; verified?: string }>;
+  searchParams: Promise<{ error?: string; verified?: string; focus?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -50,12 +50,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         </section>
 
-        <section className="bg-[linear-gradient(155deg,rgba(7,49,91,.86),rgba(0,19,46,.96))] p-6 sm:p-9 lg:p-12">
+        <section id="login-form" className="scroll-mt-[163px] bg-[linear-gradient(155deg,rgba(7,49,91,.86),rgba(0,19,46,.96))] p-6 sm:scroll-mt-0 sm:p-9 lg:p-12">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff8a45]">Welcome back</p>
           <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">Sign in to Zero Loss.</h2>
           <p className="mt-2 text-sm leading-6 text-white/60">New here? <Link href="/signup" className="font-bold text-cyan-300 underline-offset-4 hover:underline">Create an account</Link></p>
           <div className="mt-7">
-            <LoginForm initialError={initialError} initialNotice={initialNotice} />
+            <LoginForm initialError={initialError} initialNotice={initialNotice} focusOnMount={params.focus === "email"} />
           </div>
           <p className="mt-5 text-center text-xs leading-5 text-white/40">Signing in does not create an entry or make a purchase.</p>
           <div className="mt-5 border-t border-white/10 pt-5 text-center">

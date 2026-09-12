@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   signInAction,
   type AuthActionState,
@@ -15,11 +15,13 @@ const initialState: AuthActionState = {
 type LoginFormProps = {
   initialError?: string | null;
   initialNotice?: string | null;
+  focusOnMount?: boolean;
 };
 
 export function LoginForm({
   initialError = null,
   initialNotice = null,
+  focusOnMount = false,
 }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(
     signInAction,
@@ -28,6 +30,16 @@ export function LoginForm({
 
   const message = state.message ?? initialError;
   const notice = state.message ? null : initialNotice;
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!focusOnMount) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelector("#login-form")?.scrollIntoView({ block: "start" });
+      emailRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusOnMount]);
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
@@ -39,10 +51,12 @@ export function LoginForm({
           Email
         </label>
         <input
+          ref={emailRef}
           id="email"
           name="email"
           type="email"
           autoComplete="email"
+          autoFocus={focusOnMount}
           required
           className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none transition hover:border-white/25 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
         />
