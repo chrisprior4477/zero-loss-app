@@ -9,7 +9,13 @@ import { signOutAction } from "@/lib/auth/actions";
 import { investorDemoAccount } from "@/lib/demo/account-drawer";
 import { accountHref, accountModeFromPath } from "@/lib/account/mode";
 
-type AccountDrawerProps = { isSignedIn: boolean; displayName: string; avatarUrl: string | null };
+type AccountDrawerProps = {
+  isSignedIn: boolean;
+  displayName: string;
+  email: string | null;
+  avatarUrl: string | null;
+  balanceLabel: string | null;
+};
 
 const primaryLinks = [
   ["My Entries", "entries", String(investorDemoAccount.activeEntries)],
@@ -39,6 +45,60 @@ function DrawerLink({ label, href, badge, onNavigate }: { label: string; href: s
   );
 }
 
+const activityDetails = {
+  profile: "View your saved profile, photo, verification, and account overview.",
+  entries: "Review your active entries and completed results.",
+  orders: "Track rewards, delivery, and fulfillment updates.",
+  wallet: "See your playable balance and complete transaction history.",
+  notifications: "Review account, entry, result, and delivery updates.",
+  security: "Manage your sign-in, password, and account security.",
+} as const;
+
+function DrawerActivity({
+  label,
+  section,
+  detail,
+  href,
+  badge,
+  expanded,
+  onToggle,
+  onNavigate,
+}: {
+  label: string;
+  section: keyof typeof activityDetails;
+  detail?: string;
+  href: string;
+  badge?: string;
+  expanded: boolean;
+  onToggle: () => void;
+  onNavigate: () => void;
+}) {
+  const panelId = `account-drawer-${section}`;
+  return (
+    <div className="border-b border-white/7 last:border-b-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        className="flex min-h-12 w-full items-center gap-3 rounded-lg px-2 text-left text-[14px] font-semibold text-white/88 transition-colors hover:bg-white/7 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
+      >
+        <span aria-hidden="true" className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border border-cyan-200/25 text-[13px] text-cyan-100 transition-transform ${expanded ? "rotate-90" : ""}`}>›</span>
+        <span className="min-w-0 flex-1">{label}</span>
+        {badge ? <span className="grid min-w-8 place-items-center rounded-full bg-[#123d64] px-2 py-1 text-[11px] font-bold text-cyan-100">{badge}</span> : null}
+      </button>
+      {expanded ? (
+        <div id={panelId} className="mx-2 mb-3 rounded-xl border border-cyan-200/15 bg-[#082846] p-4">
+          <p className="text-xs leading-5 text-white/65">{detail ?? activityDetails[section]}</p>
+          <Link href={href} onClick={onNavigate} className="mt-3 inline-flex min-h-9 items-center rounded-full border border-cyan-300/35 px-4 text-xs font-bold text-cyan-200 hover:bg-cyan-300/10">
+            Open {label.toLowerCase()}
+          </Link>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initials: string; size: "small" | "large" }) {
   const dimension = size === "small" ? "h-9 w-9" : "h-11 w-11";
   return avatar ? (
@@ -52,20 +112,25 @@ function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initi
   );
 }
 
-export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDrawerProps) {
+export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel }: AccountDrawerProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
   const [avatar, setAvatar] = useState<string | null>(avatarUrl);
+  const [openActivity, setOpenActivity] = useState<string | null>(null);
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    if (!avatarUrl) {
+      const explicitlyChosenPhoto = window.localStorage.getItem("zero-loss-profile-photo");
+      if (explicitlyChosenPhoto) window.setTimeout(() => setAvatar(explicitlyChosenPhoto), 0);
+    }
     const updateAvatar = (event: Event) => {
-      const detail = (event as CustomEvent<{ photo: string }>).detail;
+      const detail = (event as CustomEvent<{ photo: string | null }>).detail;
       setAvatar(detail.photo);
     };
     window.addEventListener("zero-loss-avatar-updated", updateAvatar);
@@ -117,6 +182,10 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
   const showAccountContent = isSignedIn || isDemoMode;
   const shownName = isDemoMode ? investorDemoAccount.customerName : isSignedIn ? displayName : "Welcome";
   const initials = shownName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ZL";
+  const resolvedAvatar = avatar ?? avatarUrl;
+  const hasSavedAvatar = isSignedIn && Boolean(resolvedAvatar);
+  const entryCount = isDemoMode ? investorDemoAccount.activeEntries : 0;
+  const resultCount = isDemoMode ? investorDemoAccount.resultsReady : 0;
 
   return (
     <>
@@ -126,10 +195,10 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
         onClick={() => setOpen(true)}
         aria-label="Open account menu"
         aria-expanded={open}
-        className={`grid h-9 w-9 place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${isSignedIn ? "rounded-full border border-cyan-300/40 bg-[#07533f] text-[11px] font-black text-[#72ff9f] hover:border-cyan-200" : "rounded-md text-white/75 hover:bg-white/8 hover:text-white"}`}
+        className={`grid h-9 w-9 place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${hasSavedAvatar ? "rounded-full border border-cyan-300/40 bg-[#07533f] hover:border-cyan-200" : "rounded-md text-white/75 hover:bg-white/8 hover:text-white"}`}
       >
-        {isSignedIn ? (
-          <DrawerAvatar avatar={avatar} initials={initials} size="small" />
+        {hasSavedAvatar ? (
+          <DrawerAvatar avatar={resolvedAvatar} initials={initials} size="small" />
         ) : (
           <span aria-hidden="true" className="flex w-[17px] flex-col gap-[3px]"><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /></span>
         )}
@@ -144,7 +213,11 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
                 <Link href="/signup" onClick={close} aria-label="Create a Zero Loss account" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/55 bg-[#31e800]/12 transition hover:bg-[#31e800]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
                   <span aria-hidden="true" className="h-7 w-7 bg-[#73e72d] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
                 </Link>
-              ) : <DrawerAvatar avatar={isSignedIn && !isDemoMode ? avatar : null} initials={initials} size="large" />}
+              ) : isDemoMode ? <DrawerAvatar avatar={null} initials={initials} size="large" /> : hasSavedAvatar ? <DrawerAvatar avatar={resolvedAvatar} initials={initials} size="large" /> : (
+                <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white/75">
+                  <span className="flex w-6 flex-col gap-1"><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /></span>
+                </span>
+              )}
               <div className="min-w-0 flex-1">
                 <h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2>
                 <p className="text-[12px] text-white/55">{isDemoMode ? investorDemoAccount.accountLabel : isSignedIn ? "Live account" : "Sign in or create an account"}</p>
@@ -161,26 +234,44 @@ export function AccountDrawer({ isSignedIn, displayName, avatarUrl }: AccountDra
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl bg-[#0b3155] px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-white/55">Playable balance</p>
-                  <p className="mt-1 text-[19px] font-extrabold text-[#46f293]">{investorDemoAccount.playableBalance}</p>
+                  <p className="mt-1 text-[19px] font-extrabold text-[#46f293]">{isDemoMode ? investorDemoAccount.playableBalance : balanceLabel ?? "$0.00"}</p>
                   <Link href={accountHref(accountMode, "wallet")} onClick={close} className="mt-2 inline-flex rounded-md bg-[#087feb] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#1692ff]">Add Funds</Link>
                 </div>
                 <Link href={accountHref(accountMode, "entries")} onClick={close} className="rounded-xl bg-[#0b3155] px-4 py-3 transition-colors hover:bg-[#104269]">
                   <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-white/55">Active entries</p>
-                  <p className="mt-1 text-[19px] font-extrabold text-white">{investorDemoAccount.activeEntries}</p>
+                  <p className="mt-1 text-[19px] font-extrabold text-white">{entryCount}</p>
                   <p className="mt-2 text-[11px] font-semibold text-cyan-300">View Entries</p>
                 </Link>
               </div>
 
               <Link href={accountHref(accountMode, "results")} onClick={close} className="mt-4 flex min-h-[68px] items-center gap-3 rounded-xl border border-[#168bd4] bg-[#0b3155] px-4 transition-colors hover:bg-[#104269]">
                 <span aria-hidden="true" className="text-xl text-cyan-200">◷</span>
-                <span className="min-w-0 flex-1"><strong className="block text-[14px] text-white">{investorDemoAccount.resultsReady} results ready</strong><span className="text-[11px] text-white/60">Review your outcomes and available next steps</span></span>
+                <span className="min-w-0 flex-1"><strong className="block text-[14px] text-white">{resultCount} results ready</strong><span className="text-[11px] text-white/60">Review your outcomes and available next steps</span></span>
                 <span className="text-[12px] font-bold text-cyan-300">Review</span>
               </Link>
 
               <nav aria-label="Account activity" className="mt-4">
                 <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[.13em] text-white/45">Your activity</p>
-                <DrawerLink label="Profile & dashboard" href={accountMode === "demo" ? "/account/preview/entries" : "/account"} onNavigate={close} />
-                {primaryLinks.map(([label, section, badge]) => <DrawerLink key={label} label={label} href={accountHref(accountMode, section)} badge={isDemoMode && badge ? badge : undefined} onNavigate={close} />)}
+                <DrawerActivity
+                  label="Profile & dashboard"
+                  section="profile"
+                  detail={email ? `${displayName} · ${email}` : activityDetails.profile}
+                  href={accountMode === "demo" ? "/account/preview/entries" : "/account"}
+                  expanded={openActivity === "profile"}
+                  onToggle={() => setOpenActivity((current) => current === "profile" ? null : "profile")}
+                  onNavigate={close}
+                />
+                {primaryLinks.map(([label, section, badge]) => <DrawerActivity
+                  key={label}
+                  label={label}
+                  section={section}
+                  href={accountHref(accountMode, section)}
+                  badge={isDemoMode && badge ? badge : undefined}
+                  expanded={openActivity === section}
+                  onToggle={() => setOpenActivity((current) => current === section ? null : section)}
+                  onNavigate={close}
+                />)}
+                {openActivity === "profile" && email ? <p className="sr-only">Signed in as {displayName}, {email}</p> : null}
               </nav>
               </> : <section className="space-y-4">
                 <div className="relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#001b3d] p-5">

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ChangeEvent, PointerEvent, useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { saveProfilePhoto } from "@/lib/account/actions";
 
 const PHOTO_KEY = "zero-loss-profile-photo";
 const CROP_KEY = "zero-loss-profile-photo-crop";
@@ -86,24 +86,13 @@ export function ProfilePhotoCard({
   const [error, setError] = useState<string | null>(null);
 
   async function persistPhoto(source: string, sourceCrop: Crop) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Please sign in again before saving your photo.");
-
     const blob = await renderCroppedPhoto(source, sourceCrop);
-    const reference = `${user.id}/avatar.webp`;
-    const { error: uploadError } = await supabase.storage
-      .from("profile-photos")
-      .upload(reference, blob, { contentType: "image/webp", upsert: true });
-    if (uploadError) throw uploadError;
+    const formData = new FormData();
+    formData.set("photo", new File([blob], "avatar.webp", { type: "image/webp" }));
+    const result = await saveProfilePhoto(formData);
+    if (!result.ok) throw new Error(result.message);
 
-    const { error: profileError } = await supabase.rpc("update_customer_profile_preferences", {
-      p_updates: { avatar_reference: reference },
-    });
-    if (profileError) throw profileError;
-
-    const publicUrl = supabase.storage.from("profile-photos").getPublicUrl(reference).data.publicUrl;
-    const refreshedUrl = `${publicUrl}?v=${Date.now()}`;
+    const refreshedUrl = `${result.publicUrl}?v=${Date.now()}`;
     setPhoto(refreshedUrl);
     setCrop(defaultCrop);
     window.localStorage.removeItem(PHOTO_KEY);
@@ -169,8 +158,10 @@ export function ProfilePhotoCard({
     try {
       await persistPhoto(draftPhoto, draftCrop);
       setEditing(false);
-    } catch {
-      setError("We could not sync your photo. Please check your connection and try again.");
+    } catch (caught) {
+      setError(caught instanceof Error
+        ? caught.message
+        : "We could not sync your photo. Please check your connection and try again.");
     } finally {
       setSaving(false);
     }

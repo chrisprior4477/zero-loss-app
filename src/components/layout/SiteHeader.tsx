@@ -16,24 +16,28 @@ export async function SiteHeader() {
 
   let balanceLabel: string | null = null;
   let avatarUrl: string | null = null;
+  let profileName: string | null = null;
 
   if (user) {
     const [{ data: profile }, balanceResult] = await Promise.all([
       supabase
         .from("customer_profiles")
-        .select("avatar_reference")
+        .select("avatar_reference, legal_first_name, legal_last_name, display_name")
         .eq("customer_id", user.id)
         .maybeSingle(),
       getPlayableBalanceLabel(user.id).catch(() => null),
     ]);
     balanceLabel = balanceResult;
+    profileName = [profile?.legal_first_name, profile?.legal_last_name]
+      .filter(Boolean)
+      .join(" ") || profile?.display_name?.trim() || null;
     avatarUrl = profile?.avatar_reference
       ? supabase.storage.from("profile-photos").getPublicUrl(profile.avatar_reference).data.publicUrl
       : null;
   }
 
   const displayName = user
-    ? String(user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email?.split("@")[0] ?? "Account")
+    ? String(profileName ?? user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email?.split("@")[0] ?? "Account")
     : "Chris P.";
 
   return (
@@ -63,7 +67,13 @@ export async function SiteHeader() {
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-4 lg:gap-5">
           <HeaderAccountMetrics isSignedIn={Boolean(user)} liveBalance={balanceLabel} />
-          <AccountDrawer isSignedIn={Boolean(user)} displayName={displayName} avatarUrl={avatarUrl} />
+          <AccountDrawer
+            isSignedIn={Boolean(user)}
+            displayName={displayName}
+            email={user?.email ?? null}
+            avatarUrl={avatarUrl}
+            balanceLabel={balanceLabel}
+          />
         </div>
       </div>
 
