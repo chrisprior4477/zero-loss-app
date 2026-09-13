@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430">
+  <rect width="1200" height="430" fill="#062651"/>
+  <defs>
+    <mask id="left-mark"><image href="zeroloss-favicon.svg" x="-115" y="-150" width="440" height="440"/></mask>
+    <mask id="right-mark"><image href="zeroloss-favicon.svg" x="830" y="-70" width="475" height="475"/></mask>
+  </defs>
+  <rect width="1200" height="430" fill="#ff630f" opacity="0.58" mask="url(#left-mark)"/>
+  <rect width="1200" height="430" fill="#31e800" opacity="0.16" mask="url(#right-mark)"/>
+  <rect width="1200" height="430" fill="#062651" opacity="0.18"/>
+</svg>
