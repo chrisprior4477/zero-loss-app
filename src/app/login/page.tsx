@@ -39,9 +39,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div aria-hidden="true" className="absolute -left-8 -top-8 h-52 w-52 bg-[#ff630f]/55 drop-shadow-[0_0_28px_rgba(255,99,15,.3)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
           <div aria-hidden="true" className="absolute -bottom-12 -right-10 h-72 w-72 bg-[#31e800]/16 [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
           <div className="relative z-10">
-            <div aria-hidden="true" className="mb-5 h-14 w-14 bg-[#69edff] drop-shadow-[0_0_16px_rgba(105,237,255,.42)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] sm:h-20 sm:w-20" />
+            <div aria-hidden="true" className="absolute right-0 top-0 h-14 w-14 bg-[#69edff] drop-shadow-[0_0_16px_rgba(105,237,255,.42)] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] sm:h-20 sm:w-20" />
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#69edff]">Your Zero Loss account</p>
-            <h1 className="mt-4 max-w-md text-4xl font-black leading-[.98] tracking-[-0.055em] sm:text-5xl">Welcome back.<br /><span className="text-[#31e800]">Your next shot starts here.</span></h1>
+            <h1 className="mt-4 max-w-md pr-16 text-4xl font-black leading-[.98] tracking-[-0.055em] sm:pr-24 sm:text-5xl">Welcome back.<br /><span className="text-[#31e800]">Your next shot starts here.</span></h1>
             <p className="mt-5 max-w-md text-base leading-7 text-white/72">Sign in to review entries, outcomes, retailer-specific rewards, and everything waiting in your account.</p>
             <div className="mt-8 rounded-2xl border border-cyan-300/20 bg-cyan-300/8 p-5">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Account protection</p>
