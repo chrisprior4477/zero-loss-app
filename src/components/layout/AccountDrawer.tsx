@@ -213,16 +213,29 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 <Link href="/signup" onClick={close} aria-label="Create a Zero Loss account" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/55 bg-[#31e800]/12 transition hover:bg-[#31e800]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
                   <span aria-hidden="true" className="h-7 w-7 bg-[#73e72d] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
                 </Link>
-              ) : isDemoMode ? <DrawerAvatar avatar={null} initials={initials} size="large" /> : hasSavedAvatar ? <DrawerAvatar avatar={resolvedAvatar} initials={initials} size="large" /> : (
-                <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white/75">
-                  <span className="flex w-6 flex-col gap-1"><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /></span>
-                </span>
+              ) : (
+                <Link
+                  href={accountMode === "demo" ? "/account/preview/entries" : "/account"}
+                  onClick={close}
+                  aria-label={`Open ${shownName}'s account`}
+                  className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition hover:bg-white/7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
+                >
+                  {isDemoMode ? <DrawerAvatar avatar={null} initials={initials} size="large" /> : hasSavedAvatar ? <DrawerAvatar avatar={resolvedAvatar} initials={initials} size="large" /> : (
+                    <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/45 bg-[#31e800]/10 text-sm font-black text-[#72ff9f]">
+                      {initials}
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span id={titleId} className="block truncate text-[18px] font-bold text-white">{shownName}</span>
+                    <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#72ff9f]">
+                      {isDemoMode ? investorDemoAccount.accountLabel : "Live account"}
+                      <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
+                    </span>
+                    {isDemoMode ? <span className="mt-1 block text-[9px] font-bold uppercase tracking-[.12em] text-cyan-300">Demo data</span> : null}
+                  </span>
+                </Link>
               )}
-              <div className="min-w-0 flex-1">
-                <h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2>
-                <p className="text-[12px] text-white/55">{isDemoMode ? investorDemoAccount.accountLabel : isSignedIn ? "Live account" : "Sign in or create an account"}</p>
-                {isDemoMode ? <p className="mt-1 text-[9px] font-bold uppercase tracking-[.12em] text-cyan-300">Demo data</p> : null}
-              </div>
+              {!showAccountContent ? <div className="min-w-0 flex-1"><h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2><p className="text-[12px] text-white/55">Sign in or create an account</p></div> : null}
               <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className="grid h-10 w-10 place-items-center rounded-lg text-2xl font-light text-white/65 hover:bg-white/8 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
             </div>
 
@@ -231,24 +244,29 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 <p className="text-[10px] font-bold uppercase tracking-[.13em] text-white/45">Account snapshot</p>
                 {isDemoMode ? <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[.1em] text-cyan-200">Demo Data</span> : null}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-[#0b3155] px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-white/55">Playable balance</p>
-                  <p className="mt-1 text-[19px] font-extrabold text-[#46f293]">{isDemoMode ? investorDemoAccount.playableBalance : balanceLabel ?? "$0.00"}</p>
-                  <Link href={accountHref(accountMode, "wallet")} onClick={close} className="mt-2 inline-flex rounded-md bg-[#087feb] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#1692ff]">Add Funds</Link>
+              <div className="overflow-hidden rounded-2xl border border-[#31e800]/25 bg-[linear-gradient(135deg,#06375a_0%,#07533f_100%)]">
+                <div className="px-4 py-4">
+                  <p className="text-[10px] font-black uppercase tracking-[.1em] text-[#72ff9f]">Playable balance</p>
+                  <p className="mt-1 text-[26px] font-black tabular-nums tracking-[-0.04em] text-white">{isDemoMode ? investorDemoAccount.playableBalance : balanceLabel ?? "$0.00"}</p>
                 </div>
-                <Link href={accountHref(accountMode, "entries")} onClick={close} className="rounded-xl bg-[#0b3155] px-4 py-3 transition-colors hover:bg-[#104269]">
+                <div className="grid grid-cols-2 border-t border-white/12">
+                  <Link href={accountHref(accountMode, "wallet")} onClick={close} className="grid min-h-11 place-items-center bg-[#31e800] px-3 text-[11px] font-black text-[#002719] transition hover:bg-[#72ff4e]">Add funds</Link>
+                  <Link href={accountHref(accountMode, "wallet")} onClick={close} className="grid min-h-11 place-items-center border-l border-white/12 px-3 text-center text-[11px] font-black text-white transition hover:bg-white/8">View transactions</Link>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <Link href={accountHref(accountMode, "entries")} onClick={close} className="rounded-xl border border-cyan-300/15 bg-[#0b3155] px-4 py-3 transition-colors hover:bg-[#104269]">
                   <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-white/55">Active entries</p>
                   <p className="mt-1 text-[19px] font-extrabold text-white">{entryCount}</p>
                   <p className="mt-2 text-[11px] font-semibold text-cyan-300">View Entries</p>
                 </Link>
+                <Link href={accountHref(accountMode, "results")} onClick={close} className="rounded-xl border border-cyan-300/15 bg-[#0b3155] px-4 py-3 transition-colors hover:bg-[#104269]">
+                  <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-white/55">Results ready</p>
+                  <p className="mt-1 text-[19px] font-extrabold text-white">{resultCount}</p>
+                  <p className="mt-2 text-[11px] font-semibold text-cyan-300">Review results</p>
+                </Link>
               </div>
-
-              <Link href={accountHref(accountMode, "results")} onClick={close} className="mt-4 flex min-h-[68px] items-center gap-3 rounded-xl border border-[#168bd4] bg-[#0b3155] px-4 transition-colors hover:bg-[#104269]">
-                <span aria-hidden="true" className="text-xl text-cyan-200">◷</span>
-                <span className="min-w-0 flex-1"><strong className="block text-[14px] text-white">{resultCount} results ready</strong><span className="text-[11px] text-white/60">Review your outcomes and available next steps</span></span>
-                <span className="text-[12px] font-bold text-cyan-300">Review</span>
-              </Link>
 
               <nav aria-label="Account activity" className="mt-4">
                 <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[.13em] text-white/45">Your activity</p>
