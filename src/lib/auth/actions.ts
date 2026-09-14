@@ -270,7 +270,7 @@ export async function signInAction(
       return {
         ok: false,
         message:
-          "Please verify your email before signing in. Check your inbox for the confirmation link.",
+          "Please verify your email before signing in. Check your inbox for the confirmation link, and check spam or junk if it is not there.",
       };
     }
 
@@ -296,7 +296,7 @@ export async function signInAction(
     return {
       ok: false,
       message:
-        "Please verify your email before signing in. Check your inbox for the confirmation link.",
+        "Please verify your email before signing in. Check your inbox for the confirmation link, and check spam or junk if it is not there.",
     };
   }
 

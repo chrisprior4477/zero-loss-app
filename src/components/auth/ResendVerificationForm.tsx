@@ -5,6 +5,7 @@ import {
   resendVerificationAction,
   type ResendVerificationState,
 } from "@/lib/auth/actions";
+import { EmailDeliveryHint } from "@/components/auth/EmailDeliveryHint";
 
 const initialState: ResendVerificationState = { ok: false, message: null };
 
@@ -31,12 +32,15 @@ export function ResendVerificationForm({ email }: { email: string }) {
         </p>
       ) : null}
       {state.message ? (
-        <p
-          role={state.ok ? "status" : "alert"}
-          className={`mt-2 rounded-xl border px-4 py-3 text-sm leading-5 ${state.ok ? "border-[#31e800]/35 bg-[#31e800]/10 text-green-100" : "border-red-300/30 bg-red-400/10 text-red-100"}`}
-        >
-          {state.message}
-        </p>
+        <>
+          <p
+            role={state.ok ? "status" : "alert"}
+            className={`mt-2 rounded-xl border px-4 py-3 text-sm leading-5 ${state.ok ? "border-[#31e800]/35 bg-[#31e800]/10 text-green-100" : "border-red-300/30 bg-red-400/10 text-red-100"}`}
+          >
+            {state.message}
+          </p>
+          {state.ok ? <EmailDeliveryHint className="mt-2" /> : null}
+        </>
       ) : null}
     </form>
   );

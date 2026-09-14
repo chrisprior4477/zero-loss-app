@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth/actions";
 import { DateOfBirthSelects } from "@/components/auth/DateOfBirthSelects";
 import { ResendVerificationForm } from "@/components/auth/ResendVerificationForm";
+import { EmailDeliveryHint } from "@/components/auth/EmailDeliveryHint";
 import {
   MIN_PASSWORD_LENGTH,
   isPasswordValid,
@@ -95,6 +96,7 @@ export function SignUpForm({ idPrefix = "", compact = false }: { idPrefix?: stri
         <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
           After you verify, you can sign in with your email and password.
         </p>
+        <EmailDeliveryHint className="mt-4" />
         <Link
           href="/login"
           className="mt-6 inline-flex rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-foreground)]"
