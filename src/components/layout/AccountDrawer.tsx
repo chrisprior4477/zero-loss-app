@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { signOutAction } from "@/lib/auth/actions";
-import { investorDemoAccount } from "@/lib/demo/account-drawer";
-import { accountHref, accountModeFromPath } from "@/lib/account/mode";
+import { activityHref, activityPresentation, openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
+import { formatUsdFromCents } from "@/lib/wallet/money";
+import { EntryTicket } from "@/components/layout/EntryTicket";
+import { WalletShortcut } from "@/components/wallet/WalletShortcut";
+import { MyZeroLossSummary, PlayableBalanceCard } from "@/components/account/AccountSummaries";
+import { ProfileShortcut } from "@/components/account/ProfileShortcut";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -15,89 +18,24 @@ type AccountDrawerProps = {
   email: string | null;
   avatarUrl: string | null;
   balanceLabel: string | null;
+  isDemoWallet?: boolean;
+  fundingEnabled?: boolean;
+  activityState: AccountActivity;
 };
 
 const primaryLinks = [
-  ["My Entries", "entries", String(investorDemoAccount.activeEntries)],
-  ["Orders & Fulfillment", "orders", String(investorDemoAccount.orderCount)],
-  ["Wallet & Transactions", "wallet", ""],
-  ["Notifications", "notifications", String(investorDemoAccount.notificationCount)],
-  ["Account & Security", "security", ""],
+  ["Wallet & Transactions", walletHistoryHref, "History"],
+  ["Notifications", "/account/notifications", ""],
+  ["Orders & Fulfillment", "/account/orders", ""],
+  ["Account & Security", "/account/security", ""],
 ] as const;
 
 const secondaryLinks = [
-  ["Official Rules & Free Entry (Draft)", "/account/preview/official-rules"],
+  ["Official Rules & Free Entry", "/free-entry"],
   ["Fairness & Verification", "/about"],
-  ["Responsible Use", "/responsible-participation"],
-  ["Help & FAQ", "/faq"],
-  ["Contact Support", "/contact"],
-  ["Privacy Policy", "/privacy"],
-  ["Terms of Service", "/terms"],
+  ["Help Center", "/support"],
+  ["Privacy & Terms", "/privacy"],
 ] as const;
-
-function DrawerLink({ label, href, badge, onNavigate }: { label: string; href: string; badge?: string; onNavigate: () => void }) {
-  return (
-    <Link href={href} onClick={onNavigate} className="flex min-h-12 items-center gap-3 rounded-lg px-2 text-[14px] font-semibold text-white/88 transition-colors hover:bg-white/7 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
-      <span aria-hidden="true" className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-cyan-200/25 text-[13px] text-cyan-100">›</span>
-      <span className="min-w-0 flex-1">{label}</span>
-      {badge && <span className="grid min-w-8 place-items-center rounded-full bg-[#123d64] px-2 py-1 text-[11px] font-bold text-cyan-100">{badge}</span>}
-    </Link>
-  );
-}
-
-const activityDetails = {
-  profile: "View your saved profile, photo, verification, and account overview.",
-  entries: "Review your active entries and completed results.",
-  orders: "Track rewards, delivery, and fulfillment updates.",
-  wallet: "See your playable balance and complete transaction history.",
-  notifications: "Review account, entry, result, and delivery updates.",
-  security: "Manage your sign-in, password, and account security.",
-} as const;
-
-function DrawerActivity({
-  label,
-  section,
-  detail,
-  href,
-  badge,
-  expanded,
-  onToggle,
-  onNavigate,
-}: {
-  label: string;
-  section: keyof typeof activityDetails;
-  detail?: string;
-  href: string;
-  badge?: string;
-  expanded: boolean;
-  onToggle: () => void;
-  onNavigate: () => void;
-}) {
-  const panelId = `account-drawer-${section}`;
-  return (
-    <div className="border-b border-white/7 last:border-b-0">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        aria-controls={panelId}
-        className="flex min-h-12 w-full items-center gap-3 rounded-lg px-2 text-left text-[14px] font-semibold text-white/88 transition-colors hover:bg-white/7 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
-      >
-        <span aria-hidden="true" className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border border-cyan-200/25 text-[13px] text-cyan-100 transition-transform ${expanded ? "rotate-90" : ""}`}>›</span>
-        <span className="min-w-0 flex-1">{label}</span>
-        {badge ? <span className="grid min-w-8 place-items-center rounded-full bg-[#123d64] px-2 py-1 text-[11px] font-bold text-cyan-100">{badge}</span> : null}
-      </button>
-      {expanded ? (
-        <div id={panelId} className="mx-2 mb-3 rounded-xl border border-cyan-200/15 bg-[#082846] p-4">
-          <p className="text-xs leading-5 text-white/65">{detail ?? activityDetails[section]}</p>
-          <Link href={href} onClick={onNavigate} className="mt-3 inline-flex min-h-9 items-center rounded-full border border-cyan-300/35 px-4 text-xs font-bold text-cyan-200 hover:bg-cyan-300/10">
-            Open {label.toLowerCase()}
-          </Link>
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initials: string; size: "small" | "large" }) {
   const dimension = size === "small" ? "h-9 w-9" : "h-11 w-11";
@@ -112,26 +50,20 @@ function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initi
   );
 }
 
-export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel }: AccountDrawerProps) {
-  const pathname = usePathname();
+export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel, isDemoWallet = false, fundingEnabled = false, activityState }: AccountDrawerProps) {
   const [open, setOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(true);
   const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
-  const [avatar, setAvatar] = useState<string | null>(avatarUrl);
-  const [openActivity, setOpenActivity] = useState<string | null>(null);
+  const [avatarUpdate, setAvatarUpdate] = useState<{ original: string | null; photo: string | null } | null>(null);
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (!avatarUrl) {
-      const explicitlyChosenPhoto = window.localStorage.getItem("zero-loss-profile-photo");
-      if (explicitlyChosenPhoto) window.setTimeout(() => setAvatar(explicitlyChosenPhoto), 0);
-    }
     const updateAvatar = (event: Event) => {
       const detail = (event as CustomEvent<{ photo: string | null }>).detail;
-      setAvatar(detail.photo);
+      setAvatarUpdate({ original: avatarUrl, photo: detail.photo });
     };
     window.addEventListener("zero-loss-avatar-updated", updateAvatar);
     return () => window.removeEventListener("zero-loss-avatar-updated", updateAvatar);
@@ -154,7 +86,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
       if (event.key !== "Tab") return;
       const focusable = Array.from(
         drawerRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [],
-      ).filter((element) => !element.hasAttribute("hidden"));
+      ).filter((element) => !element.hasAttribute("hidden") && element.getClientRects().length > 0);
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -177,15 +109,14 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
   }, [open]);
 
   const close = () => setOpen(false);
-  const accountMode = pathname.startsWith("/account") ? accountModeFromPath(pathname) : "live";
-  const isDemoMode = accountMode === "demo";
-  const showAccountContent = isSignedIn || isDemoMode;
-  const shownName = isDemoMode ? investorDemoAccount.customerName : isSignedIn ? displayName : "Welcome";
+  const state = activityState;
+  const isDemoMode = state.isPreview;
+  const showAccountContent = isSignedIn;
+  const shownName = isSignedIn ? displayName : "Welcome";
   const initials = shownName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ZL";
-  const resolvedAvatar = avatar ?? avatarUrl;
+  const resolvedAvatar = avatarUpdate?.original === avatarUrl ? avatarUpdate.photo : avatarUrl;
   const hasSavedAvatar = isSignedIn && Boolean(resolvedAvatar);
-  const entryCount = isDemoMode ? investorDemoAccount.activeEntries : 0;
-  const resultCount = isDemoMode ? investorDemoAccount.resultsReady : 0;
+  const ticketLabel = state.activeCount === null ? "Active entries unavailable" : `${state.activeCount} active ${state.activeCount === 1 ? "entry" : "entries"}`;
 
   return (
     <>
@@ -207,7 +138,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
       {open && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[120]" role="presentation">
           <button type="button" aria-label="Close account menu" onClick={close} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
-          <aside ref={drawerRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="absolute inset-y-0 right-0 flex h-dvh w-[min(100%,420px)] flex-col overflow-hidden border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]">
+          <aside ref={drawerRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="absolute inset-y-0 right-0 flex h-dvh w-[min(100%,440px)] flex-col overflow-hidden border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]">
             <div className="flex shrink-0 items-center gap-3 border-b border-cyan-200/15 px-5 py-4">
               {!showAccountContent ? (
                 <Link href="/signup" onClick={close} aria-label="Create a Zero Loss account" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/55 bg-[#31e800]/12 transition hover:bg-[#31e800]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
@@ -215,82 +146,68 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 </Link>
               ) : (
                 <Link
-                  href={accountMode === "demo" ? "/account/preview/entries" : "/account"}
+                  href="/account"
                   onClick={close}
-                  aria-label={`Open ${shownName}'s account`}
+                  aria-label="Open Account Dashboard"
                   className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition hover:bg-white/7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300"
                 >
-                  {isDemoMode ? <DrawerAvatar avatar={null} initials={initials} size="large" /> : hasSavedAvatar ? <DrawerAvatar avatar={resolvedAvatar} initials={initials} size="large" /> : (
-                    <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#31e800]/45 bg-[#31e800]/10 text-sm font-black text-[#72ff9f]">
-                      {initials}
-                    </span>
-                  )}
                   <span className="min-w-0 flex-1">
-                    <span id={titleId} className="block truncate text-[18px] font-bold text-white">{shownName}</span>
-                    <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#72ff9f]">
-                      {isDemoMode ? investorDemoAccount.accountLabel : "Live account"}
-                      <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">→</span>
+                    <span id={titleId} className="block break-words text-[18px] font-bold text-white">Your Zero Loss</span>
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-[#b5cce4]">
+                      Account Dashboard
+                      <span aria-hidden="true" className="transition-transform group-hover:translate-x-0.5">›</span>
                     </span>
-                    {isDemoMode ? <span className="mt-1 block text-[9px] font-bold uppercase tracking-[.12em] text-cyan-300">Demo data</span> : null}
                   </span>
                 </Link>
               )}
               {!showAccountContent ? <div className="min-w-0 flex-1"><h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2><p className="text-[12px] text-white/55">Sign in or create an account</p></div> : null}
-              <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className="grid h-10 w-10 place-items-center rounded-lg text-2xl font-light text-white/65 hover:bg-white/8 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
+              {showAccountContent ? <Link href={openEntriesHref} onClick={close} title={ticketLabel} aria-label={ticketLabel} className="shrink-0 rounded-lg p-1 focus-visible:outline-2 focus-visible:outline-cyan-300"><EntryTicket count={state.activeCount} /></Link> : null}
+              <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-300 text-2xl font-light text-cyan-300 hover:bg-white/8 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              {showAccountContent ? <><div className="mb-2 flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-[.13em] text-white/45">Account snapshot</p>
-                {isDemoMode ? <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[.1em] text-cyan-200">Demo Data</span> : null}
-              </div>
-              <div className="overflow-hidden rounded-2xl border border-[#31e800]/25 bg-[linear-gradient(135deg,#06375a_0%,#07533f_100%)]">
-                <div className="px-4 py-4">
-                  <p className="text-[10px] font-black uppercase tracking-[.1em] text-[#72ff9f]">Playable balance</p>
-                  <p className="mt-1 text-[26px] font-black tabular-nums tracking-[-0.04em] text-white">{isDemoMode ? investorDemoAccount.playableBalance : balanceLabel ?? "$0.00"}</p>
+              {showAccountContent ? <>
+                {isDemoMode ? <div className="mb-4 rounded-xl border border-cyan-300/25 bg-cyan-300/5 px-3 py-2">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-cyan-300">Interactive MVP Preview</p>
+                  <p className="mt-1 text-[11px] leading-4 text-[#b5cce4]">Sample activity only. Balance below is read from your test account. No real payment or prize is issued.</p>
+                </div> : null}
+                <div aria-label="Your Zero Loss overview" className="grid gap-2">
+                  <PlayableBalanceCard balanceLabel={balanceLabel} isDemoWallet={isDemoWallet} fundingEnabled={fundingEnabled} compact onNavigate={close} />
+                  <WalletShortcut state={state} onNavigate={close} />
+                  <MyZeroLossSummary state={state} compact onNavigate={close} />
                 </div>
-                <div className="grid grid-cols-2 border-t border-white/12">
-                  <Link href={accountHref(accountMode, "wallet")} onClick={close} className="grid min-h-11 place-items-center bg-[#31e800] px-3 text-[11px] font-black text-[#002719] transition hover:bg-[#72ff4e]">Add funds</Link>
-                  <Link href={accountHref(accountMode, "wallet")} onClick={close} className="grid min-h-11 place-items-center border-l border-white/12 px-3 text-center text-[11px] font-black text-white transition hover:bg-white/8">View transactions</Link>
-                </div>
-              </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <Link href={accountHref(accountMode, "entries")} onClick={close} className="rounded-xl border border-cyan-300/15 bg-[#0b3155] px-4 py-3 transition-colors hover:bg-[#104269]">
-                  <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-white/55">Active entries</p>
-                  <p className="mt-1 text-[19px] font-extrabold text-white">{entryCount}</p>
-                  <p className="mt-2 text-[11px] font-semibold text-cyan-300">View Entries</p>
-                </Link>
-                <Link href={accountHref(accountMode, "results")} onClick={close} className="rounded-xl border border-cyan-300/15 bg-[#0b3155] px-4 py-3 transition-colors hover:bg-[#104269]">
-                  <p className="text-[10px] font-semibold uppercase tracking-[.08em] text-white/55">Results ready</p>
-                  <p className="mt-1 text-[19px] font-extrabold text-white">{resultCount}</p>
-                  <p className="mt-2 text-[11px] font-semibold text-cyan-300">Review results</p>
-                </Link>
-              </div>
+                <section className="mt-6" aria-label="Your latest activity" data-activity-source={state.source}>
+                  <h3 className="text-base font-bold text-white">Your latest activity</h3>
+                  {state.activity.length === 0 ? <p className="py-7 text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "Activity unavailable. Please try again shortly." : "No activity yet. Your entries, prizes and purchase options will appear here."}</p> : (
+                    <div className="mt-3">
+                      {state.activity.map(item => <Link
+                        key={item.slug}
+                        href={activityHref(item)}
+                        onClick={close}
+                        className="grid grid-cols-[48px_minmax(0,1fr)_minmax(90px,112px)] items-center gap-3 border-b border-white/10 py-3 transition hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-cyan-300"
+                      >
+                        <span className={`relative h-12 w-12 overflow-hidden rounded-xl ${item.status === "prize" ? "bg-[#16703f]" : item.status === "completion" ? "bg-[#8c3d15]" : "bg-[#154b74]"}`}>
+                          <Image src={item.image} alt="" fill sizes="48px" className="object-contain p-1" />
+                        </span>
+                        <span className="min-w-0 text-sm leading-5"><strong className="block text-white">{item.retailer}</strong><span className="mt-0.5 block break-words text-[#b5cce4]">{item.title}</span></span>
+                        <span className="text-right text-xs leading-5">
+                          <span className={`block font-semibold uppercase ${activityPresentation(item).color}`}>{activityPresentation(item).label}</span>
+                          <strong className="block text-white">{item.status === "completion" ? `${formatUsdFromCents(item.remainingCents)} remaining` : activityPresentation(item).action} ›</strong>
+                          {item.status === "completion" ? <span className="block text-[10px] text-[#b5cce4]">{formatUsdFromCents(item.paidCents)} already applied</span> : null}
+                        </span>
+                      </Link>)}
+                    </div>
+                  )}
+                </section>
 
-              <nav aria-label="Account activity" className="mt-4">
-                <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[.13em] text-white/45">Your activity</p>
-                <DrawerActivity
-                  label="Profile & dashboard"
-                  section="profile"
-                  detail={email ? `${displayName} · ${email}` : activityDetails.profile}
-                  href={accountMode === "demo" ? "/account/preview/entries" : "/account"}
-                  expanded={openActivity === "profile"}
-                  onToggle={() => setOpenActivity((current) => current === "profile" ? null : "profile")}
-                  onNavigate={close}
-                />
-                {primaryLinks.map(([label, section, badge]) => <DrawerActivity
-                  key={label}
-                  label={label}
-                  section={section}
-                  href={accountHref(accountMode, section)}
-                  badge={isDemoMode && badge ? badge : undefined}
-                  expanded={openActivity === section}
-                  onToggle={() => setOpenActivity((current) => current === section ? null : section)}
-                  onNavigate={close}
-                />)}
-                {openActivity === "profile" && email ? <p className="sr-only">Signed in as {displayName}, {email}</p> : null}
-              </nav>
+                <div className="mt-4"><ProfileShortcut fullName={shownName} initials={initials} avatarUrl={resolvedAvatar} onNavigate={close} /></div>
+                <nav aria-label="Account navigation" className="mt-4">
+                  {primaryLinks.map(([label, href, detail]) => <Link key={href} href={href} onClick={close} className="flex min-h-14 items-center justify-between gap-3 border-b border-white/10 text-sm font-bold text-white hover:text-cyan-300">
+                    <span>{label}</span><span className="shrink-0 text-xs text-[#b5cce4]">{detail} ›</span>
+                  </Link>)}
+                </nav>
+                {email ? <span className="sr-only">Signed in as {displayName}, {email}</span> : null}
               </> : <section className="space-y-4">
                 <div className="relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#001b3d] p-5">
                   <span aria-hidden="true" className="absolute -left-5 -top-6 h-32 w-32 bg-[#ff630f]/65 [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
@@ -317,9 +234,9 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
 
               <div className="mt-3 border-t border-cyan-200/15 pt-3">
                 <button type="button" onClick={() => setMoreOpen((current) => !current)} aria-expanded={moreOpen} aria-controls="account-drawer-help-links" className="flex min-h-12 w-full items-center justify-between rounded-lg px-2 text-left text-[14px] font-semibold text-white/88 hover:bg-white/7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">
-                  <span>Help, Rules & Policies</span><span aria-hidden="true" className={`text-cyan-300 transition-transform ${moreOpen ? "rotate-180" : ""}`}>⌄</span>
+                  <span>Help, Rules & Policies</span><span aria-hidden="true" className="text-cyan-300">{moreOpen ? "⌄" : "›"}</span>
                 </button>
-                {moreOpen && <nav id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <DrawerLink key={label} label={label} href={href} onNavigate={close} />)}</nav>}
+                {moreOpen && <nav id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href} onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>}
               </div>
             </div>
 

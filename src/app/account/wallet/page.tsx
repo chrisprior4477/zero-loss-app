@@ -2,116 +2,36 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { getAccountContext } from "@/lib/account/context";
+import { WalletOverview } from "@/components/wallet/WalletOverview";
+import { WalletRewardDetail, WalletRewards } from "@/components/wallet/WalletRewards";
+import { walletHistoryHref, walletRewards } from "@/lib/account/activity";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import {
-  getLedgerEntriesForCustomer,
-  getPlayableBalanceLabel,
-} from "@/lib/wallet/balance";
-import { formatUsdFromCents } from "@/lib/wallet/money";
+import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 
-export const metadata: Metadata = {
-  title: "Wallet",
-};
+export const metadata: Metadata = { title: "Your wallet" };
 
-function formatLedgerDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
-
-export default async function WalletPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  let balanceLabel = "$0.00";
-  let entries: Awaited<ReturnType<typeof getLedgerEntriesForCustomer>> = [];
-
-  try {
-    [balanceLabel, entries] = await Promise.all([
-      getPlayableBalanceLabel(user.id),
-      getLedgerEntriesForCustomer(user.id),
-    ]);
-  } catch {
-    // Page still renders; balance stays at zero and list empty on read failure.
-  }
-
-  return (
-    <PageContainer>
-      <div className="mx-auto max-w-lg">
-        <p className="text-sm font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
-          Account
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--foreground)]">
-          Wallet
-        </h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Your playable balance and ledger history. Derived from the Ledger —
-          not a separate stored total.
-        </p>
-
-        <dl className="mt-8 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-          <div className="px-5 py-4 sm:px-6">
-            <dt className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--muted)]">
-              Playable balance
-            </dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-[var(--foreground)]">
-              {balanceLabel}
-            </dd>
-          </div>
-        </dl>
-
-        <h2 className="mt-10 text-sm font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
-          Ledger
-        </h2>
-
-        {entries.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 text-sm text-[var(--muted)]">
-            No ledger entries yet.
-          </p>
-        ) : (
-          <ul className="mt-3 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-            {entries.map((entry, index) => (
-              <li
-                key={`${entry.created_at}-${entry.entry_type}-${index}`}
-                className="flex items-start justify-between gap-4 px-5 py-4 sm:px-6"
-              >
-                <div>
-                  <p className="text-sm font-medium text-[var(--foreground)]">
-                    {entry.entry_type}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {formatLedgerDate(entry.created_at)}
-                  </p>
-                </div>
-                <p className="shrink-0 text-sm font-medium tabular-nums text-[var(--foreground)]">
-                  {formatUsdFromCents(entry.amount)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <p className="mt-8 text-sm text-[var(--muted)]">
-          <Link
-            href="/account"
-            className="text-[var(--foreground)] underline-offset-4 hover:underline"
-          >
-            Back to profile
-          </Link>
-        </p>
-      </div>
-    </PageContainer>
-  );
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; view?: string | string[] }> }) {
+  const account = await getAccountContext();
+  if (!account) redirect("/login");
+  const query = await searchParams;
+  const requestedReward = query.reward !== undefined;
+  // A URL only selects from this authenticated account's authorized data.
+  const reward = typeof query.reward === "string" ? walletRewards(account.activity).find(item => item.slug === query.reward) : undefined;
+  const history = !requestedReward && query.view === "history";
+  const requests = history && account.wallet?.scope === "demo"
+    ? await new DemoPaymentProvider(await createClient()).getRequests().catch(() => null) : null;
+  const sections = [["Your prizes", "/account/wallet", !history], ["Funds & history", walletHistoryHref, history]] as const;
+  return <PageContainer>
+    <main className="mx-auto w-full max-w-6xl pb-10">
+    <Link href="/account" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ Account Dashboard</Link>
+    <h1 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-4xl">Your wallet</h1>
+    <nav aria-label="Wallet sections" className="mt-4 flex gap-3 border-b border-white/10">
+      {sections.map(([label, href, current]) => <Link key={href} href={href} aria-current={current ? "page" : undefined} className={`inline-flex min-h-12 items-center border-b-2 px-2 text-sm font-bold focus-visible:outline-2 focus-visible:outline-cyan-300 ${current ? "border-[#31ff83] text-[#72ff9f]" : "border-transparent text-[#b5cce4] hover:text-white"}`}>{label}</Link>)}
+    </nav>
+    {requestedReward ? reward ? <WalletRewardDetail item={reward} isPreview={account.activity.isPreview} /> : <div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h2 className="text-lg font-bold text-white">Reward unavailable</h2><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href="/account/wallet" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div>
+      : history ? <WalletOverview wallet={account.wallet} previewAuthorized={account.previewAuthorized} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} /> : <WalletRewards state={account.activity} />}
+    </main>
+  </PageContainer>;
 }

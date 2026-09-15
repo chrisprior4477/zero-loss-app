@@ -1,12 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { accountModeFromPath } from "@/lib/account/mode";
-
-function TicketIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 54 36" className="h-6 w-9 sm:h-[30px] sm:w-[45px]" fill="none"><path d="M3 3h48v9a6 6 0 0 0 0 12v9H3v-9a6 6 0 0 0 0-12V3Z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" /><circle cx="27" cy="18" r="7.5" stroke="currentColor" strokeWidth="2.2" /><path d="m20.5 25 13-14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg>;
-}
+import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
+import { EntryTicket } from "@/components/layout/EntryTicket";
 
 function CreditIcon() {
   return <svg aria-hidden="true" viewBox="0 0 54 36" className="h-6 w-9 sm:h-[30px] sm:w-[45px]" fill="none"><circle cx="18" cy="18" r="14.5" stroke="currentColor" strokeWidth="2.4" /><circle cx="18" cy="18" r="7.5" stroke="currentColor" strokeWidth="2.2" /><path d="m11.5 25 13-14M37 10h13M39 18h11M37 26h13" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg>;
@@ -15,14 +11,17 @@ function CreditIcon() {
 export function HeaderAccountMetrics({
   isSignedIn,
   liveBalance,
+  isDemoWallet = false,
+  activityState,
 }: {
   isSignedIn: boolean;
   liveBalance: string | null;
+  isDemoWallet?: boolean;
+  activityState: AccountActivity;
 }) {
-  const pathname = usePathname();
-  const isDemo = accountModeFromPath(pathname) === "demo";
+  const state = activityState;
 
-  if (!isSignedIn && !isDemo) {
+  if (!isSignedIn) {
     return (
       <div className="flex items-center gap-2">
         <Link href="/login" className="grid min-h-9 place-items-center px-2 text-xs font-bold text-white sm:px-3 sm:text-sm">Sign in</Link>
@@ -31,19 +30,19 @@ export function HeaderAccountMetrics({
     );
   }
 
-  const ticketCount = isDemo ? "12" : "0";
-  const balance = isDemo ? "$247" : liveBalance ?? "$0.00";
-  const walletHref = isDemo ? "/account/preview/wallet" : "/account/wallet";
+  const ticketCount = state.activeCount;
+  const ticketLabel = ticketCount === null ? "Active entries unavailable" : `${ticketCount} active ${ticketCount === 1 ? "entry" : "entries"}`;
+  const balance = liveBalance ?? "Unavailable";
 
   return (
     <>
-      <Link href={isDemo ? "/account/preview/entries" : "/account/entries"} aria-label={`${ticketCount} available tickets`} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
-        <TicketIcon />
-        <span className="text-sm font-bold tabular-nums sm:text-xl">{ticketCount}</span>
+      <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex items-center text-white hover:opacity-80">
+        <EntryTicket count={ticketCount} />
       </Link>
-      <Link href={walletHref} aria-label={`${balance} playable balance`} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
+      <Link href={walletHistoryHref} aria-label={`${isDemoWallet ? "Demo " : ""}${balance} playable balance`} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
         <CreditIcon />
         <span className="text-sm font-bold tabular-nums sm:text-xl">{balance}</span>
+        {isDemoWallet ? <span className="text-[9px] font-bold uppercase text-cyan-300">Demo</span> : null}
       </Link>
     </>
   );

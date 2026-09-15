@@ -5,6 +5,7 @@ import { useEffect, useId, useRef } from "react";
 import { MainNav } from "@/components/layout/MainNav";
 import { WalletBalanceDisplay } from "@/components/layout/WalletBalanceDisplay";
 import { signOutAction } from "@/lib/auth/actions";
+import { walletHistoryHref } from "@/lib/account/activity";
 
 type MobileNavProps = {
   isSignedIn: boolean;
@@ -134,7 +135,7 @@ export function MobileNav({ isSignedIn, balanceLabel }: MobileNavProps) {
                     <WalletBalanceDisplay
                       balanceLabel={balanceLabel}
                       href={
-                        balanceLabel != null ? "/account/wallet" : undefined
+                        balanceLabel != null ? walletHistoryHref : undefined
                       }
                     />
                   </li>

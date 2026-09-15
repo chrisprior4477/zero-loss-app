@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { createClient } from "@/lib/supabase/server";
+import { getAccountContext } from "@/lib/account/context";
 
 export const metadata: Metadata = { title: "My Account" };
 
@@ -30,8 +30,8 @@ const liveSections = {
   },
   security: {
     title: "Account & security",
-    description: "Manage your password, trusted devices, and two-step verification.",
-    empty: "Your email is verified. Additional security controls are coming next.",
+    description: "Email confirmation and account access.",
+    empty: "Additional security controls are not enabled yet.",
     action: "Back to account",
     href: "/account",
   },
@@ -54,21 +54,20 @@ export default async function LiveAccountSection({
   const { section } = await params;
   if (!(section in liveSections)) notFound();
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const account = await getAccountContext();
+  if (!account) redirect("/login");
 
   const content = liveSections[section as LiveSection];
 
   return (
     <PageContainer>
       <section className="mx-auto w-full max-w-3xl" aria-labelledby="live-account-heading">
-        <p className="text-sm font-black uppercase tracking-[0.15em] text-cyan-300">Live account</p>
+        <p className="text-sm font-black uppercase tracking-[0.15em] text-cyan-300">Your account</p>
         <h1 id="live-account-heading" className="mt-2 text-4xl font-black tracking-[-0.04em] text-white">{content.title}</h1>
         <p className="mt-3 text-base text-white/60">{content.description}</p>
         <div className="mt-8 rounded-[24px] border border-white/12 bg-white/[0.045] p-7 text-center">
           <div className="mx-auto h-12 w-12 rounded-full border border-cyan-300/30 bg-cyan-300/10" aria-hidden="true" />
-          <p className="mt-5 text-base font-bold text-white">{content.empty}</p>
+          <p className="mt-5 text-base font-bold text-white">{section === "security" ? `${account.emailConfirmed ? "Email confirmed." : "Email confirmation pending."} ${content.empty}` : "This destination is in development. Stored activity will appear here when it is connected."}</p>
           <Link href={content.href} className="mt-5 inline-flex min-h-11 items-center rounded-full bg-cyan-300 px-5 text-sm font-black text-[#00132e] hover:bg-cyan-200">{content.action}</Link>
         </div>
       </section>

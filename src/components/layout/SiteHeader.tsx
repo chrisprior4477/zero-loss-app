@@ -3,42 +3,13 @@ import Image from "next/image";
 import { DesktopCategoryNav } from "@/components/layout/DesktopCategoryNav";
 import { DesktopHeaderSearch } from "@/components/layout/DesktopHeaderSearch";
 import { AccountDrawer } from "@/components/layout/AccountDrawer";
-import { AccountModeSwitch } from "@/components/layout/AccountModeSwitch";
 import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
-import { createClient } from "@/lib/supabase/server";
-import { getPlayableBalanceLabel } from "@/lib/wallet/balance";
+import { getAccountContext } from "@/lib/account/context";
 
 export async function SiteHeader() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let balanceLabel: string | null = null;
-  let avatarUrl: string | null = null;
-  let profileName: string | null = null;
-
-  if (user) {
-    const [{ data: profile }, balanceResult] = await Promise.all([
-      supabase
-        .from("customer_profiles")
-        .select("avatar_reference, legal_first_name, legal_last_name, display_name")
-        .eq("customer_id", user.id)
-        .maybeSingle(),
-      getPlayableBalanceLabel(user.id).catch(() => null),
-    ]);
-    balanceLabel = balanceResult;
-    profileName = [profile?.legal_first_name, profile?.legal_last_name]
-      .filter(Boolean)
-      .join(" ") || profile?.display_name?.trim() || null;
-    avatarUrl = profile?.avatar_reference
-      ? supabase.storage.from("profile-photos").getPublicUrl(profile.avatar_reference).data.publicUrl
-      : null;
-  }
-
-  const displayName = user
-    ? String(profileName ?? user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email?.split("@")[0] ?? "Account")
-    : "Chris P.";
+  const account = await getAccountContext();
+  const activityState = account?.activity ?? { isPreview: false, activity: [], activeCount: null, source: "unavailable" as const };
+  const isDemoWallet = account?.wallet?.scope === "demo";
 
   return (
     // Blur lives on a non-interactive underlay — not on <header> itself — so
@@ -66,13 +37,17 @@ export async function SiteHeader() {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-4 lg:gap-5">
-          <HeaderAccountMetrics isSignedIn={Boolean(user)} liveBalance={balanceLabel} />
+          <HeaderAccountMetrics isSignedIn={Boolean(account)} liveBalance={account?.balanceLabel ?? null} isDemoWallet={isDemoWallet} activityState={activityState} />
           <AccountDrawer
-            isSignedIn={Boolean(user)}
-            displayName={displayName}
-            email={user?.email ?? null}
-            avatarUrl={avatarUrl}
-            balanceLabel={balanceLabel}
+            key={account?.userId ?? "signed-out"}
+            isSignedIn={Boolean(account)}
+            displayName={account?.displayName ?? "Welcome"}
+            email={account?.email ?? null}
+            avatarUrl={account?.avatarUrl ?? null}
+            balanceLabel={account?.balanceLabel ?? null}
+            isDemoWallet={isDemoWallet}
+            fundingEnabled={account?.fundingEnabled ?? false}
+            activityState={activityState}
           />
         </div>
       </div>
@@ -90,7 +65,7 @@ export async function SiteHeader() {
         className="h-[3px] w-full"
         style={{ background: "var(--brand-rule)" }}
       />
-      <AccountModeSwitch isSignedIn={Boolean(user)} />
+      {account?.previewAuthorized ? <p className="border-b border-cyan-300/20 bg-[#092c49] px-3 py-2 text-center text-[11px] leading-4 text-[#b5cce4] sm:text-xs"><strong className="text-cyan-300">Interactive MVP Preview</strong> · Sample activity · {account.fundingEnabled ? "Demo funds only" : "Funding disabled"}</p> : null}
     </header>
   );
 }

@@ -68,11 +68,13 @@ export function ProfilePhotoCard({
   fullName,
   email,
   initialAvatarUrl,
+  compact = false,
 }: {
   initials: string;
   fullName: string;
   email: string;
   initialAvatarUrl: string | null;
+  compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{ x: number; y: number; cropX: number; cropY: number } | null>(null);
@@ -179,31 +181,31 @@ export function ProfilePhotoCard({
 
   return (
     <>
-      <article className="rounded-[28px] border border-cyan-300/20 bg-[#06264a] p-6 sm:p-7">
-        <div className="flex items-center gap-5">
+      <article className={`border border-cyan-300/20 bg-[#06264a] ${compact ? "flex flex-col justify-center rounded-2xl p-4 sm:p-5" : "rounded-[28px] p-6 sm:p-7"}`}>
+        <div className={`flex items-center ${compact ? "gap-4" : "gap-5"}`}>
           <button
             type="button"
             onClick={openEditor}
             aria-label={photo ? "Adjust profile photo" : "Add profile photo"}
-            className="group relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full border-4 border-cyan-300/25 bg-[#07533f] text-2xl font-black text-[#72ff9f] transition hover:border-cyan-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/40"
+            className={`group relative grid shrink-0 place-items-center overflow-hidden rounded-full border-4 border-cyan-300/25 bg-[#07533f] text-2xl font-black text-[#72ff9f] transition hover:border-cyan-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/40 ${compact ? "h-16 w-16" : "h-24 w-24"}`}
           >
-            {photo ? <AvatarImage photo={photo} crop={crop} offsetScale={0.375} /> : initials}
+            {photo ? <AvatarImage photo={photo} crop={crop} offsetScale={compact ? 0.25 : 0.375} /> : initials}
             <span aria-hidden="true" className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-[10px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
               Edit
             </span>
           </button>
           <div className="min-w-0">
-            <h2 className="truncate text-2xl font-black text-white">{fullName}</h2>
-            <p className="mt-1 break-all text-sm text-white/55">{email}</p>
+            <h2 className={`break-words font-black text-white ${compact ? "text-xl" : "text-2xl"}`}>{fullName}</h2>
+            <p className={`mt-1 break-all text-white/60 ${compact ? "text-xs" : "text-sm"}`}>{email}</p>
             <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={choosePhoto} className="sr-only" aria-label="Choose a profile photo" />
-            <button type="button" onClick={openEditor} className="mt-4 inline-flex min-h-10 items-center rounded-full border border-cyan-300/40 bg-cyan-300/10 px-4 text-sm font-bold text-cyan-200 transition hover:bg-cyan-300 hover:text-[#00132e]">
+            <button type="button" onClick={openEditor} className={`inline-flex min-h-11 items-center rounded-full border border-cyan-300/40 bg-cyan-300/10 px-4 text-sm font-bold text-cyan-200 transition hover:bg-cyan-300 hover:text-[#00132e] ${compact ? "mt-2" : "mt-4"}`}>
               {photo ? "Adjust profile photo" : "Add profile photo"}
             </button>
           </div>
         </div>
-        <p className="mt-5 border-t border-white/10 pt-4 text-sm leading-6 text-white/50">
+        {!compact ? <p className="mt-5 border-t border-white/10 pt-4 text-sm leading-6 text-white/50">
           Your photo becomes the account-menu button and follows your account across devices.
-        </p>
+        </p> : null}
         {error ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
       </article>
 

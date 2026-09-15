@@ -45,6 +45,7 @@ export async function saveProfilePhoto(formData: FormData): Promise<SaveProfileP
   }
 
   revalidatePath("/account");
+  revalidatePath("/account/profile");
   const publicUrl = supabase.storage.from("profile-photos").getPublicUrl(reference).data.publicUrl;
   return { ok: true, publicUrl };
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { canAccessInvestorPreview } from "@/lib/demo/access";
 import { PageContainer } from "@/components/layout/PageContainer";
 import {
   accountPreviewDestinations,
@@ -21,6 +22,8 @@ export default async function AccountPreviewPage({
   params: Promise<{ section: string }>;
 }) {
   const { section } = await params;
+  // Check at the page as well as its layout: layouts may be reused on navigation.
+  if (!(await canAccessInvestorPreview())) redirect("/login");
   if (!isAccountPreviewSlug(section)) notFound();
 
   const destination = accountPreviewDestinations[section];
@@ -46,6 +49,7 @@ export default async function AccountPreviewPage({
         <Link href="/" className="mt-6 inline-flex text-sm font-semibold text-cyan-300 underline-offset-4 hover:underline">
           Return to the marketplace
         </Link>
+        <p className="mt-4 text-sm text-[var(--muted)]">The current preview now uses the shared customer pages. <Link href={section === "official-rules" ? "/free-entry" : section === "results" ? "/account/entries" : `/account/${section}`} className="font-bold text-cyan-300 hover:underline">Open the shared destination ›</Link></p>
       </section>
     </PageContainer>
   );

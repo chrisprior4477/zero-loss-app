@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { PoolProgress } from "@/components/product/PoolProgress";
+import { walletHistoryHref } from "@/lib/account/activity";
 
 type Props = {
   productTitle: string;
@@ -11,9 +12,11 @@ type Props = {
   entryPrice: number;
   sold: number;
   capacity: number;
+  balanceLabel?: string;
+  isDemoWallet?: boolean;
 };
 
-export function DemoParticipationPanel({ productTitle, retailer, productValue, entryPrice, sold, capacity }: Props) {
+export function DemoParticipationPanel({ productTitle, retailer, productValue, entryPrice, sold, capacity, balanceLabel = "Unavailable", isDemoWallet = false }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [messageVisible, setMessageVisible] = useState(false);
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
@@ -71,8 +74,8 @@ export function DemoParticipationPanel({ productTitle, retailer, productValue, e
       </button>
 
       <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 px-4 py-3 text-sm">
-        <span><span className="text-white/60">Playable Balance</span> <strong className="ml-2">$24.00</strong></span>
-        <Link href="/account/wallet" className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
+        <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
+        <Link href={walletHistoryHref} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>
 
       <div className="mt-5 rounded-xl border border-[#31e800]/30 bg-[#31e800]/8 p-4 text-sm leading-6 text-white/85">
