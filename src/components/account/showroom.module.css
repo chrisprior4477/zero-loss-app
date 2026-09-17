@@ -69,6 +69,26 @@
 .empty h2 { font-size: 24px; font-weight: 750; }
 .empty p { margin-top: 10px; max-width: 600px; color: #bdd4e8; font-size: 14px; line-height: 1.7; }
 .empty a { display: inline-flex; align-items: center; min-height: 44px; margin-top: 22px; padding: 8px 18px; border-radius: 7px; color: #001a29; background: #29e6ef; font-weight: 750; }
+.accountTools { margin-top: 32px; padding-top: 27px; border-top: 1px solid #0786ad73; }
+.accountToolsHeading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 15px; }
+.accountToolsHeading .eyebrow { margin-top: 0; }
+.accountToolsHeading h2 { color: #fff; font-size: clamp(22px, 2.3vw, 30px); font-weight: 800; letter-spacing: -.025em; }
+.accountToolsGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+.accountTool { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 13px; min-height: 126px; padding: 18px; overflow: hidden; border: 1px solid #128fb5; border-radius: 13px; background: linear-gradient(137deg, #002943f0, #00172cf5 70%); box-shadow: inset 0 0 20px #00d5ff0d, 0 7px 18px #0005; transition: border-color .16s, box-shadow .16s, transform .16s; }
+.accountTool::after { content: ""; position: absolute; inset: auto -22px -32px auto; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #06c8ee13, transparent 68%); pointer-events: none; }
+.accountTool:hover { z-index: 1; border-color: #55ecf7; box-shadow: inset 0 0 25px #00dcff17, 0 0 17px #00d8ff30; transform: translateY(-2px); }
+.profileTool { border-color: #28cc957d; background: linear-gradient(137deg, #06463ff0, #001c31f5 76%); }
+.accountAvatar, .accountToolIcon { position: relative; display: grid; flex: 0 0 auto; place-items: center; width: 52px; height: 52px; overflow: hidden; border: 1px solid #42eaf5; border-radius: 11px; background: linear-gradient(145deg, #07587a, #01273f); color: #53f0fa; box-shadow: inset 0 0 12px #00dfff22; }
+.accountAvatar { border-width: 2px; border-color: #49efc1; border-radius: 50%; background: #07533f; color: #79ffc0; font-size: 14px; font-weight: 850; }
+.accountAvatarImage { object-fit: cover; }
+.accountToolIcon svg { width: 27px; height: 27px; }
+.accountToolText { display: flex; min-width: 0; flex-direction: column; }
+.accountToolText strong { color: #fff; font-size: 15px; font-weight: 780; line-height: 1.3; }
+.accountToolText span { margin-top: 7px; color: #bdd5e8; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.accountToolText small { margin-top: 4px; color: #62e6f0; font-size: 10px; line-height: 1.4; }
+.profileTool .accountToolText small { color: #8fffd1; }
+.accountToolArrow { width: 19px; color: #34e8f3; }
+.ledgerNote { margin: 18px auto 0; color: #789ab2; font-size: 10px; line-height: 1.6; text-align: center; }
 .footerNote { margin-top: 24px; padding-top: 22px; border-top: 1px solid #087ca354; color: #4bd8e9; font-size: 10px; letter-spacing: .22em; text-align: center; }
 .page a:focus-visible, .page button:focus-visible { outline: 2px solid #b6fcff; outline-offset: 4px; }
 .detailDialog { --detail-accent: #27e5f2; --detail-soft: #0279a5; width: min(calc(100% - 32px), 980px); max-width: 980px; max-height: calc(100dvh - 32px); padding: 0; margin: auto; overflow: hidden; border: 1px solid var(--detail-accent); border-radius: 20px; background: linear-gradient(145deg, #001326f7, #002542f7 55%, #001426fc); color: #f5f9ff; box-shadow: 0 0 0 3px #001426, 0 0 28px color-mix(in srgb, var(--detail-accent) 30%, transparent), 0 28px 80px #000b18db; }
@@ -120,6 +140,7 @@
   .productTitle { font-size: 19px; }
   .productStage { height: 215px; }
   .filter { font-size: 13px; }
+  .accountToolsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 639px) {
   .page { padding: 20px 16px 32px; }
@@ -136,6 +157,14 @@
   .productStage { height: 175px; }
   .productNote { min-height: 20px; }
   .galleryHint { max-width: 135px; line-height: 1.5; font-size: 11px; }
+  .accountTools { margin-top: 25px; padding-top: 22px; }
+  .accountToolsHeading { display: block; }
+  .accountToolsHeading h2 { margin-top: 6px; }
+  .accountToolsGrid { grid-template-columns: 1fr; gap: 9px; }
+  .accountTool { min-height: 91px; padding: 13px 14px; border-radius: 10px; }
+  .accountAvatar, .accountToolIcon { width: 46px; height: 46px; }
+  .accountToolText span { margin-top: 4px; }
+  .ledgerNote { margin-top: 15px; padding-inline: 5px; }
   .footerNote { line-height: 1.8; }
   .detailDialog { width: 100%; max-width: none; height: 100dvh; max-height: 100dvh; border-width: 0; border-radius: 0; }
   .detailHeader { min-height: 64px; padding: 10px 13px 10px 17px; }
