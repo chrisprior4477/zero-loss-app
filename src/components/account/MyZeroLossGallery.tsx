@@ -51,7 +51,6 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
     const element = track.current;
     if (!element) return;
     drag.current = { active: true, moved: false, pointerId: event.pointerId, startScrollLeft: element.scrollLeft, startX: event.clientX };
-    setDragging(true);
   }
 
   function continueDrag(event: ReactPointerEvent<HTMLDivElement>) {
@@ -62,6 +61,7 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
     if (Math.abs(distance) > 4 && !gesture.moved) {
       gesture.moved = true;
       element.setPointerCapture?.(event.pointerId);
+      setDragging(true);
     }
     if (!gesture.moved) return;
     event.preventDefault();
