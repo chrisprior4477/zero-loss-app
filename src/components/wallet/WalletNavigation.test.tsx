@@ -37,12 +37,26 @@ test("wallet collection contains only the authorized reward and its direct local
 test("specific reward opens its redemption destination without another dialog or reveal button", async () => {
   render(await WalletPage({ searchParams: Promise.resolve({ reward: "samsung-m70h-tv" }) }));
   expect(screen.getByRole("region", { name: "Reward redemption details" })).toBeTruthy();
-  expect(screen.getByText("Redemption code")).toBeTruthy();
   expect(screen.getByText("Not issued yet")).toBeTruthy();
   expect(screen.getByText(/No gift card or redeemable barcode has been issued/)).toBeTruthy();
-  expect(screen.getByText("$400")).toBeTruthy();
-  expect(screen.queryByRole("button")).toBeNull();
+  expect(screen.getAllByText("$400")).toHaveLength(2);
+  expect((screen.getByRole("button", { name: "Add to Apple Wallet" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Save to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("link", { name: "Back to My Rewards" }).getAttribute("href")).toBe("/account/wallet");
   expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("preview reward renders a responsive sample redemption without pretending it is live", async () => {
+  const preview = storedActivityFixture();
+  mocks.account.mockResolvedValue({ activity: { ...preview, isPreview: true }, wallet });
+  render(await WalletPage({ searchParams: Promise.resolve({ reward: "samsung-m70h-tv" }) }));
+  expect(screen.getAllByText("Best Buy").length).toBeGreaterThanOrEqual(2);
+  expect(screen.getByText("Sample — not redeemable")).toBeTruthy();
+  expect(screen.getByLabelText("Sample reward barcode")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Copy number" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Present in store" })).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Add to Apple Wallet" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Save to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
 test.each(["samsung-m70h-tv", "another-customer-reward"])("normal account cannot obtain sample or other customer's reward via URL: %s", async reward => {
