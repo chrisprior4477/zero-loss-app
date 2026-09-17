@@ -23,3 +23,10 @@ test("only existing ledger records are rendered, funding remains disabled even w
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$25");
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
 });
+test("wallet layout exposes responsive transaction filters without replacing ledger data", () => {
+  render(<WalletOverview wallet={{ ...empty, balanceCents: 2500, transactionCount: 2, entries: [{ id: "funding", entry_type: "DEPOSIT", amount: 3000, created_at: "2026-09-14T12:00:00Z" }, { id: "entry", entry_type: "ENTRY_DEBIT", amount: -500, created_at: "2026-09-14T13:00:00Z" }] }} />);
+  expect(screen.getByRole("heading", { name: "Playable Wallet" })).toBeTruthy();
+  expect(screen.getByAltText("Zero Loss leather wallet")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByText("Entry purchase")).toBeTruthy();
+});
