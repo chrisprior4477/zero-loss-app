@@ -5,6 +5,8 @@ import { useEffect, useId, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { activityPresentation, type ActivityDestination, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
+import { AccountIcon } from "./AccountIcon";
+import styles from "./showroom.module.css";
 
 export function ActivityDetailDialog({ item, destination, filter = "all" }: {
   item: ActivityItem;
@@ -15,7 +17,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
-  const style = activityPresentation(item);
+  const presentation = activityPresentation(item);
   // The return destination is a fixed application route, never user-provided URL text.
   const returnHref = destination === "/account/entries" && filter !== "all" ? `${destination}?filter=${filter}` : destination;
   const close = () => router.replace(returnHref, { scroll: false });
@@ -37,7 +39,14 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
     };
   }, [item.slug]);
 
-  const disabledAction = item.status === "completion" ? "Complete purchase" : item.status === "active" ? "Entry participation" : style.action;
+  const disabledAction = item.status === "completion" ? "Complete purchase" : item.status === "active" ? "Entry participation" : presentation.action;
+  const introduction = item.status === "completion"
+    ? "Review the exact-product option created by this outcome. You decide whether to take the next step."
+    : item.status === "prize"
+      ? "Your winning outcome is ready. Follow its fulfillment path whenever you are ready."
+      : item.status === "active"
+        ? "Your entry is still in play. Its result will appear here as soon as the outcome is available."
+        : "This activity is complete. Its outcome remains here as part of your Zero Loss history.";
   return <dialog ref={dialogRef} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); close(); }}
     onKeyDown={event => {
       if (event.key !== "Tab") return;
@@ -52,39 +61,51 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
       const box = event.currentTarget.getBoundingClientRect();
       if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) close();
     }}
-    className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-dvh w-full max-w-none flex-col overflow-hidden border-0 border-l border-cyan-300/25 bg-[#031b35] p-0 text-white shadow-2xl backdrop:bg-[#000b1d]/75 open:flex sm:max-w-[520px] sm:rounded-l-3xl">
-    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-7">
-      <p className="text-xs font-black uppercase tracking-widest text-cyan-300">{item.status === "completion" ? "Purchase option" : item.status === "prize" ? "Your reward" : "Entry details"}</p>
-      <button ref={closeRef} type="button" onClick={close} aria-label="Close activity details" className="grid h-11 w-11 place-items-center rounded-xl border border-cyan-300/60 text-2xl text-cyan-300 transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
+    className={styles.detailDialog} data-status={item.status}>
+    <header className={styles.detailHeader}>
+      <div><p className={styles.detailEyebrow}>MY ZERO LOSS</p><p className={styles.detailHeaderLabel}>{item.status === "completion" ? "Purchase option" : item.status === "prize" ? "Winning outcome" : item.status === "active" ? "Entry details" : "Activity history"}</p></div>
+      <button ref={closeRef} type="button" onClick={close} aria-label="Close activity details" className={styles.detailClose}>×</button>
     </header>
-    <div role="region" aria-label="Product details" tabIndex={0} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 [color-scheme:dark] focus-visible:outline-2 focus-visible:outline-cyan-300 focus-visible:-outline-offset-2 sm:p-7">
-      <div className={`relative mx-auto h-44 w-full overflow-hidden rounded-2xl ${style.background}`}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 90vw, 460px" className="object-contain p-5" /></div>
-      <p className="mt-5 text-sm font-bold text-[#b5cce4]">{item.retailer}</p>
-      <h2 id={titleId} className="mt-1 break-words text-2xl font-black leading-tight tracking-tight sm:text-3xl">{item.title}</h2>
-      <p className={`mt-3 text-xs font-black uppercase tracking-widest ${style.color}`}>{style.label}</p>
+    <div role="region" aria-label="Product details" tabIndex={0} className={styles.detailBody}>
+      <section className={styles.detailHero}>
+        <div className={styles.detailStage}><Image src={item.image} alt={item.title} fill draggable={false} sizes="(max-width: 700px) 88vw, 420px" className={styles.detailImage} /></div>
+        <div className={styles.detailSummary}>
+          <p className={styles.detailRetailer}>{item.retailer}</p>
+          <h2 id={titleId} className={styles.detailTitle}>{item.title}</h2>
+          <p className={styles.detailStatus}><AccountIcon name={item.status} />{presentation.label}</p>
+          <p className={styles.detailIntroduction}>{introduction}</p>
+        </div>
+      </section>
 
       {item.status === "completion" ? <>
-        <h3 className="mt-6 text-lg font-bold">Complete this product’s purchase</h3>
-        <dl className="mt-4 grid grid-cols-3 gap-3 rounded-2xl border border-white/10 bg-[#0b304d] p-4">
-          {[["Product price", formatUsdFromCents(item.priceCents)], ["Already applied", formatUsdFromCents(item.paidCents)], ["Remaining", formatUsdFromCents(item.remainingCents)]].map(([label, value], index) => <div key={label}><dt className="text-[11px] leading-4 text-[#b5cce4]">{label}</dt><dd className={`mt-2 text-xl font-black tabular-nums ${index === 2 ? "text-[#ff8a45]" : "text-white"}`}>{value}</dd></div>)}
-        </dl>
-        <p className="mt-4 text-sm leading-6 text-[#b5cce4]">An optional purchase of this exact originating product. No payment is due unless you choose to complete it.</p>
-        <p className="mt-3 text-xs leading-5 text-[#b5cce4]"><strong className="text-white">Availability:</strong> {item.availability}</p>
-        <p className="mt-3 text-xs leading-5 text-[#9bb3ce]">Not wallet cash, transferable credit or a retailer-wide alternative.</p>
+        <section className={styles.detailPanel}>
+          <p className={styles.panelEyebrow}>YOUR NEXT STEP</p>
+          <h3>Complete this product’s purchase</h3>
+          <dl className={styles.purchaseMath}>
+            {[["Product price", formatUsdFromCents(item.priceCents)], ["Already applied", formatUsdFromCents(item.paidCents)], ["Remaining", formatUsdFromCents(item.remainingCents)]].map(([label, value], index) => <div key={label}><dt>{label}</dt><dd data-emphasis={index === 2}>{value}</dd></div>)}
+          </dl>
+          <p className={styles.detailCopy}>An optional purchase of this exact originating product. No payment is due unless you choose to complete it.</p>
+          <p className={styles.detailMeta}><strong>Availability:</strong> {item.availability}</p>
+          <p className={styles.detailFinePrint}>Not wallet cash, transferable credit or a retailer-wide alternative.</p>
+        </section>
       </> : item.status === "prize" ? <>
-        <div className="mt-6 rounded-2xl border border-[#31ff83]/20 bg-[#0a3c36] p-5">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#b5cce4]">{item.rewardKind === "digital" ? "Digital gift-card reward" : "Physical prize"}</p>
-          <p className="mt-2 text-3xl font-black text-[#31ff83]">{formatUsdFromCents(item.priceCents)}</p>
-          <p className="mt-1 text-sm text-white">{item.retailer}</p>
-        </div>
-        <p className="mt-4 text-sm leading-6 text-[#b5cce4]">{item.rewardKind === "digital" ? "This digital reward is ready in My Rewards." : "This physical-prize outcome will continue through Orders & Fulfillment."}</p>
+        <section className={styles.detailPanel}>
+          <p className={styles.panelEyebrow}>REWARD READY</p>
+          <div className={styles.rewardValue}><span>{item.rewardKind === "digital" ? "Digital reward" : "Physical prize"}</span><strong>{formatUsdFromCents(item.priceCents)}</strong><small>{item.retailer}</small></div>
+          <p className={styles.detailCopy}>{item.rewardKind === "digital" ? "This digital reward is ready in My Rewards." : "This physical-prize outcome will continue through Orders & Fulfillment."}</p>
+        </section>
       </> : item.status === "active" ? <>
-        <div className="mt-6 rounded-2xl border border-cyan-300/20 bg-[#0b304d] p-5"><h3 className="text-lg font-bold">Your entry is still open</h3><p className="mt-2 text-sm leading-6 text-[#b5cce4]">When an outcome is available, it will appear with this product.</p><p className="mt-3 text-sm text-[#b5cce4]">Entry amount: <strong className="text-white">{formatUsdFromCents(item.paidCents)}</strong></p></div>
-      </> : <p className="mt-6 text-sm leading-6 text-[#b5cce4]">Completed activity details. No additional fulfillment action is enabled in this checkpoint.</p>}
+        <section className={styles.detailPanel}>
+          <p className={styles.panelEyebrow}>IN PLAY</p>
+          <h3>Your entry is still open</h3>
+          <p className={styles.detailCopy}>When an outcome is available, it will appear with this product.</p>
+          <dl className={styles.entryFacts}><div><dt>Entry amount</dt><dd>{formatUsdFromCents(item.paidCents)}</dd></div><div><dt>Current status</dt><dd>Still open</dd></div></dl>
+        </section>
+      </> : <section className={styles.detailPanel}><p className={styles.panelEyebrow}>COMPLETED</p><h3>Activity complete</h3><p className={styles.detailCopy}>Completed activity details. No additional fulfillment action is enabled in this checkpoint.</p></section>}
 
-      <div className="mt-6 border-t border-white/10 pt-5">
-        <button disabled type="button" className="min-h-12 w-full cursor-not-allowed rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-bold text-[#9bb3ce]">{disabledAction} — not enabled</button>
-        <p className="mt-3 text-xs leading-5 text-[#9bb3ce]">This action is not available yet.</p>
+      <div className={styles.detailFooter}>
+        <button disabled type="button">{disabledAction} — not enabled</button>
+        <p>This action is not available yet.</p>
       </div>
     </div>
   </dialog>;
