@@ -11,6 +11,7 @@ import { EntryTicket } from "@/components/layout/EntryTicket";
 import { WalletShortcut } from "@/components/wallet/WalletShortcut";
 import { MyZeroLossSummary, PlayableBalanceCard } from "@/components/account/AccountSummaries";
 import { ProfileShortcut } from "@/components/account/ProfileShortcut";
+import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -173,6 +174,14 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                   <MyZeroLossSummary state={state} compact onNavigate={close} />
                 </div>
 
+                <nav aria-label="Shop categories" className="zl-noscroll mt-4 flex gap-2 overflow-x-auto pb-1">
+                  {marketplaceCategories.map((category) => (
+                    <Link key={category.id} href={marketplaceCategoryHref(category.id)} onClick={close} className="shrink-0 rounded-full border border-cyan-200/20 bg-white/5 px-3 py-2 text-[11px] font-bold text-white hover:border-cyan-300 hover:text-cyan-300">
+                      {category.label}
+                    </Link>
+                  ))}
+                </nav>
+
                 <section className="mt-6" aria-label="Your latest activity" data-activity-source={state.source}>
                   <h3 className="text-base font-bold text-white">Your latest activity</h3>
                   {state.activity.length === 0 ? <p className="py-7 text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "Activity unavailable. Please try again shortly." : "No activity yet. Your entries, prizes and purchase options will appear here."}</p> : (
@@ -205,6 +214,13 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 </nav>
                 {email ? <span className="sr-only">Signed in as {displayName}, {email}</span> : null}
               </> : <section className="space-y-4">
+                <nav aria-label="Shop categories" className="zl-noscroll flex gap-2 overflow-x-auto pb-1">
+                  {marketplaceCategories.map((category) => (
+                    <Link key={category.id} href={marketplaceCategoryHref(category.id)} onClick={close} className="shrink-0 rounded-full border border-cyan-200/20 bg-white/5 px-3 py-2 text-[11px] font-bold text-white hover:border-cyan-300 hover:text-cyan-300">
+                      {category.label}
+                    </Link>
+                  ))}
+                </nav>
                 <div className="relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#001b3d] p-5">
                   <span aria-hidden="true" className="absolute -left-5 -top-6 h-32 w-32 bg-[#ff630f]/65 [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
                   <span aria-hidden="true" className="absolute -bottom-16 -right-12 h-52 w-52 bg-[#31e800]/16 [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />

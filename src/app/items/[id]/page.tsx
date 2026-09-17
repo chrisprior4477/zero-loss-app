@@ -5,6 +5,7 @@ import { DemoParticipationPanel } from "@/components/product/DemoParticipationPa
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { getAccountContext } from "@/lib/account/context";
+import { randomUUID } from "node:crypto";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -80,7 +81,7 @@ export default async function ItemPage({ params }: PageProps) {
               <span className="text-sm text-white/60">Retail value</span>
               <strong className="text-2xl">${product.value.toLocaleString()}</strong>
             </div>
-            <DemoParticipationPanel productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={product.entryPrice} sold={product.sold} capacity={product.capacity} balanceLabel={account?.balanceLabel ?? "Sign in to view"} isDemoWallet={account?.wallet?.scope === "demo"} />
+            <DemoParticipationPanel productSlug={product.slug} requestKey={randomUUID()} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={product.entryPrice} sold={product.sold} capacity={product.capacity} balanceLabel={account?.balanceLabel ?? "Sign in to view"} isDemoWallet={account?.wallet?.scope === "demo"} isSignedIn={Boolean(account)} />
             <details className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 open:border-cyan-300/35">
               <summary className="cursor-pointer font-bold text-white">Prefer to enter without a purchase?</summary>
               <p className="mt-3 text-sm leading-6 text-white/65">No purchase is necessary. Review the proposed mail-in alternative method of entry and printable postcard insert. The prototype does not create an entry.</p>

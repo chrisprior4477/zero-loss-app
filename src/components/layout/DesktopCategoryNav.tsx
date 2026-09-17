@@ -6,6 +6,7 @@ import {
   categorySubcategories,
   endingSoonItemHrefs,
 } from "@/lib/home/placeholder-data";
+import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
 
 const desktopCategories = [
   "Ending Soon",
@@ -83,22 +84,12 @@ export function DesktopCategoryNav() {
               className="flex h-full shrink-0 items-center"
               onMouseEnter={() => setOpenCategory(category)}
             >
-              <button
-                type="button"
+              <Link
+                href={marketplaceCategoryHref(category)}
                 aria-expanded={isOpen}
                 aria-haspopup="menu"
                 onFocus={() => setOpenCategory(category)}
-                onClick={() => {
-                  setOpenCategory((current) =>
-                    current === category ? null : category
-                  );
-                  if (isEndingSoon) {
-                    document.getElementById("ending-soon")?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }
-                }}
+                onClick={() => setOpenCategory(null)}
                 className={
                   isEndingSoon
                     ? "inline-flex h-8 items-center rounded-full bg-[var(--urgent)] px-3 text-[13px] font-medium text-white shadow-[0_2px_0_rgba(0,0,0,0.14)] transition-colors hover:bg-[#ff7a24] sm:px-4 sm:text-[15px] lg:text-[16px]"
@@ -106,7 +97,7 @@ export function DesktopCategoryNav() {
                 }
               >
                 {category}
-              </button>
+              </Link>
 
               {isOpen ? (
                 <div
@@ -122,7 +113,7 @@ export function DesktopCategoryNav() {
                       {items.map((item) => (
                       <Link
                         key={item}
-                        href={endingSoonItemHrefs[item] ?? "/browse"}
+                        href={endingSoonItemHrefs[item] ?? marketplaceCategoryHref(category, item)}
                         role="menuitem"
                         onClick={() => setOpenCategory(null)}
                         className="flex min-h-11 items-center border-b border-white/8 px-1 text-[16px] font-medium text-white/85 transition-colors hover:border-[var(--accent)] hover:text-white focus-visible:border-[var(--accent)] focus-visible:text-white focus-visible:outline-none"
@@ -131,7 +122,7 @@ export function DesktopCategoryNav() {
                       </Link>
                       ))}
                       <Link
-                        href="/browse"
+                        href={marketplaceCategoryHref(category)}
                         role="menuitem"
                         onClick={() => setOpenCategory(null)}
                         className="col-span-2 mt-2 flex min-h-11 items-center justify-center rounded-lg border border-[var(--accent)]/55 bg-[var(--accent)]/10 px-4 text-[14px] font-extrabold text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] md:hidden"

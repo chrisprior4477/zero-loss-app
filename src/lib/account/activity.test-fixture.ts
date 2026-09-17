@@ -3,9 +3,9 @@ import type { AccountActivity, ActivityStatus } from "./activity";
 
 const examples = [
   ["playstation-5-slim", "active"],
-  ["nike-court-shot-shoes", "prize"],
+  ["samsung-m70h-tv", "prize"],
+  ["nike-court-shot-shoes", "completion"],
   ["babys-essentials-bundle", "completion"],
-  ["samsung-m70h-tv", "completion"],
 ] as const satisfies readonly (readonly [string, ActivityStatus])[];
 
 /** Test-only stored activity. Runtime customer readers never import this file. */

@@ -12,7 +12,9 @@ beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://ocgdfnvvjvutevgqzzgj.supabase.co");
   vi.stubEnv("VERCEL_ENV", "preview");
   mocks.getUser.mockResolvedValue({ data: { user: { id: "own-account", email: "Case@example.test", email_confirmed_at: "2026-09-14" } } });
-  mocks.rpc.mockResolvedValue({ data: { walletAccountId: "99999999-9999-4999-8999-999999999999", scope: "demo", fundingAvailable: true } });
+  mocks.rpc.mockImplementation(async (name: string) => name === "ensure_preview_customer"
+    ? { data: { walletAccountId: "99999999-9999-4999-8999-999999999999", scope: "demo", fundingAvailable: true } }
+    : { data: [] });
   mocks.from.mockReturnValue({ select: () => ({ eq: mocks.eq }) });
   mocks.eq.mockReturnValue({ maybeSingle: mocks.maybeSingle });
   mocks.maybeSingle.mockResolvedValue({ data: { display_name: "McDonald", legal_first_name: "lowercase", avatar_reference: "photo.webp" } });
@@ -25,12 +27,13 @@ test("reads only own profile and snapshot; normal permission never receives fixt
   expect(mocks.from).toHaveBeenCalledWith("customer_profiles");
   expect(mocks.eq).toHaveBeenCalledWith("customer_id", "own-account");
   expect(mocks.snapshot).toHaveBeenCalledWith("own-account");
-  expect(account).toMatchObject({ displayName: "McDonald", email: "Case@example.test", avatarUrl: "/saved/photo.webp", balanceLabel: "$0.00", fundingEnabled: true, activity: { activity: [], activeCount: 0, source: "customer-empty" } });
+  expect(mocks.rpc).toHaveBeenCalledWith("get_account_activity");
+  expect(account).toMatchObject({ displayName: "McDonald", email: "Case@example.test", avatarUrl: "/saved/photo.webp", balanceLabel: "$0.00", fundingEnabled: true, activity: { activity: [], activeCount: 0, isPreview: true, source: "customer-empty" } });
 });
 test("ordinary account context never substitutes hardcoded activity for ledger data", async () => {
   mocks.snapshot.mockResolvedValue({ balanceCents: 2500, transactionCount: 1, scope: "demo" });
   const account = await getAccountContext();
-  expect(account?.activity).toMatchObject({ activity: [], activeCount: 0, isPreview: false, source: "customer-empty" });
+  expect(account?.activity).toMatchObject({ activity: [], activeCount: 0, isPreview: true, source: "customer-empty" });
   expect(account?.wallet?.scope).toBe("demo");
   expect(account?.balanceLabel).toBe("$25");
   // Mock client intentionally has no rpc(), insert(), update() or delete().

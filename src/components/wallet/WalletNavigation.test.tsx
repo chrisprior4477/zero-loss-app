@@ -18,9 +18,9 @@ afterEach(cleanup);
 test("wallet shortcut count comes only from digital prize activity, not entries or dollars", () => {
   const state = storedActivityFixture();
   expect(walletRewards(state)).toHaveLength(1);
-  expect(activityHref(state.activity[1], "/account", "prize")).toBe("/account/wallet?reward=nike-court-shot-shoes");
+  expect(activityHref(state.activity[1], "/account", "prize")).toBe("/account/wallet?reward=samsung-m70h-tv");
   const { rerender } = render(<WalletShortcut state={state} />);
-  expect(screen.getByRole("link", { name: "Prize Ready — 1 reward" }).getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes");
+  expect(screen.getByRole("link", { name: "Prize Ready — 1 reward" }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
   rerender(<WalletShortcut state={drawerState(false)} />);
   expect(screen.getByRole("link", { name: "Prize Ready — Reward count unavailable" })).toBeTruthy();
   expect(screen.queryByText("0")).toBeNull();
@@ -28,29 +28,29 @@ test("wallet shortcut count comes only from digital prize activity, not entries 
 
 test("wallet collection contains only the authorized reward and its direct local destination", async () => {
   render(await WalletPage({ searchParams: Promise.resolve({}) }));
-  expect(screen.getByText("Nike Men's Court Shot Shoes")).toBeTruthy();
+  expect(screen.getByText('Samsung 50" M70H Mini LED 4K Smart TV')).toBeTruthy();
   expect(screen.queryByText("PlayStation 5 Slim Model")).toBeNull();
-  expect(screen.getByRole("link", { name: /Open reward/ }).getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes");
+  expect(screen.getByRole("link", { name: /Open reward/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
   expect(screen.queryByText("Sample · Not redeemable")).toBeNull();
 });
 
 test("specific reward opens its redemption destination without another dialog or reveal button", async () => {
-  render(await WalletPage({ searchParams: Promise.resolve({ reward: "nike-court-shot-shoes" }) }));
+  render(await WalletPage({ searchParams: Promise.resolve({ reward: "samsung-m70h-tv" }) }));
   expect(screen.getByRole("region", { name: "Reward redemption details" })).toBeTruthy();
   expect(screen.getByText("Redemption code")).toBeTruthy();
   expect(screen.getByText("Not issued yet")).toBeTruthy();
   expect(screen.getByText(/No gift card or redeemable barcode has been issued/)).toBeTruthy();
-  expect(screen.getByText("$75")).toBeTruthy();
+  expect(screen.getByText("$400")).toBeTruthy();
   expect(screen.queryByRole("button")).toBeNull();
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
-test.each(["nike-court-shot-shoes", "another-customer-reward"])("normal account cannot obtain sample or other customer's reward via URL: %s", async reward => {
+test.each(["samsung-m70h-tv", "another-customer-reward"])("normal account cannot obtain sample or other customer's reward via URL: %s", async reward => {
   mocks.account.mockResolvedValue({ activity: drawerState(true), wallet });
   render(await WalletPage({ searchParams: Promise.resolve({ reward }) }));
   expect(screen.getByText("Reward unavailable")).toBeTruthy();
-  expect(screen.queryByText("Nike Men's Court Shot Shoes")).toBeNull();
-  expect(screen.queryByText("$75")).toBeNull();
+  expect(screen.queryByText('Samsung 50" M70H Mini LED 4K Smart TV')).toBeNull();
+  expect(screen.queryByText("$400")).toBeNull();
 });
 
 test.each(["playstation-5-slim", "missing", ["nike-court-shot-shoes", "missing"]])("unsupported or malformed selection fails closed: %s", async reward => {

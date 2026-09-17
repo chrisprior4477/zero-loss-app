@@ -18,7 +18,7 @@ export type DemoProduct = {
   note?: string;
 };
 
-import { popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "@/lib/catalog/popular-rewards";
+import { popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "./popular-rewards";
 
 const popularRewardProducts: DemoProduct[] = popularRewardBrands.flatMap((brand, brandIndex) =>
   popularRewardAmounts.map((amount, amountIndex) => ({

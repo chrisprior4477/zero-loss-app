@@ -46,8 +46,8 @@ test("prize action respects reward format and old URLs redirect straight to the 
   const prize = storedActivityFixture().activity[1];
   expect(activityPresentation(prize).action).toBe("View Gift Card");
   expect(activityPresentation({ ...prize, rewardKind: "physical" }).action).toBe("Claim Prize");
-  expect(activityHref(prize)).toBe("/account/wallet?reward=nike-court-shot-shoes");
-  expect(() => ActivitySelection({ state: storedActivityFixture(), selectedSlug: prize.slug, destination: "/account" })).toThrow("redirect:/account/wallet?reward=nike-court-shot-shoes");
+  expect(activityHref(prize)).toBe("/account/wallet?reward=samsung-m70h-tv");
+  expect(() => ActivitySelection({ state: storedActivityFixture(), selectedSlug: prize.slug, destination: "/account" })).toThrow("redirect:/account/wallet?reward=samsung-m70h-tv");
 });
 
 test("Dashboard gives authorized samples full-row local detail links without duplicating a balance", () => {
@@ -56,7 +56,7 @@ test("Dashboard gives authorized samples full-row local detail links without dup
   expect(rows).toHaveLength(4);
   for (const row of rows) {
     const slug = (row as HTMLElement).dataset.activitySlug;
-    expect(row.getAttribute("href")).toBe(slug === "nike-court-shot-shoes" ? `/account/wallet?reward=${slug}` : `/account?item=${slug}`);
+    expect(row.getAttribute("href")).toBe(slug === "samsung-m70h-tv" ? `/account/wallet?reward=${slug}` : `/account?item=${slug}`);
   }
   expect(screen.getByRole("link", { name: /View all My Zero Loss/ }).getAttribute("href")).toBe("/account/entries");
   expect(screen.queryByText(/Playable balance/i)).toBeNull();
@@ -130,8 +130,10 @@ test("desktop gallery retains complete catalog names, purchase math and existing
   expect(gallery?.classList.contains("lg:grid-cols-4")).toBe(true);
   expect(gallery?.querySelectorAll("a[data-activity-slug]")).toHaveLength(4);
   const television = screen.getByRole("link", { name: /Samsung 50" M70H Mini LED 4K Smart TV/ });
-  expect(within(television).getByText("$399 remaining · $1 applied")).toBeTruthy();
+  expect(within(television).getByText("View Gift Card" )).toBeTruthy();
+  const shoes = screen.getByRole("link", { name: /Nike Men's Court Shot Shoes/ });
+  expect(within(shoes).getByText("$74 remaining · $1 applied")).toBeTruthy();
   const essentials = screen.getByRole("link", { name: /Baby's Essentials Bundle/ });
   expect(within(essentials).getByText("$99 remaining · $1 applied")).toBeTruthy();
-  expect(television.getAttribute("href")).toBe("/account/entries?item=samsung-m70h-tv");
+  expect(television.getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
 });

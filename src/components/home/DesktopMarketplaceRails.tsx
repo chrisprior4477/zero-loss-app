@@ -14,6 +14,7 @@ import {
   placeholderFeaturedOpportunities,
 } from "@/lib/home/placeholder-data";
 import { popularRewardBrands } from "@/lib/catalog/popular-rewards";
+import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
 
 const desktopCategories = [
   { id: "groceries", label: "Groceries", image: "/category-groceries-v2.png" },
@@ -227,7 +228,7 @@ export function DesktopMarketplaceRails() {
               key={category.id}
               className="group relative h-[112px] w-[130px] shrink-0 overflow-hidden rounded-xl border border-white/20 bg-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:h-[178px] sm:w-[210px] sm:rounded-2xl"
             >
-              <Link href="/browse" draggable={false} className="absolute inset-0">
+              <Link href={marketplaceCategoryHref(category.id)} draggable={false} className="absolute inset-0">
                 <Image
                   src={category.image}
                   alt=""
@@ -256,7 +257,7 @@ export function DesktopMarketplaceRails() {
             </div>
             <p className="mt-1 text-[13px] text-white/60">Popular opportunities closest to completion.</p>
           </div>
-          <Link href="/browse" className="text-[14px] font-semibold text-cyan-300 hover:text-cyan-200">See all</Link>
+          <Link href={marketplaceCategoryHref("ending-soon")} className="text-[14px] font-semibold text-cyan-300 hover:text-cyan-200">See all</Link>
         </div>
 
         <div className="relative">

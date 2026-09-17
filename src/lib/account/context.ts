@@ -8,6 +8,7 @@ import { drawerState } from "./drawer-state";
 import { demoFundingAllowed } from "@/lib/payments/demo-access";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { getStoredAccountActivity } from "./activity-reader";
 
 /** Request-scoped reader shared by pages, header and drawer. No writes. */
 export const getAccountContext = cache(async () => {
@@ -26,6 +27,9 @@ export const getAccountContext = cache(async () => {
     supabase.from("customer_profiles").select("display_name, legal_first_name, legal_last_name, avatar_reference").eq("customer_id", user.id).maybeSingle(),
     provisioningAvailable ? getWalletSnapshot(user.id).catch(() => null) : Promise.resolve(null),
   ]);
+  const activity = wallet
+    ? await getStoredAccountActivity(supabase).catch(() => drawerState(false))
+    : drawerState(false);
   const profile = profileResult.error ? null : profileResult.data;
   const displayName = customerDisplayName(profile);
   return {
@@ -38,9 +42,6 @@ export const getAccountContext = cache(async () => {
     wallet,
     balanceLabel: wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable",
     fundingEnabled: demoFundingAllowed(wallet, Boolean(user.email_confirmed_at)),
-    // No entry lifecycle table/writer exists yet. Until checkpoint three, only
-    // the confirmed empty checkpoint state is supported for ordinary customers.
-    // Existing/failed financial activity must not be invented as entry records.
-    activity: drawerState(wallet !== null),
+    activity,
   };
 });
