@@ -9,7 +9,6 @@ import { getAccountContext } from "@/lib/account/context";
 export async function SiteHeader() {
   const account = await getAccountContext();
   const activityState = account?.activity ?? { isPreview: false, activity: [], activeCount: null, source: "unavailable" as const };
-  const isDemoWallet = account?.wallet?.scope === "demo";
 
   return (
     // Blur lives on a non-interactive underlay — not on <header> itself — so
@@ -37,7 +36,7 @@ export async function SiteHeader() {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-4 lg:gap-5">
-          <HeaderAccountMetrics isSignedIn={Boolean(account)} liveBalance={account?.balanceLabel ?? null} isDemoWallet={isDemoWallet} activityState={activityState} />
+          <HeaderAccountMetrics isSignedIn={Boolean(account)} liveBalance={account?.balanceLabel ?? null} activityState={activityState} />
           <AccountDrawer
             key={account?.userId ?? "signed-out"}
             isSignedIn={Boolean(account)}
@@ -45,7 +44,6 @@ export async function SiteHeader() {
             email={account?.email ?? null}
             avatarUrl={account?.avatarUrl ?? null}
             balanceLabel={account?.balanceLabel ?? null}
-            isDemoWallet={isDemoWallet}
             fundingEnabled={account?.fundingEnabled ?? false}
             activityState={activityState}
           />
@@ -65,7 +63,6 @@ export async function SiteHeader() {
         className="h-[3px] w-full"
         style={{ background: "var(--brand-rule)" }}
       />
-      {account?.previewAuthorized ? <p className="border-b border-cyan-300/20 bg-[#092c49] px-3 py-2 text-center text-[11px] leading-4 text-[#b5cce4] sm:text-xs"><strong className="text-cyan-300">Interactive MVP Preview</strong> · Sample activity · {account.fundingEnabled ? "Demo funds only" : "Funding disabled"}</p> : null}
     </header>
   );
 }

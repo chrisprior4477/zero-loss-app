@@ -59,7 +59,7 @@ test("Dashboard gives authorized samples full-row local detail links without dup
   }
   expect(screen.getByRole("link", { name: /View all My Zero Loss/ }).getAttribute("href")).toBe("/account/entries");
   expect(screen.queryByText(/Playable balance/i)).toBeNull();
-  expect(screen.getByText(/Sample activity for visual review/)).toBeTruthy();
+  expect(screen.queryByText(/Sample activity for visual review/)).toBeNull();
 });
 
 test("Dashboard normal and failed-read states never borrow preview data", () => {

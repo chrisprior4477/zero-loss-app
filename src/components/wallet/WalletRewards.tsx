@@ -8,7 +8,6 @@ export function WalletRewards({ state }: { state: AccountActivity }) {
   return <section className="mt-6" aria-labelledby="wallet-rewards-heading" data-activity-source={state.source}>
     <h2 id="wallet-rewards-heading" className="text-xl font-bold text-white">Your prizes</h2>
     <p className="mt-2 text-sm leading-6 text-[#b5cce4]">Open a prize to go straight to its redemption details.</p>
-    {state.isPreview ? <p className="mt-2 text-xs text-[#9bb3ce]">Illustrative sample only. No reward has been issued.</p> : null}
     {state.source === "unavailable" ? <p role="status" className="mt-5 rounded-2xl border border-orange-300/25 bg-orange-300/5 p-5 text-sm text-orange-100">Rewards unavailable. We can’t verify your account activity right now.</p> : rewards.length === 0 ? <div className="mt-5 rounded-2xl border border-white/10 bg-[#06223d] p-6">
       <h3 className="font-bold text-white">No ready prizes yet</h3>
       <p className="mt-2 text-sm leading-6 text-[#b5cce4]">Your digital rewards will appear here. Open entries and purchase options stay in My Zero Loss.</p>

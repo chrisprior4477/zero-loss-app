@@ -18,15 +18,16 @@ type AccountDrawerProps = {
   email: string | null;
   avatarUrl: string | null;
   balanceLabel: string | null;
-  isDemoWallet?: boolean;
   fundingEnabled?: boolean;
   activityState: AccountActivity;
 };
 
 const primaryLinks = [
+  ["My Rewards", "/account/wallet", ""],
+  ["My Zero Loss", "/account/entries", ""],
   ["Wallet & Transactions", walletHistoryHref, "History"],
-  ["Notifications", "/account/notifications", ""],
   ["Orders & Fulfillment", "/account/orders", ""],
+  ["Notifications", "/account/notifications", ""],
   ["Account & Security", "/account/security", ""],
 ] as const;
 
@@ -50,7 +51,7 @@ function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initi
   );
 }
 
-export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel, isDemoWallet = false, fundingEnabled = false, activityState }: AccountDrawerProps) {
+export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel, fundingEnabled = false, activityState }: AccountDrawerProps) {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(true);
   const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
@@ -110,7 +111,6 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
 
   const close = () => setOpen(false);
   const state = activityState;
-  const isDemoMode = state.isPreview;
   const showAccountContent = isSignedIn;
   const shownName = isSignedIn ? displayName : "Welcome";
   const initials = shownName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ZL";
@@ -167,12 +167,8 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
               {showAccountContent ? <>
-                {isDemoMode ? <div className="mb-4 rounded-xl border border-cyan-300/25 bg-cyan-300/5 px-3 py-2">
-                  <p className="text-[11px] font-black uppercase tracking-wider text-cyan-300">Interactive MVP Preview</p>
-                  <p className="mt-1 text-[11px] leading-4 text-[#b5cce4]">Sample activity only. Balance below is read from your test account. No real payment or prize is issued.</p>
-                </div> : null}
                 <div aria-label="Your Zero Loss overview" className="grid gap-2">
-                  <PlayableBalanceCard balanceLabel={balanceLabel} isDemoWallet={isDemoWallet} fundingEnabled={fundingEnabled} compact onNavigate={close} />
+                  <PlayableBalanceCard balanceLabel={balanceLabel} fundingEnabled={fundingEnabled} compact onNavigate={close} />
                   <WalletShortcut state={state} onNavigate={close} />
                   <MyZeroLossSummary state={state} compact onNavigate={close} />
                 </div>

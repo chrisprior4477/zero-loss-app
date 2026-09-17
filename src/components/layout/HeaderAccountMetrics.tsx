@@ -11,12 +11,10 @@ function CreditIcon() {
 export function HeaderAccountMetrics({
   isSignedIn,
   liveBalance,
-  isDemoWallet = false,
   activityState,
 }: {
   isSignedIn: boolean;
   liveBalance: string | null;
-  isDemoWallet?: boolean;
   activityState: AccountActivity;
 }) {
   const state = activityState;
@@ -39,10 +37,9 @@ export function HeaderAccountMetrics({
       <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex items-center text-white hover:opacity-80">
         <EntryTicket count={ticketCount} />
       </Link>
-      <Link href={walletHistoryHref} aria-label={`${isDemoWallet ? "Demo " : ""}${balance} playable balance`} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
+      <Link href={walletHistoryHref} aria-label={`${balance} playable balance`} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
         <CreditIcon />
         <span className="text-sm font-bold tabular-nums sm:text-xl">{balance}</span>
-        {isDemoWallet ? <span className="text-[9px] font-bold uppercase text-cyan-300">Demo</span> : null}
       </Link>
     </>
   );

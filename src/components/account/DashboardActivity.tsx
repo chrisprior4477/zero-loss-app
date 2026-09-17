@@ -10,7 +10,6 @@ export function DashboardActivity({ state, selectedSlug }: { state: AccountActiv
       <div><h2 id="dashboard-activity-heading" className="text-2xl font-black tracking-tight text-white">Your latest activity</h2><p className="mt-1 text-sm text-[#b5cce4]">What’s still open, what’s ready, and what you can complete.</p></div>
       <Link href="/account/entries" className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-bold text-cyan-300 hover:text-cyan-100 focus-visible:outline-2 focus-visible:outline-cyan-300">View all My Zero Loss <span aria-hidden="true">›</span></Link>
     </div>
-    {state.isPreview ? <p className="mt-3 text-xs leading-5 text-[#9bb3ce]">Sample activity for visual review. No entries, rewards or purchases have been created.</p> : null}
     <div className="mt-4">
       {recent.length ? <ActivityRows items={recent} destination="/account" compact /> : <div className="rounded-2xl border border-white/10 bg-[#06223d] p-6">
         <h3 className="text-lg font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : "Your next choice starts here"}</h3>

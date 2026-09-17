@@ -13,5 +13,5 @@ export function ActivitySelection({ state, selectedSlug, destination, filter = "
   const item = state.activity.find(entry => entry.slug === selectedSlug);
   // Keep previously shared detail URLs working, without the old second panel.
   if (item && isWalletReward(item) && state.source !== "unavailable") redirect(walletRewardHref(item));
-  return item ? <ActivityDetailDialog key={item.slug} item={item} isPreview={state.isPreview} destination={destination} filter={filter} /> : <p role="status" className="mt-4 rounded-xl border border-white/10 px-4 py-3 text-sm text-[#b5cce4]">That activity is not available in your account.</p>;
+  return item ? <ActivityDetailDialog key={item.slug} item={item} destination={destination} filter={filter} /> : <p role="status" className="mt-4 rounded-xl border border-white/10 px-4 py-3 text-sm text-[#b5cce4]">That activity is not available in your account.</p>;
 }

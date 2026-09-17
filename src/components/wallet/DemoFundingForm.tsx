@@ -12,23 +12,24 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
       try { sessionStorage.removeItem(storageKey); } catch { /* DB recovery remains available. */ }
     }
   }, [state.status, storageKey]);
-  if (state.status === "succeeded") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more demo funds</button></div>;
+  if (state.status === "succeeded") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div>;
   return <form action={action} onSubmit={() => {
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
     try { sessionStorage.setItem(storageKey, JSON.stringify({ key: requestKey, amount })); } catch { /* Owner-scoped pending requests remain in the database. */ }
-  }} className="mt-5 space-y-3" aria-label="Add demo funds">
+  }} className="mt-5 space-y-3" aria-label="Add funds">
     <input type="hidden" name="idempotencyKey" value={requestKey} />
     <input type="hidden" name="amountCents" value={amount} />
     <input type="hidden" name="currency" value="USD" />
-    <label className="block text-sm font-bold text-white">Demo amount (USD)
-      <select aria-label="Demo amount (USD)" value={amount} onChange={event => setAmount(event.target.value)} disabled={pending || recovered || state.status !== "idle"} className="mt-2 block min-h-11 w-full rounded-xl border border-cyan-300/30 bg-[#06223d] px-3 text-white">
+    <label className="block text-sm font-bold text-white">Amount (USD)
+      <select aria-label="Amount (USD)" value={amount} onChange={event => setAmount(event.target.value)} disabled={pending || recovered || state.status !== "idle"} className="mt-2 block min-h-11 w-full rounded-xl border border-cyan-300/30 bg-[#06223d] px-3 text-white">
         <option value="100">$1.00</option><option value="1000">$10.00</option><option value="2500">$25.00</option><option value="10000">$100.00</option>
       </select>
     </label>
-    <button disabled={pending || (blocked && state.status === "idle")} className="min-h-12 w-full rounded-xl bg-[#31e800] px-4 text-sm font-black text-[#002719] disabled:cursor-not-allowed disabled:opacity-60">{pending ? "Checking demo payment…" : recovered || state.status !== "idle" ? "Retry same request" : "Add demo funds"}</button>
+    <button disabled={pending || (blocked && state.status === "idle")} className="min-h-12 w-full rounded-xl bg-[#31e800] px-4 text-sm font-black text-[#002719] disabled:cursor-not-allowed disabled:opacity-60">{pending ? "Checking payment…" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {recovered ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
-    <p className="text-xs leading-5 text-[#b5cce4]">Simulated payment only. No card details, real money, entries or prizes. Limits: 3 requests/minute, 20/day and $1,000 total per test account.</p>
+    <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
+    <p className="text-xs leading-5 text-[#b5cce4]">No card details, entries or prizes. Limits: 3 requests/minute, 20/day and $1,000 total per account.</p>
   </form>;
 }
 
@@ -60,12 +61,12 @@ function CheckFundingRequest({ id }: { id: string }) {
 }
 
 export function DemoFundingRequests({ requests, fundingEnabled }: { requests: DemoFundingRequest[] | null; fundingEnabled: boolean }) {
-  return <section className="mt-6" aria-label="Demo payment requests"><h2 className="text-xl font-bold text-white">Demo payment requests</h2>
+  return <section className="mt-6" aria-label="Payment requests"><h2 className="text-xl font-bold text-white">Payment requests</h2>
     <p className="mt-2 text-sm text-[#b5cce4]">Payment requests are separate from posted ledger credits. Check an interrupted request here.</p>
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
-      : requests.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">No demo funding requests yet.</p>
+      : requests.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">No funding requests yet.</p>
       : <ul className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]">{requests.map(request => <li key={request.id} className="p-4">
-        <p className="flex flex-wrap justify-between gap-2 text-sm font-bold text-white"><span>{formatUsdFromCents(request.amount)} demo USD</span><span className={request.reconciliation === "reconciled" ? "text-[#72ff9f]" : "text-amber-100"}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
+        <p className="flex flex-wrap justify-between gap-2 text-sm font-bold text-white"><span>{formatUsdFromCents(request.amount)} USD</span><span className={request.reconciliation === "reconciled" ? "text-[#72ff9f]" : "text-amber-100"}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         <p className="mt-2 break-all text-[10px] text-[#b5cce4]">Request {request.id}</p>
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it.</p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} /> : null}
       </li>)}</ul>}

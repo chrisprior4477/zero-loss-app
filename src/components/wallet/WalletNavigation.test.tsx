@@ -19,9 +19,9 @@ test("wallet shortcut count comes only from digital prize activity, not entries 
   expect(walletRewards(state)).toHaveLength(1);
   expect(activityHref(state.activity[1], "/account", "prize")).toBe("/account/wallet?reward=nike-court-shot-shoes");
   const { rerender } = render(<WalletShortcut state={state} />);
-  expect(screen.getByRole("link", { name: "Your wallet — 1 sample reward" }).getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes");
+  expect(screen.getByRole("link", { name: "Prize Ready — 1 reward" }).getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes");
   rerender(<WalletShortcut state={drawerState(false, false)} />);
-  expect(screen.getByRole("link", { name: "Your wallet — Reward count unavailable" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Prize Ready — Reward count unavailable" })).toBeTruthy();
   expect(screen.queryByText("0")).toBeNull();
 });
 

@@ -31,7 +31,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       {sections.map(([label, href, current]) => <Link key={href} href={href} aria-current={current ? "page" : undefined} className={`inline-flex min-h-12 items-center border-b-2 px-2 text-sm font-bold focus-visible:outline-2 focus-visible:outline-cyan-300 ${current ? "border-[#31ff83] text-[#72ff9f]" : "border-transparent text-[#b5cce4] hover:text-white"}`}>{label}</Link>)}
     </nav>
     {requestedReward ? reward ? <WalletRewardDetail item={reward} isPreview={account.activity.isPreview} /> : <div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h2 className="text-lg font-bold text-white">Reward unavailable</h2><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href="/account/wallet" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div>
-      : history ? <WalletOverview wallet={account.wallet} previewAuthorized={account.previewAuthorized} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} /> : <WalletRewards state={account.activity} />}
+      : history ? <WalletOverview wallet={account.wallet} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} /> : <WalletRewards state={account.activity} />}
     </main>
   </PageContainer>;
 }

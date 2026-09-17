@@ -22,7 +22,6 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   const query = await searchParams;
   const selectedSlug = typeof query.item === "string" ? query.item : undefined;
   const { displayName: fullName, initials, avatarUrl, balanceLabel: balance } = account;
-  const isDemoWallet = account.wallet?.scope === "demo";
 
   return (
     <PageContainer>
@@ -40,7 +39,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         </header>
 
         <section aria-label="Your Zero Loss overview" className="mt-5 grid gap-3 lg:grid-cols-3">
-          <PlayableBalanceCard balanceLabel={balance} isDemoWallet={isDemoWallet} fundingEnabled={account.fundingEnabled} />
+          <PlayableBalanceCard balanceLabel={balance} fundingEnabled={account.fundingEnabled} />
           <WalletShortcut state={account.activity} dashboard />
           <MyZeroLossSummary state={account.activity} />
         </section>
@@ -56,8 +55,6 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
             </Link>
           ))}
         </section>
-
-        <p className="mt-4 text-center text-xs leading-5 text-white/50">The balance is read from your account’s database ledger. {account.fundingEnabled ? "Demo funding is enabled. Real payments, entry purchases and rewards remain disabled." : "No payments or rewards are enabled for this account."}</p>
       </main>
     </PageContainer>
   );

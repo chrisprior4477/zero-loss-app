@@ -8,16 +8,17 @@ test("form submits cents, USD and a stable request key", () => {
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("2500");
   expect(container.querySelector<HTMLInputElement>('[name="currency"]')?.value).toBe("USD");
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("stable_demo_request_001");
-  expect((screen.getByRole("button", { name: "Add demo funds" }) as HTMLButtonElement).disabled).toBe(false);
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
+  expect(screen.getByText("Simulation only — no payment will be processed.")).toBeTruthy();
 });
 test("unknown or outstanding requests block a new form submission", () => {
   render(<DemoFundingForm requestKey="stable_demo_request_001" blocked />);
-  expect((screen.getByRole("button", { name: "Add demo funds" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
 });
 test("failed request list is unavailable, not empty", () => {
   render(<DemoFundingRequests requests={null} fundingEnabled />);
   expect(screen.getByRole("alert").textContent).toContain("unavailable");
-  expect(screen.queryByText("No demo funding requests yet.")).toBeNull();
+  expect(screen.queryByText("No funding requests yet.")).toBeNull();
 });
 test("reload restores the original payment key and amount, never a fresh payment", () => {
   sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount: "1000" }));
