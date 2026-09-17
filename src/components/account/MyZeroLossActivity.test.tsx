@@ -194,4 +194,11 @@ test("gallery supports click-hold dragging without opening the dragged card", ()
   expect(track.getAttribute("data-dragging")).toBe("false");
   const card = track.querySelector("a[data-activity-slug]")!;
   expect(card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }))).toBe(false);
+
+  let preventedBeforeCardHandler = true;
+  card.addEventListener("click", event => { preventedBeforeCardHandler = event.defaultPrevented; event.preventDefault(); }, { once: true });
+  fireEvent.pointerDown(card, { button: 0, clientX: 140, pointerId: 8, pointerType: "mouse" });
+  fireEvent.pointerUp(card, { clientX: 140, pointerId: 8, pointerType: "mouse" });
+  fireEvent.click(card);
+  expect(preventedBeforeCardHandler).toBe(false);
 });
