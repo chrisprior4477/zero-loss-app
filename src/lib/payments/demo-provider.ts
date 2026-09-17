@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { DEMO_CARD_TOKEN, parseDemoCard, type DemoCard } from "./demo-card";
 
 export type DemoFundingRequest = {
   id: string; amount: number; currency: "USD"; status: string; created_at: string;
@@ -17,11 +18,20 @@ export class FundingFailure extends Error {
 export class DemoPaymentProvider {
   constructor(private readonly db: SupabaseClient) {}
 
-  async createFundingSession(amountCents: number, key: string): Promise<string> {
-    const { data, error } = await this.db.rpc("create_demo_funding_session", { p_amount: amountCents, p_idempotency_key: key });
+  async createFundingSession(amountCents: number, key: string, makeDefault: boolean | null): Promise<string> {
+    const { data, error } = makeDefault === null
+      ? await this.db.rpc("resume_demo_funding_session", { p_amount: amountCents, p_idempotency_key: key })
+      : await this.db.rpc("create_demo_card_funding_session", { p_amount: amountCents, p_idempotency_key: key,
+        p_payment_method: DEMO_CARD_TOKEN, p_make_default: makeDefault });
     if (error) throw new FundingFailure(error.code, error.message);
     if (!data || typeof data.id !== "string") throw new Error("Unconfirmed funding request");
     return data.id;
+  }
+
+  async getPaymentMethod(): Promise<DemoCard | null> {
+    const { data, error } = await this.db.rpc("get_demo_payment_method");
+    if (error) throw new FundingFailure(error.code, error.message);
+    return parseDemoCard(data);
   }
 
   async finishFunding(sessionId: string): Promise<void> {

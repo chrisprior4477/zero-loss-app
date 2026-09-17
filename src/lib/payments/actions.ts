@@ -8,6 +8,7 @@ import { DemoPaymentProvider, FundingFailure } from "./demo-provider";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { DEMO_CARD_TOKEN } from "./demo-card";
 
 export type DemoFundingActionState =
   | { status: "idle" }
@@ -44,11 +45,16 @@ export async function completeDemoFunding(
 ): Promise<DemoFundingActionState> {
   const amountCents = Number(formData.get("amountCents"));
   const idempotencyKey = String(formData.get("idempotencyKey") ?? "");
+  const recoveryOnly = formData.get("recoveryOnly") === "true";
 
   try {
     if (formData.get("currency") !== "USD") throw new Error("Only USD demo funding is supported.");
     assertFundingAmount(amountCents);
     assertIdempotencyKey(idempotencyKey);
+    if (!recoveryOnly && (formData.get("paymentMethod") !== DEMO_CARD_TOKEN
+      || !["true", "false"].includes(String(formData.get("makeDefault"))))) {
+      throw new Error("Choose the supplied test card. Real cards are not accepted.");
+    }
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "Invalid funding request." };
   }
@@ -56,7 +62,8 @@ export async function completeDemoFunding(
   let result: DemoFundingActionState;
   try {
     const provider = await fundingProvider();
-    const sessionId = await provider.createFundingSession(amountCents, idempotencyKey);
+    const sessionId = await provider.createFundingSession(amountCents, idempotencyKey,
+      recoveryOnly ? null : formData.get("makeDefault") === "true");
     await provider.finishFunding(sessionId);
     result = { status: "succeeded", message: "Demo funds added. Your updated balance comes from the database ledger. No real money was charged." };
   } catch (error) { result = failure(error); }

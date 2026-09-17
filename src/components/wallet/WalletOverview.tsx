@@ -2,8 +2,9 @@ import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
+import type { DemoCard } from "@/lib/payments/demo-card";
 
-export function WalletOverview({ wallet, fundingEnabled = false, requestKey = "", requests = null }: { wallet: WalletSnapshot | null; fundingEnabled?: boolean; requestKey?: string; requests?: DemoFundingRequest[] | null }) {
+export function WalletOverview({ wallet, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, cardUnavailable = false }: { wallet: WalletSnapshot | null; fundingEnabled?: boolean; requestKey?: string; requests?: DemoFundingRequest[] | null; savedCard?: DemoCard | null; cardUnavailable?: boolean }) {
   const demo = wallet?.scope === "demo";
   const balance = wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable";
   return <div className="mt-7 grid items-start gap-6 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.4fr)]">
@@ -11,7 +12,7 @@ export function WalletOverview({ wallet, fundingEnabled = false, requestKey = ""
       <h2 className="text-xs font-black uppercase tracking-widest text-[#b5cce4]">Playable Wallet</h2>
       <p data-testid="wallet-balance" className="mt-3 break-words text-4xl font-black tabular-nums text-[#31e800] sm:text-5xl">{balance}</p>
       <p className="mt-2 text-xs text-[#b5cce4]">USD · {wallet ? "Database ledger balance" : "Balance could not be verified"}</p>
-      {fundingEnabled && demo && wallet?.fundingAvailable ? <DemoFundingForm requestKey={requestKey} walletId={wallet.walletAccountId!} blocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} /> : <>
+      {fundingEnabled && demo && wallet?.fundingAvailable ? <DemoFundingForm requestKey={requestKey} walletId={wallet.walletAccountId!} savedCard={savedCard} cardUnavailable={cardUnavailable} blocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} /> : <>
       <button disabled type="button" className="mt-6 min-h-12 w-full cursor-not-allowed rounded-xl bg-[#31e800] px-5 text-sm font-black text-[#002719]">Add funds</button>
       <p className="mt-3 text-sm font-bold text-white">Funding is not available for this account.</p></>}
     </section>

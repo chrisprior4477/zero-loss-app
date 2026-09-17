@@ -10,3 +10,13 @@ test.each([null, {}, [{ id: "a", amount: 0, currency: "USD", created_at: "2026-0
   const rpc = vi.fn().mockResolvedValue({ data });
   await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).getRequests()).rejects.toThrow();
 });
+
+test.each([undefined, {}, { token: "other", lastFour: "4242", isDefault: true }, { token: "demo_card_4242", lastFour: "4242", isDefault: "true" }])("malformed saved card fails closed", async data => {
+  const rpc = vi.fn().mockResolvedValue({ data });
+  await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).getPaymentMethod()).rejects.toThrow();
+});
+
+test.each([null, { token: "demo_card_4242", lastFour: "4242", isDefault: true }])("reads only safe saved-card metadata", async data => {
+  const rpc = vi.fn().mockResolvedValue({ data });
+  await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).getPaymentMethod()).resolves.toEqual(data);
+});

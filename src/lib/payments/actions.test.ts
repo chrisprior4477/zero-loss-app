@@ -6,7 +6,7 @@ import { completeDemoFunding, reconcileDemoFunding } from "./actions";
 const sid = "99999999-9999-4999-8999-999999999999";
 const snapshot = { walletAccountId: sid, scope: "demo", currency: "USD", balanceCents: "0", transactionCount: "0", entries: [], fundingAvailable: true };
 function form() {
-  const value = new FormData(); value.set("amountCents", "2500"); value.set("currency", "USD"); value.set("idempotencyKey", "funding_review_check_001"); return value;
+  const value = new FormData(); value.set("amountCents", "2500"); value.set("currency", "USD"); value.set("idempotencyKey", "funding_review_check_001"); value.set("paymentMethod", "demo_card_4242"); value.set("makeDefault", "true"); return value;
 }
 beforeEach(() => {
   vi.resetAllMocks();
@@ -16,15 +16,15 @@ beforeEach(() => {
   mocks.getUser.mockResolvedValue({ data: { user: { id: "own-user", email_confirmed_at: "2026-09-14" } } });
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "ensure_preview_customer" ? { walletAccountId: sid, scope: "demo", fundingAvailable: true }
     : name === "get_wallet_snapshot" ? snapshot
-    : name === "create_demo_funding_session" ? { id: sid }
+    : ["create_demo_card_funding_session", "resume_demo_funding_session"].includes(name) ? { id: sid }
     : name === "simulate_demo_payment" ? { body: "signed-by-demo-provider", signature: "provider-signature" }
     : { status: "succeeded", sessionId: sid } }));
 });
 afterEach(() => vi.unstubAllEnvs());
 test("request, durable provider and verified consumer run in order and refresh shared views", async () => {
   expect((await completeDemoFunding({ status: "idle" }, form())).status).toBe("succeeded");
-  expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot", "create_demo_funding_session", "simulate_demo_payment", "accept_demo_payment_event"]);
-  expect(mocks.rpc).toHaveBeenCalledWith("create_demo_funding_session", { p_amount: 2500, p_idempotency_key: "funding_review_check_001" });
+  expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot", "create_demo_card_funding_session", "simulate_demo_payment", "accept_demo_payment_event"]);
+  expect(mocks.rpc).toHaveBeenCalledWith("create_demo_card_funding_session", { p_amount: 2500, p_idempotency_key: "funding_review_check_001", p_payment_method: "demo_card_4242", p_make_default: true });
   expect(mocks.rpc).toHaveBeenCalledWith("accept_demo_payment_event", { p_body: "signed-by-demo-provider", p_signature: "provider-signature" });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
 });
@@ -59,7 +59,7 @@ test("read-only permission cannot reach a write path, including simultaneous cal
 test.each(["simulate_demo_payment", "accept_demo_payment_event"])("lost %s response is unknown, not declined or unchanged", async lost => {
   mocks.rpc.mockImplementation(async name => {
     if (name === lost) throw new Error("network timeout after commit");
-    return { data: name === "ensure_preview_customer" ? { walletAccountId: sid, scope: "demo", fundingAvailable: true } : name === "get_wallet_snapshot" ? snapshot : name === "create_demo_funding_session" ? { id: sid } : { body: "receipt", signature: "signed" } };
+    return { data: name === "ensure_preview_customer" ? { walletAccountId: sid, scope: "demo", fundingAvailable: true } : name === "get_wallet_snapshot" ? snapshot : name === "create_demo_card_funding_session" ? { id: sid } : { body: "receipt", signature: "signed" } };
   });
   expect((await completeDemoFunding({ status: "idle" }, form())).status).toBe("pending");
   if (lost === "simulate_demo_payment") expect(mocks.rpc.mock.calls.some(call => call[0] === "accept_demo_payment_event")).toBe(false);
@@ -77,4 +77,26 @@ test("reconciliation retries existing session, never creates a replacement", asy
 test("reconciliation rejects malformed identifier before any RPC", async () => {
   const f = new FormData(); f.set("sessionId", "not-an-id");
   expect((await reconcileDemoFunding({ status: "idle" }, f)).status).toBe("error"); expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
+test.each(["", "a-real-card-token", "4242424242424242"])("rejects unsupported method %s before database access", async method => {
+  const f = form(); f.set("paymentMethod", method);
+  expect((await completeDemoFunding({ status: "idle" }, f)).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
+test("default is explicit, not truthy coercion", async () => {
+  const f = form(); f.set("makeDefault", "false");
+  expect((await completeDemoFunding({ status: "idle" }, f)).status).toBe("succeeded");
+  expect(mocks.rpc).toHaveBeenCalledWith("create_demo_card_funding_session", expect.objectContaining({ p_make_default: false }));
+  mocks.rpc.mockClear(); f.delete("makeDefault");
+  expect((await completeDemoFunding({ status: "idle" }, f)).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
+test("legacy browser recovery only looks up an existing request", async () => {
+  const f = form(); f.delete("paymentMethod"); f.delete("makeDefault"); f.set("recoveryOnly", "true");
+  expect((await completeDemoFunding({ status: "idle" }, f)).status).toBe("succeeded");
+  expect(mocks.rpc).toHaveBeenCalledWith("resume_demo_funding_session", { p_amount: 2500, p_idempotency_key: "funding_review_check_001" });
+  expect(mocks.rpc.mock.calls.some(call => call[0].startsWith("create_demo"))).toBe(false);
 });

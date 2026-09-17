@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn() }));
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 afterEach(() => { cleanup(); sessionStorage.clear(); });
@@ -26,6 +26,46 @@ test("reload restores the original payment key and amount, never a fresh payment
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("original_request_key_01");
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("1000");
   expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy();
+  expect(container.querySelector<HTMLInputElement>('[name="recoveryOnly"]')?.value).toBe("true");
+});
+
+test("test card is read-only and card credentials are never submitted", () => {
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
+  expect(screen.getByRole("region", { name: "Add Credit Card" })).toBeTruthy();
+  for (const name of ["Test card number", "Test card expiry", "Test card security code"]) {
+    const input = screen.getByLabelText(name) as HTMLInputElement;
+    expect(input.readOnly).toBe(true);
+    expect(input.name).toBe("");
+  }
+  const form = new FormData(container.querySelector("form")!);
+  expect(form.get("paymentMethod")).toBe("demo_card_4242");
+  expect(form.get("makeDefault")).toBe("false");
+  expect([...form.values()]).not.toContain("4242 4242 4242 4242");
+  expect([...form.values()]).not.toContain("123");
+});
+
+test("saved default is restored and customer may opt out", () => {
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCard={{ token: "demo_card_4242", lastFour: "4242", isDefault: true }} />);
+  const checkbox = screen.getByRole("checkbox", { name: "Use as my default payment method" }) as HTMLInputElement;
+  expect(checkbox.checked).toBe(true);
+  expect(container.querySelector("details")?.open).toBe(false);
+  fireEvent.click(checkbox);
+  expect(container.querySelector<HTMLInputElement>('[name="makeDefault"]')?.value).toBe("false");
+});
+
+test("retry restores and locks the original default preference, not the current preference", () => {
+  sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount: "1000", paymentMethod: "demo_card_4242", makeDefault: true }));
+  const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" blocked={false} />);
+  const checkbox = screen.getByRole("checkbox") as HTMLInputElement;
+  expect(checkbox.checked).toBe(true);
+  expect(checkbox.disabled).toBe(true);
+  expect(container.querySelector<HTMLInputElement>('[name="recoveryOnly"]')?.value).toBe("false");
+});
+
+test("failed saved-card lookup blocks a fresh payment rather than overwriting the preference", () => {
+  render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} cardUnavailable />);
+  expect(screen.getByRole("alert").textContent).toContain("couldn’t be loaded");
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
 });
 test("pending request offers recovery but discrepancy requires review", () => {
   render(<DemoFundingRequests fundingEnabled requests={[
