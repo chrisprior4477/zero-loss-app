@@ -71,8 +71,7 @@ export function AccountSecurityDashboard({
 
       <section className={styles.profileHero} aria-label="Account identity">
         <div className={styles.profileSlot}>
-          <ProfilePhotoCard initials={initials} fullName={displayName} email={emailLabel} initialAvatarUrl={avatarUrl} compact />
-          <p className={styles.verification} data-confirmed={emailConfirmed}><span aria-hidden="true">{emailConfirmed ? "✓" : "!"}</span>{emailConfirmed ? "Verified" : "Confirmation pending"}</p>
+          <ProfilePhotoCard initials={initials} fullName={displayName} email={emailLabel} initialAvatarUrl={avatarUrl} compact emailStatus={emailConfirmed ? "verified" : "pending"} />
         </div>
         <dl className={styles.accountFacts}>
           <div><dt>Member since</dt><dd>{formatDate(memberSince)}</dd></div>

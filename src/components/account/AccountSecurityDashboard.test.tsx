@@ -3,7 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { AccountSecurityDashboard } from "./AccountSecurityDashboard";
 
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role={alt ? "img" : undefined} aria-label={alt || undefined} data-testid="security-art" /> }));
-vi.mock("./ProfilePhotoCard", () => ({ ProfilePhotoCard: ({ fullName, email }: { fullName: string; email: string }) => <article><h2>{fullName}</h2><p>{email}</p><button type="button">Adjust profile photo</button></article> }));
+vi.mock("./ProfilePhotoCard", () => ({ ProfilePhotoCard: ({ fullName, email, emailStatus }: { fullName: string; email: string; emailStatus?: "verified" | "pending" }) => <article><h2>{fullName}</h2><p>{email}</p>{emailStatus ? <span>{emailStatus === "verified" ? "Verified" : "Confirmation pending"}</span> : null}<button type="button">Adjust profile photo</button></article> }));
 afterEach(cleanup);
 
 const props = {
