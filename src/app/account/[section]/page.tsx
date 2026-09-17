@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { AccountSecurityDashboard } from "@/components/account/AccountSecurityDashboard";
+import { OrdersFulfillment } from "@/components/account/OrdersFulfillment";
 import { getAccountContext } from "@/lib/account/context";
 
 export const metadata: Metadata = { title: "My Account" };
@@ -72,6 +73,8 @@ export default async function LiveAccountSection({
       phone={account.phone}
     />;
   }
+
+  if (section === "orders") return <OrdersFulfillment state={account.activity} />;
 
   return (
     <PageContainer>
