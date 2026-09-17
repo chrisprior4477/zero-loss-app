@@ -32,6 +32,7 @@ test("notification filters, links, and read controls remain functional", () => {
   const notifications = buildAccountNotifications(storedActivityFixture(), wallet, true);
   render(<NotificationsCenter notifications={notifications} activityAvailable walletAvailable />);
   expect(screen.getByRole("heading", { name: "Notifications" })).toBeTruthy();
+  expect(screen.queryByText("Ø")).toBeNull();
   expect(screen.getByRole("link", { name: /Show barcode/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
   fireEvent.click(screen.getByRole("button", { name: /Orders0/ }));
   expect(screen.getByText("No order updates")).toBeTruthy();

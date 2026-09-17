@@ -54,7 +54,6 @@ export function NotificationsCenter({ notifications, activityAvailable, walletAv
             <p>New verified updates will appear here automatically.</p>
           </div> : visible.map(notification => <article key={notification.id} className={styles.notification} data-tone={notification.tone} data-read={read.has(notification.id)}>
             <span aria-hidden="true" className={styles.unreadDot} />
-            <span className={styles.brandMark}><span>Ø</span></span>
             <div className={styles.copy}>
               <h2>{notification.title}</h2>
               <p className={styles.meta}>{notification.meta}</p>
