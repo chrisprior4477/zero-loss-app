@@ -1,0 +1,119 @@
+.page { position: relative; isolation: isolate; min-height: calc(100svh - 140px); overflow: hidden; padding: 24px clamp(14px, 2.4vw, 38px) 46px; color: #f7fbff; background: #00172b; }
+.page::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, #001326f2, #00182bb8 48%, #001426f0), url('/account/showroom-v1.webp') center / cover fixed; }
+.page::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #00172b24, transparent 48%, #00172b4a); pointer-events: none; }
+.shell { max-width: 1440px; margin: 0 auto; }
+.heading > p { color: #22e7ef; font-size: 12px; font-weight: 850; letter-spacing: .2em; text-transform: uppercase; }
+.heading h1 { margin-top: 5px; font-size: clamp(42px, 4.7vw, 66px); font-weight: 850; line-height: .97; letter-spacing: -.05em; }
+.heading > span { display: block; margin-top: 9px; color: #d5e1ed; font-size: clamp(16px, 1.55vw, 22px); }
+.profileHero { position: relative; display: grid; grid-template-columns: minmax(400px, 1.05fr) minmax(310px, .75fr) minmax(260px, .7fr); min-height: 205px; align-items: center; gap: 18px; margin-top: 16px; overflow: hidden; border: 1px solid #55eefe; border-radius: 12px; background: linear-gradient(100deg, #00213be8, #00172ddc 63%, #00334b9c); box-shadow: inset 0 0 30px #00cfff24, 0 0 15px #00d9ff55, 0 12px 30px #0006; }
+.profileSlot { position: relative; z-index: 2; padding: 22px 0 22px 24px; }
+.profileSlot > article { border: 0; border-radius: 0; background: transparent; padding: 0; }
+.profileSlot > article > div { gap: 20px; }
+.profileSlot button[aria-label="Adjust profile photo"], .profileSlot button[aria-label="Add profile photo"] { width: 94px; height: 94px; border-width: 2px; border-color: #6af4ff; background: #67eef3; color: #001827; font-size: 27px; }
+.profileSlot h2 { font-size: clamp(23px, 2vw, 31px); }
+.profileSlot article p { color: #d4e3ef; font-size: 13px; }
+.profileSlot article div div > button:last-child { min-height: 42px; border-radius: 7px; background: #00233fc9; color: #f5fbff; }
+.verification { position: absolute; left: 148px; top: 104px; display: flex; align-items: center; gap: 6px; color: #57ff75; font-size: 12px; font-weight: 750; }
+.verification[data-confirmed="false"] { color: #ffc062; }
+.verification span { display: grid; width: 17px; height: 17px; place-items: center; border-radius: 50%; background: currentColor; color: #002333; font-size: 11px; }
+.accountFacts { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 1.35fr; align-items: center; }
+.accountFacts > div { min-height: 74px; padding: 9px 22px; border-left: 1px solid #1ce2ed; }
+.accountFacts dt { color: #a9c2d7; font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.accountFacts dd { margin-top: 8px; color: #fff; font-size: 17px; font-weight: 800; line-height: 1.2; }
+.accountFacts dd.active, .accountFacts dd.pending { display: flex; align-items: center; gap: 8px; color: #57ff75; }
+.accountFacts dd.pending { color: #ffc062; }
+.accountFacts dd span { width: 11px; height: 11px; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; }
+.accountFacts p { margin-top: 7px; color: #bcd0e1; font-size: 10px; line-height: 1.35; }
+.shieldArt { position: relative; z-index: 1; align-self: end; width: 100%; height: 205px; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 16px 18px #000a) drop-shadow(0 0 13px #00d5ff66); }
+.securityCards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; margin-top: 16px; }
+.controlCard, .signIns, .personalInfo { border: 1px solid #0dafda; border-radius: 11px; background: linear-gradient(135deg, #00213be9, #00172de8); box-shadow: inset 0 0 22px #0088bf1f, 0 10px 28px #0005; }
+.controlCard { display: grid; grid-template-columns: 45px minmax(0, 1fr); grid-template-rows: 1fr auto; gap: 10px 15px; min-height: 190px; padding: 20px; }
+.cardIcon { display: grid; width: 39px; height: 39px; place-items: center; color: #e8faff; }
+.cardIcon svg { width: 34px; height: 34px; }
+.controlCard h2, .signIns h2, .personalInfo h2 { color: #fff; font-size: 20px; font-weight: 820; letter-spacing: -.02em; }
+.controlCard p { margin-top: 8px; color: #ccdae7; font-size: 13px; line-height: 1.4; }
+.controlCard small { display: block; margin-top: 8px; color: #6fa1bb; font-size: 10px; }
+.controlCard button { grid-column: 1 / -1; display: flex; min-height: 43px; align-items: center; justify-content: center; gap: 10px; border: 1px solid #0bbfea; border-radius: 6px; color: #a9bdcc; background: #001a31bd; font-size: 13px; font-weight: 780; cursor: not-allowed; }
+.controlCard button svg { width: 19px; }
+.devicesCard { background: linear-gradient(135deg, #00213be9, #00172de8 70%, #002b43d9); }
+.detailGrid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(310px, .8fr); gap: 11px; margin-top: 11px; }
+.signIns, .personalInfo { min-height: 205px; padding: 18px 20px; }
+.signIns > header { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; padding-bottom: 11px; border-bottom: 1px solid #17698a; }
+.signIns header a { display: flex; align-items: center; gap: 8px; color: #2ce8ef; font-size: 11px; font-weight: 750; }
+.signIns header a svg { width: 18px; }
+.signInTable { font-size: 11px; }
+.tableHeader, .tableRow { display: grid; grid-template-columns: 1.15fr .8fr .85fr .42fr; align-items: center; gap: 10px; }
+.tableHeader { min-height: 34px; border-bottom: 1px solid #185b78; color: #9db9cf; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.tableRow { min-height: 48px; color: #e7f1f9; }
+.tableRow time { display: flex; gap: 12px; }
+.tableRow time b { font-weight: 600; }
+.tableRow strong { justify-self: end; padding: 3px 10px; border: 1px solid #30d854; border-radius: 999px; background: #075531; color: #72ff87; font-size: 9px; }
+.noSignIns { display: grid; min-height: 105px; place-content: center; text-align: center; }
+.noSignIns p { font-size: 13px; font-weight: 750; }
+.noSignIns span { margin-top: 5px; color: #9cb7cb; font-size: 10px; }
+.personalInfo > header { display: flex; gap: 14px; align-items: flex-start; padding-bottom: 10px; }
+.personalInfo header p { margin-top: 4px; color: #bdd0df; font-size: 11px; line-height: 1.4; }
+.personalInfo dl { border-top: 1px solid #17698a; }
+.personalInfo dl div { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 8px; padding: 7px 2px; border-bottom: 1px solid #174e69; font-size: 11px; }
+.personalInfo dt { color: #aac3d5; }
+.personalInfo dd { min-width: 0; overflow-wrap: anywhere; }
+.inlineStatus { margin-left: 7px; color: #58ff73; font-size: 9px; font-weight: 750; white-space: nowrap; }
+.personalInfo > a { display: flex; min-height: 36px; align-items: center; justify-content: center; gap: 9px; margin-top: 10px; border: 1px solid #0bbfea; border-radius: 6px; font-size: 12px; font-weight: 780; }
+.personalInfo > a:hover { background: #073e58; }
+.personalInfo > a svg { width: 18px; color: #20e7ef; }
+.page a:focus-visible, .page button:focus-visible { outline: 2px solid #9cfcff; outline-offset: 3px; }
+@media (max-width: 1120px) {
+  .profileHero { grid-template-columns: minmax(360px, 1fr) minmax(290px, .8fr) 230px; }
+  .accountFacts > div { padding-inline: 15px; }
+  .controlCard { padding: 17px; }
+}
+@media (max-width: 900px) {
+  .profileHero { grid-template-columns: minmax(350px, 1fr) minmax(280px, .8fr); }
+  .shieldArt { display: none; }
+  .securityCards { grid-template-columns: 1fr 1fr; }
+  .devicesCard { grid-column: 1 / -1; min-height: 150px; }
+  .detailGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 650px) {
+  .page { min-height: calc(100svh - 92px); padding: 20px 12px 34px; }
+  .heading h1 { font-size: 40px; }
+  .heading > span { font-size: 15px; }
+  .profileHero { display: block; min-height: 0; margin-top: 15px; }
+  .profileSlot { padding: 17px; }
+  .profileSlot button[aria-label="Adjust profile photo"], .profileSlot button[aria-label="Add profile photo"] { width: 70px; height: 70px; font-size: 20px; }
+  .profileSlot h2 { font-size: 21px; }
+  .profileSlot article div div > button:last-child { min-height: 38px; padding-inline: 11px; font-size: 11px; }
+  .verification { position: static; width: fit-content; margin: 7px 0 0 90px; font-size: 10px; }
+  .accountFacts { grid-template-columns: 1fr 1fr; border-top: 1px solid #146986; }
+  .accountFacts > div { min-height: 83px; padding: 13px 14px; }
+  .accountFacts > div:first-child { border-left: 0; }
+  .accountFacts dd { font-size: 13px; }
+  .accountFacts p { display: none; }
+  .securityCards { grid-template-columns: 1fr; gap: 8px; margin-top: 10px; }
+  .controlCard, .devicesCard { grid-template-columns: 38px minmax(0, 1fr) auto; grid-template-rows: 1fr; align-items: center; min-height: 0; padding: 13px; }
+  .cardIcon { width: 34px; height: 34px; }
+  .cardIcon svg { width: 29px; height: 29px; }
+  .controlCard h2 { font-size: 16px; }
+  .controlCard p { margin-top: 4px; font-size: 11px; }
+  .controlCard small { display: none; }
+  .controlCard button { grid-column: 3; width: 105px; min-height: 40px; padding: 7px; font-size: 10px; }
+  .detailGrid { gap: 8px; margin-top: 8px; }
+  .signIns, .personalInfo { min-height: 0; padding: 14px; }
+  .signIns h2, .personalInfo h2 { font-size: 17px; }
+  .signIns > header { grid-template-columns: 34px minmax(0, 1fr); }
+  .signIns header a { grid-column: 2; margin-top: 5px; }
+  .tableHeader { display: none; }
+  .tableRow { grid-template-columns: 1fr auto; gap: 5px 10px; padding: 11px 0 2px; }
+  .tableRow span:nth-child(2), .tableRow span:nth-child(3) { color: #9db7ca; font-size: 9px; }
+  .tableRow strong { grid-column: 2; grid-row: 1; }
+  .tableRow time { flex-direction: column; gap: 2px; }
+  .personalInfo dl div { grid-template-columns: 62px minmax(0, 1fr); }
+}
+@media (max-width: 430px) {
+  .controlCard, .devicesCard { grid-template-columns: 34px minmax(0, 1fr); }
+  .controlCard button { grid-column: 1 / -1; width: 100%; }
+  .accountFacts { grid-template-columns: 1fr; }
+  .accountFacts > div { min-height: 0; border-left: 0; border-top: 1px solid #145b77; }
+  .accountFacts > div:first-child { border-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .personalInfo > a, .signIns header a { transition: none; } }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { AccountSecurityDashboard } from "@/components/account/AccountSecurityDashboard";
 import { getAccountContext } from "@/lib/account/context";
 
 export const metadata: Metadata = { title: "My Account" };
@@ -58,6 +59,19 @@ export default async function LiveAccountSection({
   if (!account) redirect("/login");
 
   const content = liveSections[section as LiveSection];
+
+  if (section === "security") {
+    return <AccountSecurityDashboard
+      displayName={account.displayName}
+      initials={account.initials}
+      email={account.email}
+      emailConfirmed={account.emailConfirmed}
+      avatarUrl={account.avatarUrl}
+      memberSince={account.memberSince}
+      lastSignInAt={account.lastSignInAt}
+      phone={account.phone}
+    />;
+  }
 
   return (
     <PageContainer>

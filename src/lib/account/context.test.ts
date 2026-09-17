@@ -11,7 +11,7 @@ beforeEach(() => {
   vi.stubEnv("APP_DATA_ENVIRONMENT", "development-test");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://ocgdfnvvjvutevgqzzgj.supabase.co");
   vi.stubEnv("VERCEL_ENV", "preview");
-  mocks.getUser.mockResolvedValue({ data: { user: { id: "own-account", email: "Case@example.test", email_confirmed_at: "2026-09-14" } } });
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "own-account", email: "Case@example.test", email_confirmed_at: "2026-09-14", created_at: "2025-03-14T10:00:00Z", last_sign_in_at: "2026-09-16T14:24:00Z", phone: "+15551234821" } } });
   mocks.rpc.mockImplementation(async (name: string) => name === "ensure_preview_customer"
     ? { data: { walletAccountId: "99999999-9999-4999-8999-999999999999", scope: "demo", fundingAvailable: true } }
     : { data: [] });
@@ -28,7 +28,7 @@ test("reads only own profile and snapshot; normal permission never receives fixt
   expect(mocks.eq).toHaveBeenCalledWith("customer_id", "own-account");
   expect(mocks.snapshot).toHaveBeenCalledWith("own-account");
   expect(mocks.rpc).toHaveBeenCalledWith("get_account_activity");
-  expect(account).toMatchObject({ displayName: "McDonald", email: "Case@example.test", avatarUrl: "/saved/photo.webp", balanceLabel: "$0.00", fundingEnabled: true, activity: { activity: [], activeCount: 0, isPreview: true, source: "customer-empty" } });
+  expect(account).toMatchObject({ displayName: "McDonald", email: "Case@example.test", memberSince: "2025-03-14T10:00:00Z", lastSignInAt: "2026-09-16T14:24:00Z", phone: "+15551234821", avatarUrl: "/saved/photo.webp", balanceLabel: "$0.00", fundingEnabled: true, activity: { activity: [], activeCount: 0, isPreview: true, source: "customer-empty" } });
 });
 test("ordinary account context never substitutes hardcoded activity for ledger data", async () => {
   mocks.snapshot.mockResolvedValue({ balanceCents: 2500, transactionCount: 1, scope: "demo" });
