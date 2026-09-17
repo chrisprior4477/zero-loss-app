@@ -32,7 +32,10 @@ export function WalletOverview({ wallet, fundingEnabled = false, requestKey = ""
         <article className={styles.balanceCard} aria-label="Current balance">
           <div><h2>Current balance</h2><p data-testid="wallet-balance" className={styles.balance}>{balance}</p><p>{wallet ? "Your playable wallet balance." : "Balance could not be verified."}</p></div>
           <div className={styles.balanceActions}>
-            {canFund ? <a href="#add-funds" className={styles.primaryAction}><AccountIcon name="wallet" />Add funds<AccountIcon name="arrow" /></a> : <button disabled type="button" className={styles.primaryAction}><AccountIcon name="wallet" />Add funds<AccountIcon name="arrow" /></button>}
+            <div className={styles.fundingActions}>
+              {canFund ? <a href="#add-funds" className={styles.primaryAction}><AccountIcon name="wallet" />Add funds<AccountIcon name="arrow" /></a> : <button disabled type="button" className={styles.primaryAction}><AccountIcon name="wallet" />Add funds<AccountIcon name="arrow" /></button>}
+              {canFund ? <Link href="/account/wallet?view=card" className={styles.cardAction}>Add Card<AccountIcon name="arrow" /></Link> : <button disabled type="button" className={styles.cardAction}>Add Card<AccountIcon name="arrow" /></button>}
+            </div>
             <a href="#transactions" className={styles.secondaryAction}><AccountIcon name="layers" />View transactions</a>
           </div>
         </article>

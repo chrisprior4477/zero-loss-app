@@ -71,6 +71,28 @@ export async function completeDemoFunding(
   return result;
 }
 
+export async function saveDemoPaymentMethod(
+  _previous: DemoFundingActionState,
+  formData: FormData,
+): Promise<DemoFundingActionState> {
+  if (formData.get("paymentMethod") !== DEMO_CARD_TOKEN
+    || !["true", "false"].includes(String(formData.get("makeDefault")))) {
+    return { status: "error", message: "Use the supplied preview test card. Real card details are not accepted." };
+  }
+  let result: DemoFundingActionState;
+  try {
+    const card = await (await fundingProvider()).savePaymentMethod(formData.get("makeDefault") === "true");
+    result = {
+      status: "succeeded",
+      message: `Test card •••• ${card.lastFour} saved${card.isDefault ? " as your default" : ""}. No real card details were stored.`,
+    };
+  } catch (error) {
+    result = failure(error);
+  }
+  updateWalletViews();
+  return result;
+}
+
 export async function reconcileDemoFunding(_previous: DemoFundingActionState, formData: FormData): Promise<DemoFundingActionState> {
   const sessionId = formData.get("sessionId");
   if (typeof sessionId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {

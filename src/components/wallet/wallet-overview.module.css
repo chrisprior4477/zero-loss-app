@@ -24,12 +24,15 @@
 .balance { margin-top: 8px; color: #fff; font-size: clamp(44px, 5.3vw, 72px); font-weight: 850; line-height: 1; letter-spacing: -.055em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .balanceCard p:not(.balance) { margin-top: 10px; color: #bed1e3; font-size: 13px; }
 .balanceActions { display: grid; gap: 10px; }
-.primaryAction, .secondaryAction { display: flex; min-height: 54px; align-items: center; justify-content: center; gap: 11px; border: 1px solid #17bee9; border-radius: 7px; color: #fff; font-size: 14px; font-weight: 800; text-align: center; }
+.fundingActions { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 8px; }
+.primaryAction, .cardAction, .secondaryAction { display: flex; min-height: 54px; align-items: center; justify-content: center; gap: 8px; border: 1px solid #17bee9; border-radius: 7px; color: #fff; font-size: 13px; font-weight: 800; text-align: center; }
 .primaryAction { border-color: #41ff67; background: #39ed39; color: #001c14; box-shadow: 0 0 16px #35ed3640; }
-.primaryAction:disabled { cursor: not-allowed; opacity: .5; }
-.primaryAction svg, .secondaryAction svg { width: 22px; height: 22px; }
+.cardAction { background: linear-gradient(145deg, #064466, #00243d); color: #e9fbff; }
+.primaryAction:disabled, .cardAction:disabled { cursor: not-allowed; opacity: .5; }
+.primaryAction svg, .cardAction svg, .secondaryAction svg { width: 20px; height: 20px; }
+.cardAction svg { width: 16px; height: 16px; }
 .secondaryAction { background: #001c34bd; }
-.primaryAction:hover:not(:disabled), .secondaryAction:hover { filter: brightness(1.12); }
+.primaryAction:hover:not(:disabled), .cardAction:hover:not(:disabled), .secondaryAction:hover { filter: brightness(1.12); }
 .statCard { min-height: 190px; padding: 17px; border-radius: 8px; }
 .statIcon { display: grid; width: 43px; height: 43px; place-items: center; margin-bottom: 13px; border: 1px solid #0a91c5; border-radius: 7px; background: linear-gradient(145deg, #0d5281, #042944); box-shadow: inset 0 0 13px #00bfff35; }
 .statIcon svg { width: 25px; height: 25px; }
@@ -106,7 +109,7 @@
 @media (max-width: 520px) {
   .summaryGrid { grid-template-columns: 1fr; }
   .balanceCard { grid-template-columns: 1fr; }
-  .balanceActions { grid-template-columns: 1fr 1fr; min-width: 0; }
+  .balanceActions { grid-template-columns: 1fr; min-width: 0; }
   .statCard { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-rows: auto auto; align-items: center; gap: 2px 9px; min-height: 0; padding: 10px 12px; }
   .statIcon { grid-row: 1 / span 2; margin: 0; }
   .statCard h2 { align-self: end; }
@@ -114,4 +117,4 @@
   .statCard p { align-self: start; margin: 0; }
   .ledgerFilters button { min-width: 88px; }
 }
-@media (prefers-reduced-motion: reduce) { .primaryAction, .secondaryAction, .ledgerFilters button { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .primaryAction, .cardAction, .secondaryAction, .ledgerFilters button { transition: none; } }

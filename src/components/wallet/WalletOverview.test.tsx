@@ -9,6 +9,7 @@ test("verified empty snapshot displays zero and no fabricated transactions", () 
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$0.00");
   expect(screen.getByText("No transactions yet")).toBeTruthy();
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Add Card" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.queryByText("Pending funding")).toBeNull();
 });
 test("read failure shows Unavailable, not zero or no-transactions claim", () => {
@@ -29,4 +30,10 @@ test("wallet layout exposes responsive transaction filters without replacing led
   expect(screen.getByAltText("Zero Loss leather wallet")).toBeTruthy();
   expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByText("Entry purchase")).toBeTruthy();
+});
+
+test("enabled preview wallet puts Add Card beside Add funds", () => {
+  render(<WalletOverview wallet={{ ...empty, walletAccountId: "wallet-a", scope: "demo", fundingAvailable: true }} fundingEnabled requests={[]} requestKey="stable_demo_request_001" />);
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
+  expect(screen.getByRole("link", { name: "Add Card" }).getAttribute("href")).toBe("/account/wallet?view=card");
 });

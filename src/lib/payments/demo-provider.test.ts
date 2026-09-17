@@ -20,3 +20,14 @@ test.each([null, { token: "demo_card_4242", lastFour: "4242", isDefault: true }]
   const rpc = vi.fn().mockResolvedValue({ data });
   await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).getPaymentMethod()).resolves.toEqual(data);
 });
+
+test("saves only the fixed test token and returns validated metadata", async () => {
+  const rpc = vi.fn().mockResolvedValue({ data: { token: "demo_card_4242", lastFour: "4242", isDefault: true } });
+  await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).savePaymentMethod(true)).resolves.toEqual({ token: "demo_card_4242", lastFour: "4242", isDefault: true });
+  expect(rpc).toHaveBeenCalledWith("save_demo_payment_method", { p_payment_method: "demo_card_4242", p_make_default: true });
+});
+
+test("unconfirmed save response fails closed", async () => {
+  const rpc = vi.fn().mockResolvedValue({ data: null });
+  await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).savePaymentMethod(false)).rejects.toThrow("Unconfirmed");
+});

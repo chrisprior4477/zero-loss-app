@@ -34,6 +34,17 @@ export class DemoPaymentProvider {
     return parseDemoCard(data);
   }
 
+  async savePaymentMethod(makeDefault: boolean): Promise<DemoCard> {
+    const { data, error } = await this.db.rpc("save_demo_payment_method", {
+      p_payment_method: DEMO_CARD_TOKEN,
+      p_make_default: makeDefault,
+    });
+    if (error) throw new FundingFailure(error.code, error.message);
+    const card = parseDemoCard(data);
+    if (!card) throw new Error("Unconfirmed payment method");
+    return card;
+  }
+
   async finishFunding(sessionId: string): Promise<void> {
     // Owner-scoped RPC reuses the one durable receipt, even after a timeout.
     const { data: receipt, error: providerError } = await this.db.rpc("simulate_demo_payment", { p_session_id: sessionId });

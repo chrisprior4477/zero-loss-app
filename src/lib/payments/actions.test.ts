@@ -2,7 +2,7 @@ import { beforeEach, afterEach, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-import { completeDemoFunding, reconcileDemoFunding } from "./actions";
+import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod } from "./actions";
 const sid = "99999999-9999-4999-8999-999999999999";
 const snapshot = { walletAccountId: sid, scope: "demo", currency: "USD", balanceCents: "0", transactionCount: "0", entries: [], fundingAvailable: true };
 function form() {
@@ -16,6 +16,7 @@ beforeEach(() => {
   mocks.getUser.mockResolvedValue({ data: { user: { id: "own-user", email_confirmed_at: "2026-09-14" } } });
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "ensure_preview_customer" ? { walletAccountId: sid, scope: "demo", fundingAvailable: true }
     : name === "get_wallet_snapshot" ? snapshot
+    : name === "save_demo_payment_method" ? { token: "demo_card_4242", lastFour: "4242", isDefault: true }
     : ["create_demo_card_funding_session", "resume_demo_funding_session"].includes(name) ? { id: sid }
     : name === "simulate_demo_payment" ? { body: "signed-by-demo-provider", signature: "provider-signature" }
     : { status: "succeeded", sessionId: sid } }));
@@ -99,4 +100,18 @@ test("legacy browser recovery only looks up an existing request", async () => {
   expect((await completeDemoFunding({ status: "idle" }, f)).status).toBe("succeeded");
   expect(mocks.rpc).toHaveBeenCalledWith("resume_demo_funding_session", { p_amount: 2500, p_idempotency_key: "funding_review_check_001" });
   expect(mocks.rpc.mock.calls.some(call => call[0].startsWith("create_demo"))).toBe(false);
+});
+
+test("saved card uses the confirmed preview account boundary without funding", async () => {
+  const value = new FormData(); value.set("paymentMethod", "demo_card_4242"); value.set("makeDefault", "true");
+  expect(await saveDemoPaymentMethod({ status: "idle" }, value)).toEqual({ status: "succeeded", message: "Test card •••• 4242 saved as your default. No real card details were stored." });
+  expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot", "save_demo_payment_method"]);
+  expect(mocks.rpc).toHaveBeenCalledWith("save_demo_payment_method", { p_payment_method: "demo_card_4242", p_make_default: true });
+  expect(mocks.rpc.mock.calls.some(call => call[0].includes("funding_session"))).toBe(false);
+});
+
+test.each(["", "4242424242424242", "real_card_token"])("saved card rejects unsafe method %s before database access", async method => {
+  const value = new FormData(); value.set("paymentMethod", method); value.set("makeDefault", "true");
+  expect((await saveDemoPaymentMethod({ status: "idle" }, value)).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
 });

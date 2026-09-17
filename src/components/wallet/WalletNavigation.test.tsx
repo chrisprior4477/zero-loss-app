@@ -96,6 +96,13 @@ test("history link opens authoritative balance and existing history directly; fa
   expect(screen.queryByText("$0.00")).toBeNull();
 });
 
+test("card view is a direct wallet destination and fails closed outside preview funding", async () => {
+  render(await WalletPage({ searchParams: Promise.resolve({ view: "card" }) }));
+  expect(screen.getByRole("heading", { name: "Add a card" })).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Save card" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("/account/wallet?view=history#add-funds");
+});
+
 test("anonymous reward request redirects to sign-in before displaying account data", async () => {
   mocks.account.mockResolvedValue(null);
   await expect(WalletPage({ searchParams: Promise.resolve({ reward: "nike-court-shot-shoes" }) })).rejects.toThrow("redirect:/login");

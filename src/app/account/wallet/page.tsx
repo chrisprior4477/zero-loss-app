@@ -9,6 +9,7 @@ import { walletHistoryHref, walletRewards } from "@/lib/account/activity";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
+import { DemoCardManager } from "@/components/wallet/DemoCardManager";
 
 export const metadata: Metadata = { title: "Your wallet" };
 
@@ -20,9 +21,10 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   // A URL only selects from this authenticated account's authorized data.
   const reward = typeof query.reward === "string" ? walletRewards(account.activity).find(item => item.slug === query.reward) : undefined;
   const history = !requestedReward && query.view === "history";
-  const provider = history && account.wallet?.scope === "demo" ? new DemoPaymentProvider(await createClient()) : null;
+  const cardView = !requestedReward && query.view === "card";
+  const provider = (history || cardView) && account.wallet?.scope === "demo" ? new DemoPaymentProvider(await createClient()) : null;
   const [requests, savedCard] = await Promise.all([
-    provider ? provider.getRequests().catch(() => null) : null,
+    history && provider ? provider.getRequests().catch(() => null) : null,
     provider && account.fundingEnabled ? provider.getPaymentMethod().catch(() => undefined) : null,
   ]);
   if (requestedReward) {
@@ -30,6 +32,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       ? <WalletRewardDetail item={reward} isPreview={account.activity.isPreview} />
       : <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ Account Dashboard</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href="/account/wallet" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
   }
+  if (cardView) return <DemoCardManager displayName={account.displayName} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} enabled={Boolean(provider && account.fundingEnabled)} />;
   if (history) return <WalletOverview wallet={account.wallet} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} />;
   const sections = [["Your prizes", "/account/wallet", !history], ["Funds & history", walletHistoryHref, history]] as const;
   return <PageContainer>

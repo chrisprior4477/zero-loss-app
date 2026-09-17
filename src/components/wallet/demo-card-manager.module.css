@@ -1,0 +1,91 @@
+.page { position: relative; isolation: isolate; min-height: calc(100svh - 140px); overflow: hidden; padding: 24px clamp(14px, 2.4vw, 38px) 48px; color: #f7fbff; background: #00172b; }
+.page::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, #001326ed, #00182bc4 58%, #001426f2), url('/account/showroom-v1.webp') center / cover fixed; }
+.page::after { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(circle at 18% 46%, #00dcff1c, transparent 30%), radial-gradient(circle at 82% 30%, #1aff6720, transparent 25%); pointer-events: none; }
+.shell { max-width: 1240px; margin: 0 auto; }
+.breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #b9cede; font-size: 12px; }
+.breadcrumb a:hover { color: #4ceaff; }
+.header { display: flex; align-items: end; justify-content: space-between; gap: 30px; padding: 34px 2px 28px; border-bottom: 1px solid #19c8e955; }
+.eyebrow { color: #26e5ee; font-size: 11px; font-weight: 900; letter-spacing: .2em; }
+.header h1 { margin-top: 7px; font-size: clamp(42px, 5vw, 66px); font-weight: 900; line-height: .96; letter-spacing: -.05em; }
+.header p { margin-top: 10px; color: #c6d8e6; font-size: clamp(15px, 1.6vw, 20px); }
+.headerNote { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; text-align: right; }
+.headerNote strong { color: #4dff79; font-size: 11px; letter-spacing: .16em; }
+.headerNote span { color: #b5cce0; font-size: 12px; }
+.contentGrid { display: grid; grid-template-columns: minmax(320px, .8fr) minmax(480px, 1.2fr); gap: 18px; margin-top: 18px; }
+.cardPreview, .formPanel { border: 1px solid #18c6eb; border-radius: 12px; background: linear-gradient(145deg, #00213bee, #001426f2); box-shadow: inset 0 0 26px #00bff326, 0 12px 34px #0007; }
+.cardPreview { display: flex; min-height: 520px; flex-direction: column; justify-content: center; padding: clamp(22px, 3vw, 42px); }
+.cardGlow { position: relative; aspect-ratio: 1.58; overflow: hidden; padding: 28px; border: 1px solid #5eeeff; border-radius: 20px; background: radial-gradient(circle at 80% 10%, #18eaff4d, transparent 29%), linear-gradient(135deg, #075178, #001a33 56%, #063050); box-shadow: inset 0 0 30px #33dff63b, 0 0 23px #08cfff66, 0 28px 45px #0009; }
+.cardGlow::after { content: ""; position: absolute; width: 240px; height: 240px; right: -85px; bottom: -130px; border: 28px solid #34e9f526; border-radius: 50%; }
+.cardTop, .cardBottom { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.cardTop span { font-size: 13px; font-weight: 900; letter-spacing: .18em; }
+.cardTop svg { width: 32px; height: 32px; color: #59f5ff; }
+.chip { display: block; width: 48px; height: 36px; margin-top: 36px; border: 1px solid #d9e8bd; border-radius: 7px; background: linear-gradient(135deg, #f5efbb, #a9a66a); box-shadow: inset 0 0 0 5px #d7ce8e; }
+.previewNumber { margin-top: 28px; overflow-wrap: anywhere; font-size: clamp(17px, 2.1vw, 28px); font-weight: 750; letter-spacing: .11em; font-variant-numeric: tabular-nums; }
+.cardBottom { position: absolute; right: 28px; bottom: 24px; left: 28px; }
+.cardBottom span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.cardBottom span:last-child { flex: 0 0 auto; }
+.cardBottom small { display: block; margin-bottom: 3px; color: #9dbbd1; font-size: 8px; letter-spacing: .12em; }
+.savedStatus { display: flex; align-items: center; gap: 13px; margin-top: 32px; padding: 15px; border: 1px solid #146b90; border-radius: 9px; background: #00182ddb; }
+.statusIcon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border: 1px solid #33ea65; border-radius: 8px; color: #69ff91; background: #0a5035; }
+.statusIcon svg { width: 23px; height: 23px; }
+.savedStatus strong { font-size: 13px; }
+.savedStatus p { margin-top: 3px; color: #a9c2d5; font-size: 10px; }
+.formPanel { padding: clamp(22px, 3vw, 38px); }
+.panelHeading, .panelHeading > div { display: flex; align-items: center; gap: 12px; }
+.panelHeading { justify-content: space-between; }
+.step { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #29e6f1; border-radius: 50%; color: #46f3fa; font-size: 11px; font-weight: 900; box-shadow: 0 0 14px #17e4f45c; }
+.panelHeading h2 { font-size: 23px; font-weight: 850; }
+.testBadge { padding: 6px 10px; border: 1px solid #3ef26e; border-radius: 999px; color: #78ff9b; background: #0b4c31; font-size: 9px; font-weight: 900; letter-spacing: .11em; }
+.intro { margin: 17px 0 23px; color: #b9cede; font-size: 12px; line-height: 1.6; }
+.formPanel form { display: grid; gap: 15px; }
+.formPanel label { color: #c9d9e7; font-size: 11px; font-weight: 750; }
+.formPanel input:not([type="checkbox"]) { display: block; width: 100%; min-height: 50px; margin-top: 7px; padding: 0 14px; border: 1px solid #197ba4; border-radius: 7px; outline: none; background: #00192edb; color: #fff; font-size: 14px; }
+.formPanel input:not([type="checkbox"]):focus { border-color: #55f5ff; box-shadow: 0 0 0 2px #18e6f32b, 0 0 13px #00dff747; }
+.formPanel input:disabled { cursor: not-allowed; opacity: .55; }
+.fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.cardCheck { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid #13688a; border-radius: 8px; background: #001a30; }
+.cardCheck > span { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border: 1px solid #25dff0; border-radius: 8px; color: #4df3fa; }
+.cardCheck svg { width: 22px; height: 22px; }
+.cardCheck strong { font-size: 12px; }
+.cardCheck p { margin-top: 2px; color: #9db8cc; font-size: 10px; }
+.defaultChoice { display: flex; min-height: 44px; cursor: pointer; align-items: center; gap: 10px; color: #f5fbff !important; font-size: 12px !important; }
+.defaultChoice input { width: 19px; height: 19px; flex: 0 0 auto; accent-color: #35ed45; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-top: 3px; }
+.actions button, .actions a { display: flex; min-height: 52px; align-items: center; justify-content: center; gap: 10px; border: 1px solid #18bce6; border-radius: 7px; font-size: 13px; font-weight: 850; }
+.actions button { border-color: #3dff66; background: #38ed3d; color: #001e15; box-shadow: 0 0 17px #38f34840; }
+.actions button:disabled { cursor: not-allowed; opacity: .55; }
+.actions a { background: #001a31; color: #e8f7ff; }
+.actions svg { width: 20px; height: 20px; }
+.actions button:hover:not(:disabled), .actions a:hover { filter: brightness(1.12); }
+.error, .success { padding: 10px 12px; border-radius: 7px; font-size: 11px; line-height: 1.5; }
+.error { border: 1px solid #dc972f; color: #ffe3b3; background: #4a2d0e80; }
+.success { border: 1px solid #2ce55a; color: #8dffa5; background: #0a4b2e80; }
+.disclaimer { margin-top: 18px; color: #87a8bf; font-size: 9px; line-height: 1.5; text-align: center; }
+.page a:focus-visible, .page button:focus-visible, .page input:focus-visible { outline: 2px solid #9cfcff; outline-offset: 3px; }
+@media (max-width: 900px) {
+  .contentGrid { grid-template-columns: 1fr; }
+  .cardPreview { min-height: 0; }
+  .cardGlow { width: min(100%, 520px); margin: 0 auto; }
+}
+@media (max-width: 600px) {
+  .page { min-height: calc(100svh - 92px); padding: 20px 12px 34px; }
+  .header { display: block; padding: 26px 2px 22px; }
+  .header h1 { font-size: 42px; }
+  .header p { font-size: 15px; }
+  .headerNote { align-items: flex-start; margin-top: 18px; text-align: left; }
+  .cardPreview, .formPanel { padding: 16px; }
+  .cardGlow { padding: 20px; border-radius: 15px; }
+  .chip { width: 40px; height: 30px; margin-top: 19px; }
+  .previewNumber { margin-top: 16px; font-size: 15px; }
+  .cardBottom { right: 20px; bottom: 17px; left: 20px; }
+  .savedStatus { margin-top: 20px; }
+  .panelHeading h2 { font-size: 19px; }
+  .intro { margin-bottom: 18px; }
+  .actions { grid-template-columns: 1fr; }
+}
+@media (max-width: 380px) {
+  .cardGlow { min-height: 190px; aspect-ratio: auto; }
+  .fieldRow { grid-template-columns: 1fr; }
+  .testBadge { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .actions button, .actions a { transition: none; } }
