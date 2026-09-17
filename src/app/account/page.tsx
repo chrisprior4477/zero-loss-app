@@ -7,6 +7,7 @@ import { MyZeroLossSummary, PlayableBalanceCard } from "@/components/account/Acc
 import { DashboardActivity } from "@/components/account/DashboardActivity";
 import { getAccountContext } from "@/lib/account/context";
 import { WalletShortcut } from "@/components/wallet/WalletShortcut";
+import styles from "@/components/account/dashboard.module.css";
 
 export const metadata: Metadata = { title: "Account Dashboard" };
 
@@ -24,9 +25,10 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   const { displayName: fullName, initials, avatarUrl, balanceLabel: balance } = account;
 
   return (
-    <PageContainer>
+    <div className={styles.page}>
+    <PageContainer className={styles.shell}>
       <main className="mx-auto w-full max-w-6xl pb-10">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <header className={`${styles.hero} flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between`}>
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Account Dashboard</p>
             <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">Your Zero Loss, at a glance.</h1>
@@ -38,15 +40,15 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           </span>
         </header>
 
-        <section aria-label="Your Zero Loss overview" className="mt-5 grid gap-3 lg:grid-cols-3">
+        <section aria-label="Your Zero Loss overview" className={`${styles.overview} mt-4 grid gap-3 lg:grid-cols-3`}>
           <PlayableBalanceCard balanceLabel={balance} fundingEnabled={account.fundingEnabled} />
           <WalletShortcut state={account.activity} dashboard />
           <MyZeroLossSummary state={account.activity} />
         </section>
 
-        <DashboardActivity state={account.activity} selectedSlug={selectedSlug} />
+        <div className={styles.activity}><DashboardActivity state={account.activity} selectedSlug={selectedSlug} /></div>
 
-        <section aria-label="Manage your account" className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <section aria-label="Manage your account" className={`${styles.management} mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4`}>
           <ProfileShortcut fullName={fullName} initials={initials} avatarUrl={avatarUrl} />
           {accountLinks.map(([title, detail, href]) => (
             <Link key={title} href={href} className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:border-cyan-300/40 hover:bg-cyan-300/[0.06] focus-visible:outline-2 focus-visible:outline-cyan-300">
@@ -57,5 +59,6 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         </section>
       </main>
     </PageContainer>
+    </div>
   );
 }

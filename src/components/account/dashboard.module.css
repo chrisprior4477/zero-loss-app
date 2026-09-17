@@ -1,0 +1,66 @@
+.page {
+  position: relative;
+  min-height: calc(100dvh - 120px);
+  overflow: hidden;
+  border-top: 1px solid #20dfff55;
+  background:
+    linear-gradient(105deg, #00162eef 0%, #001b37ee 52%, #00152df4 100%),
+    url('/account/showroom-v1.webp') center top / cover fixed;
+}
+.page::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(circle at 85% 8%, #05cfff1c, transparent 28%), linear-gradient(180deg, transparent 65%, #00294499);
+}
+.shell { position: relative; z-index: 1; }
+.hero {
+  padding: 18px 20px;
+  border: 1px solid #1bcbef80;
+  border-radius: 14px;
+  background: linear-gradient(112deg, #001a32e8, #002b4ce8 62%, #013554d9);
+  box-shadow: inset 0 0 24px #00cfff12, 0 8px 24px #0005;
+}
+.overview > * {
+  border-color: #1ddcf0aa !important;
+  border-radius: 13px !important;
+  background: linear-gradient(135deg, #073c5ff2, #001b35f5) !important;
+  box-shadow: inset 0 0 18px #00cfff18, 0 0 12px #00cfff18;
+}
+.overview > :nth-child(2) {
+  border-color: #26ea8a80 !important;
+  background: linear-gradient(135deg, #075246ed, #002c35f5) !important;
+  box-shadow: inset 0 0 18px #26ea8a17, 0 0 12px #26ea8a17;
+}
+.overview > :nth-child(3) {
+  background: linear-gradient(135deg, #123f69f0, #17265bf4) !important;
+}
+.activity {
+  padding: 1px 18px 18px;
+  margin-top: 18px;
+  border: 1px solid #169fc266;
+  border-radius: 14px;
+  background: #001a31e0;
+  box-shadow: inset 0 0 22px #00cfff0d;
+}
+.activity :global(section) { margin-top: 18px; }
+.activity :global(section > div:last-of-type > div) {
+  border-color: #1db9dc55;
+  background: #03243cef;
+}
+.management > * {
+  border-color: #1aaaca66 !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #002541eb, #00172ced) !important;
+  box-shadow: inset 0 0 15px #00d5ff0c;
+}
+@media (max-width: 639px) {
+  .page { min-height: 100dvh; background-attachment: scroll; }
+  .shell { padding-top: 16px !important; }
+  .hero { padding: 15px; border-radius: 11px; }
+  .overview { gap: 9px !important; }
+  .overview > * { min-height: 94px; border-radius: 10px !important; }
+  .activity { padding: 1px 13px 14px; margin-top: 13px; border-radius: 11px; }
+  .management { gap: 9px !important; }
+}
