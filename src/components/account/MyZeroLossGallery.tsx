@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { activityHref, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
@@ -16,6 +16,8 @@ function action(item: ActivityItem) {
 
 export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; filter: ActivityFilter }) {
   const track = useRef<HTMLDivElement>(null);
+  const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
+  const [dragging, setDragging] = useState(false);
   const [view, setView] = useState({ start: 0, end: items.length - 1, previous: false, next: false });
   const galleryId = useId();
 
@@ -44,15 +46,66 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
     return () => { cancelAnimationFrame(frame); observer?.disconnect(); };
   }, [syncSwipe]);
 
+  function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const element = track.current;
+    if (!element) return;
+    drag.current = { active: true, moved: false, pointerId: event.pointerId, startScrollLeft: element.scrollLeft, startX: event.clientX };
+    element.setPointerCapture?.(event.pointerId);
+    setDragging(true);
+  }
+
+  function continueDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const element = track.current;
+    const gesture = drag.current;
+    if (!element || !gesture.active || gesture.pointerId !== event.pointerId) return;
+    const distance = event.clientX - gesture.startX;
+    if (Math.abs(distance) > 4) gesture.moved = true;
+    if (!gesture.moved) return;
+    event.preventDefault();
+    element.scrollLeft = gesture.startScrollLeft - distance;
+  }
+
+  function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const element = track.current;
+    if (!drag.current.active || drag.current.pointerId !== event.pointerId) return;
+    drag.current.active = false;
+    if (element?.hasPointerCapture?.(event.pointerId)) element.releasePointerCapture(event.pointerId);
+    setDragging(false);
+    syncSwipe();
+  }
+
+  function preventDraggedLink(event: ReactMouseEvent<HTMLDivElement>) {
+    if (!drag.current.moved) return;
+    event.preventDefault();
+    event.stopPropagation();
+    drag.current.moved = false;
+  }
+
   return <div className={styles.galleryShell}>
-    <div id={galleryId} ref={track} data-activity-gallery className={styles.gallery} onScroll={syncSwipe} role="region" aria-label="Your products">
+    <div
+      id={galleryId}
+      ref={track}
+      data-activity-gallery
+      data-dragging={dragging}
+      className={styles.gallery}
+      onClickCapture={preventDraggedLink}
+      onDragStart={event => event.preventDefault()}
+      onPointerCancel={endDrag}
+      onPointerDown={beginDrag}
+      onPointerMove={continueDrag}
+      onPointerUp={endDrag}
+      onScroll={syncSwipe}
+      role="region"
+      aria-label="Your products"
+    >
       {items.map(item => <Link key={item.slug} href={activityHref(item, "/account/entries", filter)} data-activity-slug={item.slug} data-status={item.status} className={styles.productCard}>
         <div className={styles.cardInner}>
           <p className={styles.retailer}>{item.retailer}</p>
           <h2 className={styles.productTitle}>{item.title}</h2>
           <span className={styles.status}><AccountIcon name={item.status} />{labels[item.status]}</span>
           <div className={styles.productStage}>
-            <Image src={item.image} alt="" fill sizes="(max-width: 639px) 75vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
+            <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 75vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
           </div>
           <div className={styles.cardFoot}>
             <p className={styles.productNote}>{item.status === "completion"

@@ -176,3 +176,22 @@ test("gallery controls follow scroll boundaries and honor reduced motion", () =>
   expect(screen.getByText("4 / 4")).toBeTruthy();
   vi.unstubAllGlobals();
 });
+
+test("gallery supports click-hold dragging without opening the dragged card", () => {
+  render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
+  const track = screen.getByRole("region", { name: "Your products" });
+  Object.defineProperties(track, {
+    scrollLeft: { configurable: true, value: 40, writable: true },
+    setPointerCapture: { configurable: true, value: vi.fn() },
+    hasPointerCapture: { configurable: true, value: vi.fn(() => true) },
+    releasePointerCapture: { configurable: true, value: vi.fn() },
+  });
+  fireEvent.pointerDown(track, { button: 0, clientX: 220, pointerId: 7, pointerType: "mouse" });
+  fireEvent.pointerMove(track, { clientX: 140, pointerId: 7, pointerType: "mouse" });
+  expect(track.scrollLeft).toBe(120);
+  expect(track.getAttribute("data-dragging")).toBe("true");
+  fireEvent.pointerUp(track, { clientX: 140, pointerId: 7, pointerType: "mouse" });
+  expect(track.getAttribute("data-dragging")).toBe("false");
+  const card = track.querySelector("a[data-activity-slug]")!;
+  expect(card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }))).toBe(false);
+});
