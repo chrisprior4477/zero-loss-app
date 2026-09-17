@@ -58,11 +58,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <LoginForm initialError={initialError} initialNotice={initialNotice} focusOnMount={params.focus === "email"} />
           </div>
           <p className="mt-5 text-center text-xs leading-5 text-white/40">Signing in does not create an entry or make a purchase.</p>
-          <div className="mt-5 border-t border-white/10 pt-5 text-center">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-cyan-300">Investor preview</p>
-            <Link href="/account/preview/entries" className="mt-3 inline-flex min-h-11 items-center rounded-full border border-cyan-300/40 bg-cyan-300/10 px-5 text-sm font-extrabold text-cyan-200 transition hover:bg-cyan-300 hover:text-[#00132e]">Preview a signed-in account →</Link>
-            <p className="mt-2 text-xs leading-5 text-white/35">Opens the demonstration account without signing in.</p>
-          </div>
         </section>
       </div>
     </main>

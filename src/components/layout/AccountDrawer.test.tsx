@@ -13,7 +13,18 @@ vi.mock("next/image", () => ({ default: (props: Record<string, unknown>) => {
 } }));
 import { AccountDrawer } from "./AccountDrawer";
 import { drawerState } from "@/lib/account/drawer-state";
-const props = { isSignedIn: true, displayName: "Chris Prior", email: "owner@example.test", avatarUrl: "/saved-photo.webp", balanceLabel: "$0.00", activityState: drawerState(false, true) };
+import type { AccountActivity } from "@/lib/account/activity";
+const storedActivity: AccountActivity = {
+  isPreview: false,
+  activeCount: 1,
+  source: "stored",
+  activity: [
+    { slug: "playstation-5-slim", status: "active", title: "PlayStation 5 Slim Model", retailer: "Best Buy", image: "/ps5.png", rewardKind: "physical", priceCents: 49900, paidCents: 100, remainingCents: 49800, availability: "Open" },
+    { slug: "nike-court-shot-shoes", status: "prize", title: "Nike Men's Court Shot Shoes", retailer: "Dick's Sporting Goods", image: "/nike.png", rewardKind: "digital", priceCents: 7500, paidCents: 100, remainingCents: 7400, availability: "Ready" },
+    { slug: "babys-essentials-bundle", status: "completion", title: "Baby's Essentials Bundle", retailer: "Walmart", image: "/baby.png", rewardKind: "physical", priceCents: 10000, paidCents: 100, remainingCents: 9900, availability: "Available" },
+  ],
+};
+const props = { isSignedIn: true, displayName: "Chris Prior", email: "owner@example.test", avatarUrl: "/saved-photo.webp", balanceLabel: "$0.00", activityState: drawerState(true) };
 afterEach(() => { cleanup(); path.value = "/account"; });
 
 test("normal drawer has saved photo, zero balance, no fixtures and disabled funding", () => {
@@ -30,7 +41,7 @@ test("normal drawer has saved photo, zero balance, no fixtures and disabled fund
   expect(dialog.getByRole("link", { name: "Official Rules & Free Entry" })).toBeTruthy();
 });
 test("balance failure displays Unavailable, never an invented zero", () => {
-  render(<AccountDrawer {...props} balanceLabel={null} activityState={drawerState(false, false)} />);
+  render(<AccountDrawer {...props} balanceLabel={null} activityState={drawerState(false)} />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   expect(screen.getByTestId("drawer-balance").textContent).toBe("Unavailable");
   expect(screen.queryByText("$0.00")).toBeNull();
@@ -41,8 +52,8 @@ test("a successfully saved photo immediately updates the menu trigger", () => {
   expect(screen.getByLabelText("Open account menu").querySelector("img")?.getAttribute("src")).toBe("/new-saved-photo.webp");
 });
 test("authorized activity uses the ordinary drawer without global preview framing", () => {
-  path.value = "/account/preview/entries";
-  render(<AccountDrawer {...props} activityState={drawerState(true, true)} />);
+  path.value = "/account/entries";
+  render(<AccountDrawer {...props} activityState={storedActivity} />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const dialog = within(screen.getByRole("dialog"));
   expect(dialog.queryByText("Interactive MVP Preview")).toBeNull();
@@ -54,7 +65,7 @@ test("authorized activity uses the ordinary drawer without global preview framin
 });
 
 test("whole activity row navigates and closes drawer; profile name retains casing", () => {
-  render(<AccountDrawer {...props} displayName="de la Cruz" activityState={drawerState(true, true)} />);
+  render(<AccountDrawer {...props} displayName="de la Cruz" activityState={storedActivity} />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   expect(screen.getByRole("link", { name: "Open de la Cruz's account" })).toBeTruthy();
   fireEvent.click(screen.getByText("PlayStation 5 Slim Model"));
@@ -62,7 +73,7 @@ test("whole activity row navigates and closes drawer; profile name retains casin
 });
 
 test("ready prize and compact wallet shortcut close the drawer and go directly to their destinations", () => {
-  render(<AccountDrawer {...props} activityState={drawerState(true, true)} />);
+  render(<AccountDrawer {...props} activityState={storedActivity} />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const prize = screen.getByRole("link", { name: /Nike Men's Court Shot Shoes/ });
   expect(prize.getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes");
@@ -77,7 +88,7 @@ test("ready prize and compact wallet shortcut close the drawer and go directly t
 });
 
 test("compact drawer summaries retain direct actions without global simulation labels", () => {
-  render(<AccountDrawer {...props} activityState={drawerState(true, true)} />);
+  render(<AccountDrawer {...props} activityState={storedActivity} />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const balance = within(screen.getByRole("article", { name: "Playable Wallet" }));
   expect(balance.getByTestId("drawer-balance").textContent).toBe("$0.00");

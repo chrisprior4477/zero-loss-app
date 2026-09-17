@@ -15,7 +15,7 @@ export type AccountActivity = {
   isPreview: boolean;
   activity: ActivityItem[];
   activeCount: number | null;
-  source: "illustrative-fixtures" | "checkpoint-one-empty" | "unavailable";
+  source: "stored" | "customer-empty" | "unavailable";
 };
 
 export const activityFilters = [

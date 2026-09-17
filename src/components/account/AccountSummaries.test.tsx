@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { drawerState } from "@/lib/account/drawer-state";
+import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { MyZeroLossSummary, PlayableBalanceCard } from "./AccountSummaries";
 import { WalletShortcut } from "@/components/wallet/WalletShortcut";
 import AccountPage from "@/app/account/page";
@@ -14,7 +15,7 @@ vi.mock("./ProfilePhotoCard", () => ({ ProfilePhotoCard: ({ fullName, initialAva
 afterEach(cleanup);
 
 test("summary shows only authorized activity counts and keeps money independent", () => {
-  const state = drawerState(true, true);
+  const state = storedActivityFixture();
   render(<><PlayableBalanceCard balanceLabel="$0.00" /><MyZeroLossSummary state={state} /><WalletShortcut state={state} dashboard /></>);
   expect(screen.getByTestId("dashboard-balance").textContent).toBe("$0.00");
   expect(screen.getByText("4 items")).toBeTruthy();
@@ -27,12 +28,12 @@ test("summary shows only authorized activity counts and keeps money independent"
 });
 
 test("normal empty and unavailable summaries never substitute fixtures or invent zeros", () => {
-  const { rerender } = render(<><PlayableBalanceCard balanceLabel="$0.00" /><MyZeroLossSummary state={drawerState(false, true)} /><WalletShortcut state={drawerState(false, true)} /></>);
+  const { rerender } = render(<><PlayableBalanceCard balanceLabel="$0.00" /><MyZeroLossSummary state={drawerState(true)} /><WalletShortcut state={drawerState(true)} /></>);
   expect(screen.getByText("0 items")).toBeTruthy();
   expect(screen.getByText("0 ready")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Prize Ready — 0 rewards" }).getAttribute("href")).toBe("/account/wallet");
   expect(screen.queryByText("Sample · Not redeemable")).toBeNull();
-  rerender(<><PlayableBalanceCard balanceLabel={null} /><MyZeroLossSummary state={drawerState(false, false)} /><WalletShortcut state={drawerState(false, false)} /></>);
+  rerender(<><PlayableBalanceCard balanceLabel={null} /><MyZeroLossSummary state={drawerState(false)} /><WalletShortcut state={drawerState(false)} /></>);
   expect(screen.getAllByText("Unavailable")).toHaveLength(3);
   expect(screen.queryByText("0 items")).toBeNull();
   expect(screen.queryByText("0 ready")).toBeNull();
@@ -40,14 +41,14 @@ test("normal empty and unavailable summaries never substitute fixtures or invent
 });
 
 test("multiple rewards lead to the collection instead of choosing a reward for the customer", () => {
-  const state = drawerState(true, true);
+  const state = storedActivityFixture();
   const reward = state.activity.find(item => item.status === "prize")!;
   render(<WalletShortcut state={{ ...state, activity: [reward, { ...reward, slug: "second-authorized-reward" }] }} />);
   expect(screen.getByRole("link", { name: "Prize Ready — 2 rewards" }).getAttribute("href")).toBe("/account/wallet");
 });
 
 test("dashboard orders the summaries and moves the saved photo into account navigation", async () => {
-  mocks.account.mockResolvedValue({ displayName: "McDonald de la Cruz", initials: "MC", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", balanceLabel: "$0.00", wallet: null, activity: drawerState(true, true), emailConfirmed: true });
+  mocks.account.mockResolvedValue({ displayName: "McDonald de la Cruz", initials: "MC", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", balanceLabel: "$0.00", wallet: null, activity: storedActivityFixture(), emailConfirmed: true });
   render(await AccountPage({ searchParams: Promise.resolve({}) }));
   const overview = within(screen.getByRole("region", { name: "Your Zero Loss overview" }));
   expect(overview.getAllByRole("heading").map(h => h.textContent)).toEqual(["Playable Wallet", "Prize Ready", "My Zero Loss"]);

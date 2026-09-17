@@ -1,10 +1,9 @@
 import "server-only";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
+import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 
-/** Local/preview guard in addition to the separate operator-owned DB permission. */
+/** Deployment boundary plus the authenticated customer's database capability. */
 export function demoFundingAllowed(wallet: WalletSnapshot | null, emailConfirmed: boolean): boolean {
-  return process.env.APP_DATA_ENVIRONMENT === "development-test"
-    && process.env.NEXT_PUBLIC_SUPABASE_URL === "https://ocgdfnvvjvutevgqzzgj.supabase.co"
-    && process.env.VERCEL_ENV !== "production"
+  return isPreviewDataEnvironment()
     && emailConfirmed && wallet?.scope === "demo" && wallet.fundingAvailable === true;
 }

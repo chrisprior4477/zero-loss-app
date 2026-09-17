@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { drawerState } from "@/lib/account/drawer-state";
+import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { activityFilter, activityHref, activityPresentation, filterActivity } from "@/lib/account/activity";
 import { MyZeroLossActivity } from "./MyZeroLossActivity";
 import { DashboardActivity } from "./DashboardActivity";
@@ -18,13 +19,13 @@ beforeEach(() => {
 afterEach(() => { cleanup(); document.body.style.overflow = ""; });
 
 test("normal empty state cannot expose a fixture by selected slug or filter", () => {
-  render(<MyZeroLossActivity state={drawerState(false, true)} filter="all" selectedSlug="nike-court-shot-shoes" />);
+  render(<MyZeroLossActivity state={drawerState(true)} filter="all" selectedSlug="nike-court-shot-shoes" />);
   expect(screen.getByText("Your next choice starts here")).toBeTruthy();
   expect(screen.queryByText("Nike Men's Court Shot Shoes")).toBeNull();
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 test("same activity source yields matching still-open count and full-row links", () => {
-  const state = drawerState(true, true);
+  const state = storedActivityFixture();
   expect(filterActivity(state.activity, "active")).toHaveLength(state.activeCount!);
   render(<MyZeroLossActivity state={state} filter="active" />);
   expect(screen.getByText("PlayStation 5 Slim Model").closest("a")?.getAttribute("href")).toContain("item=playstation-5-slim");
@@ -32,7 +33,7 @@ test("same activity source yields matching still-open count and full-row links",
   expect(activityFilter("demo=true")).toBe("all");
 });
 test("completion displays exact product math, optional terms, no operative purchase control", () => {
-  render(<MyZeroLossActivity state={drawerState(true, true)} filter="completion" selectedSlug="babys-essentials-bundle" />);
+  render(<MyZeroLossActivity state={storedActivityFixture()} filter="completion" selectedSlug="babys-essentials-bundle" />);
   expect(screen.getByText("$100")).toBeTruthy();
   expect(screen.getByText("$99")).toBeTruthy();
   expect(screen.getByText("$1")).toBeTruthy();
@@ -42,15 +43,15 @@ test("completion displays exact product math, optional terms, no operative purch
   expect(screen.queryByText("Result Ready")).toBeNull();
 });
 test("prize action respects reward format and old URLs redirect straight to the wallet", () => {
-  const prize = drawerState(true, true).activity[1];
+  const prize = storedActivityFixture().activity[1];
   expect(activityPresentation(prize).action).toBe("View Gift Card");
   expect(activityPresentation({ ...prize, rewardKind: "physical" }).action).toBe("Claim Prize");
   expect(activityHref(prize)).toBe("/account/wallet?reward=nike-court-shot-shoes");
-  expect(() => ActivitySelection({ state: drawerState(true, true), selectedSlug: prize.slug, destination: "/account" })).toThrow("redirect:/account/wallet?reward=nike-court-shot-shoes");
+  expect(() => ActivitySelection({ state: storedActivityFixture(), selectedSlug: prize.slug, destination: "/account" })).toThrow("redirect:/account/wallet?reward=nike-court-shot-shoes");
 });
 
 test("Dashboard gives authorized samples full-row local detail links without duplicating a balance", () => {
-  render(<DashboardActivity state={drawerState(true, true)} />);
+  render(<DashboardActivity state={storedActivityFixture()} />);
   const rows = document.querySelectorAll("a[data-activity-slug]");
   expect(rows).toHaveLength(4);
   for (const row of rows) {
@@ -63,17 +64,17 @@ test("Dashboard gives authorized samples full-row local detail links without dup
 });
 
 test("Dashboard normal and failed-read states never borrow preview data", () => {
-  const { rerender } = render(<DashboardActivity state={drawerState(false, true)} selectedSlug="playstation-5-slim" />);
+  const { rerender } = render(<DashboardActivity state={drawerState(true)} selectedSlug="playstation-5-slim" />);
   expect(screen.getByText("Your next choice starts here")).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(document.querySelectorAll("a[data-activity-slug]")).toHaveLength(0);
-  rerender(<DashboardActivity state={drawerState(false, false)} selectedSlug="babys-essentials-bundle" />);
+  rerender(<DashboardActivity state={drawerState(false)} selectedSlug="babys-essentials-bundle" />);
   expect(screen.getByText("Activity unavailable")).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 test("Dashboard recent activity stays bounded with a full-list destination", () => {
-  const state = drawerState(true, true);
+  const state = storedActivityFixture();
   state.activity.push({ ...state.activity[0], slug: "fifth-item", title: "Fifth product" });
   render(<DashboardActivity state={state} />);
   expect(document.querySelectorAll("a[data-activity-slug]")).toHaveLength(4);
@@ -81,20 +82,20 @@ test("Dashboard recent activity stays bounded with a full-list destination", () 
 });
 
 test("detail close and Escape preserve the originating route and filter", () => {
-  const { rerender } = render(<MyZeroLossActivity state={drawerState(true, true)} filter="completion" selectedSlug="babys-essentials-bundle" />);
+  const { rerender } = render(<MyZeroLossActivity state={storedActivityFixture()} filter="completion" selectedSlug="babys-essentials-bundle" />);
   expect(document.body.style.overflow).toBe("hidden");
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close activity details" }));
   fireEvent.click(screen.getByRole("button", { name: "Close activity details" }));
   expect(replace).toHaveBeenLastCalledWith("/account/entries?filter=completion", { scroll: false });
   fireEvent(screen.getByRole("dialog"), new Event("cancel", { bubbles: false, cancelable: true }));
   expect(replace).toHaveBeenLastCalledWith("/account/entries?filter=completion", { scroll: false });
-  rerender(<DashboardActivity state={drawerState(true, true)} selectedSlug="playstation-5-slim" />);
+  rerender(<DashboardActivity state={storedActivityFixture()} selectedSlug="playstation-5-slim" />);
   fireEvent.click(screen.getByRole("button", { name: "Close activity details" }));
   expect(replace).toHaveBeenLastCalledWith("/account", { scroll: false });
 });
 
 test("closing details restores scroll and focuses the originating product row", () => {
-  const state = drawerState(true, true);
+  const state = storedActivityFixture();
   const { rerender } = render(<DashboardActivity state={state} />);
   const opener = screen.getByText("PlayStation 5 Slim Model").closest("a")!;
   opener.focus();
@@ -109,7 +110,7 @@ test("closing details restores scroll and focuses the originating product row", 
 });
 
 test("Tab and Shift+Tab wrap between close and keyboard-scrollable detail content", () => {
-  render(<DashboardActivity state={drawerState(true, true)} selectedSlug="playstation-5-slim" />);
+  render(<DashboardActivity state={storedActivityFixture()} selectedSlug="playstation-5-slim" />);
   const close = screen.getByRole("button", { name: "Close activity details" });
   const content = screen.getByRole("region", { name: "Product details" });
   close.focus();
@@ -120,7 +121,7 @@ test("Tab and Shift+Tab wrap between close and keyboard-scrollable detail conten
 });
 
 test("desktop gallery retains complete catalog names, purchase math and existing filter counts", () => {
-  render(<MyZeroLossActivity state={drawerState(true, true)} filter="all" />);
+  render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
   const filters = within(screen.getByRole("navigation", { name: "Filter My Zero Loss" }));
   for (const name of ["All4", "Still Open1", "You Won1", "Complete Purchase2", "Completed0"]) {
     expect(filters.getByRole("link", { name })).toBeTruthy();

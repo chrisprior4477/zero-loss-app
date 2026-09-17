@@ -84,7 +84,7 @@ export function DemoParticipationPanel({ productTitle, retailer, productValue, e
 
       {messageVisible && (
         <div role="status" className="mt-4 rounded-xl border border-cyan-300/40 bg-[#0b3158] p-4 text-sm leading-6">
-          <strong>Investor demo only.</strong> The full entry checkout and outcome walkthrough will be connected in the MVP vertical slice.
+          <strong>Entry checkout is not enabled yet.</strong> The full purchase and outcome journey will be connected in the next bounded checkpoint.
           <button type="button" onClick={() => setMessageVisible(false)} className="ml-2 font-bold text-cyan-300">Dismiss</button>
         </div>
       )}
@@ -115,7 +115,7 @@ export function DemoParticipationPanel({ productTitle, retailer, productValue, e
               <button type="button" onClick={() => setAdditionalEntryNoticeOpen(false)} className="rounded-xl border border-white/20 px-4 py-3 font-bold text-white hover:bg-white/8">Keep one entry</button>
               <button type="button" onClick={acknowledgeAndAddEntry} className="rounded-xl bg-[#00b9ff] px-4 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">I understand — add entry</button>
             </div>
-            <Link href="/account/preview/official-rules" className="mt-4 block text-center text-sm font-bold text-cyan-300 hover:text-white">View official rules &amp; free-entry information →</Link>
+            <Link href="/free-entry" className="mt-4 block text-center text-sm font-bold text-cyan-300 hover:text-white">View official rules &amp; free-entry information →</Link>
           </section>
         </div>
       )}

@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { demoFundingAllowed } from "./demo-access";
 import { DemoPaymentProvider, FundingFailure } from "./demo-provider";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
+import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
+import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 
 export type DemoFundingActionState =
   | { status: "idle" }
@@ -14,9 +16,11 @@ export type DemoFundingActionState =
   | { status: "error"; message: string };
 
 async function fundingProvider() {
+  if (!isPreviewDataEnvironment()) throw new FundingFailure("42501", "Simulated funding is unavailable in this environment.");
   const db = await createClient();
   const { data: { user }, error } = await db.auth.getUser();
   if (error || !user?.email_confirmed_at) throw new FundingFailure("42501", "Sign in with your confirmed test account.");
+  await ensurePreviewCustomer(db, user);
   const { data, error: walletError } = await db.rpc("get_wallet_snapshot");
   if (walletError || !demoFundingAllowed(parseWalletSnapshot(data), Boolean(user.email_confirmed_at))) {
     throw new FundingFailure("42501", "Demo funding is not enabled for this account.");
