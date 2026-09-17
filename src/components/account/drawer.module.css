@@ -1,10 +1,11 @@
 .drawer {
-  width: min(calc(100% - 14px), 300px);
-  right: 7px !important;
-  margin-block: 7px;
-  height: calc(100dvh - 14px) !important;
-  border: 1px solid #28dfff;
-  border-radius: 11px;
+  width: min(100%, 440px);
+  right: 0 !important;
+  margin-block: 0;
+  height: 100dvh !important;
+  border: 0;
+  border-left: 1px solid #28dfff;
+  border-radius: 0;
   background:
     linear-gradient(155deg, #001326fa 22%, #001a30f7 62%, #00304bf0),
     url('/account/showroom-v1.webp') 26% center / auto 100%;
@@ -20,7 +21,7 @@
 .ticketLink:hover { background: #ffffff10; color: #6cf5ff; }
 .closeButton { display: grid; width: 32px; height: 32px; flex-shrink: 0; place-items: center; border-radius: 7px; color: #fff; font-size: 29px; font-weight: 200; line-height: 1; }
 .closeButton:hover { background: #ffffff10; }
-.accountContent { padding: 0 11px 14px; }
+.accountContent { padding: 0 20px 16px; }
 .overview { display: grid; gap: 7px; }
 .summary { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 62px; padding: 7px 7px; border: 1px solid #079dcc; border-radius: 7px; background: linear-gradient(112deg, #003754e8, #00182afa 48%, #06607bd2); box-shadow: inset 0 1px 7px #22ccff38; }
 .overview > :last-child { min-height: 69px; border-color: #53eaff; box-shadow: inset 0 0 13px #23d6ff58, 0 0 11px #00d9ff8a; }
@@ -45,9 +46,9 @@
 .navLink[aria-current="page"] { border-color: #72f3ff; background: linear-gradient(110deg, #004a6b, #00233c 70%, #00607e); box-shadow: inset 0 0 10px #3cddff45, 0 0 10px #00dcff50; font-weight: 700; }
 .drawer a:focus-visible, .drawer button:focus-visible { outline: 2px solid #adffff; outline-offset: 2px; }
 @media (max-width: 340px) {
-  .drawer { right: 5px !important; width: calc(100% - 10px); margin-block: 5px; height: calc(100dvh - 10px) !important; }
+  .drawer { right: 0 !important; width: 100%; margin-block: 0; height: 100dvh !important; }
   .accountHeader { padding-inline: 17px 12px; }
-  .accountContent { padding-inline: 9px; }
+  .accountContent { padding-inline: 14px; }
   .summaryIcon { flex-basis: 36px; height: 40px; }
   .summaryIcon svg { width: 21px; }
   .summaryInfo { gap: 6px; }
