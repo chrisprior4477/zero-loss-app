@@ -28,8 +28,8 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
     <MyZeroLossActivity state={account.activity} filter={activityFilter(query.filter)} selectedSlug={typeof query.item === "string" ? query.item : undefined} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>
-        <p className={styles.eyebrow}>YOUR ACCOUNT</p>
-        <h2 id="account-tools-heading">Manage everything else.</h2>
+        <p className={styles.eyebrow}>ACCOUNT DASHBOARD</p>
+        <h2 id="account-tools-heading">Your account, all in one place.</h2>
       </div>
       <div className={styles.accountToolsGrid}>
         <Link href="/account/profile" aria-label={`Open ${account.displayName}'s account`} className={`${styles.accountTool} ${styles.profileTool}`}>
