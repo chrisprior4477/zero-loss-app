@@ -127,13 +127,52 @@ test("desktop gallery retains complete catalog names, purchase math and existing
     expect(filters.getByRole("link", { name })).toBeTruthy();
   }
   const gallery = document.querySelector("[data-activity-gallery]");
-  expect(gallery?.classList.contains("lg:grid-cols-4")).toBe(true);
+  expect(gallery?.getAttribute("aria-label")).toBe("Your products");
   expect(gallery?.querySelectorAll("a[data-activity-slug]")).toHaveLength(4);
+  expect(Array.from(gallery?.querySelectorAll("a[data-activity-slug]") ?? []).map(card => (card as HTMLElement).dataset.activitySlug)).toEqual([
+    "samsung-m70h-tv", "playstation-5-slim", "nike-court-shot-shoes", "babys-essentials-bundle",
+  ]);
   const television = screen.getByRole("link", { name: /Samsung 50" M70H Mini LED 4K Smart TV/ });
-  expect(within(television).getByText("View Gift Card" )).toBeTruthy();
+  expect(within(television).getByText("Open reward" )).toBeTruthy();
   const shoes = screen.getByRole("link", { name: /Nike Men's Court Shot Shoes/ });
   expect(within(shoes).getByText("$74 remaining · $1 applied")).toBeTruthy();
   const essentials = screen.getByRole("link", { name: /Baby's Essentials Bundle/ });
   expect(within(essentials).getByText("$99 remaining · $1 applied")).toBeTruthy();
   expect(television.getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
+});
+
+test("unavailable activity never displays a stale card or opens its detail", () => {
+  render(<MyZeroLossActivity state={{ ...storedActivityFixture(), source: "unavailable", activeCount: null }} filter="all" selectedSlug="playstation-5-slim" />);
+  expect(screen.getByText("Activity unavailable")).toBeTruthy();
+  expect(document.querySelectorAll("a[data-activity-slug]")).toHaveLength(0);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText("PlayStation 5 Slim Model")).toBeNull();
+});
+
+test("gallery controls follow scroll boundaries and honor reduced motion", () => {
+  render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
+  const track = screen.getByRole("region", { name: "Your products" });
+  const scrollBy = vi.fn();
+  Object.defineProperties(track, {
+    clientWidth: { configurable: true, value: 300 },
+    scrollWidth: { configurable: true, value: 1200 },
+    scrollLeft: { configurable: true, value: 0, writable: true },
+    scrollBy: { configurable: true, value: scrollBy },
+  });
+  vi.spyOn(track, "getBoundingClientRect").mockReturnValue({ left: 0, right: 300, width: 300 } as DOMRect);
+  Array.from(track.children).forEach((child, index) => vi.spyOn(child, "getBoundingClientRect").mockImplementation(() => ({ left: index * 300 - track.scrollLeft, right: (index + 1) * 300 - track.scrollLeft, width: 300 }) as DOMRect));
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
+  fireEvent.scroll(track);
+  const previous = screen.getByRole("button", { name: "Previous product" }) as HTMLButtonElement;
+  const next = screen.getByRole("button", { name: "Next product" }) as HTMLButtonElement;
+  expect(previous.disabled).toBe(true);
+  expect(next.disabled).toBe(false);
+  fireEvent.click(next);
+  expect(scrollBy).toHaveBeenCalledWith({ left: 300, behavior: "instant" });
+  track.scrollLeft = 900;
+  fireEvent.scroll(track);
+  expect(next.disabled).toBe(true);
+  expect(previous.disabled).toBe(false);
+  expect(screen.getByText("4 / 4")).toBeTruthy();
+  vi.unstubAllGlobals();
 });
