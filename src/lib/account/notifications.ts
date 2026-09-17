@@ -90,7 +90,10 @@ function ledgerBody(entryType: string, amount: number, balanceCents: number) {
 
 /** Builds display-only notifications from the authenticated account snapshot. */
 export function buildAccountNotifications(activity: AccountActivity, wallet: WalletSnapshot | null, emailConfirmed: boolean): AccountNotification[] {
-  const notifications = activity.source === "unavailable" ? [] : activity.activity.map(activityNotification);
+  const activityPriority = { prize: 0, completion: 1, active: 2, completed: 3 } as const;
+  const notifications = activity.source === "unavailable" ? [] : [...activity.activity]
+    .sort((left, right) => activityPriority[left.status] - activityPriority[right.status])
+    .map(activityNotification);
   if (wallet) {
     for (const entry of wallet.entries) notifications.push({
       id: `wallet-${entry.id}`,

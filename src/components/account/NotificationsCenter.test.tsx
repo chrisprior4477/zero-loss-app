@@ -23,6 +23,7 @@ test("notifications are built from the signed-in account snapshot without invent
   expect(notifications.some(item => item.title === "Your $400 reward is ready")).toBe(true);
   expect(notifications.some(item => item.title === "Funds added to your playable wallet")).toBe(true);
   expect(notifications.some(item => item.body.includes("$146"))).toBe(true);
+  expect(notifications[0].title).toBe("Your $400 reward is ready");
   expect(notifications.some(item => item.category === "orders")).toBe(false);
   expect(notifications.some(item => /shipped/i.test(item.title))).toBe(false);
 });
