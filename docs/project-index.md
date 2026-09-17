@@ -1,9 +1,9 @@
 # Project Zero-Loss Documentation Index & Source of Truth
 
-**Version:** 1.1
+**Version:** 1.2
 **Status:** Frozen
-**Revision:** Clarification
-**Last Updated:** 2026-07-25
+**Revision:** Superseding Decision
+**Last Updated:** 2026-09-17
 
 ---
 
@@ -65,6 +65,11 @@ This document governs:
 * and platform governance.
 
 No implementation should violate this document unless the founder explicitly supersedes it.
+
+Accepted founder architecture decisions record approved superseding direction and
+must be read with the Master Architecture. The current MVP decision is:
+
+`docs/architecture/mvp-environment-and-provider-decision.md`
 
 ---
 
@@ -224,6 +229,7 @@ docs/
 
 ├── architecture/
 │   ├── master-architecture.md
+│   ├── mvp-environment-and-provider-decision.md
 │   ├── ai-operating-rules.md
 │   └── output-contract.md
 
@@ -258,10 +264,11 @@ Before writing code, modifying architecture, or generating implementation files,
 2. `docs/core/product-vision.md`
 3. `docs/core/product-concept.md`
 4. `docs/architecture/master-architecture.md`
-5. `docs/architecture/ai-operating-rules.md`
-6. `docs/architecture/output-contract.md`
-7. The relevant feature specification.
-8. The applicable roadmap manual.
+5. Accepted architecture decisions relevant to the work.
+6. `docs/architecture/ai-operating-rules.md`
+7. `docs/architecture/output-contract.md`
+8. The relevant feature specification.
+9. The applicable roadmap manual.
 
 Implementation should never begin before this reading sequence has been completed.
 
@@ -329,6 +336,14 @@ Technical convenience must never silently override documented architectural deci
 ---
 
 # Change Log
+
+### Version 1.2 — 2026-09-17
+
+**Revision:** Superseding Decision
+
+* Added the accepted full-fidelity MVP environment and provider decision.
+* Clarified that accepted founder architecture decisions are part of the required reading order.
+* Preserved the Master Architecture as the single canonical architecture document.
 
 ### Version 1.1 — 2026-07-25
 

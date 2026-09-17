@@ -4,7 +4,11 @@
 
 **Status:** Active
 
-**Version:** 1.0
+**Version:** 1.1
+
+**Revision:** Superseding Decision
+
+**Last Updated:** 2026-09-17
 
 **Priority:** Governing Customer Experience Document
 
@@ -56,6 +60,26 @@ Professional.
 Customers should never wonder whether their money is safe.
 
 The experience itself should answer that question.
+
+## Full-Fidelity MVP Experience
+
+The MVP wallet is the ordinary Zero Loss wallet. Simulation is an environment and
+provider classification, not a visual mode or account type. The approved wallet
+layout, drawer hierarchy, navigation, and terminology must remain unchanged when
+the environment uses simulated providers.
+
+Balances, entries, outcomes, rewards, orders, and history must come from the
+authenticated customer's database records. Hardcoded component fixtures may not
+stand in for the journey. Infrastructure classification stays behind the
+interface except for compact disclosure at the exact point where an external
+effect could be misunderstood:
+
+- payment checkout: **“Simulation only — no payment will be processed.”**
+- gift card or barcode: **“Sample — not redeemable.”**
+- fulfillment confirmation: **“Simulation only — no product will be shipped.”**
+
+No global demo banner, account subtitle, drawer disclosure, watermark, or
+alternate wallet composition should be added.
 
 ---
 

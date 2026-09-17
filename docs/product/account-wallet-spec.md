@@ -1,9 +1,11 @@
 # Project Zero-Loss Account & Wallet Specification
 ## Customer Command Center, Wallet Management, Financial Transparency, and Account Activity
 
-**Version:** 1.2
-**Status:** Authoritative  
+**Version:** 1.3
+**Status:** Authoritative
 **Document Type:** Product Specification
+**Revision:** Superseding Decision
+**Last Updated:** 2026-09-17
 
 ---
 
@@ -24,6 +26,10 @@ It enables customers to:
 This document governs the customer-facing account experience.
 
 It does not replace the authoritative financial architecture defined within the Master Architecture or ledger-related decisions.
+
+The full-fidelity MVP uses this same account experience. Simulated providers and
+classified MVP records must not create a separate account layout, demo account
+type, investor navigation, or fixture-only substitute for this journey.
 
 ---
 
@@ -109,6 +115,46 @@ Major sections include:
 
 Each section should feel visually connected while remaining easy to scan.
 
+## 4.1 Approved Account Drawer Hierarchy
+
+The top of the hamburger drawer must retain this order:
+
+1. **Playable Wallet** — authoritative balance and **Add Funds**.
+2. **Prize Ready** — ready-reward count and direct **Show Barcode** action.
+3. **My Zero Loss** — total open entries and completed outcomes with **View Activity**.
+
+Below those summaries, the drawer contains:
+
+- My Rewards
+- My Zero Loss
+- Wallet & Transactions
+- Orders & Fulfillment
+- Notifications
+- Account & Security
+- Help, Rules & Policies
+- Sign Out
+
+The My Zero Loss count includes open entries and completed outcomes. It must not
+describe every record as an item in play after some records have produced wins or
+completion options.
+
+## 4.2 Required Destinations
+
+- Playable Wallet opens Wallet & Transactions.
+- Add Funds opens the environment-selected payment-provider funding flow.
+- Prize Ready opens My Rewards.
+- Show Barcode opens that exact reward's barcode.
+- My Zero Loss opens all entries and outcomes.
+- Each open entry, digital win, physical win, and completion option opens its
+  exact owner-scoped record.
+- Orders & Fulfillment opens physical-prize delivery records.
+- Notifications opens actionable customer updates.
+- Account & Security opens identity, profile, password, verification, device,
+  and sign-in activity controls.
+
+A navigation destination must never merely reopen the drawer, and the primary
+customer journey must not contain dead-end actions.
+
 ---
 
 # 5. Account Header
@@ -162,6 +208,12 @@ Suggested quick funding options may include:
 - $100
 
 Additional funding methods are defined within the Payments & Payouts Specification.
+
+In the MVP environment, Add Funds opens the Demo Payment Provider through the
+ordinary funding UI. The provider component must display **“Simulation only — no
+payment will be processed.”** The balance itself remains ledger-derived and must
+not be labeled as a separate demo balance. A failed authoritative read displays
+**Unavailable**, never `$0.00`.
 
 ---
 
@@ -376,6 +428,10 @@ Future enhancements may include downloadable account statements and export funct
 # 16. Rewards and Loyalty
 
 The Account page should surface customer rewards earned through marketplace participation.
+
+An MVP digital reward is an owner-scoped database record. Its exact barcode view
+must display **“Sample — not redeemable.”** The reward must never be represented
+only by a hardcoded customer fixture.
 
 Examples include:
 

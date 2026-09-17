@@ -4,6 +4,13 @@
 database credit, and updated balances. This is the funding slice, not approval
 for entry purchases, outcomes, completion payments, rewards, reset, or deployment.
 
+> **Historical checkpoint record.** This document remains evidence of what was
+> installed, tested, enabled, and published on 2026-09-14. Its single-reviewer
+> enrollment and investor-preview restrictions are superseded for continuing MVP
+> implementation by `mvp-environment-and-provider-decision.md`. Expanding access
+> still requires reviewed migrations and tests; this note does not retroactively
+> claim that the expansion is implemented.
+
 ## Installed and enabled
 
 Confirmed hosted development/test project: `zero-loss-app`,

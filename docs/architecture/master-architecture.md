@@ -2,10 +2,10 @@
 
 ## System Constitution, Technical Guardrails, Financial Integrity Rules, and Implementation Standards
 
-**Version:** 1.1  
-**Status:** Frozen  
-**Revision:** Expansion and Clarification  
-**Last Updated:** 2026-07-25  
+**Version:** 1.2
+**Status:** Frozen
+**Revision:** Superseding Decision
+**Last Updated:** 2026-09-17
 **Canonical Path:** `docs/architecture/master-architecture.md`
 
 ---
@@ -161,10 +161,16 @@ Unless explicitly superseded by a documented founder decision, the technical sta
 
 ## 3.3 Payment Processing
 
-- **Payment processor:** Stripe
+- **Production payment processor:** Stripe, subject to final production approval
 - **Primary SDK:** Stripe Node.js SDK
 - **Payment flow:** Server-created PaymentIntents or another explicitly documented Stripe server-side flow
 - **Webhook handling:** Server-side, signature-verified, idempotent, and durably recorded
+- **MVP provider:** A replaceable Demo Payment Provider that creates no real charge
+
+The MVP provider must implement the same internal authorization, event,
+idempotency, reconciliation, and ledger-posting contract expected of the future
+production adapter. Provider selection is server-controlled by environment and
+must never create a second customer-facing payment experience.
 
 ## 3.4 Source Control and Delivery
 
@@ -312,6 +318,22 @@ The administrative control layer includes future internal tools for:
 The admin portal is not an afterthought.
 
 The data model and service architecture must support internal operational use from the beginning, even when the graphical admin interface is implemented later.
+
+## 4.6 Full-Fidelity MVP Boundary
+
+The MVP uses the same application implementation and approved customer interface
+as production. Environment-specific behavior belongs behind server-side provider
+adapters and configuration.
+
+In the isolated MVP environment, confirmed customers may use simulated funding,
+controlled outcomes, and simulated fulfillment through the ordinary customer
+journey. Those actions must create durable, owner-scoped, explicitly classified
+records. They must not be hardcoded into React components or selected through an
+investor-only visual mode.
+
+Production must reject simulated providers and forced outcomes. The complete
+decision, disclosure limits, and supersession record are defined in
+`docs/architecture/mvp-environment-and-provider-decision.md`.
 
 ---
 
@@ -3818,6 +3840,17 @@ The platform should support:
 - and production.
 
 Each environment should closely resemble production.
+
+Preview/MVP and production financial records must reside in cleanly isolated
+Supabase projects. They use the same reviewed migration history and application
+architecture, while server-side configuration selects the permitted provider
+adapters. The MVP project records simulated provider activity with an explicit
+non-production classification. The production project rejects demo providers,
+simulated fulfillment, and forced outcomes.
+
+Environment selection must not change the ordinary customer navigation, page
+hierarchy, dashboard composition, or account type. Point-of-confusion disclosure
+is governed by `docs/architecture/mvp-environment-and-provider-decision.md`.
 
 ---
 

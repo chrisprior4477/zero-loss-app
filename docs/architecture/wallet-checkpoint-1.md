@@ -2,6 +2,12 @@
 
 Date: 2026-09-14
 
+> **Historical checkpoint record.** This document remains evidence of the state,
+> authorization, and tests completed on 2026-09-14. Its investor-only visual
+> fixture gate and funding-disabled constraints are superseded for continuing MVP
+> work by `mvp-environment-and-provider-decision.md`. Do not rewrite the historical
+> results or cite those old restrictions as the governing customer architecture.
+
 ## Latest: three-card overview and separate profile destination (2026-09-14)
 
 Dashboard top row now contains Playable Balance, Your wallet, and My Zero Loss.

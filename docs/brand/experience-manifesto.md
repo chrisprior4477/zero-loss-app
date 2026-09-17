@@ -4,7 +4,11 @@
 
 **Status:** Active
 
-**Version:** 1.0
+**Version:** 1.1
+
+**Revision:** Superseding Decision
+
+**Last Updated:** 2026-09-17
 
 **Priority:** Governing Brand Document
 
@@ -283,7 +287,9 @@ Every balance should come directly from the authoritative ledger.
 
 Never simulate urgency.
 
-Never fabricate activity.
+Never fabricate activity. Full-fidelity MVP activity must be backed by durable,
+owner-scoped records of explicitly simulated provider events, not hardcoded
+visual fixtures.
 
 Never create movement simply because it looks exciting.
 
@@ -496,9 +502,10 @@ Examples include:
 - Marketplace updates
 - Inventory changes
 
-The marketplace should feel alive because it is alive.
-
-Never because activity is simulated.
+The marketplace should feel alive because its displayed records exist and are
+authoritative for the current environment. Controlled MVP provider events may be
+simulated, but the displayed customer state must be database-backed, accurately
+classified, and never presented as a real charge, redeemable reward, or shipment.
 
 ---
 

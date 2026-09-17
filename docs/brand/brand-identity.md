@@ -4,7 +4,11 @@
 
 **Status:** Active
 
-**Version:** 1.0
+**Version:** 1.1
+
+**Revision:** Superseding Decision
+
+**Last Updated:** 2026-09-17
 
 **Priority:** Governing Repository Document
 
@@ -282,7 +286,10 @@ Every visual element should represent actual platform data.
 
 Never fabricate urgency.
 
-Never simulate activity.
+Never fabricate activity. In the isolated MVP environment, a database-backed
+record produced by an explicitly simulated provider is real activity for that
+environment. It must be classified, owner-scoped, and disclosed only where a
+customer could mistake it for a real payment, redeemable reward, or shipment.
 
 Never fake progress.
 
@@ -538,7 +545,9 @@ Examples include:
 - Honest error messages
 - Consistent pricing
 
-Trust signals should never be simulated.
+Trust signals must be backed by verifiable system state. A full-fidelity MVP may
+show authoritative records created by a simulated provider, but it must never
+present those records as real charges, redeemable rewards, or shipments.
 
 If something cannot be verified, it should never be presented as though it has been.
 

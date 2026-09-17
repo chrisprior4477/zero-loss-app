@@ -4,7 +4,11 @@
 
 **Status:** Active
 
-**Version:** 1.0
+**Version:** 1.1
+
+**Revision:** Superseding Decision
+
+**Last Updated:** 2026-09-17
 
 **Priority:** Implementation Execution Guide
 
@@ -190,6 +194,33 @@ Every completed milestone should leave the platform:
 - maintainable
 
 Implementation is considered successful when every completed capability strengthens the platform without introducing instability.
+
+---
+
+# Current Full-Fidelity MVP Checkpoints
+
+The following sequence supersedes lower-level roadmap ordering for the current MVP
+branch. It does not authorize real money, redeemable rewards, or production
+fulfillment.
+
+1. Align authoritative documentation with the accepted MVP decision.
+2. Preserve and implement the approved drawer and account-page styling.
+3. Verify every account navigation destination.
+4. Complete database-backed simulated funding for confirmed customers.
+5. Complete atomic $1 entry purchasing.
+6. Complete account-specific controlled MVP outcomes.
+7. Connect My Rewards, My Zero Loss, Wallet, Orders, Notifications, and Account & Security.
+8. Verify mobile and desktop behavior.
+9. Test retries, duplicates, concurrency, authorization, and database failures.
+10. Capture screenshots of the completed customer journey.
+
+Each checkpoint ends at a human-review gate and reports changed files,
+documentation, migrations/functions, implemented behavior, test evidence,
+remaining simulation and provider dependencies, limitations, screenshots,
+commit/push status, and confirmation that no new branch was created.
+
+Later checkpoints must not redesign approved components to accommodate simulated
+data. Repairable test failures must be understood and fixed before advancing.
 
 ---
 

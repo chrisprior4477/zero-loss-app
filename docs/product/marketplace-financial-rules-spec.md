@@ -271,9 +271,22 @@ The upcoming catalog pass must define explicit internal `everyday`, `on_demand`,
 
 A non-selected entry must never create reusable, transferable, stackable, withdrawable, cross-retailer, cross-offering, entry-purchasing, or Playable-Balance-combinable Zero Loss credit. Any future copy or implementation that gives an entry-completion option those properties conflicts with Part 3 and must be corrected before release.
 
-## Deferred Demo Data Disclosure Review
+## Full-Fidelity MVP Simulation Disclosure (Superseding Decision)
 
-Review Demo Data disclosure coverage across homepage statistics, countdowns, balances, entries, results, and customer activity. Existing disclosures may already be present but may be inconsistent. Do not add a global banner during the drawer task.
+The MVP uses database-backed, explicitly classified records and simulated provider
+adapters behind the ordinary customer experience. It must not use a global demo
+banner, alternate dashboard, special account label, or fixture-only journey.
+
+Disclosure is limited to the point where a simulated external effect could be
+mistaken for a real one:
+
+- Demo Payment Provider checkout: **“Simulation only — no payment will be processed.”**
+- Simulated gift card or barcode: **“Sample — not redeemable.”**
+- Simulated fulfillment confirmation: **“Simulation only — no product will be shipped.”**
+
+Balances, entries, results, rewards, and transaction history still require
+authoritative customer-owned records. This decision does not permit fabricated
+statistics, countdowns, marketplace activity, or redeemable-value claims.
 
 ---
 
