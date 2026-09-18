@@ -20,11 +20,11 @@ export function WalletOverview({ wallet, fundingEnabled = false, requestKey = ""
     <div className={styles.shell}>
       <div className={styles.topline}>
         <nav aria-label="Breadcrumb" className={styles.breadcrumb}><Link href="/account">My Account</Link><span aria-hidden="true">›</span><span>Wallet &amp; Transactions</span></nav>
-        <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Your prizes</Link><Link href="/account/wallet?view=history" aria-current="page">Funds &amp; history</Link></nav>
+        <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Gift Cards &amp; Rewards</Link><Link href="/account/wallet?view=history" aria-current="page">Funds &amp; history</Link></nav>
       </div>
       <header className={styles.hero}>
         <div className={styles.heroCopy}><h1>Playable Wallet</h1><p>Manage your balance and view your transactions.</p></div>
-        <div className={styles.heroStatement}><strong>REAL PRODUCTS<br />FUELED BY REAL PEOPLE.</strong><span>Add funds. Enter products. Make progress.</span></div>
+        <div className={styles.heroStatement}><strong>SHOPPING SHOULD NEVER<br />FEEL LIKE A LOSS.</strong><span>Add funds. Enter products. Make progress.</span></div>
         <Image className={styles.heroArt} src="/account/playable-wallet-hero-v1.png" alt="Zero Loss leather wallet" width={1536} height={1024} priority sizes="(max-width: 800px) 0px, 360px" />
       </header>
 

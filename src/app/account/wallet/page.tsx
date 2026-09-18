@@ -5,7 +5,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { getAccountContext } from "@/lib/account/context";
 import { WalletOverview } from "@/components/wallet/WalletOverview";
 import { WalletRewardDetail, WalletRewards } from "@/components/wallet/WalletRewards";
-import { walletHistoryHref, walletRewards } from "@/lib/account/activity";
+import { walletRewards } from "@/lib/account/activity";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
@@ -41,15 +41,5 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   }
   if (cardView) return <DemoCardManager displayName={account.displayName} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} enabled={Boolean(provider && account.fundingEnabled)} />;
   if (history) return <WalletOverview wallet={account.wallet} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} />;
-  const sections = [["Gift Cards & Rewards", "/account/wallet", !history], ["Funds & history", walletHistoryHref, history]] as const;
-  return <PageContainer>
-    <main className="mx-auto w-full max-w-6xl pb-10">
-    <Link href="/account" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ Account Dashboard</Link>
-    <h1 className="mt-5 text-3xl font-black tracking-tight text-white sm:text-4xl">Gift Cards &amp; Rewards</h1>
-    <nav aria-label="Wallet sections" className="mt-4 flex gap-3 border-b border-white/10">
-      {sections.map(([label, href, current]) => <Link key={href} href={href} aria-current={current ? "page" : undefined} className={`inline-flex min-h-12 items-center border-b-2 px-2 text-sm font-bold focus-visible:outline-2 focus-visible:outline-cyan-300 ${current ? "border-[#31ff83] text-[#72ff9f]" : "border-transparent text-[#b5cce4] hover:text-white"}`}>{label}</Link>)}
-    </nav>
-    <WalletRewards state={account.activity} view={rewardView} />
-    </main>
-  </PageContainer>;
+  return <WalletRewards state={account.activity} view={rewardView} />;
 }

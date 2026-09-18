@@ -40,10 +40,11 @@
 .secondaryAction svg { color: #4afaff; }
 .reward { border-color: #30f398; background: linear-gradient(112deg, #056147d6, #001a2de8 52%, #05744ebd); box-shadow: inset 0 0 17px #2bff9a45, 0 0 12px #20ed8066; }
 .reward .summaryIcon { border-color: #087f55; background: linear-gradient(130deg, #04683a, #002d31); color: #86ffc0; }
-.option { border-color: #ffd633; background: linear-gradient(112deg, #604b08db, #171b22ed 52%, #745a08c4); box-shadow: inset 0 0 17px #ffd63342, 0 0 12px #ffd63359; }
-.option .summaryIcon { border-color: #c89e13; background: linear-gradient(130deg, #70590b, #292009); color: #ffe05a; }
-.option .summaryLabel { color: #ffe05a; }
-.option .secondaryAction { border-color: #ffd633; background: #ffd633; color: #241b00; }
+.option { border-color: #ff6a18; background: linear-gradient(112deg, #71300add, #1e1920ed 52%, #84340bc9); box-shadow: inset 0 0 17px #ff6a184d, 0 0 13px #ff5d186b; }
+.option .summaryIcon { border-color: #db5a15; background: linear-gradient(130deg, #7c310b, #2a170a); color: #ff9a57; }
+.option .summaryLabel { color: #ff9a57; }
+.option .summaryNote { color: #ffc4a3; }
+.option .secondaryAction { border-color: #ff6a18; background: #ff6a18; color: #271006; box-shadow: 0 0 12px #ff5d1859; }
 .nav { margin-top: 13px; padding: 0 3px 6px; border: 1px solid #19cce533; border-radius: 9px; background: #001426b8; box-shadow: inset 0 0 18px #00b8e71c; backdrop-filter: blur(10px); }
 .navLink { display: flex; align-items: center; gap: 13px; min-height: 42px; padding: 6px 9px; border: 1px solid transparent; border-bottom-color: #1b536b; border-radius: 5px; color: #f0f7ff; font-size: 13px; line-height: 1.25; }
 .navLink > svg:first-child { flex-shrink: 0; width: 23px; height: 23px; }

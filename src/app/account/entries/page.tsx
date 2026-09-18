@@ -47,6 +47,6 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
       </div>
       <p className={styles.ledgerNote}>The balance is read from your account&apos;s database ledger. {account.fundingEnabled ? "Demo funding is enabled." : "Demo funding is not enabled."} Real payments, entry purchases and rewards remain disabled.</p>
     </section>
-    <p className={styles.footerNote}>REAL PRODUCTS. REAL PROGRESS.</p>
+    <p className={styles.footerNote}>SHOPPING SHOULD NEVER FEEL LIKE A LOSS.</p>
   </div></div>;
 }

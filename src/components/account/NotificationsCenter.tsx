@@ -68,7 +68,7 @@ export function NotificationsCenter({ notifications, activityAvailable, walletAv
           </article>)}
         </section>
       </div>
-      <p className={styles.footerNote}>REAL PRODUCTS. REAL PROGRESS.</p>
+      <p className={styles.footerNote}>SHOPPING SHOULD NEVER FEEL LIKE A LOSS.</p>
     </div>
   </div>;
 }

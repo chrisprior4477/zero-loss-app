@@ -16,8 +16,10 @@ select is((select phone_number from public.customer_profiles where customer_id=a
 select is((select address_line_1 from public.customer_profiles where customer_id=auth.uid()),'125 Market Street','owner reads saved address');
 select is((select city from public.customer_profiles where customer_id=auth.uid()),'Wilmington','owner reads saved city');
 select is((select timezone from public.customer_profiles where customer_id=auth.uid()),'America/New_York','owner reads saved timezone');
-select throws_ok($$select * from public.update_customer_profile_preferences('{"legal_first_name":"Changed"}'::jsonb)$$,'42501',null,'legal identity remains protected');
-select throws_ok($$select * from public.update_customer_profile_preferences('{"date_of_birth":"2000-01-01"}'::jsonb)$$,'42501',null,'date of birth remains protected');
+select lives_ok($$select * from public.update_customer_profile_preferences('{"legal_first_name":"Changed","legal_last_name":"Customer","date_of_birth":"1992-03-04"}'::jsonb)$$,'owner may correct legal identity through the protected RPC');
+select is((select legal_first_name from public.customer_profiles where customer_id=auth.uid()),'Changed','corrected legal first name is stored');
+select is((select date_of_birth from public.customer_profiles where customer_id=auth.uid()),'1992-03-04'::date,'corrected date of birth is stored');
+select throws_ok($$select * from public.update_customer_profile_preferences('{"date_of_birth":"2020-01-01"}'::jsonb)$$,'22023','Customer must be at least 18 years old','underage birth date is rejected');
 select throws_ok($$select * from public.update_customer_profile_preferences('{"phone_number":123}'::jsonb)$$,'22023',null,'non-string contact field rejected');
 select throws_ok($$update public.customer_profiles set phone_number='direct-write' where customer_id=auth.uid()$$,'42501',null,'direct profile writes remain denied');
 

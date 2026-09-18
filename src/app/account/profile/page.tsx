@@ -13,7 +13,7 @@ export default async function ProfilePage() {
   if (!account) redirect("/login");
   return <main className={styles.page}><div className={styles.shell}>
     <nav aria-label="Breadcrumb" className={styles.breadcrumb}><Link href="/account">My Account</Link><span aria-hidden="true">›</span><Link href="/account/security">Account &amp; Security</Link><span aria-hidden="true">›</span><span>Edit Profile</span></nav>
-    <header className={styles.heading}><div><p>PERSONAL PROFILE</p><h1>Edit Profile</h1><span>Manage your identity, contact details, address, and preferences.</span></div><aside><strong>YOUR INFORMATION</strong>Changes save only to your signed-in account. Protected identity details remain locked.</aside></header>
+    <header className={styles.heading}><div><p>PERSONAL PROFILE</p><h1>Edit Profile</h1><span>Manage your identity, contact details, address, and preferences.</span></div><aside><strong>YOUR INFORMATION</strong>Changes save only to your signed-in account through the protected profile service.</aside></header>
     <div className={styles.profileGrid}>
       <aside className={styles.photoPanel}><ProfilePhotoCard initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} /><p className={styles.photoTip}>Your profile photo and display name appear throughout your account and follow you across devices.</p></aside>
       <ProfileDetailsForm details={{

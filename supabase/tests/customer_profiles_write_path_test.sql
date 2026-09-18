@@ -229,21 +229,21 @@ select is((select date_of_birth    from public.customer_profiles), '1815-12-10':
   'date_of_birth untouched by the positive path');
 
 -- =====================================================================
--- C. Protected fields pushed through the RPC (40-50)
+-- C. Owner-editable identity validation and immutable fields (40-50)
 -- =====================================================================
 
 select throws_ok(
-  $q$ select * from public.update_customer_profile_preferences('{"legal_first_name":"Mallory"}'::jsonb) $q$,
-  '42501', 'Field(s) not writable by this function: legal_first_name',
-  'RPC raises on legal_first_name rather than ignoring it');
+  $q$ select * from public.update_customer_profile_preferences('{"legal_first_name":""}'::jsonb) $q$,
+  '22023', 'Legal first name is required',
+  'RPC rejects a blank legal_first_name');
 select throws_ok(
-  $q$ select * from public.update_customer_profile_preferences('{"legal_last_name":"Hacker"}'::jsonb) $q$,
-  '42501', 'Field(s) not writable by this function: legal_last_name',
-  'RPC raises on legal_last_name');
+  $q$ select * from public.update_customer_profile_preferences('{"legal_last_name":""}'::jsonb) $q$,
+  '22023', 'Legal last name is required',
+  'RPC rejects a blank legal_last_name');
 select throws_ok(
-  $q$ select * from public.update_customer_profile_preferences('{"date_of_birth":"1900-01-01"}'::jsonb) $q$,
-  '42501', 'Field(s) not writable by this function: date_of_birth',
-  'RPC raises on date_of_birth');
+  $q$ select * from public.update_customer_profile_preferences('{"date_of_birth":"2020-01-01"}'::jsonb) $q$,
+  '22023', 'Customer must be at least 18 years old',
+  'RPC rejects an underage date_of_birth');
 select throws_ok(
   $q$ select * from public.update_customer_profile_preferences('{"created_at":"2000-01-01T00:00:00Z"}'::jsonb) $q$,
   '42501', 'Field(s) not writable by this function: created_at',
@@ -257,11 +257,11 @@ select throws_ok(
   '42501', 'Field(s) not writable by this function: customer_profile_id',
   'RPC raises on customer_profile_id');
 
--- An allowed key alongside a protected one must reject the whole call.
+-- An allowed key alongside an immutable one must reject the whole call.
 select throws_ok(
   $q$ select * from public.update_customer_profile_preferences(
-        '{"display_name":"partially applied?","legal_last_name":"Hacker"}'::jsonb) $q$,
-  '42501', 'Field(s) not writable by this function: legal_last_name',
+        '{"display_name":"partially applied?","created_at":"2000-01-01T00:00:00Z"}'::jsonb) $q$,
+  '42501', 'Field(s) not writable by this function: created_at',
   'a mixed payload is rejected whole');
 select is((select display_name from public.customer_profiles), 'Ada Lovelace',
   'the allowed half of the mixed payload was NOT applied');

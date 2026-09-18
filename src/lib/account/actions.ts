@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isAtLeastAge, MIN_ACCOUNT_AGE_YEARS } from "@/lib/auth/validation";
 
 const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxPhotoBytes = 5 * 1024 * 1024;
@@ -26,6 +27,13 @@ function textField(formData: FormData, name: string, maxLength: number) {
   return trimmed;
 }
 
+function isCalendarDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+}
+
 export async function saveProfileDetails(
   _previous: SaveProfileDetailsResult,
   formData: FormData,
@@ -33,6 +41,9 @@ export async function saveProfileDetails(
   let updates: Record<string, string | null>;
   try {
     const displayName = textField(formData, "display_name", 100);
+    const legalFirstName = textField(formData, "legal_first_name", 100);
+    const legalLastName = textField(formData, "legal_last_name", 100);
+    const dateOfBirth = textField(formData, "date_of_birth", 10);
     const phoneNumber = textField(formData, "phone_number", 32);
     const addressLine1 = textField(formData, "address_line_1", 200);
     const addressLine2 = textField(formData, "address_line_2", 200);
@@ -43,6 +54,10 @@ export async function saveProfileDetails(
     const preferredLocale = textField(formData, "preferred_locale", 20);
     const timezone = textField(formData, "timezone", 64);
     if (displayName.length < 2) throw new Error("Enter the name you want displayed on your account.");
+    if (!legalFirstName || !legalLastName) throw new Error("Enter your legal first and last name.");
+    if (!isCalendarDate(dateOfBirth) || !isAtLeastAge(dateOfBirth)) {
+      throw new Error(`Enter a valid birth date showing that you are at least ${MIN_ACCOUNT_AGE_YEARS}.`);
+    }
     if (phoneNumber && (!/^[0-9+().\-\s]{7,32}$/.test(phoneNumber) || phoneNumber.replace(/\D/g, "").length < 7)) {
       throw new Error("Enter a valid phone number, or leave it blank.");
     }
@@ -55,6 +70,9 @@ export async function saveProfileDetails(
     }
     updates = {
       display_name: displayName,
+      legal_first_name: legalFirstName,
+      legal_last_name: legalLastName,
+      date_of_birth: dateOfBirth,
       phone_number: phoneNumber || null,
       address_line_1: hasAddress ? addressLine1 : null,
       address_line_2: hasAddress ? addressLine2 || null : null,

@@ -98,7 +98,7 @@ export function OrdersFulfillment({ state }: { state: AccountOrders }) {
           <p className={styles.truthNote}>Zero Loss issues retailer gift cards. Product selection, inventory, checkout, shipping and retailer fees remain on the retailer’s site.</p>
         </aside>
       </div>
-      <p className={styles.footerNote}>REAL PRODUCTS. REAL PROGRESS.</p>
+      <p className={styles.footerNote}>SHOPPING SHOULD NEVER FEEL LIKE A LOSS.</p>
     </div>
   </main>;
 }

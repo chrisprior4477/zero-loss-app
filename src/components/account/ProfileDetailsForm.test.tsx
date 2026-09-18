@@ -20,9 +20,14 @@ test("profile editor includes traditional account, contact, address and preferen
   expect((screen.getByLabelText("Display name") as HTMLInputElement).value).toBe("Chris Prior");
   expect((screen.getByLabelText("Phone number") as HTMLInputElement).value).toBe("(910) 555-0147");
   expect((screen.getByLabelText("Street address") as HTMLInputElement).value).toBe("125 Market Street");
-  expect((screen.getByLabelText("Legal name") as HTMLInputElement).readOnly).toBe(true);
-  expect((screen.getByLabelText("Date of birth") as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText("Legal first name") as HTMLInputElement).value).toBe("Chris");
+  expect((screen.getByLabelText("Legal last name") as HTMLInputElement).value).toBe("Prior");
+  expect((screen.getByLabelText("Birth month") as HTMLSelectElement).value).toBe("1");
+  expect((screen.getByLabelText("Birth day") as HTMLSelectElement).value).toBe("1");
+  expect((screen.getByLabelText("Birth year") as HTMLSelectElement).value).toBe("1990");
   expect((screen.getByLabelText("Email address") as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText("Country") as HTMLSelectElement).options[0].textContent).toBe("United States");
+  expect(screen.getByRole("button", { name: "Clear phone number" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Save profile/ })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Back to Account & Security" }).getAttribute("href")).toBe("/account/security");
 });
