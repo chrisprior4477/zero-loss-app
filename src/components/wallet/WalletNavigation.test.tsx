@@ -10,7 +10,7 @@ import WalletPage from "@/app/account/wallet/page";
 const mocks = vi.hoisted(() => ({ account: vi.fn(), redirect: vi.fn((href: string) => { throw new Error(`redirect:${href}`); }) }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-vi.mock("next/image", () => ({ default: () => <span /> }));
+vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} /> }));
 const wallet: WalletSnapshot = { walletAccountId: null, scope: "production", currency: "USD", balanceCents: 0, transactionCount: 0, fundingAvailable: false, entries: [] };
 beforeEach(() => { vi.clearAllMocks(); mocks.account.mockResolvedValue({ activity: storedActivityFixture(), wallet }); });
 afterEach(cleanup);
@@ -53,6 +53,9 @@ test("preview reward renders a responsive sample redemption without pretending i
   expect(screen.getAllByText("Best Buy").length).toBeGreaterThanOrEqual(2);
   expect(screen.getByText("Sample — not redeemable")).toBeTruthy();
   expect(screen.getByLabelText("Sample reward barcode")).toBeTruthy();
+  expect(screen.getByRole("img", { name: 'Samsung 50" M70H Mini LED 4K Smart TV' })).toBeTruthy();
+  expect(screen.getByText(/Use it on anything Best Buy sells/)).toBeTruthy();
+  expect(screen.getByText(/not a restriction on your reward/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Copy number" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Present in store" })).toBeTruthy();
   expect((screen.getByRole("button", { name: "Add to Apple Wallet" }) as HTMLButtonElement).disabled).toBe(true);

@@ -67,3 +67,85 @@
   .rewardImage { height: 128px; }
 }
 @media (prefers-reduced-motion: reduce) { .rewardCard { transition: none; } }
+
+.detailPage { position: relative; isolation: isolate; min-height: calc(100dvh - 5rem); overflow: hidden; padding: 24px clamp(14px, 3vw, 46px) 42px; color: #f7fbff; background: #00172b; }
+.detailPage::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, #001326f2, #00182bdc 54%, #001426fa), url('/account/showroom-v1.webp') center / cover fixed; }
+.detailPage::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(circle at 76% 8%, #00dcff26, transparent 28%), linear-gradient(rgba(0,185,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,185,255,.05) 1px, transparent 1px); background-size: auto, 48px 48px, 48px 48px; }
+.detailShell { width: 100%; max-width: 1180px; margin: 0 auto; }
+.detailBreadcrumb { display: flex; align-items: center; gap: 8px; color: #d7e5f3; font-size: 13px; font-weight: 650; }
+.detailBreadcrumb a:hover { color: #4ceaff; }
+.detailBreadcrumb > span:first-of-type { color: #50f4ff; }
+.detailHeading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin: 20px 0 16px; }
+.detailHeading h1 { margin-top: 7px; font-size: clamp(28px, 4vw, 48px); font-weight: 900; line-height: 1; letter-spacing: -.045em; }
+.readyLabel { display: flex; align-items: center; gap: 8px; color: #69ff96; font-size: 11px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.readyLabel span { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #31e800; color: #052d0b; box-shadow: 0 0 17px #31e80070; }
+.rewardReference { max-width: 330px; color: #99b9d1; font-size: 11px; line-height: 1.45; text-align: right; }
+.rewardReference strong { color: #fff; }
+.rewardSplit { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 15px; }
+.featuredProduct, .rewardPass { min-width: 0; border: 1px solid #16b9e7; border-radius: 16px; background: linear-gradient(145deg, #00304be8, #00182df5); box-shadow: inset 0 0 24px #00c9f321, 0 14px 34px #0007; }
+.featuredProduct { display: grid; grid-template-rows: minmax(210px, 1fr) auto; min-height: 420px; overflow: hidden; }
+.featuredImage { position: relative; min-height: 0; margin: 14px 14px 0; overflow: hidden; border: 1px solid #22d7ff57; border-radius: 11px; background: radial-gradient(circle at 50% 54%, #0f80bd70, transparent 48%), linear-gradient(145deg, #062c4b, #001425); }
+.featuredImage::after { content: ""; position: absolute; right: 12%; bottom: 8%; left: 12%; height: 18px; border-radius: 50%; background: #00dfff3b; filter: blur(13px); }
+.featuredImage img { z-index: 1; object-fit: contain; padding: 20px 24px 10px; filter: drop-shadow(0 18px 15px #000a) drop-shadow(0 0 13px #27dfff40); }
+.featuredCopy { padding: 17px 19px 20px; border-top: 1px solid #1382a8; }
+.featuredEyebrow { color: #4defff !important; font-size: 10px !important; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.featuredCopy h2 { margin-top: 6px; font-size: clamp(19px, 2vw, 27px); font-weight: 900; line-height: 1.12; letter-spacing: -.025em; }
+.featuredCopy > p:last-child { margin-top: 8px; color: #b9cee0; font-size: 12px; line-height: 1.5; }
+.rewardPass { padding: clamp(15px, 2vw, 24px); border-color: #50ef8b8c; background: linear-gradient(145deg, #eaffff 0%, #d7fbff 48%, #c0f7f0 100%); color: #061630; box-shadow: 0 0 0 1px #00b9ff24, 0 0 28px #22ee8b25, 0 18px 38px #0007; }
+.passHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.passHeader p { color: #087c99; font-size: 11px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.passHeader strong { display: block; margin-top: 2px; font-size: clamp(44px, 5.2vw, 70px); font-weight: 950; line-height: .92; letter-spacing: -.055em; }
+.passHeader > span { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border: 1px solid #18a35c; border-radius: 50%; color: #08744a; font-size: 24px; font-weight: 900; }
+.storewideMessage { margin-top: 14px; padding: 11px 13px; border: 1px solid #0e7ca64d; border-radius: 9px; background: #fff9; color: #31536d; font-size: 12px; line-height: 1.45; }
+.storewideMessage strong { color: #061630; }
+.codePanel { margin-top: 13px; padding: 10px 12px 8px; border-radius: 10px; background: #fff; box-shadow: 0 7px 20px #0332521a; }
+.sampleBarcode { display: flex; width: 100%; height: 62px; align-items: stretch; justify-content: center; overflow: hidden; background: #fff; padding: 4px 8px; }
+.rewardCode { margin-top: 5px; color: #061630; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 16px; font-weight: 800; letter-spacing: .09em; text-align: center; }
+.codeCaption { margin-top: 2px; color: #244da2; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-align: center; text-transform: uppercase; }
+.notIssued { display: grid; min-height: 92px; place-items: center; text-align: center; }
+.notIssued p { font-size: 17px; font-weight: 900; }
+.notIssued span { display: block; margin-top: 5px; color: #4a667c; font-size: 12px; }
+.rewardDetails { margin-top: 14px; overflow: hidden; border: 1px solid #16b9e763; border-radius: 12px; background: #062b4be8; box-shadow: 0 14px 30px #0005; }
+.rewardDetails h2 { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #ffffff14; font-size: 12px; font-weight: 900; }
+.rewardDetails h2 span { width: 7px; height: 7px; border-radius: 50%; background: #31e800; box-shadow: 0 0 9px #31e800; }
+.rewardDetails dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.rewardDetails dl > div { min-width: 0; padding: 10px 14px; border-right: 1px solid #ffffff14; }
+.rewardDetails dl > div:last-child { border-right: 0; }
+.rewardDetails dt { color: #9dbbd3; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.rewardDetails dd { margin-top: 3px; overflow-wrap: anywhere; color: #fff; font-size: 12px; font-weight: 750; }
+.goodStatus { color: #72ff9f !important; }
+.rewardDisclosure { max-width: 820px; margin: 13px auto 0; color: #9abbd2; font-size: 10px; line-height: 1.5; text-align: center; }
+.backToRewards { display: flex; min-height: 42px; width: fit-content; align-items: center; justify-content: center; margin: 5px auto 0; padding: 0 14px; color: #53eef8; font-size: 12px; font-weight: 850; }
+.backToRewards:hover { color: #fff; text-decoration: underline; }
+.detailPage a:focus-visible, .detailPage button:focus-visible { outline: 2px solid #9cfcff; outline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .detailPage { min-height: calc(100svh - 92px); padding: 17px 12px 30px; }
+  .detailHeading { align-items: flex-start; flex-direction: column; gap: 7px; margin: 16px 0 12px; }
+  .detailHeading h1 { font-size: 31px; }
+  .rewardReference { max-width: none; text-align: left; }
+  .rewardSplit { grid-template-columns: 1fr; gap: 10px; }
+  .featuredProduct { grid-template-columns: minmax(118px, .72fr) minmax(0, 1.28fr); grid-template-rows: 1fr; min-height: 178px; }
+  .featuredImage { min-height: 150px; margin: 10px 0 10px 10px; }
+  .featuredImage img { padding: 10px; }
+  .featuredCopy { display: flex; flex-direction: column; justify-content: center; padding: 15px; border-top: 0; }
+  .featuredCopy h2 { font-size: 18px; }
+  .featuredCopy > p:last-child { font-size: 11px; }
+  .rewardPass { padding: 14px; }
+  .passHeader strong { font-size: 46px; }
+  .rewardDetails dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rewardDetails dl > div:nth-child(2) { border-right: 0; }
+  .rewardDetails dl > div:nth-child(n+3) { border-top: 1px solid #ffffff14; }
+}
+
+@media (max-width: 430px) {
+  .detailHeading h1 { font-size: 27px; }
+  .featuredProduct { grid-template-columns: 118px minmax(0, 1fr); min-height: 164px; }
+  .featuredImage { min-height: 142px; }
+  .featuredCopy { padding: 12px; }
+  .featuredCopy h2 { font-size: 16px; }
+  .featuredCopy > p:last-child { margin-top: 5px; font-size: 10px; }
+  .featuredEyebrow { font-size: 8px !important; }
+  .storewideMessage { font-size: 11px; }
+  .sampleBarcode { height: 54px; padding-inline: 4px; }
+}
