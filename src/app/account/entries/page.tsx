@@ -32,11 +32,11 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
         <h2 id="account-tools-heading">Your account, all in one place.</h2>
       </div>
       <div className={styles.accountToolsGrid}>
-        <Link href="/account/profile" aria-label={`Open ${account.displayName}'s account`} className={`${styles.accountTool} ${styles.profileTool}`}>
+        <Link href="/account/security" aria-label="Open Your Account and Security" className={`${styles.accountTool} ${styles.profileTool}`}>
           <span className={styles.accountAvatar}>
             {account.avatarUrl ? <Image src={account.avatarUrl} alt="" fill unoptimized sizes="54px" className={styles.accountAvatarImage} /> : <span aria-hidden="true">{account.initials}</span>}
           </span>
-          <span className={styles.accountToolText}><strong>Your Account</strong><span>{account.displayName}</span><small>Profile & photo</small></span>
+          <span className={styles.accountToolText}><strong>Your Account and Security</strong><span>{account.displayName}</span><small>Profile &amp; photo</small></span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />
         </Link>
         {accountLinks.map(([title, detail, href, icon]) => <Link key={title} href={href} className={styles.accountTool}>
