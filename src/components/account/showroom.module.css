@@ -147,9 +147,11 @@
 }
 @media (max-width: 940px) {
   .subtitle { margin-top: 7px; font-size: 14px; }
-  .filters { flex-wrap: nowrap; gap: 5px; margin: 17px -4px 0; padding: 4px; border-radius: 9px; scrollbar-width: none; }
-  .filters::-webkit-scrollbar { display: none; }
-  .filter { flex: 0 0 auto; gap: 5px; min-height: 38px; padding: 4px 8px; border-right: 1px solid #075577; border-radius: 6px; font-size: 10px; }
+  .filters { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin: 17px 0 0; padding: 5px; overflow: visible; border-radius: 9px; }
+  .filter { width: 100%; gap: 5px; min-height: 38px; padding: 4px 8px; border: 1px solid #0a6280; border-radius: 6px; background: #001f37c9; font-size: 10px; }
+  .filter:nth-child(-n + 3) { grid-column: span 2; }
+  .filter:nth-child(n + 4) { grid-column: span 3; }
+  .filter[aria-current="page"] { border-color: #72f5ff; background: linear-gradient(115deg, #034966, #00223c); }
   .filter > svg { width: 15px; height: 15px; }
   .filterCount { min-width: 20px; height: 20px; padding: 0 5px; font-size: 10px; }
   .galleryShell { margin-top: 8px; }
@@ -175,14 +177,14 @@
   .cardAction svg { width: 19px; height: 19px; color: #27e6f2; }
   [data-status="prize"] .cardAction { border: 0; background: transparent; box-shadow: none; }
   [data-status="prize"] .cardAction svg { color: #50ff6b; }
-  .productCard[data-featured="true"] { min-height: 145px; border-color: #8cffba; box-shadow: 0 0 7px #43ffba, 0 0 18px #00df7952; }
-  .productCard[data-featured="true"] .cardInner { grid-template-columns: minmax(122px, 43%) minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 11px; min-height: 137px; padding: 7px; }
-  .productCard[data-featured="true"] .productStage { grid-column: 1; grid-row: 1 / 4; width: auto; height: auto; min-height: 123px; }
+  .productCard[data-featured="true"] { min-height: 108px; border-color: #8cffba; box-shadow: 0 0 7px #43ffba, 0 0 18px #00df7952; }
+  .productCard[data-featured="true"] .cardInner { grid-template-columns: minmax(105px, 38%) minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 10px; min-height: 100px; padding: 6px; }
+  .productCard[data-featured="true"] .productStage { grid-column: 1; grid-row: 1 / 4; width: auto; height: auto; min-height: 88px; }
   .productCard[data-featured="true"] .status { grid-column: 2; grid-row: 1; align-self: end; font-size: 9px; }
-  .productCard[data-featured="true"] .productTitle { grid-column: 2; grid-row: 2; font-size: 15px; }
+  .productCard[data-featured="true"] .productTitle { grid-column: 2; grid-row: 2; font-size: 14px; }
   .productCard[data-featured="true"] .cardFoot { grid-column: 2; grid-row: 3; display: block; align-self: end; }
-  .productCard[data-featured="true"] .productNote { display: block; min-height: 0; color: #c9e4d4; font-size: 9px; line-height: 1.35; }
-  .productCard[data-featured="true"] .cardAction { width: 100%; min-height: 37px; margin-top: 6px; border: 1px solid #7bff4f; border-radius: 5px; background: #3af12c; color: #001c0a; font-size: 10px; box-shadow: 0 0 14px #28e23330; }
+  .productCard[data-featured="true"] .productNote { display: none; }
+  .productCard[data-featured="true"] .cardAction { width: 100%; min-height: 32px; margin-top: 4px; border: 1px solid #7bff4f; border-radius: 5px; background: #3af12c; color: #001c0a; font-size: 10px; box-shadow: 0 0 14px #28e23330; }
   .productCard[data-featured="true"] .cardAction svg { width: 16px; height: 16px; color: #001c0a; }
   .mobileRestLabel { display: block; margin: 9px 2px 2px; color: #8db4ca; font-size: 9px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
   .galleryControls { display: none; }
