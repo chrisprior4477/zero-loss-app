@@ -314,14 +314,14 @@ function DesktopHeroCarousel() {
               <h3 className="text-[14px] font-bold text-[var(--live)]">Everyday items</h3>
               <p className="mt-1.5 max-w-[560px] text-[14px] leading-[1.55] text-white/80">
                 If your entry is not selected, you can apply what you paid toward
-                that exact product and pay the remaining balance.
+                the advertised retailer gift card and pay the remaining amount.
               </p>
             </div>
             <div className="border-l-2 border-[#087feb] pl-4">
               <h3 className="text-[14px] font-bold text-[#55b5ff]">Scarce or one-of-a-kind items</h3>
               <p className="mt-1.5 max-w-[650px] text-[14px] leading-[1.55] text-white/80">
-                The same-retailer gift-card completion option for genuinely scarce
-                items is still under review and is not currently available.
+                A promotion will clearly state when vendor inventory is set aside.
+                Otherwise, the reward is the advertised retailer gift-card value.
               </p>
             </div>
           </div>

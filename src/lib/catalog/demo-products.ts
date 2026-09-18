@@ -117,7 +117,7 @@ export const demoProducts: DemoProduct[] = [
     included: ["One $75 Dick's Sporting Goods digital gift card for the pictured shoes or another eligible Dick's purchase"],
     sourceUrl: "https://www.dickssportinggoods.com/p/nike-mens-court-shot-shoes-24nikmcrtshtwhtblmns/24nikmcrtshtwhtblmns",
     sourceLabel: "Dick's Sporting Goods product information",
-    note: "Size and color availability would be confirmed at fulfillment.",
+    note: "Size, color, inventory and any cost above the gift-card value are confirmed with the retailer at checkout.",
   },
   {
     slug: "babys-essentials-bundle",

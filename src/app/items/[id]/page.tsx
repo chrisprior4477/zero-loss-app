@@ -72,9 +72,9 @@ export default async function ItemPage({ params }: PageProps) {
               <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-cyan-300">Digital retailer fulfillment</p>
               <p className="mt-1 font-bold">Issued as ${product.value.toLocaleString()} in {product.retailer} digital gift-card value</p>
               {isGiftCardOffering ? (
-                <p className="mt-1 text-xs leading-5 text-white/60">If awarded or completed, the retailer-specific digital gift card is delivered to the Rewards &amp; Fulfillment area of your Zero Loss Wallet—not as Playable Balance or withdrawable cash.</p>
+                <p className="mt-1 text-xs leading-5 text-white/60">If awarded or purchased, the retailer-specific digital gift card is delivered to Gift Cards &amp; Rewards—not as Playable Balance or withdrawable cash.</p>
               ) : (
-                <p className="mt-1 text-xs leading-5 text-white/60">You will not receive the displayed {product.title} directly from Zero Loss. If awarded or completed, you receive the retailer-specific digital gift-card value in your Zero Loss Wallet to purchase it from {product.retailer}, either online or in a participating store where supported.</p>
+                <p className="mt-1 text-xs leading-5 text-white/60">You will not receive the displayed {product.title} directly from Zero Loss. If awarded or purchased, you receive the retailer-specific digital gift-card value in Gift Cards &amp; Rewards to purchase it from {product.retailer}, either online or in a participating store where supported.</p>
               )}
             </div>
             <div className="my-6 flex items-baseline gap-2 border-y border-white/12 py-4">
@@ -93,7 +93,7 @@ export default async function ItemPage({ params }: PageProps) {
         <section className="mt-10 grid gap-4 rounded-3xl border border-white/12 bg-[#001b3d] p-6 sm:grid-cols-3 sm:p-8">
           <div><strong className="text-cyan-300">Transparent capacity</strong><p className="mt-2 text-sm leading-6 text-white/65">Entry totals and remaining capacity are shown directly from this demo pool.</p></div>
           <div><strong className="text-cyan-300">Official rules stay accessible</strong><p className="mt-2 text-sm leading-6 text-white/65">Eligibility, free-entry details, and completion terms will remain one tap away.</p></div>
-          <div><strong className="text-cyan-300">Digital delivery by default</strong><p className="mt-2 text-sm leading-6 text-white/65">Rewards appear in the Wallet&apos;s Rewards &amp; Fulfillment area. A physical one-off item is delivered only when its offering clearly says so.</p></div>
+          <div><strong className="text-cyan-300">Retailer gift-card fulfillment</strong><p className="mt-2 text-sm leading-6 text-white/65">Zero Loss issues the advertised retailer gift-card value. Product selection, inventory, checkout and shipping remain with the retailer.</p></div>
         </section>
       </div>
     </main>

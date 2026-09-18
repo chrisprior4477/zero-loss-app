@@ -17,13 +17,13 @@ const differentiators: Differentiator[] = [
   {
     label: "Win",
     header: "Well, look at that. You won.",
-    body: "The prize ships or lands in your wallet, ready to use.",
+    body: "The retailer gift card lands in your rewards wallet, ready to use.",
     icon: "gift",
   },
   {
     label: "Plot twist",
     header: "No luck? Here's the part nobody expects.",
-    body: "Use what you spent toward buying it instead.",
+    body: "Use what you spent toward the retailer gift card instead.",
     icon: "receipt",
   },
 ];

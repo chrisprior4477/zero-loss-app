@@ -13,10 +13,7 @@ import { ZeroLossJourney } from "@/components/home/ZeroLossJourney";
  * the full page; this control exists to answer the question without leaving
  * the homepage.
  *
- * The panel copy follows the current completion rules: an everyday/on-demand
- * non-selected entry remains attached to its exact product (§3.1). The
- * proposed same-retailer gift-card fallback for a genuinely scarce item is
- * unresolved and inactive (§3.2), so it is not presented as available.
+ * The panel copy follows the current retailer gift-card fulfillment rules.
  *
  * Black text on the orange panel, per C4.
  */
@@ -45,12 +42,12 @@ export function HowItWorksToggle() {
           className="mt-3 w-full rounded-2xl border border-white/10 bg-[#00132e] px-4 py-5"
         >
           <p className="text-sm leading-[1.5] text-white/80">
-            If your everyday-item entry is not selected, you can apply what you
-            paid toward that exact product and pay the remaining balance.
+            If your entry is not selected, you can apply what you paid toward
+            the advertised retailer gift card and pay the remaining amount.
           </p>
           <p className="mt-2.5 text-sm leading-[1.5] text-white/80">
-            The same-retailer gift-card completion option for genuinely scarce
-            items is still under review and is not currently available.
+            The option is available for 30 full calendar days. Zero Loss does
+            not ship products; you choose the item through the retailer.
           </p>
           <div className="mt-5 border-t border-white/10 pt-5">
             <ZeroLossJourney compact />

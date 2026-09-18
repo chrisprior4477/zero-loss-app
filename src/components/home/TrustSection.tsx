@@ -7,10 +7,8 @@ import Link from "next/link";
  * `docs/product/marketplace-financial-rules-spec.md`:
  *   - §5.1  public-facing content must NEVER mention or imply that a prize
  *           can be redeemed for cash, under any circumstance.
- *   - §3.1  an everyday/on-demand non-selected entry creates an option to
- *           complete that exact product purchase — never a refund or balance.
- *   - §3.2–3.3 scarce-item fallback and timing remain unresolved and inactive,
- *           so this copy makes no promise about either.
+ *   - A non-selected entry can create a time-limited option to buy the
+ *     advertised retailer gift-card value with the entry amount applied.
  *   - §4.6  paid-tier entry scaling is 🔴 Flagged, so membership mechanics are
  *           not promoted here.
  */
@@ -18,7 +16,7 @@ import Link from "next/link";
 const trustPoints = [
   {
     title: "You always keep the value",
-    body: "For eligible everyday items, a non-selected entry can be applied toward buying that exact product. You pay the remaining balance.",
+    body: "For an eligible non-selected entry, what you paid is applied toward the advertised retailer gift card. You decide whether to pay the remaining amount.",
   },
   {
     title: "Clear, published rules",
