@@ -154,8 +154,8 @@ export function DemoParticipationPanel({
           <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className="max-h-[94vh] w-full max-w-sm overflow-y-auto rounded-[1.75rem] border border-cyan-300/55 bg-[#001b3d] text-left shadow-[0_28px_90px_rgba(0,0,0,.68),0_0_30px_rgba(0,185,255,.24)]">
             <h2 id="additional-entry-title" className="sr-only">How Extra Chances Work</h2>
             <div className="relative">
-              <Image src="/account/extra-entry-explainer-approved-slide-v1.png" alt="How extra chances work: one entry creates one chance, extra entries create more separate chances, and entries never stack into one discount" width={1024} height={1175} className="h-auto w-full" priority sizes="(max-width: 640px) calc(100vw - 16px), 576px" />
-              <button type="button" onClick={() => setAdditionalEntryNoticeOpen(false)} className="absolute right-[3.2%] top-[2.1%] grid h-10 w-10 place-items-center rounded-full bg-[#001b3d]/95 text-3xl font-light text-[#aacaff] transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300" aria-label="Close extra entry explanation">×</button>
+              <Image src="/account/extra-entry-explainer-approved-slide-v2.png" alt="How extra chances work: one entry creates one chance, extra entries create more separate chances, and entries never stack into one discount" width={952} height={1145} className="h-auto w-full" priority sizes="(max-width: 640px) calc(100vw - 16px), 576px" />
+              <button type="button" onClick={() => setAdditionalEntryNoticeOpen(false)} className="absolute right-[1.2%] top-[1.1%] grid h-10 w-10 place-items-center rounded-full bg-[#001b3d]/95 text-3xl font-light text-[#aacaff] transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300" aria-label="Close extra entry explanation">×</button>
             </div>
 
             <div className="space-y-4 px-4 pb-5 pt-4 sm:px-6 sm:pb-6">
