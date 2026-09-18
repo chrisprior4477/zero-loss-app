@@ -141,7 +141,7 @@ export function MobileNav({ isSignedIn, balanceLabel }: MobileNavProps) {
                   </li>
                   <li>
                     <Link
-                      href="/account"
+                      href="/account/entries"
                       className={linkClassName}
                       onClick={closeMenu}
                     >

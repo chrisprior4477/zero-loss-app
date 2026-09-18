@@ -14,7 +14,7 @@ export function HeaderAuthControls({ firstName }: HeaderAuthControlsProps) {
   if (firstName) {
     return (
       <div className="flex items-center gap-2">
-        <Link href="/account" className={secondaryClass}>
+        <Link href="/account/entries" className={secondaryClass}>
           Account
         </Link>
         <form action={signOutAction}>

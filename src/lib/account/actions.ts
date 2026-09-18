@@ -133,7 +133,7 @@ export async function saveProfilePhoto(formData: FormData): Promise<SaveProfileP
     return { ok: false, message: `Photo saved, but the profile could not be updated: ${profileError.message}` };
   }
 
-  revalidatePath("/account");
+  revalidatePath("/account/entries");
   revalidatePath("/account/profile");
   const publicUrl = supabase.storage.from("profile-photos").getPublicUrl(reference).data.publicUrl;
   return { ok: true, publicUrl };

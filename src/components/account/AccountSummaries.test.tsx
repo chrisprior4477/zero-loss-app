@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { drawerState } from "@/lib/account/drawer-state";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { MyZeroLossSummary, PlayableBalanceCard } from "./AccountSummaries";
@@ -47,15 +47,9 @@ test("multiple rewards lead to the collection instead of choosing a reward for t
   expect(screen.getByRole("link", { name: "Prize Ready — 2 rewards" }).getAttribute("href")).toBe("/account/wallet");
 });
 
-test("dashboard orders the summaries and moves the saved photo into account navigation", async () => {
-  mocks.account.mockResolvedValue({ displayName: "McDonald de la Cruz", initials: "MC", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", balanceLabel: "$0.00", wallet: null, activity: storedActivityFixture(), emailConfirmed: true });
-  render(await AccountPage({ searchParams: Promise.resolve({}) }));
-  const overview = within(screen.getByRole("region", { name: "Your Zero Loss overview" }));
-  expect(overview.getAllByRole("heading").map(h => h.textContent)).toEqual(["Playable Wallet", "Prize Ready", "Purchase Options"]);
-  expect(overview.queryByTestId("saved-photo")).toBeNull();
-  const management = within(screen.getByRole("region", { name: "Manage your account" }));
-  expect(management.getByRole("link", { name: "Open McDonald de la Cruz's account" }).getAttribute("href")).toBe("/account/profile");
-  expect(management.getByTestId("saved-photo")).toBeTruthy();
+test("retired account dashboard redirects to My Activity and preserves a selected item", async () => {
+  await expect(AccountPage({ searchParams: Promise.resolve({}) })).rejects.toThrow("redirect:/account/entries");
+  await expect(AccountPage({ searchParams: Promise.resolve({ item: "samsung-m70h-tv" }) })).rejects.toThrow("redirect:/account/entries?item=samsung-m70h-tv");
 });
 
 test("profile destination preserves stored name/photo and requires authentication", async () => {

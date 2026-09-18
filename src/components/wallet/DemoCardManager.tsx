@@ -31,7 +31,7 @@ export function DemoCardManager({ displayName, savedCard = null, cardUnavailable
   return <main className={styles.page}>
     <div className={styles.shell}>
       <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
-        <Link href="/account">My Account</Link><span aria-hidden="true">›</span>
+        <Link href="/account/entries">My Activity</Link><span aria-hidden="true">›</span>
         <Link href="/account/wallet?view=history">Wallet &amp; Transactions</Link><span aria-hidden="true">›</span><span>Add Card</span>
       </nav>
 

@@ -11,7 +11,7 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
   const initialAccountPath = account === "business" ? "business" : "pleasure";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (user?.email_confirmed_at) redirect("/account");
+  if (user?.email_confirmed_at) redirect("/account/entries");
 
   if (initialAccountPath === "business") {
     return (

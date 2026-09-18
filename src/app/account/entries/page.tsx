@@ -21,7 +21,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   if (!account) redirect("/login");
   const query = await searchParams;
   return <div className={styles.page}><div className={styles.pageContent}>
-    <Link href="/account" className={styles.breadcrumb}>‹ Account Dashboard</Link>
+    <Link href="/" className={styles.breadcrumb}>‹ Marketplace</Link>
     <p className={styles.eyebrow}>MY ACTIVITY</p>
     <h1 className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>

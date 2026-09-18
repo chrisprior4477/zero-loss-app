@@ -1,6 +1,6 @@
 /** Stable account destinations. Visible labels may evolve without breaking saved links. */
 export const accountRoutes = {
-  dashboard: "/account",
+  dashboard: "/account/entries",
   activity: "/account/entries",
   openEntries: "/account/entries?filter=active",
   purchaseOptions: "/account/entries?filter=completion",

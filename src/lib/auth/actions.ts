@@ -300,7 +300,7 @@ export async function signInAction(
     };
   }
 
-  redirect("/account");
+  redirect("/account/entries");
 }
 
 export async function signOutAction(): Promise<void> {

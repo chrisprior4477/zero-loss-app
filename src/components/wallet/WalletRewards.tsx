@@ -14,7 +14,7 @@ export function WalletRewards({ state, view = "ready" }: { state: AccountActivit
   return <main className={styles.page} data-activity-source={state.source}>
     <div className={styles.shell}>
       <div className={styles.topline}>
-        <nav aria-label="Breadcrumb" className={styles.breadcrumb}><Link href="/account">My Account</Link><span aria-hidden="true">›</span><span>Gift Cards &amp; Rewards</span></nav>
+        <nav aria-label="Breadcrumb" className={styles.breadcrumb}><Link href="/account/entries">My Activity</Link><span aria-hidden="true">›</span><span>Gift Cards &amp; Rewards</span></nav>
         <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href="/account/wallet?view=history">Funds &amp; history</Link></nav>
       </div>
       <header className={styles.hero}>
