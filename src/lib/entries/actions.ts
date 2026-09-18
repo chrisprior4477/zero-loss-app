@@ -27,7 +27,8 @@ export async function createPreviewEntry(
 ): Promise<PreviewEntryActionState> {
   const offeringSlug = String(formData.get("offeringSlug") ?? "");
   const idempotencyKey = String(formData.get("idempotencyKey") ?? "");
-  if (!slugPattern.test(offeringSlug) || !keyPattern.test(idempotencyKey)) {
+  const quantity = Number(formData.get("quantity") ?? "1");
+  if (!slugPattern.test(offeringSlug) || !keyPattern.test(idempotencyKey) || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
     return { status: "error", message: "This entry request is invalid. Refresh the page and try again." };
   }
   if (!isPreviewDataEnvironment()) {
@@ -41,8 +42,9 @@ export async function createPreviewEntry(
       return { status: "error", message: "Sign in with a confirmed preview account to enter." };
     }
     await ensurePreviewCustomer(db, user);
-    const { data, error } = await db.rpc("create_preview_entry", {
+    const { data, error } = await db.rpc("create_preview_entries", {
       p_offering_slug: offeringSlug,
+      p_quantity: quantity,
       p_idempotency_key: idempotencyKey,
     });
     if (error) return entryError(error);
@@ -55,11 +57,12 @@ export async function createPreviewEntry(
     const href = outcome === "winner"
       ? `/account/wallet?${new URLSearchParams({ reward: offeringSlug })}`
       : `/account/entries?${new URLSearchParams({ item: offeringSlug })}`;
+    const entryLabel = quantity === 1 ? "Entry" : `${quantity} entries`;
     const message = outcome === "winner"
-      ? "Entry confirmed—you won. Opening your wallet reward."
+      ? `${entryLabel} confirmed—opening your wallet reward${quantity === 1 ? "" : "s"}.`
       : outcome === "not_selected"
-        ? "Entry confirmed. Your product completion option is ready."
-        : "Entry confirmed. It is now in My Activity.";
+        ? `${entryLabel} confirmed. Your separate product completion option${quantity === 1 ? " is" : "s are"} ready.`
+        : `${entryLabel} confirmed. ${quantity === 1 ? "It is" : "They are"} now in My Activity.`;
     return { status: "succeeded", message, href, outcome };
   } catch (error) {
     return entryError(error);

@@ -1,0 +1,46 @@
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn(), provision: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
+vi.mock("@/lib/preview/provisioning", () => ({ ensurePreviewCustomer: mocks.provision }));
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
+import { createPreviewEntry } from "./actions";
+
+function entryForm(quantity = "3") {
+  const value = new FormData();
+  value.set("offeringSlug", "samsung-m70h-tv");
+  value.set("idempotencyKey", "entry_quantity_request_001");
+  value.set("quantity", quantity);
+  return value;
+}
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.stubEnv("APP_DATA_ENVIRONMENT", "development-test");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://ocgdfnvvjvutevgqzzgj.supabase.co");
+  vi.stubEnv("VERCEL_ENV", "preview");
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "own-user", email_confirmed_at: "2026-09-18" } } });
+  mocks.provision.mockResolvedValue({ required: true, succeeded: true, walletAccountId: "99999999-9999-4999-8999-999999999999" });
+  mocks.rpc.mockResolvedValue({ data: { status: "active", quantity: 3 } });
+});
+afterEach(() => vi.unstubAllEnvs());
+
+test("sends the selected quantity to the atomic database batch function", async () => {
+  expect(await createPreviewEntry({ status: "idle" }, entryForm())).toEqual({
+    status: "succeeded",
+    message: "3 entries confirmed. They are now in My Activity.",
+    href: "/account/entries?item=samsung-m70h-tv",
+    outcome: "active",
+  });
+  expect(mocks.rpc).toHaveBeenCalledWith("create_preview_entries", {
+    p_offering_slug: "samsung-m70h-tv",
+    p_quantity: 3,
+    p_idempotency_key: "entry_quantity_request_001",
+  });
+  expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+});
+
+test.each(["0", "11", "2.5", "NaN", "Infinity"])('rejects unsafe quantity %s before database access', async quantity => {
+  expect((await createPreviewEntry({ status: "idle" }, entryForm(quantity))).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
