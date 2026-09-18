@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type SpeechResultEvent = {
   results: ArrayLike<{ 0: { transcript: string } }>;
@@ -34,8 +35,8 @@ function HeaderMicrophoneIcon() {
   );
 }
 
-export function DesktopHeaderSearch() {
-  const [query, setQuery] = useState("");
+function HeaderSearchForm({ inputId, initialQuery }: { inputId: string; initialQuery: string }) {
+  const [query, setQuery] = useState(initialQuery);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
@@ -72,15 +73,16 @@ export function DesktopHeaderSearch() {
   return (
     <form
       action="/browse"
+      method="get"
       className="mx-auto flex h-9 min-w-0 max-w-[760px] flex-1 items-center rounded-full bg-[#f5f7fa] px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] sm:h-10 sm:min-w-[240px] sm:px-4"
     >
-      <span aria-hidden="true" className="relative mr-3 h-5 w-5 shrink-0 text-[#087feb]">
+      <button type="submit" aria-label="Search catalog" title="Search catalog" className="relative mr-3 h-5 w-5 shrink-0 text-[#087feb]">
         <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
         <span className="absolute left-[12px] top-[12px] h-0.5 w-2 origin-left rotate-45 rounded-full bg-current" />
-      </span>
-      <label htmlFor="desktop-header-search" className="sr-only">Search products, brands, and categories</label>
+      </button>
+      <label htmlFor={inputId} className="sr-only">Search products, brands, and categories</label>
       <input
-        id="desktop-header-search"
+        id={inputId}
         name="q"
         type="search"
         value={query}
@@ -104,4 +106,15 @@ export function DesktopHeaderSearch() {
       </button>
     </form>
   );
+}
+
+export function DesktopHeaderSearch({ inputId = "desktop-header-search" }: { inputId?: string }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentQuery = pathname === "/browse" ? searchParams.get("q")?.trim() ?? "" : "";
+  return <HeaderSearchForm key={`${pathname}:${currentQuery}`} inputId={inputId} initialQuery={currentQuery} />;
+}
+
+export function DesktopHeaderSearchFallback({ inputId = "desktop-header-search" }: { inputId?: string }) {
+  return <HeaderSearchForm inputId={inputId} initialQuery="" />;
 }

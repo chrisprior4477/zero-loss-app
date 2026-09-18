@@ -96,20 +96,25 @@ export function HeroSearchRow({ winnerCount = null }: HeroSearchRowProps) {
         </div>
       </div>
 
-      <div
+      <form
+        action="/browse"
+        method="get"
         className={
           focused
             ? "absolute inset-0 z-20 flex items-center gap-1.5 rounded-[10px] bg-white px-2 shadow-[0_6px_22px_rgba(0,0,0,0.35)]"
             : "flex h-11 min-w-[70px] flex-1 items-center gap-1.5 rounded-[10px] border border-[var(--border-strong)] bg-white px-2"
         }
       >
-        <SearchIcon />
+        <button type="submit" aria-label="Search catalog" title="Search catalog" className="grid h-8 w-7 shrink-0 place-items-center rounded-md hover:bg-[rgba(0,48,95,0.08)]">
+          <SearchIcon />
+        </button>
         <label className="sr-only" htmlFor="hero-search">
           Search the marketplace
         </label>
         <input
           id="hero-search"
           ref={inputRef}
+          name="q"
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -120,12 +125,12 @@ export function HeroSearchRow({ winnerCount = null }: HeroSearchRowProps) {
           className="min-w-0 flex-1 truncate border-none bg-transparent text-[13px] text-[var(--ink)] outline-none placeholder:text-[rgba(0,48,95,0.55)]"
         />
         <VoiceSearchButton onTranscript={setQuery} />
-      </div>
+      </form>
       <p
         id="hero-search-status"
         className="absolute right-0 top-full mt-1 font-mono text-[9px] text-[var(--muted)]"
       >
-        Search preview · results coming soon
+        Search products, brands, and categories
       </p>
     </div>
   );

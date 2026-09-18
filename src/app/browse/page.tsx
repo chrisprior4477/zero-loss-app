@@ -8,24 +8,29 @@ import {
   marketplaceCategoryId,
   productMatchesMarketplaceCategory,
 } from "@/lib/catalog/navigation";
+import { searchCatalog } from "@/lib/catalog/search";
 
 export const metadata: Metadata = {
   title: "Browse",
 };
 
 type BrowsePageProps = {
-  searchParams: Promise<{ category?: string; sort?: string; subcategory?: string }>;
+  searchParams: Promise<{ category?: string; sort?: string; subcategory?: string; q?: string | string[] }>;
 };
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const query = await searchParams;
+  const searchTerm = (Array.isArray(query.q) ? query.q[0] : query.q)?.trim() ?? "";
   const selectedCategory = marketplaceCategoryId(query.category ?? (query.sort === "ending-soon" ? "ending-soon" : ""));
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
-  const products = demoProducts
-    .filter((product) => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))
-    .sort((left, right) => query.sort === "ending-soon" || selectedCategory === "ending-soon"
-      ? (left.capacity - left.sold) - (right.capacity - right.sold)
-      : left.title.localeCompare(right.title));
+  const categoryProducts = demoProducts.filter((product) => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory));
+  const matchedProducts = searchTerm ? searchCatalog(categoryProducts, searchTerm) : categoryProducts;
+  const products = query.sort === "ending-soon" || selectedCategory === "ending-soon"
+    ? matchedProducts.sort((left, right) => (left.capacity - left.sold) - (right.capacity - right.sold))
+    : searchTerm
+      ? matchedProducts
+      : matchedProducts.sort((left, right) => left.title.localeCompare(right.title));
+  const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm })}`;
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
@@ -33,8 +38,14 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Zero Loss Marketplace</p>
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{selectedLabel ?? "Browse every product"}</h1>
-            <p className="mt-2 text-white/65">Choose a product to see its entry details and current availability.</p>
+            <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{searchTerm ? "Search results" : selectedLabel ?? "Browse every product"}</h1>
+            <p className="mt-2 text-white/65">
+              {searchTerm
+                ? products.length === 1
+                  ? <>1 match for <strong className="text-white">“{searchTerm}”</strong></>
+                  : <>{products.length} matches for <strong className="text-white">“{searchTerm}”</strong></>
+                : "Choose a product to see its entry details and current availability."}
+            </p>
           </div>
           <Link href="/" className="font-bold text-cyan-300 hover:text-white">← Marketplace home</Link>
         </div>
@@ -68,6 +79,19 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 </article>
               );
             })}
+          </section>
+        ) : searchTerm ? (
+          <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Nothing matched yet</p>
+            <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">We don&apos;t have “{searchTerm}” in the catalog yet.</h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
+              We&apos;re adding new rewards regularly, and what our customers ask for helps decide what comes next. Tell us what you&apos;d love a chance to win.
+            </p>
+            <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link href={requestHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Tell us what you&apos;d like to see →</Link>
+              <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
+            </div>
           </section>
         ) : (
           <section className="mt-8 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">

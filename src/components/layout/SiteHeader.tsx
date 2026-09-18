@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { DesktopCategoryNav } from "@/components/layout/DesktopCategoryNav";
-import { DesktopHeaderSearch } from "@/components/layout/DesktopHeaderSearch";
+import { DesktopHeaderSearch, DesktopHeaderSearchFallback } from "@/components/layout/DesktopHeaderSearch";
 import { AccountDrawer } from "@/components/layout/AccountDrawer";
 import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
 import { getAccountContext } from "@/lib/account/context";
@@ -32,7 +33,9 @@ export async function SiteHeader() {
         </Link>
 
         <div className="hidden min-w-0 max-w-[640px] flex-1 md:flex xl:max-w-[700px]">
-          <DesktopHeaderSearch />
+          <Suspense fallback={<DesktopHeaderSearchFallback />}>
+            <DesktopHeaderSearch />
+          </Suspense>
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-4 lg:gap-5">
@@ -51,7 +54,9 @@ export async function SiteHeader() {
       </div>
 
       <div className="relative z-10 flex h-[52px] items-center border-t border-white/8 px-3 md:hidden">
-        <DesktopHeaderSearch />
+        <Suspense fallback={<DesktopHeaderSearchFallback inputId="mobile-header-search" />}>
+          <DesktopHeaderSearch inputId="mobile-header-search" />
+        </Suspense>
       </div>
 
       <div className="relative z-10 flex h-12 w-full items-center overflow-visible border-t border-white/8 bg-[var(--header)] px-0 sm:px-2 lg:px-4 xl:px-6">
