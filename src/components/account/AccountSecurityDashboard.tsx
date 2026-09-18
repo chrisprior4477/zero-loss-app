@@ -64,7 +64,7 @@ export function AccountSecurityDashboard({
   return <main className={styles.page}>
     <div className={styles.shell}>
       <header className={styles.heading}>
-        <p>My Zero Loss</p>
+        <p>Your account</p>
         <h1>Account &amp; Security</h1>
         <span>Your identity, sign-in, and protection settings.</span>
       </header>

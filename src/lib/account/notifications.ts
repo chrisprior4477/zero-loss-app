@@ -18,7 +18,7 @@ export type AccountNotification = {
 };
 
 function activityNotification(item: ActivityItem): AccountNotification {
-  if (item.status === "prize") return {
+  if (item.status === "prize" || (item.rewardStatus === "ready" && item.rewardId)) return {
     id: `reward-${item.slug}`,
     category: "action",
     title: `Your ${formatUsdFromCents(item.priceCents)} reward is ready`,
@@ -34,11 +34,11 @@ function activityNotification(item: ActivityItem): AccountNotification {
   if (item.status === "completion") return {
     id: `completion-${item.slug}`,
     category: "action",
-    title: `${item.title} is ready to complete`,
-    body: `${formatUsdFromCents(item.remainingCents)} remains after your ${formatUsdFromCents(item.paidCents)} entry credit.`,
+    title: `Your ${item.retailer} gift-card option is ready`,
+    body: `Pay ${formatUsdFromCents(item.remainingCents)} to receive a ${formatUsdFromCents(item.priceCents)} retailer gift card. This choice is optional.`,
     meta: item.availability,
     href: activityHref(item),
-    action: "Review purchase",
+    action: "Review option",
     image: item.image,
     visualLabel: item.retailer,
     visualValue: `${formatUsdFromCents(item.remainingCents)} left`,
@@ -48,7 +48,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     id: `completed-${item.slug}`,
     category: "orders",
     title: `${item.title} is complete`,
-    body: `Your ${item.retailer} completion is recorded in My Zero Loss.`,
+    body: `Your ${item.retailer} outcome is recorded in My Activity.`,
     meta: item.availability,
     href: activityHref(item),
     action: "View details",
@@ -74,6 +74,8 @@ function ledgerTitle(entryType: string) {
   return ({
     DEPOSIT: "Funds added to your playable wallet",
     ENTRY_DEBIT: "Entry purchase posted",
+    PURCHASE_DEBIT: "Gift-card purchase posted",
+    UNCLAIMED_WINNER_CREDIT: "Unclaimed reward credit returned",
     REFUND: "Wallet refund posted",
     CORRECTION: "Wallet adjustment posted",
   } as Record<string, string>)[entryType] ?? "Wallet transaction posted";
@@ -84,6 +86,8 @@ function ledgerBody(entryType: string, amount: number, balanceCents: number) {
   const balanceLabel = formatUsdFromCents(balanceCents);
   if (entryType === "DEPOSIT") return `${amountLabel} was added. Your current playable balance is ${balanceLabel}.`;
   if (entryType === "ENTRY_DEBIT") return `${amountLabel} was applied to an entry. Your current playable balance is ${balanceLabel}.`;
+  if (entryType === "PURCHASE_DEBIT") return `${amountLabel} completed a retailer gift-card purchase. Your current playable balance is ${balanceLabel}.`;
+  if (entryType === "UNCLAIMED_WINNER_CREDIT") return `${amountLabel} from an unclaimed winner entry was returned. Your current playable balance is ${balanceLabel}.`;
   if (entryType === "REFUND") return `${amountLabel} was returned. Your current playable balance is ${balanceLabel}.`;
   return `${amountLabel} posted to your wallet. Your current playable balance is ${balanceLabel}.`;
 }

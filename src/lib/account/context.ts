@@ -9,6 +9,7 @@ import { demoFundingAllowed } from "@/lib/payments/demo-access";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { getStoredAccountActivity } from "./activity-reader";
+import { getAccountOrders } from "./orders";
 
 /** Request-scoped reader shared by pages, header and drawer. No writes. */
 export const getAccountContext = cache(async () => {
@@ -30,6 +31,9 @@ export const getAccountContext = cache(async () => {
   const activity = wallet
     ? await getStoredAccountActivity(supabase).catch(() => drawerState(false))
     : drawerState(false);
+  const orders = wallet
+    ? await getAccountOrders(supabase).catch(() => ({ source: "unavailable" as const, orders: [] }))
+    : { source: "unavailable" as const, orders: [] };
   const profile = profileResult.error ? null : profileResult.data;
   const displayName = customerDisplayName(profile);
   return {
@@ -57,5 +61,6 @@ export const getAccountContext = cache(async () => {
     balanceLabel: wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable",
     fundingEnabled: demoFundingAllowed(wallet, Boolean(user.email_confirmed_at)),
     activity,
+    orders,
   };
 });

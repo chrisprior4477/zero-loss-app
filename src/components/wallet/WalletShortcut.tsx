@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { walletRewardHref, walletRewards, type AccountActivity } from "@/lib/account/activity";
+import { readyWalletRewards, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 
 /** Shared navigation only. Counts are not wallet cash or issued cards. */
 export function WalletShortcut({ state, onNavigate, dashboard = false }: { state: AccountActivity; onNavigate?: () => void; dashboard?: boolean }) {
-  const rewards = walletRewards(state);
+  const rewards = readyWalletRewards(state);
   const count = state.source === "unavailable" ? null : rewards.length;
   const detail = count === null ? "Reward count unavailable" : `${count} ${count === 1 ? "reward" : "rewards"}`;
   const single = count === 1 ? rewards[0] : null;

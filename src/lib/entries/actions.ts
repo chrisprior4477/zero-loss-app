@@ -18,7 +18,7 @@ function entryError(error: unknown): PreviewEntryActionState {
   if (candidate.code === "P0001") return { status: "error", message: candidate.message ?? "This preview entry is not available." };
   if (candidate.code === "22023") return { status: "error", message: "This product is not currently available for a preview entry." };
   if (candidate.code === "42501") return { status: "error", message: "Sign in with a confirmed preview account to enter." };
-  return { status: "error", message: "We could not confirm the entry. Check My Zero Loss before trying again." };
+  return { status: "error", message: "We could not confirm the entry. Check My Activity before trying again." };
 }
 
 export async function createPreviewEntry(
@@ -59,7 +59,7 @@ export async function createPreviewEntry(
       ? "Entry confirmed—you won. Opening your wallet reward."
       : outcome === "not_selected"
         ? "Entry confirmed. Your product completion option is ready."
-        : "Entry confirmed. It is now in My Zero Loss.";
+        : "Entry confirmed. It is now in My Activity.";
     return { status: "succeeded", message, href, outcome };
   } catch (error) {
     return entryError(error);

@@ -7,6 +7,7 @@ import { activityPresentation, type ActivityDestination, type ActivityFilter, ty
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./showroom.module.css";
+import { PurchaseOptionControls } from "./PurchaseOptionControls";
 
 export function ActivityDetailDialog({ item, destination, filter = "all" }: {
   item: ActivityItem;
@@ -39,7 +40,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
     };
   }, [item.slug]);
 
-  const disabledAction = item.status === "completion" ? "Complete purchase" : item.status === "active" ? "Entry participation" : presentation.action;
+  const disabledAction = item.status === "completion" ? "Continue with option" : item.status === "active" ? "Entry participation" : presentation.action;
   const introduction = item.status === "completion"
     ? "Review the exact-product option created by this outcome. You decide whether to take the next step."
     : item.status === "prize"
@@ -63,7 +64,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
     }}
     className={styles.detailDialog} data-status={item.status}>
     <header className={styles.detailHeader}>
-      <div><p className={styles.detailEyebrow}>MY ZERO LOSS</p><p className={styles.detailHeaderLabel}>{item.status === "completion" ? "Purchase option" : item.status === "prize" ? "Winning outcome" : item.status === "active" ? "Entry details" : "Activity history"}</p></div>
+      <div><p className={styles.detailEyebrow}>MY ACTIVITY</p><p className={styles.detailHeaderLabel}>{item.status === "completion" ? "Purchase option" : item.status === "prize" ? "Winning outcome" : item.status === "active" ? "Entry details" : "Activity history"}</p></div>
       <button ref={closeRef} type="button" onClick={close} aria-label="Close activity details" className={styles.detailClose}>×</button>
     </header>
     <div role="region" aria-label="Product details" tabIndex={0} className={styles.detailBody}>
@@ -80,19 +81,20 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
       {item.status === "completion" ? <>
         <section className={styles.detailPanel}>
           <p className={styles.panelEyebrow}>YOUR NEXT STEP</p>
-          <h3>Complete this product’s purchase</h3>
+          <h3>Review your optional retailer gift card</h3>
           <dl className={styles.purchaseMath}>
             {[["Product price", formatUsdFromCents(item.priceCents)], ["Already applied", formatUsdFromCents(item.paidCents)], ["Remaining", formatUsdFromCents(item.remainingCents)]].map(([label, value], index) => <div key={label}><dt>{label}</dt><dd data-emphasis={index === 2}>{value}</dd></div>)}
           </dl>
-          <p className={styles.detailCopy}>An optional purchase of this exact originating product. No payment is due unless you choose to complete it.</p>
+          <p className={styles.detailCopy}>Pay the remaining amount to receive a retailer gift card for the advertised value. You decide whether to continue.</p>
           <p className={styles.detailMeta}><strong>Availability:</strong> {item.availability}</p>
-          <p className={styles.detailFinePrint}>Not wallet cash, transferable credit or a retailer-wide alternative.</p>
+          {item.completionExpiresAt ? <p className={styles.detailMeta}><strong>Decision deadline:</strong> <time dateTime={item.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short" }).format(new Date(item.completionExpiresAt))}</time></p> : null}
+          <p className={styles.detailFinePrint}>The featured item is not guaranteed. Retailer inventory, variants and any costs above the gift-card value remain the customer’s responsibility.</p>
         </section>
       </> : item.status === "prize" ? <>
         <section className={styles.detailPanel}>
           <p className={styles.panelEyebrow}>REWARD READY</p>
           <div className={styles.rewardValue}><span>{item.rewardKind === "digital" ? "Digital reward" : "Physical prize"}</span><strong>{formatUsdFromCents(item.priceCents)}</strong><small>{item.retailer}</small></div>
-          <p className={styles.detailCopy}>{item.rewardKind === "digital" ? "This digital reward is ready in My Rewards." : "This physical-prize outcome will continue through Orders & Fulfillment."}</p>
+          <p className={styles.detailCopy}>Your retailer gift card is ready in Gift Cards &amp; Rewards. Use it toward the featured item or another eligible purchase from that retailer.</p>
         </section>
       </> : item.status === "active" ? <>
         <section className={styles.detailPanel}>
@@ -103,10 +105,9 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
         </section>
       </> : <section className={styles.detailPanel}><p className={styles.panelEyebrow}>COMPLETED</p><h3>Activity complete</h3><p className={styles.detailCopy}>Completed activity details. No additional fulfillment action is enabled in this checkpoint.</p></section>}
 
-      <div className={styles.detailFooter}>
-        <button disabled type="button">{disabledAction} — not enabled</button>
-        <p>This action is not available yet.</p>
-      </div>
+      {item.status === "completion" && item.completionOptionId
+        ? <PurchaseOptionControls optionId={item.completionOptionId} />
+        : <div className={styles.detailFooter}><button disabled type="button">{disabledAction} — not enabled</button><p>This action is not available yet.</p></div>}
     </div>
   </dialog>;
 }

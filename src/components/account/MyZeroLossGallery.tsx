@@ -8,10 +8,10 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./showroom.module.css";
 
-const labels = { active: "Still open", prize: "You won", completion: "Complete purchase", completed: "Completed" };
+const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
 function action(item: ActivityItem) {
   if (item.status === "prize") return item.rewardKind === "digital" ? "Open reward" : "Claim prize";
-  return { active: "Track entry", completion: "Review purchase", completed: "View details" }[item.status];
+  return { active: "Track entry", completion: "Review option", completed: "View details" }[item.status];
 }
 
 export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; filter: ActivityFilter }) {

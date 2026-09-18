@@ -15,7 +15,7 @@ export function MyZeroLossActivity({ state, filter, selectedSlug }: { state: Acc
   const verifiedState = state.source === "unavailable" ? { ...state, activity: [] } : state;
   const items = winnerFirst(filterActivity(verifiedState.activity, filter));
   return <section data-activity-source={state.source}>
-    <nav aria-label="Filter My Zero Loss" className={styles.filters}>
+    <nav aria-label="Filter My Activity" className={styles.filters}>
       {activityFilters.map(([key, label]) => <Link key={key} href={key === "all" ? "/account/entries" : `/account/entries?filter=${key}`} scroll={false} aria-current={filter === key ? "page" : undefined} data-filter={key} className={styles.filter}><AccountIcon name={key} /><span>{label}</span><span className={styles.filterCount}>{state.source === "unavailable" ? "—" : filterActivity(state.activity, key).length}</span></Link>)}
     </nav>
     {items.length ? <MyZeroLossGallery key={filter + items.map(item => item.slug).join(",")} items={items} filter={filter} /> : <div className={styles.empty}>

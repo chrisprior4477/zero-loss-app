@@ -11,6 +11,7 @@ import { AccountIcon, type AccountIconName } from "@/components/account/AccountI
 import { EntryTicket } from "@/components/layout/EntryTicket";
 import styles from "@/components/account/drawer.module.css";
 import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
+import { accountNavigation } from "@/lib/account/navigation";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -21,15 +22,6 @@ type AccountDrawerProps = {
   fundingEnabled?: boolean;
   activityState: AccountActivity;
 };
-
-const primaryLinks = [
-  ["My Rewards", "/account/wallet", "gift"],
-  ["My Zero Loss", "/account/entries", "layers"],
-  ["Wallet & Transactions", walletHistoryHref, "wallet"],
-  ["Orders & Fulfillment", "/account/orders", "orders"],
-  ["Notifications", "/account/notifications", "bell"],
-  ["Account & Security", "/account/security", "security"],
-] as const;
 
 const secondaryLinks = [
   ["Official Rules & Free Entry", "/free-entry"],
@@ -170,7 +162,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 <DrawerOverview state={state} balanceLabel={balanceLabel} fundingEnabled={fundingEnabled} onNavigate={close} />
 
                 <nav aria-label="Account navigation" className={styles.nav}>
-                  {primaryLinks.map(([label, href, icon]) => {
+                  {accountNavigation.map(([label, href, icon]) => {
                     const active = href.startsWith("/account/wallet") ? pathname === "/account/wallet" && (href === walletHistoryHref) === walletHistoryOpen : pathname === href || pathname?.startsWith(href + "/");
                     return <Link key={href} href={href} onClick={close} aria-current={active ? "page" : undefined} className={styles.navLink}><AccountIcon name={icon as AccountIconName} /><span>{label}</span><AccountIcon name="chevron" /></Link>;
                   })}

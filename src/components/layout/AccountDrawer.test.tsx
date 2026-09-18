@@ -43,7 +43,7 @@ test("signed-in drawer follows the compact account-menu hierarchy", () => {
   expect(dialog.getByRole("link", { name: "Open Chris Prior's account" }).getAttribute("href")).toBe("/account/profile");
   expect(dialog.getByText("Playable Wallet")).toBeTruthy();
   expect(dialog.getByText("Prize Ready")).toBeTruthy();
-  expect(dialog.getByText("Items in Play")).toBeTruthy();
+  expect(dialog.getByText("Purchase Options")).toBeTruthy();
   expect(dialog.getByTestId("drawer-balance").textContent).toBe("$0.00");
   expect((dialog.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
   expect(dialog.queryByText("Recent activity")).toBeNull();
@@ -71,11 +71,11 @@ test("authorized activity populates the three compact shortcuts", () => {
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const dialog = within(screen.getByRole("dialog"));
   expect(dialog.getByRole("link", { name: "Prize Ready — 1 reward" }).getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes");
-  const items = dialog.getByRole("link", { name: "Items in Play — See every entry and outcome" });
-  expect(items.getAttribute("href")).toBe("/account/entries");
-  expect(within(items).getByText("3")).toBeTruthy();
+  const options = dialog.getByRole("link", { name: "Purchase Options — 1 available" });
+  expect(options.getAttribute("href")).toBe("/account/entries?filter=completion");
+  expect(within(options).getByText("1")).toBeTruthy();
   expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active");
-  expect(dialog.getByRole("link", { name: "My Zero Loss" }).getAttribute("aria-current")).toBe("page");
+  expect(dialog.getByRole("link", { name: "My Activity" }).getAttribute("aria-current")).toBe("page");
 });
 
 test("profile navigation retains casing and closes the drawer", () => {
@@ -101,7 +101,7 @@ test("drawer account destinations follow the approved hierarchy", () => {
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const navigation = within(screen.getByRole("navigation", { name: "Account navigation" }));
   expect(navigation.getAllByRole("link").map(link => link.textContent?.trim())).toEqual([
-    "My Rewards", "My Zero Loss", "Wallet & Transactions", "Orders & Fulfillment", "Notifications", "Account & Security",
+    "My Activity", "Gift Cards & Rewards", "Wallet & Transactions", "Orders & Fulfillment", "Notifications", "Account & Security",
   ]);
 });
 
@@ -130,10 +130,10 @@ test("wallet history and rewards get distinct active navigation states", () => {
   render(<AccountDrawer {...props} />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   expect(screen.getByRole("link", { name: "Wallet & Transactions" }).getAttribute("aria-current")).toBe("page");
-  expect(screen.getByRole("link", { name: "My Rewards" }).hasAttribute("aria-current")).toBe(false);
+  expect(screen.getByRole("link", { name: "Gift Cards & Rewards" }).hasAttribute("aria-current")).toBe(false);
   fireEvent.keyDown(window, { key: "Escape" });
   window.history.replaceState({}, "", "/account/wallet?reward=nike-court-shot-shoes");
   fireEvent.click(screen.getByLabelText("Open account menu"));
-  expect(screen.getByRole("link", { name: "My Rewards" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("link", { name: "Gift Cards & Rewards" }).getAttribute("aria-current")).toBe("page");
   expect(screen.getByRole("link", { name: "Wallet & Transactions" }).hasAttribute("aria-current")).toBe(false);
 });

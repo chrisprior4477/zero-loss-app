@@ -51,7 +51,7 @@ test("dashboard orders the summaries and moves the saved photo into account navi
   mocks.account.mockResolvedValue({ displayName: "McDonald de la Cruz", initials: "MC", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", balanceLabel: "$0.00", wallet: null, activity: storedActivityFixture(), emailConfirmed: true });
   render(await AccountPage({ searchParams: Promise.resolve({}) }));
   const overview = within(screen.getByRole("region", { name: "Your Zero Loss overview" }));
-  expect(overview.getAllByRole("heading").map(h => h.textContent)).toEqual(["Playable Wallet", "Prize Ready", "My Zero Loss"]);
+  expect(overview.getAllByRole("heading").map(h => h.textContent)).toEqual(["Playable Wallet", "Prize Ready", "Purchase Options"]);
   expect(overview.queryByTestId("saved-photo")).toBeNull();
   const management = within(screen.getByRole("region", { name: "Manage your account" }));
   expect(management.getByRole("link", { name: "Open McDonald de la Cruz's account" }).getAttribute("href")).toBe("/account/profile");

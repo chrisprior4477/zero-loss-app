@@ -32,13 +32,13 @@ test("same activity source yields matching still-open count and full-row links",
   expect(screen.queryByText("Baby's Essentials Bundle")).toBeNull();
   expect(activityFilter("demo=true")).toBe("all");
 });
-test("completion displays exact product math, optional terms, no operative purchase control", () => {
+test("completion displays exact product math and stays unavailable without a stored option id", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="completion" selectedSlug="babys-essentials-bundle" />);
   expect(screen.getByText("$100")).toBeTruthy();
   expect(screen.getByText("$99")).toBeTruthy();
   expect(screen.getByText("$1")).toBeTruthy();
-  expect(screen.getByText(/Not wallet cash/)).toBeTruthy();
-  expect((screen.getByRole("button", { name: /Complete purchase — not enabled/ }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText(/retailer gift card for the advertised value/)).toBeTruthy();
+  expect((screen.getByRole("button", { name: /Continue with option — not enabled/ }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByRole("dialog", { name: "Baby's Essentials Bundle" })).toBeTruthy();
   expect(screen.queryByText("Result Ready")).toBeNull();
 });
@@ -58,7 +58,7 @@ test("Dashboard gives authorized samples full-row local detail links without dup
     const slug = (row as HTMLElement).dataset.activitySlug;
     expect(row.getAttribute("href")).toBe(slug === "samsung-m70h-tv" ? `/account/wallet?reward=${slug}` : `/account?item=${slug}`);
   }
-  expect(screen.getByRole("link", { name: /View all My Zero Loss/ }).getAttribute("href")).toBe("/account/entries");
+  expect(screen.getByRole("link", { name: /View all My Activity/ }).getAttribute("href")).toBe("/account/entries");
   expect(screen.queryByText(/Playable balance/i)).toBeNull();
   expect(screen.queryByText(/Sample activity for visual review/)).toBeNull();
 });
@@ -122,8 +122,8 @@ test("Tab and Shift+Tab wrap between close and keyboard-scrollable detail conten
 
 test("desktop gallery retains complete catalog names, purchase math and existing filter counts", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
-  const filters = within(screen.getByRole("navigation", { name: "Filter My Zero Loss" }));
-  for (const name of ["All4", "Still Open1", "You Won1", "Complete Purchase2", "Completed0"]) {
+  const filters = within(screen.getByRole("navigation", { name: "Filter My Activity" }));
+  for (const name of ["All4", "Still Open1", "You Won1", "Purchase Options2", "Completed0"]) {
     expect(filters.getByRole("link", { name })).toBeTruthy();
   }
   const gallery = document.querySelector("[data-activity-gallery]");
@@ -143,7 +143,7 @@ test("desktop gallery retains complete catalog names, purchase math and existing
 
 test("mobile hybrid marks only the first winner as featured and keeps every product link intact", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
-  const gallery = document.querySelector("[data-activity-gallery]")!;
+  const gallery = document.querySelector<HTMLElement>("[data-activity-gallery]")!;
   const products = Array.from(gallery.querySelectorAll<HTMLAnchorElement>("a[data-activity-slug]"));
   expect(products.filter(product => product.dataset.featured === "true").map(product => product.dataset.activitySlug)).toEqual(["samsung-m70h-tv"]);
   expect(within(gallery).getByText("Everything else")).toBeTruthy();
@@ -174,7 +174,7 @@ test("gallery controls follow scroll boundaries and honor reduced motion", () =>
     scrollBy: { configurable: true, value: scrollBy },
   });
   vi.spyOn(track, "getBoundingClientRect").mockReturnValue({ left: 0, right: 300, width: 300 } as DOMRect);
-  Array.from(track.children).forEach((child, index) => vi.spyOn(child, "getBoundingClientRect").mockImplementation(() => ({ left: index * 300 - track.scrollLeft, right: (index + 1) * 300 - track.scrollLeft, width: 300 }) as DOMRect));
+  Array.from(track.children).forEach((child, index) => vi.spyOn(child as HTMLElement, "getBoundingClientRect").mockImplementation(() => ({ left: index * 300 - track.scrollLeft, right: (index + 1) * 300 - track.scrollLeft, width: 300 }) as DOMRect));
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
   fireEvent.scroll(track);
   const previous = screen.getByRole("button", { name: "Previous product" }) as HTMLButtonElement;

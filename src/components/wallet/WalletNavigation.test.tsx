@@ -42,7 +42,7 @@ test("specific reward opens its redemption destination without another dialog or
   expect(screen.getAllByText("$400")).toHaveLength(2);
   expect((screen.getByRole("button", { name: "Add to Apple Wallet" }) as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByRole("button", { name: "Save to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByRole("link", { name: "Back to My Rewards" }).getAttribute("href")).toBe("/account/wallet");
+  expect(screen.getByRole("link", { name: "Back to Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet");
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
@@ -76,11 +76,11 @@ test.each(["playstation-5-slim", "missing", ["nike-court-shot-shoes", "missing"]
 test("normal empty and failed-read states are distinct and do not load sample rewards", async () => {
   mocks.account.mockResolvedValue({ activity: drawerState(true), wallet });
   const { rerender } = render(await WalletPage({ searchParams: Promise.resolve({}) }));
-  expect(screen.getByText("No ready prizes yet")).toBeTruthy();
+  expect(screen.getByText("No ready gift cards yet")).toBeTruthy();
   mocks.account.mockResolvedValue({ activity: drawerState(false), wallet: null });
   rerender(await WalletPage({ searchParams: Promise.resolve({}) }));
   expect(screen.getByText(/Rewards unavailable/)).toBeTruthy();
-  expect(screen.queryByText("No ready prizes yet")).toBeNull();
+  expect(screen.queryByText("No ready gift cards yet")).toBeNull();
   expect(screen.queryByText("Nike Men's Court Shot Shoes")).toBeNull();
 });
 

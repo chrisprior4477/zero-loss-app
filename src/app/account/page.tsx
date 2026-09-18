@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { ProfileShortcut } from "@/components/account/ProfileShortcut";
-import { MyZeroLossSummary, PlayableBalanceCard } from "@/components/account/AccountSummaries";
+import { PlayableBalanceCard, PurchaseOptionsSummary } from "@/components/account/AccountSummaries";
 import { DashboardActivity } from "@/components/account/DashboardActivity";
 import { getAccountContext } from "@/lib/account/context";
 import { WalletShortcut } from "@/components/wallet/WalletShortcut";
@@ -43,7 +43,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         <section aria-label="Your Zero Loss overview" className={`${styles.overview} mt-4 grid gap-3 lg:grid-cols-3`}>
           <PlayableBalanceCard balanceLabel={balance} fundingEnabled={account.fundingEnabled} />
           <WalletShortcut state={account.activity} dashboard />
-          <MyZeroLossSummary state={account.activity} />
+          <PurchaseOptionsSummary state={account.activity} />
         </section>
 
         <div className={styles.activity}><DashboardActivity state={account.activity} selectedSlug={selectedSlug} /></div>
