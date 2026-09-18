@@ -62,16 +62,18 @@ export function DemoParticipationPanel({
 
   const acknowledgeAndAddEntry = async () => {
     setPreferenceError(null);
-    if (rememberExplanation) {
-      setPreferenceSaving(true);
-      const preference = await acknowledgeExtraEntryExplainer();
-      setPreferenceSaving(false);
-      if (preference.status === "error") {
-        setPreferenceError(preference.message);
-        return;
-      }
-      setSkipFutureExplainer(true);
+    if (!rememberExplanation) {
+      setPreferenceError("Check the acknowledgment before saving your choice.");
+      return;
     }
+    setPreferenceSaving(true);
+    const preference = await acknowledgeExtraEntryExplainer();
+    setPreferenceSaving(false);
+    if (preference.status === "error") {
+      setPreferenceError(preference.message);
+      return;
+    }
+    setSkipFutureExplainer(true);
     setAdditionalEntryTermsSeen(true);
     setQuantity((value) => Math.min(10, value + 1));
     setAdditionalEntryNoticeOpen(false);
@@ -146,34 +148,18 @@ export function DemoParticipationPanel({
       ) : null}
 
       {additionalEntryNoticeOpen ? createPortal((
-        <div className="fixed inset-0 z-[200] grid place-items-end bg-[#000914]/75 p-3 backdrop-blur-sm sm:place-items-center" role="presentation" onMouseDown={(event) => {
+        <div className="fixed inset-0 z-[200] grid place-items-end bg-[#000914]/75 p-2 backdrop-blur-sm sm:place-items-center sm:p-4" role="presentation" onMouseDown={(event) => {
           if (event.currentTarget === event.target) setAdditionalEntryNoticeOpen(false);
         }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-cyan-300/50 bg-[#001b3d] p-4 text-left shadow-[0_28px_90px_rgba(0,0,0,.65),0_0_28px_rgba(0,185,255,.2)] sm:p-6">
-            <header className="flex items-start justify-between gap-4">
-              <div>
-                <Image src="/zeroloss-logo.svg" alt="Zero Loss" width={190} height={35} className="h-7 w-auto" />
-                <h2 id="additional-entry-title" className="mt-3 text-2xl font-extrabold sm:text-3xl">How Extra Entries Work</h2>
-                <p className="mt-1 text-sm text-white/65">One quick visual before you add another independent chance.</p>
-              </div>
-              <button type="button" onClick={() => setAdditionalEntryNoticeOpen(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 text-2xl text-white/70 transition hover:border-cyan-300 hover:text-white" aria-label="Close extra entry explanation">×</button>
-            </header>
-
-            <Image src="/account/extra-entry-explainer-v2.png" alt="Four illustrated steps showing one entry, adding entries, gaining separate chances, and keeping each completion option separate" width={1256} height={1256} className="mt-5 h-auto w-full rounded-2xl border border-cyan-300/25" priority />
-
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs leading-5 sm:text-sm">
-              <div className="rounded-xl border border-[#55ff3b]/25 bg-[#55ff3b]/7 p-3"><strong className="block text-[#67ff42]">1. One entry</strong>${entryPrice.toFixed(2)} creates one independent chance.</div>
-              <div className="rounded-xl border border-cyan-300/25 bg-cyan-300/7 p-3"><strong className="block text-cyan-300">2. Add entries</strong>Add another separate chance with the neon-green plus.</div>
-              <div className="rounded-xl border border-[#55ff3b]/25 bg-[#55ff3b]/7 p-3"><strong className="block text-[#67ff42]">3. More chances</strong>Every entry is considered on its own.</div>
-              <div className="rounded-xl border border-[#ff9a21]/30 bg-[#ff9a21]/7 p-3"><strong className="block text-[#ffad3d]">4. No stacking</strong>Separate entries never become one combined credit.</div>
+          <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className="max-h-[94vh] w-full max-w-sm overflow-y-auto rounded-[1.75rem] border border-cyan-300/55 bg-[#001b3d] text-left shadow-[0_28px_90px_rgba(0,0,0,.68),0_0_30px_rgba(0,185,255,.24)]">
+            <h2 id="additional-entry-title" className="sr-only">How Extra Chances Work</h2>
+            <div className="relative">
+              <Image src="/account/extra-entry-explainer-approved-slide-v1.png" alt="How extra chances work: one entry creates one chance, extra entries create more separate chances, and entries never stack into one discount" width={1024} height={1175} className="h-auto w-full" priority sizes="(max-width: 640px) calc(100vw - 16px), 576px" />
+              <button type="button" onClick={() => setAdditionalEntryNoticeOpen(false)} className="absolute right-[3.2%] top-[2.1%] grid h-10 w-10 place-items-center rounded-full bg-[#001b3d]/95 text-3xl font-light text-[#aacaff] transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300" aria-label="Close extra entry explanation">×</button>
             </div>
 
-            <div className="mt-4 flex items-center gap-3 rounded-xl border border-[#55ff3b]/30 bg-[#55ff3b]/8 p-3">
-              <span aria-hidden="true" className="text-2xl text-[#67ff42]">✓</span>
-              <strong className="text-sm sm:text-base">Every entry—and every completion option—stands alone.</strong>
-            </div>
-
-            <details className="group mt-4 rounded-xl border border-cyan-300/35 bg-[#001632] open:border-cyan-300/60">
+            <div className="space-y-4 px-4 pb-5 pt-4 sm:px-6 sm:pb-6">
+            <details className="group rounded-xl border border-cyan-300/35 bg-[#001632] open:border-cyan-300/60">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-bold text-white marker:hidden">
                 <span className="flex items-center gap-3"><span className="grid h-7 w-7 place-items-center rounded-full bg-[#00b9ff] text-[#00132e]">?</span>Why does each entry stand alone?</span>
                 <span aria-hidden="true" className="text-xl text-cyan-300 transition group-open:rotate-180">⌄</span>
@@ -192,17 +178,14 @@ export function DemoParticipationPanel({
               </div>
             </details>
 
-            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/5 p-3">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/5 p-3">
               <input type="checkbox" checked={rememberExplanation} onChange={(event) => setRememberExplanation(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#55ff3b]" />
-              <span><strong className="block text-sm">I understand how extra entries work</strong><span className="mt-0.5 block text-xs leading-5 text-white/55">Check this and we&apos;ll stop showing this notice. We just want to make sure you understand that extra entries and completion options never combine.</span></span>
+              <span><strong className="block text-sm">I understand how extra entries work.</strong><span className="mt-0.5 block text-xs leading-5 text-white/60">Please stop showing this explanation again.</span></span>
             </label>
             {preferenceError ? <p role="alert" className="mt-3 rounded-xl border border-[#ff796c]/40 bg-[#4b1c25] p-3 text-sm">{preferenceError}</p> : null}
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => setAdditionalEntryNoticeOpen(false)} className="rounded-xl border border-white/20 px-4 py-3 font-bold text-white hover:bg-white/8">Keep current entries</button>
-              <button type="button" onClick={acknowledgeAndAddEntry} disabled={preferenceSaving} className="rounded-xl bg-[#00b9ff] px-4 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">{preferenceSaving ? "Saving preference…" : "Add entry"}</button>
+            <button type="button" onClick={acknowledgeAndAddEntry} disabled={!rememberExplanation || preferenceSaving} className="w-full rounded-xl bg-[#00b9ff] px-4 py-3.5 font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-[#0b668b] disabled:text-white/55">{preferenceSaving ? "Saving your choice…" : "I understand — save my choice"}</button>
             </div>
-            <Link href={`/free-entry?offering=${productSlug}`} className="mt-4 block text-center text-sm font-bold text-cyan-300 hover:text-white">View official rules &amp; free-entry information →</Link>
           </section>
         </div>
       ), document.body) : null}
