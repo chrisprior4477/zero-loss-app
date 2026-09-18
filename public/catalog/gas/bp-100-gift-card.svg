@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">$100 BP fuel and convenience gift card</title>
+  <desc id="desc">A green and yellow digital reward card with a fuel pump illustration.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#007f45"/><stop offset="1" stop-color="#00452f"/></linearGradient>
+    <radialGradient id="glow" cx="78%" cy="12%" r="70%"><stop stop-color="#f9e432" stop-opacity=".58"/><stop offset="1" stop-color="#f9e432" stop-opacity="0"/></radialGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-opacity=".35"/></filter>
+  </defs>
+  <rect width="1200" height="760" rx="72" fill="url(#bg)"/>
+  <rect width="1200" height="760" rx="72" fill="url(#glow)"/>
+  <path d="M0 540C250 415 424 685 760 515c182-92 283-87 440-22v267H0Z" fill="#002f28" opacity=".6"/>
+  <g transform="translate(84 88)" filter="url(#shadow)">
+    <rect x="0" y="0" width="250" height="250" rx="54" fill="#fff" fill-opacity=".1" stroke="#fff" stroke-opacity=".55" stroke-width="4"/>
+    <path d="M69 69h90v126H69zM87 88h54v43H87zM159 90h21l26 31v57c0 24 35 24 35 0v-31" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="18"/>
+  </g>
+  <text x="392" y="176" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="92" font-weight="900" letter-spacing="-4">BP</text>
+  <text x="392" y="235" fill="#d9ff4c" font-family="Arial,Helvetica,sans-serif" font-size="29" font-weight="800" letter-spacing="7">FUEL + CONVENIENCE</text>
+  <text x="84" y="580" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="142" font-weight="900" letter-spacing="-8">$100</text>
+  <text x="92" y="646" fill="#fff" fill-opacity=".74" font-family="Arial,Helvetica,sans-serif" font-size="31" font-weight="700">DIGITAL GIFT CARD</text>
+  <g transform="translate(920 560)"><circle cx="74" cy="74" r="72" fill="#d9ff4c"/><path d="m37 76 23 23 52-58" fill="none" stroke="#00452f" stroke-linecap="round" stroke-linejoin="round" stroke-width="15"/></g>
+</svg>
