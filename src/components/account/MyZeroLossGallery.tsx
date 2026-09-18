@@ -47,6 +47,7 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
   }, [syncSwipe]);
 
   function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if (window.matchMedia?.("(max-width: 940px)").matches) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     const element = track.current;
     if (!element) return;
@@ -101,23 +102,29 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
       role="region"
       aria-label="Your products"
     >
-      {items.map(item => <Link key={item.slug} href={activityHref(item, "/account/entries", filter)} data-activity-slug={item.slug} data-status={item.status} className={styles.productCard}>
-        <div className={styles.cardInner}>
-          <p className={styles.retailer}>{item.retailer}</p>
-          <h2 className={styles.productTitle}>{item.title}</h2>
-          <span className={styles.status}><AccountIcon name={item.status} />{labels[item.status]}</span>
-          <div className={styles.productStage}>
-            <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 75vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
-          </div>
-          <div className={styles.cardFoot}>
-            <p className={styles.productNote}>{item.status === "completion"
-              ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
-              : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · Still in play`
-              : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : "Your completed activity."}</p>
-            <span className={styles.cardAction}>{action(item)}<AccountIcon name="arrow" /></span>
-          </div>
-        </div>
-      </Link>)}
+      {items.map((item, index) => {
+        const featured = item.status === "prize" && index === 0;
+        return <div key={item.slug} className={styles.galleryItem}>
+          <Link href={activityHref(item, "/account/entries", filter)} data-activity-slug={item.slug} data-status={item.status} data-featured={featured ? "true" : undefined} className={styles.productCard}>
+            <div className={styles.cardInner}>
+              <p className={styles.retailer}>{item.retailer}</p>
+              <h2 className={styles.productTitle}>{item.title}</h2>
+              <span className={styles.status}><AccountIcon name={item.status} />{labels[item.status]}</span>
+              <div className={styles.productStage}>
+                <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 44vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
+              </div>
+              <div className={styles.cardFoot}>
+                <p className={styles.productNote}>{item.status === "completion"
+                  ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
+                  : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · Still in play`
+                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : "Your completed activity."}</p>
+                <span className={styles.cardAction}>{action(item)}<AccountIcon name="arrow" /></span>
+              </div>
+            </div>
+          </Link>
+          {featured && items.length > 1 ? <p className={styles.mobileRestLabel}>Everything else</p> : null}
+        </div>;
+      })}
     </div>
     {items.length > 1 && <div className={styles.galleryControls}>
       <p className={styles.galleryHint}>{view.previous || view.next ? "Swipe or use the arrows to explore." : "Every choice. Your next step, all in one place."}</p>

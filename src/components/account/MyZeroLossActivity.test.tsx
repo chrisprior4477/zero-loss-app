@@ -141,6 +141,20 @@ test("desktop gallery retains complete catalog names, purchase math and existing
   expect(television.getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
 });
 
+test("mobile hybrid marks only the first winner as featured and keeps every product link intact", () => {
+  render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
+  const gallery = document.querySelector("[data-activity-gallery]")!;
+  const products = Array.from(gallery.querySelectorAll<HTMLAnchorElement>("a[data-activity-slug]"));
+  expect(products.filter(product => product.dataset.featured === "true").map(product => product.dataset.activitySlug)).toEqual(["samsung-m70h-tv"]);
+  expect(within(gallery).getByText("Everything else")).toBeTruthy();
+  expect(products.map(product => product.getAttribute("href"))).toEqual([
+    "/account/wallet?reward=samsung-m70h-tv",
+    "/account/entries?item=playstation-5-slim",
+    "/account/entries?item=nike-court-shot-shoes",
+    "/account/entries?item=babys-essentials-bundle",
+  ]);
+});
+
 test("unavailable activity never displays a stale card or opens its detail", () => {
   render(<MyZeroLossActivity state={{ ...storedActivityFixture(), source: "unavailable", activeCount: null }} filter="all" selectedSlug="playstation-5-slim" />);
   expect(screen.getByText("Activity unavailable")).toBeTruthy();
