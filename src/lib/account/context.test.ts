@@ -17,7 +17,7 @@ beforeEach(() => {
     : { data: [] });
   mocks.from.mockReturnValue({ select: () => ({ eq: mocks.eq }) });
   mocks.eq.mockReturnValue({ maybeSingle: mocks.maybeSingle });
-  mocks.maybeSingle.mockResolvedValue({ data: { display_name: "McDonald", legal_first_name: "lowercase", legal_last_name: "de la Cruz", date_of_birth: "1990-01-01", preferred_locale: "en-US", timezone: "America/New_York", avatar_reference: "photo.webp", phone_number: "(910) 555-0147", address_line_1: "125 Market Street", address_line_2: "Unit 4", city: "Wilmington", region: "NC", postal_code: "28401", country: "United States" } });
+  mocks.maybeSingle.mockResolvedValue({ data: { display_name: "McDonald", legal_first_name: "lowercase", legal_last_name: "de la Cruz", date_of_birth: "1990-01-01", preferred_locale: "en-US", timezone: "America/New_York", avatar_reference: "photo.webp", phone_number: "(910) 555-0147", address_line_1: "125 Market Street", address_line_2: "Unit 4", city: "Wilmington", region: "NC", postal_code: "28401", country: "United States", extra_entry_explainer_acknowledged_at: "2026-09-18T15:00:00Z" } });
   mocks.snapshot.mockResolvedValue({ balanceCents: 0, transactionCount: 0, scope: "demo", fundingAvailable: true });
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -29,7 +29,7 @@ test("reads only own profile and snapshot; normal permission never receives fixt
   expect(mocks.snapshot).toHaveBeenCalledWith("own-account");
   expect(mocks.rpc).toHaveBeenCalledWith("get_account_activity");
   expect(mocks.rpc).toHaveBeenCalledWith("get_account_orders");
-  expect(account).toMatchObject({ displayName: "McDonald", legalFirstName: "lowercase", legalLastName: "de la Cruz", dateOfBirth: "1990-01-01", email: "Case@example.test", memberSince: "2025-03-14T10:00:00Z", lastSignInAt: "2026-09-16T14:24:00Z", phone: "(910) 555-0147", addressLine1: "125 Market Street", city: "Wilmington", region: "NC", postalCode: "28401", country: "United States", avatarUrl: "/saved/photo.webp", balanceLabel: "$0.00", fundingEnabled: true, activity: { activity: [], activeCount: 0, isPreview: true, source: "customer-empty" }, orders: { source: "customer-empty", orders: [] } });
+  expect(account).toMatchObject({ displayName: "McDonald", legalFirstName: "lowercase", legalLastName: "de la Cruz", dateOfBirth: "1990-01-01", email: "Case@example.test", memberSince: "2025-03-14T10:00:00Z", lastSignInAt: "2026-09-16T14:24:00Z", phone: "(910) 555-0147", addressLine1: "125 Market Street", city: "Wilmington", region: "NC", postalCode: "28401", country: "United States", extraEntryExplainerAcknowledged: true, avatarUrl: "/saved/photo.webp", balanceLabel: "$0.00", fundingEnabled: true, activity: { activity: [], activeCount: 0, isPreview: true, source: "customer-empty" }, orders: { source: "customer-empty", orders: [] } });
 });
 test("ordinary account context never substitutes hardcoded activity for ledger data", async () => {
   mocks.snapshot.mockResolvedValue({ balanceCents: 2500, transactionCount: 1, scope: "demo" });

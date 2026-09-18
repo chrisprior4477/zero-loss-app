@@ -1,9 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { DemoParticipationPanel } from "./DemoParticipationPanel";
+const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: vi.fn() }));
-afterEach(cleanup);
+vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: vi.fn(), acknowledgeExtraEntryExplainer: actionMocks.acknowledge }));
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 10 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
@@ -20,11 +21,13 @@ test("product balance comes from server data and signed-in preview submits a qua
 test("the first additional entry explains independence before increasing quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
-  expect(screen.getByRole("dialog", { name: "Every entry stands on its own." })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "How Extra Entries Work" })).toBeTruthy();
+  expect(screen.getByRole("img", { name: /Four illustrated steps/i })).toBeTruthy();
+  expect(screen.getByText("Why does each entry stand alone?")).toBeTruthy();
   expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
   expect(screen.getByText(/options cannot be stacked/i)).toBeTruthy();
 
-  fireEvent.click(screen.getByRole("button", { name: "I understand — add entry" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add entry" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
   expect(screen.getByRole("button", { name: "Enter for $2.00" })).toBeTruthy();
@@ -33,6 +36,24 @@ test("the first additional entry explains independence before increasing quantit
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByTestId("entry-quantity").textContent).toBe("3");
+});
+test("the remembered preference is saved and prevents future explainers", async () => {
+  actionMocks.acknowledge.mockResolvedValue({ status: "succeeded" });
+  render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I understand how extra entries work/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Add entry" }));
+  await waitFor(() => expect(actionMocks.acknowledge).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("3");
+});
+test("a stored acknowledgment adds directly without opening the explainer", () => {
+  render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn extraEntryExplainerAcknowledged />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
 });
 test("failed product balance cannot become zero", () => {
   render(<DemoParticipationPanel {...props} />);

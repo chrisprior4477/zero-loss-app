@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("@/lib/preview/provisioning", () => ({ ensurePreviewCustomer: mocks.provision }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-import { createPreviewEntry } from "./actions";
+import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "./actions";
 
 function entryForm(quantity = "3") {
   const value = new FormData();
@@ -43,4 +43,11 @@ test("sends the selected quantity to the atomic database batch function", async 
 test.each(["0", "11", "2.5", "NaN", "Infinity"])('rejects unsafe quantity %s before database access', async quantity => {
   expect((await createPreviewEntry({ status: "idle" }, entryForm(quantity))).status).toBe("error");
   expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
+test("stores the extra-entry explainer acknowledgment on the authenticated profile", async () => {
+  mocks.rpc.mockResolvedValue({ data: "2026-09-18T15:00:00Z" });
+  expect(await acknowledgeExtraEntryExplainer()).toEqual({ status: "succeeded" });
+  expect(mocks.rpc).toHaveBeenCalledWith("acknowledge_extra_entry_explainer");
+  expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
 });

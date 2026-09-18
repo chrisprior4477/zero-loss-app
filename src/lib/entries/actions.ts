@@ -10,6 +10,10 @@ export type PreviewEntryActionState =
   | { status: "error"; message: string }
   | { status: "succeeded"; message: string; href: string; outcome: "active" | "winner" | "not_selected" };
 
+export type EntryExplainerPreferenceState =
+  | { status: "succeeded" }
+  | { status: "error"; message: string };
+
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const keyPattern = /^[A-Za-z0-9_-]{16,128}$/;
 
@@ -19,6 +23,22 @@ function entryError(error: unknown): PreviewEntryActionState {
   if (candidate.code === "22023") return { status: "error", message: "This product is not currently available for a preview entry." };
   if (candidate.code === "42501") return { status: "error", message: "Sign in with a confirmed preview account to enter." };
   return { status: "error", message: "We could not confirm the entry. Check My Activity before trying again." };
+}
+
+export async function acknowledgeExtraEntryExplainer(): Promise<EntryExplainerPreferenceState> {
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user) {
+      return { status: "error", message: "Sign in again to save this preference." };
+    }
+    const { error } = await db.rpc("acknowledge_extra_entry_explainer");
+    if (error) return { status: "error", message: "We could not save this preference. Please try again." };
+    revalidatePath("/", "layout");
+    return { status: "succeeded" };
+  } catch {
+    return { status: "error", message: "We could not save this preference. Please try again." };
+  }
 }
 
 export async function createPreviewEntry(
