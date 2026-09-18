@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { PoolProgress } from "@/components/product/PoolProgress";
 import { walletHistoryHref } from "@/lib/account/activity";
 import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "@/lib/entries/actions";
@@ -144,8 +145,8 @@ export function DemoParticipationPanel({
         </div>
       ) : null}
 
-      {additionalEntryNoticeOpen ? (
-        <div className="fixed inset-0 z-[100] grid place-items-end bg-[#000914]/75 p-3 backdrop-blur-sm sm:place-items-center" role="presentation" onMouseDown={(event) => {
+      {additionalEntryNoticeOpen ? createPortal((
+        <div className="fixed inset-0 z-[200] grid place-items-end bg-[#000914]/75 p-3 backdrop-blur-sm sm:place-items-center" role="presentation" onMouseDown={(event) => {
           if (event.currentTarget === event.target) setAdditionalEntryNoticeOpen(false);
         }}>
           <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-cyan-300/50 bg-[#001b3d] p-4 text-left shadow-[0_28px_90px_rgba(0,0,0,.65),0_0_28px_rgba(0,185,255,.2)] sm:p-6">
@@ -204,7 +205,7 @@ export function DemoParticipationPanel({
             <Link href={`/free-entry?offering=${productSlug}`} className="mt-4 block text-center text-sm font-bold text-cyan-300 hover:text-white">View official rules &amp; free-entry information →</Link>
           </section>
         </div>
-      ) : null}
+      ), document.body) : null}
 
       <p className="mt-4 text-center text-[11px] leading-5 text-white/45">Preview-only activity. The debit, entry and result are written atomically to the development/test database. No real reward is issued.</p>
     </aside>
