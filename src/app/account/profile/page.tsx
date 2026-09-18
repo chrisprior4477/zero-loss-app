@@ -1,27 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PageContainer } from "@/components/layout/PageContainer";
 import { ProfilePhotoCard } from "@/components/account/ProfilePhotoCard";
+import { ProfileDetailsForm } from "@/components/account/ProfileDetailsForm";
 import { getAccountContext } from "@/lib/account/context";
+import styles from "@/components/account/profile-editor.module.css";
 
 export const metadata: Metadata = { title: "Your account" };
 
 export default async function ProfilePage() {
   const account = await getAccountContext();
   if (!account) redirect("/login");
-  return <PageContainer>
-    <main className="mx-auto w-full max-w-3xl pb-10">
-      <Link href="/account" className="inline-flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:text-white">‹ Account Dashboard</Link>
-      <h1 className="mt-3 text-3xl font-black tracking-tight text-white">Your account</h1>
-      <p className="mb-6 mt-2 text-sm text-[#b5cce4]">Your personal information and profile photo.</p>
-      <ProfilePhotoCard initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} />
-      <section aria-label="Personal information" className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] p-5 text-sm text-[#b5cce4]">
-        <h2 className="font-bold text-white">Personal information</h2>
-        <p className="mt-2">Your name is displayed exactly as stored on your account. Name and email editing are not enabled yet.</p>
-        <p className="mt-3">{account.emailConfirmed ? "Email confirmed" : "Email confirmation pending"}</p>
-        <Link href="/account/security" className="mt-3 inline-flex min-h-11 items-center font-bold text-cyan-300 hover:text-white">Account & Security ›</Link>
-      </section>
-    </main>
-  </PageContainer>;
+  return <main className={styles.page}><div className={styles.shell}>
+    <nav aria-label="Breadcrumb" className={styles.breadcrumb}><Link href="/account">My Account</Link><span aria-hidden="true">›</span><Link href="/account/security">Account &amp; Security</Link><span aria-hidden="true">›</span><span>Edit Profile</span></nav>
+    <header className={styles.heading}><div><p>PERSONAL PROFILE</p><h1>Edit Profile</h1><span>Manage your identity, contact details, address, and preferences.</span></div><aside><strong>YOUR INFORMATION</strong>Changes save only to your signed-in account. Protected identity details remain locked.</aside></header>
+    <div className={styles.profileGrid}>
+      <aside className={styles.photoPanel}><ProfilePhotoCard initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} /><p className={styles.photoTip}>Your profile photo and display name appear throughout your account and follow you across devices.</p></aside>
+      <ProfileDetailsForm details={{
+        displayName: account.displayName,
+        legalFirstName: account.legalFirstName,
+        legalLastName: account.legalLastName,
+        dateOfBirth: account.dateOfBirth,
+        email: account.email,
+        emailConfirmed: account.emailConfirmed,
+        phone: account.phone,
+        addressLine1: account.addressLine1,
+        addressLine2: account.addressLine2,
+        city: account.city,
+        region: account.region,
+        postalCode: account.postalCode,
+        country: account.country,
+        preferredLocale: account.preferredLocale,
+        timezone: account.timezone,
+      }} />
+    </div>
+  </div></main>;
 }
