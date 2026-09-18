@@ -49,7 +49,8 @@ test("signed-in drawer follows the compact account-menu hierarchy", () => {
   expect(dialog.queryByText("Recent activity")).toBeNull();
   expect(dialog.queryByText("Shop categories")).toBeNull();
   expect(dialog.queryByText("Help, Rules & Policies")).toBeNull();
-  expect(dialog.queryByText("Sign out")).toBeNull();
+  expect(dialog.getByRole("button", { name: "Add to Home Screen" })).toBeTruthy();
+  expect(dialog.getByRole("button", { name: "Sign out" })).toBeTruthy();
 });
 
 test("balance failure displays Unavailable, never an invented zero", () => {
@@ -103,6 +104,16 @@ test("drawer account destinations follow the approved hierarchy", () => {
   expect(navigation.getAllByRole("link").map(link => link.textContent?.trim())).toEqual([
     "My Activity", "Gift Cards & Rewards", "Wallet & Transactions", "Orders & Fulfillment", "Notifications", "Account & Security",
   ]);
+});
+
+test("Add to Home Screen closes the drawer and requests the device install flow", () => {
+  const installRequest = vi.fn();
+  window.addEventListener("zero-loss-request-install", installRequest, { once: true });
+  render(<AccountDrawer {...props} />);
+  fireEvent.click(screen.getByLabelText("Open account menu"));
+  fireEvent.click(screen.getByRole("button", { name: "Add to Home Screen" }));
+  expect(installRequest).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 test("signed-out business and personal paths and shopping categories remain available", () => {

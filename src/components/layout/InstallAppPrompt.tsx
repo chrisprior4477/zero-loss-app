@@ -5,6 +5,7 @@ import Image from "next/image";
 
 const DISMISS_KEY = "zeroloss-install-prompt-dismissed-at";
 const DISMISS_FOR_MS = 7 * 24 * 60 * 60 * 1000;
+export const INSTALL_APP_REQUEST_EVENT = "zero-loss-request-install";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -34,14 +35,15 @@ export function InstallAppPrompt() {
   const [interacted, setInteracted] = useState(false);
   const [dismissed, setDismissed] = useState(true);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [explicitRequest, setExplicitRequest] = useState(false);
+  const [alreadyInstalled, setAlreadyInstalled] = useState(false);
 
   useEffect(() => {
-    if (isStandalone()) return;
-
     const initialize = window.setTimeout(() => {
       const dismissedAt = Number(window.localStorage.getItem(DISMISS_KEY) ?? 0);
       setDismissed(Date.now() - dismissedAt < DISMISS_FOR_MS);
       setManualPlatform(manualInstallPlatform());
+      setAlreadyInstalled(isStandalone());
     }, 0);
 
     const noteInteraction = () => setInteracted(true);
@@ -55,11 +57,43 @@ export function InstallAppPrompt() {
       setCanPrompt(false);
       setDismissed(true);
     };
+    const requestInstall = async () => {
+      setExplicitRequest(true);
+      setInteracted(true);
+      setDismissed(false);
+      setManualPlatform(manualInstallPlatform());
+
+      if (isStandalone()) {
+        setAlreadyInstalled(true);
+        setShowInstructions(true);
+        return;
+      }
+
+      const prompt = deferredPrompt.current;
+      if (!prompt) {
+        setShowInstructions(true);
+        return;
+      }
+
+      deferredPrompt.current = null;
+      setCanPrompt(false);
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      if (choice.outcome === "accepted") {
+        setDismissed(true);
+        setExplicitRequest(false);
+      } else {
+        window.localStorage.setItem(DISMISS_KEY, String(Date.now()));
+        setDismissed(true);
+        setExplicitRequest(false);
+      }
+    };
 
     window.addEventListener("pointerdown", noteInteraction, { once: true });
     window.addEventListener("keydown", noteInteraction, { once: true });
     window.addEventListener("beforeinstallprompt", capturePrompt);
     window.addEventListener("appinstalled", noteInstalled);
+    window.addEventListener(INSTALL_APP_REQUEST_EVENT, requestInstall);
 
     return () => {
       window.clearTimeout(initialize);
@@ -67,12 +101,14 @@ export function InstallAppPrompt() {
       window.removeEventListener("keydown", noteInteraction);
       window.removeEventListener("beforeinstallprompt", capturePrompt);
       window.removeEventListener("appinstalled", noteInstalled);
+      window.removeEventListener(INSTALL_APP_REQUEST_EVENT, requestInstall);
     };
   }, []);
 
   const dismiss = () => {
     window.localStorage.setItem(DISMISS_KEY, String(Date.now()));
     setDismissed(true);
+    setExplicitRequest(false);
   };
 
   const install = async () => {
@@ -88,12 +124,16 @@ export function InstallAppPrompt() {
     setShowInstructions(true);
   };
 
-  const visible = interacted && !dismissed && (canPrompt || manualPlatform !== null);
+  const visible = explicitRequest || (interacted && !dismissed && !alreadyInstalled && (canPrompt || manualPlatform !== null));
   if (!visible) return null;
 
-  const instructions = manualPlatform === "ios"
-    ? "Tap your browser’s Share button, then choose Add to Home Screen."
-    : "In Safari, open the File menu and choose Add to Dock.";
+  const instructions = alreadyInstalled
+    ? "Zero Loss is already installed on this device."
+    : manualPlatform === "ios"
+      ? "On iPhone or iPad, tap the Share button, then choose Add to Home Screen."
+      : manualPlatform === "safari"
+        ? "In Safari, open the File menu and choose Add to Dock."
+        : "Open your browser menu and choose Install Zero Loss or Add to Home Screen.";
 
   return (
     <aside aria-label="Install Zero Loss" aria-live="polite" className="fixed inset-x-3 bottom-3 z-[110] mx-auto max-w-[430px] rounded-2xl border border-cyan-200/35 bg-[#03172f]/95 p-4 shadow-[0_18px_55px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl sm:inset-x-auto sm:bottom-5 sm:right-5 sm:mx-0">

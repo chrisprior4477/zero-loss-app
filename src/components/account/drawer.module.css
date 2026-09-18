@@ -51,6 +51,11 @@
 .navLink > svg:last-child { flex-shrink: 0; width: 15px; height: 15px; margin-left: auto; }
 .navLink:hover { border-color: #2bdcf066; background: #00688761; color: #7ff8ff; }
 .navLink[aria-current="page"] { border-color: #72f3ff; background: linear-gradient(110deg, #00527a, #00233ce8 66%, #0089a5); box-shadow: inset 0 0 13px #3cddff66, 0 0 12px #00dcff73; font-weight: 700; }
+.navButton { width: 100%; cursor: pointer; background: transparent; text-align: left; }
+.accountFooter { flex-shrink: 0; padding: 10px 23px max(14px, env(safe-area-inset-bottom)); border-top: 1px solid #20dfff52; background: linear-gradient(90deg, #00101ef2, #002740df); box-shadow: 0 -8px 24px #00101ec7; backdrop-filter: blur(12px); }
+.signOutButton { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; gap: 10px; border: 1px solid #ff7a2d8c; border-radius: 8px; background: linear-gradient(110deg, #54200ecc, #1d1820e8); color: #ffbd98; font-size: 13px; font-weight: 800; box-shadow: inset 0 0 12px #ff6a1829; }
+.signOutButton svg { width: 21px; height: 21px; }
+.signOutButton:hover { border-color: #ff8a45; background: linear-gradient(110deg, #74300fe0, #251820ed); color: #fff; box-shadow: inset 0 0 13px #ff6a1838, 0 0 12px #ff5d1847; }
 .drawer a:focus-visible, .drawer button:focus-visible { outline: 2px solid #adffff; outline-offset: 2px; }
 @media (max-width: 340px) {
   .drawer { right: 0 !important; width: 100%; margin-block: 0; height: 100dvh !important; }

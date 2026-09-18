@@ -12,6 +12,8 @@ import { EntryTicket } from "@/components/layout/EntryTicket";
 import styles from "@/components/account/drawer.module.css";
 import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { accountNavigation } from "@/lib/account/navigation";
+import { signOutAction } from "@/lib/auth/actions";
+import { INSTALL_APP_REQUEST_EVENT } from "@/components/layout/InstallAppPrompt";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -104,6 +106,10 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
   }, [open]);
 
   const close = () => setOpen(false);
+  const requestInstall = () => {
+    setOpen(false);
+    window.dispatchEvent(new Event(INSTALL_APP_REQUEST_EVENT));
+  };
   const state = activityState.source === "unavailable" ? { ...activityState, activity: [], activeCount: null } : activityState;
   const showAccountContent = isSignedIn;
   const shownName = isSignedIn ? displayName : "Welcome";
@@ -166,6 +172,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                     const active = href.startsWith("/account/wallet") ? pathname === "/account/wallet" && (href === walletHistoryHref) === walletHistoryOpen : pathname === href || pathname?.startsWith(href + "/");
                     return <Link key={href} href={href} onClick={close} aria-current={active ? "page" : undefined} className={styles.navLink}><AccountIcon name={icon as AccountIconName} /><span>{label}</span><AccountIcon name="chevron" /></Link>;
                   })}
+                  <button type="button" onClick={requestInstall} className={`${styles.navLink} ${styles.navButton}`}><AccountIcon name="install" /><span>Add to Home Screen</span><AccountIcon name="chevron" /></button>
                 </nav>
                 {email ? <span className="sr-only">Signed in as {displayName}, {email}</span> : null}
               </> : <section className="space-y-4">
@@ -206,6 +213,11 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 {moreOpen && <nav id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href} onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>}
               </div> : null}
             </div>
+            {showAccountContent ? (
+              <form action={signOutAction} className={styles.accountFooter}>
+                <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
+              </form>
+            ) : null}
           </aside>
         </div>,
         document.body,
