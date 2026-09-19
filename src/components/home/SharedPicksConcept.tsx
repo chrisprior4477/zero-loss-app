@@ -19,19 +19,9 @@ const picksByPerson = {
 } as const;
 
 type Person = keyof typeof picksByPerson;
-type Layout = "A" | "B" | "C" | "D";
-
-const choices = [
-  ["A", "Compact cards", "A small swipeable product rail"],
-  ["B", "Featured pick", "One big pick, two quick links"],
-  ["C", "Activity feed", "A social, chronological view"],
-  ["D", "Expandable bar", "Tight rows that open on tap"],
-] as const;
 
 export function SharedPicksConcept({ initialPerson, onClose }: { initialPerson: Person; onClose: () => void }) {
   const [person, setPerson] = useState<Person>(initialPerson);
-  const [layout, setLayout] = useState<Layout>("A");
-  const [expanded, setExpanded] = useState<number | null>(0);
   const railRef = useRef<HTMLDivElement>(null);
   const railDrag = useRef({ active: false, moved: false, x: 0, scrollLeft: 0 });
   const picks = picksByPerson[person];
@@ -66,19 +56,14 @@ export function SharedPicksConcept({ initialPerson, onClose }: { initialPerson: 
     <section role="dialog" aria-modal="true" aria-labelledby="shared-picks-title" className={styles.modal}>
       <button type="button" onClick={onClose} className={styles.close} aria-label="Close shared picks preview">×</button>
       <div className={styles.topline}>YOUR CREW · SHARED PICKS PREVIEW</div>
-      <div className={styles.header}><div><h2 id="shared-picks-title">What your Crew is into</h2><p>Four ways this click-through could look. Choose a layout below.</p></div><span className={styles.previewTag}>Fictional sample</span></div>
+      <div className={styles.header}><div><h2 id="shared-picks-title">What your Crew is into</h2><p>Explore the picks a connected Crew member chooses to share.</p></div><span className={styles.previewTag}>Fictional sample</span></div>
       <div className={styles.personTabs} aria-label="Sample Crew member">
-        {(["Maya", "Daniel"] as const).map((name) => <button type="button" key={name} aria-pressed={person === name} onClick={() => { setPerson(name); setExpanded(0); }} className={person === name ? styles.activePerson : ""}>{name}<span>{picksByPerson[name].length} picks</span></button>)}
-      </div>
-      <div className={styles.layoutTabs} aria-label="Shared picks layouts">
-        {choices.map(([key, label, description]) => <button type="button" key={key} aria-pressed={layout === key} onClick={() => setLayout(key)} className={layout === key ? styles.activeLayout : ""}><b>{key}</b><span><strong>{label}</strong><small>{description}</small></span></button>)}
+        {(["Maya", "Daniel"] as const).map((name) => <button type="button" key={name} aria-pressed={person === name} onClick={() => { setPerson(name); if (railRef.current) railRef.current.scrollLeft = 0; }} className={person === name ? styles.activePerson : ""}>{name}<span>{picksByPerson[name].length} picks</span></button>)}
       </div>
       <div className={styles.previewPanel}>
         <div className={styles.previewHeading}><div className={styles.personHeading}><span className={styles.personAvatar}><Image src={person === "Maya" ? "/images/home/crew/person-1.webp" : "/images/home/crew/person-2.webp"} alt="" fill sizes="44px" className={styles.avatarImage} /></span><div><span className={styles.eyebrow}>SHARED BY {person.toUpperCase()}</span><h3>{person}’s picks</h3></div></div><span className={styles.onlyCrew}>Visible to approved Crew only</span></div>
-        {layout === "A" ? <><div ref={railRef} className={styles.rail} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={() => { railDrag.current.active = false; }} onClickCapture={(event) => { if (railDrag.current.moved) { event.preventDefault(); event.stopPropagation(); railDrag.current.moved = false; } }} onDragStart={(event) => event.preventDefault()}>{picks.map(card)}</div><div className={styles.railFooter}><span>Swipe to explore · {picks.length} sample picks</span><div><button type="button" aria-label="Previous pick" onClick={() => railRef.current?.scrollBy({ left: -225, behavior: "smooth" })}>‹</button><button type="button" aria-label="Next pick" onClick={() => railRef.current?.scrollBy({ left: 225, behavior: "smooth" })}>›</button></div></div></> : null}
-        {layout === "B" ? <div className={styles.featured}><div className={styles.featuredMain}>{card(picks[0], 0)}</div><div className={styles.featuredSide}>{picks.slice(1).map((pick, index) => card(pick, index + 1))}</div></div> : null}
-        {layout === "C" ? <div className={styles.feed}>{picks.map((pick, index) => <div className={styles.feedItem} key={pick.slug}><span className={styles.feedDot} /><div><strong>{person} shared a pick</strong><small>{index === 0 ? "Today" : `${index + 1} days ago`} · {pick.retailer}</small></div>{card(pick, index)}</div>)}</div> : null}
-        {layout === "D" ? <div className={styles.compactRows}>{picks.map((pick, index) => <div key={pick.slug} className={styles.compactRow}><button type="button" aria-expanded={expanded === index} onClick={() => setExpanded(expanded === index ? null : index)}><span className={styles.rowThumb}><Image src={pick.image} alt="" fill sizes="60px" className={styles.productImage} /></span><span><strong>{pick.title}</strong><small>{pick.retailer}</small></span><b>{expanded === index ? "−" : "+"}</b></button>{expanded === index ? <div className={styles.rowExpanded}><p>{person} shared this {pick.note.toLowerCase()} pick with their approved Crew.</p><Link href={`/items/${pick.slug}`}>View product →</Link></div> : null}</div>)}</div> : null}
+        <div ref={railRef} className={styles.rail} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={() => { railDrag.current.active = false; }} onClickCapture={(event) => { if (railDrag.current.moved) { event.preventDefault(); event.stopPropagation(); railDrag.current.moved = false; } }} onDragStart={(event) => event.preventDefault()}>{picks.map(card)}</div>
+        <div className={styles.railFooter}><span>Swipe to explore · {picks.length} sample picks</span><div><button type="button" aria-label="Previous pick" onClick={() => railRef.current?.scrollBy({ left: -225, behavior: "smooth" })}>‹</button><button type="button" aria-label="Next pick" onClick={() => railRef.current?.scrollBy({ left: 225, behavior: "smooth" })}>›</button></div></div>
       </div>
       <p className={styles.disclosure}>Maya and Daniel are fictional preview profiles. These picks are illustrative; no invitations or notifications were sent. Real shared picks require approval and an explicit sharing choice for each entry.</p>
     </section>

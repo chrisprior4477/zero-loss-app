@@ -42,15 +42,18 @@ test("Crew ends with a clickable discovery tile and stories have twelve sample c
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
-test("Maya and Daniel shared-picks click-throughs compare four layout choices", () => {
+test("Maya and Daniel shared-picks click-throughs use compact swipeable cards", () => {
   render(<CrewAndWinnerPreview />);
   fireEvent.click(screen.getAllByRole("button", { name: /Shared picks/ })[0]);
   expect(screen.getByRole("dialog", { name: "What your Crew is into" })).toBeTruthy();
   expect(screen.getByText(/These picks are illustrative/)).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /BFeatured pick/ }));
-  expect(screen.getByRole("button", { name: /BFeatured pick/ }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByText("Maya’s picks")).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Samsung 50.*M70H Mini LED TV/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Next pick" })).toBeTruthy();
+  expect(screen.queryByText("Choose a layout below.")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: /Daniel3 picks/ }));
   expect(screen.getByText("Daniel’s picks")).toBeTruthy();
+  expect(screen.getByRole("link", { name: /PlayStation 5 Slim/ })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Close shared picks preview" }));
   expect(screen.queryByRole("dialog")).toBeNull();
 });
