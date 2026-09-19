@@ -1,4 +1,5 @@
 import { DesktopMarketplaceRails } from "@/components/home/DesktopMarketplaceRails";
+import { CrewAndWinnerPreview } from "@/components/home/CrewAndWinnerPreview";
 import { DollarWall } from "@/components/home/DollarWall";
 import { HeroSection } from "@/components/home/HeroSection";
 import { HomeSection } from "@/components/home/HomeSection";
@@ -35,6 +36,8 @@ export default function HomePage() {
         <HomeSection id="shop-by-price" title="Shop by price" description="Find rewards in your price range.">
           <ShopByPrice />
         </HomeSection>
+
+        <CrewAndWinnerPreview />
 
       </PageContainer>
       <TransparencyStatsPod />

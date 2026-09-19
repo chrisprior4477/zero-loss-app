@@ -1,0 +1,46 @@
+.wrap { display: grid; gap: clamp(3rem, 5vw, 5rem); color: #fff; }
+.crewSection, .winnersSection { min-width: 0; }
+.headingRow { display: flex; align-items: end; justify-content: space-between; gap: 1.25rem; }
+.eyebrow { display: block; color: #75e4ff; font-size: .7rem; font-weight: 850; letter-spacing: .18em; }
+.title { margin: .4rem 0 .3rem; font-size: clamp(1.9rem, 3vw, 2.7rem); font-weight: 900; line-height: 1.07; letter-spacing: -.035em; }
+.intro { color: #c8dded; font-size: .95rem; line-height: 1.5; }
+.outlineButton { display: inline-flex; align-items: center; justify-content: center; gap: .75rem; flex: none; min-height: 2.65rem; border: 1px solid #32c7f5; border-radius: .65rem; padding: .55rem 1rem; color: #effdff; background: #092a4d; font-size: .84rem; font-weight: 750; transition: background .2s, transform .2s; }
+.outlineButton:hover { background: #0c416e; transform: translateY(-2px); }
+.outlineButton:focus-visible, .addButton:focus-visible, .sharedButton:focus-visible, .arrows button:focus-visible, .storyCard:focus-visible, .closeButton:focus-visible { outline: 3px solid #7de6ff; outline-offset: 3px; }
+.peopleRail { display: flex; justify-content: space-between; gap: 1.25rem; overflow-x: auto; padding: 1.5rem .25rem .4rem; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #1a9fc4 transparent; }
+.person { display: flex; flex: 0 0 140px; flex-direction: column; align-items: center; scroll-snap-align: start; text-align: center; }
+.avatar { position: relative; width: 112px; height: 112px; overflow: hidden; border: 3px solid #20bff1; border-radius: 50%; background: #174269; box-shadow: 0 0 0 4px #061b34, 0 0 0 5px #1a6586, 0 8px 25px #0006; }
+.avatarImage { object-fit: cover; }
+.personName { margin-top: .8rem; font-size: 1rem; line-height: 1.2; }
+.addButton { width: 100%; min-height: 2.3rem; margin-top: .65rem; border: 1px solid #4bea59; border-radius: .55rem; background: linear-gradient(135deg,#42ed3a,#26c71f); color: #031b22; font-size: .78rem; font-weight: 850; box-shadow: 0 5px 16px #32ef2b32; }
+.addButton:hover { filter: brightness(1.1); }
+.addButtonSelected { border-color: #56d9ff; background: #0e4961; color: #d9f9ff; box-shadow: none; }
+.sharedButton { margin-top: .55rem; color: #7bdfff; font-size: .77rem; font-weight: 700; }
+.sharedButton:hover { color: #fff; text-decoration: underline; }
+.demoNote { margin-top: .65rem; color: #9cb4ca; font-size: .71rem; }
+.crewMessage { margin-top: .85rem; border-left: 3px solid #36d9ff; border-radius: .3rem; padding: .65rem .8rem; background: #0b3455; color: #e2f7ff; font-size: .84rem; }
+.arrows { display: flex; gap: .5rem; }
+.arrows button { display: grid; width: 2.65rem; height: 2.65rem; place-items: center; border: 1px solid #40c8ed; border-radius: 50%; color: #fff; background: #0d3559; font-size: 2rem; line-height: 1; }
+.arrows button:hover { background: #1477a0; }
+.storyNotice { margin: 1rem 0 0; color: #b8cbda; font-size: .75rem; }
+.storyRail { display: flex; gap: 1rem; overflow-x: auto; margin-top: 1rem; padding: .15rem .15rem .5rem; scroll-behavior: smooth; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.storyRail::-webkit-scrollbar { display: none; }
+.storyCard { position: relative; display: block; flex: 0 0 calc((100% - 2rem)/3); height: clamp(330px, 36vw, 430px); overflow: hidden; border: 1px solid #36b8df; border-radius: 1rem; background: #173754; text-align: left; scroll-snap-align: start; box-shadow: 0 12px 30px #0005; transition: transform .2s, border-color .2s; }
+.storyCard:hover { transform: translateY(-3px); border-color: #79e8ff; }
+.storyImage { object-fit: cover; }
+.storyShade { position: absolute; inset: 0; background: linear-gradient(0deg,#021427 0%,#021427bd 18%,transparent 58%); }
+.playIcon { position: absolute; top: 48%; left: 50%; display: grid; width: 3.3rem; height: 3.3rem; place-items: center; transform: translate(-50%,-50%); border: 2px solid #fff; border-radius: 50%; padding-left: .15rem; background: #00a9eddf; color: #fff; font-size: 1.2rem; box-shadow: 0 8px 22px #0007; }
+.storyText { position: absolute; right: 1.1rem; bottom: 1.15rem; left: 1.1rem; display: grid; gap: .25rem; color: #e3f2fc; font-size: .82rem; }
+.storyText strong { color: #fff; font-size: 1.25rem; line-height: 1.15; }
+.storyTag { color: #7df2ff; font-size: .65rem; font-weight: 850; letter-spacing: .13em; }
+.swipeHint { margin-top: .45rem; color: #93c7da; font-size: .75rem; text-align: right; }
+.modalBackdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 1rem; background: #00111de8; }
+.modal { position: relative; display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); width: min(760px, 100%); min-height: 360px; overflow: hidden; border: 1px solid #39cef3; border-radius: 1rem; background: #071e39; box-shadow: 0 20px 80px #000a; }
+.modalImage { position: relative; min-height: 360px; }
+.modalCopy { display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 1rem; padding: 2.2rem; }
+.modalCopy h3 { font-size: 1.9rem; font-weight: 900; line-height: 1.1; }
+.modalCopy p { color: #c3d8e9; line-height: 1.5; }
+.closeButton { position: absolute; z-index: 1; top: .5rem; right: .7rem; color: #fff; font-size: 2rem; }
+@media (max-width: 900px) { .person { flex-basis: 132px; } .storyCard { flex-basis: 46%; } }
+@media (max-width: 640px) { .wrap { gap: 3rem; } .headingRow { align-items: start; } .crewSection .headingRow { flex-direction: column; } .title { font-size: 1.9rem; } .intro { font-size: .86rem; } .peopleRail { justify-content: start; gap: .8rem; margin-right: -1rem; padding-top: 1.2rem; } .person { flex-basis: 112px; } .avatar { width: 88px; height: 88px; } .personName { font-size: .87rem; } .addButton { min-height: 2.15rem; font-size: .69rem; } .sharedButton { font-size: .69rem; } .arrows button { width: 2.2rem; height: 2.2rem; font-size: 1.6rem; } .storyRail { margin-right: -1rem; } .storyCard { flex-basis: 84%; height: 390px; } .modal { grid-template-columns: 1fr; } .modalImage { min-height: 240px; max-height: 240px; } .modalCopy { padding: 1.5rem; } }
+@media (prefers-reduced-motion: reduce) { .storyRail { scroll-behavior: auto; } .outlineButton, .storyCard { transition: none; } }
