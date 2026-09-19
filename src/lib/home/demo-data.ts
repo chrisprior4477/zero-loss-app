@@ -1,9 +1,8 @@
 /**
  * DEMO_DATA — must be replaced with real Tillo/fulfillment data before launch.
  *
- * This is the single source for the desktop Live Pulse ticker and transparency
- * stats pod. Keeping the values here prevents sample marketplace claims from
- * becoming buried in presentation components.
+ * Preview catalog highlights live here so sample marketplace data stays out of
+ * presentation components. Do not present this content as live activity.
  */
 export const repeatedHomepageProducts = {
   tv: {
@@ -34,37 +33,9 @@ function percentFilled(entriesSold: number, entryCapacity: number) {
 }
 
 export const livePulseDemoItems = [
-  { label: "AirPod Pros", value: "Only 2 left", tone: "urgent" },
-  { label: "Popular Publix gift card", value: "$100", tone: "live" },
-  { label: "Dunkin' Donuts $25 card", value: "97% full", tone: "neutral" },
-  { label: "Nintendo Switch", value: "6 tickets left", tone: "danger" },
-  { label: "Darden Restaurants $100 gift card", value: "42 tickets left", tone: "urgent" },
-  { label: "193 winners", value: "TODAY!", tone: "live" },
-  { label: "Grocery reward", value: "11 entries left", tone: "urgent" },
-  { label: "Active prize pools", value: "142", tone: "neutral" },
-] as const;
-
-export const transparencyStatsDemo = [
-  {
-    label: "Rewards fulfilled",
-    value: "$1,248,650",
-    detail: "Recorded fulfillment value",
-  },
-  {
-    label: "Verified winners",
-    value: "18,402",
-    detail: "Completed award records",
-  },
-  {
-    label: "Credits returned",
-    value: "$386,940",
-    detail: "Purchase value preserved",
-  },
-  {
-    label: "Active prize pools",
-    value: "142",
-    detail: "Open marketplace opportunities",
-  },
+  { label: repeatedHomepageProducts.tv.title, value: repeatedHomepageProducts.tv.retailer, tone: "neutral" },
+  { label: repeatedHomepageProducts.shoes.title, value: repeatedHomepageProducts.shoes.retailer, tone: "urgent" },
+  { label: repeatedHomepageProducts.babyEssentials.title, value: repeatedHomepageProducts.babyEssentials.retailer, tone: "live" },
 ] as const;
 
 export const dollarChoiceDemoItems = [
@@ -207,7 +178,7 @@ export const socialActivityDemoItems = [
     avatar: "/design/buyer-mobile.webp",
     message: "My $100 Walmart shopping reward arrived today. Zero Loss made my week!",
     accent: "#1877f2",
-    href: "/browse?view=winners",
+    href: "/#meet-winners-heading",
   },
   {
     id: "social-instagram-1",
@@ -273,6 +244,6 @@ export const socialActivityDemoItems = [
     avatar: "/design/buyer-mobile.webp",
     message: "Testing my new premium headphones on a flight—now I understand the hype.",
     accent: "#111827",
-    href: "/browse?view=winners",
+    href: "/#meet-winners-heading",
   },
 ] as const;

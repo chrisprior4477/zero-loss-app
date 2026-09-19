@@ -17,7 +17,7 @@ export const footerLinkGroups: {
     links: [
       { href: "/browse", label: "All Rewards" },
       { href: "/browse?sort=ending-soon", label: "Ending Soon" },
-      { href: "/browse?view=winners", label: "Winners" },
+      { href: "/#meet-winners-heading", label: "Winners" },
     ],
   },
   {

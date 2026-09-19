@@ -10,14 +10,12 @@ function TickerSequence({ hidden = false }: { hidden?: boolean }) {
         <div key={`${item.label}-${item.value}`} className="flex shrink-0 items-center">
           <span className="mx-5 h-1.5 w-1.5 rounded-full bg-cyan-300/70" aria-hidden="true" />
           <span className="text-[12px] font-bold uppercase tracking-[0.11em] text-white/65">
-            {item.label.startsWith("Popular ") ? <><span className="text-[#31e800]">Popular</span>{item.label.slice(7)}</> : item.label}
+            {item.label}
           </span>
           <span
             className={`ml-2 text-[13px] font-extrabold ${
               item.tone === "live"
                 ? "text-[#31e800]"
-                : item.tone === "danger"
-                  ? "text-[#ff3038]"
                 : item.tone === "urgent"
                   ? "text-[#ff7a22]"
                   : "text-cyan-300"
@@ -73,13 +71,13 @@ export function LivePulseTicker() {
 
   return (
     <section
-      aria-label="Live marketplace activity"
+      aria-label="Marketplace catalog preview"
       className="group relative flex h-10 items-center overflow-hidden border-y border-cyan-300/15 bg-[#020d20]"
     >
       <div className="absolute inset-y-0 left-0 z-10 flex items-center bg-[#020d20] pl-3 pr-3 shadow-[18px_0_24px_#020d20] sm:pl-6 sm:pr-5 lg:pl-[clamp(3rem,6vw,7rem)]">
-        <span className="zl-pulse-live mr-2 inline-block h-2 w-2 rounded-full bg-[#31e800] shadow-[0_0_10px_rgba(49,232,0,0.8)]" aria-hidden="true" />
+        <span className="mr-2 inline-block h-2 w-2 rounded-full bg-[#31e800] shadow-[0_0_10px_rgba(49,232,0,0.8)]" aria-hidden="true" />
         <span className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.16em] text-white">
-          Live
+          Preview
         </span>
       </div>
       <div
@@ -97,7 +95,7 @@ export function LivePulseTicker() {
         }}
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}
-        aria-label="Drag marketplace activity forward or backward"
+        aria-label="Drag catalog highlights forward or backward"
       >
         <TickerSequence />
         <TickerSequence hidden />
