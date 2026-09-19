@@ -1,0 +1,23 @@
+.root { min-width: 0; border: 1px solid #68dfff65; border-radius: 18px; padding: clamp(16px, 3vw, 24px); background: #092744; box-shadow: 0 0 22px #00b9ff22; }
+.heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
+.heading h2 { font-size: 1.25rem; font-weight: 800; }
+.heading p { margin-top: 5px; color: #bed4e4; font-size: .8rem; line-height: 1.4; }
+.arrows { display: flex; gap: 7px; }
+.arrows button { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #3ac3ec; border-radius: 50%; color: white; background: #0d3559; font-size: 1.55rem; line-height: 1; }
+.rail { display: flex; gap: 12px; overflow-x: auto; margin-top: 12px; padding: 12px 3px 7px; scroll-snap-type: x proximity; scrollbar-width: none; cursor: grab; user-select: none; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
+.rail::-webkit-scrollbar { display: none; }
+.rail:active { cursor: grabbing; }
+.person, .discover { display: flex; flex: 0 0 142px; flex-direction: column; align-items: center; scroll-snap-align: start; text-align: center; }
+.avatar, .discoverAvatar { position: relative; display: grid; width: 104px; height: 104px; flex: none; place-items: center; overflow: hidden; border: 3px solid #34cbef; border-radius: 50%; background: #12536a; color: white; font-size: 2rem; font-weight: 850; box-shadow: 0 0 0 4px #061b34, 0 0 0 5px #1a6586, 0 8px 25px #0006; }
+.avatarImage { object-fit: cover; }
+.name { max-width: 100%; overflow: hidden; margin-top: 11px; font-size: .94rem; text-overflow: ellipsis; white-space: nowrap; }
+.connected { margin-top: 2px; color: #8cff91; font-size: .69rem; }
+.picksLink { margin-top: 9px; color: #7deaff; font-size: .75rem; font-weight: 800; }
+.remove { margin-top: 7px; color: #b3cbda; font-size: .7rem; }
+.remove:hover, .picksLink:hover { color: #fff; text-decoration: underline; }
+.discover { gap: 9px; border: 0; color: #78fa70; font-size: .82rem; font-weight: 800; line-height: 1.2; }
+.discoverAvatar { border: 2px dashed #f3fcff; background: #0f4d325e; color: #65fb5b; box-shadow: inset 0 0 20px #41f04a1f, 0 0 20px #4afa4a2b; }
+.discoverAvatar svg { width: 49px; height: 49px; }
+.discover:hover .discoverAvatar { background: #1868407d; box-shadow: 0 0 26px #4afa4a55; }
+.root a:focus-visible, .root button:focus-visible { outline: 3px solid #a6f4ff; outline-offset: 3px; }
+@media (max-width: 640px) { .person, .discover { flex-basis: 112px; } .avatar, .discoverAvatar { width: 88px; height: 88px; } .discoverAvatar svg { width: 42px; height: 42px; } .arrows button { width: 32px; height: 32px; } }
