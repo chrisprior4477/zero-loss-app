@@ -5,7 +5,7 @@ const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: vi.fn(), acknowledgeExtraEntryExplainer: actionMocks.acknowledge }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
-const props = { productSlug: "test-product", requestKey: "entry_request_key_01", productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 10 };
+const props = { productSlug: "test-product", requestKey: "entry_request_key_01", productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$26");
@@ -65,6 +65,21 @@ test("failed product balance cannot become zero", () => {
   render(<DemoParticipationPanel {...props} />);
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("Unavailable");
   expect(screen.getByRole("link", { name: "Sign in to enter" })).toBeTruthy();
+});
+
+test("cannot select more entries than the displayed remaining capacity", () => {
+  render(<DemoParticipationPanel {...props} sold={9} capacity={10} isSignedIn />);
+  expect(screen.getByText("1 remaining")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Add one entry" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+});
+
+test("a full pool cannot start a preview entry", () => {
+  render(<DemoParticipationPanel {...props} sold={10} capacity={10} isSignedIn />);
+  expect(screen.getByText("0 remaining")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Add one entry" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "No entries remaining" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.queryByRole("button", { name: "Enter for $1.00" })).toBeNull();
 });
 
 test("entry submission asks for an explicit private-or-Crew sharing choice", () => {

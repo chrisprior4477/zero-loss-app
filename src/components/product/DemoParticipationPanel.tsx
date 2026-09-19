@@ -52,16 +52,17 @@ export function DemoParticipationPanel({
   const shareChoiceRef = useRef<HTMLInputElement>(null);
   const shareChoiceConfirmed = useRef(false);
   const remaining = Math.max(0, capacity - sold);
+  const maxQuantity = Math.min(10, remaining);
   const remainingBalance = Math.max(0, productValue - entryPrice);
   const total = quantity * entryPrice;
 
   const requestAdditionalEntry = () => {
-    if (pending || state.status === "succeeded" || quantity >= 10) return;
+    if (pending || state.status === "succeeded" || quantity >= maxQuantity) return;
     if (!additionalEntryTermsSeen && !skipFutureExplainer) {
       setAdditionalEntryNoticeOpen(true);
       return;
     }
-    setQuantity((value) => Math.min(10, value + 1));
+    setQuantity((value) => Math.min(maxQuantity, value + 1));
   };
 
   const acknowledgeAndAddEntry = async () => {
@@ -79,7 +80,7 @@ export function DemoParticipationPanel({
     }
     setSkipFutureExplainer(true);
     setAdditionalEntryTermsSeen(true);
-    setQuantity((value) => Math.min(10, value + 1));
+    setQuantity((value) => Math.min(maxQuantity, value + 1));
     setAdditionalEntryNoticeOpen(false);
   };
 
@@ -126,12 +127,14 @@ export function DemoParticipationPanel({
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity === 1 || pending || state.status === "succeeded"} className="grid h-10 w-10 place-items-center rounded-full border border-white/20 text-xl transition hover:border-cyan-300 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
           <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
-          <button type="button" onClick={requestAdditionalEntry} disabled={quantity === 10 || pending || state.status === "succeeded"} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup="dialog">+</button>
+          <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || pending || state.status === "succeeded"} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup="dialog">+</button>
         </div>
       </div>
       <p className="mt-2 text-[11px] leading-5 text-white/55">Each entry is separate. Entry amounts and completion options never combine.</p>
 
-      {isSignedIn ? (
+      {remaining === 0 ? (
+        <button type="button" disabled className="mt-4 w-full rounded-xl bg-[#0b668b] px-5 py-3.5 text-base font-extrabold text-white/60">No entries remaining</button>
+      ) : isSignedIn ? (
         <form ref={entryFormRef} action={action} onSubmit={(event) => {
           if (shareChoiceConfirmed.current) return;
           event.preventDefault();
@@ -216,7 +219,7 @@ export function DemoParticipationPanel({
             <p className="text-xs font-extrabold uppercase tracking-[.16em] text-cyan-300">One last choice</p>
             <h2 id="crew-share-title" className="mt-2 text-2xl font-black">Share this pick with your Crew?</h2>
             <p className="mt-3 text-sm leading-6 text-white/75">Only people you approve for your Crew can see that you picked <strong className="text-white">{productTitle}</strong>. They won’t see your payment details or wallet. This does not change your entry or chances.</p>
-            <p className="mt-3 text-xs leading-5 text-white/60">You can turn sharing on or off for each entry anytime in <a href="/account/crew" className="font-bold text-cyan-300 underline">Account → Your Crew</a>. Nothing is shared publicly.</p>
+            <p className="mt-3 text-xs leading-5 text-white/60">You can turn sharing on or off for each entry anytime in <Link href="/account/crew" className="font-bold text-cyan-300 underline">Account → Your Crew</Link>. Nothing is shared publicly.</p>
             <div className="mt-6 grid gap-2 sm:grid-cols-2">
               <button type="button" onClick={() => chooseEntrySharing(false)} className="min-h-12 rounded-lg border border-cyan-300/50 bg-[#0c3154] px-4 py-2 font-bold hover:bg-[#13547a]">Keep private &amp; enter</button>
               <button type="button" onClick={() => chooseEntrySharing(true)} className="min-h-12 rounded-lg bg-[#55ee43] px-4 py-2 font-black text-[#052329] hover:bg-[#8bff7c]">Share with Crew &amp; enter</button>
