@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { type MouseEvent, type PointerEvent, type RefObject, useRef, useState } from "react";
 import styles from "./CrewAndWinnerPreview.module.css";
 
 const people = [
@@ -9,8 +9,6 @@ const people = [
   { name: "Daniel", photo: "/images/home/crew/person-2.webp" },
   { name: "Ari", photo: "/images/home/crew/person-3.webp" },
   { name: "Leo", photo: "/images/home/crew/person-4.webp" },
-  { name: "Claire", photo: "/images/home/crew/person-5.webp" },
-  { name: "Marcus", photo: "/images/home/crew/person-6.webp" },
 ] as const;
 
 const storyPreviews = [
@@ -20,10 +18,54 @@ const storyPreviews = [
   { title: "A fresh pair", category: "Style & sneakers", photo: "/images/home/winner-previews/story-4.webp" },
   { title: "Something for the family", category: "Home & entertainment", photo: "/images/home/winner-previews/story-5.webp" },
   { title: "The little wins", category: "Everyday favorites", photo: "/images/home/winner-previews/story-6.webp" },
+  { title: "A ride to remember", category: "Outdoor adventures", photo: "/images/home/winner-previews/story-7.webp" },
+  { title: "Cooking together", category: "Home essentials", photo: "/images/home/winner-previews/story-8.webp" },
+  { title: "A new little upgrade", category: "Electronics", photo: "/images/home/winner-previews/story-9.webp" },
+  { title: "A bright surprise", category: "Everyday favorites", photo: "/images/home/winner-previews/story-10.webp" },
+  { title: "The patio moment", category: "Home & outdoors", photo: "/images/home/winner-previews/story-11.webp" },
+  { title: "Game night begins", category: "Home & entertainment", photo: "/images/home/winner-previews/story-12.webp" },
 ] as const;
 
+function useDragRail(ref: RefObject<HTMLDivElement | null>) {
+  const drag = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
+
+  return {
+    onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
+      if (event.pointerType !== "mouse" || event.button !== 0) return;
+      const rail = ref.current;
+      if (!rail) return;
+      drag.current = { active: true, moved: false, startX: event.clientX, scrollLeft: rail.scrollLeft };
+    },
+    onPointerMove: (event: PointerEvent<HTMLDivElement>) => {
+      const rail = ref.current;
+      if (!rail || !drag.current.active) return;
+      const distance = event.clientX - drag.current.startX;
+      if (Math.abs(distance) > 5) drag.current.moved = true;
+      if (!drag.current.moved) return;
+      event.preventDefault();
+      if (!rail.hasPointerCapture(event.pointerId)) rail.setPointerCapture(event.pointerId);
+      rail.scrollLeft = drag.current.scrollLeft - distance;
+    },
+    onPointerUp: (event: PointerEvent<HTMLDivElement>) => {
+      drag.current.active = false;
+      const rail = ref.current;
+      if (rail?.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
+    },
+    onPointerCancel: () => { drag.current.active = false; drag.current.moved = false; },
+    onClickCapture: (event: MouseEvent<HTMLDivElement>) => {
+      if (!drag.current.moved) return;
+      event.preventDefault();
+      event.stopPropagation();
+      drag.current.moved = false;
+    },
+  };
+}
+
 export function CrewAndWinnerPreview() {
-  const railRef = useRef<HTMLDivElement>(null);
+  const crewRailRef = useRef<HTMLDivElement>(null);
+  const storyRailRef = useRef<HTMLDivElement>(null);
+  const crewDrag = useDragRail(crewRailRef);
+  const storyDrag = useDragRail(storyRailRef);
   const [previewRequests, setPreviewRequests] = useState<string[]>([]);
   const [crewMessage, setCrewMessage] = useState("");
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
@@ -33,10 +75,12 @@ export function CrewAndWinnerPreview() {
     setCrewMessage(`Preview only: no invitation was sent to ${name}. A real Crew connection would require their approval.`);
   }
 
-  function moveStories(direction: -1 | 1) {
-    const rail = railRef.current;
-    if (!rail) return;
-    rail.scrollBy({ left: direction * rail.clientWidth * 0.82, behavior: "smooth" });
+  function moveRail(rail: HTMLDivElement | null, direction: -1 | 1) {
+    rail?.scrollBy({ left: direction * rail.clientWidth * 0.72, behavior: "smooth" });
+  }
+
+  function showCrewDiscovery() {
+    setCrewMessage("Preview only: search and invitations will be available when Crew is launched. Connections and shared picks will require both people to opt in.");
   }
 
   return (
@@ -48,18 +92,24 @@ export function CrewAndWinnerPreview() {
             <h2 id="find-your-crew-heading" className={styles.title}>Find your Crew</h2>
             <p className={styles.intro}>Keep your favorite people close. Share your picks only when you both choose to connect.</p>
           </div>
-          <button className={styles.outlineButton} type="button" onClick={() => setCrewMessage("Preview only: search and invitations will be available when Crew is launched. Connections and shared picks will require both people to opt in.")}>
-            Find more people <span aria-hidden="true">→</span>
-          </button>
+          <div className={styles.crewActions}>
+            <button className={styles.outlineButton} type="button" onClick={showCrewDiscovery}>
+              Find more people <span aria-hidden="true">→</span>
+            </button>
+            <div className={styles.arrows} aria-label="Crew carousel controls">
+              <button type="button" aria-label="Previous Crew profiles" onClick={() => moveRail(crewRailRef.current, -1)}>‹</button>
+              <button type="button" aria-label="Next Crew profiles" onClick={() => moveRail(crewRailRef.current, 1)}>›</button>
+            </div>
+          </div>
         </div>
 
-        <div className={styles.peopleRail} aria-label="Fictional sample Crew profiles">
+        <div className={styles.peopleRail} ref={crewRailRef} aria-label="Fictional sample Crew profiles" onDragStart={(event) => event.preventDefault()} {...crewDrag}>
           {people.map((person) => {
             const requested = previewRequests.includes(person.name);
             return (
               <div className={styles.person} key={person.name}>
                 <div className={styles.avatar}>
-                  <Image src={person.photo} alt={`Fictional profile of ${person.name}`} fill sizes="(max-width: 640px) 88px, 112px" className={styles.avatarImage} />
+                  <Image src={person.photo} alt={`Fictional profile of ${person.name}`} draggable={false} fill sizes="(max-width: 640px) 88px, 112px" className={styles.avatarImage} />
                 </div>
                 <strong className={styles.personName}>{person.name}</strong>
                 <button className={`${styles.addButton} ${requested ? styles.addButtonSelected : ""}`} type="button" onClick={() => previewCrewRequest(person.name)}>
@@ -71,6 +121,16 @@ export function CrewAndWinnerPreview() {
               </div>
             );
           })}
+          <button className={styles.discoverPerson} type="button" onClick={showCrewDiscovery} aria-label="Look for more people to add to your Crew">
+            <span className={styles.discoverAvatar} aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="27" cy="22" r="7" />
+                <path d="M14 45c0-7 6-12 13-12s13 5 13 12" />
+                <path d="M48 21v14m-7-7h14" />
+              </svg>
+            </span>
+            <span>Look for more<br />people</span>
+          </button>
         </div>
         <p className={styles.demoNote}>Illustrative profiles. These people are fictional; no invitations are sent from this preview.</p>
         {crewMessage && <p className={styles.crewMessage} role="status">{crewMessage}</p>}
@@ -84,16 +144,16 @@ export function CrewAndWinnerPreview() {
             <p className={styles.intro}>A place for real people to share their moments, when they choose to.</p>
           </div>
           <div className={styles.arrows} aria-label="Winner story carousel controls">
-            <button type="button" aria-label="Previous stories" onClick={() => moveStories(-1)}>‹</button>
-            <button type="button" aria-label="Next stories" onClick={() => moveStories(1)}>›</button>
+            <button type="button" aria-label="Previous stories" onClick={() => moveRail(storyRailRef.current, -1)}>‹</button>
+            <button type="button" aria-label="Next stories" onClick={() => moveRail(storyRailRef.current, 1)}>›</button>
           </div>
         </div>
         <p className={styles.storyNotice}>Layout preview: these images feature fictional models, not actual winners. Verified, permission-based stories and videos will replace them.</p>
 
-        <div className={styles.storyRail} ref={railRef} aria-label="Sample winner story cards">
+        <div className={styles.storyRail} ref={storyRailRef} aria-label="Sample winner story cards" onDragStart={(event) => event.preventDefault()} {...storyDrag}>
           {storyPreviews.map((story, index) => (
             <button key={story.title} type="button" className={styles.storyCard} onClick={() => setSelectedStory(index)} aria-label={`Open illustrative story preview: ${story.title}`}>
-              <Image src={story.photo} alt="Fictional lifestyle scene" fill sizes="(max-width: 640px) 86vw, (max-width: 900px) 45vw, 360px" className={styles.storyImage} />
+              <Image src={story.photo} alt="Fictional lifestyle scene" draggable={false} fill sizes="(max-width: 640px) 72vw, (max-width: 900px) 40vw, 300px" className={styles.storyImage} />
               <span className={styles.storyShade} />
               <span className={styles.playIcon} aria-hidden="true">▶</span>
               <span className={styles.storyText}>

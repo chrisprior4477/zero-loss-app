@@ -22,3 +22,13 @@ test("fictional winner scenes open an honest sample disclosure", () => {
   fireEvent.click(screen.getByRole("button", { name: "Close preview" }));
   expect(screen.queryByRole("dialog")).toBeNull();
 });
+
+test("Crew ends with a clickable discovery tile and stories have twelve sample cards", () => {
+  render(<CrewAndWinnerPreview />);
+
+  expect(screen.getAllByRole("button", { name: "Add to Crew" })).toHaveLength(4);
+  expect(screen.getAllByRole("button", { name: /Open illustrative story preview:/ })).toHaveLength(12);
+
+  fireEvent.click(screen.getByRole("button", { name: "Look for more people to add to your Crew" }));
+  expect(screen.getByRole("status").textContent).toContain("both people to opt in");
+});
