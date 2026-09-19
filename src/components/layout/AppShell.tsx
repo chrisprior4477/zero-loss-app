@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { InstallAppPrompt } from "@/components/layout/InstallAppPrompt";
+import { SiteBreadcrumbs } from "@/components/layout/SiteBreadcrumbs";
 
 type AppShellProps = {
   children: ReactNode;
@@ -17,6 +19,7 @@ export function AppShell({ children }: AppShellProps) {
         Skip to content
       </a>
       <SiteHeader />
+      <Suspense fallback={null}><SiteBreadcrumbs /></Suspense>
       <main id="main-content" className="flex-1">
         {children}
       </main>

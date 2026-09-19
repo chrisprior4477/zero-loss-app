@@ -19,7 +19,6 @@ export function WalletOverview({ wallet, fundingEnabled = false, requestKey = ""
   return <main className={styles.page}>
     <div className={styles.shell}>
       <div className={styles.topline}>
-        <nav aria-label="Breadcrumb" className={styles.breadcrumb}><Link href="/account/entries">My Activity</Link><span aria-hidden="true">›</span><span>Wallet &amp; Transactions</span></nav>
         <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Gift Cards &amp; Rewards</Link><Link href="/account/wallet?view=history" aria-current="page">Funds &amp; history</Link></nav>
       </div>
       <header className={styles.hero}>

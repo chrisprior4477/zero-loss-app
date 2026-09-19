@@ -14,7 +14,6 @@ export function WalletRewards({ state, view = "ready" }: { state: AccountActivit
   return <main className={styles.page} data-activity-source={state.source}>
     <div className={styles.shell}>
       <div className={styles.topline}>
-        <nav aria-label="Breadcrumb" className={styles.breadcrumb}><Link href="/account/entries">My Activity</Link><span aria-hidden="true">›</span><span>Gift Cards &amp; Rewards</span></nav>
         <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href="/account/wallet?view=history">Funds &amp; history</Link></nav>
       </div>
       <header className={styles.hero}>
@@ -94,12 +93,6 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null }: { it
 
   return <main className={styles.detailPage}>
     <section aria-label="Reward redemption details" className={styles.detailShell}>
-      <nav aria-label="Breadcrumb" className={styles.detailBreadcrumb}>
-        <Link href="/account/wallet">Gift Cards &amp; Rewards</Link>
-        <span aria-hidden="true">›</span>
-        <span>{item.retailer}</span>
-      </nav>
-
       <header className={styles.detailHeading}>
         <div>
           <p className={styles.readyLabel}><span aria-hidden="true">✓</span>{rewardReady ? "Ready to use" : "Reward earned"}</p>

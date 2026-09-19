@@ -2,7 +2,7 @@
 .page::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, #001326f2, #00182bb8 48%, #001426f0), url('/account/showroom-v1.webp') center / cover fixed; }
 .page::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #00172b30, transparent 45%, #00172b4d); pointer-events: none; }
 .shell { max-width: 1440px; margin: 0 auto; }
-.topline { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.topline { display: flex; align-items: center; justify-content: flex-end; gap: 20px; }
 .breadcrumb { display: flex; align-items: center; gap: 8px; color: #d7e5f3; font-size: 13px; }
 .breadcrumb a:hover { color: #4ceaff; }
 .walletSections { display: flex; gap: 7px; }

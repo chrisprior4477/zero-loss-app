@@ -67,8 +67,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
 
   return <main className="min-h-screen bg-[#061b35] px-4 py-8 text-white sm:px-6 lg:px-10">
     <div className="mx-auto max-w-6xl">
-      <Link href="/account/entries" className="text-sm font-semibold text-cyan-300 hover:text-cyan-100">‹ My Activity</Link>
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-5 border-b border-cyan-300/25 pb-6">
+      <div className="flex flex-wrap items-end justify-between gap-5 border-b border-cyan-300/25 pb-6">
         <div><p className="text-xs font-extrabold uppercase tracking-[.2em] text-cyan-300">Friends &amp; family</p><h1 className="mt-1 text-4xl font-black tracking-tight sm:text-5xl">Your Crew</h1><p className="mt-2 max-w-2xl text-white/70">See what your approved Crew chooses to share. Your own entries stay private unless you switch sharing on for each pick.</p></div>
         <div className="flex flex-wrap gap-2"><span className="rounded-full border border-[#61f344]/45 bg-[#61f344]/10 px-4 py-2 text-sm font-bold text-[#8cff7b]">{connected.length} connected</span>{samples.length ? <span className="rounded-full border border-orange-300/40 bg-orange-300/10 px-4 py-2 text-sm font-bold text-orange-200">{samples.length} sample previews</span> : null}</div>
       </div>

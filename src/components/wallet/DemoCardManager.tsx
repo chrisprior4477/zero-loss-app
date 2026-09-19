@@ -26,15 +26,9 @@ export function DemoCardManager({ displayName, savedCard = null, cardUnavailable
   const [securityCode, setSecurityCode] = useState(TEST_CODE);
   const [makeDefault, setMakeDefault] = useState(savedCard?.isDefault ?? true);
   const [clientError, setClientError] = useState("");
-  const lastFour = digits(cardNumber).slice(-4).padStart(4, "•");
 
   return <main className={styles.page}>
     <div className={styles.shell}>
-      <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
-        <Link href="/account/entries">My Activity</Link><span aria-hidden="true">›</span>
-        <Link href="/account/wallet?view=history">Wallet &amp; Transactions</Link><span aria-hidden="true">›</span><span>Add Card</span>
-      </nav>
-
       <header className={styles.header}>
         <div><span className={styles.eyebrow}>PAYMENT METHOD</span><h1>Add a card</h1><p>Keep a test card ready for faster preview funding.</p></div>
         <div className={styles.headerNote}><strong>SAFE PREVIEW MODE</strong><span>No real payment is processed.</span></div>

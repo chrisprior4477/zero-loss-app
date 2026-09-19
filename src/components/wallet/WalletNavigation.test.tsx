@@ -50,7 +50,7 @@ test("preview reward renders a responsive sample redemption without pretending i
   const preview = storedActivityFixture();
   mocks.account.mockResolvedValue({ activity: { ...preview, isPreview: true }, wallet });
   render(await WalletPage({ searchParams: Promise.resolve({ reward: "samsung-m70h-tv" }) }));
-  expect(screen.getAllByText("Best Buy").length).toBeGreaterThanOrEqual(2);
+  expect(screen.getByText("Best Buy")).toBeTruthy();
   expect(screen.getByText("Sample — not redeemable")).toBeTruthy();
   expect(screen.getByLabelText("Sample reward barcode")).toBeTruthy();
   expect(screen.getByRole("img", { name: 'Samsung 50" M70H Mini LED 4K Smart TV' })).toBeTruthy();
