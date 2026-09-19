@@ -9,7 +9,7 @@ import {
 } from "@/lib/crew/actions";
 import type { CrewInvitation, CrewMember, OwnCrewEntry, SharedCrewPick } from "@/app/account/crew/page";
 import { CrewPeopleCarousel } from "./CrewPeopleCarousel";
-import { CrewSearchDialog } from "./CrewSearchDialog";
+import { CrewSearchPanel } from "./CrewSearchDialog";
 import { SharedPicksConcept } from "@/components/home/SharedPicksConcept";
 import { initializeSampleCrewPreview, removeSampleCrewPreview, useSampleCrewPreviews, type SampleCrewName } from "@/lib/crew/sample-preview";
 
@@ -32,7 +32,6 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab);
   const [message, setMessage] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
   const [samplePerson, setSamplePerson] = useState<SampleCrewName | null>(null);
   const [pending, startTransition] = useTransition();
   const samples = useSampleCrewPreviews();
@@ -60,6 +59,12 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
     return { id: isRequester ? item.recipient_id : item.requester_id, name: isRequester ? item.recipient_name : item.requester_name };
   }
 
+  function focusCrewSearch() {
+    const section = document.getElementById("crew-search");
+    section?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    document.getElementById("crew-search-name")?.focus({ preventScroll: true });
+  }
+
   return <main className="min-h-screen bg-[#061b35] px-4 py-8 text-white sm:px-6 lg:px-10">
     <div className="mx-auto max-w-6xl">
       <Link href="/account/entries" className="text-sm font-semibold text-cyan-300 hover:text-cyan-100">‹ My Activity</Link>
@@ -77,14 +82,10 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
       </div>
 
       {tab === "crew" ? <section className="mt-5 grid gap-5" aria-label="Approved Crew">
-        <CrewPeopleCarousel people={people} samples={samples} onAdd={() => setSearchOpen(true)} onRemove={(id) => run(() => removeCrewConnection(id))} onSampleRemove={removeSampleCrewPreview} onSamplePicks={setSamplePerson} pending={pending} />
+        <CrewPeopleCarousel people={people} samples={samples} onAdd={focusCrewSearch} onRemove={(id) => run(() => removeCrewConnection(id))} onSampleRemove={removeSampleCrewPreview} onSamplePicks={setSamplePerson} pending={pending} />
+        <CrewSearchPanel onSamplePicks={setSamplePerson} disabled={!available} />
         <div className="rounded-2xl border border-cyan-300/35 bg-[#092744] p-5">
-          <h2 className="text-xl font-extrabold">Add to Your Crew</h2>
-          <p className="mt-2 text-sm leading-6 text-white/70">Find people by name, email, or verified phone number. On supported phones, choose a contact from your address book. Connections require their approval.</p>
-          <button type="button" disabled={!available} onClick={() => setSearchOpen(true)} className="mt-4 rounded-lg bg-[#51ed40] px-4 py-3 text-sm font-black text-[#061b26] disabled:opacity-50">Find people →</button>
-          <div className="mt-5 border-t border-cyan-300/20 pt-4">
-            <label className="flex items-start gap-3 text-sm text-white/80"><input type="checkbox" checked={discoverable} disabled={pending || !available} onChange={(event) => run(() => setCrewDiscoverable(event.target.checked))} className="mt-1 accent-[#51ed40]" /><span>Let other members find my display name in Crew search. <small className="mt-1 block text-white/50">Off by default. This never shares your entries or wallet.</small></span></label>
-          </div>
+          <label className="flex items-start gap-3 text-sm text-white/80"><input type="checkbox" checked={discoverable} disabled={pending || !available} onChange={(event) => run(() => setCrewDiscoverable(event.target.checked))} className="mt-1 accent-[#51ed40]" /><span>Let other members find my display name in Crew search. <small className="mt-1 block text-white/50">Off by default. This never shares your entries or wallet.</small></span></label>
         </div>
         {selectedMemberId ? <div className="rounded-2xl border border-cyan-300/45 bg-[#092744] p-5" id="shared-picks">
           <h2 className="text-xl font-extrabold">Shared picks</h2><p className="mt-1 text-sm text-white/65">Only picks this person chose to share with approved Crew.</p>
@@ -101,7 +102,6 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
         {entries.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2">{entries.map((entry) => <article key={entry.id} className="flex gap-3 rounded-xl border border-cyan-300/25 bg-[#061d38] p-3">{entry.image ? <div className="relative h-20 w-20 shrink-0 rounded-lg bg-[#123956]"><Image src={entry.image} alt="" fill sizes="80px" className="object-contain p-1" /></div> : null}<div className="min-w-0 flex-1"><strong className="block text-sm">{entry.title}</strong><small className="block text-white/55">{entry.retailer} · {formatDate(entry.createdAt)}</small><button type="button" disabled={pending || !available} onClick={() => run(() => setEntryCrewSharing(entry.id, !entry.shared))} aria-pressed={entry.shared} className={`mt-2 rounded-lg border px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${entry.shared ? "border-[#51ed40] bg-[#153f2e] text-[#8aff75]" : "border-white/30 text-white/75"}`}>{entry.shared ? "Shared with Crew · turn off" : "Private · share with Crew"}</button></div></article>)}</div> : <p className="mt-4 text-sm text-white/60">You don’t have entries to share yet.</p>}
       </section> : null}
     </div>
-    {searchOpen ? <CrewSearchDialog onClose={() => setSearchOpen(false)} /> : null}
     {samplePerson ? <SharedPicksConcept initialPerson={samplePerson} onClose={() => setSamplePerson(null)} /> : null}
   </main>;
 }

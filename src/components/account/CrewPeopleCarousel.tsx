@@ -45,7 +45,11 @@ export function CrewPeopleCarousel({ people, samples, onAdd, onRemove, onSampleR
     dragRef.current.moved = false;
   }
   function move(direction: -1 | 1) {
-    railRef.current?.scrollBy({ left: direction * 165, behavior: "smooth" });
+    const rail = railRef.current;
+    const firstCard = rail?.firstElementChild;
+    if (!rail || !(firstCard instanceof HTMLElement)) return;
+    const gap = Number.parseFloat(window.getComputedStyle(rail).columnGap) || 0;
+    rail.scrollBy({ left: direction * (firstCard.getBoundingClientRect().width + gap), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
 
   return <div className={styles.root}>

@@ -4,10 +4,10 @@
 .heading p { margin-top: 5px; color: #bed4e4; font-size: .8rem; line-height: 1.4; }
 .arrows { display: flex; gap: 7px; }
 .arrows button { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #3ac3ec; border-radius: 50%; color: white; background: #0d3559; font-size: 1.55rem; line-height: 1; }
-.rail { display: flex; gap: 12px; overflow-x: auto; margin-top: 12px; padding: 12px 3px 7px; scroll-snap-type: x proximity; scrollbar-width: none; cursor: grab; user-select: none; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
+.rail { display: flex; gap: 12px; overflow-x: auto; margin-top: 12px; padding: 12px 3px 7px; scrollbar-width: none; cursor: grab; user-select: none; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
 .rail::-webkit-scrollbar { display: none; }
 .rail:active { cursor: grabbing; }
-.person, .discover { display: flex; flex: 0 0 142px; flex-direction: column; align-items: center; scroll-snap-align: start; text-align: center; }
+.person, .discover { display: flex; flex: 0 0 142px; flex-direction: column; align-items: center; text-align: center; }
 .avatar, .discoverAvatar { position: relative; display: grid; width: 104px; height: 104px; flex: none; place-items: center; overflow: hidden; border: 3px solid #34cbef; border-radius: 50%; background: #12536a; color: white; font-size: 2rem; font-weight: 850; box-shadow: 0 0 0 4px #061b34, 0 0 0 5px #1a6586, 0 8px 25px #0006; }
 .avatarImage { object-fit: cover; }
 .name { max-width: 100%; overflow: hidden; margin-top: 11px; font-size: .94rem; text-overflow: ellipsis; white-space: nowrap; }

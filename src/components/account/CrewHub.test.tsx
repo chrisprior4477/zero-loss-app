@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CrewHub } from "./CrewHub";
-import { CrewSearchDialog } from "./CrewSearchDialog";
+import { CrewSearchPanel } from "./CrewSearchDialog";
 import { addSampleCrewPreview } from "@/lib/crew/sample-preview";
 
 const actions = vi.hoisted(() => ({
@@ -67,15 +67,16 @@ test("the account Crew section shows approved people as circular carousel links,
   expect(screen.getByText("People in your Crew")).toBeTruthy();
   expect(screen.getByRole("link", { name: "View Taylor Crew's shared picks" }).getAttribute("href")).toBe("/account/crew?member=22222222-2222-4222-8222-222222222222");
   expect(screen.getByRole("button", { name: "Add to Your Crew" })).toBeTruthy();
+  expect(screen.getByRole("searchbox", { name: "Search by name" })).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Invite by verified phone" })).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Invite by email" })).toBeTruthy();
   expect(screen.queryByText(/fictional click-through/i)).toBeNull();
   expect(screen.queryByText(/Maya’s shared picks|Daniel’s shared picks/)).toBeNull();
-
-  fireEvent.click(screen.getByRole("button", { name: "Add to Your Crew" }));
-  expect(screen.getByRole("dialog", { name: "Add to Your Crew" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /find people/i })).toBeNull();
 });
 
 test("name search requests an actual database-backed invitation", async () => {
-  render(<CrewSearchDialog onClose={vi.fn()} />);
+  render(<CrewSearchPanel onSamplePicks={vi.fn()} disabled={false} />);
   fireEvent.change(screen.getByRole("searchbox", { name: "Search by name" }), { target: { value: "Sam" } });
   fireEvent.click(screen.getByRole("button", { name: "Search Crew by name" }));
   await waitFor(() => expect(actions.searchCrewByName).toHaveBeenCalledWith("Sam"));
@@ -88,14 +89,26 @@ test("name search requests an actual database-backed invitation", async () => {
 test("phone contacts fill the fields only after selection; sending still needs a separate click", async () => {
   const picker = vi.fn().mockResolvedValue([{ name: ["Pat Friend"], email: ["pat@example.com"], tel: ["+1 555 123 4567"] }]);
   Object.defineProperty(navigator, "contacts", { configurable: true, value: { select: picker } });
-  render(<CrewSearchDialog onClose={vi.fn()} />);
+  render(<CrewSearchPanel onSamplePicks={vi.fn()} disabled={false} />);
   fireEvent.click(screen.getByRole("button", { name: "Choose from phone contacts" }));
   await waitFor(() => expect(picker).toHaveBeenCalledWith(["name", "email", "tel"], { multiple: false }));
-  expect((screen.getByRole("textbox", { name: "Invite by email address" }) as HTMLInputElement).value).toBe("pat@example.com");
-  expect((screen.getByRole("textbox", { name: "Invite by phone number" }) as HTMLInputElement).value).toBe("+1 555 123 4567");
+  expect((screen.getByRole("textbox", { name: "Invite by email" }) as HTMLInputElement).value).toBe("pat@example.com");
+  expect((screen.getByRole("textbox", { name: "Invite by verified phone" }) as HTMLInputElement).value).toBe("+1 555 123 4567");
   expect(actions.inviteToCrew).not.toHaveBeenCalled();
   expect(actions.inviteToCrewByPhone).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Send Crew request by email" }));
   await waitFor(() => expect(actions.inviteToCrew).toHaveBeenCalledWith("pat@example.com"));
   Reflect.deleteProperty(navigator, "contacts");
+});
+
+test("sample people can be found by name without pretending a real invitation was sent", async () => {
+  const onSamplePicks = vi.fn();
+  actions.searchCrewByName.mockResolvedValue({ ok: true, message: "No discoverable members match that name.", people: [] });
+  render(<CrewSearchPanel onSamplePicks={onSamplePicks} disabled={false} />);
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search by name" }), { target: { value: "Maya" } });
+  fireEvent.click(screen.getByRole("button", { name: "Search Crew by name" }));
+  expect(await screen.findByText("Sample profiles—not real invitations")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "View sample picks" }));
+  expect(onSamplePicks).toHaveBeenCalledWith("Maya");
+  expect(actions.inviteToCrewById).not.toHaveBeenCalled();
 });
