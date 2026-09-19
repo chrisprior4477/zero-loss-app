@@ -1,13 +1,15 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
-import { buildAccountNotifications } from "@/lib/account/notifications";
+import { buildAccountNotifications, type AccountNotification } from "@/lib/account/notifications";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import { NotificationsCenter } from "./NotificationsCenter";
 
 vi.mock("next/image", () => ({ default: () => <span data-testid="notification-image" /> }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
-afterEach(cleanup);
+const actionMocks = vi.hoisted(() => ({ respond: vi.fn(), refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: actionMocks.refresh }) }));
+vi.mock("@/lib/crew/actions", () => ({ respondToCrewRequest: actionMocks.respond }));
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const wallet: WalletSnapshot = {
   walletAccountId: "11111111-1111-4111-8111-111111111111",
@@ -31,7 +33,7 @@ test("notifications are built from the signed-in account snapshot without invent
 
 test("notification filters, links, and read controls remain functional", () => {
   const notifications = buildAccountNotifications(storedActivityFixture(), wallet, true);
-  render(<NotificationsCenter notifications={notifications} activityAvailable walletAvailable />);
+  render(<NotificationsCenter notifications={notifications} activityAvailable walletAvailable crewAvailable />);
   expect(screen.getByRole("heading", { name: "Notifications" })).toBeTruthy();
   expect(screen.queryByText("Ø")).toBeNull();
   expect(screen.getByRole("link", { name: /Show barcode/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
@@ -44,7 +46,27 @@ test("notification filters, links, and read controls remain functional", () => {
 });
 
 test("unavailable data sources are disclosed instead of replaced with samples", () => {
-  render(<NotificationsCenter notifications={[]} activityAvailable={false} walletAvailable={false} />);
+  render(<NotificationsCenter notifications={[]} activityAvailable={false} walletAvailable={false} crewAvailable={false} />);
   expect(screen.getByText(/Some account updates could not be verified/)).toBeTruthy();
   expect(screen.getByText("No notifications")).toBeTruthy();
+});
+
+test("a Crew lookup failure is disclosed even when other account data is available", () => {
+  render(<NotificationsCenter notifications={[]} activityAvailable walletAvailable crewAvailable={false} />);
+  expect(screen.getByText(/Some account updates could not be verified/)).toBeTruthy();
+});
+
+test.each([["approve", true, "Approve"], ["decline", false, "Decline"]] as const)("a Crew request links to the requests tab and can %s", async (_label, accept, button) => {
+  const invitation: AccountNotification = {
+    id: "crew-request-1", category: "crew", title: "Sam wants to join your Crew",
+    body: "Approve or decline this request.", meta: "Crew request", href: "/account/crew?tab=requests",
+    action: "Review request", visualLabel: "Your Crew", visualValue: "Approval needed",
+    tone: "crew", crewRequestId: "33333333-3333-4333-8333-333333333333",
+  };
+  actionMocks.respond.mockResolvedValue({ ok: true, message: "Request updated." });
+  render(<NotificationsCenter notifications={[invitation]} activityAvailable walletAvailable crewAvailable />);
+  expect(screen.getByRole("link", { name: /Review request/ }).getAttribute("href")).toBe("/account/crew?tab=requests");
+  fireEvent.click(screen.getByRole("button", { name: button }));
+  await waitFor(() => expect(actionMocks.respond).toHaveBeenCalledWith(invitation.crewRequestId, accept));
+  await waitFor(() => expect(actionMocks.refresh).toHaveBeenCalledTimes(1));
 });

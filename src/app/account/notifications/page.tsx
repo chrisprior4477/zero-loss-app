@@ -11,7 +11,7 @@ export default async function NotificationsPage() {
   const account = await getAccountContext();
   if (!account) redirect("/login");
   const db = await createClient();
-  const { data: crewRequests } = await db.from("crew_invitations")
+  const { data: crewRequests, error: crewError } = await db.from("crew_invitations")
     .select("id,requester_name,created_at").eq("recipient_id", account.userId).eq("status", "pending")
     .order("created_at", { ascending: false });
   const crewNotifications = (crewRequests ?? []).map((request) => ({
@@ -31,5 +31,6 @@ export default async function NotificationsPage() {
     notifications={[...crewNotifications, ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed)]}
     activityAvailable={account.activity.source !== "unavailable"}
     walletAvailable={account.wallet !== null}
+    crewAvailable={!crewError}
   />;
 }

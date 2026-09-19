@@ -20,7 +20,7 @@ const filters = [
   ["crew", "Your Crew", "crew"],
 ] as const satisfies readonly (readonly [FilterKey, string, AccountIconName])[];
 
-export function NotificationsCenter({ notifications, activityAvailable, walletAvailable }: { notifications: AccountNotification[]; activityAvailable: boolean; walletAvailable: boolean }) {
+export function NotificationsCenter({ notifications, activityAvailable, walletAvailable, crewAvailable }: { notifications: AccountNotification[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const router = useRouter();
   const [responding, startTransition] = useTransition();
@@ -42,7 +42,7 @@ export function NotificationsCenter({ notifications, activityAvailable, walletAv
         </div>
       </header>
 
-      {!activityAvailable || !walletAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
+      {!activityAvailable || !walletAvailable || !crewAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
       {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
 
       <div className={styles.layout}>
