@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CrewHub } from "./CrewHub";
 import { CrewSearchDialog } from "./CrewSearchDialog";
+import { addSampleCrewPreview } from "@/lib/crew/sample-preview";
 
 const actions = vi.hoisted(() => ({
   inviteToCrew: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role={alt ? "img" : undefined} aria-label={alt || undefined} /> }));
 
 beforeEach(() => {
+  localStorage.clear();
   vi.clearAllMocks();
   actions.searchCrewByName.mockResolvedValue({ ok: true, message: "Choose someone to send a Crew request.", people: [{ memberId: "33333333-3333-4333-8333-333333333333", name: "Sam Test", avatarUrl: null }] });
   actions.inviteToCrewById.mockResolvedValue({ ok: true, message: "Crew request sent." });
@@ -26,6 +28,29 @@ beforeEach(() => {
   actions.inviteToCrew.mockResolvedValue({ ok: true, message: "Request saved." });
 });
 afterEach(cleanup);
+
+test("the four legacy homepage sample additions appear in the account carousel, clearly separate from real connections", async () => {
+  render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  expect(await screen.findByRole("button", { name: "View Maya's sample shared picks" })).toBeTruthy();
+  for (const person of ["Maya", "Daniel", "Ari", "Leo"]) {
+    expect(screen.getByRole("button", { name: `View ${person}'s sample shared picks` })).toBeTruthy();
+  }
+  expect(screen.getByText("4 sample previews")).toBeTruthy();
+  expect(screen.getByText("0 connected")).toBeTruthy();
+  expect(screen.getByText(/fictional.*did not send invitations/i)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "View Maya's sample shared picks" }));
+  expect(screen.getByRole("dialog", { name: "What your Crew is into" })).toBeTruthy();
+});
+
+test("a homepage preview choice carries into Your Crew and can be removed", async () => {
+  addSampleCrewPreview("Ari");
+  render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  expect(screen.getByRole("button", { name: "View Ari's sample shared picks" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "View Maya's sample shared picks" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Remove preview" }));
+  await waitFor(() => expect(screen.queryByRole("button", { name: "View Ari's sample shared picks" })).toBeNull());
+  expect(localStorage.getItem("zero-loss-sample-crew-v1")).toBe("[]");
+});
 
 test("the account Crew section shows approved people as circular carousel links, not fictional click-throughs", () => {
   render(<CrewHub

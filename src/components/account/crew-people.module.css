@@ -12,6 +12,8 @@
 .avatarImage { object-fit: cover; }
 .name { max-width: 100%; overflow: hidden; margin-top: 11px; font-size: .94rem; text-overflow: ellipsis; white-space: nowrap; }
 .connected { margin-top: 2px; color: #8cff91; font-size: .69rem; }
+.sampleBadge { margin-top: 2px; color: #ffcf8f; font-size: .69rem; }
+.sampleNotice { margin-top: 12px; border-left: 3px solid #ffad59; padding: 7px 11px; color: #dce8f2; background: #14304b; font-size: .76rem; line-height: 1.45; }
 .picksLink { margin-top: 9px; color: #7deaff; font-size: .75rem; font-weight: 800; }
 .remove { margin-top: 7px; color: #b3cbda; font-size: .7rem; }
 .remove:hover, .picksLink:hover { color: #fff; text-decoration: underline; }

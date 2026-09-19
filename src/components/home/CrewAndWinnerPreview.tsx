@@ -4,13 +4,9 @@ import Image from "next/image";
 import { type MouseEvent, type PointerEvent, type RefObject, useRef, useState } from "react";
 import styles from "./CrewAndWinnerPreview.module.css";
 import { SharedPicksConcept } from "./SharedPicksConcept";
+import { addSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
 
-const people = [
-  { name: "Maya", photo: "/images/home/crew/person-1.webp" },
-  { name: "Daniel", photo: "/images/home/crew/person-2.webp" },
-  { name: "Ari", photo: "/images/home/crew/person-3.webp" },
-  { name: "Leo", photo: "/images/home/crew/person-4.webp" },
-] as const;
+const people = sampleCrewPeople;
 
 const storyPreviews = [
   { title: "A TV day at home", category: "Home & entertainment", photo: "/images/home/winner-previews/story-1.webp" },
@@ -79,17 +75,17 @@ export function CrewAndWinnerPreview() {
   const storyRailRef = useRef<HTMLDivElement>(null);
   const crewDrag = useDragRail(crewRailRef);
   const storyDrag = useDragRail(storyRailRef);
-  const [previewRequests, setPreviewRequests] = useState<string[]>([]);
+  const previewRequests = useSampleCrewPreviews();
   const [crewMessage, setCrewMessage] = useState("");
   const [crewSearchOpen, setCrewSearchOpen] = useState(false);
   const [crewSearchValues, setCrewSearchValues] = useState(emptyCrewSearch);
   const [crewSearch, setCrewSearch] = useState<{ kind: CrewSearchKind; query: string } | null>(null);
   const [crewSearchNotice, setCrewSearchNotice] = useState("");
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
-  const [selectedCrew, setSelectedCrew] = useState<"Maya" | "Daniel" | null>(null);
+  const [selectedCrew, setSelectedCrew] = useState<(typeof people)[number]["name"] | null>(null);
 
-  function previewCrewRequest(name: string) {
-    setPreviewRequests((current) => current.includes(name) ? current : [...current, name]);
+  function previewCrewRequest(name: (typeof people)[number]["name"]) {
+    addSampleCrewPreview(name);
     setCrewMessage(`Preview only: no invitation was sent to ${name}. A real Crew connection would require their approval.`);
   }
 
@@ -161,7 +157,7 @@ export function CrewAndWinnerPreview() {
                 <button className={`${styles.addButton} ${requested ? styles.addButtonSelected : ""}`} type="button" onClick={() => previewCrewRequest(person.name)}>
                   {requested ? "Preview added" : "Add to Crew"}
                 </button>
-                <button className={styles.sharedButton} type="button" onClick={() => person.name === "Maya" || person.name === "Daniel" ? setSelectedCrew(person.name) : setCrewMessage(`Preview only: ${person.name}'s picks would appear here only after you both connect and ${person.name} chooses to share them.`)}>
+                <button className={styles.sharedButton} type="button" onClick={() => setSelectedCrew(person.name)}>
                   Shared picks <span aria-hidden="true">→</span>
                 </button>
               </div>

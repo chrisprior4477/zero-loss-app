@@ -3,14 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { type MouseEvent, type PointerEvent, useRef } from "react";
+import { sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import styles from "./crew-people.module.css";
 
 export type CrewPersonCard = { memberId: string; invitationId: string; name: string; avatarUrl: string | null };
 
-export function CrewPeopleCarousel({ people, onAdd, onRemove, pending }: {
+export function CrewPeopleCarousel({ people, samples, onAdd, onRemove, onSampleRemove, onSamplePicks, pending }: {
   people: CrewPersonCard[];
+  samples: SampleCrewName[];
   onAdd: () => void;
   onRemove: (invitationId: string) => void;
+  onSampleRemove: (name: SampleCrewName) => void;
+  onSamplePicks: (name: SampleCrewName) => void;
   pending: boolean;
 }) {
   const railRef = useRef<HTMLDivElement>(null);
@@ -46,12 +50,13 @@ export function CrewPeopleCarousel({ people, onAdd, onRemove, pending }: {
 
   return <div className={styles.root}>
     <div className={styles.heading}>
-      <div><h2>People in your Crew</h2><p>{people.length ? "Swipe through your connections. Only their chosen picks are visible." : "Your Crew starts with people you choose to invite."}</p></div>
+      <div><h2>People in your Crew</h2><p>{people.length ? "Swipe through approved connections and sample profiles." : "The people you tried on the homepage appear below as sample previews."}</p></div>
       <div className={styles.arrows} aria-label="Crew carousel controls">
         <button type="button" aria-label="Previous Crew member" onClick={() => move(-1)}>‹</button>
         <button type="button" aria-label="Next Crew member" onClick={() => move(1)}>›</button>
       </div>
     </div>
+    {samples.length ? <p className={styles.sampleNotice}>Sample profiles are fictional. “Preview added” did not send invitations; real members appear here after they approve a request.</p> : null}
     <div className={styles.rail} ref={railRef} aria-label="People in your Crew" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { dragRef.current.active = false; dragRef.current.moved = false; }} onClickCapture={onClickCapture} onDragStart={(event) => event.preventDefault()}>
       {people.map((person) => <div className={styles.person} key={person.memberId}>
         <Link href={`/account/crew?member=${person.memberId}`} className={styles.avatar} aria-label={`View ${person.name}'s shared picks`} draggable={false}>
@@ -61,6 +66,15 @@ export function CrewPeopleCarousel({ people, onAdd, onRemove, pending }: {
         <small className={styles.connected}>Connected</small>
         <Link href={`/account/crew?member=${person.memberId}`} className={styles.picksLink}>Shared picks →</Link>
         <button type="button" disabled={pending} onClick={() => onRemove(person.invitationId)} className={styles.remove}>Remove</button>
+      </div>)}
+      {sampleCrewPeople.filter((person) => samples.includes(person.name)).map((person) => <div className={styles.person} key={`sample-${person.name}`}>
+        <button type="button" className={styles.avatar} aria-label={`View ${person.name}'s sample shared picks`} onClick={() => onSamplePicks(person.name)}>
+          <Image src={person.photo} alt="" fill sizes="112px" className={styles.avatarImage} />
+        </button>
+        <strong className={styles.name}>{person.name}</strong>
+        <small className={styles.sampleBadge}>Sample preview</small>
+        <button type="button" onClick={() => onSamplePicks(person.name)} className={styles.picksLink}>Shared picks →</button>
+        <button type="button" onClick={() => onSampleRemove(person.name)} className={styles.remove}>Remove preview</button>
       </div>)}
       <button type="button" onClick={onAdd} className={styles.discover} aria-label="Add to Your Crew">
         <span className={styles.discoverAvatar} aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="27" cy="22" r="7" /><path d="M14 45c0-7 6-12 13-12s13 5 13 12M48 21v14m-7-7h14" /></svg></span>

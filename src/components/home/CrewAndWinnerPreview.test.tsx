@@ -1,7 +1,8 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { CrewAndWinnerPreview } from "./CrewAndWinnerPreview";
 
+beforeEach(() => localStorage.clear());
 afterEach(cleanup);
 
 test("the sample Crew action is clearly a preview, not a sent invitation", () => {
@@ -11,6 +12,7 @@ test("the sample Crew action is clearly a preview, not a sent invitation", () =>
 
   expect(screen.getByRole("status").textContent).toContain("no invitation was sent to Maya");
   expect(screen.getByRole("button", { name: "Preview added" })).toBeTruthy();
+  expect(localStorage.getItem("zero-loss-sample-crew-v1")).toContain("Maya");
 });
 
 test("fictional winner scenes open an honest sample disclosure", () => {

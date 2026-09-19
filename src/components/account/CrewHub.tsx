@@ -3,13 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   removeCrewConnection, respondToCrewRequest, setCrewDiscoverable, setEntryCrewSharing,
 } from "@/lib/crew/actions";
 import type { CrewInvitation, CrewMember, OwnCrewEntry, SharedCrewPick } from "@/app/account/crew/page";
 import { CrewPeopleCarousel } from "./CrewPeopleCarousel";
 import { CrewSearchDialog } from "./CrewSearchDialog";
+import { SharedPicksConcept } from "@/components/home/SharedPicksConcept";
+import { initializeSampleCrewPreview, removeSampleCrewPreview, useSampleCrewPreviews, type SampleCrewName } from "@/lib/crew/sample-preview";
 
 type Tab = "crew" | "requests" | "picks";
 type Props = {
@@ -31,7 +33,10 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
   const [tab, setTab] = useState<Tab>(initialTab);
   const [message, setMessage] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [samplePerson, setSamplePerson] = useState<SampleCrewName | null>(null);
   const [pending, startTransition] = useTransition();
+  const samples = useSampleCrewPreviews();
+  useEffect(() => { initializeSampleCrewPreview(); }, []);
   const received = invitations.filter((item) => item.status === "pending" && item.recipient_id === currentUserId);
   const sent = invitations.filter((item) => item.status === "pending" && item.requester_id === currentUserId);
   const connected = invitations.filter((item) => item.status === "accepted");
@@ -60,7 +65,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
       <Link href="/account/entries" className="text-sm font-semibold text-cyan-300 hover:text-cyan-100">‹ My Activity</Link>
       <div className="mt-5 flex flex-wrap items-end justify-between gap-5 border-b border-cyan-300/25 pb-6">
         <div><p className="text-xs font-extrabold uppercase tracking-[.2em] text-cyan-300">Friends &amp; family</p><h1 className="mt-1 text-4xl font-black tracking-tight sm:text-5xl">Your Crew</h1><p className="mt-2 max-w-2xl text-white/70">See what your approved Crew chooses to share. Your own entries stay private unless you switch sharing on for each pick.</p></div>
-        <span className="rounded-full border border-[#61f344]/45 bg-[#61f344]/10 px-4 py-2 text-sm font-bold text-[#8cff7b]">{connected.length} connected</span>
+        <div className="flex flex-wrap gap-2"><span className="rounded-full border border-[#61f344]/45 bg-[#61f344]/10 px-4 py-2 text-sm font-bold text-[#8cff7b]">{connected.length} connected</span>{samples.length ? <span className="rounded-full border border-orange-300/40 bg-orange-300/10 px-4 py-2 text-sm font-bold text-orange-200">{samples.length} sample previews</span> : null}</div>
       </div>
 
       {!available ? <p role="alert" className="mt-5 rounded-xl border border-amber-400/45 bg-amber-500/10 p-4 text-sm">Crew sharing is temporarily unavailable. No picks were exposed or changed.</p> : null}
@@ -72,7 +77,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
       </div>
 
       {tab === "crew" ? <section className="mt-5 grid gap-5" aria-label="Approved Crew">
-        <CrewPeopleCarousel people={people} onAdd={() => setSearchOpen(true)} onRemove={(id) => run(() => removeCrewConnection(id))} pending={pending} />
+        <CrewPeopleCarousel people={people} samples={samples} onAdd={() => setSearchOpen(true)} onRemove={(id) => run(() => removeCrewConnection(id))} onSampleRemove={removeSampleCrewPreview} onSamplePicks={setSamplePerson} pending={pending} />
         <div className="rounded-2xl border border-cyan-300/35 bg-[#092744] p-5">
           <h2 className="text-xl font-extrabold">Add to Your Crew</h2>
           <p className="mt-2 text-sm leading-6 text-white/70">Find people by name, email, or verified phone number. On supported phones, choose a contact from your address book. Connections require their approval.</p>
@@ -97,5 +102,6 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
       </section> : null}
     </div>
     {searchOpen ? <CrewSearchDialog onClose={() => setSearchOpen(false)} /> : null}
+    {samplePerson ? <SharedPicksConcept initialPerson={samplePerson} onClose={() => setSamplePerson(null)} /> : null}
   </main>;
 }
