@@ -66,3 +66,11 @@ test("failed product balance cannot become zero", () => {
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("Unavailable");
   expect(screen.getByRole("link", { name: "Sign in to enter" })).toBeTruthy();
 });
+
+test("entry submission asks for an explicit private-or-Crew sharing choice", () => {
+  render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
+  expect(screen.getByRole("dialog", { name: "Share this pick with your Crew?" })).toBeTruthy();
+  expect(screen.getByText(/Nothing is shared publicly/)).toBeTruthy();
+  expect(document.querySelector('input[name="shareWithCrew"]')?.getAttribute("value")).toBe("no");
+});

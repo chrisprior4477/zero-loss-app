@@ -2,7 +2,7 @@ import { activityHref, walletRewardHref, type AccountActivity, type ActivityItem
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 
-export type NotificationCategory = "action" | "account" | "activity" | "orders";
+export type NotificationCategory = "action" | "account" | "activity" | "orders" | "crew";
 export type AccountNotification = {
   id: string;
   category: NotificationCategory;
@@ -14,7 +14,8 @@ export type AccountNotification = {
   image?: string;
   visualLabel?: string;
   visualValue?: string;
-  tone: "reward" | "active" | "completion" | "wallet" | "account" | "order";
+  crewRequestId?: string;
+  tone: "reward" | "active" | "completion" | "wallet" | "account" | "order" | "crew";
 };
 
 function activityNotification(item: ActivityItem): AccountNotification {

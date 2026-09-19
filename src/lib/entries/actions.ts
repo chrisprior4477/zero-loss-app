@@ -48,6 +48,7 @@ export async function createPreviewEntry(
   const offeringSlug = String(formData.get("offeringSlug") ?? "");
   const idempotencyKey = String(formData.get("idempotencyKey") ?? "");
   const quantity = Number(formData.get("quantity") ?? "1");
+  const shareWithCrew = formData.get("shareWithCrew") === "yes";
   if (!slugPattern.test(offeringSlug) || !keyPattern.test(idempotencyKey) || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
     return { status: "error", message: "This entry request is invalid. Refresh the page and try again." };
   }
@@ -62,10 +63,11 @@ export async function createPreviewEntry(
       return { status: "error", message: "Sign in with a confirmed preview account to enter." };
     }
     await ensurePreviewCustomer(db, user);
-    const { data, error } = await db.rpc("create_preview_entries", {
+    const { data, error } = await db.rpc("create_preview_entries_with_sharing", {
       p_offering_slug: offeringSlug,
       p_quantity: quantity,
       p_idempotency_key: idempotencyKey,
+      p_share_with_crew: shareWithCrew,
     });
     if (error) return entryError(error);
     const outcome = data?.status;

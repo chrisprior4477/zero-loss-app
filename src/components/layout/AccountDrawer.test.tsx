@@ -102,7 +102,7 @@ test("drawer account destinations follow the approved hierarchy", () => {
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const navigation = within(screen.getByRole("navigation", { name: "Account navigation" }));
   expect(navigation.getAllByRole("link").map(link => link.textContent?.trim())).toEqual([
-    "My Activity", "Gift Cards & Rewards", "Wallet & Transactions", "Orders & Fulfillment", "Notifications", "Account & Security",
+    "My Activity", "Gift Cards & Rewards", "Wallet & Transactions", "Orders & Fulfillment", "Your Crew", "Notifications", "Account & Security",
   ]);
 });
 

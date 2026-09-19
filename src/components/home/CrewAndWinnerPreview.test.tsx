@@ -41,3 +41,16 @@ test("Crew ends with a clickable discovery tile and stories have twelve sample c
   fireEvent.click(screen.getByRole("button", { name: "Close Crew search" }));
   expect(screen.queryByRole("dialog")).toBeNull();
 });
+
+test("Maya and Daniel shared-picks click-throughs compare four layout choices", () => {
+  render(<CrewAndWinnerPreview />);
+  fireEvent.click(screen.getAllByRole("button", { name: /Shared picks/ })[0]);
+  expect(screen.getByRole("dialog", { name: "What your Crew is into" })).toBeTruthy();
+  expect(screen.getByText(/These picks are illustrative/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /BFeatured pick/ }));
+  expect(screen.getByRole("button", { name: /BFeatured pick/ }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: /Daniel3 picks/ }));
+  expect(screen.getByText("Daniel’s picks")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Close shared picks preview" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+});

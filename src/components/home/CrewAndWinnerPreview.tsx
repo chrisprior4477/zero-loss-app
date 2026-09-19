@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { type MouseEvent, type PointerEvent, type RefObject, useRef, useState } from "react";
 import styles from "./CrewAndWinnerPreview.module.css";
+import { SharedPicksConcept } from "./SharedPicksConcept";
 
 const people = [
   { name: "Maya", photo: "/images/home/crew/person-1.webp" },
@@ -85,6 +86,7 @@ export function CrewAndWinnerPreview() {
   const [crewSearch, setCrewSearch] = useState<{ kind: CrewSearchKind; query: string } | null>(null);
   const [crewSearchNotice, setCrewSearchNotice] = useState("");
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
+  const [selectedCrew, setSelectedCrew] = useState<"Maya" | "Daniel" | null>(null);
 
   function previewCrewRequest(name: string) {
     setPreviewRequests((current) => current.includes(name) ? current : [...current, name]);
@@ -159,7 +161,7 @@ export function CrewAndWinnerPreview() {
                 <button className={`${styles.addButton} ${requested ? styles.addButtonSelected : ""}`} type="button" onClick={() => previewCrewRequest(person.name)}>
                   {requested ? "Preview added" : "Add to Crew"}
                 </button>
-                <button className={styles.sharedButton} type="button" onClick={() => setCrewMessage(`Preview only: ${person.name}'s picks would appear here only after you both connect and ${person.name} chooses to share them.`)}>
+                <button className={styles.sharedButton} type="button" onClick={() => person.name === "Maya" || person.name === "Daniel" ? setSelectedCrew(person.name) : setCrewMessage(`Preview only: ${person.name}'s picks would appear here only after you both connect and ${person.name} chooses to share them.`)}>
                   Shared picks <span aria-hidden="true">→</span>
                 </button>
               </div>
@@ -289,6 +291,7 @@ export function CrewAndWinnerPreview() {
           </div>
         </div>
       )}
+      {selectedCrew ? <SharedPicksConcept initialPerson={selectedCrew} onClose={() => setSelectedCrew(null)} /> : null}
     </div>
   );
 }

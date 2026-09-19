@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PoolProgress } from "@/components/product/PoolProgress";
 import { walletHistoryHref } from "@/lib/account/activity";
@@ -47,6 +47,10 @@ export function DemoParticipationPanel({
   const [skipFutureExplainer, setSkipFutureExplainer] = useState(extraEntryExplainerAcknowledged);
   const [preferenceSaving, setPreferenceSaving] = useState(false);
   const [preferenceError, setPreferenceError] = useState<string | null>(null);
+  const [sharePromptOpen, setSharePromptOpen] = useState(false);
+  const entryFormRef = useRef<HTMLFormElement>(null);
+  const shareChoiceRef = useRef<HTMLInputElement>(null);
+  const shareChoiceConfirmed = useRef(false);
   const remaining = Math.max(0, capacity - sold);
   const remainingBalance = Math.max(0, productValue - entryPrice);
   const total = quantity * entryPrice;
@@ -85,6 +89,17 @@ export function DemoParticipationPanel({
     return () => window.clearTimeout(timer);
   }, [router, state]);
 
+  useEffect(() => {
+    if (state.status === "error") shareChoiceConfirmed.current = false;
+  }, [state]);
+
+  const chooseEntrySharing = (share: boolean) => {
+    if (shareChoiceRef.current) shareChoiceRef.current.value = share ? "yes" : "no";
+    shareChoiceConfirmed.current = true;
+    setSharePromptOpen(false);
+    window.setTimeout(() => entryFormRef.current?.requestSubmit(), 0);
+  };
+
   return (
     <aside id="enter-entry" className="scroll-mt-32 rounded-3xl border border-cyan-300/30 bg-[#001b3d] p-5 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-7">
       <div className="flex items-end justify-between gap-4">
@@ -117,10 +132,15 @@ export function DemoParticipationPanel({
       <p className="mt-2 text-[11px] leading-5 text-white/55">Each entry is separate. Entry amounts and completion options never combine.</p>
 
       {isSignedIn ? (
-        <form action={action}>
+        <form ref={entryFormRef} action={action} onSubmit={(event) => {
+          if (shareChoiceConfirmed.current) return;
+          event.preventDefault();
+          setSharePromptOpen(true);
+        }}>
           <input type="hidden" name="offeringSlug" value={productSlug} />
           <input type="hidden" name="idempotencyKey" value={requestKey} />
           <input type="hidden" name="quantity" value={quantity} />
+          <input ref={shareChoiceRef} type="hidden" name="shareWithCrew" value="no" />
           <button type="submit" disabled={pending || state.status === "succeeded"} className="mt-4 w-full rounded-xl bg-[#00b9ff] px-5 py-3.5 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">
             {pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}
           </button>
@@ -186,6 +206,22 @@ export function DemoParticipationPanel({
 
             <button type="button" onClick={acknowledgeAndAddEntry} disabled={!rememberExplanation || preferenceSaving} className="w-full rounded-xl bg-[#00b9ff] px-4 py-3.5 font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-[#0b668b] disabled:text-white/55">{preferenceSaving ? "Saving your choice…" : "I understand — save my choice"}</button>
             </div>
+          </section>
+        </div>
+      ), document.body) : null}
+
+      {sharePromptOpen ? createPortal((
+        <div className="fixed inset-0 z-[210] grid place-items-center bg-[#000914]/80 p-3 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSharePromptOpen(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="crew-share-title" className="w-full max-w-md rounded-2xl border border-cyan-300/60 bg-[#072744] p-5 text-white shadow-[0_20px_70px_#000a,0_0_25px_#00b9ff44] sm:p-7">
+            <p className="text-xs font-extrabold uppercase tracking-[.16em] text-cyan-300">One last choice</p>
+            <h2 id="crew-share-title" className="mt-2 text-2xl font-black">Share this pick with your Crew?</h2>
+            <p className="mt-3 text-sm leading-6 text-white/75">Only people you approve for your Crew can see that you picked <strong className="text-white">{productTitle}</strong>. They won’t see your payment details or wallet. This does not change your entry or chances.</p>
+            <p className="mt-3 text-xs leading-5 text-white/60">You can turn sharing on or off for each entry anytime in <a href="/account/crew" className="font-bold text-cyan-300 underline">Account → Your Crew</a>. Nothing is shared publicly.</p>
+            <div className="mt-6 grid gap-2 sm:grid-cols-2">
+              <button type="button" onClick={() => chooseEntrySharing(false)} className="min-h-12 rounded-lg border border-cyan-300/50 bg-[#0c3154] px-4 py-2 font-bold hover:bg-[#13547a]">Keep private &amp; enter</button>
+              <button type="button" onClick={() => chooseEntrySharing(true)} className="min-h-12 rounded-lg bg-[#55ee43] px-4 py-2 font-black text-[#052329] hover:bg-[#8bff7c]">Share with Crew &amp; enter</button>
+            </div>
+            <button type="button" onClick={() => setSharePromptOpen(false)} className="mt-3 w-full py-2 text-sm text-white/60 hover:text-white">Cancel</button>
           </section>
         </div>
       ), document.body) : null}

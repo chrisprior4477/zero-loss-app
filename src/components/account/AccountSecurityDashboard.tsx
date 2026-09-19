@@ -117,6 +117,11 @@ export function AccountSecurityDashboard({
           <Link href="/account/profile">Edit profile <AccountIcon name="arrow" /></Link>
         </article>
       </section>
+      <div className="mt-4 rounded-xl border border-cyan-300/40 bg-[#082947] p-5 text-white">
+        <h2 className="text-lg font-extrabold">Crew &amp; sharing</h2>
+        <p className="mt-1 text-sm text-white/70">Approve connections and choose which entries your Crew can see. Sharing is private by default.</p>
+        <Link href="/account/crew" className="mt-3 inline-flex rounded-lg border border-cyan-300 px-4 py-2 text-sm font-bold text-cyan-200 hover:bg-cyan-300/10">Manage Your Crew →</Link>
+      </div>
     </div>
   </main>;
 }

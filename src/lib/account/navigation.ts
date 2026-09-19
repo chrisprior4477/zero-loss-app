@@ -7,6 +7,7 @@ export const accountRoutes = {
   rewards: "/account/wallet",
   walletHistory: "/account/wallet?view=history",
   orders: "/account/orders",
+  crew: "/account/crew",
   notifications: "/account/notifications",
   security: "/account/security",
 } as const;
@@ -16,6 +17,7 @@ export const accountNavigation = [
   ["Gift Cards & Rewards", accountRoutes.rewards, "gift"],
   ["Wallet & Transactions", accountRoutes.walletHistory, "wallet"],
   ["Orders & Fulfillment", accountRoutes.orders, "orders"],
+  ["Your Crew", accountRoutes.crew, "crew"],
   ["Notifications", accountRoutes.notifications, "bell"],
   ["Account & Security", accountRoutes.security, "security"],
 ] as const;

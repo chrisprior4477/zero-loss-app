@@ -32,10 +32,11 @@ test("sends the selected quantity to the atomic database batch function", async 
     href: "/account/entries?item=samsung-m70h-tv",
     outcome: "active",
   });
-  expect(mocks.rpc).toHaveBeenCalledWith("create_preview_entries", {
+  expect(mocks.rpc).toHaveBeenCalledWith("create_preview_entries_with_sharing", {
     p_offering_slug: "samsung-m70h-tv",
     p_quantity: 3,
     p_idempotency_key: "entry_quantity_request_001",
+    p_share_with_crew: false,
   });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
 });
@@ -50,4 +51,16 @@ test("stores the extra-entry explainer acknowledgment on the authenticated profi
   expect(await acknowledgeExtraEntryExplainer()).toEqual({ status: "succeeded" });
   expect(mocks.rpc).toHaveBeenCalledWith("acknowledge_extra_entry_explainer");
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+});
+
+test("explicit Crew sharing uses the atomic entry-and-share function", async () => {
+  const form = entryForm("1");
+  form.set("shareWithCrew", "yes");
+  await createPreviewEntry({ status: "idle" }, form);
+  expect(mocks.rpc).toHaveBeenCalledWith("create_preview_entries_with_sharing", {
+    p_offering_slug: "samsung-m70h-tv",
+    p_quantity: 1,
+    p_idempotency_key: "entry_quantity_request_001",
+    p_share_with_crew: true,
+  });
 });

@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { respondToCrewRequest } from "@/lib/crew/actions";
 import { AccountIcon, type AccountIconName } from "./AccountIcon";
 import type { AccountNotification, NotificationCategory } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
@@ -15,10 +17,14 @@ const filters = [
   ["account", "Account", "security"],
   ["activity", "Activity", "layers"],
   ["orders", "Orders", "orders"],
+  ["crew", "Your Crew", "crew"],
 ] as const satisfies readonly (readonly [FilterKey, string, AccountIconName])[];
 
 export function NotificationsCenter({ notifications, activityAvailable, walletAvailable }: { notifications: AccountNotification[]; activityAvailable: boolean; walletAvailable: boolean }) {
   const [filter, setFilter] = useState<FilterKey>("all");
+  const router = useRouter();
+  const [responding, startTransition] = useTransition();
+  const [crewMessage, setCrewMessage] = useState("");
   const [read, setRead] = useState<Set<string>>(() => new Set());
   const visible = useMemo(() => filter === "all" ? notifications : notifications.filter(notification => notification.category === filter), [filter, notifications]);
   const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? notifications.length : notifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [notifications]);
@@ -32,11 +38,12 @@ export function NotificationsCenter({ notifications, activityAvailable, walletAv
             <AccountIcon name="bell" /> Mark all as read
           </button>
           <span aria-hidden="true" className={styles.actionDivider} />
-          <Link href="/account/security"><AccountIcon name="security" /> Notification preferences</Link>
+          <Link href="/account/crew?tab=picks#sharing"><AccountIcon name="security" /> Sharing preferences</Link>
         </div>
       </header>
 
       {!activityAvailable || !walletAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
+      {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
 
       <div className={styles.layout}>
         <nav aria-label="Notification filters" className={styles.filters}>
@@ -58,6 +65,10 @@ export function NotificationsCenter({ notifications, activityAvailable, walletAv
               <h2>{notification.title}</h2>
               <p className={styles.meta}>{notification.meta}</p>
               <p className={styles.body}>{notification.body}</p>
+              {notification.crewRequestId ? <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" disabled={responding} onClick={() => startTransition(async () => { const result = await respondToCrewRequest(notification.crewRequestId!, true); setCrewMessage(result.message); if (result.ok) router.refresh(); })} className="rounded-lg bg-[#51ed40] px-3 py-2 text-xs font-black text-[#061b26] disabled:opacity-50">Approve</button>
+                <button type="button" disabled={responding} onClick={() => startTransition(async () => { const result = await respondToCrewRequest(notification.crewRequestId!, false); setCrewMessage(result.message); if (result.ok) router.refresh(); })} className="rounded-lg border border-cyan-300/50 px-3 py-2 text-xs font-bold disabled:opacity-50">Decline</button>
+              </div> : null}
             </div>
             <div className={styles.visual}>
               {notification.image ? <Image src={notification.image} alt="" fill sizes="(max-width: 700px) 110px, 190px" className={styles.productImage} /> : <><span>{notification.visualLabel}</span><strong>{notification.visualValue}</strong></>}

@@ -6,6 +6,7 @@ import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import { NotificationsCenter } from "./NotificationsCenter";
 
 vi.mock("next/image", () => ({ default: () => <span data-testid="notification-image" /> }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 afterEach(cleanup);
 
 const wallet: WalletSnapshot = {
@@ -39,7 +40,7 @@ test("notification filters, links, and read controls remain functional", () => {
   fireEvent.click(screen.getByRole("button", { name: /All6/ }));
   fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
   expect((screen.getByRole("button", { name: "Mark all as read" }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByRole("link", { name: /Notification preferences/ }).getAttribute("href")).toBe("/account/security");
+  expect(screen.getByRole("link", { name: /Sharing preferences/ }).getAttribute("href")).toBe("/account/crew?tab=picks#sharing");
 });
 
 test("unavailable data sources are disclosed instead of replaced with samples", () => {
