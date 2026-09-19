@@ -61,6 +61,18 @@ function useDragRail(ref: RefObject<HTMLDivElement | null>) {
   };
 }
 
+type CrewSearchKind = "name" | "phone" | "email";
+const emptyCrewSearch = { name: "", phone: "", email: "" };
+
+function SearchIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10.75" cy="10.75" r="6.75" />
+      <path d="m16 16 4 4" />
+    </svg>
+  );
+}
+
 export function CrewAndWinnerPreview() {
   const crewRailRef = useRef<HTMLDivElement>(null);
   const storyRailRef = useRef<HTMLDivElement>(null);
@@ -68,6 +80,10 @@ export function CrewAndWinnerPreview() {
   const storyDrag = useDragRail(storyRailRef);
   const [previewRequests, setPreviewRequests] = useState<string[]>([]);
   const [crewMessage, setCrewMessage] = useState("");
+  const [crewSearchOpen, setCrewSearchOpen] = useState(false);
+  const [crewSearchValues, setCrewSearchValues] = useState(emptyCrewSearch);
+  const [crewSearch, setCrewSearch] = useState<{ kind: CrewSearchKind; query: string } | null>(null);
+  const [crewSearchNotice, setCrewSearchNotice] = useState("");
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
 
   function previewCrewRequest(name: string) {
@@ -76,12 +92,40 @@ export function CrewAndWinnerPreview() {
   }
 
   function moveRail(rail: HTMLDivElement | null, direction: -1 | 1) {
-    rail?.scrollBy({ left: direction * rail.clientWidth * 0.72, behavior: "smooth" });
+    if (!rail) return;
+    const firstCard = rail.firstElementChild;
+    if (!(firstCard instanceof HTMLElement)) return;
+    const gap = Number.parseFloat(window.getComputedStyle(rail).columnGap) || 0;
+    rail.scrollBy({ left: direction * (firstCard.getBoundingClientRect().width + gap), behavior: "smooth" });
   }
 
-  function showCrewDiscovery() {
-    setCrewMessage("Preview only: search and invitations will be available when Crew is launched. Connections and shared picks will require both people to opt in.");
+  function openCrewSearch() {
+    setCrewSearchOpen(true);
+    setCrewSearch(null);
+    setCrewSearchNotice("");
   }
+
+  function closeCrewSearch() {
+    setCrewSearchOpen(false);
+    setCrewSearchValues(emptyCrewSearch);
+    setCrewSearch(null);
+    setCrewSearchNotice("");
+  }
+
+  function submitCrewSearch(kind: CrewSearchKind) {
+    const query = crewSearchValues[kind].trim();
+    if (!query) {
+      setCrewSearchNotice(`Enter a ${kind === "phone" ? "phone number" : kind === "email" ? "email address" : "name"} to search.`);
+      setCrewSearch(null);
+      return;
+    }
+    setCrewSearch({ kind, query });
+    setCrewSearchNotice("");
+  }
+
+  const searchMatches = crewSearch?.kind === "name"
+    ? people.filter((person) => person.name.toLowerCase().includes(crewSearch.query.toLowerCase()))
+    : [];
 
   return (
     <div className={styles.wrap}>
@@ -93,8 +137,8 @@ export function CrewAndWinnerPreview() {
             <p className={styles.intro}>Keep your favorite people close. Share your picks only when you both choose to connect.</p>
           </div>
           <div className={styles.crewActions}>
-            <button className={styles.outlineButton} type="button" onClick={showCrewDiscovery}>
-              Find more people <span aria-hidden="true">→</span>
+            <button className={styles.outlineButton} type="button" onClick={openCrewSearch}>
+              Add to Your Crew <span aria-hidden="true">→</span>
             </button>
             <div className={styles.arrows} aria-label="Crew carousel controls">
               <button type="button" aria-label="Previous Crew profiles" onClick={() => moveRail(crewRailRef.current, -1)}>‹</button>
@@ -121,7 +165,7 @@ export function CrewAndWinnerPreview() {
               </div>
             );
           })}
-          <button className={styles.discoverPerson} type="button" onClick={showCrewDiscovery} aria-label="Look for more people to add to your Crew">
+          <button className={styles.discoverPerson} type="button" onClick={openCrewSearch} aria-label="Add to Your Crew">
             <span className={styles.discoverAvatar} aria-hidden="true">
               <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="27" cy="22" r="7" />
@@ -129,7 +173,7 @@ export function CrewAndWinnerPreview() {
                 <path d="M48 21v14m-7-7h14" />
               </svg>
             </span>
-            <span>Look for more<br />people</span>
+            <span>Add to Your<br />Crew</span>
           </button>
         </div>
         <p className={styles.demoNote}>Illustrative profiles. These people are fictional; no invitations are sent from this preview.</p>
@@ -166,6 +210,68 @@ export function CrewAndWinnerPreview() {
         </div>
         <p className={styles.swipeHint}>Swipe or use the arrows to explore <span aria-hidden="true">→</span></p>
       </section>
+
+      {crewSearchOpen && (
+        <div className={styles.modalBackdrop} onMouseDown={(event) => { if (event.target === event.currentTarget) closeCrewSearch(); }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="crew-search-title" className={styles.searchModal}>
+            <button type="button" className={styles.closeButton} aria-label="Close Crew search" onClick={closeCrewSearch}>×</button>
+            <div className={styles.searchHeading}>
+              <span className={styles.searchHeadingIcon} aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="27" cy="22" r="7" /><path d="M14 45c0-7 6-12 13-12s13 5 13 12M48 21v14m-7-7h14" />
+                </svg>
+              </span>
+              <div>
+                <span className={styles.eyebrow}>FRIENDS & FAMILY · FEATURE PREVIEW</span>
+                <h3 id="crew-search-title">Add to Your Crew</h3>
+              </div>
+            </div>
+            <p className={styles.searchIntro}>Find people by name, phone, or email. Connections and shared picks appear only after both people choose to connect.</p>
+            <div className={styles.searchFields}>
+              {(["name", "phone", "email"] as const).map((kind) => (
+                <form key={kind} className={styles.searchRow} onSubmit={(event) => { event.preventDefault(); submitCrewSearch(kind); }}>
+                  <label className={styles.srOnly} htmlFor={`crew-search-${kind}`}>Search by {kind === "phone" ? "phone number" : kind === "email" ? "email address" : "name"}</label>
+                  <input
+                    id={`crew-search-${kind}`}
+                    type={kind === "email" ? "email" : kind === "phone" ? "tel" : "search"}
+                    autoComplete="off"
+                    placeholder={`Search by ${kind === "phone" ? "phone number" : kind === "email" ? "email address" : "name"}...`}
+                    value={crewSearchValues[kind]}
+                    onChange={(event) => setCrewSearchValues((current) => ({ ...current, [kind]: event.target.value }))}
+                  />
+                  <button type="submit" aria-label={`Search Crew by ${kind}`}><SearchIcon /></button>
+                </form>
+              ))}
+            </div>
+            <div className={styles.searchResults} aria-live="polite">
+              {crewSearchNotice ? <p role="status">{crewSearchNotice}</p> : crewSearch === null ? (
+                <p>Type a name and press search to see the sample Crew profiles.</p>
+              ) : crewSearch.kind !== "name" ? (
+                <p>No phone or email directory is connected in this preview. Real search will show only people who choose to be discoverable.</p>
+              ) : searchMatches.length === 0 ? (
+                <p>No sample Crew profiles match that name yet.</p>
+              ) : (
+                <div className={styles.searchMatchList}>
+                  {searchMatches.map((person) => (
+                    <div className={styles.searchMatch} key={person.name}>
+                      <Image src={person.photo} alt="" width={48} height={48} />
+                      <div><strong>{person.name}</strong><span>Fictional sample profile</span></div>
+                      <button type="button" onClick={() => {
+                        previewCrewRequest(person.name);
+                        setCrewSearchNotice(`Preview only: ${person.name} was added to this sample Crew. No invitation was sent.`);
+                      }}>{previewRequests.includes(person.name) ? "Preview added" : "Add to Crew"}</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className={styles.searchFooter}>
+              <p>Preview only. Search details are not saved or sent; real connections will require approval.</p>
+              <button type="button" onClick={closeCrewSearch}>Done <span aria-hidden="true">✓</span></button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedStory !== null && (
         <div className={styles.modalBackdrop} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedStory(null); }}>

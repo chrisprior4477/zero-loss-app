@@ -29,6 +29,15 @@ test("Crew ends with a clickable discovery tile and stories have twelve sample c
   expect(screen.getAllByRole("button", { name: "Add to Crew" })).toHaveLength(4);
   expect(screen.getAllByRole("button", { name: /Open illustrative story preview:/ })).toHaveLength(12);
 
-  fireEvent.click(screen.getByRole("button", { name: "Look for more people to add to your Crew" }));
-  expect(screen.getByRole("status").textContent).toContain("both people to opt in");
+  expect(screen.getAllByRole("button", { name: "Add to Your Crew" })).toHaveLength(2);
+  fireEvent.click(screen.getAllByRole("button", { name: "Add to Your Crew" })[1]);
+  expect(screen.getByRole("dialog", { name: "Add to Your Crew" })).toBeTruthy();
+  expect(screen.getByRole("dialog").textContent).toContain("both people choose to connect");
+
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search by name" }), { target: { value: "Maya" } });
+  fireEvent.click(screen.getByRole("button", { name: "Search Crew by name" }));
+  expect(screen.getByText("Fictional sample profile")).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: "Close Crew search" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
