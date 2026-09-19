@@ -1,7 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
-import { livePulseDemoItems, socialActivityDemoItems } from "@/lib/home/demo-data";
+import { livePulseDemoItems } from "@/lib/home/demo-data";
 import { footerLinkGroups } from "@/lib/navigation";
+import { RecentWinnerRoll } from "./RecentWinnerRoll";
+import { SocialActivityFeed } from "./SocialActivityFeed";
 import { TransparencyStatsPod } from "./TransparencyStatsPod";
 
 afterEach(cleanup);
@@ -28,9 +30,18 @@ describe("homepage preview integrity", () => {
   test("winner links lead to the existing homepage section", () => {
     const marketplaceLinks = footerLinkGroups.find((group) => group.title === "Marketplace")?.links;
     expect(marketplaceLinks?.find((link) => link.label === "Winners")?.href).toBe("/#meet-winners-heading");
-    expect(socialActivityDemoItems.filter((item) => item.id === "social-facebook-1" || item.id === "social-tiktok-2").map((item) => item.href)).toEqual([
+  });
+
+  test("winner and community panels are honest about their preview state", () => {
+    render(<><RecentWinnerRoll /><SocialActivityFeed /></>);
+
+    expect(screen.getByRole("heading", { name: "Winner updates" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Community stories" })).toBeTruthy();
+    expect(screen.getByText("Coming soon · no live posts")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: /story previews/i }).map((link) => link.getAttribute("href"))).toEqual([
       "/#meet-winners-heading",
       "/#meet-winners-heading",
     ]);
+    expect(screen.queryByText(/Winner confirmed|Someone just won|@tracyshops/i)).toBeNull();
   });
 });
