@@ -63,7 +63,7 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
 function CompactCard({ item }: { item: (typeof products)[number] }) {
   const entryCapacity = entryCapacityForValue(item.prizeValue);
   return (
-    <article className="group relative h-[95px] w-[125px] overflow-hidden rounded-xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:h-[123px] sm:w-[230px] sm:rounded-[20px]">
+    <article className="group relative min-h-[95px] w-[125px] flex-1 overflow-hidden rounded-xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:min-h-[123px] sm:w-[230px] sm:rounded-[20px]">
       <Link href={item.href} draggable={false} className="flex h-full items-center gap-1.5 px-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:gap-2 sm:px-2.5 sm:pr-3">
         <div className="relative h-[78px] w-[62px] shrink-0 overflow-hidden rounded-lg bg-[radial-gradient(circle,#f9fbfc_0%,#dce8ef_66%,rgba(116,231,45,0.18)_100%)] sm:h-[106px] sm:w-[110px] sm:rounded-[16px]">
           <span aria-hidden="true" className="absolute inset-4 rounded-full opacity-20 blur-xl" style={{ backgroundColor: item.accent }} />
@@ -148,15 +148,15 @@ export function MarketplaceMosaicRail() {
           onDragStart={(event) => event.preventDefault()}
         >
           <FeatureCard item={products[1]} />
-          <div className="flex shrink-0 flex-col gap-[14px]"><CompactCard item={products[0]} /><CompactCard item={products[2]} /></div>
+          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[0]} /><CompactCard item={products[2]} /></div>
           <FeatureCard item={products[5]} />
-          <div className="flex shrink-0 flex-col gap-[14px]"><CompactCard item={products[4]} /><CompactCard item={products[3]} /></div>
+          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[4]} /><CompactCard item={products[3]} /></div>
           <FeatureCard item={products[6]} />
-          <div className="flex shrink-0 flex-col gap-[14px]"><CompactCard item={products[3]} /><CompactCard item={products[0]} /></div>
+          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[3]} /><CompactCard item={products[0]} /></div>
           <FeatureCard item={products[3]} />
-          <div className="flex shrink-0 flex-col gap-[14px]"><CompactCard item={products[2]} /><CompactCard item={products[5]} /></div>
+          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[2]} /><CompactCard item={products[5]} /></div>
           <FeatureCard item={products[0]} />
-          <div className="flex shrink-0 flex-col gap-[14px]"><CompactCard item={products[6]} /><CompactCard item={products[1]} /></div>
+          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[6]} /><CompactCard item={products[1]} /></div>
         </div>
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[8vw] bg-gradient-to-r from-[#031b44] to-transparent" />
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[8vw] bg-gradient-to-l from-[#031b44] to-transparent" />
