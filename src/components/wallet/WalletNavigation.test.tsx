@@ -9,7 +9,7 @@ import WalletPage from "@/app/account/wallet/page";
 
 const mocks = vi.hoisted(() => ({ account: vi.fn(), redirect: vi.fn((href: string) => { throw new Error(`redirect:${href}`); }) }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} /> }));
 const wallet: WalletSnapshot = { walletAccountId: null, scope: "production", currency: "USD", balanceCents: 0, transactionCount: 0, fundingAvailable: false, entries: [] };
 beforeEach(() => { vi.clearAllMocks(); mocks.account.mockResolvedValue({ activity: storedActivityFixture(), wallet }); });
@@ -44,6 +44,22 @@ test("specific reward opens its redemption destination without another dialog or
   expect((screen.getByRole("button", { name: "Save to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByRole("link", { name: "Back to Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet");
   expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("same-product rewards use their own reward ID and ambiguous old URLs do not open another card", async () => {
+  const state = storedActivityFixture();
+  const first = state.activity[1];
+  first.rewardId = "reward-one";
+  const second = { ...first, entryId: "entry-two", rewardId: "reward-two", priceCents: 50000 };
+  state.activity.push(second);
+  mocks.account.mockResolvedValue({ activity: state, wallet });
+  expect(activityHref(second)).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=reward-two");
+  const { rerender } = render(await WalletPage({ searchParams: Promise.resolve({ reward: first.slug, rewardId: "reward-two" }) }));
+  expect(screen.getByRole("region", { name: "Reward redemption details" })).toBeTruthy();
+  expect(screen.getAllByText("$500").length).toBeGreaterThan(0);
+  rerender(await WalletPage({ searchParams: Promise.resolve({ reward: first.slug }) }));
+  expect(screen.getByText("Reward unavailable")).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Reward redemption details" })).toBeNull();
 });
 
 test("preview reward renders a responsive sample redemption without pretending it is live", async () => {

@@ -13,7 +13,7 @@ export function ActivityRows({ items, destination = "/account/entries", filter =
   return <div data-activity-gallery className={`grid lg:grid-cols-4 lg:gap-3 ${compact ? "gap-2" : "gap-3"}`}>
     {items.map(item => {
       const style = activityPresentation(item);
-      return <Link key={item.slug} href={activityHref(item, destination, filter)} scroll={item.status === "prize" && item.rewardKind === "digital"} data-activity-slug={item.slug}
+      return <Link key={item.entryId ?? item.slug} href={activityHref(item, destination, filter)} scroll={item.status === "prize" && item.rewardKind === "digital"} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined}
         className={`group grid grid-cols-[64px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-2xl border border-white/10 bg-[#06223d] p-4 transition hover:border-cyan-300/50 hover:bg-[#0c304e] focus-visible:outline-2 focus-visible:outline-cyan-300 lg:flex lg:min-w-0 lg:flex-col lg:items-stretch lg:gap-3 lg:p-4 ${compact ? "sm:grid-cols-[64px_minmax(0,1fr)_210px] sm:px-5" : "sm:grid-cols-[88px_minmax(0,1fr)_210px] sm:gap-5 sm:p-5"}`}>
         <span className={`relative h-16 w-16 overflow-hidden rounded-xl lg:h-28 lg:w-full lg:shrink-0 ${compact ? "" : "sm:h-[88px] sm:w-[88px]"} ${style.background}`}>
           <Image src={item.image} alt="" fill sizes={compact ? "(min-width: 1024px) 240px, 64px" : "(min-width: 1024px) 260px, (min-width: 640px) 88px, 64px"} className="object-contain p-2 lg:p-3" />

@@ -11,6 +11,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }), redirect }))
 vi.mock("next/image", () => ({ default: () => <span /> }));
 beforeEach(() => {
   replace.mockClear();
+  redirect.mockClear();
   // jsdom does not implement the browser's native modal behavior.
   // Focus containment and background inertness are also verified in the browser.
   Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function(this: HTMLDialogElement) { this.open = true; } });
@@ -48,6 +49,35 @@ test("prize action respects reward format and old URLs redirect straight to the 
   expect(activityPresentation({ ...prize, rewardKind: "physical" }).action).toBe("Claim Prize");
   expect(activityHref(prize)).toBe("/account/wallet?reward=samsung-m70h-tv");
   expect(() => ActivitySelection({ state: storedActivityFixture(), selectedSlug: prize.slug, destination: "/account" })).toThrow("redirect:/account/wallet?reward=samsung-m70h-tv");
+});
+
+test("separate options for one product open by entry ID, while ambiguous old links fail closed", () => {
+  const state = storedActivityFixture();
+  const first = state.activity[2];
+  first.entryId = "entry-one";
+  const second = { ...first, entryId: "entry-two", paidCents: 200, remainingCents: 7300 };
+  state.activity.push(second);
+  const { rerender } = render(<MyZeroLossActivity state={state} filter="completion" selectedSlug={first.slug} selectedEntryId="entry-two" />);
+  const cards = screen.getAllByRole("link", { name: /Nike Men's Court Shot Shoes/ });
+  expect(cards.map(card => card.getAttribute("href"))).toEqual([
+    "/account/entries?item=nike-court-shot-shoes&entry=entry-one&filter=completion",
+    "/account/entries?item=nike-court-shot-shoes&entry=entry-two&filter=completion",
+  ]);
+  expect(within(screen.getByRole("dialog")).getByText("$73")).toBeTruthy();
+  rerender(<MyZeroLossActivity state={state} filter="completion" selectedSlug={first.slug} />);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("status").textContent).toContain("not available");
+});
+
+test("entry ID prevents a same-product prize from replacing a purchase option", () => {
+  const state = storedActivityFixture();
+  const option = state.activity[2];
+  option.entryId = "option-entry";
+  const prize = { ...state.activity[1], slug: option.slug, entryId: "winning-entry" };
+  state.activity.unshift(prize);
+  render(<MyZeroLossActivity state={state} filter="all" selectedSlug={option.slug} selectedEntryId="option-entry" />);
+  expect(screen.getByRole("dialog", { name: option.title })).toBeTruthy();
+  expect(redirect).not.toHaveBeenCalled();
 });
 
 test("Dashboard gives authorized samples full-row local detail links without duplicating a balance", () => {

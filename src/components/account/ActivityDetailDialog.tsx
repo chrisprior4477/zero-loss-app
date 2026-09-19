@@ -36,9 +36,9 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
       dialog.close();
       document.body.style.overflow = previousOverflow;
       if (previousFocus?.isConnected && previousFocus !== document.body) previousFocus.focus();
-      else Array.from(document.querySelectorAll<HTMLAnchorElement>("a[data-activity-slug]")).find(link => link.dataset.activitySlug === item.slug)?.focus();
+      else Array.from(document.querySelectorAll<HTMLAnchorElement>("a[data-activity-slug]")).find(link => item.entryId ? link.dataset.activityEntryId === item.entryId : link.dataset.activitySlug === item.slug)?.focus();
     };
-  }, [item.slug]);
+  }, [item.entryId, item.slug]);
 
   const disabledAction = item.status === "completion" ? "Continue with option" : item.status === "active" ? "Entry participation" : presentation.action;
   const introduction = item.status === "completion"

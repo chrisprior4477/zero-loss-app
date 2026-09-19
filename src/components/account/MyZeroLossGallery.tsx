@@ -104,8 +104,8 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
     >
       {items.map((item, index) => {
         const featured = item.status === "prize" && index === 0;
-        return <div key={item.slug} className={styles.galleryItem}>
-          <Link href={activityHref(item, "/account/entries", filter)} data-activity-slug={item.slug} data-status={item.status} data-featured={featured ? "true" : undefined} className={styles.productCard}>
+        return <div key={item.entryId ?? item.slug} className={styles.galleryItem}>
+          <Link href={activityHref(item, "/account/entries", filter)} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>

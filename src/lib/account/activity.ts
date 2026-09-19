@@ -2,6 +2,7 @@ export type ActivityStatus = "active" | "prize" | "completion" | "completed";
 export type CompletionOptionStatus = "available" | "declined" | "purchased" | "expired" | "cancelled";
 export type RewardStatus = "ready" | "redeemed" | "expired" | "cancelled" | "issuance_pending" | "issuance_failed";
 export type ActivityItem = {
+  entryId?: string | null;
   slug: string;
   title: string;
   retailer: string;
@@ -44,7 +45,9 @@ export function isWalletReward(item: ActivityItem): boolean {
   return item.rewardKind === "digital" && (item.status === "prize" || Boolean(item.rewardStatus));
 }
 export function walletRewardHref(item: ActivityItem): string {
-  return `/account/wallet?${new URLSearchParams({ reward: item.slug })}`;
+  const params = new URLSearchParams({ reward: item.slug });
+  if (item.rewardId) params.set("rewardId", item.rewardId);
+  return `/account/wallet?${params}`;
 }
 /** This filters only the caller's server-authorized data; it never loads fixtures. */
 export function walletRewards(state: AccountActivity): ActivityItem[] {
@@ -56,8 +59,16 @@ export function readyWalletRewards(state: AccountActivity): ActivityItem[] {
 export function activityHref(item: ActivityItem, destination: ActivityDestination = "/account/entries", filter: ActivityFilter = "all"): string {
   if (isWalletReward(item)) return walletRewardHref(item);
   const params = new URLSearchParams({ item: item.slug });
+  if (item.entryId) params.set("entry", item.entryId);
   if (destination === "/account/entries" && filter !== "all") params.set("filter", filter);
   return `${destination}?${params.toString()}`;
+}
+/** A legacy product-only URL is usable only when it identifies one authorized record. */
+export function findActivityItem(items: ActivityItem[], selectedSlug?: string, selectedEntryId?: string, filter: ActivityFilter = "all"): ActivityItem | undefined {
+  if (selectedEntryId) return items.find(item => item.entryId === selectedEntryId && (!selectedSlug || item.slug === selectedSlug));
+  if (!selectedSlug) return undefined;
+  const matches = items.filter(item => item.slug === selectedSlug && (filter === "all" || item.status === filter));
+  return matches.length === 1 ? matches[0] : undefined;
 }
 export const openEntriesHref = "/account/entries?filter=active";
 export function activityPresentation(item: ActivityItem) {

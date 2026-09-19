@@ -30,6 +30,7 @@ function parseItem(value: unknown): ActivityItem {
     throw new Error("Invalid activity record");
   }
   return {
+    entryId: optionalString(row.entry_id),
     slug: row.slug,
     title: row.title,
     retailer: row.retailer,

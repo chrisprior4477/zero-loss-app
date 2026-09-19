@@ -20,7 +20,7 @@ export type AccountNotification = {
 
 function activityNotification(item: ActivityItem): AccountNotification {
   if (item.status === "prize" || (item.rewardStatus === "ready" && item.rewardId)) return {
-    id: `reward-${item.slug}`,
+    id: `reward-${item.rewardId ?? item.entryId ?? item.slug}`,
     category: "action",
     title: `Your ${formatUsdFromCents(item.priceCents)} reward is ready`,
     body: `Your ${item.retailer} digital reward for ${item.title} is ready to view.`,
@@ -33,7 +33,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     tone: "reward",
   };
   if (item.status === "completion") return {
-    id: `completion-${item.slug}`,
+    id: `completion-${item.completionOptionId ?? item.entryId ?? item.slug}`,
     category: "action",
     title: `Your ${item.retailer} gift-card option is ready`,
     body: `Pay ${formatUsdFromCents(item.remainingCents)} to receive a ${formatUsdFromCents(item.priceCents)} retailer gift card. This choice is optional.`,
@@ -46,7 +46,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     tone: "completion",
   };
   if (item.status === "completed") return {
-    id: `completed-${item.slug}`,
+    id: `completed-${item.entryId ?? item.slug}`,
     category: "orders",
     title: `${item.title} is complete`,
     body: `Your ${item.retailer} outcome is recorded in My Activity.`,
@@ -58,7 +58,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     tone: "order",
   };
   return {
-    id: `active-${item.slug}`,
+    id: `active-${item.entryId ?? item.slug}`,
     category: "activity",
     title: `${item.title} is still open`,
     body: `Your ${formatUsdFromCents(item.paidCents)} entry is still active. We’ll keep the latest status here.`,

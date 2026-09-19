@@ -33,7 +33,7 @@ export function WalletRewards({ state, view = "ready" }: { state: AccountActivit
           <p>{view === "ready" ? "Won and purchased retailer gift cards will appear here when they are ready." : "Redeemed, expired and cancelled rewards will remain here for your records."}</p>
           <Link href="/account/entries">View My Activity <span aria-hidden="true">›</span></Link>
         </div> : <div className={styles.rewardGrid}>
-          {rewards.map(item => <Link key={item.slug} href={walletRewardHref(item)} className={styles.rewardCard}>
+          {rewards.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={walletRewardHref(item)} className={styles.rewardCard}>
             <div className={styles.rewardImage}><Image src={item.image} alt="" fill sizes="(max-width: 580px) 100vw, (max-width: 1000px) 50vw, 33vw" /></div>
             <p className={styles.retailer}>{item.retailer}</p>
             <h3>{item.title}</h3>

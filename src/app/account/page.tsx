@@ -10,11 +10,12 @@ export const metadata: Metadata = { title: "My Activity" };
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: Promise<{ item?: string | string[]; filter?: string | string[] }>;
+  searchParams: Promise<{ item?: string | string[]; entry?: string | string[]; filter?: string | string[] }>;
 }) {
   const query = await searchParams;
   const destination = new URLSearchParams();
   if (typeof query.item === "string") destination.set("item", query.item);
+  if (typeof query.entry === "string") destination.set("entry", query.entry);
   if (typeof query.filter === "string") destination.set("filter", query.filter);
   const suffix = destination.size ? `?${destination}` : "";
   redirect(`/account/entries${suffix}`);

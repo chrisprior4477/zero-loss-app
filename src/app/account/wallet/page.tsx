@@ -13,13 +13,16 @@ import { DemoCardManager } from "@/components/wallet/DemoCardManager";
 
 export const metadata: Metadata = { title: "Gift Cards & Rewards" };
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; view?: string | string[]; rewards?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; view?: string | string[]; rewards?: string | string[] }> }) {
   const account = await getAccountContext();
   if (!account) redirect("/login");
   const query = await searchParams;
-  const requestedReward = query.reward !== undefined;
+  const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   // A URL only selects from this authenticated account's authorized data.
-  const reward = typeof query.reward === "string" ? walletRewards(account.activity).find(item => item.slug === query.reward) : undefined;
+  const matchingRewards = walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
+  const reward = typeof query.rewardId === "string"
+    ? matchingRewards.find(item => item.rewardId === query.rewardId)
+    : typeof query.reward === "string" && matchingRewards.length === 1 ? matchingRewards[0] : undefined;
   const history = !requestedReward && query.view === "history";
   const cardView = !requestedReward && query.view === "card";
   const rewardView = query.rewards === "history" ? "history" : "ready";
