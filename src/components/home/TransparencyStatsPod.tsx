@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { transparencyStatsDemo } from "@/lib/home/demo-data";
+
+const statSymbols = ["◇", "✓", "$", "◎"] as const;
+const statColors = ["#74e72d", "#00b9ff", "#c65cff", "#ff7a22"] as const;
 
 const trustPoints = [
   { symbol: "✓", title: "Clear, published rules", body: "Pool size, entries, and closing details are shown before you participate.", color: "#00b9ff" },
@@ -18,14 +22,21 @@ export function TransparencyStatsPod() {
             <div className="mb-3">
               <div className="flex items-center gap-2.5">
                 <h2 id="transparency-stats-title" className="text-[18px] font-extrabold tracking-[-0.025em] text-white">Platform transparency</h2>
-                <span className="rounded-full border border-[#ff9a50]/55 bg-[#ff630f]/10 px-2 py-1 text-[8px] font-extrabold uppercase tracking-[0.11em] text-[#ffad76]">Marketplace preview</span>
+                <span className="rounded-full border border-[#ff9a50]/55 bg-[#ff630f]/10 px-2 py-1 text-[8px] font-extrabold uppercase tracking-[0.11em] text-[#ffad76]">Sandbox / Sample Data</span>
               </div>
-              <p className="mt-0.5 text-[10px] text-white/55">Real totals should come from verified records.</p>
+              <p className="mt-0.5 text-[10px] text-white/55">We play fair. You can see it.</p>
             </div>
 
-            <div className="rounded-xl border border-cyan-300/20 bg-[#071d37]/70 px-4 py-3">
-              <strong className="block text-[14px] font-extrabold text-white">Platform totals aren’t published in this preview</strong>
-              <p className="mt-1 text-[11px] leading-relaxed text-white/65">Winner counts and fulfilled reward values will appear here when they are backed by verified records.</p>
+            <div className="grid grid-cols-2 gap-y-2 sm:grid-cols-4 sm:divide-x sm:divide-white/10">
+              {transparencyStatsDemo.map((stat, index) => (
+                <div key={stat.label} className="flex min-w-0 items-center gap-2 px-3 py-2 first:pl-0 last:pr-0">
+                  <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-full border text-[17px] font-extrabold" style={{ color: statColors[index], borderColor: `${statColors[index]}66`, boxShadow: `inset 0 0 14px ${statColors[index]}20, 0 0 12px ${statColors[index]}16` }}>{statSymbols[index]}</span>
+                  <span className="min-w-0">
+                    <strong className="block whitespace-nowrap text-[16px] font-extrabold leading-none tracking-[-0.025em] text-white">{stat.value}</strong>
+                    <span className="mt-1.5 block text-[8px] font-bold uppercase leading-tight tracking-[0.05em] text-white/65">{stat.label}</span>
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 

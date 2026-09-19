@@ -1,28 +1,27 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
-import { livePulseDemoItems, socialActivityDemoItems } from "@/lib/home/demo-data";
+import { getDemoProduct } from "@/lib/catalog/demo-products";
+import { livePulseDemoItems, recentWinnerDemoItems, socialActivityDemoItems, transparencyStatsDemo } from "@/lib/home/demo-data";
 import { footerLinkGroups } from "@/lib/navigation";
 import { TransparencyStatsPod } from "./TransparencyStatsPod";
 
 afterEach(cleanup);
 
 describe("homepage preview integrity", () => {
-  test("does not present fabricated activity counts as live information", () => {
-    expect(livePulseDemoItems).toHaveLength(3);
-    expect(livePulseDemoItems.map((item) => item.value)).toEqual([
-      "Best Buy",
-      "Dick's Sporting Goods",
-      "Walmart",
-    ]);
+  test("retains the sample ticker for the working MVP", () => {
+    expect(livePulseDemoItems).toHaveLength(8);
+    expect(livePulseDemoItems).toContainEqual({ label: "193 winners", value: "TODAY!", tone: "live" });
+    expect(livePulseDemoItems).toContainEqual({ label: "Active prize pools", value: "142", tone: "neutral" });
   });
 
-  test("does not publish sample winner and fulfillment totals", () => {
+  test("retains labeled sample winner and fulfillment totals", () => {
     render(<TransparencyStatsPod />);
 
-    expect(screen.getByText("Platform totals aren’t published in this preview")).toBeTruthy();
-    expect(screen.queryByText("18,402")).toBeNull();
-    expect(screen.queryByText("$1,248,650")).toBeNull();
-    expect(screen.queryByText("$386,940")).toBeNull();
+    expect(screen.getByText("Sandbox / Sample Data")).toBeTruthy();
+    expect(transparencyStatsDemo).toHaveLength(4);
+    expect(screen.getByText("18,402")).toBeTruthy();
+    expect(screen.getByText("$1,248,650")).toBeTruthy();
+    expect(screen.getByText("$386,940")).toBeTruthy();
   });
 
   test("winner links lead to the existing homepage section", () => {
@@ -32,5 +31,11 @@ describe("homepage preview integrity", () => {
       "/#meet-winners-heading",
       "/#meet-winners-heading",
     ]);
+  });
+
+  test("the sample Walmart winner opens the Walmart item", () => {
+    const href = recentWinnerDemoItems.find((item) => item.name === "Tim M.")?.href;
+    expect(href).toBe("/items/walmart-100-gift-card");
+    expect(getDemoProduct(href!.slice("/items/".length))?.retailer).toBe("Walmart");
   });
 });
