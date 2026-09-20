@@ -113,24 +113,21 @@ export function CrewAndWinnerPreview() {
       const top = panelRect.top - stageRect.top + 1;
       const bottom = panelRect.bottom - stageRect.top - 1;
       const radius = 18;
-      const plainPanel = `M ${left + radius} ${top} H ${right - radius} Q ${right} ${top} ${right} ${top + radius} V ${bottom - radius} Q ${right} ${bottom} ${right - radius} ${bottom} H ${left + radius} Q ${left} ${bottom} ${left} ${bottom - radius} V ${top + radius} Q ${left} ${top} ${left + radius} ${top} Z`;
       const tabIsVisible = tabRect.right > railRect.left + 3 && tabRect.left < railRect.right - 3;
       const tabLeft = Math.max(left, tabRect.left - stageRect.left + 1);
       const tabRight = Math.min(right, tabRect.right - stageRect.left - 1);
       const tabTop = tabRect.top - stageRect.top + 1;
       const joinRight = Math.min(12, (right - radius - tabRight) / 2);
-      const joinLeft = Math.min(12, (tabLeft - left - radius) / 2);
       const connected = tabIsVisible && tabRight - tabLeft > 30 && tabTop < top - radius && joinRight >= 3;
-      let outline = plainPanel;
+      let outline = "";
       if (connected) {
         outline = `M ${left + radius} ${bottom} H ${right - radius} Q ${right} ${bottom} ${right} ${bottom - radius} V ${top + radius} Q ${right} ${top} ${right - radius} ${top} H ${tabRight + joinRight} Q ${tabRight} ${top} ${tabRight} ${top - joinRight} V ${tabTop + radius} Q ${tabRight} ${tabTop} ${tabRight - radius} ${tabTop} H ${tabLeft + radius} Q ${tabLeft} ${tabTop} ${tabLeft} ${tabTop + radius}`;
         if (tabLeft <= left + 4) {
           outline += ` V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom} Z`;
-        } else if (joinLeft >= 3) {
-          outline += ` V ${top - joinLeft} Q ${tabLeft} ${top} ${tabLeft - joinLeft} ${top} H ${left + radius} Q ${left} ${top} ${left} ${top + radius} V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom} Z`;
         } else {
-          const smallJoin = Math.max(2, (tabLeft - left) / 2);
-          outline += ` V ${top - smallJoin} Q ${tabLeft} ${top} ${left} ${top} V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom} Z`;
+          // Leave the top edge open to the left of the selected person. A line
+          // across earlier profiles makes the outline look attached to them.
+          outline += ` V ${top} M ${left} ${top} V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom}`;
         }
       }
       svg.setAttribute("viewBox", `0 0 ${stageRect.width} ${stageRect.height}`);
@@ -143,10 +140,10 @@ export function CrewAndWinnerPreview() {
     const initialTab = tab.getBoundingClientRect();
     const initialRail = rail.getBoundingClientRect();
     const initialPanel = panel.getBoundingClientRect();
-    if (initialTab.right > initialPanel.right - 30 || initialTab.left < initialPanel.left) {
+    if ((initialTab.right > initialPanel.right - 30 || initialTab.left < initialPanel.left) && typeof rail.scrollTo === "function") {
       rail.scrollTo({
         left: rail.scrollLeft + initialTab.left - initialRail.left - 4,
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
       });
     }
     draw();
@@ -234,7 +231,7 @@ export function CrewAndWinnerPreview() {
             const requested = previewRequests.includes(person.name);
             return (
               <div ref={selectedCrew === person.name ? selectedPersonRef : undefined} className={`${styles.person} ${selectedCrew === person.name ? styles.personSelected : ""}`} key={person.name}>
-                <button type="button" className={styles.avatar} aria-label={`See ${person.name}'s shared activity`} aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>
+                <button type="button" className={styles.avatar} aria-label={`See ${person.name}'s prizes`} aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>
                   <Image src={person.photo} alt={`Fictional profile of ${person.name}`} draggable={false} fill sizes="(max-width: 640px) 88px, 112px" className={styles.avatarImage} />
                 </button>
                 <button type="button" className={styles.personName} aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>{person.name}</button>
@@ -242,7 +239,7 @@ export function CrewAndWinnerPreview() {
                   {requested ? "Preview added" : "Add to Crew"}
                 </button>
                 <button className={styles.sharedButton} type="button" aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>
-                  {selectedCrew === person.name ? "Hide activity" : "See activity"} <span aria-hidden="true">{selectedCrew === person.name ? "↑" : "↓"}</span>
+                  {selectedCrew === person.name ? "Hide prizes" : "See prizes"} <span aria-hidden="true">{selectedCrew === person.name ? "↑" : "↓"}</span>
                 </button>
               </div>
             );
@@ -259,7 +256,7 @@ export function CrewAndWinnerPreview() {
           </button>
         </div>
         {selectedCrew ? <SharedPicksConcept key={selectedCrew} person={selectedCrew} onClose={() => setSelectedCrew(null)} connectedOutline panelRef={activityPanelRef} /> : null}
-        {selectedCrew ? <svg ref={outlineSvgRef} className={styles.crewOutline} aria-hidden="true" preserveAspectRatio="none"><path ref={outlinePathRef} fill="none" stroke="#67f768" strokeWidth="2" strokeLinejoin="round" /></svg> : null}
+        {selectedCrew ? <svg ref={outlineSvgRef} className={styles.crewOutline} aria-hidden="true" preserveAspectRatio="none"><path ref={outlinePathRef} fill="none" stroke="#67f768" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" /></svg> : null}
         </div>
         <p className={styles.demoNote}>Illustrative profiles. These people are fictional; no invitations are sent from this preview.</p>
         {crewMessage && <p className={styles.crewMessage} role="status">{crewMessage}</p>}

@@ -46,16 +46,22 @@ test("Crew ends with a clickable discovery tile and stories have twelve sample c
 
 test("Crew activity expands beneath the portraits without opening a page or dialog", () => {
   render(<CrewAndWinnerPreview />);
-  fireEvent.click(screen.getByRole("button", { name: "See Maya's shared activity" }));
+  fireEvent.click(screen.getByRole("button", { name: "See Maya's prizes" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Hide prizes" })).toBeTruthy();
   expect(screen.getByText(/Illustrative picks from a fictional profile/)).toBeTruthy();
   expect(screen.getByText("Maya’s shared activity")).toBeTruthy();
   expect(screen.getByRole("link", { name: /Samsung 50.*M70H Mini LED TV/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Next shared item" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "See Daniel's shared activity" }));
+  fireEvent.click(screen.getByRole("button", { name: "See Daniel's prizes" }));
   expect(screen.getByText("Daniel’s shared activity")).toBeTruthy();
   expect(screen.getByRole("link", { name: /PlayStation 5 Slim/ })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "See Ari's prizes" }));
+  expect(screen.getByText("Ari’s shared activity")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "See Leo's prizes" }));
+  expect(screen.getByText("Leo’s shared activity")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "See Daniel's prizes" }));
   fireEvent.click(screen.getByRole("button", { name: "Close Daniel's shared activity" }));
   expect(screen.queryByRole("region", { name: "Daniel's shared activity" })).toBeNull();
 });
