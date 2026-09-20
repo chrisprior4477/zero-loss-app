@@ -118,16 +118,20 @@ export function CrewAndWinnerPreview() {
       const tabRight = Math.min(right, tabRect.right - stageRect.left - 1);
       const tabTop = tabRect.top - stageRect.top + 1;
       const joinRight = Math.min(12, (right - radius - tabRight) / 2);
+      const joinLeft = Math.min(12, (tabLeft - left - radius) / 2);
       const connected = tabIsVisible && tabRight - tabLeft > 30 && tabTop < top - radius && joinRight >= 3;
       let outline = "";
       if (connected) {
         outline = `M ${left + radius} ${bottom} H ${right - radius} Q ${right} ${bottom} ${right} ${bottom - radius} V ${top + radius} Q ${right} ${top} ${right - radius} ${top} H ${tabRight + joinRight} Q ${tabRight} ${top} ${tabRight} ${top - joinRight} V ${tabTop + radius} Q ${tabRight} ${tabTop} ${tabRight - radius} ${tabTop} H ${tabLeft + radius} Q ${tabLeft} ${tabTop} ${tabLeft} ${tabTop + radius}`;
         if (tabLeft <= left + 4) {
           outline += ` V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom} Z`;
+        } else if (joinLeft >= 3) {
+          // Connect the panel's left edge to the selected card, leaving only
+          // the section directly beneath that card open.
+          outline += ` V ${top - joinLeft} Q ${tabLeft} ${top} ${tabLeft - joinLeft} ${top} H ${left + radius} Q ${left} ${top} ${left} ${top + radius} V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom} Z`;
         } else {
-          // Leave the top edge open to the left of the selected person. A line
-          // across earlier profiles makes the outline look attached to them.
-          outline += ` V ${top} M ${left} ${top} V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom}`;
+          const smallJoin = Math.max(2, (tabLeft - left) / 2);
+          outline += ` V ${top - smallJoin} Q ${tabLeft} ${top} ${left} ${top} V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom} Z`;
         }
       }
       svg.setAttribute("viewBox", `0 0 ${stageRect.width} ${stageRect.height}`);
