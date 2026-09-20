@@ -1,0 +1,38 @@
+.favicon {
+  display: block;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  background-color: #a1efff;
+  -webkit-mask: url("/icons/zeroloss-icon-64.png") center / contain no-repeat;
+  mask: url("/icons/zeroloss-icon-64.png") center / contain no-repeat;
+  filter: drop-shadow(0 0 7px rgb(151 244 255 / 55%));
+  animation: breathe 3.8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(0.97);
+    opacity: 0.88;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 380px) {
+  .favicon {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favicon {
+    animation: none;
+  }
+}
