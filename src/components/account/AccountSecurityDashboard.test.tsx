@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { AccountSecurityDashboard } from "./AccountSecurityDashboard";
 
@@ -29,9 +29,18 @@ test("uses verified account data without inventing device or location details", 
   expect(screen.getByRole("link", { name: /View account updates/ }).getAttribute("href")).toBe("/account/notifications");
 });
 
-test("keeps unavailable security actions honest and disabled", () => {
+test("opens a usable password form while unavailable security controls stay disabled", () => {
   render(<AccountSecurityDashboard {...props} />);
-  for (const label of ["Change password", "Set up", "Manage devices"]) {
+  const changePassword = screen.getByRole("button", { name: "Change password" }) as HTMLButtonElement;
+  expect(changePassword.disabled).toBe(false);
+  fireEvent.click(changePassword);
+  expect(screen.getByLabelText("Current password")).toBeTruthy();
+  expect(screen.getByLabelText("New password")).toBeTruthy();
+  expect(screen.getByLabelText("Confirm new password")).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Reset it by email/ }).getAttribute("href")).toBe("/forgot-password");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByLabelText("Current password")).toBeNull();
+  for (const label of ["Set up", "Manage devices"]) {
     expect((screen.getByRole("button", { name: new RegExp(label) }) as HTMLButtonElement).disabled).toBe(true);
   }
   expect(screen.getByText("+15551234821")).toBeTruthy();

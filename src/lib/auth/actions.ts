@@ -380,6 +380,50 @@ export async function updateRecoveredPasswordAction(
   return { status: "updated", message: "Your password has been changed. Sign in with the new password." };
 }
 
+export async function changeAccountPasswordAction(
+  _prev: PasswordRecoveryState,
+  formData: FormData
+): Promise<PasswordRecoveryState> {
+  const currentPassword = String(formData.get("current_password") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const confirmation = String(formData.get("confirm_password") ?? "");
+
+  if (!currentPassword) {
+    return { status: "error", message: "Enter your current password." };
+  }
+  if (!isPasswordValid(password)) {
+    return { status: "error", message: `Use at least ${MIN_PASSWORD_LENGTH} characters for your new password.` };
+  }
+  if (password !== confirmation) {
+    return { status: "error", message: "The two new passwords don't match." };
+  }
+  if (password === currentPassword) {
+    return { status: "error", message: "Choose a new password that's different from your current one." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user?.email) {
+    return { status: "error", message: "Sign in again, or use the email reset link to change your password." };
+  }
+
+  // Verify ownership and create a recent session before changing credentials.
+  const { data: reauthenticated, error: reauthError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+  if (reauthError || reauthenticated.user?.id !== user.id) {
+    return { status: "error", message: "Current password was not accepted. Try again or reset it by email." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password, current_password: currentPassword });
+  if (error) {
+    return { status: "error", message: "We couldn't change your password. Try again or reset it by email." };
+  }
+
+  return { status: "updated", message: "Your password has been changed. You can keep using your account." };
+}
+
 export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();

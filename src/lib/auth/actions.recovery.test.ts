@@ -9,7 +9,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
-import { requestPasswordResetAction, updateRecoveredPasswordAction } from "./actions";
+import { changeAccountPasswordAction, requestPasswordResetAction, updateRecoveredPasswordAction } from "./actions";
 
 const initial = { status: "idle" as const, message: null };
 afterEach(() => vi.clearAllMocks());
@@ -62,4 +62,35 @@ test("new password requires a recovery session and matching passwords", async ()
   expect((await updateRecoveredPasswordAction(initial, form)).status).toBe("updated");
   expect(updateUser).toHaveBeenCalledWith({ password: "new-password-123" });
   expect(signOut).toHaveBeenCalledOnce();
+});
+
+test("account password change verifies the current password before updating", async () => {
+  const getUser = vi.fn().mockResolvedValue({ data: { user: { id: "user-1", email: "person@example.test" } }, error: null });
+  const signInWithPassword = vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+  const updateUser = vi.fn().mockResolvedValue({ error: null });
+  mocks.createClient.mockResolvedValue({ auth: { getUser, signInWithPassword, updateUser } });
+  const form = new FormData();
+  form.set("current_password", "old-password-123");
+  form.set("password", "new-password-123");
+  form.set("confirm_password", "new-password-123");
+
+  const result = await changeAccountPasswordAction(initial, form);
+  expect(result.status).toBe("updated");
+  expect(signInWithPassword).toHaveBeenCalledWith({ email: "person@example.test", password: "old-password-123" });
+  expect(updateUser).toHaveBeenCalledWith({ password: "new-password-123", current_password: "old-password-123" });
+});
+
+test("account password change rejects a wrong current password without updating", async () => {
+  const getUser = vi.fn().mockResolvedValue({ data: { user: { id: "user-1", email: "person@example.test" } }, error: null });
+  const signInWithPassword = vi.fn().mockResolvedValue({ data: { user: null }, error: new Error("bad password") });
+  const updateUser = vi.fn();
+  mocks.createClient.mockResolvedValue({ auth: { getUser, signInWithPassword, updateUser } });
+  const form = new FormData();
+  form.set("current_password", "wrong-password");
+  form.set("password", "new-password-123");
+  form.set("confirm_password", "new-password-123");
+
+  const result = await changeAccountPasswordAction(initial, form);
+  expect(result.status).toBe("error");
+  expect(updateUser).not.toHaveBeenCalled();
 });

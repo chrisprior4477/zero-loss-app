@@ -30,8 +30,24 @@
 .controlCard h2, .signIns h2, .personalInfo h2 { color: #fff; font-size: 20px; font-weight: 820; letter-spacing: -.02em; }
 .controlCard p { margin-top: 8px; color: #ccdae7; font-size: 13px; line-height: 1.4; }
 .controlCard small { display: block; margin-top: 8px; color: #6fa1bb; font-size: 10px; }
-.controlCard button { grid-column: 1 / -1; display: flex; min-height: 43px; align-items: center; justify-content: center; gap: 10px; border: 1px solid #0bbfea; border-radius: 6px; color: #a9bdcc; background: #001a31bd; font-size: 13px; font-weight: 780; cursor: not-allowed; }
-.controlCard button svg { width: 19px; }
+.controlCard > button { grid-column: 1 / -1; display: flex; min-height: 43px; align-items: center; justify-content: center; gap: 10px; border: 1px solid #0bbfea; border-radius: 6px; color: #a9bdcc; background: #001a31bd; font-size: 13px; font-weight: 780; cursor: not-allowed; }
+.controlCard > button svg { width: 19px; }
+.passwordControl { grid-column: 1 / -1; min-width: 0; }
+.passwordToggle { display: flex; width: 100%; min-height: 43px; align-items: center; justify-content: center; gap: 10px; border: 1px solid #0bbfea; border-radius: 6px; background: #073650; color: #f7fbff; font-size: 13px; font-weight: 780; cursor: pointer; }
+.passwordToggle:hover, .passwordToggle[aria-expanded="true"] { background: #0b5069; }
+.passwordForm { display: grid; gap: 11px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #17698a; }
+.passwordForm label { display: grid; gap: 5px; color: #e9f5fb; font-size: 12px; font-weight: 750; }
+.passwordForm input { width: 100%; min-height: 42px; padding: 8px 11px; border: 1px solid #2a7691; border-radius: 6px; outline: none; background: #001a31; color: #fff; font-size: 14px; }
+.passwordForm input:focus { border-color: #7cf4ff; box-shadow: 0 0 0 2px #7cf4ff33; }
+.passwordForm p { margin: 0; color: #b8cddd; font-size: 11px; }
+.passwordForm .passwordError { color: #ffd1d1; }
+.passwordActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.passwordActions button { flex: 1 1 130px; min-height: 42px; border: 1px solid #0bbfea; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer; }
+.passwordActions button:first-child { background: #00b9ff; color: #00132e; }
+.passwordActions button:last-child { background: #001a31; color: #e9f5fb; }
+.passwordActions button:disabled { opacity: .6; cursor: wait; }
+.passwordForm a { color: #80ecff; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
+.passwordSuccess { margin-top: 12px; padding: 10px; border: 1px solid #68e88b; border-radius: 6px; background: #07553155; color: #9effb2; font-size: 12px; }
 .devicesCard { background: linear-gradient(135deg, #00213be9, #00172de8 70%, #002b43d9); }
 .detailGrid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(310px, .8fr); gap: 11px; margin-top: 11px; }
 .signIns, .personalInfo { min-height: 205px; padding: 18px 20px; }
@@ -92,7 +108,8 @@
   .controlCard h2 { font-size: 16px; }
   .controlCard p { margin-top: 4px; font-size: 11px; }
   .controlCard small { display: none; }
-  .controlCard button { grid-column: 3; width: 105px; min-height: 40px; padding: 7px; font-size: 10px; }
+  .controlCard > button { grid-column: 3; width: 105px; min-height: 40px; padding: 7px; font-size: 10px; }
+  .passwordToggle { min-height: 40px; font-size: 12px; }
   .detailGrid { gap: 8px; margin-top: 8px; }
   .signIns, .personalInfo { min-height: 0; padding: 14px; }
   .signIns h2, .personalInfo h2 { font-size: 17px; }
@@ -107,7 +124,7 @@
 }
 @media (max-width: 430px) {
   .controlCard, .devicesCard { grid-template-columns: 34px minmax(0, 1fr); }
-  .controlCard button { grid-column: 1 / -1; width: 100%; }
+  .controlCard > button { grid-column: 1 / -1; width: 100%; }
   .accountFacts { grid-template-columns: 1fr; }
   .accountFacts > div { min-height: 0; border-left: 0; border-top: 1px solid #145b77; }
   .accountFacts > div:first-child { border-top: 0; }

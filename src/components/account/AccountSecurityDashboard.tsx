@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AccountIcon } from "./AccountIcon";
+import { ChangePasswordControl } from "./ChangePasswordControl";
 import { ProfilePhotoCard } from "./ProfilePhotoCard";
 import styles from "./account-security.module.css";
 
@@ -83,8 +84,8 @@ export function AccountSecurityDashboard({
       <section className={styles.securityCards} aria-label="Security controls">
         <article className={styles.controlCard}>
           <span className={styles.cardIcon}><SecurityGlyph name="lock" /></span>
-          <div><h2>Password</h2><p>Keep your account secure with a strong, unique password.</p><small>Not enabled in this preview</small></div>
-          <UnavailableAction>Change password</UnavailableAction>
+          <div><h2>Password</h2><p>Keep your account secure with a strong, unique password.</p><small>Enter your current password to make a change.</small></div>
+          <ChangePasswordControl />
         </article>
         <article className={styles.controlCard}>
           <span className={styles.cardIcon}><SecurityGlyph name="shield" /></span>
