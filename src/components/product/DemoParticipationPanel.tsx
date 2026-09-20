@@ -55,6 +55,7 @@ export function DemoParticipationPanel({
   const maxQuantity = Math.min(10, remaining);
   const remainingBalance = Math.max(0, productValue - entryPrice);
   const total = quantity * entryPrice;
+  const entryLoginHref = `/login?next=${encodeURIComponent(`/items/${productSlug}#enter-entry`)}`;
 
   const requestAdditionalEntry = () => {
     if (pending || state.status === "succeeded" || quantity >= maxQuantity) return;
@@ -149,7 +150,7 @@ export function DemoParticipationPanel({
           </button>
         </form>
       ) : (
-        <Link href="/login" className="mt-4 grid w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3.5 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200">
+        <Link href={entryLoginHref} className="mt-4 grid w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3.5 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200">
           Sign in to enter
         </Link>
       )}
@@ -201,13 +202,21 @@ export function DemoParticipationPanel({
               </div>
             </details>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/5 p-3">
-              <input type="checkbox" checked={rememberExplanation} onChange={(event) => setRememberExplanation(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#55ff3b]" />
-              <span><strong className="block text-sm">I understand how extra entries work.</strong><span className="mt-0.5 block text-xs leading-5 text-white/60">Please stop showing this explanation again.</span></span>
-            </label>
-            {preferenceError ? <p role="alert" className="mt-3 rounded-xl border border-[#ff796c]/40 bg-[#4b1c25] p-3 text-sm">{preferenceError}</p> : null}
-
-            <button type="button" onClick={acknowledgeAndAddEntry} disabled={!rememberExplanation || preferenceSaving} className="w-full rounded-xl bg-[#00b9ff] px-4 py-3.5 font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-[#0b668b] disabled:text-white/55">{preferenceSaving ? "Saving your choice…" : "I understand — save my choice"}</button>
+            {isSignedIn ? (
+              <>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/5 p-3">
+                  <input type="checkbox" checked={rememberExplanation} onChange={(event) => setRememberExplanation(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#55ff3b]" />
+                  <span><strong className="block text-sm">I understand how extra entries work.</strong><span className="mt-0.5 block text-xs leading-5 text-white/60">Please stop showing this explanation again.</span></span>
+                </label>
+                {preferenceError ? <p role="alert" className="mt-3 rounded-xl border border-[#ff796c]/40 bg-[#4b1c25] p-3 text-sm">{preferenceError}</p> : null}
+                <button type="button" onClick={acknowledgeAndAddEntry} disabled={!rememberExplanation || preferenceSaving} className="w-full rounded-xl bg-[#00b9ff] px-4 py-3.5 font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-[#0b668b] disabled:text-white/55">{preferenceSaving ? "Saving your choice…" : "I understand — save my choice"}</button>
+              </>
+            ) : (
+              <>
+                <p className="text-xs leading-5 text-white/60">Sign in to choose extra entries and save this explanation preference.</p>
+                <Link href={entryLoginHref} className="grid w-full place-items-center rounded-xl bg-[#00b9ff] px-4 py-3.5 font-extrabold text-[#00132e] transition hover:bg-cyan-200">Sign in to add entries</Link>
+              </>
+            )}
             </div>
           </section>
         </div>

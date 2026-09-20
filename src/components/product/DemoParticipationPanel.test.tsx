@@ -64,7 +64,19 @@ test("a stored acknowledgment adds directly without opening the explainer", () =
 test("failed product balance cannot become zero", () => {
   render(<DemoParticipationPanel {...props} />);
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("Unavailable");
-  expect(screen.getByRole("link", { name: "Sign in to enter" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Sign in to enter" }).getAttribute("href")).toBe(
+    "/login?next=%2Fitems%2Ftest-product%23enter-entry",
+  );
+});
+
+test("signed-out extra entry explanation leads to sign-in instead of an unsavable choice", () => {
+  render(<DemoParticipationPanel {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  expect(screen.getByRole("dialog", { name: "How Extra Chances Work" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Sign in to add entries" }).getAttribute("href")).toBe(
+    "/login?next=%2Fitems%2Ftest-product%23enter-entry",
+  );
+  expect(screen.queryByRole("button", { name: "I understand — save my choice" })).toBeNull();
 });
 
 test("cannot select more entries than the displayed remaining capacity", () => {

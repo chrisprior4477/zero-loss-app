@@ -16,12 +16,14 @@ type LoginFormProps = {
   initialError?: string | null;
   initialNotice?: string | null;
   focusOnMount?: boolean;
+  returnTo?: string | null;
 };
 
 export function LoginForm({
   initialError = null,
   initialNotice = null,
   focusOnMount = false,
+  returnTo = null,
 }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(
     signInAction,
@@ -43,6 +45,7 @@ export function LoginForm({
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <div>
         <label
           htmlFor="email"
@@ -106,7 +109,7 @@ export function LoginForm({
       </button>
 
       <div className="flex flex-col items-center justify-between gap-3 text-sm sm:flex-row">
-        <span className="text-white/45">Forgot your password? <span className="font-semibold text-white/70">Recovery is the next step.</span></span>
+        <Link href="/forgot-password" className="font-semibold text-cyan-300 underline-offset-4 hover:underline">Forgot your password?</Link>
         <p className="text-white/50">
         Need an account?{" "}
         <Link

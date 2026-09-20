@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { entryReturnPath } from "@/lib/auth/entry-return";
 import {
   isAtLeastAge,
   isPasswordValid,
@@ -29,6 +30,11 @@ export type AuthActionState = {
 
 export type ResendVerificationState = {
   ok: boolean;
+  message: string | null;
+};
+
+export type PasswordRecoveryState = {
+  status: "idle" | "sent" | "updated" | "error";
   message: string | null;
 };
 
@@ -64,6 +70,18 @@ async function getSiteOrigin(): Promise<string> {
   }
 
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+}
+
+async function getRecoveryCallbackOrigin(): Promise<string> {
+  // Supabase permits the stable Vercel branch and production URLs, not each
+  // one-off deployment URL. Email links must point at an allowed, current host.
+  if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_BRANCH_URL) {
+    return `https://${process.env.VERCEL_BRANCH_URL}`;
+  }
+  if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  return getSiteOrigin();
 }
 
 export async function signUpAction(
@@ -246,6 +264,7 @@ export async function signInAction(
   const password = typeof formData.get("password") === "string"
     ? (formData.get("password") as string)
     : "";
+  const returnTo = entryReturnPath(formData.get("returnTo"));
 
   if (!email || !password) {
     return {
@@ -300,7 +319,65 @@ export async function signInAction(
     };
   }
 
-  redirect("/account/entries");
+  redirect(returnTo ?? "/account/entries");
+}
+
+export async function requestPasswordResetAction(
+  _prev: PasswordRecoveryState,
+  formData: FormData
+): Promise<PasswordRecoveryState> {
+  const email = asTrimmedString(formData.get("email")).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { status: "error", message: "Enter a valid email address." };
+  }
+
+  const supabase = await createClient();
+  const origin = await getRecoveryCallbackOrigin();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    // The existing callback is already used by confirmation emails and can
+    // exchange the PKCE code before sending recovery visitors to the form.
+    redirectTo: `${origin}/auth/confirm?flow=recovery`,
+  });
+
+  if (error) {
+    return {
+      status: "error",
+      message: "We couldn't send a reset email right now. Please wait a minute and try again.",
+    };
+  }
+
+  return {
+    status: "sent",
+    message: "If a Zero Loss account uses that email, a password-reset link is on its way. Check your inbox and spam folder.",
+  };
+}
+
+export async function updateRecoveredPasswordAction(
+  _prev: PasswordRecoveryState,
+  formData: FormData
+): Promise<PasswordRecoveryState> {
+  const password = String(formData.get("password") ?? "");
+  const confirmation = String(formData.get("confirm_password") ?? "");
+  if (!isPasswordValid(password)) {
+    return { status: "error", message: `Use at least ${MIN_PASSWORD_LENGTH} characters for your new password.` };
+  }
+  if (password !== confirmation) {
+    return { status: "error", message: "The two passwords don't match." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { status: "error", message: "This reset link has expired. Request a new password-reset email." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    return { status: "error", message: "We couldn't update your password. Try again or request a new reset link." };
+  }
+
+  await supabase.auth.signOut();
+  return { status: "updated", message: "Your password has been changed. Sign in with the new password." };
 }
 
 export async function signOutAction(): Promise<void> {

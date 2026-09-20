@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { entryReturnPath } from "@/lib/auth/entry-return";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -9,20 +10,21 @@ export const metadata: Metadata = {
 };
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string; verified?: string; focus?: string }>;
+  searchParams: Promise<{ error?: string; verified?: string; focus?: string; next?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const returnTo = entryReturnPath(params.next);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (user?.email_confirmed_at) {
-    redirect("/account/entries");
+    redirect(returnTo ?? "/account/entries");
   }
 
-  const params = await searchParams;
   const initialError =
     params.error === "verification_failed"
       ? "Email verification failed or expired. Request a new link by signing up again, or contact support."
@@ -55,7 +57,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">Sign in to Zero Loss.</h2>
           <p className="mt-2 text-sm leading-6 text-white/60">New here? <Link href="/signup" className="font-bold text-cyan-300 underline-offset-4 hover:underline">Create an account</Link></p>
           <div className="mt-7">
-            <LoginForm initialError={initialError} initialNotice={initialNotice} focusOnMount={params.focus === "email"} />
+            <LoginForm initialError={initialError} initialNotice={initialNotice} focusOnMount={params.focus === "email"} returnTo={returnTo} />
           </div>
           <p className="mt-5 text-center text-xs leading-5 text-white/40">Signing in does not create an entry or make a purchase.</p>
         </section>
