@@ -27,10 +27,16 @@ export default async function NotificationsPage() {
     tone: "crew" as const,
     crewRequestId: request.id,
   }));
+  const notifications = [...crewNotifications, ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed)];
+  const { data: readRows, error: readError } = await db.from("customer_notification_reads")
+    .select("notification_id").eq("customer_id", account.userId)
+    .in("notification_id", notifications.map((notification) => notification.id));
   return <NotificationsCenter
-    notifications={[...crewNotifications, ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed)]}
+    notifications={notifications}
+    initialReadIds={(readRows ?? []).map((row) => row.notification_id)}
     activityAvailable={account.activity.source !== "unavailable"}
     walletAvailable={account.wallet !== null}
     crewAvailable={!crewError}
+    readAvailable={!readError}
   />;
 }

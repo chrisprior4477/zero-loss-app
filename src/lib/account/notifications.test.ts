@@ -16,3 +16,10 @@ test("same-product purchase options have distinct notifications and exact entry 
     "/account/entries?item=nike-court-shot-shoes&entry=entry-two",
   ]);
 });
+
+test("email confirmation produces a new unread account notification", () => {
+  const unconfirmed = buildAccountNotifications(storedActivityFixture(), null, false).find((item) => item.category === "account");
+  const confirmed = buildAccountNotifications(storedActivityFixture(), null, true).find((item) => item.category === "account");
+  expect(unconfirmed?.id).toBe("account-email-unconfirmed");
+  expect(confirmed?.id).toBe("account-email-confirmed");
+});

@@ -114,7 +114,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
     });
   }
   notifications.push({
-    id: "account-email-status",
+    id: emailConfirmed ? "account-email-confirmed" : "account-email-unconfirmed",
     category: "account",
     title: emailConfirmed ? "Your email is confirmed" : "Confirm your email address",
     body: emailConfirmed ? "Your sign-in email is verified and your account is active." : "Confirm your email to finish securing your account.",

@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type MouseEvent } from "react";
 import { respondToCrewRequest } from "@/lib/crew/actions";
+import { markNotificationsRead } from "@/lib/account/notification-read-actions";
 import { AccountIcon, type AccountIconName } from "./AccountIcon";
 import type { AccountNotification, NotificationCategory } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
@@ -20,21 +21,68 @@ const filters = [
   ["crew", "Your Crew", "crew"],
 ] as const satisfies readonly (readonly [FilterKey, string, AccountIconName])[];
 
-export function NotificationsCenter({ notifications, activityAvailable, walletAvailable, crewAvailable }: { notifications: AccountNotification[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean }) {
+export function NotificationsCenter({ notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, readAvailable }: { notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; readAvailable: boolean }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const router = useRouter();
   const [responding, startTransition] = useTransition();
+  const [savingRead, startReadTransition] = useTransition();
   const [crewMessage, setCrewMessage] = useState("");
-  const [read, setRead] = useState<Set<string>>(() => new Set());
+  const [readMessage, setReadMessage] = useState("");
+  const [read, setRead] = useState<Set<string>>(() => new Set(initialReadIds));
   const visible = useMemo(() => filter === "all" ? notifications : notifications.filter(notification => notification.category === filter), [filter, notifications]);
   const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? notifications.length : notifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [notifications]);
+
+  async function saveRead(ids: string[]) {
+    try { return await markNotificationsRead(ids); }
+    catch { return { ok: false, message: "We couldn’t save your notification status. Please try again." }; }
+  }
+
+  function markAllRead() {
+    const ids = notifications.map((notification) => notification.id).filter((id) => !read.has(id));
+    if (!ids.length || !readAvailable) return;
+    setReadMessage("");
+    setRead((previous) => new Set([...previous, ...ids]));
+    startReadTransition(async () => {
+      const result = await saveRead(ids);
+      if (!result.ok) {
+        setRead((previous) => {
+          const next = new Set(previous);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+        setReadMessage(result.message);
+      }
+    });
+  }
+
+  function openNotification(notification: AccountNotification) {
+    setRead((previous) => new Set(previous).add(notification.id));
+    startReadTransition(async () => {
+      const result = await saveRead([notification.id]);
+      if (!result.ok) {
+        setRead((previous) => {
+          const next = new Set(previous);
+          next.delete(notification.id);
+          return next;
+        });
+      }
+      router.push(notification.href);
+    });
+  }
+
+  function handleNotificationClick(event: MouseEvent<HTMLAnchorElement>, notification: AccountNotification) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
+      || !readAvailable || read.has(notification.id)) return;
+    event.preventDefault();
+    openNotification(notification);
+  }
 
   return <div className={styles.page}>
     <div className={styles.pageContent}>
       <header className={styles.header}>
         <div><h1>Notifications</h1><p>The updates that need your attention.</p></div>
         <div className={styles.headerActions}>
-          <button type="button" onClick={() => setRead(new Set(notifications.map(notification => notification.id)))} disabled={notifications.length === 0 || read.size === notifications.length}>
+          <button type="button" onClick={markAllRead} disabled={notifications.length === 0 || notifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
             <AccountIcon name="bell" /> Mark all as read
           </button>
           <span aria-hidden="true" className={styles.actionDivider} />
@@ -42,8 +90,9 @@ export function NotificationsCenter({ notifications, activityAvailable, walletAv
         </div>
       </header>
 
-      {!activityAvailable || !walletAvailable || !crewAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
+      {!activityAvailable || !walletAvailable || !crewAvailable || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
       {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
+      {readMessage ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}
 
       <div className={styles.layout}>
         <nav aria-label="Notification filters" className={styles.filters}>
@@ -74,8 +123,8 @@ export function NotificationsCenter({ notifications, activityAvailable, walletAv
               {notification.image ? <Image src={notification.image} alt="" fill sizes="(max-width: 700px) 110px, 190px" className={styles.productImage} /> : <><span>{notification.visualLabel}</span><strong>{notification.visualValue}</strong></>}
               {notification.image && (notification.visualLabel || notification.visualValue) ? <span className={styles.visualCaption}><small>{notification.visualLabel}</small><strong>{notification.visualValue}</strong></span> : null}
             </div>
-            <Link href={notification.href} className={styles.rowAction} onClick={() => setRead(previous => new Set(previous).add(notification.id))}>{notification.action}<AccountIcon name="arrow" /></Link>
-            <Link href={notification.href} aria-label={`Open ${notification.title}`} className={styles.chevron} onClick={() => setRead(previous => new Set(previous).add(notification.id))}><AccountIcon name="chevron" /></Link>
+            <Link href={notification.href} className={styles.rowAction} onClick={(event) => handleNotificationClick(event, notification)}>{notification.action}<AccountIcon name="arrow" /></Link>
+            <Link href={notification.href} aria-label={`Open ${notification.title}`} className={styles.chevron} onClick={(event) => handleNotificationClick(event, notification)}><AccountIcon name="chevron" /></Link>
           </article>)}
         </section>
       </div>
