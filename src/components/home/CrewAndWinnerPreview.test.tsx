@@ -44,18 +44,18 @@ test("Crew ends with a clickable discovery tile and stories have twelve sample c
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
-test("Maya and Daniel shared-picks click-throughs use compact swipeable cards", () => {
+test("Crew activity expands beneath the portraits without opening a page or dialog", () => {
   render(<CrewAndWinnerPreview />);
-  fireEvent.click(screen.getAllByRole("button", { name: /Shared picks/ })[0]);
-  expect(screen.getByRole("dialog", { name: "What your Crew is into" })).toBeTruthy();
-  expect(screen.getByText(/These picks are illustrative/)).toBeTruthy();
-  expect(screen.getByText("Maya’s picks")).toBeTruthy();
-  expect(screen.getByRole("link", { name: /Samsung 50.*M70H Mini LED TV/ })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Next pick" })).toBeTruthy();
-  expect(screen.queryByText("Choose a layout below.")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: /Daniel3 picks/ }));
-  expect(screen.getByText("Daniel’s picks")).toBeTruthy();
-  expect(screen.getByRole("link", { name: /PlayStation 5 Slim/ })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Close shared picks preview" }));
+  fireEvent.click(screen.getByRole("button", { name: "See Maya's shared activity" }));
   expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
+  expect(screen.getByText(/Illustrative picks from a fictional profile/)).toBeTruthy();
+  expect(screen.getByText("Maya’s shared activity")).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Samsung 50.*M70H Mini LED TV/ })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Next shared item" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "See Daniel's shared activity" }));
+  expect(screen.getByText("Daniel’s shared activity")).toBeTruthy();
+  expect(screen.getByRole("link", { name: /PlayStation 5 Slim/ })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Close Daniel's shared activity" }));
+  expect(screen.queryByRole("region", { name: "Daniel's shared activity" })).toBeNull();
 });

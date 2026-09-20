@@ -1,11 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
-  removeCrewConnection, respondToCrewRequest, setCrewDiscoverable, setEntryCrewSharing,
+  getCrewSharedPicks, removeCrewConnection, respondToCrewRequest, setCrewDiscoverable, setEntryCrewSharing,
 } from "@/lib/crew/actions";
 import type { CrewInvitation, CrewMember, OwnCrewEntry, SharedCrewPick } from "@/app/account/crew/page";
 import { CrewPeopleCarousel } from "./CrewPeopleCarousel";
@@ -33,6 +32,11 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
   const [tab, setTab] = useState<Tab>(initialTab);
   const [message, setMessage] = useState("");
   const [samplePerson, setSamplePerson] = useState<SampleCrewName | null>(null);
+  const [openMemberId, setOpenMemberId] = useState<string | null>(selectedMemberId);
+  const [memberPicks, setMemberPicks] = useState<SharedCrewPick[]>(selectedPicks);
+  const [memberPicksError, setMemberPicksError] = useState(false);
+  const [memberPicksLoading, setMemberPicksLoading] = useState(false);
+  const pickRequest = useRef(0);
   const [pending, startTransition] = useTransition();
   const samples = useSampleCrewPreviews();
   useEffect(() => { initializeSampleCrewPreview(); }, []);
@@ -65,6 +69,34 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
     document.getElementById("crew-search-name")?.focus({ preventScroll: true });
   }
 
+  function selectSample(name: SampleCrewName) {
+    pickRequest.current += 1;
+    setOpenMemberId(null);
+    setMemberPicksLoading(false);
+    setSamplePerson((current) => current === name ? null : name);
+  }
+
+  function selectMember(id: string) {
+    pickRequest.current += 1;
+    const request = pickRequest.current;
+    setSamplePerson(null);
+    if (openMemberId === id) { setOpenMemberId(null); setMemberPicksLoading(false); return; }
+    setOpenMemberId(id);
+    setMemberPicks([]);
+    setMemberPicksError(false);
+    setMemberPicksLoading(true);
+    startTransition(async () => {
+      const result = await getCrewSharedPicks(id);
+      if (pickRequest.current !== request) return;
+      setMemberPicks(result.picks);
+      setMemberPicksError(!result.ok);
+      setMemberPicksLoading(false);
+    });
+  }
+
+  const activeMember = people.find((person) => person.memberId === openMemberId);
+  const activeKey = samplePerson ? `sample-${samplePerson}` : openMemberId;
+
   return <main className="min-h-screen bg-[#061b35] px-4 py-8 text-white sm:px-6 lg:px-10">
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-end justify-between gap-5 border-b border-cyan-300/25 pb-6">
@@ -81,15 +113,18 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
       </div>
 
       {tab === "crew" ? <section className="mt-5 grid gap-5" aria-label="Approved Crew">
-        <CrewPeopleCarousel people={people} samples={samples} onAdd={focusCrewSearch} onRemove={(id) => run(() => removeCrewConnection(id))} onSampleRemove={removeSampleCrewPreview} onSamplePicks={setSamplePerson} pending={pending} />
-        <CrewSearchPanel onSamplePicks={setSamplePerson} disabled={!available} />
+        <div>
+          <CrewPeopleCarousel people={people} samples={samples} selectedKey={activeKey} onAdd={focusCrewSearch} onRemove={(id) => run(() => removeCrewConnection(id))} onSampleRemove={(name) => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(null); }} onSamplePicks={selectSample} onMemberPicks={selectMember} pending={pending} />
+          {samplePerson ? <SharedPicksConcept key={samplePerson} person={samplePerson} onClose={() => setSamplePerson(null)} /> : null}
+          {activeMember ? <div id="shared-picks">
+            {memberPicksError ? <p role="alert" className="border border-cyan-300/45 bg-[#092744] p-5 text-sm">We couldn’t load this Crew member’s activity. Please try again.</p> :
+              <SharedPicksConcept key={activeMember.memberId} person={activeMember.name} avatarUrl={activeMember.avatarUrl} loading={memberPicksLoading} picks={memberPicks.map((pick) => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `Shared ${formatDate(pick.sharedAt)}` }))} onClose={() => setOpenMemberId(null)} />}
+          </div> : null}
+        </div>
+        <CrewSearchPanel onSamplePicks={selectSample} disabled={!available} />
         <div className="rounded-2xl border border-cyan-300/35 bg-[#092744] p-5">
           <label className="flex items-start gap-3 text-sm text-white/80"><input type="checkbox" checked={discoverable} disabled={pending || !available} onChange={(event) => run(() => setCrewDiscoverable(event.target.checked))} className="mt-1 accent-[#51ed40]" /><span>Let other members find my display name in Crew search. <small className="mt-1 block text-white/50">Off by default. This never shares your entries or wallet.</small></span></label>
         </div>
-        {selectedMemberId ? <div className="rounded-2xl border border-cyan-300/45 bg-[#092744] p-5" id="shared-picks">
-          <h2 className="text-xl font-extrabold">Shared picks</h2><p className="mt-1 text-sm text-white/65">Only picks this person chose to share with approved Crew.</p>
-          {selectedPicks.length ? <div className="mt-4 flex snap-x gap-4 overflow-x-auto pb-3">{selectedPicks.map((pick) => <Link href={`/items/${pick.offeringSlug}`} key={pick.offeringSlug} className="w-52 shrink-0 snap-start overflow-hidden rounded-xl border border-cyan-300/35 bg-[#061d38] hover:border-cyan-200"><div className="relative h-32 bg-[#102c4a]"><Image src={pick.image} alt="" fill sizes="208px" className="object-contain p-2" /></div><div className="p-3"><small className="text-cyan-300">{pick.retailer}</small><strong className="mt-1 block text-sm">{pick.title}</strong><span className="mt-2 block text-xs text-white/50">Shared {formatDate(pick.sharedAt)}</span></div></Link>)}</div> : <p className="mt-4 rounded-xl border border-dashed border-white/20 p-5 text-sm text-white/65">No picks shared with Crew yet.</p>}
-        </div> : null}
       </section> : null}
 
       {tab === "requests" ? <section className="mt-5 grid gap-5 md:grid-cols-2">
@@ -101,6 +136,5 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
         {entries.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2">{entries.map((entry) => <article key={entry.id} className="flex gap-3 rounded-xl border border-cyan-300/25 bg-[#061d38] p-3">{entry.image ? <div className="relative h-20 w-20 shrink-0 rounded-lg bg-[#123956]"><Image src={entry.image} alt="" fill sizes="80px" className="object-contain p-1" /></div> : null}<div className="min-w-0 flex-1"><strong className="block text-sm">{entry.title}</strong><small className="block text-white/55">{entry.retailer} · {formatDate(entry.createdAt)}</small><button type="button" disabled={pending || !available} onClick={() => run(() => setEntryCrewSharing(entry.id, !entry.shared))} aria-pressed={entry.shared} className={`mt-2 rounded-lg border px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${entry.shared ? "border-[#51ed40] bg-[#153f2e] text-[#8aff75]" : "border-white/30 text-white/75"}`}>{entry.shared ? "Shared with Crew · turn off" : "Private · share with Crew"}</button></div></article>)}</div> : <p className="mt-4 text-sm text-white/60">You don’t have entries to share yet.</p>}
       </section> : null}
     </div>
-    {samplePerson ? <SharedPicksConcept initialPerson={samplePerson} onClose={() => setSamplePerson(null)} /> : null}
   </main>;
 }

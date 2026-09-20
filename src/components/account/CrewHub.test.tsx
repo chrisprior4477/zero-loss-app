@@ -13,6 +13,7 @@ const actions = vi.hoisted(() => ({
   respondToCrewRequest: vi.fn(),
   setCrewDiscoverable: vi.fn(),
   setEntryCrewSharing: vi.fn(),
+  getCrewSharedPicks: vi.fn(),
 }));
 
 vi.mock("@/lib/crew/actions", () => actions);
@@ -26,33 +27,36 @@ beforeEach(() => {
   actions.inviteToCrewById.mockResolvedValue({ ok: true, message: "Crew request sent." });
   actions.inviteToCrewByPhone.mockResolvedValue({ ok: true, message: "Request saved." });
   actions.inviteToCrew.mockResolvedValue({ ok: true, message: "Request saved." });
+  actions.getCrewSharedPicks.mockResolvedValue({ ok: true, picks: [] });
 });
 afterEach(cleanup);
 
 test("the four legacy homepage sample additions appear in the account carousel, clearly separate from real connections", async () => {
   render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
-  expect(await screen.findByRole("button", { name: "View Maya's sample shared picks" })).toBeTruthy();
+  expect(await screen.findByRole("button", { name: "See Maya's sample shared activity" })).toBeTruthy();
   for (const person of ["Maya", "Daniel", "Ari", "Leo"]) {
-    expect(screen.getByRole("button", { name: `View ${person}'s sample shared picks` })).toBeTruthy();
+    expect(screen.getByRole("button", { name: `See ${person}'s sample shared activity` })).toBeTruthy();
   }
   expect(screen.getByText("4 sample previews")).toBeTruthy();
   expect(screen.getByText("0 connected")).toBeTruthy();
   expect(screen.getByText(/fictional.*did not send invitations/i)).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "View Maya's sample shared picks" }));
-  expect(screen.getByRole("dialog", { name: "What your Crew is into" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "See Maya's sample shared activity" }));
+  expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 test("a homepage preview choice carries into Your Crew and can be removed", async () => {
   addSampleCrewPreview("Ari");
   render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
-  expect(screen.getByRole("button", { name: "View Ari's sample shared picks" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "View Maya's sample shared picks" })).toBeNull();
+  expect(screen.getByRole("button", { name: "See Ari's sample shared activity" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "See Maya's sample shared activity" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Remove preview" }));
-  await waitFor(() => expect(screen.queryByRole("button", { name: "View Ari's sample shared picks" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("button", { name: "See Ari's sample shared activity" })).toBeNull());
   expect(localStorage.getItem("zero-loss-sample-crew-v1")).toBe("[]");
 });
 
-test("the account Crew section shows approved people as circular carousel links, not fictional click-throughs", () => {
+test("the account Crew section expands approved people's activity in place", async () => {
+  actions.getCrewSharedPicks.mockResolvedValue({ ok: true, picks: [{ title: "Nike Court Shot Shoes", retailer: "Dick’s Sporting Goods", image: "/catalog/nike-court-shot-side-cutout.png", offeringSlug: "nike-court-shot-shoes", sharedAt: "2026-09-19T10:00:00Z" }] });
   render(<CrewHub
     currentUserId="11111111-1111-4111-8111-111111111111"
     invitations={[{
@@ -65,7 +69,11 @@ test("the account Crew section shows approved people as circular carousel links,
   />);
 
   expect(screen.getByText("People in your Crew")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "View Taylor Crew's shared picks" }).getAttribute("href")).toBe("/account/crew?member=22222222-2222-4222-8222-222222222222");
+  fireEvent.click(screen.getByRole("button", { name: "See Taylor Crew's shared activity" }));
+  await waitFor(() => expect(actions.getCrewSharedPicks).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222"));
+  expect(screen.getByRole("region", { name: "Taylor Crew's shared activity" })).toBeTruthy();
+  expect(await screen.findByRole("link", { name: /Nike Court Shot Shoes/ })).toHaveProperty("href", "http://localhost:3000/items/nike-court-shot-shoes");
+  expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("button", { name: "Add to Your Crew" })).toBeTruthy();
   expect(screen.getByRole("searchbox", { name: "Search by name" })).toBeTruthy();
   expect(screen.getByRole("textbox", { name: "Invite by verified phone" })).toBeTruthy();

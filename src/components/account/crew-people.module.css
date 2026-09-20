@@ -1,4 +1,6 @@
 .root { min-width: 0; border: 1px solid #68dfff65; border-radius: 18px; padding: clamp(16px, 3vw, 24px); background: #092744; box-shadow: 0 0 22px #00b9ff22; }
+.rootSelected { border-bottom: 0; border-radius: 18px 18px 0 0; padding-bottom: 0; }
+.rootSelected .rail { padding-bottom: 0; }
 .heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
 .heading h2 { font-size: 1.25rem; font-weight: 800; }
 .heading p { margin-top: 5px; color: #bed4e4; font-size: .8rem; line-height: 1.4; }
@@ -8,9 +10,11 @@
 .rail::-webkit-scrollbar { display: none; }
 .rail:active { cursor: grabbing; }
 .person, .discover { display: flex; flex: 0 0 142px; flex-direction: column; align-items: center; text-align: center; }
+.personSelected { border: 1px solid #67f768; border-bottom: 0; border-radius: 12px 12px 0 0; background: linear-gradient(#0e3b54, #102f4a); box-shadow: 0 0 18px #4afa4a36; }
+.personSelected .picksLink { color: #8cff80; }
 .avatar, .discoverAvatar { position: relative; display: grid; width: 104px; height: 104px; flex: none; place-items: center; overflow: hidden; border: 3px solid #34cbef; border-radius: 50%; background: #12536a; color: white; font-size: 2rem; font-weight: 850; box-shadow: 0 0 0 4px #061b34, 0 0 0 5px #1a6586, 0 8px 25px #0006; }
 .avatarImage { object-fit: cover; }
-.name { max-width: 100%; overflow: hidden; margin-top: 11px; font-size: .94rem; text-overflow: ellipsis; white-space: nowrap; }
+.name { max-width: 100%; overflow: hidden; margin-top: 11px; font-size: .94rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .connected { margin-top: 2px; color: #8cff91; font-size: .69rem; }
 .sampleBadge { margin-top: 2px; color: #ffcf8f; font-size: .69rem; }
 .sampleNotice { margin-top: 12px; border-left: 3px solid #ffad59; padding: 7px 11px; color: #dce8f2; background: #14304b; font-size: .76rem; line-height: 1.45; }

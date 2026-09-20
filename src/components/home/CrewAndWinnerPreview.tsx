@@ -40,15 +40,18 @@ function useDragRail(ref: RefObject<HTMLDivElement | null>) {
       if (Math.abs(distance) > 5) drag.current.moved = true;
       if (!drag.current.moved) return;
       event.preventDefault();
+      rail.style.scrollBehavior = "auto";
+      rail.style.scrollSnapType = "none";
       if (!rail.hasPointerCapture(event.pointerId)) rail.setPointerCapture(event.pointerId);
       rail.scrollLeft = drag.current.scrollLeft - distance;
     },
     onPointerUp: (event: PointerEvent<HTMLDivElement>) => {
       drag.current.active = false;
       const rail = ref.current;
+      if (rail) { rail.style.scrollBehavior = ""; rail.style.scrollSnapType = ""; }
       if (rail?.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
     },
-    onPointerCancel: () => { drag.current.active = false; drag.current.moved = false; },
+    onPointerCancel: () => { drag.current.active = false; drag.current.moved = false; if (ref.current) { ref.current.style.scrollBehavior = ""; ref.current.style.scrollSnapType = ""; } },
     onClickCapture: (event: MouseEvent<HTMLDivElement>) => {
       if (!drag.current.moved) return;
       event.preventDefault();
@@ -149,16 +152,16 @@ export function CrewAndWinnerPreview() {
           {people.map((person) => {
             const requested = previewRequests.includes(person.name);
             return (
-              <div className={styles.person} key={person.name}>
-                <div className={styles.avatar}>
+              <div className={`${styles.person} ${selectedCrew === person.name ? styles.personSelected : ""}`} key={person.name}>
+                <button type="button" className={styles.avatar} aria-label={`See ${person.name}'s shared activity`} aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>
                   <Image src={person.photo} alt={`Fictional profile of ${person.name}`} draggable={false} fill sizes="(max-width: 640px) 88px, 112px" className={styles.avatarImage} />
-                </div>
-                <strong className={styles.personName}>{person.name}</strong>
+                </button>
+                <button type="button" className={styles.personName} aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>{person.name}</button>
                 <button className={`${styles.addButton} ${requested ? styles.addButtonSelected : ""}`} type="button" onClick={() => previewCrewRequest(person.name)}>
                   {requested ? "Preview added" : "Add to Crew"}
                 </button>
-                <button className={styles.sharedButton} type="button" onClick={() => setSelectedCrew(person.name)}>
-                  Shared picks <span aria-hidden="true">→</span>
+                <button className={styles.sharedButton} type="button" aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>
+                  {selectedCrew === person.name ? "Hide activity" : "See activity"} <span aria-hidden="true">{selectedCrew === person.name ? "↑" : "↓"}</span>
                 </button>
               </div>
             );
@@ -174,6 +177,7 @@ export function CrewAndWinnerPreview() {
             <span>Add to Your<br />Crew</span>
           </button>
         </div>
+        {selectedCrew ? <SharedPicksConcept key={selectedCrew} person={selectedCrew} onClose={() => setSelectedCrew(null)} /> : null}
         <p className={styles.demoNote}>Illustrative profiles. These people are fictional; no invitations are sent from this preview.</p>
         {crewMessage && <p className={styles.crewMessage} role="status">{crewMessage}</p>}
       </section>
@@ -287,7 +291,6 @@ export function CrewAndWinnerPreview() {
           </div>
         </div>
       )}
-      {selectedCrew ? <SharedPicksConcept initialPerson={selectedCrew} onClose={() => setSelectedCrew(null)} /> : null}
     </div>
   );
 }

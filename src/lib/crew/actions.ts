@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 type CrewActionResult = { ok: boolean; message: string };
 export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: string | null };
 type CrewSearchResult = CrewActionResult & { people: CrewSearchPerson[] };
+export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string };
 
 async function signedInClient() {
   const db = await createClient();
@@ -55,6 +56,16 @@ export async function searchCrewByName(name: string): Promise<CrewSearchResult> 
     avatarUrl: person.avatar_reference ? session.db.storage.from("profile-photos").getPublicUrl(person.avatar_reference).data.publicUrl : null,
   }));
   return { ok: true, message: people.length ? "Choose someone to send a Crew request." : "No discoverable members match that name. You can invite someone by email or verified phone.", people };
+}
+
+export async function getCrewSharedPicks(memberId: string): Promise<{ ok: boolean; picks: CrewSharedPick[] }> {
+  const session = await signedInClient();
+  if (!session || !/^[0-9a-f-]{36}$/i.test(memberId)) return { ok: false, picks: [] };
+  // The database function checks that this member has approved the connection
+  // and returns only entries they explicitly chose to share.
+  const { data, error } = await session.db.rpc("get_crew_shared_picks", { p_member_id: memberId });
+  if (error) return { ok: false, picks: [] };
+  return { ok: true, picks: (data ?? []) as CrewSharedPick[] };
 }
 
 export async function inviteToCrewById(memberId: string): Promise<CrewActionResult> {
