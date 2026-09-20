@@ -15,27 +15,47 @@ vi.mock("@supabase/ssr", () => ({
   },
 }));
 
-import { GET } from "./route";
+import { GET, POST } from "./route";
 
 afterEach(() => vi.clearAllMocks());
 
-test("recovery code keeps its session and opens the new-password form", async () => {
-  authMocks.exchange.mockImplementation(async () => {
+test("opening a recovery email does not consume its one-time code", async () => {
+  const response = await GET(new NextRequest("http://localhost:3000/auth/confirm?flow=recovery&code=valid"));
+  expect(response.headers.get("location")).toBe("http://localhost:3000/auth/recovery?code=valid");
+  expect(authMocks.exchange).not.toHaveBeenCalled();
+});
+
+test("opening a token-hash recovery email does not verify it on GET", async () => {
+  const response = await GET(new NextRequest("http://localhost:3000/auth/confirm?token_hash=valid&type=recovery"));
+  expect(response.headers.get("location")).toBe("http://localhost:3000/auth/recovery?token_hash=valid");
+  expect(authMocks.verify).not.toHaveBeenCalled();
+});
+
+test("explicit confirmation verifies the token and carries its session to the password form", async () => {
+  authMocks.verify.mockImplementation(async () => {
     authMocks.setAll?.([{ name: "sb-session", value: "recovery", options: { path: "/" } }]);
-    return { data: { redirectType: "recovery" }, error: null };
+    return { data: { session: { access_token: "verified" } }, error: null };
   });
-  const response = await GET(new NextRequest("http://localhost:3000/auth/confirm?code=valid"));
+  const response = await POST(new NextRequest("http://localhost:3000/auth/confirm", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", origin: "http://localhost:3000" },
+    body: new URLSearchParams({ flow: "recovery", token_hash: "valid" }),
+  }));
+  expect(authMocks.verify).toHaveBeenCalledWith({ type: "recovery", token_hash: "valid" });
+  expect(response.status).toBe(303);
   expect(response.headers.get("location")).toBe("http://localhost:3000/reset-password");
   expect(response.cookies.get("sb-session")?.value).toBe("recovery");
   expect(authMocks.signOut).not.toHaveBeenCalled();
 });
 
-test("token-hash recovery also opens the new-password form", async () => {
-  authMocks.verify.mockResolvedValue({ error: null });
-  const response = await GET(new NextRequest("http://localhost:3000/auth/confirm?token_hash=valid&type=recovery"));
-  expect(response.headers.get("location")).toBe("http://localhost:3000/reset-password");
-  expect(authMocks.verify).toHaveBeenCalledWith({ type: "recovery", token_hash: "valid" });
-  expect(authMocks.signOut).not.toHaveBeenCalled();
+test("a failed recovery confirmation cannot open the password form", async () => {
+  authMocks.verify.mockResolvedValue({ data: { session: null }, error: new Error("expired") });
+  const response = await POST(new NextRequest("http://localhost:3000/auth/confirm", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", origin: "http://localhost:3000" },
+    body: new URLSearchParams({ flow: "recovery", token_hash: "expired" }),
+  }));
+  expect(response.headers.get("location")).toBe("http://localhost:3000/forgot-password?error=expired");
 });
 
 test("signup confirmation still signs out before sending the person to login", async () => {
@@ -48,7 +68,11 @@ test("signup confirmation still signs out before sending the person to login", a
 
 test("an expired recovery code leads back to a fresh reset request", async () => {
   authMocks.exchange.mockResolvedValue({ data: null, error: new Error("expired") });
-  const response = await GET(new NextRequest("http://localhost:3000/auth/confirm?flow=recovery&code=expired"));
+  const response = await POST(new NextRequest("http://localhost:3000/auth/confirm", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", origin: "http://localhost:3000" },
+    body: new URLSearchParams({ flow: "recovery", code: "expired" }),
+  }));
   expect(response.headers.get("location")).toBe("http://localhost:3000/forgot-password?error=expired");
   expect(authMocks.signOut).not.toHaveBeenCalled();
 });

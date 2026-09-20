@@ -9,6 +9,18 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const recoveryAttempt = searchParams.get("flow") === "recovery" || type === "recovery";
 
+  // Email providers may prefetch links. A GET must never consume a one-time
+  // recovery token; the visitor explicitly continues from this landing page.
+  if (recoveryAttempt && (tokenHash || code)) {
+    const landingUrl = new URL("/auth/recovery", origin);
+    if (tokenHash) landingUrl.searchParams.set("token_hash", tokenHash);
+    else if (code) landingUrl.searchParams.set("code", code);
+    const landingResponse = NextResponse.redirect(landingUrl);
+    landingResponse.headers.set("Cache-Control", "no-store");
+    landingResponse.headers.set("Referrer-Policy", "no-referrer");
+    return landingResponse;
+  }
+
   const successUrl = `${origin}/login?verified=1`;
   const failureUrl = recoveryAttempt
     ? `${origin}/forgot-password?error=expired`
@@ -67,5 +79,51 @@ export async function GET(request: NextRequest) {
   // Confirming the address must not leave a session. Require a fresh login.
   await supabase.auth.signOut();
   response.headers.set("Location", successUrl);
+  return response;
+}
+
+export async function POST(request: NextRequest) {
+  const origin = new URL(request.url).origin;
+  const failureUrl = `${origin}/forgot-password?error=expired`;
+  const response = NextResponse.redirect(failureUrl, { status: 303 });
+  response.headers.set("Cache-Control", "no-store");
+
+  const requestOrigin = request.headers.get("origin");
+  if (requestOrigin && requestOrigin !== origin) return response;
+
+  const formData = await request.formData();
+  const tokenHash = formData.get("token_hash");
+  const code = formData.get("code");
+  if (formData.get("flow") !== "recovery" ||
+    (typeof tokenHash !== "string" || !tokenHash) && (typeof code !== "string" || !code)) {
+    return response;
+  }
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        },
+      },
+    }
+  );
+
+  if (typeof tokenHash === "string" && tokenHash) {
+    const { data, error } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
+    if (error || !data.session?.access_token) return response;
+  } else if (typeof code === "string" && code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const redirectType = (data as (typeof data & { redirectType?: string | null }) | null)?.redirectType;
+    if (error || redirectType !== "recovery" || !data.session?.access_token) return response;
+  }
+
+  response.headers.set("Location", `${origin}/reset-password`);
   return response;
 }

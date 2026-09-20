@@ -13,7 +13,7 @@ export default async function ResetPasswordPage() {
     <section className="mx-auto max-w-lg rounded-[28px] border border-cyan-200/20 bg-[#001b3d]/95 p-6 shadow-[0_32px_90px_rgba(0,0,0,.4)] sm:p-10">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">Account recovery</p>
       <h1 className="mt-3 text-3xl font-black sm:text-4xl">Choose a new password</h1>
-      {user ? <><p className="mb-7 mt-3 text-sm leading-6 text-white/70">Save a new password for your Zero Loss account.</p><ResetPasswordForm /></> : <><p role="alert" className="mt-5 rounded-xl border border-orange-300/35 bg-orange-300/10 p-4 text-sm leading-6">This reset link is expired or has already been used.</p><Link href="/forgot-password" className="mt-6 grid min-h-12 place-items-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Request a new link</Link></>}
+      {user ? <><p className="mb-7 mt-3 text-sm leading-6 text-white/70">Save a new password for your Zero Loss account.</p><ResetPasswordForm /></> : <><p role="alert" className="mt-5 rounded-xl border border-orange-300/35 bg-orange-300/10 p-4 text-sm leading-6">We couldn&apos;t verify your reset session. Your password has not changed. Please request a new link.</p><Link href="/forgot-password" className="mt-6 grid min-h-12 place-items-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Request a new link</Link></>}
     </section>
   </main>;
 }
