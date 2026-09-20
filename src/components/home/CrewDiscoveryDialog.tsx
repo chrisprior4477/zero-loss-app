@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { type MouseEvent, type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type MouseEvent, type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { inviteToCrew, inviteToCrewById, inviteToCrewByPhone, searchCrewByName, type CrewSearchPerson } from "@/lib/crew/actions";
 import { addSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { SharedPicksConcept } from "./SharedPicksConcept";
@@ -17,7 +17,7 @@ function SearchIcon() {
   return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="10.75" cy="10.75" r="6.75" /><path d="m16 16 4 4" /></svg>;
 }
 
-export function CrewDiscoveryDialog({ onClose }: { onClose: () => void }) {
+export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => void; outerPanelRef: RefObject<HTMLElement | null> }) {
   const router = useRouter();
   const previewRequests = useSampleCrewPreviews();
   const [values, setValues] = useState({ name: "", phone: "", email: "" });
@@ -69,10 +69,13 @@ export function CrewDiscoveryDialog({ onClose }: { onClose: () => void }) {
       const tabTop = tabRect.top - stageRect.top + 1;
       const joinRight = Math.min(12, (right - radius - tabRight) / 2);
       const joinLeft = Math.min(12, (tabLeft - left - radius) / 2);
-      const connected = tabIsVisible && tabRight - tabLeft > 30 && tabTop < top - radius && joinRight >= 3;
+      const rightEdgeJoin = joinRight < 3 && tabRight >= right - radius - 6;
+      const connected = tabIsVisible && tabRight - tabLeft > 30 && tabTop < top - radius && (joinRight >= 3 || rightEdgeJoin);
       let outline = "";
       if (connected) {
-        outline = `M ${left + radius} ${bottom} H ${right - radius} Q ${right} ${bottom} ${right} ${bottom - radius} V ${top + radius} Q ${right} ${top} ${right - radius} ${top} H ${tabRight + joinRight} Q ${tabRight} ${top} ${tabRight} ${top - joinRight} V ${tabTop + radius} Q ${tabRight} ${tabTop} ${tabRight - radius} ${tabTop} H ${tabLeft + radius} Q ${tabLeft} ${tabTop} ${tabLeft} ${tabTop + radius}`;
+        outline = rightEdgeJoin
+          ? `M ${left + radius} ${bottom} H ${right - radius} Q ${right} ${bottom} ${right} ${bottom - radius} V ${tabTop + radius} Q ${right} ${tabTop} ${right - radius} ${tabTop} H ${tabLeft + radius} Q ${tabLeft} ${tabTop} ${tabLeft} ${tabTop + radius}`
+          : `M ${left + radius} ${bottom} H ${right - radius} Q ${right} ${bottom} ${right} ${bottom - radius} V ${top + radius} Q ${right} ${top} ${right - radius} ${top} H ${tabRight + joinRight} Q ${tabRight} ${top} ${tabRight} ${top - joinRight} V ${tabTop + radius} Q ${tabRight} ${tabTop} ${tabRight - radius} ${tabTop} H ${tabLeft + radius} Q ${tabLeft} ${tabTop} ${tabLeft} ${tabTop + radius}`;
         if (tabLeft <= left + 4) {
           outline += ` V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom} Z`;
         } else if (joinLeft >= 3) {
@@ -182,8 +185,7 @@ export function CrewDiscoveryDialog({ onClose }: { onClose: () => void }) {
     finally { setPending(false); }
   }
 
-  return <div className={base.modalBackdrop} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <div role="dialog" aria-modal="true" aria-labelledby="crew-search-title" className={`${base.searchModal} ${styles.dialog}`}>
+  return <section ref={outerPanelRef} aria-label="Add to Your Crew discovery" className={`${base.searchModal} ${styles.inlinePanel}`}>
       <button type="button" className={base.closeButton} aria-label="Close Crew search" onClick={onClose}>×</button>
       <div className={base.searchHeading}>
         <span className={base.searchHeadingIcon} aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="27" cy="22" r="7" /><path d="M14 45c0-7 6-12 13-12s13 5 13 12M48 21v14m-7-7h14" /></svg></span>
@@ -218,6 +220,5 @@ export function CrewDiscoveryDialog({ onClose }: { onClose: () => void }) {
         {selected ? <svg ref={svgRef} className={styles.outline} aria-hidden="true" preserveAspectRatio="none"><path ref={pathRef} fill="none" stroke="#ff7417" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" /></svg> : null}
       </div> : <p className={styles.noSamples}>No sample profiles match that name. You can still invite a real person by phone or email.</p>}
       <div className={base.searchFooter}><p>Sample profiles stay in your browser preview, not the real member database. Real requests appear only after you choose to send one, and the other person must approve.</p><button type="button" onClick={onClose}>Done <span aria-hidden="true">✓</span></button></div>
-    </div>
-  </div>;
+  </section>;
 }

@@ -46,12 +46,13 @@ test("Crew discovery shows ten extra sample people and keeps their prizes in an 
 
   expect(screen.getAllByRole("button", { name: "Add to Your Crew" })).toHaveLength(2);
   fireEvent.click(screen.getAllByRole("button", { name: "Add to Your Crew" })[1]);
-  expect(screen.getByRole("dialog", { name: "Add to Your Crew" })).toBeTruthy();
-  expect(screen.getByRole("dialog").textContent).toContain("Real connections require their approval");
-  expect(within(screen.getByRole("dialog")).getAllByRole("button", { name: /'s sample prizes/ })).toHaveLength(14);
+  const discovery = screen.getByRole("region", { name: "Add to Your Crew discovery" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(discovery.textContent).toContain("Real connections require their approval");
+  expect(within(discovery).getAllByRole("button", { name: /'s sample prizes/ })).toHaveLength(14);
 
   fireEvent.click(screen.getByRole("button", { name: "See Mateo's sample prizes" }));
-  expect(within(screen.getByRole("dialog")).getByRole("region", { name: "Mateo's shared activity" })).toBeTruthy();
+  expect(within(discovery).getByRole("region", { name: "Mateo's shared activity" })).toBeTruthy();
   expect(screen.getByText("Mateo’s shared activity")).toBeTruthy();
   const mateo = screen.getByRole("button", { name: "See Mateo's sample prizes" }).parentElement!;
   fireEvent.click(within(mateo).getByRole("button", { name: "Add to Crew" }));
@@ -61,10 +62,19 @@ test("Crew discovery shows ten extra sample people and keeps their prizes in an 
   fireEvent.change(screen.getByRole("searchbox", { name: "Search by name" }), { target: { value: "Maya" } });
   fireEvent.click(screen.getByRole("button", { name: "Search Crew by name" }));
   await waitFor(() => expect(actions.searchCrewByName).toHaveBeenCalledWith("Maya"));
-  expect(within(screen.getByRole("dialog")).getAllByRole("button", { name: /'s sample prizes/ })).toHaveLength(1);
+  expect(within(discovery).getAllByRole("button", { name: /'s sample prizes/ })).toHaveLength(1);
 
   fireEvent.click(screen.getByRole("button", { name: "Close Crew search" }));
-  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("region", { name: "Add to Your Crew discovery" })).toBeNull();
+});
+
+test("the orange discovery panel and green prize panel replace one another in place", () => {
+  render(<CrewAndWinnerPreview />);
+  fireEvent.click(screen.getAllByRole("button", { name: "Add to Your Crew" })[0]);
+  expect(screen.getByRole("region", { name: "Add to Your Crew discovery" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "See Daniel's prizes" }));
+  expect(screen.queryByRole("region", { name: "Add to Your Crew discovery" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Daniel's shared activity" })).toBeTruthy();
 });
 
 test("Crew activity expands beneath the portraits without opening a page or dialog", () => {

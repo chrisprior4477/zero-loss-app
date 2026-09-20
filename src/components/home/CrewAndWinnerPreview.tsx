@@ -4,7 +4,7 @@ import Image from "next/image";
 import { type MouseEvent, type PointerEvent, type RefObject, useLayoutEffect, useRef, useState } from "react";
 import styles from "./CrewAndWinnerPreview.module.css";
 import { SharedPicksConcept } from "./SharedPicksConcept";
-import { CrewDiscoveryDialog } from "./CrewDiscoveryDialog";
+import { CrewDiscoveryPanel } from "./CrewDiscoveryDialog";
 import { addSampleCrewPreview, featuredCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
 
 const people = featuredCrewPeople;
@@ -65,7 +65,7 @@ function useDragRail(ref: RefObject<HTMLDivElement | null>) {
 export function CrewAndWinnerPreview() {
   const crewRailRef = useRef<HTMLDivElement>(null);
   const crewStageRef = useRef<HTMLDivElement>(null);
-  const selectedPersonRef = useRef<HTMLDivElement>(null);
+  const selectedPersonRef = useRef<HTMLElement>(null);
   const activityPanelRef = useRef<HTMLElement>(null);
   const outlineSvgRef = useRef<SVGSVGElement>(null);
   const outlinePathRef = useRef<SVGPathElement>(null);
@@ -79,7 +79,7 @@ export function CrewAndWinnerPreview() {
   const [selectedCrew, setSelectedCrew] = useState<(typeof people)[number]["name"] | null>(null);
 
   useLayoutEffect(() => {
-    if (!selectedCrew) return;
+    if (!selectedCrew && !crewSearchOpen) return;
     const stage = crewStageRef.current;
     const rail = crewRailRef.current;
     const tab = selectedPersonRef.current;
@@ -105,10 +105,13 @@ export function CrewAndWinnerPreview() {
       const tabTop = tabRect.top - stageRect.top + 1;
       const joinRight = Math.min(12, (right - radius - tabRight) / 2);
       const joinLeft = Math.min(12, (tabLeft - left - radius) / 2);
-      const connected = tabIsVisible && tabRight - tabLeft > 30 && tabTop < top - radius && joinRight >= 3;
+      const rightEdgeJoin = joinRight < 3 && tabRight >= right - radius - 6;
+      const connected = tabIsVisible && tabRight - tabLeft > 30 && tabTop < top - radius && (joinRight >= 3 || rightEdgeJoin);
       let outline = "";
       if (connected) {
-        outline = `M ${left + radius} ${bottom} H ${right - radius} Q ${right} ${bottom} ${right} ${bottom - radius} V ${top + radius} Q ${right} ${top} ${right - radius} ${top} H ${tabRight + joinRight} Q ${tabRight} ${top} ${tabRight} ${top - joinRight} V ${tabTop + radius} Q ${tabRight} ${tabTop} ${tabRight - radius} ${tabTop} H ${tabLeft + radius} Q ${tabLeft} ${tabTop} ${tabLeft} ${tabTop + radius}`;
+        outline = rightEdgeJoin
+          ? `M ${left + radius} ${bottom} H ${right - radius} Q ${right} ${bottom} ${right} ${bottom - radius} V ${tabTop + radius} Q ${right} ${tabTop} ${right - radius} ${tabTop} H ${tabLeft + radius} Q ${tabLeft} ${tabTop} ${tabLeft} ${tabTop + radius}`
+          : `M ${left + radius} ${bottom} H ${right - radius} Q ${right} ${bottom} ${right} ${bottom - radius} V ${top + radius} Q ${right} ${top} ${right - radius} ${top} H ${tabRight + joinRight} Q ${tabRight} ${top} ${tabRight} ${top - joinRight} V ${tabTop + radius} Q ${tabRight} ${tabTop} ${tabRight - radius} ${tabTop} H ${tabLeft + radius} Q ${tabLeft} ${tabTop} ${tabLeft} ${tabTop + radius}`;
         if (tabLeft <= left + 4) {
           outline += ` V ${bottom - radius} Q ${left} ${bottom} ${left + radius} ${bottom} Z`;
         } else if (joinLeft >= 3) {
@@ -152,7 +155,7 @@ export function CrewAndWinnerPreview() {
       rail.removeEventListener("scroll", scheduleDraw);
       window.removeEventListener("resize", scheduleDraw);
     };
-  }, [selectedCrew]);
+  }, [selectedCrew, crewSearchOpen]);
 
   function previewCrewRequest(name: (typeof people)[number]["name"]) {
     addSampleCrewPreview(name);
@@ -168,11 +171,17 @@ export function CrewAndWinnerPreview() {
   }
 
   function openCrewSearch() {
+    setSelectedCrew(null);
     setCrewSearchOpen(true);
   }
 
   function closeCrewSearch() {
     setCrewSearchOpen(false);
+  }
+
+  function toggleCrewPrizes(name: (typeof people)[number]["name"]) {
+    setCrewSearchOpen(false);
+    setSelectedCrew((current) => current === name ? null : name);
   }
 
   return (
@@ -185,7 +194,7 @@ export function CrewAndWinnerPreview() {
             <p className={styles.intro}>Keep your favorite people close. Share your picks only when you both choose to connect.</p>
           </div>
           <div className={styles.crewActions}>
-            <button className={styles.outlineButton} type="button" onClick={openCrewSearch}>
+            <button className={styles.outlineButton} type="button" onClick={openCrewSearch} aria-expanded={crewSearchOpen}>
               Add to Your Crew <span aria-hidden="true">→</span>
             </button>
             <div className={styles.arrows} aria-label="Crew carousel controls">
@@ -200,21 +209,21 @@ export function CrewAndWinnerPreview() {
           {people.map((person) => {
             const requested = previewRequests.includes(person.name);
             return (
-              <div ref={selectedCrew === person.name ? selectedPersonRef : undefined} className={`${styles.person} ${selectedCrew === person.name ? styles.personSelected : ""}`} key={person.name}>
-                <button type="button" className={styles.avatar} aria-label={`See ${person.name}'s prizes`} aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>
+              <div ref={selectedCrew === person.name ? (node) => { selectedPersonRef.current = node; } : undefined} className={`${styles.person} ${selectedCrew === person.name ? styles.personSelected : ""}`} key={person.name}>
+                <button type="button" className={styles.avatar} aria-label={`See ${person.name}'s prizes`} aria-expanded={selectedCrew === person.name} onClick={() => toggleCrewPrizes(person.name)}>
                   <Image src={person.photo} alt={`Fictional profile of ${person.name}`} draggable={false} fill sizes="(max-width: 640px) 88px, 112px" className={styles.avatarImage} />
                 </button>
-                <button type="button" className={styles.personName} aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>{person.name}</button>
+                <button type="button" className={styles.personName} aria-expanded={selectedCrew === person.name} onClick={() => toggleCrewPrizes(person.name)}>{person.name}</button>
                 <button className={`${styles.addButton} ${requested ? styles.addButtonSelected : ""}`} type="button" onClick={() => previewCrewRequest(person.name)}>
                   {requested ? "Preview added" : "Add to Crew"}
                 </button>
-                <button className={styles.sharedButton} type="button" aria-expanded={selectedCrew === person.name} onClick={() => setSelectedCrew(selectedCrew === person.name ? null : person.name)}>
+                <button className={styles.sharedButton} type="button" aria-expanded={selectedCrew === person.name} onClick={() => toggleCrewPrizes(person.name)}>
                   {selectedCrew === person.name ? "Hide prizes" : "See prizes"} <span aria-hidden="true">{selectedCrew === person.name ? "↑" : "↓"}</span>
                 </button>
               </div>
             );
           })}
-          <button className={styles.discoverPerson} type="button" onClick={openCrewSearch} aria-label="Add to Your Crew">
+          <button ref={crewSearchOpen ? (node) => { selectedPersonRef.current = node; } : undefined} className={`${styles.discoverPerson} ${crewSearchOpen ? styles.discoverSelected : ""}`} type="button" onClick={openCrewSearch} aria-label="Add to Your Crew" aria-expanded={crewSearchOpen}>
             <span className={styles.discoverAvatar} aria-hidden="true">
               <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="27" cy="22" r="7" />
@@ -226,7 +235,8 @@ export function CrewAndWinnerPreview() {
           </button>
         </div>
         {selectedCrew ? <SharedPicksConcept key={selectedCrew} person={selectedCrew} onClose={() => setSelectedCrew(null)} connectedOutline panelRef={activityPanelRef} /> : null}
-        {selectedCrew ? <svg ref={outlineSvgRef} className={styles.crewOutline} aria-hidden="true" preserveAspectRatio="none"><path ref={outlinePathRef} fill="none" stroke="#67f768" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" /></svg> : null}
+        {crewSearchOpen ? <CrewDiscoveryPanel onClose={closeCrewSearch} outerPanelRef={activityPanelRef} /> : null}
+        {selectedCrew || crewSearchOpen ? <svg ref={outlineSvgRef} className={`${styles.crewOutline} ${crewSearchOpen ? styles.crewOutlineOrange : ""}`} aria-hidden="true" preserveAspectRatio="none"><path ref={outlinePathRef} fill="none" stroke={crewSearchOpen ? "#ff7417" : "#67f768"} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" /></svg> : null}
         </div>
         <p className={styles.demoNote}>Illustrative profiles. These people are fictional; no invitations are sent from this preview.</p>
         {crewMessage && <p className={styles.crewMessage} role="status">{crewMessage}</p>}
@@ -262,8 +272,6 @@ export function CrewAndWinnerPreview() {
         </div>
         <p className={styles.swipeHint}>Swipe or use the arrows to explore <span aria-hidden="true">→</span></p>
       </section>
-
-      {crewSearchOpen ? <CrewDiscoveryDialog onClose={closeCrewSearch} /> : null}
 
       {selectedStory !== null && (
         <div className={styles.modalBackdrop} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedStory(null); }}>
