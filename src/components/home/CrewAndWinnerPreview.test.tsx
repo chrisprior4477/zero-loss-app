@@ -77,6 +77,21 @@ test("the orange discovery panel and green prize panel replace one another in pl
   expect(screen.getByRole("region", { name: "Daniel's shared activity" })).toBeTruthy();
 });
 
+test("Crew push-downs stay open for their own controls and close after tapping elsewhere", () => {
+  render(<CrewAndWinnerPreview />);
+  fireEvent.click(screen.getAllByRole("button", { name: "Add to Your Crew" })[0]);
+  fireEvent.pointerDown(screen.getByRole("searchbox", { name: "Search by name" }));
+  expect(screen.getByRole("region", { name: "Add to Your Crew discovery" })).toBeTruthy();
+  fireEvent.pointerDown(document.body);
+  expect(screen.queryByRole("region", { name: "Add to Your Crew discovery" })).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "See Maya's prizes" }));
+  fireEvent.pointerDown(screen.getByRole("button", { name: "Next shared item" }));
+  expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
+  fireEvent.pointerDown(screen.getByRole("heading", { name: "Meet our winners" }));
+  expect(screen.queryByRole("region", { name: "Maya's shared activity" })).toBeNull();
+});
+
 test("Crew activity expands beneath the portraits without opening a page or dialog", () => {
   render(<CrewAndWinnerPreview />);
   fireEvent.click(screen.getByRole("button", { name: "See Maya's prizes" }));

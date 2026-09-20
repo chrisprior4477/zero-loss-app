@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { type MouseEvent, type PointerEvent, type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { type MouseEvent, type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./CrewAndWinnerPreview.module.css";
 import { SharedPicksConcept } from "./SharedPicksConcept";
 import { CrewDiscoveryPanel } from "./CrewDiscoveryDialog";
@@ -65,6 +65,7 @@ function useDragRail(ref: RefObject<HTMLDivElement | null>) {
 export function CrewAndWinnerPreview() {
   const crewRailRef = useRef<HTMLDivElement>(null);
   const crewStageRef = useRef<HTMLDivElement>(null);
+  const crewSearchButtonRef = useRef<HTMLButtonElement>(null);
   const selectedPersonRef = useRef<HTMLElement>(null);
   const activityPanelRef = useRef<HTMLElement>(null);
   const outlineSvgRef = useRef<SVGSVGElement>(null);
@@ -77,6 +78,19 @@ export function CrewAndWinnerPreview() {
   const [crewSearchOpen, setCrewSearchOpen] = useState(false);
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
   const [selectedCrew, setSelectedCrew] = useState<(typeof people)[number]["name"] | null>(null);
+
+  useEffect(() => {
+    if (!selectedCrew && !crewSearchOpen) return;
+    const closeWhenOutside = (event: globalThis.PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (activityPanelRef.current?.contains(target) || selectedPersonRef.current?.contains(target) || crewSearchButtonRef.current?.contains(target)) return;
+      setSelectedCrew(null);
+      setCrewSearchOpen(false);
+    };
+    document.addEventListener("pointerdown", closeWhenOutside);
+    return () => document.removeEventListener("pointerdown", closeWhenOutside);
+  }, [selectedCrew, crewSearchOpen]);
 
   useLayoutEffect(() => {
     if (!selectedCrew && !crewSearchOpen) return;
@@ -172,7 +186,7 @@ export function CrewAndWinnerPreview() {
 
   function openCrewSearch() {
     setSelectedCrew(null);
-    setCrewSearchOpen(true);
+    setCrewSearchOpen((current) => !current);
   }
 
   function closeCrewSearch() {
@@ -194,7 +208,7 @@ export function CrewAndWinnerPreview() {
             <p className={styles.intro}>Keep your favorite people close. Share your picks only when you both choose to connect.</p>
           </div>
           <div className={styles.crewActions}>
-            <button className={styles.outlineButton} type="button" onClick={openCrewSearch} aria-expanded={crewSearchOpen}>
+            <button ref={crewSearchButtonRef} className={styles.outlineButton} type="button" onClick={openCrewSearch} aria-expanded={crewSearchOpen}>
               Add to Your Crew <span aria-hidden="true">→</span>
             </button>
             <div className={styles.arrows} aria-label="Crew carousel controls">
