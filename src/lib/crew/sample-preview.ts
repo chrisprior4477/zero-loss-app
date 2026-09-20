@@ -7,7 +7,20 @@ export const sampleCrewPeople = [
   { name: "Daniel", photo: "/images/home/crew/person-2.webp" },
   { name: "Ari", photo: "/images/home/crew/person-3.webp" },
   { name: "Leo", photo: "/images/home/crew/person-4.webp" },
+  { name: "Claire", photo: "/images/home/crew/person-5.webp" },
+  { name: "Marcus", photo: "/images/home/crew/person-6.webp" },
+  { name: "Mateo", photo: "/images/home/crew/person-mateo.webp" },
+  { name: "Nora", photo: "/images/home/crew/person-nora.webp" },
+  { name: "Samir", photo: "/images/home/crew/person-samir.webp" },
+  { name: "Jules", photo: "/images/home/crew/person-jules.webp" },
+  { name: "Tessa", photo: "/images/home/crew/person-tessa.webp" },
+  { name: "Andre", photo: "/images/home/crew/person-andre.webp" },
+  { name: "Sofia", photo: "/images/home/crew/person-sofia.webp" },
+  { name: "Owen", photo: "/images/home/crew/person-owen.webp" },
 ] as const;
+
+export const featuredCrewPeople = sampleCrewPeople.slice(0, 4);
+export const discoveryCrewPeople = sampleCrewPeople.slice(4);
 
 export type SampleCrewName = (typeof sampleCrewPeople)[number]["name"];
 const key = "zero-loss-sample-crew-v1";
@@ -61,6 +74,6 @@ export function removeSampleCrewPreview(name: SampleCrewName) {
 // profiles once in the account preview and retain later edits in this browser.
 export function initializeSampleCrewPreview() {
   try {
-    if (localStorage.getItem(key) === null) write(sampleCrewPeople.map((person) => person.name));
+    if (localStorage.getItem(key) === null) write(featuredCrewPeople.map((person) => person.name));
   } catch { /* Browser storage can be disabled. */ }
 }

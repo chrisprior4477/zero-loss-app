@@ -1,5 +1,10 @@
 .panel { position: relative; min-width: 0; border: 2px solid #67f768; border-radius: 18px; padding: clamp(15px, 2.5vw, 24px); background: linear-gradient(135deg, #103451, #071f39 68%); color: #fff; box-shadow: inset 0 12px 25px #4afa4a0d, 0 12px 28px #0005, 0 0 24px #4afa4a26; animation: reveal .25s ease-out; }
 .connectedOutline { margin-top: 6px; border-color: transparent; animation: none; }
+.orange { border-color: #ff7417; box-shadow: inset 0 12px 25px #ff74170d, 0 12px 28px #0005, 0 0 24px #ff741735; }
+.orange.connectedOutline { border-color: transparent; }
+.orange .avatar,.orange .initial { border-color: #ff8b3d; }
+.orange .viewLink { color: #ffad72; }
+.orange .railFooter button { border-color: #ff8b3d; }
 .header { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
 .personHeading { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .avatar,.initial { position: relative; display: grid; width: 48px; height: 48px; flex: none; place-items: center; overflow: hidden; border: 2px solid #65f774; border-radius: 50%; background: #165477; color: white; font-size: 1.25rem; font-weight: 850; }

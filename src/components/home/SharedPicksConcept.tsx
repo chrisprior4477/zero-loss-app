@@ -25,17 +25,58 @@ const samplePicks = {
     { title: "PlayStation 5 Slim", retailer: "Best Buy", image: "/dollar-choice-gaming.png", slug: "playstation-5-slim", note: "Game night" },
     { title: 'Samsung 50" M70H Mini LED TV', retailer: "Best Buy", image: "/catalog/samsung-m70h-tv-real.png", slug: "samsung-m70h-tv", note: "Movie night" },
   ],
+  Claire: [
+    { title: "HomeGoods $75 Gift Card", retailer: "HomeGoods", image: "/catalog/homegoods-75-gift-card.svg", slug: "homegoods-75-gift-card", note: "A little home refresh" },
+    { title: "Dyson V8 Cordless Vacuum", retailer: "Lowe’s", image: "/catalog/dyson-v8-diagonal-real.png", slug: "dyson-v8-cordless-vacuum", note: "Home upgrade" },
+  ],
+  Marcus: [
+    { title: "PlayStation 5 Slim", retailer: "Best Buy", image: "/dollar-choice-gaming.png", slug: "playstation-5-slim", note: "Family game night" },
+    { title: "$100 Best Buy Gift Card", retailer: "Best Buy", image: "/catalog/best-buy-100-gift-card.svg", slug: "best-buy-100-gift-card", note: "Tech finds" },
+  ],
+  Mateo: [
+    { title: "Nike Court Shot Shoes", retailer: "Dick’s Sporting Goods", image: "/catalog/nike-court-shot-side-cutout.png", slug: "nike-court-shot-shoes", note: "New kicks" },
+    { title: "Dunkin’ $25 Gift Card", retailer: "Dunkin’", image: "/catalog/dunkin-25-gift-card.svg", slug: "dunkin-25-gift-card", note: "Morning coffee" },
+  ],
+  Nora: [
+    { title: "Baby’s Essentials Bundle", retailer: "Walmart", image: "/catalog/babys-essentials-bundle-angled-real.png", slug: "babys-essentials-bundle", note: "Family essentials" },
+    { title: "HomeGoods $75 Gift Card", retailer: "HomeGoods", image: "/catalog/homegoods-75-gift-card.svg", slug: "homegoods-75-gift-card", note: "For the house" },
+  ],
+  Samir: [
+    { title: "$150 Lowe’s Appliance Gift Card", retailer: "Lowe’s", image: "/catalog/lowes-150-gift-card.svg", slug: "lowes-150-gift-card", note: "Weekend project" },
+    { title: "Dyson V8 Cordless Vacuum", retailer: "Lowe’s", image: "/catalog/dyson-v8-diagonal-real.png", slug: "dyson-v8-cordless-vacuum", note: "Home upgrade" },
+  ],
+  Jules: [
+    { title: "$25 Netflix Gift Card", retailer: "Netflix", image: "/catalog/netflix-25-gift-card.svg", slug: "netflix-25-gift-card", note: "A movie night" },
+    { title: 'Samsung 50" M70H Mini LED TV', retailer: "Best Buy", image: "/catalog/samsung-m70h-tv-real.png", slug: "samsung-m70h-tv", note: "Living-room wishlist" },
+  ],
+  Tessa: [
+    { title: "HomeGoods $75 Gift Card", retailer: "HomeGoods", image: "/catalog/homegoods-75-gift-card.svg", slug: "homegoods-75-gift-card", note: "Something cozy" },
+    { title: "Dunkin’ $25 Gift Card", retailer: "Dunkin’", image: "/catalog/dunkin-25-gift-card.svg", slug: "dunkin-25-gift-card", note: "Coffee date" },
+  ],
+  Andre: [
+    { title: "PlayStation 5 Slim", retailer: "Best Buy", image: "/dollar-choice-gaming.png", slug: "playstation-5-slim", note: "New games" },
+    { title: "Nike Court Shot Shoes", retailer: "Dick’s Sporting Goods", image: "/catalog/nike-court-shot-side-cutout.png", slug: "nike-court-shot-shoes", note: "Everyday style" },
+  ],
+  Sofia: [
+    { title: "Baby’s Essentials Bundle", retailer: "Walmart", image: "/catalog/babys-essentials-bundle-angled-real.png", slug: "babys-essentials-bundle", note: "Family favorites" },
+    { title: "$100 Best Buy Gift Card", retailer: "Best Buy", image: "/catalog/best-buy-100-gift-card.svg", slug: "best-buy-100-gift-card", note: "A new gadget" },
+  ],
+  Owen: [
+    { title: "$150 Lowe’s Appliance Gift Card", retailer: "Lowe’s", image: "/catalog/lowes-150-gift-card.svg", slug: "lowes-150-gift-card", note: "Home project" },
+    { title: "$25 Netflix Gift Card", retailer: "Netflix", image: "/catalog/netflix-25-gift-card.svg", slug: "netflix-25-gift-card", note: "Weekend unwind" },
+  ],
 } satisfies Record<SampleCrewName, { title: string; retailer: string; image: string; slug: string; note: string }[]>;
 
 export type CrewActivityPick = { title: string; retailer: string; image: string; slug: string; note?: string };
 
-export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false, connectedOutline = false, panelRef }: {
+export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false, connectedOutline = false, accent = "green", panelRef }: {
   person: string;
   onClose: () => void;
   picks?: CrewActivityPick[];
   avatarUrl?: string | null;
   loading?: boolean;
   connectedOutline?: boolean;
+  accent?: "green" | "orange";
   panelRef?: RefObject<HTMLElement | null>;
 }) {
   const sample = person in samplePicks && !picks;
@@ -79,7 +120,7 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
     rail.scrollBy({ left: direction * (card.getBoundingClientRect().width + gap), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }
 
-  return <section ref={panelRef} className={`${styles.panel} ${connectedOutline ? styles.connectedOutline : ""}`} aria-label={`${person}'s shared activity`}>
+  return <section ref={panelRef} className={`${styles.panel} ${connectedOutline ? styles.connectedOutline : ""} ${accent === "orange" ? styles.orange : ""}`} aria-label={`${person}'s shared activity`}>
     <div className={styles.header}>
       <div className={styles.personHeading}>
         {avatarUrl || sampleAvatar ? <span className={styles.avatar}><Image src={(avatarUrl || sampleAvatar)!} alt="" fill sizes="48px" className={styles.avatarImage} unoptimized={Boolean(avatarUrl)} /></span> : <span className={styles.initial}>{person.slice(0, 1).toUpperCase()}</span>}
