@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { type MouseEvent, type PointerEvent, useRef } from "react";
+import { type MouseEvent, type PointerEvent, type RefObject, useRef } from "react";
 import { sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import styles from "./SharedPicksConcept.module.css";
 
@@ -29,12 +29,14 @@ const samplePicks = {
 
 export type CrewActivityPick = { title: string; retailer: string; image: string; slug: string; note?: string };
 
-export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false }: {
+export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false, connectedOutline = false, panelRef }: {
   person: string;
   onClose: () => void;
   picks?: CrewActivityPick[];
   avatarUrl?: string | null;
   loading?: boolean;
+  connectedOutline?: boolean;
+  panelRef?: RefObject<HTMLElement | null>;
 }) {
   const sample = person in samplePicks && !picks;
   const visiblePicks: CrewActivityPick[] = picks ?? (sample ? samplePicks[person as SampleCrewName] : []);
@@ -77,7 +79,7 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
     rail.scrollBy({ left: direction * (card.getBoundingClientRect().width + gap), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }
 
-  return <section className={styles.panel} aria-label={`${person}'s shared activity`}>
+  return <section ref={panelRef} className={`${styles.panel} ${connectedOutline ? styles.connectedOutline : ""}`} aria-label={`${person}'s shared activity`}>
     <div className={styles.header}>
       <div className={styles.personHeading}>
         {avatarUrl || sampleAvatar ? <span className={styles.avatar}><Image src={(avatarUrl || sampleAvatar)!} alt="" fill sizes="48px" className={styles.avatarImage} unoptimized={Boolean(avatarUrl)} /></span> : <span className={styles.initial}>{person.slice(0, 1).toUpperCase()}</span>}

@@ -8,12 +8,13 @@
 .outlineButton { display: inline-flex; align-items: center; justify-content: center; gap: .75rem; flex: none; min-height: 2.65rem; border: 1px solid #32c7f5; border-radius: .65rem; padding: .55rem 1rem; color: #effdff; background: #092a4d; font-size: .84rem; font-weight: 750; transition: background .2s, transform .2s; }
 .outlineButton:hover { background: #0c416e; transform: translateY(-2px); }
 .outlineButton:focus-visible, .addButton:focus-visible, .sharedButton:focus-visible, .arrows button:focus-visible, .storyCard:focus-visible, .discoverPerson:focus-visible, .closeButton:focus-visible, .searchModal button:focus-visible, .searchModal input:focus-visible { outline: 3px solid #7de6ff; outline-offset: 3px; }
-.peopleRail { display: flex; width: min(100%, 760px); justify-content: start; gap: .75rem; overflow-x: auto; padding: 1.1rem .25rem 0; scrollbar-width: none; cursor: grab; user-select: none; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
+.crewOutlineStage { position: relative; min-width: 0; }
+.crewOutline { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; filter: drop-shadow(0 0 4px #52fa4970); }
+.peopleRail { display: flex; width: min(100%, 760px); justify-content: start; gap: .75rem; overflow-x: auto; padding: 1.1rem 0 0; scrollbar-width: none; cursor: grab; user-select: none; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
 .peopleRail:active, .storyRail:active { cursor: grabbing; }
 .peopleRail::-webkit-scrollbar, .storyRail::-webkit-scrollbar { display: none; }
 .person, .discoverPerson { display: flex; flex: 0 0 142px; flex-direction: column; align-items: center; text-align: center; }
-.personSelected { position: relative; border: 1px solid #67f768; border-bottom: 0; border-radius: .9rem .9rem 0 0; background: linear-gradient(#0e3b54, #102f4a); box-shadow: 0 0 18px #4afa4a36; }
-.personSelected::after { position: absolute; z-index: 2; right: -1px; bottom: -8px; left: -1px; height: 9px; border-right: 1px solid #67f768; border-left: 1px solid #67f768; background: #102f4a; content: ""; }
+.personSelected { position: relative; margin-top: -.85rem; border-radius: 18px 18px 0 0; padding-top: .85rem; background: linear-gradient(#0e3b54, #102f4a); box-shadow: 0 0 18px #4afa4a36; }
 .avatar { position: relative; width: 112px; height: 112px; overflow: hidden; border: 3px solid #20bff1; border-radius: 50%; background: #174269; box-shadow: 0 0 0 4px #061b34, 0 0 0 5px #1a6586, 0 8px 25px #0006; }
 .avatarImage { object-fit: cover; }
 .personName { margin-top: .8rem; font-size: 1rem; font-weight: 800; line-height: 1.2; }
