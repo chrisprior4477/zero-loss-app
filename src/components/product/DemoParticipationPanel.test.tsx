@@ -32,6 +32,8 @@ test("signed-out funding resumes the same funding form after sign-in", () => {
   const url = new URL(href, "https://example.test");
   expect(url.pathname).toBe("/login");
   expect(url.searchParams.get("next")).toBe("/account/wallet?view=history&from=test-product#add-funds");
+  expect(url.searchParams.get("focus")).toBe("email");
+  expect(url.hash).toBe("#login-form");
 });
 test("the first additional entry requires acknowledgment before saving and increasing quantity", async () => {
   actionMocks.acknowledge.mockResolvedValue({ status: "succeeded" });

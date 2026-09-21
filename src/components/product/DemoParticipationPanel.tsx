@@ -158,7 +158,7 @@ export function DemoParticipationPanel({
 
       <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 px-4 py-3 text-sm">
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
-        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}`} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
+        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>
 
       <div className="mt-5 rounded-xl border border-[#31e800]/30 bg-[#31e800]/8 p-4 text-sm leading-6 text-white/85">

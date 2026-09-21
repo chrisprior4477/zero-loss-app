@@ -22,7 +22,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   // A return link may name an existing catalog prize, not arbitrary content.
   const fromProduct = history && typeof query.from === "string" ? getDemoProduct(query.from) : undefined;
   const account = await getAccountContext();
-  if (!account) redirect(history ? `/login?next=${encodeURIComponent(fundingHref(fromProduct?.slug))}` : "/login");
+  if (!account) redirect(history ? `/login?next=${encodeURIComponent(fundingHref(fromProduct?.slug))}&focus=email#login-form` : "/login");
   // A URL only selects from this authenticated account's authorized data.
   const matchingRewards = walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
   const reward = typeof query.rewardId === "string"

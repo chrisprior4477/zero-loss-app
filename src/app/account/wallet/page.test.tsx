@@ -15,6 +15,8 @@ test("an expired session keeps the funding destination and catalog prize through
   const destination = new URL(mocks.redirect.mock.calls[0][0], "https://example.test");
   expect(destination.pathname).toBe("/login");
   expect(destination.searchParams.get("next")).toBe("/account/wallet?view=history&from=samsung-m70h-tv#add-funds");
+  expect(destination.searchParams.get("focus")).toBe("email");
+  expect(destination.hash).toBe("#login-form");
 });
 
 test.each(["samsung-m70h-tv", "not-in-the-catalog", "https://evil.test", ["samsung-m70h-tv", "other"]])("only a known catalog prize produces a return link: %s", async (from) => {
