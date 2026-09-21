@@ -2320,3 +2320,21 @@ The Enterprise Data Dictionary is the canonical vocabulary of Project Zero-Loss.
 Every database schema, API contract, domain event, integration, analytics model, AI-generated implementation, and operational process must derive its business terminology from this document.
 
 No implementation may redefine an entity, ownership boundary, or business meaning established herein without formal architecture approval.
+
+## Implemented development-test records — September 2026
+
+### Support Case
+
+Support-owned case aggregate (`public.support_cases`). UUID `id`, unique immutable `sup_` case number, customer, optional customer-owned Ledger reference, category, subject, idempotency key, timestamps and review status. Status is `open`, `awaiting_customer`, or `resolved`; a customer follow-up returns it to `open`. Status is a review projection, never a financial outcome. Creation and reply evidence live in immutable Support Case Events. The current implementation is explicitly `development-test` and cannot submit production payments or issue refunds.
+
+### Support Case Event
+
+Support-owned append-only customer/staff message (`public.support_case_events`), identified by UUID. Records case, authenticated actor, actor kind, event name, body, status snapshot, idempotency key and timestamp. One opening event per case; one logical request per actor/key. Message edits, deletion and truncation are blocked. Customers see only their own case history; explicitly authorized reviewers can see cases for support purposes. UI warns against entering credentials, payment/identity documents or reward codes. The body is private customer content, not public analytics or an outbound integration payload.
+
+### Support Staff Access Event
+
+Private append-only administrative authorization evidence (`support_private.staff_access_events`): UUID, target user, approving actor, `granted`/`revoked`, reason and timestamp. Latest event determines case-review access. No client writes or self-grants. This role grants no financial authority.
+
+### Entry recovery evidence
+
+Pools & Sweepstakes retains the existing Entry Request identity. `demo_private.entry_request_attempts` immutably maps each authenticated customer/request key and submitted terms to its original Entry Request, including recovery from a stale page. It is not another Entry, balance or purchase. The latest-request comparison and new reservation share the same customer/wallet lock. `public.entry_request_receipt_acknowledgments` records the owner's dismissal of a completed receipt; pending requests cannot be dismissed. Acknowledgment never deletes the receipt or changes an entry/financial outcome. Neither record expires merely because a browser was disconnected.

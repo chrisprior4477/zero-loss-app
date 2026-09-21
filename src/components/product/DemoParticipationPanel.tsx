@@ -45,11 +45,21 @@ export function DemoParticipationPanel({
   extraEntryExplainerAcknowledged = false,
 }: Props) {
   const router = useRouter();
-  const [state, action, pending] = useActionState(createPreviewEntry, { status: "idle" });
+  // A lost response must retry the exact intent. Server comparison also protects
+  // reloads/new tabs, where this transient form memory has been lost.
+  const attemptedForm = useRef<FormData | null>(null);
+  const [state, action, pending] = useActionState(async (previous: Parameters<typeof createPreviewEntry>[0], data: FormData) => {
+    const payload = previous.status === "error" && previous.code === "outcome_unknown" && attemptedForm.current ? attemptedForm.current : data;
+    attemptedForm.current = payload;
+    try { return await createPreviewEntry(previous, payload); }
+    catch { return { status: "error" as const, code: "outcome_unknown" as const, message: "The connection was interrupted. Check the saved submission before starting another entry." }; }
+  }, { status: "idle" });
   const [quantity, setQuantity] = useState(1);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
   const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
   const receivedRequests = useRef(new Map<string, EntryRequest["status"]>());
+  const latestReceipt = useRef<EntryRequest | null>(null);
+  const uncertain = state.status === "error" && state.code === "outcome_unknown";
   const entryBusy = pending || state.status === "succeeded" || requestReceipt?.status === "pending";
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
   const [additionalEntryTermsSeen, setAdditionalEntryTermsSeen] = useState(false);
@@ -75,7 +85,7 @@ export function DemoParticipationPanel({
   const addFundsHref = fundingHref(productSlug);
 
   const requestAdditionalEntry = () => {
-    if (entryBusy || quantity >= maxQuantity) return;
+    if (entryBusy || uncertain || quantity >= maxQuantity) return;
     if (!additionalEntryTermsSeen && !skipFutureExplainer) {
       setAdditionalEntryNoticeOpen(true);
       return;
@@ -116,7 +126,10 @@ export function DemoParticipationPanel({
     const receive = (event: Event) => {
       const request = (event as CustomEvent<EntryRequest>).detail;
       if (request.slug !== productSlug) return;
+      if (latestReceipt.current && (Date.parse(request.undoUntil) < Date.parse(latestReceipt.current.undoUntil) ||
+        (request.requestId === latestReceipt.current.requestId && latestReceipt.current.status !== "pending" && request.status === "pending"))) return;
       if (receivedRequests.current.get(request.requestId) === request.status) return;
+      latestReceipt.current = request;
       receivedRequests.current.set(request.requestId, request.status);
       setRequestReceipt(request);
       if (request.status === "pending") setQuantity(request.quantity);
@@ -158,7 +171,7 @@ export function DemoParticipationPanel({
         </div>
       </div>
 
-      <div className="mt-7 flex items-center justify-between rounded-2xl bg-white/7 p-3">
+      <fieldset disabled={uncertain} className="mt-7 flex items-center justify-between rounded-2xl bg-white/7 p-3">
         <div>
           <p className="text-xs text-white/60">Your entries</p>
           <p className="mt-0.5 font-bold" aria-live="polite">${total.toFixed(2)} total</p>
@@ -168,8 +181,12 @@ export function DemoParticipationPanel({
           <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
           <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup="dialog">+</button>
         </div>
-      </div>
+      </fieldset>
       <p className="mt-2 text-[11px] leading-5 text-white/55">Each entry is separate. Entry amounts and completion options never combine.</p>
+      {requestReceipt && requestReceipt.status !== "pending" ? <div className="mt-3 rounded-xl border border-cyan-300/35 bg-[#062b4d] p-3 text-sm" role="status">
+        <p>{requestReceipt.status === "accepted" ? `Your previous submission of ${requestReceipt.quantity} ${requestReceipt.quantity === 1 ? "ticket is" : "tickets are"} saved. Entering again creates a separate submission.` : "Your previous submission was not entered. You can start a new submission below."}</p>
+        {requestReceipt.href ? <Link href={requestReceipt.href} className="mt-2 inline-block font-bold text-cyan-300 underline">View previous submission →</Link> : null}
+      </div> : null}
 
       {!availabilityConfirmed ? (
         <div role="status" className="mt-4 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-4 text-sm">
@@ -181,6 +198,8 @@ export function DemoParticipationPanel({
       ) : isSignedIn ? (
         <form ref={entryFormRef} action={action} onSubmit={(event) => {
           if (entryBusy) { event.preventDefault(); return; }
+          // Retry the original intent, not new balance/quantity/sharing choices.
+          if (uncertain) return;
           if (knownBalance !== null && knownBalance < totalCents) {
             event.preventDefault();
             shareChoiceConfirmed.current = false;
@@ -194,10 +213,11 @@ export function DemoParticipationPanel({
         }}>
           <input type="hidden" name="offeringSlug" value={productSlug} />
           <input type="hidden" name="idempotencyKey" value={submissionKey} />
+          <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? "" : ""} />
           <input type="hidden" name="quantity" value={quantity} />
           <input ref={shareChoiceRef} type="hidden" name="shareWithCrew" value="no" />
           <button type="submit" disabled={entryBusy} className="mt-4 w-full rounded-xl bg-[#00b9ff] px-5 py-3.5 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">
-            {pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}
+            {pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}
           </button>
         </form>
       ) : (
@@ -283,6 +303,7 @@ export function DemoParticipationPanel({
           <section role="dialog" aria-modal="true" aria-labelledby="crew-share-title" className="w-full max-w-md rounded-2xl border border-cyan-300/60 bg-[#072744] p-5 text-white shadow-[0_20px_70px_#000a,0_0_25px_#00b9ff44] sm:p-7">
             <p className="text-xs font-extrabold uppercase tracking-[.16em] text-cyan-300">One last choice</p>
             <h2 id="crew-share-title" className="mt-2 text-2xl font-black">Share this pick with your Crew?</h2>
+            {requestReceipt?.status === "accepted" ? <p className="mt-3 rounded-lg border border-cyan-300/35 p-3 text-sm">Your previous {requestReceipt.quantity === 1 ? "ticket is" : `${requestReceipt.quantity} tickets are`} already saved. This is a new, additional submission for ${total.toFixed(2)}.</p> : null}
             <p className="mt-3 text-sm leading-6 text-white/75">Only people you approve for your Crew can see that you picked <strong className="text-white">{productTitle}</strong>. They won’t see your payment details or wallet. This does not change your entry or chances.</p>
             <p className="mt-3 text-xs leading-5 text-white/60">You can turn sharing on or off for each entry anytime in <Link href="/account/crew" className="font-bold text-cyan-300 underline">Account → Your Crew</Link>. Nothing is shared publicly.</p>
             <div className="mt-6 grid gap-2 sm:grid-cols-2">

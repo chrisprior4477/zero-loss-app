@@ -1,13 +1,41 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), refresh: vi.fn(), path: "/items/test-prize" }));
+const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), acknowledge: vi.fn(), refresh: vi.fn(), path: "/items/test-prize" }));
 vi.mock("next/navigation", () => ({ usePathname: () => mocks.path, useRouter: () => ({ refresh: mocks.refresh }) }));
-vi.mock("@/lib/entries/actions", () => ({ listPendingEntryRequests: mocks.list, resolvePendingEntryRequest: mocks.resolve }));
+vi.mock("@/lib/entries/actions", () => ({ listPendingEntryRequests: mocks.list, resolvePendingEntryRequest: mocks.resolve, acknowledgeEntryReceipt: mocks.acknowledge }));
 import { PendingEntryNotice } from "./PendingEntryNotice";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 const request: EntryRequest = { requestId: "41414141-4141-4141-8141-414141414141", slug: "test-prize", title: "Test prize", quantity: 3, amountCents: 300, status: "pending", undoUntil: "2026-09-21T12:00:30Z", serverNow: "2026-09-21T12:00:00Z", href: null };
 beforeEach(() => { vi.resetAllMocks(); mocks.path = "/items/test-prize"; sessionStorage.clear(); mocks.list.mockResolvedValue({ requests: [request] }); });
 afterEach(() => { cleanup(); vi.useRealTimers(); });
+
+test("old completed receipts are restored and dismissal is persisted before hiding", async () => {
+  mocks.list.mockResolvedValue({ requests: [{ ...request, status: "accepted", href: "/account/entries?entry=ent_abcd" }] });
+  mocks.acknowledge.mockResolvedValueOnce({ error: "Connection interrupted." }).mockResolvedValueOnce({});
+  render(<PendingEntryNotice />);
+  fireEvent.click(await screen.findByRole("button", { name: "Dismiss confirmation for Test prize" }));
+  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Connection interrupted.");
+  expect(screen.getByRole("link", { name: "View entries →" })).toBeTruthy();
+  mocks.list.mockResolvedValue({ requests: [] });
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss confirmation for Test prize" }));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "Entry confirmations" })).toBeNull());
+  expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId);
+});
+
+test("returning online recovers a missed receipt even if no pending toast was known", async () => {
+  mocks.list.mockResolvedValueOnce({ requests: [], error: "Offline" }).mockResolvedValue({ requests: [request] });
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+  fireEvent(window, new Event("online"));
+  expect(await screen.findByRole("button", { name: "Undo all entries" })).toBeTruthy();
+});
+test("a transport failure while refreshing keeps a known receipt and can recover online", async () => {
+  mocks.list.mockRejectedValueOnce(new Error("Offline")).mockResolvedValue({ requests: [request] });
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+  fireEvent(window, new Event("online"));
+  expect(await screen.findByRole("button", { name: "Undo all entries" })).toBeTruthy();
+});
 
 test("restores pending entries after navigation, with exact quantity and a website-styled Undo", async () => {
   render(<PendingEntryNotice />);

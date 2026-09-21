@@ -2512,3 +2512,13 @@ The Project Zero-Loss event architecture is founded on several core principles:
 
 Following these principles enables reliable communication between bounded contexts while preserving financial integrity, operational resilience, and long-term maintainability across the Project Zero-Loss platform.
 
+## Implemented private support audit events — September 2026
+
+Publisher/owner: Support. These are transactional, append-only case audit records in `public.support_case_events`, not a claim that a distributed event bus or email dispatcher has been implemented.
+
+- `support.case.opened`: case and initial customer message committed together; initial review status `open`.
+- `support.case.customer_replied`: authenticated case owner added a message; review status returns to `open`, including after resolution.
+- `support.case.staff_replied`: explicitly authorized reviewer added a reply and its review status (`open`, `awaiting_customer`, `resolved`). A reviewer's own case instead follows customer semantics.
+
+Each record includes UUID event/case/actor identities, actor kind, private message, resulting status, request key and server timestamp. Idempotency is enforced per actor/key; payload conflicts fail rather than rewriting evidence. Customer Notifications is an owner-filtered projection of current case status/updated timestamp linking to the exact conversation. A notification does not send an email or imply a financial approval. No Support event writes balances, refunds, rewards or entry outcomes; those remain owned by their respective domains.
+

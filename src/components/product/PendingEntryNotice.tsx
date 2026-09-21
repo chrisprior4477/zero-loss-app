@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
+import { acknowledgeEntryReceipt, listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 
 type TimedRequest = EntryRequest & { receivedAt: number };
-const storageKey = "zero-loss-dismissed-entry-receipts";
 
 // The timer is a display, not authority. Server timestamps avoid a wrong device
 // clock granting extra time; every Undo/finalize is adjudicated in Supabase.
@@ -48,6 +47,9 @@ export function PendingEntryNotice() {
       setRequests(result.requests.map(r => ({ ...r, receivedAt: performance.now() })));
       setHiddenIds([...dismissed.current]);
       setNow(performance.now());
+    } catch {
+      // A dropped connection must not clear an existing receipt or create an
+      // unhandled rejection. Focus/online/pending polling will retry the read.
     } finally {
       refreshing.current = false;
       // Navigation may happen during a read. Fetch for the new route instead of
@@ -57,15 +59,16 @@ export function PendingEntryNotice() {
   }, []);
 
   useEffect(() => {
-    try { dismissed.current = new Set(JSON.parse(sessionStorage.getItem(storageKey) ?? "[]")); } catch { /* Session storage is optional. */ }
     const onReceipt = (event: Event) => storeReceipt((event as CustomEvent<EntryRequest>).detail);
     const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
     window.addEventListener(ENTRY_REQUEST_EVENT, onReceipt);
     window.addEventListener("focus", onVisible);
+    window.addEventListener("online", onVisible);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.removeEventListener(ENTRY_REQUEST_EVENT, onReceipt);
       window.removeEventListener("focus", onVisible);
+      window.removeEventListener("online", onVisible);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [refresh, storeReceipt]);
@@ -126,11 +129,21 @@ export function PendingEntryNotice() {
           <div role="status"><p className="text-xs font-extrabold uppercase tracking-wider text-cyan-300">{isPending ? "A moment to double-check" : r.status === "accepted" ? "Entries confirmed" : r.status === "cancelled" ? "Entry undone" : "Entry not submitted"}</p>
             <p className="mt-1 text-sm font-bold">{r.title}</p>
           </div>
-          {!isPending ? <button type="button" aria-label={`Dismiss confirmation for ${r.title}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-2xl text-cyan-100 hover:bg-white/10" onClick={() => {
+          {!isPending ? <button type="button" disabled={working} aria-label={`Dismiss confirmation for ${r.title}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-2xl text-cyan-100 hover:bg-white/10 disabled:opacity-50" onClick={async () => {
+            if (inFlight.current.has(r.requestId)) return;
+            inFlight.current.add(r.requestId);
+            setBusy([...inFlight.current]);
+            const epoch = generation.current;
+            let result: { error?: string };
+            try { result = await acknowledgeEntryReceipt(r.requestId); }
+            catch { result = { error: "Connection interrupted. Please retry dismissing this receipt." }; }
+            finally { inFlight.current.delete(r.requestId); setBusy([...inFlight.current]); }
+            if (epoch !== generation.current) return;
+            if (result.error) { setErrors(previous => ({ ...previous, [r.requestId]: result.error! })); return; }
             dismissed.current.add(r.requestId);
             setHiddenIds([...dismissed.current]);
-            try { sessionStorage.setItem(storageKey, JSON.stringify([...dismissed.current].slice(-100))); } catch { /* Optional. */ }
             setRequests(previous => previous.filter(item => item.requestId !== r.requestId));
+            void refresh();
           }}>×</button> : <span aria-hidden="true" className="grid h-10 min-w-10 place-items-center rounded-full border border-cyan-300/50 font-mono text-lg font-bold text-cyan-200">{seconds}s</span>}
         </div>
         <p className="mt-2 text-sm leading-6 text-white/80">{r.quantity} {r.quantity === 1 ? "ticket" : "tickets"} · {formatUsdFromCents(r.amountCents)}{isPending ? " reserved" : ""}</p>

@@ -1283,3 +1283,11 @@ The Domain Ownership Matrix establishes a single, authoritative owner for every 
 By defining clear ownership boundaries, the platform avoids conflicting sources of truth, preserves financial integrity, supports event-driven coordination, and enables independent evolution of bounded contexts without compromising overall system consistency.
 
 This document should be used alongside the Master Architecture and supporting specifications whenever designing, implementing, or extending the platform to ensure that ownership remains explicit, consistent, and enforceable across the entire system.
+
+## Implemented support boundary — September 2026 development-test slice
+
+- Support owns `support_cases` and append-only `support_case_events`: intake, customer/staff messages and review status. These records describe an issue; they never establish entitlement to funds or fulfillment.
+- Support references the original Ledger entry with a composite customer/entry relationship. Its read interface exposes only that linked transaction's ID, type, integer cents and timestamp; staff case access does not grant access to unrelated wallet history.
+- Private `staff_access_events` records explicit grants/revocations, actor and reason. This assignment is administrative authorization evidence, not a customer-editable profile setting. No role is seeded by the migration.
+- Only designated reviewers can access other customers' cases. Customer identity comes from server Auth; customer replies reopen their own case. Replies to a reviewer's own case retain customer permissions.
+- Support cannot post Ledger entries, approve refunds/adjustments, execute payments, change Entries or issue rewards. Any future value-resolution workflow must invoke its authoritative domain with separate owner approval and immutable evidence. No such value workflow is enabled by this slice.

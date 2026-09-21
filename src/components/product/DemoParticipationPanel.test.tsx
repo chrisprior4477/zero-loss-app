@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ENTRY_REQUEST_EVENT } from "@/lib/entries/request";
 import { DemoParticipationPanel } from "./DemoParticipationPanel";
 const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), enter: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -17,6 +18,36 @@ test("product balance comes from server data and signed-in preview submits a qua
   expect(screen.getByRole("button", { name: "Remove one entry" }).hasAttribute("disabled")).toBe(true);
   expect(screen.getByText(/written atomically to the development\/test database/)).toBeTruthy();
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$26");
+});
+
+test("lost response retries the identical intent instead of throwing away the page", async () => {
+  actionMocks.enter.mockRejectedValueOnce(new Error("Network disconnected")).mockResolvedValueOnce({ status: "error", code: "outcome_unknown", message: "Still checking" });
+  render(<DemoParticipationPanel {...props} isSignedIn extraEntryExplainerAcknowledged />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $2.00" }));
+  fireEvent.click(screen.getByRole("button", { name: "Keep private & enter" }));
+  const retry = await screen.findByRole("button", { name: "Check saved submission" });
+  const original = actionMocks.enter.mock.calls[0][1] as FormData;
+  expect(original.get("quantity")).toBe("2");
+  expect(screen.getByRole("button", { name: "Add one entry" }).closest("fieldset")?.disabled).toBe(true);
+  fireEvent.click(retry);
+  await waitFor(() => expect(actionMocks.enter).toHaveBeenCalledTimes(2));
+  expect(actionMocks.enter.mock.calls[1][1]).toBe(original);
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("recovered receipt links to original entry and explicitly distinguishes a new purchase", () => {
+  render(<DemoParticipationPanel {...props} isSignedIn />);
+  const receipt = { requestId: "41414141-4141-4141-8141-414141414141", slug: props.productSlug, title: props.productTitle, quantity: 2, amountCents: 200, status: "accepted", undoUntil: "2026-09-20T12:00:30Z", serverNow: "2026-09-21T12:00:00Z", href: "/account/entries?entry=ent_abcd" };
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: receipt })));
+  expect(screen.getByRole("link", { name: "View previous submission →" }).getAttribute("href")).toBe(receipt.href);
+  expect(document.querySelector('input[name="previousRequestId"]')?.getAttribute("value")).toBe(receipt.requestId);
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
+  expect(screen.getByText(/This is a new, additional submission for \$1.00/)).toBeTruthy();
+  const key = document.querySelector('input[name="idempotencyKey"]')?.getAttribute("value");
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...receipt, status: "pending" } })));
+  expect(document.querySelector('input[name="idempotencyKey"]')?.getAttribute("value")).toBe(key);
+  expect(screen.queryByText("Entry awaiting confirmation…")).toBeNull();
 });
 
 test("Add funds opens the funding form and remembers this prize", () => {

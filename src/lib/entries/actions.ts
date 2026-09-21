@@ -8,7 +8,7 @@ import { entryReceiptHref, parseEntryRequest, type EntryRequest } from "./reques
 
 export type PreviewEntryActionState =
   | { status: "idle" }
-  | { status: "error"; message: string; code?: "insufficient_balance" }
+  | { status: "error"; message: string; code?: "insufficient_balance" | "outcome_unknown" }
   | { status: "request"; message: string; request: EntryRequest }
   | { status: "succeeded"; message: string; href: string; outcome: "active" | "winner" | "not_selected" };
 
@@ -27,7 +27,7 @@ function entryError(error: unknown): PreviewEntryActionState {
   if (candidate.code === "P0001") return { status: "error", message: candidate.message ?? "This preview entry is not available." };
   if (candidate.code === "22023") return { status: "error", message: "This product is not currently available for a preview entry." };
   if (candidate.code === "42501") return { status: "error", message: "Sign in with a confirmed preview account to enter." };
-  return { status: "error", message: "We could not confirm the entry. Check My Activity before trying again." };
+  return { status: "error", code: "outcome_unknown", message: "The connection was interrupted. Check the saved submission before starting another entry." };
 }
 
 export async function acknowledgeExtraEntryExplainer(): Promise<EntryExplainerPreferenceState> {
@@ -54,7 +54,9 @@ export async function createPreviewEntry(
   const idempotencyKey = String(formData.get("idempotencyKey") ?? "");
   const quantity = Number(formData.get("quantity") ?? "1");
   const shareWithCrew = formData.get("shareWithCrew") === "yes";
-  if (!slugPattern.test(offeringSlug) || !keyPattern.test(idempotencyKey) || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
+  const previousRequestId = String(formData.get("previousRequestId") ?? "");
+  if (!slugPattern.test(offeringSlug) || !keyPattern.test(idempotencyKey) || !Number.isInteger(quantity) || quantity < 1 || quantity > 10 ||
+    (previousRequestId !== "" && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(previousRequestId))) {
     return { status: "error", message: "This entry request is invalid. Refresh the page and try again." };
   }
   if (!isPreviewDataEnvironment()) {
@@ -68,11 +70,12 @@ export async function createPreviewEntry(
       return { status: "error", message: "Sign in with a confirmed preview account to enter." };
     }
     await ensurePreviewCustomer(db, user);
-    const { data, error } = await db.rpc("create_preview_entries_with_sharing", {
+    const { data, error } = await db.rpc("submit_preview_entries", {
       p_offering_slug: offeringSlug,
       p_quantity: quantity,
       p_idempotency_key: idempotencyKey,
       p_share_with_crew: shareWithCrew,
+      p_previous_request_id: previousRequestId || null,
     });
     if (error) return entryError(error);
     if (data?.requestId) {
@@ -101,6 +104,20 @@ export async function createPreviewEntry(
     return { status: "succeeded", message, href, outcome };
   } catch (error) {
     return entryError(error);
+  }
+}
+
+export async function acknowledgeEntryReceipt(requestId: string): Promise<{ error?: string }> {
+  if (!isPreviewDataEnvironment() || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(requestId)) return { error: "Invalid receipt." };
+  try {
+    const db = await createClient();
+    const { data: { user }, error } = await db.auth.getUser();
+    if (error || !user) return { error: "Sign in again to check this receipt." };
+    const result = await db.rpc("acknowledge_entry_receipt", { p_request_id: requestId });
+    if (result.error) throw result.error;
+    return {};
+  } catch {
+    return { error: "We couldn’t save that acknowledgment. Your entry is unchanged; please retry." };
   }
 }
 

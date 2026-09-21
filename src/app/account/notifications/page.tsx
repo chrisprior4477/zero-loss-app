@@ -4,6 +4,7 @@ import { NotificationsCenter } from "@/components/account/NotificationsCenter";
 import { getAccountContext } from "@/lib/account/context";
 import { buildAccountNotifications } from "@/lib/account/notifications";
 import { createClient } from "@/lib/supabase/server";
+import { supportNotifications } from "@/lib/support/notifications";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -27,16 +28,20 @@ export default async function NotificationsPage() {
     tone: "crew" as const,
     crewRequestId: request.id,
   }));
-  const notifications = [...crewNotifications, ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed)];
+  // Explicit owner filter is required even when the signed-in owner is also
+  // allowed to review other customers' cases in the private support inbox.
+  const support = await db.from("support_cases").select("id,subject,status,updated_at")
+    .eq("customer_id", account.userId).order("updated_at", { ascending: false }).limit(50);
+  const notifications = [...supportNotifications(support.data), ...crewNotifications, ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed)];
   const { data: readRows, error: readError } = await db.from("customer_notification_reads")
     .select("notification_id").eq("customer_id", account.userId)
     .in("notification_id", notifications.map((notification) => notification.id));
-  return <NotificationsCenter
+  return <>{support.error ? <p role="status" className="mx-auto max-w-6xl rounded-xl border border-cyan-300/30 bg-[#001b3d] p-4 text-sm">Support updates couldn’t be loaded. Your other notifications are still available.</p> : null}<NotificationsCenter
     notifications={notifications}
     initialReadIds={(readRows ?? []).map((row) => row.notification_id)}
     activityAvailable={account.activity.source !== "unavailable"}
     walletAvailable={account.wallet !== null}
     crewAvailable={!crewError}
     readAvailable={!readError}
-  />;
+  /></>;
 }

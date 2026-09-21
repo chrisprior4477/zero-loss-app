@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./wallet-overview.module.css";
@@ -34,7 +35,7 @@ export function WalletLedger({ entries }: { entries: LedgerEntryRow[] }) {
       <div className={styles.ledgerHeader} aria-hidden="true"><span>Date</span><span>Description</span><span>Status</span><span>Amount</span></div>
       <ul>{visible.map(entry => { const [title, detail] = description(entry); return <li key={entry.id}>
         <time dateTime={entry.created_at}>{dateLabel(entry.created_at)}</time>
-        <div><strong>{title}</strong><span>{detail}</span></div>
+        <div><strong>{title}</strong><span>{detail}</span><Link href={`/support?transaction=${encodeURIComponent(entry.id)}`} className="mt-1 inline-flex min-h-10 items-center text-xs font-bold text-cyan-300 underline">Report a problem</Link></div>
         <span className={styles.posted}>Posted</span>
         <strong className={entry.amount > 0 ? styles.positive : styles.amount}>{entry.amount > 0 ? "+" : ""}{formatUsdFromCents(entry.amount)}</strong>
       </li>; })}</ul>

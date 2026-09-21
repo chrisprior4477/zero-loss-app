@@ -32,11 +32,12 @@ test("sends the selected quantity to the atomic database batch function", async 
     href: "/account/entries?item=samsung-m70h-tv&entry=ent_abcdef123",
     outcome: "active",
   });
-  expect(mocks.rpc).toHaveBeenCalledWith("create_preview_entries_with_sharing", {
+  expect(mocks.rpc).toHaveBeenCalledWith("submit_preview_entries", {
     p_offering_slug: "samsung-m70h-tv",
     p_quantity: 3,
     p_idempotency_key: "entry_quantity_request_001",
     p_share_with_crew: false,
+    p_previous_request_id: null,
   });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
 });
@@ -57,11 +58,12 @@ test("explicit Crew sharing uses the atomic entry-and-share function", async () 
   const form = entryForm("1");
   form.set("shareWithCrew", "yes");
   await createPreviewEntry({ status: "idle" }, form);
-  expect(mocks.rpc).toHaveBeenCalledWith("create_preview_entries_with_sharing", {
+  expect(mocks.rpc).toHaveBeenCalledWith("submit_preview_entries", {
     p_offering_slug: "samsung-m70h-tv",
     p_quantity: 1,
     p_idempotency_key: "entry_quantity_request_001",
     p_share_with_crew: true,
+    p_previous_request_id: null,
   });
 });
 
@@ -101,6 +103,20 @@ const pendingReceipt = { requestId: "41414141-4141-4141-8141-414141414141", slug
 test("pending submission has no premature result or redirect", async () => {
   mocks.rpc.mockResolvedValue({ data: pendingReceipt });
   expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({ status: "request", request: { status: "pending", href: null, quantity: 3 } });
+});
+
+test("passes last displayed receipt for atomic server comparison, not a customer-supplied owner", async () => {
+  const form = entryForm();
+  form.set("previousRequestId", pendingReceipt.requestId);
+  form.set("customerId", "someone-else");
+  await createPreviewEntry({ status: "idle" }, form);
+  expect(mocks.rpc).toHaveBeenCalledWith("submit_preview_entries", expect.objectContaining({ p_previous_request_id: pendingReceipt.requestId }));
+  expect(mocks.rpc.mock.calls[0][1]).not.toHaveProperty("customerId");
+});
+
+test("an uncertain server response is not presented as a rejected or unpaid entry", async () => {
+  mocks.rpc.mockRejectedValue(new Error("Timeout after commit"));
+  expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({ status: "error", code: "outcome_unknown" });
 });
 test("Undo is server-authenticated and targets a request rather than an arbitrary amount", async () => {
   mocks.rpc.mockResolvedValue({ data: { ...pendingReceipt, status: "cancelled" } });
