@@ -9,6 +9,7 @@ import { PoolProgress } from "@/components/product/PoolProgress";
 import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "@/lib/entries/actions";
+import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 
 type Props = {
   productSlug: string;
@@ -46,6 +47,9 @@ export function DemoParticipationPanel({
   const router = useRouter();
   const [state, action, pending] = useActionState(createPreviewEntry, { status: "idle" });
   const [quantity, setQuantity] = useState(1);
+  const [submissionKey, setSubmissionKey] = useState(requestKey);
+  const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
+  const entryBusy = pending || state.status === "succeeded" || requestReceipt?.status === "pending";
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
   const [additionalEntryTermsSeen, setAdditionalEntryTermsSeen] = useState(false);
   const [rememberExplanation, setRememberExplanation] = useState(false);
@@ -70,7 +74,7 @@ export function DemoParticipationPanel({
   const addFundsHref = fundingHref(productSlug);
 
   const requestAdditionalEntry = () => {
-    if (pending || state.status === "succeeded" || quantity >= maxQuantity) return;
+    if (entryBusy || quantity >= maxQuantity) return;
     if (!additionalEntryTermsSeen && !skipFutureExplainer) {
       setAdditionalEntryNoticeOpen(true);
       return;
@@ -107,6 +111,25 @@ export function DemoParticipationPanel({
     if (state.status === "error") shareChoiceConfirmed.current = false;
   }, [state]);
 
+  useEffect(() => {
+    const receive = (event: Event) => {
+      const request = (event as CustomEvent<EntryRequest>).detail;
+      if (request.slug !== productSlug) return;
+      setRequestReceipt(request);
+      if (request.status === "pending") setQuantity(request.quantity);
+      if (request.status !== "pending") {
+        setSubmissionKey(crypto.randomUUID());
+        shareChoiceConfirmed.current = false;
+      }
+    };
+    window.addEventListener(ENTRY_REQUEST_EVENT, receive);
+    return () => window.removeEventListener(ENTRY_REQUEST_EVENT, receive);
+  }, [productSlug]);
+
+  useEffect(() => {
+    if (state.status === "request") window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: state.request }));
+  }, [state]);
+
   const chooseEntrySharing = (share: boolean) => {
     if (shareChoiceRef.current) shareChoiceRef.current.value = share ? "yes" : "no";
     shareChoiceConfirmed.current = true;
@@ -138,9 +161,9 @@ export function DemoParticipationPanel({
           <p className="mt-0.5 font-bold" aria-live="polite">${total.toFixed(2)} total</p>
         </div>
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity === 1 || pending || state.status === "succeeded"} className="grid h-10 w-10 place-items-center rounded-full border border-white/20 text-xl transition hover:border-cyan-300 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
+          <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-white/20 text-xl transition hover:border-cyan-300 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
           <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
-          <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || pending || state.status === "succeeded"} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup="dialog">+</button>
+          <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup="dialog">+</button>
         </div>
       </div>
       <p className="mt-2 text-[11px] leading-5 text-white/55">Each entry is separate. Entry amounts and completion options never combine.</p>
@@ -154,6 +177,7 @@ export function DemoParticipationPanel({
         <button type="button" disabled className="mt-4 w-full rounded-xl bg-[#0b668b] px-5 py-3.5 text-base font-extrabold text-white/60">No entries remaining</button>
       ) : isSignedIn ? (
         <form ref={entryFormRef} action={action} onSubmit={(event) => {
+          if (entryBusy) { event.preventDefault(); return; }
           if (knownBalance !== null && knownBalance < totalCents) {
             event.preventDefault();
             shareChoiceConfirmed.current = false;
@@ -166,11 +190,11 @@ export function DemoParticipationPanel({
           setSharePromptOpen(true);
         }}>
           <input type="hidden" name="offeringSlug" value={productSlug} />
-          <input type="hidden" name="idempotencyKey" value={requestKey} />
+          <input type="hidden" name="idempotencyKey" value={submissionKey} />
           <input type="hidden" name="quantity" value={quantity} />
           <input ref={shareChoiceRef} type="hidden" name="shareWithCrew" value="no" />
-          <button type="submit" disabled={pending || state.status === "succeeded"} className="mt-4 w-full rounded-xl bg-[#00b9ff] px-5 py-3.5 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">
-            {pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}
+          <button type="submit" disabled={entryBusy} className="mt-4 w-full rounded-xl bg-[#00b9ff] px-5 py-3.5 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">
+            {pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}
           </button>
         </form>
       ) : (
@@ -188,7 +212,7 @@ export function DemoParticipationPanel({
         <strong className="text-[#67ff42]">Each ${entryPrice.toFixed(2)} still counts.</strong> If an entry is not selected, its payment remains attached to this exact {retailer} offering as its own completion option, subject to the published terms.
       </div>
 
-      {state.status !== "idle" && !serverBalanceError ? (
+      {state.status !== "idle" && state.status !== "request" && !serverBalanceError ? (
         <div role="status" className={`mt-4 rounded-xl border p-4 text-sm leading-6 ${state.status === "error" ? "border-[#ff796c]/50 bg-[#4b1c25]" : "border-[#31e800]/40 bg-[#0b412b]"}`}>
           <strong>{state.message}</strong>
           {state.status === "succeeded" ? <span className="block text-white/65">Opening the stored result for {productTitle}…</span> : null}

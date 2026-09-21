@@ -75,6 +75,8 @@ function ledgerTitle(entryType: string) {
   return ({
     DEPOSIT: "Funds added to your playable wallet",
     ENTRY_DEBIT: "Entry purchase posted",
+    ENTRY_HOLD: "Entry amount reserved",
+    ENTRY_HOLD_RELEASE: "Entry reservation released",
     PURCHASE_DEBIT: "Gift-card purchase posted",
     UNCLAIMED_WINNER_CREDIT: "Unclaimed reward credit returned",
     REFUND: "Wallet refund posted",
@@ -87,6 +89,8 @@ function ledgerBody(entryType: string, amount: number, balanceCents: number) {
   const balanceLabel = formatUsdFromCents(balanceCents);
   if (entryType === "DEPOSIT") return `${amountLabel} was added. Your current playable balance is ${balanceLabel}.`;
   if (entryType === "ENTRY_DEBIT") return `${amountLabel} was applied to an entry. Your current playable balance is ${balanceLabel}.`;
+  if (entryType === "ENTRY_HOLD") return `${amountLabel} was reserved during the 30-second Undo window. Check My Activity for the saved result.`;
+  if (entryType === "ENTRY_HOLD_RELEASE") return `The ${amountLabel} reservation was released on Undo or replaced by a confirmed entry purchase. Your current playable balance is ${balanceLabel}.`;
   if (entryType === "PURCHASE_DEBIT") return `${amountLabel} completed a retailer gift-card purchase. Your current playable balance is ${balanceLabel}.`;
   if (entryType === "UNCLAIMED_WINNER_CREDIT") return `${amountLabel} from an unclaimed winner entry was returned. Your current playable balance is ${balanceLabel}.`;
   if (entryType === "REFUND") return `${amountLabel} was returned. Your current playable balance is ${balanceLabel}.`;

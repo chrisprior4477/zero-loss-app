@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("@/lib/preview/provisioning", () => ({ ensurePreviewCustomer: mocks.provision }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "./actions";
+import { acknowledgeExtraEntryExplainer, createPreviewEntry, listPendingEntryRequests, resolvePendingEntryRequest } from "./actions";
 
 function entryForm(quantity = "3") {
   const value = new FormData();
@@ -95,4 +95,28 @@ test.each(["active", "not_selected", "winner"])("old %s responses go to an unamb
   expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({
     status: "succeeded", href: status === "winner" ? "/account/wallet" : "/account/entries",
   });
+});
+
+const pendingReceipt = { requestId: "41414141-4141-4141-8141-414141414141", slug: "samsung-m70h-tv", title: "TV", quantity: 3, amountCents: 300, status: "pending", undoUntil: "2026-09-21T12:00:30Z", serverNow: "2026-09-21T12:00:00Z", receipt: null };
+test("pending submission has no premature result or redirect", async () => {
+  mocks.rpc.mockResolvedValue({ data: pendingReceipt });
+  expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({ status: "request", request: { status: "pending", href: null, quantity: 3 } });
+});
+test("Undo is server-authenticated and targets a request rather than an arbitrary amount", async () => {
+  mocks.rpc.mockResolvedValue({ data: { ...pendingReceipt, status: "cancelled" } });
+  expect(await resolvePendingEntryRequest(pendingReceipt.requestId, true)).toMatchObject({ request: { status: "cancelled" } });
+  expect(mocks.getUser).toHaveBeenCalled();
+  expect(mocks.rpc).toHaveBeenCalledWith("resolve_preview_entry_request", { p_request_id: pendingReceipt.requestId, p_undo: true });
+});
+test("unsigned users cannot resolve or list another user's request", async () => {
+  mocks.getUser.mockResolvedValue({ data: { user: null } });
+  expect(await listPendingEntryRequests()).toEqual({ requests: [] });
+  expect(await resolvePendingEntryRequest(pendingReceipt.requestId, true)).toHaveProperty("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
+test("malformed or missing final receipt fails closed", async () => {
+  mocks.rpc.mockResolvedValue({ data: { ...pendingReceipt, status: "accepted" } });
+  expect(await resolvePendingEntryRequest(pendingReceipt.requestId, false)).toHaveProperty("error");
+  mocks.rpc.mockResolvedValue({ data: { ...pendingReceipt, amountCents: -300 } });
+  expect((await createPreviewEntry({ status: "idle" }, entryForm())).status).toBe("error");
 });

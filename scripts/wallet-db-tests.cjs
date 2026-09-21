@@ -5,11 +5,21 @@ const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const tests = ['wallet_account_isolation_test.sql','verified_demo_funding_test.sql',
   'save_demo_payment_method_test.sql','preview_entry_lifecycle_test.sql','extra_entry_explainer_preference_test.sql',
-  'preview_availability_test.sql','account_lifecycle_test.sql','demo_credit_card_test.sql','funding_authorization_test.sql'];
+  'preview_availability_test.sql','account_lifecycle_test.sql','demo_credit_card_test.sql','funding_authorization_test.sql','entry_request_undo_test.sql'];
 const migration='20260921160000_serialize_preview_entry_capacity.sql';
 const db=new Client({connectionString:'postgresql://postgres:postgres@127.0.0.1:54322/postgres'});
 (async()=>{
   await db.connect();
+  if(process.argv.includes('--apply-entry-undo')) {
+    const crew = await db.query("select to_regclass('public.crew_entry_shares') as shares");
+    if(!crew.rows[0].shares) {
+      for(const name of ['20260919170000_crew_connections_and_shared_picks.sql','20260919173000_crew_entry_retry_privacy.sql']) {
+        await db.query(readFileSync(resolve(__dirname,'../supabase/migrations',name),'utf8'));
+      }
+    }
+    await db.query(readFileSync(resolve(__dirname,'../supabase/migrations/20260921210000_entry_request_undo.sql'),'utf8'));
+    console.log('Applied entry Undo checkpoint to localhost only (switch remains off).');
+  }
   if(process.argv.includes('--apply-funding-hardening')) {
     for(const name of ['20260921181000_funding_authorization_history.sql','20260921200000_funding_authentication_attempts.sql']) {
       await db.query(readFileSync(resolve(__dirname,'../supabase/migrations',name),'utf8'));
@@ -42,7 +52,7 @@ const db=new Client({connectionString:'postgresql://postgres:postgres@127.0.0.1:
       if(!passed) throw new Error('No pgTAP assertions returned');
       assertions+=passed; failures+=failed.length;
       console.log(JSON.stringify({test:name,passed,failures:failed}));
-    } catch(e) { failures++; await db.query('rollback'); console.log(JSON.stringify({test:name,error:e.message})); }
+    } catch(e) { failures++; await db.query('rollback'); console.log(JSON.stringify({test:name,error:e.message,context:e.where})); }
   }
   console.log(JSON.stringify({localOnly:true,passedAssertions:assertions,failures}));
   if(failures)process.exitCode=1;

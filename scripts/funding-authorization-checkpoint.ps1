@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('DryRun','Apply','Test','Inspect')][string]$Mode = 'DryRun',
+  [ValidateSet('DryRun','Apply','Test','Inspect','ReconcileOwner')][string]$Mode = 'DryRun',
   [ValidateSet('Schema','Enable')][string]$Checkpoint = 'Schema'
 )
 $ErrorActionPreference = 'Stop'
@@ -17,6 +17,19 @@ function Invoke-FundingQuery([string]$Sql) {
 try {
   $fundingProject = Invoke-RestMethod -Uri "https://api.supabase.com/v1/projects/$fundingRef" -Headers @{ Authorization="Bearer $fundingToken" } -TimeoutSec 30
   if ($fundingProject.id -ne $fundingRef -or $fundingProject.name -ne 'zero-loss-app') { throw 'Project identity mismatch.' }
+  if ($Mode -eq 'ReconcileOwner') {
+    Invoke-FundingQuery @'
+select s.created_at, s.amount as deposit_cents, s.status,
+  (select count(*) from public.ledger_entries l where l.demo_funding_session_id=s.id) as credit_count,
+  (select coalesce(sum(l.amount),0) from public.ledger_entries l where l.demo_funding_session_id=s.id) as credited_cents,
+  (select count(*) from demo_private.funding_authorizations a where a.consumed_by=s.id) as confirmed_authorizations,
+  (select coalesce(sum(l.amount),0) from public.ledger_entries l where l.wallet_account_id=s.wallet_account_id and l.balance_type='PLAYABLE') as playable_cents
+from public.demo_funding_sessions s join auth.users u on u.id=s.customer_id
+where u.email='prioritycomputerservices@gmail.com'
+order by s.created_at desc limit 3;
+'@ | ConvertTo-Json -Depth 4
+    return
+  }
   if ($Mode -eq 'Inspect') {
     Invoke-FundingQuery @'
 select to_regclass('demo_private.funding_authorizations')::text as authorization_table,

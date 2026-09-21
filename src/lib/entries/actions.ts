@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { entryReceiptHref, parseEntryRequest, type EntryRequest } from "./request";
 
 export type PreviewEntryActionState =
   | { status: "idle" }
   | { status: "error"; message: string; code?: "insufficient_balance" }
+  | { status: "request"; message: string; request: EntryRequest }
   | { status: "succeeded"; message: string; href: string; outcome: "active" | "winner" | "not_selected" };
 
 export type EntryExplainerPreferenceState =
@@ -73,6 +75,14 @@ export async function createPreviewEntry(
       p_share_with_crew: shareWithCrew,
     });
     if (error) return entryError(error);
+    if (data?.requestId) {
+      const request = parseEntryRequest(data);
+      revalidatePath("/", "layout");
+      return { status: "request", request, message: request.status === "pending"
+        ? "Reserved for 30 seconds. You can undo this submission before it is confirmed."
+        : request.status === "accepted" ? "Your entries are confirmed."
+        : "This submission was not entered. Its reserved funds were returned to Playable Balance." };
+    }
     const outcome = data?.status;
     if (outcome !== "active" && outcome !== "winner" && outcome !== "not_selected") {
       throw new Error("Invalid entry response");
@@ -81,11 +91,7 @@ export async function createPreviewEntry(
     revalidatePath("/", "layout");
     // A slug does not identify a ticket/reward after multiple purchases.
     // Older database responses safely land on the list, never an ambiguous detail.
-    const entryId = typeof data.entryId === "string" && /^ent_[0-9a-f]+$/.test(data.entryId) ? data.entryId : null;
-    const rewardId = typeof data.rewardId === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(data.rewardId) ? data.rewardId : null;
-    const href = outcome === "winner"
-      ? rewardId ? `/account/wallet?${new URLSearchParams({ reward: offeringSlug, rewardId })}` : "/account/wallet"
-      : entryId ? `/account/entries?${new URLSearchParams({ item: offeringSlug, entry: entryId })}` : "/account/entries";
+    const href = entryReceiptHref(data, offeringSlug);
     const entryLabel = quantity === 1 ? "Entry" : `${quantity} entries`;
     const message = outcome === "winner"
       ? `${entryLabel} confirmed—opening your wallet reward${quantity === 1 ? "" : "s"}.`
@@ -95,5 +101,40 @@ export async function createPreviewEntry(
     return { status: "succeeded", message, href, outcome };
   } catch (error) {
     return entryError(error);
+  }
+}
+
+export async function listPendingEntryRequests(): Promise<{ requests: EntryRequest[]; error?: string }> {
+  if (!isPreviewDataEnvironment()) return { requests: [] };
+  try {
+    const db = await createClient();
+    const { data: { user }, error } = await db.auth.getUser();
+    if (error || !user) return { requests: [] };
+    const result = await db.rpc("list_preview_entry_requests");
+    // Compatible with the app-before-switch rollout; absent schema is not success
+    // for a submission, but there cannot yet be any pending requests to display.
+    if (result.error) return { requests: [], error: "Could not refresh pending entries." };
+    if (!Array.isArray(result.data)) throw new Error("Invalid request list");
+    return { requests: result.data.map(parseEntryRequest) };
+  } catch {
+    return { requests: [], error: "Could not refresh pending entries." };
+  }
+}
+
+export async function resolvePendingEntryRequest(requestId: string, undo: boolean): Promise<{ request?: EntryRequest; error?: string }> {
+  if (!isPreviewDataEnvironment() || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(requestId) || typeof undo !== "boolean") {
+    return { error: "Invalid entry request." };
+  }
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user) return { error: "Sign in again to check this entry." };
+    const { data, error } = await db.rpc("resolve_preview_entry_request", { p_request_id: requestId, p_undo: undo });
+    if (error) throw error;
+    const request = parseEntryRequest(data);
+    revalidatePath("/", "layout");
+    return { request };
+  } catch {
+    return { error: "We couldn’t confirm that change. Retry to check the saved result; you won’t be charged twice." };
   }
 }

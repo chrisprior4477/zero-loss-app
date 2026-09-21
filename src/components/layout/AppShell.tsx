@@ -4,6 +4,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { InstallAppPrompt } from "@/components/layout/InstallAppPrompt";
 import { SiteBreadcrumbs } from "@/components/layout/SiteBreadcrumbs";
+import { PendingEntryNotice } from "@/components/product/PendingEntryNotice";
 
 type AppShellProps = {
   children: ReactNode;
@@ -25,6 +26,7 @@ export function AppShell({ children }: AppShellProps) {
       </main>
       <SiteFooter />
       <InstallAppPrompt />
+      <Suspense fallback={null}><PendingEntryNotice /></Suspense>
     </div>
   );
 }

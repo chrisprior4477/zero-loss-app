@@ -10,12 +10,14 @@ const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", 
 
 function category(entry: LedgerEntryRow): LedgerFilter {
   if (entry.entry_type === "DEPOSIT") return "funding";
-  if (entry.entry_type === "ENTRY_DEBIT") return "entries";
+  if (["ENTRY_DEBIT", "ENTRY_HOLD", "ENTRY_HOLD_RELEASE"].includes(entry.entry_type)) return "entries";
   if (entry.entry_type === "REFUND") return "refunds";
   return "all";
 }
 
 function description(entry: LedgerEntryRow) {
+  if (entry.entry_type === "ENTRY_HOLD") return ["Entry reservation", "Held during the 30-second Undo window"];
+  if (entry.entry_type === "ENTRY_HOLD_RELEASE") return ["Entry reservation released", "Hold released on Undo or replaced by the confirmed entry purchase"];
   return ({ DEPOSIT: ["Funds added", "Playable wallet funding"], ENTRY_DEBIT: ["Entry purchase", "Product entry"], REFUND: ["Refund", "Returned to playable wallet"], CORRECTION: ["Adjustment", "Wallet correction"] } as Record<string, [string, string]>)[entry.entry_type] ?? ["Wallet transaction", "Posted ledger activity"];
 }
 
