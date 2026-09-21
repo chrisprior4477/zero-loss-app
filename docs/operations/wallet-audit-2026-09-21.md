@@ -23,14 +23,16 @@ This is an ongoing demo-system audit, not a production-readiness sign-off.
 - 257 local database assertions pass, including funding/card storage, wallet isolation, entry lifecycle, completion purchases/reward lifecycle and new availability checks.
 - Five separate simultaneous-request tests pass, including two customers competing for one slot after a sample crowd of nine in a capacity-ten pool.
 - Production build passes. One pre-existing invalid Testing Library option was removed from a signup navigation test so TypeScript can complete; no signup behavior changed.
-- Hosted audit after migrations: 23 saved entries, no entry/debit mismatch, no batch-count mismatch, no funding/credit mismatch, no negative playable wallet.
-- Local browser verified Walmart $25 now shows four remaining after four saved entries, and the three showcase cards still show one sample slot. Phone-width homepage checked at 390px without page overflow. Live post-deployment verification remains to be recorded.
+- Hosted audit after live verification: 25 saved entries, no entry/debit mismatch, no batch-count mismatch, no funding/credit mismatch, no negative playable wallet.
+- Local browser verified Walmart $25 initially showed four remaining after four saved entries, and the three showcase cards still showed one sample slot. Phone-width homepage checked at 390px without page overflow.
+- Repair commit `0ee5116` deployed successfully to `https://zero-loss-5v47t2a14-zero-loss.vercel.app`. Verified the build log names that exact commit and `openai-homepage-experiment`. Vercel did not automatically move the existing branch alias; explicitly moved only `zero-loss-app-git-openai-homepage-experiment-zero-loss.vercel.app` to this ready deployment. Main and production aliases were untouched.
+- On that live branch alias, a two-entry Walmart purchase opened the exact saved entry details (`ent_0eced5048cdf4960aa012b2ec51487d6`) successfully; closing the panel returned to six active entries. Returning to the product showed two remaining, down from four. The hosted aggregate and ledger reconciliation matched. No unavailable-activity message appeared for the new purchase.
 
 ## Test effects in the owner's demo account
 
 - Added $1 simulated funds (not a real card charge).
-- Submitted one $1 Walmart $25 gift-card entry, then a three-entry $3 batch, all private to the account.
-- Starting balance $100; verified resulting balance $97 and four saved active entries.
+- Submitted one $1 Walmart $25 gift-card entry, then a three-entry $3 batch, then a two-entry $2 batch after deployment; all private to the account.
+- Starting balance $100; added $1 simulated funds and spent $6 on six demo entries. Verified resulting balance $95 and six saved active entries.
 - Saved the extra-entry explanation acknowledgment after testing its checkbox and save flow.
 - No invitations, real rewards, real payments, or external customer messages were sent.
 
