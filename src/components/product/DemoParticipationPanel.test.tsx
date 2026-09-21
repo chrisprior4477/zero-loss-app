@@ -18,6 +18,21 @@ test("product balance comes from server data and signed-in preview submits a qua
   expect(screen.getByText(/written atomically to the development\/test database/)).toBeTruthy();
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$26");
 });
+
+test("Add funds opens the funding form and remembers this prize", () => {
+  render(<DemoParticipationPanel {...props} isSignedIn />);
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(
+    "/account/wallet?view=history&from=test-product#add-funds",
+  );
+});
+
+test("signed-out funding resumes the same funding form after sign-in", () => {
+  render(<DemoParticipationPanel {...props} />);
+  const href = screen.getByRole("link", { name: "Add funds" }).getAttribute("href")!;
+  const url = new URL(href, "https://example.test");
+  expect(url.pathname).toBe("/login");
+  expect(url.searchParams.get("next")).toBe("/account/wallet?view=history&from=test-product#add-funds");
+});
 test("the first additional entry requires acknowledgment before saving and increasing quantity", async () => {
   actionMocks.acknowledge.mockResolvedValue({ status: "succeeded" });
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);

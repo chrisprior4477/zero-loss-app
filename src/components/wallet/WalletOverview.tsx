@@ -9,7 +9,7 @@ import { AccountIcon } from "@/components/account/AccountIcon";
 import { WalletLedger } from "./WalletLedger";
 import styles from "./wallet-overview.module.css";
 
-export function WalletOverview({ wallet, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, cardUnavailable = false }: { wallet: WalletSnapshot | null; fundingEnabled?: boolean; requestKey?: string; requests?: DemoFundingRequest[] | null; savedCard?: DemoCard | null; cardUnavailable?: boolean }) {
+export function WalletOverview({ wallet, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, cardUnavailable = false, returnToProduct }: { wallet: WalletSnapshot | null; fundingEnabled?: boolean; requestKey?: string; requests?: DemoFundingRequest[] | null; savedCard?: DemoCard | null; cardUnavailable?: boolean; returnToProduct?: { title: string; href: string } }) {
   const demo = wallet?.scope === "demo";
   const balance = wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable";
   const pendingCents = requests?.filter(request => request.reconciliation === "credit_pending").reduce((sum, request) => sum + request.amount, 0) ?? 0;
@@ -51,6 +51,10 @@ export function WalletOverview({ wallet, fundingEnabled = false, requestKey = ""
 
       <section id="add-funds" className={styles.funding} aria-labelledby="funding-heading">
         <div className={styles.sectionHeading}><div><h2 id="funding-heading">Add funds</h2><p>Use the preview payment flow to add playable balance.</p></div><span>{demo ? "Demo payment" : "Funding"}</span></div>
+        {returnToProduct ? <div className={styles.fundingReturn}>
+          <p>{returnToProduct.title}</p>
+          <Link href={returnToProduct.href}>Back to this prize <span aria-hidden="true">→</span></Link>
+        </div> : null}
         {canFund ? <DemoFundingForm requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} cardUnavailable={cardUnavailable} blocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} /> : <div className={styles.unavailable}><p>Funding is not available for this account.</p></div>}
         {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} /> : null}
       </section>

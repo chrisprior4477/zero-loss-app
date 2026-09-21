@@ -37,3 +37,14 @@ test("enabled preview wallet puts Add Card beside Add funds", () => {
   expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
   expect(screen.getByRole("link", { name: "Add Card" }).getAttribute("href")).toBe("/account/wallet?view=card");
 });
+
+test("funding from a prize has a direct return to its entry controls", () => {
+  render(<WalletOverview wallet={empty} returnToProduct={{ title: "Samsung TV", href: "/items/samsung-m70h-tv#enter-entry" }} />);
+  expect(screen.getByText("Samsung TV")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Back to this prize" }).getAttribute("href")).toBe("/items/samsung-m70h-tv#enter-entry");
+});
+
+test("ordinary wallet visits do not invent a previous prize", () => {
+  render(<WalletOverview wallet={empty} />);
+  expect(screen.queryByRole("link", { name: "Back to this prize" })).toBeNull();
+});

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { entryReturnPath } from "@/lib/auth/entry-return";
+import { signInReturnPath } from "@/lib/auth/entry-return";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ type LoginPageProps = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
-  const returnTo = entryReturnPath(params.next);
+  const returnTo = signInReturnPath(params.next);
   const supabase = await createClient();
   const {
     data: { user },

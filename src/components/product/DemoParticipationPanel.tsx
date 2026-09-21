@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PoolProgress } from "@/components/product/PoolProgress";
-import { walletHistoryHref } from "@/lib/account/activity";
+import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "@/lib/entries/actions";
 
 type Props = {
@@ -56,6 +56,7 @@ export function DemoParticipationPanel({
   const remainingBalance = Math.max(0, productValue - entryPrice);
   const total = quantity * entryPrice;
   const entryLoginHref = `/login?next=${encodeURIComponent(`/items/${productSlug}#enter-entry`)}`;
+  const addFundsHref = fundingHref(productSlug);
 
   const requestAdditionalEntry = () => {
     if (pending || state.status === "succeeded" || quantity >= maxQuantity) return;
@@ -103,7 +104,7 @@ export function DemoParticipationPanel({
   };
 
   return (
-    <aside id="enter-entry" className="scroll-mt-32 rounded-3xl border border-cyan-300/30 bg-[#001b3d] p-5 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-7">
+    <aside id="enter-entry" className="scroll-mt-[180px] rounded-3xl border border-cyan-300/30 bg-[#001b3d] p-5 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-7 md:scroll-mt-32">
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.13em] text-cyan-300">Entry price</p>
@@ -157,7 +158,7 @@ export function DemoParticipationPanel({
 
       <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 px-4 py-3 text-sm">
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
-        <Link href={walletHistoryHref} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
+        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}`} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>
 
       <div className="mt-5 rounded-xl border border-[#31e800]/30 bg-[#31e800]/8 p-4 text-sm leading-6 text-white/85">

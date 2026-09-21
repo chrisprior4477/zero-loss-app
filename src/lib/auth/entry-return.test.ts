@@ -1,10 +1,19 @@
 import { expect, test } from "vitest";
-import { entryReturnPath } from "./entry-return";
+import { entryReturnPath, signInReturnPath } from "./entry-return";
 
 test("keeps a product entry destination after sign-in", () => {
   expect(entryReturnPath("/items/playstation-5-slim#enter-entry")).toBe(
     "/items/playstation-5-slim#enter-entry",
   );
+});
+
+test("sign-in can resume funding without broadening entry-only navigation", () => {
+  const path = "/account/wallet?view=history&from=samsung-m70h-tv#add-funds";
+  expect(signInReturnPath(path)).toBe(path);
+  expect(entryReturnPath(path)).toBeNull();
+  expect(signInReturnPath("/items/playstation-5-slim#enter-entry")).toBe("/items/playstation-5-slim#enter-entry");
+  expect(signInReturnPath("/account/security")).toBeNull();
+  expect(signInReturnPath("https://evil.test")).toBeNull();
 });
 
 test("rejects external or unrelated sign-in destinations", () => {

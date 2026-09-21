@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { entryReturnPath } from "@/lib/auth/entry-return";
+import { signInReturnPath } from "@/lib/auth/entry-return";
 import { passwordUpdateErrorMessage } from "@/lib/auth/password-update-error";
 import {
   isAtLeastAge,
@@ -265,7 +265,7 @@ export async function signInAction(
   const password = typeof formData.get("password") === "string"
     ? (formData.get("password") as string)
     : "";
-  const returnTo = entryReturnPath(formData.get("returnTo"));
+  const returnTo = signInReturnPath(formData.get("returnTo"));
 
   if (!email || !password) {
     return {

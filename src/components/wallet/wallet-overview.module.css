@@ -67,6 +67,10 @@
 .alert { color: #ffe0b3; }
 .finePrint { margin-top: 10px; color: #9fb8cc; font-size: 10px; }
 .funding { scroll-margin-top: 130px; margin-top: 18px; padding: 20px; }
+.fundingReturn { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 4px 0 16px; padding: 12px 14px; border: 1px solid #42eff84d; border-radius: 9px; background: #0b3449; }
+.fundingReturn p { flex: 1 1 220px; min-width: 0; color: #e9f7ff; font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+.fundingReturn a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #69edff; font-size: 13px; font-weight: 800; }
+.fundingReturn a:hover { color: #fff; }
 .funding :global(form[aria-label="Add funds"]) { max-width: 720px; }
 .funding :global(section[aria-label="Add Credit Card"]) { border-color: #13a6d255; background: #001b31d9; }
 .page a:focus-visible, .page button:focus-visible { outline: 2px solid #9cfcff; outline-offset: 3px; }
@@ -117,4 +121,5 @@
   .statCard p { align-self: start; margin: 0; }
   .ledgerFilters button { min-width: 88px; }
 }
+@media (max-width: 767px) { .funding { scroll-margin-top: 180px; } }
 @media (prefers-reduced-motion: reduce) { .primaryAction, .cardAction, .secondaryAction, .ledgerFilters button { transition: none; } }
