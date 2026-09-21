@@ -24,7 +24,7 @@ test("creates an authenticated, transaction-linked case with a replay key", asyn
   expect(await saveSupportCase({ status: "idle" }, data)).toEqual({ status: "saved", caseId });
   expect(mocks.getUser).toHaveBeenCalled();
   expect(mocks.rpc).toHaveBeenCalledWith("create_support_case", { p_ledger_entry_id: transactionId, p_category: "wallet", p_subject: "Funding question", p_body: "Please check this transaction.", p_idempotency_key: "support_request_001" });
-  expect(mocks.revalidate.mock.calls).toEqual([["/support"], ["/account/notifications"]]);
+  expect(mocks.revalidate.mock.calls).toEqual([["/support"], ["/contact"], ["/account/notifications"]]);
 });
 test("reply status authority stays in Supabase, never trusts a client role", async () => {
   const data = form(); data.set("caseId", caseId); data.set("status", "resolved");

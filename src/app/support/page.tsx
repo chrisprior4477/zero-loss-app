@@ -9,6 +9,7 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { authNavigationHref } from "@/lib/auth/entry-return";
+import { HelpShortcuts } from "@/components/help/HelpShortcuts";
 
 export const metadata: Metadata = { title: "Support" };
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
@@ -44,13 +45,13 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const validTransaction = typeof query.transaction === "string" && uuid.test(query.transaction) ? query.transaction : null;
   const next = accountPageReturnPath("/support", query, validCase ? "#conversation" : query.page ? "#case-list" : "");
   const heading = <header className="mb-7"><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header>;
-  if (!account) return <PageContainer>{heading}<div className={card}><p>Sign in to report a problem or view your private support cases.</p><Link href={authNavigationHref("/login", next)} className="mt-4 inline-block rounded-xl bg-[#00b9ff] px-5 py-3 font-bold text-[#00132e]">Sign in to get help</Link></div></PageContainer>;
+  if (!account) return <PageContainer>{heading}<div className="mb-6 flex flex-wrap gap-5 font-bold text-cyan-300"><Link href="/faq">Search frequently asked questions →</Link><Link href="/forgot-password">Reset your password →</Link></div><div className={card}><p>Sign in to report a problem or view your private support cases.</p><Link href={authNavigationHref("/login", next)} className="mt-4 inline-block rounded-xl bg-[#00b9ff] px-5 py-3 font-bold text-[#00132e]">Sign in to get help</Link></div></PageContainer>;
   if (!isPreviewDataEnvironment()) return <PageContainer>{heading}<p role="status">Support submission is unavailable in this environment.</p></PageContainer>;
   const db = await createClient();
   const access = await db.rpc("has_support_access");
   const staff = access.data === true;
   const inbox = query.view === "inbox" && staff;
-  const navigation = <nav className="mb-6 flex flex-wrap gap-4 text-sm font-bold text-cyan-300"><Link href="/support">My support cases</Link><Link href="/account/wallet?view=history">Wallet history</Link>{staff ? <Link href="/support?view=inbox">Private support inbox</Link> : null}</nav>;
+  const navigation = <nav className="mb-6 flex flex-wrap gap-4 text-sm font-bold text-cyan-300"><Link href="/support">My support cases</Link><Link href="/account/wallet?view=history">Wallet history</Link><Link href="/faq">Quick answers</Link>{staff ? <Link href="/support?view=inbox">Private support inbox</Link> : null}</nav>;
   if ((query.case && !validCase) || (query.transaction && !validTransaction) || (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;
   if (validCase) {
     const result = await db.from("support_cases").select("id,case_number,subject,status,customer_id,ledger_entry_id").eq("id", validCase).maybeSingle();
@@ -83,6 +84,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   if (!inbox) casesQuery = casesQuery.eq("customer_id", account.userId);
   const cases = await casesQuery;
   return <PageContainer>{heading}{navigation}{inbox ? <p className="mb-5 rounded-xl border border-cyan-300/30 p-4 text-sm">Private case review and replies only. This inbox cannot issue refunds, adjust balances, or change prizes.</p> : null}
+    {!inbox && !validTransaction ? <HelpShortcuts activity={account.activity} /> : null}
     <div className="grid gap-6 lg:grid-cols-2">
       {!inbox ? <section className={card}><h2 className="mb-4 text-xl font-black">Report a problem</h2>
         {validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again.</p> : <>

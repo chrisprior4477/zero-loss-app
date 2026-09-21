@@ -35,6 +35,7 @@ export async function saveSupportCase(_previous: SupportActionState, form: FormD
     }
     if (typeof result.data !== "string" || !uuid.test(result.data)) throw new Error("Invalid support receipt");
     revalidatePath("/support");
+    revalidatePath("/contact");
     revalidatePath("/account/notifications");
     return { status: "saved", caseId: result.data };
   } catch {

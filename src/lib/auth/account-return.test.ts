@@ -3,6 +3,7 @@ import { accountPageReturnPath, accountReturnPath } from "./account-return";
 import { authNavigationHref, signInReturnPath, signupVerificationPath } from "./entry-return";
 const id = "11111111-1111-4111-8111-111111111111";
 const destinations = [
+  "/contact", "/contact#message",
   `/account/wallet?reward=samsung-m70h-tv&rewardId=${id}`,
   `/account/wallet?rewardId=${id}`, "/account/wallet", "/account/wallet?rewards=history", "/account/wallet?view=card",
   `/account/wallet?view=history&transaction=${id}#transaction-${id}`,
@@ -25,6 +26,7 @@ test.each([
   "/account/wallet?rewardId=bad", `/account/wallet?rewardId=${id}&rewardId=${id}`,
   "/account/wallet?view=history&from=https%3A%2F%2Fevil.test", "/account/wallet#javascript:alert(1)",
   "/support?case=bad", "/support?view=admin", "/support?page=-1", "/support?page=1.5", "/support?token=secret",
+  "/contact?next=https://evil.test", "/contact#unknown",
   "/account/entries?entry=%0A", "/account/entries?filter=unknown", "/account/crew?tab=admin", "/api/admin", "/auth/confirm",
   null, ["/account/wallet"], "javascript:alert(1)", "/account/wallet?constructor=x",
 ])("rejects malformed, foreign or unsupported auth return: %s", value => expect(signInReturnPath(value)).toBeNull());
