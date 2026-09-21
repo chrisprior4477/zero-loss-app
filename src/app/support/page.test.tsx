@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.stubEnv("APP_DATA_ENVIRONMENT", "development-test");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://ocgdfnvvjvutevgqzzgj.supabase.co");
   vi.stubEnv("VERCEL_ENV", "preview");
-  mocks.account.mockResolvedValue({ userId: own });
+  mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "demo" } });
   mocks.rpc.mockResolvedValue({ data: false });
   mocks.from.mockReturnValue(query([]));
 });
@@ -40,9 +40,24 @@ test("foreign transaction fails closed instead of rendering a misleading linked 
   mocks.from.mockImplementation(table => table === "ledger_entries" ? ledger : query([]));
   render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
   expect(ledger.eq).toHaveBeenCalledWith("customer_id", own);
-  expect(ledger.eq).toHaveBeenCalledWith("wallet_scope", "demo");
+  expect(ledger.eq).not.toHaveBeenCalledWith("wallet_scope", expect.anything());
   expect(screen.queryByTestId("support-form")).toBeNull();
   expect(screen.getByRole("alert").textContent).toContain("transaction is unavailable");
+});
+test("authorized Ledger read uses only customer-readable columns and renders the linked form", async () => {
+  const ledger = query({ id: caseId, amount: -100, created_at: "2026-09-21T12:00:00Z" });
+  mocks.from.mockImplementation(table => table === "ledger_entries" ? ledger : query([]));
+  render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
+  expect(ledger.select).toHaveBeenCalledWith("id,amount,created_at");
+  expect(ledger.eq.mock.calls).toEqual([["id", caseId], ["customer_id", own]]);
+  expect(screen.getByTestId("support-form").getAttribute("data-transaction")).toBe(caseId);
+  expect(screen.getByText(/Linked wallet transaction/).textContent).toContain("-$1");
+});
+test("a non-demo or unavailable wallet cannot prefill a demo support transaction", async () => {
+  mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "production" } });
+  render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
+  expect(mocks.from).not.toHaveBeenCalledWith("ledger_entries");
+  expect(screen.queryByTestId("support-form")).toBeNull();
 });
 test("case list always has an explicit owner filter outside the staff inbox", async () => {
   mocks.rpc.mockResolvedValue({ data: true });

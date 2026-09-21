@@ -23,6 +23,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','61616161-6161-4161-8161-616161616161',true);
 select set_config('request.jwt.claims','{"sub":"61616161-6161-4161-8161-616161616161","iss":"https://ocgdfnvvjvutevgqzzgj.supabase.co/auth/v1"}',true);
 select is(public.has_support_access(),false,'no staff privileges by default');
+select is((select amount::bigint from public.ledger_entries where id='65656565-6565-4565-8565-656565656565' and customer_id=auth.uid()),100::bigint,'support intake can read its owner transaction through allowed Ledger columns');
+select throws_ok($$select id from public.ledger_entries where wallet_scope='demo'$$,'42501',null,'private Ledger scope column remains unavailable even as a filter');
 insert into support_saved select public.create_support_case('65656565-6565-4565-8565-656565656565','wallet','Question about funding','Please check this sample wallet transaction.','support_create_key_one');
 select is(public.create_support_case('65656565-6565-4565-8565-656565656565','wallet','Question about funding','Please check this sample wallet transaction.','support_create_key_one'),(select id from support_saved),'same key safely recovers created case');
 select is((select count(*)::int from public.support_cases),1,'one case exists');

@@ -71,7 +71,11 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
       {messagePage === 0 ? <SupportForm key={`${validCase}-${events.data?.[0]?.id ?? "new"}`} requestKey={randomUUID()} caseId={validCase} staff={staffView} /> : <Link className="font-bold text-cyan-300 underline" href={`/support?case=${validCase}#conversation`}>Return to the latest messages to reply</Link>}
     </section></PageContainer>;
   }
-  const transaction = validTransaction ? await db.from("ledger_entries").select("id,amount,created_at").eq("id", validTransaction).eq("customer_id", account.userId).eq("wallet_scope", "demo").maybeSingle() : null;
+  // Ledger RLS already selects this customer's current wallet. wallet_scope is
+  // deliberately not a customer-readable column (including WHERE filters).
+  // Scope comes from the authenticated wallet snapshot; the write RPC checks it
+  // again independently before attaching the transaction.
+  const transaction = validTransaction && account.wallet?.scope === "demo" ? await db.from("ledger_entries").select("id,amount,created_at").eq("id", validTransaction).eq("customer_id", account.userId).maybeSingle() : null;
   const casePage = pageIndex(query.page);
   let casesQuery = db.from("support_cases").select("id,case_number,subject,status,updated_at").order("updated_at", { ascending: false }).order("id", { ascending: false }).range(casePage * pageSize, (casePage + 1) * pageSize);
   if (!inbox) casesQuery = casesQuery.eq("customer_id", account.userId);

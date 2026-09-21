@@ -86,6 +86,7 @@ This is an ongoing demo-system audit, not a production-readiness sign-off.
 - Unknown message responses use the same exact request on retry. Staff cannot act as staff on their own case; customer follow-up reopens a resolved conversation. Messages and authorization evidence cannot be overwritten or deleted as cleanup.
 - Pre-rollout evidence: 405 local database assertions passed; hosted rollback-only checks passed 30 entry-recovery and 35 Support assertions. Three separate concurrent/real-time recovery checks passed, including a 122-second disconnection after server acceptance and two simultaneous tabs. Local-only audit fixtures are retained. No hosted funds, tickets or cases have been added in this checkpoint yet.
 - Final application validation before rollout: 400 tests pass across 61 files; TypeScript, changed-file ESLint and production build pass. Additive recovery and Support schemas are installed on the hosted development-test project; legacy recovery enforcement remains off until the matching application deployment is Ready.
+- Live transaction click-through exposed a protected-column mismatch in the new intake page: filtering Ledger by `wallet_scope` requires a deliberately denied column grant. Repaired by using the server-authenticated wallet snapshot's scope and the existing owner/current-wallet RLS, reading only allowed fields. The write RPC independently checks owner/demo scope. Added both application and SQL regression checks without expanding Ledger permissions.
 
 ## Provider research (September 21, 2026)
 
