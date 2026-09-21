@@ -9,7 +9,7 @@ This is an ongoing demo-system audit, not a production-readiness sign-off.
 - Exception explicitly confirmed September 21: the Samsung TV remains a repeatable winning test case; Nike shoes and the baby bundle remain repeatable non-selected/completion-purchase test cases. Do not retire these examples, create new rounds, or branch the database to accomplish this.
 - Only the owner may approve refunds or account-value adjustments. Future support staff can investigate and reply but cannot approve value changes. No new privileged account grants have been made.
 - For gifting, select the intended recipient before issuance; original winner stays the winner of record. After issuance, do not promise customer self-service ownership transfer or safe code reassignment. Support review is not a promise that the provider can revoke/reissue a code.
-- Still unresolved: whether the owner's “dollar is in” restriction starts at deposit or confirmed entry. Do not invent or publish a blanket refund prohibition while this remains undecided. Duplicate/failed-payment corrections require a separate audited process.
+- Owner clarified: deposited funds are not ordinarily withdrawable; exceptional refunds require review, without limiting rights for unauthorized charges or payment errors. Accidental entries should get a 30-second Undo Entry window. Deposit confirmation was approved, using fresh account authentication; this does not prove card ownership or replace issuer authentication. The Undo Entry workflow remains a separate implementation.
 
 ## Verified defects and repairs
 
@@ -43,6 +43,16 @@ This is an ongoing demo-system audit, not a production-readiness sign-off.
 - Refund lifecycle, provider exceptions, disputes and financial corrections need durable reason/actor/original-transaction linkage. Demo funding currently exercises success and replay, not a complete external-provider refund lifecycle.
 - Gifting requires an auditable recipient designation and issuance lock. Provider-specific eligibility, cancellation and credential handling must be confirmed before enabling real fulfillment.
 - No merge to real-money mode or claim that switching off demo mode alone makes the system launch-ready.
+
+## Deposit confirmation checkpoint — September 21
+
+- Main-site-styled, same-page confirmation dialog shows exact amount, sample card, funds-use disclosure, password field and explicit acknowledgment. Cancel/Escape/reopen clears the credential and acknowledgment; submission clears the input after React captures the request. Passwords never enter browser storage, returned action state, logs, or database records.
+- Server verifies current account, then reserves a password-check attempt and uses an isolated Supabase Auth session to verify the existing password. The isolated session is locally signed out; the browser session is not replaced. Five attempts per 15 minutes per account supplement Auth rate limits.
+- Supabase binds short-lived approval to customer, wallet, request key, cents, USD, test-card token, default preference, policy version and fresh password-authentication session. Each authentication session can authorize one logical deposit. A database trigger gates new funding sessions; retries and existing-session reconciliation retain one original credit. Existing historical payments remain recoverable.
+- Authorization evidence is private and immutable apart from its one-time consumption link. Authentication-attempt history is private and append-only. No credentials or card numbers are stored in these records.
+- Additive schema migrations `20260921180000`, `20260921181000`, `20260921200000`; separate enforcement migration `20260921201000` must run only after the matching app deploys.
+- Verification before rollout: 350 application tests, TypeScript and targeted ESLint pass; 288 local wallet SQL assertions pass, including 31 authorization assertions. All 31 authorization checks also passed against the hosted schema in a rollback-only dry run. Four separate concurrent-request checks pass: same approval, same funding request, one ledger credit, and throttled password attempts. Local concurrency fixtures are retained as audit evidence; no existing demo data was deleted.
+- Real-card launch still needs the selected processor's authentication, risk, dispute and refund integration. This account-password check is not cardholder verification or a compliance guarantee. References: [OWASP transaction authorization](https://cheatsheetseries.owasp.org/cheatsheets/Transaction_Authorization_Cheat_Sheet.html), [Supabase authentication claims](https://supabase.com/docs/guides/auth/jwt-fields), [Stripe 3-D Secure](https://docs.stripe.com/payments/3d-secure), [FTC charge disputes](https://consumer.ftc.gov/articles/using-credit-cards-and-disputing-charges).
 
 ## Provider research (September 21, 2026)
 

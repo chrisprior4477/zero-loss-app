@@ -5,11 +5,21 @@ const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const tests = ['wallet_account_isolation_test.sql','verified_demo_funding_test.sql',
   'save_demo_payment_method_test.sql','preview_entry_lifecycle_test.sql','extra_entry_explainer_preference_test.sql',
-  'preview_availability_test.sql','account_lifecycle_test.sql','demo_credit_card_test.sql'];
+  'preview_availability_test.sql','account_lifecycle_test.sql','demo_credit_card_test.sql','funding_authorization_test.sql'];
 const migration='20260921160000_serialize_preview_entry_capacity.sql';
 const db=new Client({connectionString:'postgresql://postgres:postgres@127.0.0.1:54322/postgres'});
 (async()=>{
   await db.connect();
+  if(process.argv.includes('--apply-funding-hardening')) {
+    for(const name of ['20260921181000_funding_authorization_history.sql','20260921200000_funding_authentication_attempts.sql']) {
+      await db.query(readFileSync(resolve(__dirname,'../supabase/migrations',name),'utf8'));
+    }
+    console.log('Applied funding hardening to localhost only.');
+  }
+  if(process.argv.includes('--apply-funding-authorization')) {
+    await db.query(readFileSync(resolve(__dirname,'../supabase/migrations/20260921180000_funding_authorization.sql'),'utf8'));
+    console.log('Applied funding authorization to localhost only.');
+  }
   if(process.argv.includes('--apply-capacity-fix')) {
     await db.query(readFileSync(resolve(__dirname,'../supabase/migrations',migration),'utf8'));
     console.log('Applied capacity repair to localhost only.');

@@ -1,8 +1,11 @@
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn() }));
+const authorization = vi.hoisted(() => ({ authorizeFunding: vi.fn() }));
+vi.mock("./funding-authorization", () => authorization);
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod } from "./actions";
+import { FundingFailure } from "./demo-provider";
 const sid = "99999999-9999-4999-8999-999999999999";
 const snapshot = { walletAccountId: sid, scope: "demo", currency: "USD", balanceCents: "0", transactionCount: "0", entries: [], fundingAvailable: true };
 function form() {
@@ -24,10 +27,16 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 test("request, durable provider and verified consumer run in order and refresh shared views", async () => {
   expect((await completeDemoFunding({ status: "idle" }, form())).status).toBe("succeeded");
+  expect(authorization.authorizeFunding).toHaveBeenCalledOnce();
   expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot", "create_demo_card_funding_session", "simulate_demo_payment", "accept_demo_payment_event"]);
   expect(mocks.rpc).toHaveBeenCalledWith("create_demo_card_funding_session", { p_amount: 2500, p_idempotency_key: "funding_review_check_001", p_payment_method: "demo_card_4242", p_make_default: true });
   expect(mocks.rpc).toHaveBeenCalledWith("accept_demo_payment_event", { p_body: "signed-by-demo-provider", p_signature: "provider-signature" });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+});
+test("failed password authorization never creates or processes a payment", async () => {
+  authorization.authorizeFunding.mockRejectedValue(new FundingFailure("P0001", "Password confirmation failed."));
+  expect(await completeDemoFunding({ status: "idle" }, form())).toEqual({ status: "error", message: "Password confirmation failed." });
+  expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot"]);
 });
 test.each(["EUR", "", "usd"])("rejects altered currency %s before database access", async currency => {
   const f = form(); f.set("currency", currency);
@@ -100,6 +109,7 @@ test("legacy browser recovery only looks up an existing request", async () => {
   expect((await completeDemoFunding({ status: "idle" }, f)).status).toBe("succeeded");
   expect(mocks.rpc).toHaveBeenCalledWith("resume_demo_funding_session", { p_amount: 2500, p_idempotency_key: "funding_review_check_001" });
   expect(mocks.rpc.mock.calls.some(call => call[0].startsWith("create_demo"))).toBe(false);
+  expect(authorization.authorizeFunding).not.toHaveBeenCalled();
 });
 
 test("saved card uses the confirmed preview account boundary without funding", async () => {

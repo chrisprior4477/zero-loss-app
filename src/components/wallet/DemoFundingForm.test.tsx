@@ -2,6 +2,26 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn() }));
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
+test("deposit confirmation stays on the page and asks for amount approval and password", () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+  render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  expect(screen.getByRole("dialog", { name: "Add $25 to your balance?" })).toBeTruthy();
+  expect((screen.getByLabelText("Account password") as HTMLInputElement).type).toBe("password");
+  expect(screen.getByRole("button", { name: "Confirm $25 deposit" })).toBeTruthy();
+  expect(screen.getByText(/does not limit your rights/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "local-test-only" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.change(screen.getByLabelText("Amount (USD)"), { target: { value: "1000" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  expect(screen.getByRole("dialog", { name: "Add $10 to your balance?" })).toBeTruthy();
+  expect((screen.getByLabelText("Account password") as HTMLInputElement).value).toBe("");
+  expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
+  expect(sessionStorage.length).toBe(0);
+});
 afterEach(() => { cleanup(); sessionStorage.clear(); });
 test("form submits cents, USD and a stable request key", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);

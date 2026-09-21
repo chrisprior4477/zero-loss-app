@@ -9,6 +9,7 @@ import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { DEMO_CARD_TOKEN } from "./demo-card";
+import { authorizeFunding } from "./funding-authorization";
 
 export type DemoFundingActionState =
   | { status: "idle" }
@@ -62,6 +63,7 @@ export async function completeDemoFunding(
   let result: DemoFundingActionState;
   try {
     const provider = await fundingProvider();
+    if (!recoveryOnly) await authorizeFunding(await createClient(), formData, amountCents, idempotencyKey);
     const sessionId = await provider.createFundingSession(amountCents, idempotencyKey,
       recoveryOnly ? null : formData.get("makeDefault") === "true");
     await provider.finishFunding(sessionId);

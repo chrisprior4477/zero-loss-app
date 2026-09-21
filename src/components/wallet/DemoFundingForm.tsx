@@ -1,5 +1,6 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { completeDemoFunding, reconcileDemoFunding } from "@/lib/payments/actions";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -9,7 +10,24 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
   const [state, action, pending] = useActionState(completeDemoFunding, { status: "idle" });
   const [amount, setAmount] = useState(initialAmount);
   const [makeDefault, setMakeDefault] = useState(initialDefault ?? savedCard?.isDefault ?? false);
+  const confirmation = useRef<HTMLDialogElement>(null);
+  const passwordInput = useRef<HTMLInputElement>(null);
+  const policyInput = useRef<HTMLInputElement>(null);
+  function clearConfirmation() {
+    if (passwordInput.current) passwordInput.current.value = "";
+    if (policyInput.current) policyInput.current.checked = false;
+  }
+  function openConfirmation() {
+    clearConfirmation();
+    confirmation.current?.showModal();
+    passwordInput.current?.focus();
+  }
   const locked = pending || recovered || state.status !== "idle";
+  useEffect(() => {
+    // React has captured FormData before the action becomes pending. Do not
+    // retain a credential in the page during a request, after failure, or close.
+    if (pending) clearConfirmation();
+  }, [pending]);
   useEffect(() => {
     if (state.status === "succeeded") {
       try { sessionStorage.removeItem(storageKey); } catch { /* DB recovery remains available. */ }
@@ -49,7 +67,19 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
         <option value="100">$1.00</option><option value="1000">$10.00</option><option value="2500">$25.00</option><option value="10000">$100.00</option>
       </select>
     </label>
-    <button disabled={pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className="min-h-12 w-full rounded-xl bg-[#31e800] px-4 text-sm font-black text-[#002719] disabled:cursor-not-allowed disabled:opacity-60">{pending ? "Checking payment…" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
+    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className="min-h-12 w-full rounded-xl bg-[#31e800] px-4 text-sm font-black text-[#002719] disabled:cursor-not-allowed disabled:opacity-60">{pending ? "Checking payment…" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
+    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-3xl border border-cyan-300/50 bg-[#052344] p-6 text-white shadow-2xl backdrop:bg-[#001027]/80">
+      <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
+      <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
+      <p className="mt-2 text-sm text-[#b5cce4]">Test card •••• 4242 · USD · Simulation only</p>
+      <p className="mt-4 text-sm leading-6">Deposits stay in your Zero Loss balance and cannot normally be withdrawn. Exceptional refund requests are reviewed separately. This does not limit your rights for unauthorized charges or payment errors.</p>
+      <label className="mt-4 block text-sm font-bold">Account password<input ref={passwordInput} name="password" type="password" autoComplete="current-password" required disabled={pending} maxLength={1024} className="mt-2 min-h-12 w-full rounded-xl border border-cyan-300/40 bg-[#031b32] px-3 text-white" /></label>
+      <label className="mt-4 flex items-start gap-3 text-sm leading-6"><input ref={policyInput} name="fundingPolicy" type="checkbox" value="funding-confirmation-v1" required disabled={pending} className="mt-1 h-5 w-5 shrink-0 accent-[#31e800]" />I confirm this amount and understand how deposited funds can be used.</label>
+      {state.status !== "idle" ? <p role="alert" className="mt-3 text-sm leading-6 text-amber-100">{state.message}</p> : null}
+      <div className="mt-5 flex flex-wrap gap-3"><button type="button" disabled={pending} onClick={() => { clearConfirmation(); confirmation.current?.close(); }} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending} className="min-h-12 flex-[2] rounded-xl bg-[#31e800] px-4 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
+      <Link href="/forgot-password" className="mt-4 block text-sm font-bold text-cyan-300 underline">Forgot your password?</Link>
+      <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. Your password is checked securely and is not saved with this deposit.</p>
+    </dialog> : null}
     {recovered ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
