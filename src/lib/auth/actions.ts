@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { entryReturnPath } from "@/lib/auth/entry-return";
+import { passwordUpdateErrorMessage } from "@/lib/auth/password-update-error";
 import {
   isAtLeastAge,
   isPasswordValid,
@@ -373,11 +374,14 @@ export async function updateRecoveredPasswordAction(
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    return { status: "error", message: "We couldn't update your password. Try again or request a new reset link." };
+    return { status: "error", message: passwordUpdateErrorMessage(error) };
   }
 
   await supabase.auth.signOut();
-  return { status: "updated", message: "Your password has been changed. Sign in with the new password." };
+  // Signing out changes cookies and re-renders the server page. Returning a
+  // client-only success state here lets the no-session branch replace it.
+  // Use a separate, refresh-safe success view that doesn't require a session.
+  redirect("/reset-password?updated=1");
 }
 
 export async function changeAccountPasswordAction(
@@ -418,7 +422,7 @@ export async function changeAccountPasswordAction(
 
   const { error } = await supabase.auth.updateUser({ password, current_password: currentPassword });
   if (error) {
-    return { status: "error", message: "We couldn't change your password. Try again or reset it by email." };
+    return { status: "error", message: passwordUpdateErrorMessage(error) };
   }
 
   return { status: "updated", message: "Your password has been changed. You can keep using your account." };

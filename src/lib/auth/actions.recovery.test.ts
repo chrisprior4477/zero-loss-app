@@ -51,7 +51,7 @@ test("Vercel preview emails use the allowed branch URL instead of an immutable d
   }
 });
 
-test("new password requires a recovery session and matching passwords", async () => {
+test("successful recovery redirects to a success view that survives signing out", async () => {
   const updateUser = vi.fn().mockResolvedValue({ error: null });
   const signOut = vi.fn().mockResolvedValue({ error: null });
   const getUser = vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
@@ -59,9 +59,51 @@ test("new password requires a recovery session and matching passwords", async ()
   const form = new FormData();
   form.set("password", "new-password-123");
   form.set("confirm_password", "new-password-123");
-  expect((await updateRecoveredPasswordAction(initial, form)).status).toBe("updated");
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(updateRecoveredPasswordAction(initial, form)).rejects.toThrow("NEXT_REDIRECT");
   expect(updateUser).toHaveBeenCalledWith({ password: "new-password-123" });
   expect(signOut).toHaveBeenCalledOnce();
+  expect(mocks.redirect).toHaveBeenCalledWith("/reset-password?updated=1");
+  expect(signOut.mock.invocationCallOrder[0]).toBeLessThan(mocks.redirect.mock.invocationCallOrder[0]);
+});
+
+test("reusing the saved password explains what happened and preserves the reset session", async () => {
+  const updateUser = vi.fn().mockResolvedValue({ error: { code: "same_password", status: 422 } });
+  const signOut = vi.fn();
+  const getUser = vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+  mocks.createClient.mockResolvedValue({ auth: { getUser, updateUser, signOut } });
+  const form = new FormData();
+  form.set("password", "already-saved-123");
+  form.set("confirm_password", "already-saved-123");
+  const result = await updateRecoveredPasswordAction(initial, form);
+  expect(result.status).toBe("error");
+  expect(result.message).toContain("already your current password");
+  expect(signOut).not.toHaveBeenCalled();
+  expect(mocks.redirect).not.toHaveBeenCalled();
+});
+
+test("missing session never attempts a password update or reports success", async () => {
+  const updateUser = vi.fn();
+  const getUser = vi.fn().mockResolvedValue({ data: { user: null }, error: { code: "session_not_found" } });
+  mocks.createClient.mockResolvedValue({ auth: { getUser, updateUser } });
+  const form = new FormData();
+  form.set("password", "new-password-123");
+  form.set("confirm_password", "new-password-123");
+  const result = await updateRecoveredPasswordAction(initial, form);
+  expect(result.status).toBe("error");
+  expect(updateUser).not.toHaveBeenCalled();
+  expect(mocks.redirect).not.toHaveBeenCalled();
+});
+
+test.each([
+  ["short", "short", "at least"],
+  ["new-password-123", "different-password", "don't match"],
+])("invalid recovery input is rejected before connecting to Auth: %s", async (password, confirmation, message) => {
+  const form = new FormData();
+  form.set("password", password);
+  form.set("confirm_password", confirmation);
+  expect((await updateRecoveredPasswordAction(initial, form)).message).toContain(message);
+  expect(mocks.createClient).not.toHaveBeenCalled();
 });
 
 test("account password change verifies the current password before updating", async () => {
