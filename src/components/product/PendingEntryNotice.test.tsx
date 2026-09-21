@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), refresh: vi.fn() }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/items/test-prize", useRouter: () => ({ refresh: mocks.refresh }) }));
+const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), refresh: vi.fn(), path: "/items/test-prize" }));
+vi.mock("next/navigation", () => ({ usePathname: () => mocks.path, useRouter: () => ({ refresh: mocks.refresh }) }));
 vi.mock("@/lib/entries/actions", () => ({ listPendingEntryRequests: mocks.list, resolvePendingEntryRequest: mocks.resolve }));
 import { PendingEntryNotice } from "./PendingEntryNotice";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 const request: EntryRequest = { requestId: "41414141-4141-4141-8141-414141414141", slug: "test-prize", title: "Test prize", quantity: 3, amountCents: 300, status: "pending", undoUntil: "2026-09-21T12:00:30Z", serverNow: "2026-09-21T12:00:00Z", href: null };
-beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); mocks.list.mockResolvedValue({ requests: [request] }); });
+beforeEach(() => { vi.resetAllMocks(); mocks.path = "/items/test-prize"; sessionStorage.clear(); mocks.list.mockResolvedValue({ requests: [request] }); });
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 test("restores pending entries after navigation, with exact quantity and a website-styled Undo", async () => {
@@ -50,4 +50,24 @@ test("signed-out visitors see no other customer's receipts", async () => {
   render(<PendingEntryNotice />);
   await waitFor(() => expect(mocks.list).toHaveBeenCalled());
   expect(screen.queryByRole("region", { name: "Entry confirmations" })).toBeNull();
+});
+test("navigation during an in-flight read retries for the new route", async () => {
+  let finish!: (value: { requests: EntryRequest[] }) => void;
+  mocks.list.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  const view = render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+  mocks.path = "/account/wallet";
+  view.rerender(<PendingEntryNotice />);
+  await act(async () => { finish({ requests: [] }); });
+  expect(await screen.findByRole("button", { name: "Undo all entries" })).toBeTruthy();
+  expect(mocks.list.mock.calls.length).toBeGreaterThanOrEqual(2);
+});
+test("an old empty read cannot erase a newly submitted request", async () => {
+  let finish!: (value: { requests: EntryRequest[] }) => void;
+  mocks.list.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request })));
+  await act(async () => { finish({ requests: [] }); });
+  expect(screen.getByRole("button", { name: "Undo all entries" })).toBeTruthy();
 });

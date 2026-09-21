@@ -36,7 +36,7 @@ export function PendingEntryNotice() {
     setNow(performance.now());
   }, []);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async function refreshEntries() {
     if (refreshing.current) return;
     const epoch = generation.current;
     const readRevision = revision.current;
@@ -48,7 +48,12 @@ export function PendingEntryNotice() {
       setRequests(result.requests.map(r => ({ ...r, receivedAt: performance.now() })));
       setHiddenIds([...dismissed.current]);
       setNow(performance.now());
-    } finally { refreshing.current = false; }
+    } finally {
+      refreshing.current = false;
+      // Navigation may happen during a read. Fetch for the new route instead of
+      // allowing the old route's in-flight flag to suppress restoration forever.
+      if (epoch !== generation.current) void refreshEntries();
+    }
   }, []);
 
   useEffect(() => {

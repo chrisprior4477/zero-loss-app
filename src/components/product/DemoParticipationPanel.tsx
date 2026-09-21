@@ -49,6 +49,7 @@ export function DemoParticipationPanel({
   const [quantity, setQuantity] = useState(1);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
   const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
+  const receivedRequests = useRef(new Map<string, EntryRequest["status"]>());
   const entryBusy = pending || state.status === "succeeded" || requestReceipt?.status === "pending";
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
   const [additionalEntryTermsSeen, setAdditionalEntryTermsSeen] = useState(false);
@@ -115,6 +116,8 @@ export function DemoParticipationPanel({
     const receive = (event: Event) => {
       const request = (event as CustomEvent<EntryRequest>).detail;
       if (request.slug !== productSlug) return;
+      if (receivedRequests.current.get(request.requestId) === request.status) return;
+      receivedRequests.current.set(request.requestId, request.status);
       setRequestReceipt(request);
       if (request.status === "pending") setQuantity(request.quantity);
       if (request.status !== "pending") {

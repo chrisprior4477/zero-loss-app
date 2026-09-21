@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('Inspect','DryRun','Apply','Test')][string]$Mode='Inspect',
+  [ValidateSet('Inspect','DryRun','Apply','Test','Verify')][string]$Mode='Inspect',
   [ValidateSet('Schema','Enable')][string]$Checkpoint='Schema'
 )
 $ErrorActionPreference='Stop'
@@ -17,6 +17,31 @@ function Invoke-UndoQuery([string]$Sql) {
 try {
   $undoProject=Invoke-RestMethod -Uri "https://api.supabase.com/v1/projects/$undoRef" -Headers @{Authorization="Bearer $undoToken"} -TimeoutSec 30
   if ($undoProject.id -ne $undoRef -or $undoProject.name -ne 'zero-loss-app') { throw 'Project mismatch.' }
+  if ($Mode -eq 'Verify') {
+    Invoke-UndoQuery @'
+select jsonb_build_object(
+  'ownerRequests',(select jsonb_agg(x) from (
+    select r.status,r.requested_quantity,r.offering_slug,r.reason_code,
+      (select count(*) from public.customer_entries e where e.entry_request_id=r.id) as saved_entries,
+      (select sum(l.amount) from public.ledger_entries l where l.entry_request_id=r.id) as net_hold_cents,
+      (select count(*) from public.entry_request_events ev where ev.request_id=r.id) as audit_events
+    from public.entry_requests r join auth.users u on u.id=r.customer_id where u.email='prioritycomputerservices@gmail.com'
+    order by r.requested_at desc limit 10) x),
+  'ownerPlayableCents',(select sum(l.amount) from public.ledger_entries l join auth.users u on u.id=l.customer_id
+    where u.email='prioritycomputerservices@gmail.com' and l.wallet_scope='demo' and l.balance_type='PLAYABLE'),
+  'overdueRequests',(select count(*) from public.entry_requests where status='validating' and undo_until<clock_timestamp()-interval '30 seconds'),
+  'entryCountMismatches',(select count(*) from public.entry_requests r where
+    (select count(*) from public.customer_entries e where e.entry_request_id=r.id)<>case when r.status='accepted' then r.requested_quantity else 0 end),
+  'holdMismatches',(select count(*) from public.entry_requests r where
+    coalesce((select sum(amount) from public.ledger_entries l where l.entry_request_id=r.id),0)<>
+      case when r.status='validating' then -r.unit_price_cents*r.requested_quantity else 0 end),
+  'scheduler',(select jsonb_build_object('active',active,'schedule',schedule,'command',command) from cron.job where jobname='zero-loss-finalize-demo-entry-requests'),
+  'recentJobRuns',(select jsonb_agg(x) from (select d.status,d.return_message from cron.job_run_details d
+    join cron.job j on j.jobid=d.jobid where j.jobname='zero-loss-finalize-demo-entry-requests' order by d.start_time desc limit 3)x)
+) as verification;
+'@ | ConvertTo-Json -Depth 8
+    return
+  }
   if ($Mode -eq 'Inspect') {
     Invoke-UndoQuery @'
 select (select to_jsonb(c)->>'entry_undo_required' from demo_private.funding_config c where singleton) as undo_enabled,
