@@ -15,6 +15,8 @@ import {
 } from "@/lib/home/placeholder-data";
 import { popularRewardBrands } from "@/lib/catalog/popular-rewards";
 import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
+import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
+import { availabilityForHref } from "@/lib/catalog/availability";
 
 const desktopCategories = [
   { id: "groceries", label: "Groceries", image: "/category-groceries-v2.png" },
@@ -28,7 +30,7 @@ const desktopCategories = [
 
 const endingSoonRemaining = [1, 1, 1, 5, 7, 8, 12, 14, 21] as const;
 
-const endingSoon = [
+const sampleEndingSoon = [
   ...placeholderFeaturedOpportunities,
   ...placeholderDiscoveryOpportunities,
 ]
@@ -194,6 +196,11 @@ function useDragRail(ref: React.RefObject<HTMLDivElement | null>) {
 }
 
 export function DesktopMarketplaceRails() {
+  const availability = useOfferingAvailability();
+  const endingSoon = sampleEndingSoon.map(sample => {
+    const current = availabilityForHref(availability, sample.item.href);
+    return current ? { item: { ...sample.item, ticketCapacity: current.capacity, ticketsSold: current.sold }, remaining: current.remaining } : sample;
+  }).sort((a,b) => Number(a.remaining === 0) - Number(b.remaining === 0) || a.remaining - b.remaining);
   const categoriesRef = useRef<HTMLDivElement>(null);
   const endingRef = useRef<HTMLDivElement>(null);
   const brandsRef = useRef<HTMLDivElement>(null);
@@ -281,7 +288,7 @@ export function DesktopMarketplaceRails() {
                   : percent >= 45
                     ? "#0787e8"
                     : "#70c51c";
-            const urgencyLabel = remaining <= 10 ? "Almost gone!" : "Going fast!";
+            const urgencyLabel = remaining === 0 ? "Pool full" : remaining <= 10 ? "Almost gone!" : "Going fast!";
 
             return (
               <article

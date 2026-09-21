@@ -19,6 +19,7 @@ type Props = {
   entryPrice: number;
   sold: number;
   capacity: number;
+  availabilityConfirmed?: boolean;
   balanceLabel?: string;
   balanceCents?: number | null;
   isDemoWallet?: boolean;
@@ -35,6 +36,7 @@ export function DemoParticipationPanel({
   entryPrice,
   sold,
   capacity,
+  availabilityConfirmed = true,
   balanceLabel = "Unavailable",
   balanceCents = null,
   isDemoWallet = false,
@@ -143,7 +145,12 @@ export function DemoParticipationPanel({
       </div>
       <p className="mt-2 text-[11px] leading-5 text-white/55">Each entry is separate. Entry amounts and completion options never combine.</p>
 
-      {remaining === 0 ? (
+      {!availabilityConfirmed ? (
+        <div role="status" className="mt-4 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-4 text-sm">
+          <p>We couldn’t refresh availability. Your balance has not been charged.</p>
+          <button type="button" onClick={() => router.refresh()} className="mt-3 min-h-11 rounded-lg bg-[#00b9ff] px-4 py-2 font-bold text-[#00132e]">Refresh availability</button>
+        </div>
+      ) : remaining === 0 ? (
         <button type="button" disabled className="mt-4 w-full rounded-xl bg-[#0b668b] px-5 py-3.5 text-base font-extrabold text-white/60">No entries remaining</button>
       ) : isSignedIn ? (
         <form ref={entryFormRef} action={action} onSubmit={(event) => {

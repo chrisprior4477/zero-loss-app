@@ -6,6 +6,8 @@ import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { CircularProgress } from "@/components/home/DollarChoiceCarouselLight";
 import { dollarChoiceDemoItems, entryCapacityForValue, marketplaceMovementDemoItems } from "@/lib/home/demo-data";
+import { availabilityForHref, filledPercent } from "@/lib/catalog/availability";
+import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
 
 const products = dollarChoiceDemoItems;
 
@@ -15,11 +17,13 @@ function EntryButton({ compact = false }: { compact?: boolean }) {
     : "grid h-7 min-w-[58px] shrink-0 place-items-center whitespace-nowrap rounded-md bg-[#73e72d] px-1.5 text-[9px] font-extrabold text-[#00132e] shadow-[0_0_14px_rgba(49,232,0,0.22)] sm:h-9 sm:min-w-[78px] sm:px-3 sm:text-[12px]"}>{compact ? "$1" : "$1 Entry"}</span>;
 }
 
-function FeatureCard({ item }: { item: (typeof products)[number] }) {
+function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
+  const current = availabilityForHref(useOfferingAvailability(), sample.href);
+  const item = { ...sample, percentFilled: current ? filledPercent(current) : sample.percentFilled };
   const meterColor = item.percentFilled >= 90 ? "#f32343" : item.percentFilled >= 75 ? "#ff6b22" : item.percentFilled >= 50 ? "#0787e8" : "#25c46a";
   const movement = marketplaceMovementDemoItems.find((entry) => entry.itemId === item.id);
-  const ticketsLeft = movement?.spotsLeft ?? Math.max(25, Math.round((100 - item.percentFilled) * 12));
-  const entryCapacity = entryCapacityForValue(item.prizeValue);
+  const ticketsLeft = current?.remaining ?? movement?.spotsLeft ?? Math.max(25, Math.round((100 - item.percentFilled) * 12));
+  const entryCapacity = current?.capacity ?? entryCapacityForValue(item.prizeValue);
 
   return (
     <article className="group relative w-[190px] shrink-0 overflow-hidden rounded-2xl border border-cyan-200/20 bg-[#031a3d] shadow-[0_18px_40px_rgba(0,0,0,0.28)] sm:w-[320px] sm:rounded-[22px]">
@@ -60,8 +64,10 @@ function FeatureCard({ item }: { item: (typeof products)[number] }) {
   );
 }
 
-function CompactCard({ item }: { item: (typeof products)[number] }) {
-  const entryCapacity = entryCapacityForValue(item.prizeValue);
+function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
+  const current = availabilityForHref(useOfferingAvailability(), sample.href);
+  const item = { ...sample, percentFilled: current ? filledPercent(current) : sample.percentFilled };
+  const entryCapacity = current?.capacity ?? entryCapacityForValue(item.prizeValue);
   return (
     <article className="group relative min-h-[95px] w-[125px] flex-1 overflow-hidden rounded-xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:min-h-[123px] sm:w-[230px] sm:rounded-[20px]">
       <Link href={item.href} draggable={false} className="flex h-full items-center gap-1.5 px-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:gap-2 sm:px-2.5 sm:pr-3">

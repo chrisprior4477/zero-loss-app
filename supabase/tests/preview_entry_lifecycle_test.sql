@@ -47,11 +47,20 @@ select set_config('request.jwt.claims','{"sub":"99999999-9999-4999-8999-99999999
 select is(public.create_preview_entry('samsung-m70h-tv','entry_idempotency_key_01')->>'status','winner','TV receives the configured stored win');
 select is(public.get_wallet_snapshot()->>'balanceCents','9900','entry debit updates the authoritative balance exactly once');
 select is(public.create_preview_entry('samsung-m70h-tv','entry_idempotency_key_01')->>'duplicate','true','exact replay is idempotent');
+select is(public.create_preview_entry('samsung-m70h-tv','entry_idempotency_key_01')->>'entryId',
+  (select entry_id from public.customer_entries where offering_slug='samsung-m70h-tv'), 'winner receipt identifies its exact entry');
+select is(public.create_preview_entry('samsung-m70h-tv','entry_idempotency_key_01')->>'rewardId',
+  (select id::text from public.customer_rewards), 'winner receipt identifies its exact wallet reward');
 select is(public.get_wallet_snapshot()->>'balanceCents','9900','idempotent replay cannot debit twice');
 select throws_ok($$ select public.create_preview_entry('nike-court-shot-shoes','entry_idempotency_key_01') $$,'22023',null,'altered replay is rejected');
 select is(public.create_preview_entries('nike-court-shot-shoes',3,'entry_quantity_batch_key_03')->>'quantity','3','a selected quantity creates one recorded batch');
 select is(public.create_preview_entries('nike-court-shot-shoes',3,'entry_quantity_batch_key_03')->>'status','not_selected','every entry in the Nike batch receives its configured outcome');
 select is(public.create_preview_entries('nike-court-shot-shoes',3,'entry_quantity_batch_key_03')->>'duplicate','true','an exact batch replay is idempotent');
+select is(public.create_preview_entries('nike-court-shot-shoes',3,'entry_quantity_batch_key_03')->>'entryId',
+  (select entry_id from public.customer_entries where offering_slug='nike-court-shot-shoes' order by created_at,id limit 1),
+  'multi-entry receipt consistently identifies a saved entry in that batch');
+select is(public.create_preview_entries('nike-court-shot-shoes',3,'entry_quantity_batch_key_03')->>'rewardId', null::text,
+  'non-selected receipts do not invent a wallet reward');
 select throws_ok($$ select public.create_preview_entries('nike-court-shot-shoes',2,'entry_quantity_batch_key_03') $$,'22023',null,'a batch replay cannot change quantity');
 select is(public.get_wallet_snapshot()->>'balanceCents','9600','three entries create three authoritative debits');
 select is((select count(*)::integer from public.customer_entries where offering_slug='nike-court-shot-shoes'),3,'three entries are stored independently');

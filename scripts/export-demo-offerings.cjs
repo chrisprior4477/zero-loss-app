@@ -27,5 +27,6 @@ process.stdout.write(JSON.stringify(demoProducts.map((product) => ({
   value_cents: Math.round(product.value * 100),
   entry_price_cents: Math.round(product.entryPrice * 100),
   capacity: product.capacity,
+  sample_entries: product.sold,
   forced_outcome: forcedOutcomes.get(product.slug) ?? "active",
 }))));

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { dollarChoiceDemoItems, entryCapacityForValue } from "@/lib/home/demo-data";
+import { availabilityForHref, filledPercent } from "@/lib/catalog/availability";
+import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
 
 export function CircularProgress({ percent, color, label }: { percent: number; color: string; label: string }) {
   return (
@@ -37,6 +39,7 @@ export function CircularProgress({ percent, color, label }: { percent: number; c
 }
 
 export function DollarChoiceCarouselLight() {
+  const availability = useOfferingAvailability();
   const trackRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
@@ -114,9 +117,11 @@ export function DollarChoiceCarouselLight() {
           }}
           onDragStart={(event) => event.preventDefault()}
         >
-          {dollarChoiceDemoItems.map((item) => {
+          {dollarChoiceDemoItems.map((sample) => {
+            const current = availabilityForHref(availability, sample.href);
+            const item = { ...sample, percentFilled: current ? filledPercent(current) : sample.percentFilled };
             const meterColor = item.percentFilled >= 90 ? "#f32343" : item.percentFilled >= 75 ? "#ff6b22" : item.percentFilled >= 50 ? "#0787e8" : "#25c46a";
-            const entryCapacity = entryCapacityForValue(item.prizeValue);
+            const entryCapacity = current?.capacity ?? entryCapacityForValue(item.prizeValue);
             return (
               <article key={item.id} className="group relative flex h-[250px] w-[174px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#a9bfd0] bg-white shadow-[0_16px_35px_rgba(0,19,46,0.2)] transition-transform duration-300 hover:-translate-y-1 sm:h-[292px] sm:w-[244px] sm:rounded-[22px]">
                 <Link href={item.href} draggable={false} className="flex min-h-0 flex-1 flex-col p-3 pb-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500">

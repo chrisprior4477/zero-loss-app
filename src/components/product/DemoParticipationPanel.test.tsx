@@ -26,6 +26,13 @@ test("Add funds opens the funding form and remembers this prize", () => {
   );
 });
 
+test("unavailable inventory offers refresh instead of accepting a purchase against sample counts", () => {
+  render(<DemoParticipationPanel {...props} availabilityConfirmed={false} isSignedIn />);
+  expect(screen.queryByRole("button", { name: "Enter for $1.00" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Refresh availability" })).toBeTruthy();
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
 test("signed-out funding resumes the same funding form after sign-in", () => {
   render(<DemoParticipationPanel {...props} />);
   const href = screen.getByRole("link", { name: "Add funds" }).getAttribute("href")!;

@@ -15,7 +15,7 @@ test.each(["/items/playstation-5-slim#enter-entry", "/account/wallet?view=histor
   render(await LoginPage({ searchParams: Promise.resolve({ next }) }));
   const signupHref = allowed ? `/signup?next=${encodeURIComponent(next)}` : "/signup";
   expect(screen.getByRole("link", { name: "Create an account" }).getAttribute("href")).toBe(signupHref);
-  expect(screen.getByRole("link", { name: "Sign up", exact: true }).getAttribute("href")).toBe(signupHref);
+  expect(screen.getByRole("link", { name: "Sign up" }).getAttribute("href")).toBe(signupHref);
   cleanup();
   render(await SignUpPage({ searchParams: Promise.resolve({ next }) }));
   expect(screen.getByRole("link", { name: "Sign in instead" }).getAttribute("href")).toBe(allowed ? `/login?next=${encodeURIComponent(next)}` : "/login");

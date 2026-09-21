@@ -7,6 +7,8 @@ import { LivePulseTicker } from "@/components/home/LivePulseTicker";
 import { ShopByPrice } from "@/components/home/ShopByPrice";
 import { TransparencyStatsPod } from "@/components/home/TransparencyStatsPod";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { OfferingAvailabilityProvider } from "@/components/home/OfferingAvailabilityProvider";
 
 /**
  * Homepage composition (spec §4), following the Checkpoint 2 artboards with
@@ -16,18 +18,20 @@ import { PageContainer } from "@/components/layout/PageContainer";
  * rails → transparency → marketplace activity → status cards → price browsing
  * → trust → footer (AppShell).
  *
- * This stays a Server Component and performs NO data access. Values come from
- * `@/lib/home/placeholder-data`; wallet and identity remain owned by
- * SiteHeader, the single place that reads the ledger (spec §32).
+ * Sample artwork/content stays intact; only aggregate offering availability
+ * comes from the database. No customer or ledger records enter the rail props.
  */
-export default function HomePage() {
+export default async function HomePage() {
+  const availability = await getOfferingAvailability();
   return (
     <>
       <LivePulseTicker />
 
       <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0 md:pb-4">
         <HeroSection />
-        <DesktopMarketplaceRails />
+        <OfferingAvailabilityProvider snapshot={availability}>
+          <DesktopMarketplaceRails />
+        </OfferingAvailabilityProvider>
       </PageContainer>
 
       <PageContainer wide className="space-y-3 pb-3 pt-0 sm:space-y-16 sm:pb-16 md:space-y-4 md:pb-4">

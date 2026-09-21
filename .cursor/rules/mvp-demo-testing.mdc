@@ -1,0 +1,24 @@
+---
+description: Preserve the Zero Loss MVP while testing demo funding, entries, and customer flows.
+alwaysApply: true
+---
+
+# MVP testing permissions and boundaries
+
+- The owner authorizes adding demo funds and submitting single or multiple demo tickets, including in the owner's demo account, when needed to test customer flows. Do not request renewed permission for each ordinary demo test.
+- Confirm the action uses simulated funds and entries before submitting it. This permission does not cover real payments, real prize fulfillment, or bypassing security or tool approval requirements. Ask if the environment or consequences are uncertain.
+- Preserve features and sample data, including fictional profiles, prizes, winners, balances, and illustrative figures. Do not remove or reset them as test cleanup or to make the MVP appear production-ready.
+- Ask before removing a feature, relabeling existing content, or materially changing how a workflow operates, unless the user explicitly requested that specific change.
+- Leave every "How It Works" button, link, and experience untouched unless explicitly authorized otherwise.
+- Make focused repairs in small batches. Favor working links, direct paths back to the selected prize, clear feedback, and fewer unnecessary clicks.
+- Style customer-facing prompts and toasts like the main website, not the hamburger/sidebar menu.
+- Report demo funds or ticket records added during testing and distinguish simulated checks from real transactions. Do not claim an end-to-end flow passed unless its relevant steps were verified.
+
+# Durable functionality and the path to main
+
+- The target is a functional MVP that can progress toward the main branch, not just a visual prototype. Test the customer interface and its persisted records together.
+- Use Supabase for durable account and domain state, such as entries, Crew connections, sharing preferences, and notification records. Browser-only state is suitable for transient interface behavior, not as the sole record of a completed account action.
+- Inspect the existing schema, repository migrations, and architecture before adding persistence. Reuse the canonical tables and domain interfaces; add reviewed, non-destructive migrations when genuinely missing. Do not create parallel tables for an already-owned concept.
+- Verify relevant relationships, constraints, ownership/access policies, server-side validation, and retry behavior. For demo funding and entries, reconcile the displayed balance and ticket counts with the authoritative ledger and entry records; preserve the financial invariants in `architecture.mdc`.
+- Keep simulated funding and intentional sample data distinguishable from real transactions without removing the sample experience. Do not enable real payments or claim production readiness merely because the demo tests pass; assess migration and release readiness separately before merging or switching payment modes.
+- When required service access is missing, explain exactly what access is needed and ask the owner to sign in through the appropriate secure interface. Never request secrets in chat or bypass authentication.

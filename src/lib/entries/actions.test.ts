@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.stubEnv("VERCEL_ENV", "preview");
   mocks.getUser.mockResolvedValue({ data: { user: { id: "own-user", email_confirmed_at: "2026-09-18" } } });
   mocks.provision.mockResolvedValue({ required: true, succeeded: true, walletAccountId: "99999999-9999-4999-8999-999999999999" });
-  mocks.rpc.mockResolvedValue({ data: { status: "active", quantity: 3 } });
+  mocks.rpc.mockResolvedValue({ data: { status: "active", quantity: 3, entryId: "ent_abcdef123" } });
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -29,7 +29,7 @@ test("sends the selected quantity to the atomic database batch function", async 
   expect(await createPreviewEntry({ status: "idle" }, entryForm())).toEqual({
     status: "succeeded",
     message: "3 entries confirmed. They are now in My Activity.",
-    href: "/account/entries?item=samsung-m70h-tv",
+    href: "/account/entries?item=samsung-m70h-tv&entry=ent_abcdef123",
     outcome: "active",
   });
   expect(mocks.rpc).toHaveBeenCalledWith("create_preview_entries_with_sharing", {
@@ -74,4 +74,25 @@ test("insufficient balance has an explicit UI code and never reports success", a
 test("a sold-out quantity error is not misidentified as a funding error", async () => {
   mocks.rpc.mockResolvedValue({ error: { code: "P0001", message: "There are not enough entries remaining for that quantity." } });
   expect(await createPreviewEntry({ status: "idle" }, entryForm())).toEqual({ status: "error", message: "There are not enough entries remaining for that quantity." });
+});
+
+test("winning batches link to the exact stored reward", async () => {
+  mocks.rpc.mockResolvedValue({ data: { status: "winner", quantity: 3, entryId: "ent_abcdef123", rewardId: "11111111-2222-4333-8444-555555555555" } });
+  expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({
+    status: "succeeded", href: "/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-2222-4333-8444-555555555555",
+  });
+});
+
+test("non-selected batches open the exact completion entry", async () => {
+  mocks.rpc.mockResolvedValue({ data: { status: "not_selected", entryId: "ent_abcdef124" } });
+  expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({
+    status: "succeeded", href: "/account/entries?item=samsung-m70h-tv&entry=ent_abcdef124",
+  });
+});
+
+test.each(["active", "not_selected", "winner"])("old %s responses go to an unambiguous list", async status => {
+  mocks.rpc.mockResolvedValue({ data: { status, entryId: "invalid?url", rewardId: "invalid?url" } });
+  expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({
+    status: "succeeded", href: status === "winner" ? "/account/wallet" : "/account/entries",
+  });
 });

@@ -79,9 +79,13 @@ export async function createPreviewEntry(
     }
 
     revalidatePath("/", "layout");
+    // A slug does not identify a ticket/reward after multiple purchases.
+    // Older database responses safely land on the list, never an ambiguous detail.
+    const entryId = typeof data.entryId === "string" && /^ent_[0-9a-f]+$/.test(data.entryId) ? data.entryId : null;
+    const rewardId = typeof data.rewardId === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(data.rewardId) ? data.rewardId : null;
     const href = outcome === "winner"
-      ? `/account/wallet?${new URLSearchParams({ reward: offeringSlug })}`
-      : `/account/entries?${new URLSearchParams({ item: offeringSlug })}`;
+      ? rewardId ? `/account/wallet?${new URLSearchParams({ reward: offeringSlug, rewardId })}` : "/account/wallet"
+      : entryId ? `/account/entries?${new URLSearchParams({ item: offeringSlug, entry: entryId })}` : "/account/entries";
     const entryLabel = quantity === 1 ? "Entry" : `${quantity} entries`;
     const message = outcome === "winner"
       ? `${entryLabel} confirmed—opening your wallet reward${quantity === 1 ? "" : "s"}.`

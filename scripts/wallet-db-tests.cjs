@@ -1,0 +1,39 @@
+// Local-only SQL regression runner. Uses the temporary pg test client described
+// in wallet-concurrency-check.cjs. Every pgTAP test rolls its fixtures back.
+const { Client } = require('../.tmp-wallet-audit-runtime/node_modules/pg');
+const { readFileSync } = require('node:fs');
+const { resolve } = require('node:path');
+const tests = ['wallet_account_isolation_test.sql','verified_demo_funding_test.sql',
+  'save_demo_payment_method_test.sql','preview_entry_lifecycle_test.sql','extra_entry_explainer_preference_test.sql',
+  'preview_availability_test.sql','account_lifecycle_test.sql','demo_credit_card_test.sql'];
+const migration='20260921160000_serialize_preview_entry_capacity.sql';
+const db=new Client({connectionString:'postgresql://postgres:postgres@127.0.0.1:54322/postgres'});
+(async()=>{
+  await db.connect();
+  if(process.argv.includes('--apply-capacity-fix')) {
+    await db.query(readFileSync(resolve(__dirname,'../supabase/migrations',migration),'utf8'));
+    console.log('Applied capacity repair to localhost only.');
+  }
+  if(process.argv.includes('--apply-receipt-fix')) {
+    await db.query(readFileSync(resolve(__dirname,'../supabase/migrations/20260921161500_preview_entry_receipt_destinations.sql'),'utf8'));
+    console.log('Applied receipt link repair to localhost only.');
+  }
+  if(process.argv.includes('--apply-availability')) {
+    await db.query(readFileSync(resolve(__dirname,'../supabase/migrations/20260921163000_preview_offering_availability.sql'),'utf8'));
+    console.log('Applied availability migration to localhost only.');
+  }
+  let assertions=0,failures=0;
+  for(const name of tests) {
+    try {
+      const result=await db.query(readFileSync(resolve(__dirname,'../supabase/tests',name),'utf8'));
+      const text=(Array.isArray(result)?result:[result]).flatMap(r=>r.rows).flatMap(r=>Object.values(r)).filter(v=>typeof v==='string');
+      const passed=text.filter(v=>/^ok \d+/.test(v)).length;
+      const failed=text.filter(v=>/^not ok \d+/.test(v));
+      if(!passed) throw new Error('No pgTAP assertions returned');
+      assertions+=passed; failures+=failed.length;
+      console.log(JSON.stringify({test:name,passed,failures:failed}));
+    } catch(e) { failures++; await db.query('rollback'); console.log(JSON.stringify({test:name,error:e.message})); }
+  }
+  console.log(JSON.stringify({localOnly:true,passedAssertions:assertions,failures}));
+  if(failures)process.exitCode=1;
+})().catch(e=>{console.error(e.message);process.exitCode=1;}).finally(()=>db.end());

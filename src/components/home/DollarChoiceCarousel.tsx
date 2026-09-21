@@ -5,8 +5,11 @@ import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { dollarChoiceDemoItems, entryCapacityForValue } from "@/lib/home/demo-data";
+import { availabilityForHref, filledPercent } from "@/lib/catalog/availability";
+import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
 
 export function DollarChoiceCarousel() {
+  const availability = useOfferingAvailability();
   const trackRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
@@ -94,9 +97,11 @@ export function DollarChoiceCarousel() {
           }}
           onDragStart={(event) => event.preventDefault()}
         >
-          {dollarChoiceDemoItems.map((item) => {
+          {dollarChoiceDemoItems.map((sample) => {
+            const current = availabilityForHref(availability, sample.href);
+            const item = { ...sample, percentFilled: current ? filledPercent(current) : sample.percentFilled };
             const meterColor = item.percentFilled >= 80 ? "#ff630f" : item.percentFilled >= 60 ? "#31e800" : "#00b9ff";
-            const entryCapacity = entryCapacityForValue(item.prizeValue);
+            const entryCapacity = current?.capacity ?? entryCapacityForValue(item.prizeValue);
             return (
               <article key={item.id} className="group relative w-[156px] shrink-0 sm:w-[230px]">
                 <Link
