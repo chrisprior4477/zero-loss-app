@@ -12,3 +12,14 @@ export function entryReturnPath(value: unknown): string | null {
 export function signInReturnPath(value: unknown): string | null {
   return entryReturnPath(value) ?? fundingReturnPath(value);
 }
+
+/** Carry the same allowlisted destination between account forms. */
+export function authNavigationHref(page: "/login" | "/signup", value: unknown): string {
+  const returnTo = signInReturnPath(value);
+  return returnTo ? `${page}?next=${encodeURIComponent(returnTo)}` : page;
+}
+
+export function signupVerificationPath(value: unknown): string {
+  const returnTo = signInReturnPath(value);
+  return returnTo ? `/auth/confirm?next=${encodeURIComponent(returnTo)}` : "/auth/confirm";
+}

@@ -7,7 +7,7 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 
 export type PreviewEntryActionState =
   | { status: "idle" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string; code?: "insufficient_balance" }
   | { status: "succeeded"; message: string; href: string; outcome: "active" | "winner" | "not_selected" };
 
 export type EntryExplainerPreferenceState =
@@ -19,6 +19,9 @@ const keyPattern = /^[A-Za-z0-9_-]{16,128}$/;
 
 function entryError(error: unknown): PreviewEntryActionState {
   const candidate = error as { code?: string; message?: string };
+  if (candidate.code === "P0001" && candidate.message === "Add demo funds before entering this quantity.") {
+    return { status: "error", code: "insufficient_balance", message: "Add funds to cover these entries, then return to this prize." };
+  }
   if (candidate.code === "P0001") return { status: "error", message: candidate.message ?? "This preview entry is not available." };
   if (candidate.code === "22023") return { status: "error", message: "This product is not currently available for a preview entry." };
   if (candidate.code === "42501") return { status: "error", message: "Sign in with a confirmed preview account to enter." };

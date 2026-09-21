@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 import { useActionState, useEffect, useRef } from "react";
 import {
   signInAction,
@@ -113,7 +114,7 @@ export function LoginForm({
         <p className="text-white/50">
         Need an account?{" "}
         <Link
-          href="/signup"
+          href={authNavigationHref("/signup", returnTo)}
           className="font-bold text-cyan-300 underline-offset-4 hover:underline"
         >
           Sign up

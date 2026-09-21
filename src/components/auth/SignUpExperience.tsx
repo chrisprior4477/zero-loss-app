@@ -5,10 +5,11 @@ import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { SignUpForm } from "@/components/auth/SignUpForm";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 
 type AccountPath = "pleasure" | "business";
 
-export function SignUpExperience({ initialAccountPath = "pleasure" }: { initialAccountPath?: AccountPath }) {
+export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = null }: { initialAccountPath?: AccountPath; returnTo?: string | null }) {
   const [accountPath, setAccountPath] = useState<AccountPath>(initialAccountPath);
   const router = useRouter();
   const setupRef = useRef<HTMLDivElement>(null);
@@ -43,10 +44,10 @@ export function SignUpExperience({ initialAccountPath = "pleasure" }: { initialA
         <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff8a45]">{isPleasure ? "Create an account" : "Business launch setup"}</p>
         <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">{isPleasure ? "Let’s get you set up." : "Launch an offer on Zero Loss."}</h2>
         <p className="mt-2 text-sm leading-6 text-white/60">
-          {isPleasure ? <>Already registered? <Link href="/login" className="font-bold text-cyan-300 underline-offset-4 hover:underline">Sign in instead</Link></> : "Create the account, offer, creative plan, and campaign in one guided flow."}
+          {isPleasure ? <>Already registered? <Link href={authNavigationHref("/login", returnTo)} className="font-bold text-cyan-300 underline-offset-4 hover:underline">Sign in instead</Link></> : "Create the account, offer, creative plan, and campaign in one guided flow."}
         </p>
         <div className="mt-7">
-          <SignUpForm />
+          <SignUpForm returnTo={returnTo} />
         </div>
       </div>
 

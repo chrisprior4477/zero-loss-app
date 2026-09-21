@@ -1,10 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { DemoParticipationPanel } from "./DemoParticipationPanel";
-const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn() }));
+const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), enter: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: vi.fn(), acknowledgeExtraEntryExplainer: actionMocks.acknowledge }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge }));
+afterEach(() => { cleanup(); vi.resetAllMocks(); });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
@@ -117,4 +117,67 @@ test("entry submission asks for an explicit private-or-Crew sharing choice", () 
   expect(screen.getByRole("dialog", { name: "Share this pick with your Crew?" })).toBeTruthy();
   expect(screen.getByText(/Nothing is shared publicly/)).toBeTruthy();
   expect(document.querySelector('input[name="shareWithCrew"]')?.getAttribute("value")).toBe("no");
+});
+
+test("insufficient balance opens an actionable toast before sharing or submitting an entry", () => {
+  render(<DemoParticipationPanel {...props} balanceLabel="$0.25" balanceCents={25} isDemoWallet isSignedIn />);
+  const enter = screen.getByRole("button", { name: "Enter for $1.00" });
+  enter.focus();
+  fireEvent.click(enter);
+  expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy();
+  expect(screen.getByRole("status").textContent).toContain("$0.75");
+  expect(screen.getByRole("status").textContent).toContain("No entries were placed");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+  expect(document.activeElement?.getAttribute("href")).toBe("/account/wallet?view=history&from=test-product#add-funds");
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
+  expect(document.activeElement).toBe(enter);
+  fireEvent.click(enter);
+  fireEvent.click(screen.getByRole("button", { name: "Keep browsing" }));
+  expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
+});
+
+test("multiple entries update the total and shortfall without losing the selected quantity", () => {
+  render(<DemoParticipationPanel {...props} balanceCents={125} isSignedIn extraEntryExplainerAcknowledged />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $3.00" }));
+  expect(screen.getByRole("status").textContent).toContain("3 entries cost $3.00");
+  expect(screen.getByRole("status").textContent).toContain("$1.75");
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss balance notice" }));
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("3");
+  fireEvent.click(screen.getByRole("button", { name: "Remove one entry" }));
+  expect(screen.getByRole("button", { name: "Enter for $2.00" })).toBeTruthy();
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
+test.each([100, null, undefined, NaN])("exact or unavailable balance does not falsely claim insufficient funds: %s", balanceCents => {
+  render(<DemoParticipationPanel {...props} balanceCents={balanceCents} isSignedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
+  expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
+  expect(screen.getByRole("dialog", { name: "Share this pick with your Crew?" })).toBeTruthy();
+});
+
+test("a server-side balance change shows the funding toast without trusting stale balance numbers", async () => {
+  actionMocks.enter.mockResolvedValue({ status: "error", code: "insufficient_balance", message: "Add funds to cover these entries, then return to this prize." });
+  render(<DemoParticipationPanel {...props} balanceCents={1000} isSignedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
+  fireEvent.click(screen.getByRole("button", { name: "Keep private & enter" }));
+  await waitFor(() => expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy());
+  expect(screen.getByRole("status").textContent).toContain("Your balance no longer covers");
+  expect(screen.getByRole("status").textContent).not.toContain("$10.00");
+  fireEvent.click(screen.getByRole("button", { name: "Keep browsing" }));
+  expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
+});
+
+test("the quantity is capped at ten, total uses cents, and reducing stops at one", () => {
+  render(<DemoParticipationPanel {...props} entryPrice={0.1} isSignedIn extraEntryExplainerAcknowledged />);
+  for (let i = 0; i < 12; i++) fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("10");
+  expect(screen.getByRole("button", { name: "Enter for $1.00" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Add one entry" }).hasAttribute("disabled")).toBe(true);
+  for (let i = 0; i < 12; i++) fireEvent.click(screen.getByRole("button", { name: "Remove one entry" }));
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+  expect(screen.getByRole("button", { name: "Enter for $0.10" })).toBeTruthy();
 });

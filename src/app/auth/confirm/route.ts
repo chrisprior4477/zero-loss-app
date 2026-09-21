@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { signInReturnPath } from "@/lib/auth/entry-return";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -21,10 +22,12 @@ export async function GET(request: NextRequest) {
     return landingResponse;
   }
 
-  const successUrl = `${origin}/login?verified=1`;
+  const returnTo = signInReturnPath(searchParams.get("next"));
+  const returnQuery = returnTo ? `&next=${encodeURIComponent(returnTo)}` : "";
+  const successUrl = `${origin}/login?verified=1${returnQuery}`;
   const failureUrl = recoveryAttempt
     ? `${origin}/forgot-password?error=expired`
-    : `${origin}/login?error=verification_failed`;
+    : `${origin}/login?error=verification_failed${returnQuery}`;
   const response = NextResponse.redirect(failureUrl);
 
   const supabase = createServerClient(

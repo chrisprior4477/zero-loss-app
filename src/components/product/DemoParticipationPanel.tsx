@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PoolProgress } from "@/components/product/PoolProgress";
+import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "@/lib/entries/actions";
 
@@ -19,6 +20,7 @@ type Props = {
   sold: number;
   capacity: number;
   balanceLabel?: string;
+  balanceCents?: number | null;
   isDemoWallet?: boolean;
   isSignedIn?: boolean;
   extraEntryExplainerAcknowledged?: boolean;
@@ -34,6 +36,7 @@ export function DemoParticipationPanel({
   sold,
   capacity,
   balanceLabel = "Unavailable",
+  balanceCents = null,
   isDemoWallet = false,
   isSignedIn = false,
   extraEntryExplainerAcknowledged = false,
@@ -48,13 +51,19 @@ export function DemoParticipationPanel({
   const [preferenceSaving, setPreferenceSaving] = useState(false);
   const [preferenceError, setPreferenceError] = useState<string | null>(null);
   const [sharePromptOpen, setSharePromptOpen] = useState(false);
+  const [balanceNoticeOpen, setBalanceNoticeOpen] = useState(false);
+  const [dismissedBalanceError, setDismissedBalanceError] = useState<typeof state | null>(null);
   const entryFormRef = useRef<HTMLFormElement>(null);
   const shareChoiceRef = useRef<HTMLInputElement>(null);
   const shareChoiceConfirmed = useRef(false);
   const remaining = Math.max(0, capacity - sold);
   const maxQuantity = Math.min(10, remaining);
   const remainingBalance = Math.max(0, productValue - entryPrice);
-  const total = quantity * entryPrice;
+  const totalCents = quantity * Math.round(entryPrice * 100);
+  const total = totalCents / 100;
+  const knownBalance = typeof balanceCents === "number" && Number.isSafeInteger(balanceCents) ? balanceCents : null;
+  const serverBalanceError = state.status === "error" && state.code === "insufficient_balance";
+  const showBalanceNotice = balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state);
   const entryLoginHref = `/login?next=${encodeURIComponent(`/items/${productSlug}#enter-entry`)}`;
   const addFundsHref = fundingHref(productSlug);
 
@@ -138,6 +147,13 @@ export function DemoParticipationPanel({
         <button type="button" disabled className="mt-4 w-full rounded-xl bg-[#0b668b] px-5 py-3.5 text-base font-extrabold text-white/60">No entries remaining</button>
       ) : isSignedIn ? (
         <form ref={entryFormRef} action={action} onSubmit={(event) => {
+          if (knownBalance !== null && knownBalance < totalCents) {
+            event.preventDefault();
+            shareChoiceConfirmed.current = false;
+            setSharePromptOpen(false);
+            setBalanceNoticeOpen(true);
+            return;
+          }
           if (shareChoiceConfirmed.current) return;
           event.preventDefault();
           setSharePromptOpen(true);
@@ -165,12 +181,17 @@ export function DemoParticipationPanel({
         <strong className="text-[#67ff42]">Each ${entryPrice.toFixed(2)} still counts.</strong> If an entry is not selected, its payment remains attached to this exact {retailer} offering as its own completion option, subject to the published terms.
       </div>
 
-      {state.status !== "idle" ? (
+      {state.status !== "idle" && !serverBalanceError ? (
         <div role="status" className={`mt-4 rounded-xl border p-4 text-sm leading-6 ${state.status === "error" ? "border-[#ff796c]/50 bg-[#4b1c25]" : "border-[#31e800]/40 bg-[#0b412b]"}`}>
           <strong>{state.message}</strong>
           {state.status === "succeeded" ? <span className="block text-white/65">Opening the stored result for {productTitle}…</span> : null}
         </div>
       ) : null}
+
+      {showBalanceNotice ? <InsufficientBalanceToast quantity={quantity} totalCents={totalCents} balanceCents={serverBalanceError ? null : knownBalance} fundingHref={addFundsHref} onClose={() => {
+        setBalanceNoticeOpen(false);
+        setDismissedBalanceError(state);
+      }} /> : null}
 
       {additionalEntryNoticeOpen ? createPortal((
         <div className="fixed inset-0 z-[200] grid place-items-end bg-[#000914]/75 p-2 backdrop-blur-sm sm:place-items-center sm:p-4" role="presentation" onMouseDown={(event) => {

@@ -6,10 +6,12 @@ import {
   type ResendVerificationState,
 } from "@/lib/auth/actions";
 import { EmailDeliveryHint } from "@/components/auth/EmailDeliveryHint";
+import { signInReturnPath } from "@/lib/auth/entry-return";
 
 const initialState: ResendVerificationState = { ok: false, message: null };
 
-export function ResendVerificationForm({ email }: { email: string }) {
+export function ResendVerificationForm({ email, returnTo = null }: { email: string; returnTo?: string | null }) {
+  const safeReturnTo = signInReturnPath(returnTo);
   const [state, formAction, pending] = useActionState(
     resendVerificationAction,
     initialState
@@ -18,6 +20,7 @@ export function ResendVerificationForm({ email }: { email: string }) {
 
   return (
     <form action={formAction} className="mt-3">
+      {safeReturnTo ? <input type="hidden" name="returnTo" value={safeReturnTo} /> : null}
       <input type="hidden" name="verification_email" value={email} />
       <button
         type="submit"

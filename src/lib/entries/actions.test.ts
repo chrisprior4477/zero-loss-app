@@ -64,3 +64,14 @@ test("explicit Crew sharing uses the atomic entry-and-share function", async () 
     p_share_with_crew: true,
   });
 });
+
+test("insufficient balance has an explicit UI code and never reports success", async () => {
+  mocks.rpc.mockResolvedValue({ error: { code: "P0001", message: "Add demo funds before entering this quantity." } });
+  expect(await createPreviewEntry({ status: "idle" }, entryForm())).toEqual({ status: "error", code: "insufficient_balance", message: "Add funds to cover these entries, then return to this prize." });
+  expect(mocks.revalidate).not.toHaveBeenCalled();
+});
+
+test("a sold-out quantity error is not misidentified as a funding error", async () => {
+  mocks.rpc.mockResolvedValue({ error: { code: "P0001", message: "There are not enough entries remaining for that quantity." } });
+  expect(await createPreviewEntry({ status: "idle" }, entryForm())).toEqual({ status: "error", message: "There are not enough entries remaining for that quantity." });
+});

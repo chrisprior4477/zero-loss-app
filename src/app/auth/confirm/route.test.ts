@@ -76,3 +76,19 @@ test("an expired recovery code leads back to a fresh reset request", async () =>
   expect(response.headers.get("location")).toBe("http://localhost:3000/forgot-password?error=expired");
   expect(authMocks.signOut).not.toHaveBeenCalled();
 });
+
+test.each(["/items/playstation-5-slim#enter-entry", "/account/wallet?view=history&from=samsung-m70h-tv#add-funds"])("signup confirmation keeps the approved return destination %s", async destination => {
+  authMocks.exchange.mockResolvedValue({ data: { redirectType: null }, error: null });
+  const response = await GET(new NextRequest(`http://localhost:3000/auth/confirm?code=valid&next=${encodeURIComponent(destination)}`));
+  const location = new URL(response.headers.get("location")!);
+  expect(location.pathname).toBe("/login");
+  expect(location.searchParams.get("verified")).toBe("1");
+  expect(location.searchParams.get("next")).toBe(destination);
+  expect(authMocks.signOut).toHaveBeenCalledOnce();
+});
+
+test("verification never carries an external return URL into login", async () => {
+  authMocks.verify.mockResolvedValue({ error: null });
+  const response = await GET(new NextRequest("http://localhost:3000/auth/confirm?token_hash=valid&type=signup&next=https%3A%2F%2Fevil.test"));
+  expect(response.headers.get("location")).toBe("http://localhost:3000/login?verified=1");
+});

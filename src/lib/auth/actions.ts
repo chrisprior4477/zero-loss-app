@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { signInReturnPath } from "@/lib/auth/entry-return";
+import { signInReturnPath, signupVerificationPath } from "@/lib/auth/entry-return";
 import { passwordUpdateErrorMessage } from "@/lib/auth/password-update-error";
 import {
   isAtLeastAge,
@@ -157,14 +157,14 @@ export async function signUpAction(
   }
 
   const supabase = await createClient();
-  const origin = await getSiteOrigin();
+  const origin = await getRecoveryCallbackOrigin();
   const termsAcceptedAt = new Date().toISOString();
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/confirm`,
+      emailRedirectTo: `${origin}${signupVerificationPath(formData.get("returnTo"))}`,
       data: {
         legal_first_name: legalFirstName,
         legal_last_name: legalLastName,
@@ -237,11 +237,11 @@ export async function resendVerificationAction(
   }
 
   const supabase = await createClient();
-  const origin = await getSiteOrigin();
+  const origin = await getRecoveryCallbackOrigin();
   const { error } = await supabase.auth.resend({
     type: "signup",
     email,
-    options: { emailRedirectTo: `${origin}/auth/confirm` },
+    options: { emailRedirectTo: `${origin}${signupVerificationPath(formData.get("returnTo"))}` },
   });
 
   if (error) {

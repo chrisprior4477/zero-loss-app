@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
 import { useActionState, useState } from "react";
 import {
   signUpAction,
@@ -21,7 +22,8 @@ const initialState: AuthActionState = {
 
 const PASSWORD_MISMATCH = "Passwords do not match.";
 
-export function SignUpForm({ idPrefix = "", compact = false }: { idPrefix?: string; compact?: boolean } = {}) {
+export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: { idPrefix?: string; compact?: boolean; returnTo?: string | null } = {}) {
+  const safeReturnTo = signInReturnPath(returnTo);
   const [state, formAction, pending] = useActionState(
     signUpAction,
     initialState
@@ -57,12 +59,12 @@ export function SignUpForm({ idPrefix = "", compact = false }: { idPrefix?: stri
           An account is associated with <strong className="text-white">{accountEmail}</strong>, or that address is waiting for verification.
         </p>
         <Link
-          href="/login"
+          href={authNavigationHref("/login", safeReturnTo)}
           className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#00b9ff] px-5 text-base font-black text-[#00132e] transition hover:bg-cyan-200"
         >
           Sign in
         </Link>
-        <ResendVerificationForm email={state.values?.email ?? ""} />
+        <ResendVerificationForm email={state.values?.email ?? ""} returnTo={safeReturnTo} />
         <button
           type="button"
           onClick={() => window.location.reload()}
@@ -98,7 +100,7 @@ export function SignUpForm({ idPrefix = "", compact = false }: { idPrefix?: stri
         </p>
         <EmailDeliveryHint className="mt-4" />
         <Link
-          href="/login"
+          href={authNavigationHref("/login", safeReturnTo)}
           className="mt-6 inline-flex rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--accent-foreground)]"
         >
           Go to sign in
@@ -156,6 +158,7 @@ export function SignUpForm({ idPrefix = "", compact = false }: { idPrefix?: stri
         }
       }}
     >
+      {safeReturnTo ? <input type="hidden" name="returnTo" value={safeReturnTo} /> : null}
       <div className={`grid gap-4 ${compact ? "" : "sm:grid-cols-2"}`}>
         <div>
           <label
@@ -330,7 +333,7 @@ export function SignUpForm({ idPrefix = "", compact = false }: { idPrefix?: stri
         {pending ? "Creating account…" : "Create account"}
       </button>
     </form>
-    <ResendVerificationForm email={email} />
+    <ResendVerificationForm email={email} returnTo={safeReturnTo} />
     </>
   );
 }
