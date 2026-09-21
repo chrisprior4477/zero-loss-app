@@ -8,6 +8,8 @@ export type PurchaseOptionActionState =
   | { status: "succeeded"; message: string }
   | { status: "error"; message: string };
 
+export type RewardClaimActionState = PurchaseOptionActionState | { status: "verification_required"; message: string };
+
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function declinePurchaseOption(
@@ -83,9 +85,9 @@ export async function setPurchaseOptionEmailPreference(
 }
 
 export async function claimReward(
-  _previous: PurchaseOptionActionState,
+  _previous: RewardClaimActionState,
   formData: FormData,
-): Promise<PurchaseOptionActionState> {
+): Promise<RewardClaimActionState> {
   const rewardId = String(formData.get("rewardId") ?? "");
   if (!uuidPattern.test(rewardId)) return { status: "error", message: "This reward is invalid." };
   const db = await createClient();
@@ -95,6 +97,7 @@ export async function claimReward(
     p_reward_id: rewardId,
     p_idempotency_key: `claim_${rewardId.replaceAll("-", "")}`,
   });
+  if (error?.code === "P0001" && error.details === "identity_verification_required") return { status: "verification_required", message: "Complete the demo identity check to claim your prize." };
   if (error) return { status: "error", message: error.code === "P0001" ? error.message : "Your reward could not be claimed. Refresh and try again." };
   revalidatePath("/", "layout");
   revalidatePath("/account/wallet");

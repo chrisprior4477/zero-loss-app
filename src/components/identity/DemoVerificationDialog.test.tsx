@@ -1,0 +1,74 @@
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+const mocks = vi.hoisted(() => ({ beginDemoVerification: vi.fn(), advanceDemoVerification: vi.fn() }));
+vi.mock("@/lib/identity/demo-verification-actions", () => mocks);
+import { DemoVerificationDialog } from "./DemoVerificationDialog";
+const id = "97999999-9999-4999-8999-999999999971";
+const sample = { id, reference: "ver_abcdef", provider: "demo", step: "start" };
+beforeEach(() => {
+  vi.resetAllMocks();
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  mocks.beginDemoVerification.mockResolvedValue({ verification: sample });
+  mocks.advanceDemoVerification.mockImplementation(async (_id, step) => ({ verification: { ...sample, step } }));
+});
+afterEach(() => { cleanup(); vi.useRealTimers(); });
+test("consent, details, sample front/back and review are saved step by step without personal inputs", async () => {
+  const { container } = render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={vi.fn()} />);
+  await screen.findByRole("button", { name: "Start demo check" });
+  expect((screen.getByRole("button", { name: "Start demo check" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: "Start demo check" }));
+  await screen.findByRole("button", { name: "Confirm sample details" });
+  expect((screen.getByLabelText("Full legal name — demo data") as HTMLInputElement).readOnly).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Confirm sample details" }));
+  await screen.findByLabelText("Front of fictional demo ID");
+  fireEvent.click(screen.getByRole("button", { name: "Capture sample front" }));
+  await screen.findByLabelText("Back of fictional demo ID");
+  fireEvent.click(screen.getByRole("button", { name: "Capture sample back" }));
+  await screen.findByRole("button", { name: "Play sample headshot" });
+  expect(container.querySelector('input[type="file"], video, [capture]')).toBeNull();
+  expect(mocks.advanceDemoVerification.mock.calls.map(call => call[1])).toEqual(["consent", "details", "document_front", "document_back"]);
+});
+test("sample video plays three directions without camera access, then saves recording step", async () => {
+  mocks.beginDemoVerification.mockResolvedValue({ verification: { ...sample, step: "document_back" } });
+  render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={vi.fn()} />);
+  await screen.findByRole("button", { name: "Play sample headshot" });
+  vi.useFakeTimers();
+  fireEvent.click(screen.getByRole("button", { name: "Play sample headshot" }));
+  expect(screen.getByText("Look straight ahead")).toBeTruthy();
+  act(() => vi.advanceTimersByTime(1400)); expect(screen.getByText("Slowly turn your head left")).toBeTruthy();
+  act(() => vi.advanceTimersByTime(1400)); expect(screen.getByText("Now turn your head right")).toBeTruthy();
+  act(() => vi.advanceTimersByTime(1400));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Use sample recording" })));
+  expect(mocks.advanceDemoVerification).toHaveBeenCalledWith(id, "selfie");
+  expect(screen.getByRole("button", { name: "Submit sample for review" })).toBeTruthy();
+});
+test("resuming a submitted check offers both explicit simulated outcomes", async () => {
+  mocks.beginDemoVerification.mockResolvedValue({ verification: { ...sample, step: "submitted" } });
+  const onComplete = vi.fn();
+  render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={onComplete} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Run successful demo check" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Continue to claim prize" }));
+  expect(onComplete).toHaveBeenCalledOnce();
+  expect(screen.getByText(/This is not real KYC approval/)).toBeTruthy();
+});
+test("failed sample can start a new durable attempt", async () => {
+  mocks.beginDemoVerification.mockResolvedValueOnce({ verification: { ...sample, step: "submitted" } }).mockResolvedValue({ verification: sample });
+  render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Try the “photo needs retaking”/ }));
+  fireEvent.click(await screen.findByRole("button", { name: "Try again with sample ID" }));
+  await screen.findByRole("button", { name: "Start demo check" });
+  expect(mocks.beginDemoVerification).toHaveBeenCalledTimes(2);
+});
+test("a network error preserves the current screen and offers the same step again", async () => {
+  mocks.beginDemoVerification.mockResolvedValue({ verification: { ...sample, step: "details" } });
+  mocks.advanceDemoVerification.mockResolvedValue({ error: "Connection interrupted. Retry this step." });
+  const onClose = vi.fn();
+  render(<DemoVerificationDialog rewardId={id} onClose={onClose} onComplete={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Capture sample front" }));
+  await screen.findByRole("alert");
+  expect(screen.getByLabelText("Front of fictional demo ID")).toBeTruthy();
+  await waitFor(() => expect((screen.getByRole("button", { name: "Finish later" }) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getByRole("button", { name: "Finish later" }));
+  expect(onClose).toHaveBeenCalledOnce();
+});
