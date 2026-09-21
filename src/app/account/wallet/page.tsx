@@ -12,17 +12,23 @@ import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { DemoCardManager } from "@/components/wallet/DemoCardManager";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
+import { authNavigationHref } from "@/lib/auth/entry-return";
+import { accountPageReturnPath } from "@/lib/auth/account-return";
+import { selectedTransaction } from "@/lib/wallet/selected-transaction";
 
 export const metadata: Metadata = { title: "Gift Cards & Rewards" };
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; view?: string | string[]; rewards?: string | string[]; from?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; view?: string | string[]; rewards?: string | string[]; from?: string | string[]; transaction?: string | string[] }> }) {
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
   // A return link may name an existing catalog prize, not arbitrary content.
   const fromProduct = history && typeof query.from === "string" ? getDemoProduct(query.from) : undefined;
   const account = await getAccountContext();
-  if (!account) redirect(history ? `/login?next=${encodeURIComponent(fundingHref(fromProduct?.slug))}&focus=email#login-form` : "/login");
+  if (!account) {
+    const next = history && !query.transaction ? fundingHref(fromProduct?.slug) : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : "");
+    redirect(`${authNavigationHref("/login", next)}&focus=email#login-form`);
+  }
   // A URL only selects from this authenticated account's authorized data.
   const matchingRewards = walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
   const reward = typeof query.rewardId === "string"
@@ -31,9 +37,10 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const cardView = !requestedReward && query.view === "card";
   const rewardView = query.rewards === "history" ? "history" : "ready";
   const provider = (history || cardView) && account.wallet?.scope === "demo" ? new DemoPaymentProvider(await createClient()) : null;
-  const [requests, savedCard] = await Promise.all([
+  const [requests, savedCard, transaction] = await Promise.all([
     history && provider ? provider.getRequests().catch(() => null) : null,
     provider && account.fundingEnabled ? provider.getPaymentMethod().catch(() => undefined) : null,
+    history ? selectedTransaction(query.transaction, account.userId, account.wallet).catch(() => ({ requested: true, entry: null })) : undefined,
   ]);
   if (requestedReward) {
     let claimedCode: string | null = null;
@@ -47,6 +54,6 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       : <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href="/account/wallet" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
   }
   if (cardView) return <DemoCardManager displayName={account.displayName} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} enabled={Boolean(provider && account.fundingEnabled)} />;
-  if (history) return <WalletOverview wallet={account.wallet} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} returnToProduct={fromProduct ? { title: fromProduct.title, href: `/items/${fromProduct.slug}#enter-entry` } : undefined} />;
+  if (history) return <WalletOverview wallet={account.wallet} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} returnToProduct={fromProduct ? { title: fromProduct.title, href: `/items/${fromProduct.slug}#enter-entry` } : undefined} />;
   return <WalletRewards state={account.activity} view={rewardView} />;
 }

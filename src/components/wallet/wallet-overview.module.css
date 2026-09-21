@@ -53,6 +53,8 @@
 .ledgerHeader span:last-child { text-align: right; }
 .ledger li { min-height: 58px; padding: 8px 18px; border-top: 1px solid #115270; color: #f5f9ff; font-size: 12px; }
 .ledger li:first-child { border-top: 0; }
+.ledger li { scroll-margin-top: 190px; }
+.ledger li[data-selected="true"] { background: #08364d; box-shadow: inset 0 0 0 2px #63f6ff; }
 .ledger li time { color: #d8e3ed; }
 .ledger li div { min-width: 0; }
 .ledger li div strong, .ledger li div span { display: block; }

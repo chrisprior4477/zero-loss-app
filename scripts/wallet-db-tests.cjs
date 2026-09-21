@@ -5,11 +5,16 @@ const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const tests = ['wallet_account_isolation_test.sql','verified_demo_funding_test.sql',
   'save_demo_payment_method_test.sql','preview_entry_lifecycle_test.sql','extra_entry_explainer_preference_test.sql',
-  'preview_availability_test.sql','account_lifecycle_test.sql','demo_credit_card_test.sql','funding_authorization_test.sql','entry_request_undo_test.sql','entry_recovery_test.sql','support_cases_test.sql','reward_access_test.sql'];
+  'preview_availability_test.sql','account_lifecycle_test.sql','demo_credit_card_test.sql','funding_authorization_test.sql','entry_request_undo_test.sql','entry_recovery_test.sql','support_cases_test.sql','reward_access_test.sql','notification_navigation_test.sql'];
 const migration='20260921160000_serialize_preview_entry_capacity.sql';
 const db=new Client({connectionString:'postgresql://postgres:postgres@127.0.0.1:54322/postgres'});
 (async()=>{
   await db.connect();
+  if(process.argv.includes('--apply-notification-reads')) {
+    const existing = await db.query("select to_regclass('public.customer_notification_reads') as reads");
+    if (!existing.rows[0].reads) await db.query(readFileSync(resolve(__dirname,'../supabase/migrations/20260920120000_customer_notification_reads.sql'),'utf8'));
+    console.log('Notification receipt schema checked on localhost only.');
+  }
   if(process.argv.includes('--apply-reward-access')) {
     await db.query(readFileSync(resolve(__dirname,'../supabase/migrations/20260921233000_reward_access_and_order_links.sql'),'utf8'));
     console.log('Applied reward access and exact order links to localhost only.');

@@ -19,6 +19,23 @@ export type AccountNotification = {
 };
 
 function activityNotification(item: ActivityItem): AccountNotification {
+  // A winning entry stays a win in history, but its reward may no longer be usable.
+  if (item.rewardId && item.rewardStatus !== "ready") {
+    const state = ({
+      redeemed: ["has been redeemed", "This reward has already been used."],
+      expired: ["has expired", "This reward is no longer available to claim or use."],
+      cancelled: ["was cancelled", "This reward is no longer available to use."],
+      issuance_pending: ["is being prepared", "Your reward is not ready to use yet. Check its details for the latest status."],
+      issuance_failed: ["needs attention", "We couldn’t prepare this reward. Open its details for help."],
+    } as Record<string, [string, string]>)[item.rewardStatus ?? ""] ?? ["status is unavailable", "We couldn’t verify whether this reward is ready. Open its details to check again."];
+    return {
+      id: `reward-${item.rewardId}-${item.rewardStatus ?? "unavailable"}`,
+      category: item.rewardStatus === "issuance_failed" ? "action" : "orders",
+      title: `Your ${item.retailer} reward ${state[0]}`,
+      body: state[1], meta: "Reward status update", href: walletRewardHref(item),
+      action: "View reward details", image: item.image, visualLabel: item.retailer, tone: "order",
+    };
+  }
   if (item.status === "prize" || (item.rewardStatus === "ready" && item.rewardId)) return {
     id: `reward-${item.rewardId ?? item.entryId ?? item.slug}`,
     category: "action",
@@ -31,6 +48,13 @@ function activityNotification(item: ActivityItem): AccountNotification {
     visualLabel: item.retailer,
     visualValue: formatUsdFromCents(item.priceCents),
     tone: "reward",
+  };
+  if (item.status === "completion" && item.completionOptionStatus && item.completionOptionStatus !== "available") return {
+    id: `completion-${item.completionOptionId ?? item.entryId ?? item.slug}-${item.completionOptionStatus}`,
+    category: "orders", title: `Your ${item.retailer} gift-card option is ${item.completionOptionStatus}`,
+    body: "This option is no longer available to purchase. Its outcome is saved in My Activity.",
+    meta: "Purchase option update", href: activityHref(item), action: "View details", image: item.image,
+    visualLabel: item.retailer, tone: "order",
   };
   if (item.status === "completion") return {
     id: `completion-${item.completionOptionId ?? item.entryId ?? item.slug}`,
@@ -110,7 +134,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
       title: ledgerTitle(entry.entry_type),
       body: ledgerBody(entry.entry_type, entry.amount, wallet.balanceCents),
       meta: new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(entry.created_at)),
-      href: "/account/wallet?view=history",
+      href: `/account/wallet?view=history&transaction=${encodeURIComponent(entry.id)}#transaction-${encodeURIComponent(entry.id)}`,
       action: "View transaction",
       visualLabel: entry.amount > 0 ? "Added" : "Posted",
       visualValue: `${entry.amount > 0 ? "+" : ""}${formatUsdFromCents(entry.amount)}`,

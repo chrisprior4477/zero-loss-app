@@ -7,6 +7,8 @@ import { AccountIcon, type AccountIconName } from "@/components/account/AccountI
 import { getAccountContext } from "@/lib/account/context";
 import { activityFilter } from "@/lib/account/activity";
 import styles from "@/components/account/showroom.module.css";
+import { authNavigationHref } from "@/lib/auth/entry-return";
+import { accountPageReturnPath } from "@/lib/auth/account-return";
 
 export const metadata: Metadata = { title: "My Activity" };
 
@@ -18,8 +20,8 @@ const accountLinks = [
 
 export default async function MyZeroLossPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const account = await getAccountContext();
-  if (!account) redirect("/login");
   const query = await searchParams;
+  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query)));
   return <div className={styles.page}><div className={styles.pageContent}>
     <p className={styles.eyebrow}>MY ACTIVITY</p>
     <h1 className={styles.heading}>Everything you chose. Every outcome.</h1>

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { CrewHub } from "@/components/account/CrewHub";
 import { getAccountContext } from "@/lib/account/context";
 import { createClient } from "@/lib/supabase/server";
+import { authNavigationHref } from "@/lib/auth/entry-return";
+import { accountPageReturnPath } from "@/lib/auth/account-return";
 
 export const metadata: Metadata = { title: "Your Crew" };
 
@@ -19,11 +21,11 @@ export type OwnCrewEntry = { id: string; title: string; retailer: string; image:
 export type SharedCrewPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string };
 export type CrewMember = { memberId: string; name: string; avatarUrl: string | null };
 
-export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; tab?: string }> }) {
+export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; tab?: string; request?: string }> }) {
   const account = await getAccountContext();
-  if (!account) redirect("/login");
-  const db = await createClient();
   const params = await searchParams;
+  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/crew", params, params.tab === "picks" ? "#sharing" : params.tab === "requests" && params.request ? `#crew-request-${params.request}` : "")));
+  const db = await createClient();
   const [invitationsResult, entriesResult, sharesResult, membersResult, profileResult] = await Promise.all([
     db.from("crew_invitations").select("id,requester_id,recipient_id,requester_name,recipient_name,status,created_at")
       .or(`requester_id.eq.${account.userId},recipient_id.eq.${account.userId}`).order("created_at", { ascending: false }),
@@ -60,7 +62,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   });
 
   return <CrewHub
-    key={params.tab ?? "crew"}
+    key={`${params.tab ?? "crew"}-${params.request ?? ""}`}
     currentUserId={account.userId}
     invitations={invitations}
     members={(membersResult.data ?? []).map((member: { member_id: string; name: string; avatar_reference: string | null }): CrewMember => ({

@@ -4,12 +4,13 @@ import { ProfilePhotoCard } from "@/components/account/ProfilePhotoCard";
 import { ProfileDetailsForm } from "@/components/account/ProfileDetailsForm";
 import { getAccountContext } from "@/lib/account/context";
 import styles from "@/components/account/profile-editor.module.css";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 
 export const metadata: Metadata = { title: "Your account" };
 
 export default async function ProfilePage() {
   const account = await getAccountContext();
-  if (!account) redirect("/login");
+  if (!account) redirect(authNavigationHref("/login", "/account/profile"));
   return <main className={styles.page}><div className={styles.shell}>
     <header className={styles.heading}><div><p>PERSONAL PROFILE</p><h1>Edit Profile</h1><span>Manage your identity, contact details, address, and preferences.</span></div><aside><strong>YOUR INFORMATION</strong>Changes save only to your signed-in account through the protected profile service.</aside></header>
     <div className={styles.profileGrid}>

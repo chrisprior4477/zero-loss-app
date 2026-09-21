@@ -13,7 +13,7 @@ beforeEach(() => {
 });
 afterEach(() => { vi.resetAllMocks(); vi.unstubAllEnvs(); });
 
-test.each(["/items/samsung-m70h-tv#enter-entry", "/account/wallet?view=history&from=samsung-m70h-tv#add-funds", "https://evil.test"])("signup and resend use an allowed callback carrying only a safe destination: %s", async destination => {
+test.each(["/items/samsung-m70h-tv#enter-entry", "/account/wallet?view=history&from=samsung-m70h-tv#add-funds", "/account/wallet?rewardId=11111111-1111-4111-8111-111111111111", "/support?case=11111111-1111-4111-8111-111111111111#conversation", "https://evil.test"])("signup and resend use an allowed callback carrying only a safe destination: %s", async destination => {
   const form = new FormData();
   Object.entries({ legal_first_name: "Test", legal_last_name: "Person", date_of_birth: "1990-01-01", email: "test@example.test", password: "test-password", confirm_password: "test-password", accepted_terms: "on", returnTo: destination, verification_email: "test@example.test" }).forEach(([key, value]) => form.set(key, value));
   expect((await signUpAction({ ok: false, message: null }, form)).pendingVerification).toBe(true);

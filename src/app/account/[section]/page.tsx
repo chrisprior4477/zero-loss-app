@@ -57,7 +57,7 @@ export default async function LiveAccountSection({
   if (!(section in liveSections)) notFound();
 
   const account = await getAccountContext();
-  if (!account) redirect("/login");
+  if (!account) redirect(`/login?next=${encodeURIComponent(`/account/${section}`)}`);
 
   const content = liveSections[section as LiveSection];
 

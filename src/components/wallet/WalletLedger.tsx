@@ -26,14 +26,14 @@ function dateLabel(value: string) {
   return new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(value));
 }
 
-export function WalletLedger({ entries }: { entries: LedgerEntryRow[] }) {
+export function WalletLedger({ entries, selectedId }: { entries: LedgerEntryRow[]; selectedId?: string }) {
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const visible = useMemo(() => filter === "all" ? entries : entries.filter(entry => category(entry) === filter), [entries, filter]);
   return <>
     <nav aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}</button>)}</nav>
     {visible.length === 0 ? <div className={styles.empty}><h3>{entries.length === 0 ? "No transactions yet" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{entries.length === 0 ? "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       <div className={styles.ledgerHeader} aria-hidden="true"><span>Date</span><span>Description</span><span>Status</span><span>Amount</span></div>
-      <ul>{visible.map(entry => { const [title, detail] = description(entry); return <li key={entry.id}>
+      <ul>{visible.map(entry => { const [title, detail] = description(entry); return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={entry.id === selectedId}>
         <time dateTime={entry.created_at}>{dateLabel(entry.created_at)}</time>
         <div><strong>{title}</strong><span>{detail}</span><Link href={`/support?transaction=${encodeURIComponent(entry.id)}`} className="mt-1 inline-flex min-h-10 items-center text-xs font-bold text-cyan-300 underline">Report a problem</Link></div>
         <span className={styles.posted}>Posted</span>

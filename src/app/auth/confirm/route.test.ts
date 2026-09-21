@@ -77,7 +77,7 @@ test("an expired recovery code leads back to a fresh reset request", async () =>
   expect(authMocks.signOut).not.toHaveBeenCalled();
 });
 
-test.each(["/items/playstation-5-slim#enter-entry", "/account/wallet?view=history&from=samsung-m70h-tv#add-funds"])("signup confirmation keeps the approved return destination %s", async destination => {
+test.each(["/items/playstation-5-slim#enter-entry", "/account/wallet?view=history&from=samsung-m70h-tv#add-funds", "/account/wallet?rewardId=11111111-1111-4111-8111-111111111111", "/support?case=11111111-1111-4111-8111-111111111111#conversation"])("signup confirmation keeps the approved return destination %s", async destination => {
   authMocks.exchange.mockResolvedValue({ data: { redirectType: null }, error: null });
   const response = await GET(new NextRequest(`http://localhost:3000/auth/confirm?code=valid&next=${encodeURIComponent(destination)}`));
   const location = new URL(response.headers.get("location")!);

@@ -5,12 +5,13 @@ import { getAccountContext } from "@/lib/account/context";
 import { buildAccountNotifications } from "@/lib/account/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { supportNotifications } from "@/lib/support/notifications";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 
 export const metadata: Metadata = { title: "Notifications" };
 
 export default async function NotificationsPage() {
   const account = await getAccountContext();
-  if (!account) redirect("/login");
+  if (!account) redirect(authNavigationHref("/login", "/account/notifications"));
   const db = await createClient();
   const { data: crewRequests, error: crewError } = await db.from("crew_invitations")
     .select("id,requester_name,created_at").eq("recipient_id", account.userId).eq("status", "pending")
@@ -21,7 +22,7 @@ export default async function NotificationsPage() {
     title: `${request.requester_name} wants to join your Crew`,
     body: "Approve or decline this request. Accepting never shares your past entries automatically.",
     meta: "Crew request",
-    href: "/account/crew?tab=requests",
+    href: `/account/crew?tab=requests&request=${request.id}#crew-request-${request.id}`,
     action: "Review request",
     visualLabel: "Your Crew",
     visualValue: "Approval needed",

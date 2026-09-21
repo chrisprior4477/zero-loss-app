@@ -8,8 +8,9 @@ import type { DemoCard } from "@/lib/payments/demo-card";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { WalletLedger } from "./WalletLedger";
 import styles from "./wallet-overview.module.css";
+import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
 
-export function WalletOverview({ wallet, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, cardUnavailable = false, returnToProduct }: { wallet: WalletSnapshot | null; fundingEnabled?: boolean; requestKey?: string; requests?: DemoFundingRequest[] | null; savedCard?: DemoCard | null; cardUnavailable?: boolean; returnToProduct?: { title: string; href: string } }) {
+export function WalletOverview({ wallet, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, cardUnavailable = false, returnToProduct }: { wallet: WalletSnapshot | null; selectedTransaction?: SelectedTransaction; fundingEnabled?: boolean; requestKey?: string; requests?: DemoFundingRequest[] | null; savedCard?: DemoCard | null; cardUnavailable?: boolean; returnToProduct?: { title: string; href: string } }) {
   const demo = wallet?.scope === "demo";
   const balance = wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable";
   const pendingCents = requests?.filter(request => request.reconciliation === "credit_pending").reduce((sum, request) => sum + request.amount, 0) ?? 0;
@@ -45,7 +46,9 @@ export function WalletOverview({ wallet, fundingEnabled = false, requestKey = ""
 
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading">Transaction history</h2><p>Posted activity from this account’s ledger.</p></div>{wallet ? <span>Showing {wallet.entries.length} of {wallet.transactionCount} transactions</span> : null}</div>
-        {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger entries={wallet.entries} />}
+        {selectedTransaction?.requested && !selectedTransaction.entry ? <p role="status" className={styles.alert}>That transaction could not be opened for this account. Your available history is shown below.</p> : null}
+        {selectedTransaction?.entry && !wallet?.entries.some(entry => entry.id === selectedTransaction.entry?.id) ? <section aria-label="Selected older transaction" className="mb-5"><h3 className="mb-3 font-bold text-cyan-200">Selected transaction · older than your recent history</h3><WalletLedger entries={[selectedTransaction.entry]} selectedId={selectedTransaction.entry.id} /></section> : null}
+        {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger entries={wallet.entries} selectedId={selectedTransaction?.entry?.id} />}
         {wallet && wallet.transactionCount > 50 ? <p className={styles.finePrint}>Latest 50 of {wallet.transactionCount} transactions. Balance includes all posted transactions.</p> : null}
       </section>
 

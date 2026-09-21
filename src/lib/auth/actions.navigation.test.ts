@@ -10,6 +10,8 @@ afterEach(() => vi.clearAllMocks());
 test.each([
   ["/account/wallet?view=history&from=samsung-m70h-tv#add-funds", "/account/wallet?view=history&from=samsung-m70h-tv#add-funds"],
   ["/items/samsung-m70h-tv#enter-entry", "/items/samsung-m70h-tv#enter-entry"],
+  ["/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111", "/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111"],
+  ["/support?case=11111111-1111-4111-8111-111111111111#conversation", "/support?case=11111111-1111-4111-8111-111111111111#conversation"],
   ["https://evil.test", "/account/entries"],
 ])("sign-in returns only to an approved in-site destination: %s", async (returnTo, expected) => {
   mocks.createClient.mockResolvedValue({ auth: {

@@ -1,4 +1,4 @@
-param([ValidateSet('Inspect','DryRun','Apply','Verify')][string]$Mode = 'Inspect')
+param([ValidateSet('Inspect','DryRun','Apply','Verify','Test')][string]$Mode = 'Inspect')
 $ErrorActionPreference = 'Stop'
 $readRoot = Split-Path $PSScriptRoot
 $readRef = 'ocgdfnvvjvutevgqzzgj'
@@ -26,6 +26,24 @@ try {
   $readProject = Invoke-RestMethod -Uri "https://api.supabase.com/v1/projects/$readRef" `
     -Headers @{Authorization="Bearer $readToken"} -TimeoutSec 30
   if ($readProject.id -ne $readRef -or $readProject.name -ne 'zero-loss-app') { throw 'Project identity mismatch; stop.' }
+  if ($Mode -eq 'Test') {
+    $readEnvironment = Invoke-ReadQuery 'select environment from demo_private.funding_config where singleton;'
+    if ($readEnvironment.environment -ne 'development-test') { throw 'Rollback tests require the development-test environment.' }
+    $readTest = [string](Get-Content -Raw -LiteralPath (Join-Path $readRoot 'supabase/tests/notification_navigation_test.sql'))
+    $readTest = $readTest -replace '(?m)^begin;\s*$',"begin;`ncreate temporary table notification_tap(line text) on commit drop;`ngrant insert,select on notification_tap to authenticated;"
+    $readTest = $readTest -replace '(?m)^select (is|isnt|ok|throws_ok|lives_ok)\(', 'insert into notification_tap select $1('
+    $readTest = $readTest.Replace('select * from finish();', @'
+insert into notification_tap select * from finish();
+do $tap$ begin
+  if not exists(select 1 from notification_tap where line like 'ok %') or exists(select 1 from notification_tap where line like 'not ok %') then
+    raise exception 'Notification navigation regression failed';
+  end if;
+end $tap$;
+select count(*) filter(where line like 'ok %') as passed,count(*) filter(where line like 'not ok %') as failed,jsonb_agg(line) as assertions from notification_tap;
+'@)
+    Invoke-ReadQuery $readTest | ConvertTo-Json -Depth 6
+    return
+  }
   if ($Mode -eq 'Inspect') {
     [pscustomobject]@{project=$readProject.name;reference=$readProject.id;status=$readProject.status} | ConvertTo-Json
     Invoke-ReadQuery @"

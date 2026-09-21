@@ -104,3 +104,12 @@ test("following an unread notification saves its status before opening its desti
   await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith([reward.id]));
   await waitFor(() => expect(actionMocks.push).toHaveBeenCalledWith(reward.href));
 });
+
+test("a failed read receipt never blocks opening the reward", async () => {
+  readMocks.mark.mockRejectedValue(new Error("offline"));
+  const reward = buildAccountNotifications(storedActivityFixture(), wallet, true)[0];
+  render(<NotificationsCenter notifications={[reward]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+  fireEvent.click(screen.getByRole("link", { name: /Show barcode/ }));
+  await waitFor(() => expect(actionMocks.push).toHaveBeenCalledWith(reward.href));
+  expect(document.querySelector('[data-read="false"]')).not.toBeNull();
+});

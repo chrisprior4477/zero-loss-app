@@ -1,4 +1,5 @@
 import { fundingReturnPath } from "@/lib/wallet/funding-navigation";
+import { accountReturnPath } from "./account-return";
 
 /** Only allow a sign-in return to a product's entry section on this site. */
 export function entryReturnPath(value: unknown): string | null {
@@ -8,9 +9,9 @@ export function entryReturnPath(value: unknown): string | null {
     : null;
 }
 
-/** Sign-in can resume entry selection or funding, but not an arbitrary URL. */
+/** Resume only known in-site destinations, never an arbitrary redirect URL. */
 export function signInReturnPath(value: unknown): string | null {
-  return entryReturnPath(value) ?? fundingReturnPath(value);
+  return entryReturnPath(value) ?? fundingReturnPath(value) ?? accountReturnPath(value);
 }
 
 /** Carry the same allowlisted destination between account forms. */

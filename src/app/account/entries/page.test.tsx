@@ -18,6 +18,13 @@ beforeEach(() => mocks.account.mockResolvedValue({
 }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
+test("login preserves the selected entry and filter", async () => {
+  mocks.account.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(MyZeroLossPage({ searchParams: Promise.resolve({ item: "nike-court-shot-shoes", entry: "ent_123", filter: "completion" }) })).rejects.toThrow("NEXT_REDIRECT");
+  expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe("/account/entries?item=nike-court-shot-shoes&entry=ent_123&filter=completion");
+});
+
 test("Your Account and Security opens Account & Security from My Zero Loss", async () => {
   render(await MyZeroLossPage({ searchParams: Promise.resolve({}) }));
   const link = screen.getByRole("link", { name: "Open Your Account and Security" });

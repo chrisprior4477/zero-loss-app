@@ -11,6 +11,20 @@ import WalletPage from "./page";
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
+test.each([
+  [{ reward: "samsung-m70h-tv", rewardId: "11111111-1111-4111-8111-111111111111" }, "/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111"],
+  [{ view: "card" }, "/account/wallet?view=card"],
+  [{ rewards: "history" }, "/account/wallet?rewards=history"],
+  [{ view: "history", transaction: "11111111-1111-4111-8111-111111111111" }, "/account/wallet?view=history&transaction=11111111-1111-4111-8111-111111111111#transaction-11111111-1111-4111-8111-111111111111"],
+  [{}, "/account/wallet"],
+] as const)("expired sessions preserve the exact wallet view: %j", async (query, expected) => {
+  mocks.getAccountContext.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(WalletPage({ searchParams: Promise.resolve(query) })).rejects.toThrow("NEXT_REDIRECT");
+  expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe(expected);
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
 test("an expired session keeps the funding destination and catalog prize through login", async () => {
   mocks.getAccountContext.mockResolvedValue(null);
   mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
