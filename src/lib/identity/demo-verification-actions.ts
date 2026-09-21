@@ -24,3 +24,7 @@ export async function advanceDemoVerification(id: string, step: DemoVerification
   // Only fixture identifiers cross this boundary, never user-supplied identity data.
   return runVerification("advance_demo_identity_verification", { p_verification_id: id, p_step: step, p_fixture: "sample-adult-v1" });
 }
+export async function restartDemoVerification(rewardId: string): Promise<DemoVerificationResult> {
+  if (!/^[0-9a-f-]{36}$/i.test(rewardId)) return { error: "This prize reference is invalid." };
+  return runVerification("restart_demo_identity_verification", { p_reward_id: rewardId });
+}

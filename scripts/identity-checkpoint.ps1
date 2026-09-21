@@ -1,12 +1,12 @@
 param(
   [ValidateSet('DryRun','Apply','Test')][string]$Mode = 'DryRun',
-  [ValidateSet('Schema','Enable')][string]$Checkpoint = 'Schema'
+  [ValidateSet('Schema','Enable','Replay')][string]$Checkpoint = 'Schema'
 )
 $ErrorActionPreference = 'Stop'
 $identityRoot = Split-Path $PSScriptRoot
 $identityRef = 'ocgdfnvvjvutevgqzzgj'
-$identityVersion = if ($Checkpoint -eq 'Schema') { '20260921183000' } else { '20260921185000' }
-$identityName = if ($Checkpoint -eq 'Schema') { 'demo_identity_verification' } else { 'enable_demo_winner_verification' }
+$identityVersion = if ($Checkpoint -eq 'Schema') { '20260921183000' } elseif ($Checkpoint -eq 'Replay') { '20260921190000' } else { '20260921185000' }
+$identityName = if ($Checkpoint -eq 'Schema') { 'demo_identity_verification' } elseif ($Checkpoint -eq 'Replay') { 'demo_identity_replay' } else { 'enable_demo_winner_verification' }
 $identityToken = $null
 Get-Content -LiteralPath (Join-Path $identityRoot '.env.local') | ForEach-Object {
   if ($_ -match '^\s*SUPABASE_ACCESS_TOKEN\s*=\s*(.*)$') { $identityToken = $Matches[1].Trim().Trim('"').Trim("'") }
@@ -45,12 +45,18 @@ do $guard$ begin
     from demo_private.funding_config where singleton),false) then raise exception 'Demo environment mismatch'; end if;
   if '__CHECKPOINT__'='Schema' and to_regclass('public.customer_verifications') is not null then
     raise exception 'Existing verification schema needs review'; end if;
-  if '__CHECKPOINT__'='Enable' and not exists(select 1 from supabase_migrations.schema_migrations where version='20260921183000') then
+  if '__CHECKPOINT__'<>'Schema' and not exists(select 1 from supabase_migrations.schema_migrations where version='20260921183000') then
     raise exception 'Reviewed identity migration must be installed first'; end if;
 end $guard$;
 '@
   $identityGuard = $identityGuard.Replace('__VERSION__',$identityVersion).Replace('__CHECKPOINT__',$Checkpoint)
   if ($Mode -eq 'DryRun') {
+    if ($Checkpoint -eq 'Schema') {
+      # The current test suite also covers replay. Include its additive schema
+      # only inside this rollback transaction when checking a fresh install.
+      $identityReplay = [string](Get-Content -Raw -LiteralPath (Join-Path $identityRoot 'supabase/migrations/20260921190000_demo_identity_replay.sql'))
+      $identityBody += "`n" + ($identityReplay -replace '(?m)^begin;\s*$','' -replace '(?m)^commit;\s*$','')
+    }
     $identityResult = Invoke-IdentityQuery ($identityGuard + "`n" + $identityBody + "`n" + ($identityTest -replace '(?m)^begin;\s*$',''))
     $identityJson = $identityResult | ConvertTo-Json -Depth 6
     $identityJson

@@ -11,6 +11,7 @@ Owner-approved scope: full sample-data walkthrough before a new first winner cla
 - The sample card has a fictional Florida address and explicit NOT VALID marks; it is not a reproduction of a government ID and has no scannable identifier.
 - Tax collection remains separate. A read-only masked format example is explanatory only; no tax number is accepted or submitted.
 - No camera, microphone, upload, external verification provider, biometric analysis, real reward issuance or outbound email is involved.
+- Claimed demo winner rewards expose **Preview identity check**. The successful-result screen can replay the full walkthrough using `restart_demo_identity_verification`, retaining previous results and never reissuing a reward. Additive migration `20260921190000` installs that owner-scoped demo control.
 
 ## Persistence and boundaries
 
@@ -32,3 +33,11 @@ Owner-approved scope: full sample-data walkthrough before a new first winner cla
 Before browser verification: 15 new application assertions and 37 local/hosted rollback-only SQL assertions pass. The full dirty workspace passes 346 application tests, TypeScript, targeted ESLint and production build. Its separate unfinished funding-confirmation changes are not part of this identity deployment. The existing wallet suite also passes 273 local assertions (including 16 funding-work-in-progress assertions).
 
 The 30-second Undo Entry, funding confirmation, refunds/support and gifting remain separate work items; this checkpoint does not claim they are complete.
+
+## Live verification
+
+- Commit `28e8270` is deployed at `https://zero-loss-m4xe6gy3x-zero-loss.vercel.app` and the existing experiment alias. Main/production untouched. Schema and enable migrations are registered in the existing hosted Supabase demo project.
+- Visually checked the dialog at desktop and 390px phone width, including sample front/back and head-turn playback. Closed and reloaded mid-check; the exact saved session resumed at the back-of-ID step.
+- Exercised failed-photo outcome, retried with a new session, completed all steps, and claimed the exact saved reward. Database confirms 2 sessions, 14 immutable steps, 1 failed result, 1 demo pass, and exactly 1 claim after the demo pass. Actual account verification remains `email_verified`.
+- Used one private simulated $1 TV entry; demo Playable Balance changed from $95 to $94. The resulting $400 Best Buy sample is explicitly not redeemable. No real transaction or sensitive-document collection occurred.
+- Replay extension adds 1 application test and 4 SQL assertions (16 identity/claim application tests; 41 identity SQL checks). All 347 application tests pass. Replay migration is registered in the hosted demo project; all 41 rollback-only checks pass against the installed schema. Replay deploys after its additive migration.

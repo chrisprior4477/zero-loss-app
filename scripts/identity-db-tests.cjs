@@ -9,6 +9,7 @@ const db = new Client({ connectionString: 'postgresql://postgres:postgres@127.0.
     await db.query(readFileSync(resolve(__dirname, '../supabase/migrations/20260921183000_demo_identity_verification.sql'), 'utf8'));
     console.log('Applied demo identity migration to localhost only.');
   }
+  if (process.argv.includes('--apply-replay')) await db.query(readFileSync(resolve(__dirname, '../supabase/migrations/20260921190000_demo_identity_replay.sql'), 'utf8'));
   const result = await db.query(readFileSync(resolve(__dirname, '../supabase/tests/demo_identity_verification_test.sql'), 'utf8'));
   const lines = result.flatMap(r => r.rows).flatMap(r => Object.values(r)).filter(v => typeof v === 'string');
   const passed = lines.filter(v => /^ok \d+/.test(v)).length;

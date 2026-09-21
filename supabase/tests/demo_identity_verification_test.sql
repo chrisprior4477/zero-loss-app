@@ -61,6 +61,10 @@ select is(public.get_claimed_reward(current_setting('test.reward')::uuid)->>'red
 select set_config('test.second_reward',public.create_preview_entry('identity-winner-test','identity_next_entry_001')->>'rewardId',true);
 select is(public.claim_preview_reward(current_setting('test.second_reward')::uuid,'identity_next_claim_001')->>'status','claimed','next win uses same successful demo policy');
 select is((select verification_status from public.customers where id=auth.uid()),'email_verified','demo does not change real account verification status');
+select set_config('test.replay',public.restart_demo_identity_verification(current_setting('test.reward')::uuid)->>'id',true);
+select isnt(current_setting('test.replay'),current_setting('test.verification'),'replay starts a new sample session, preserving the successful one');
+select is(public.restart_demo_identity_verification(current_setting('test.reward')::uuid)->>'id',current_setting('test.replay'),'double-clicking replay resumes the same new session');
+select is(public.claim_preview_reward(current_setting('test.reward')::uuid,'identity_new_claim_0001')->>'duplicate','true','replay does not invalidate existing claim');
 select throws_ok($$update public.customer_verifications set provider='live' where id=current_setting('test.verification')::uuid$$,'42501',null,'client cannot upgrade to a real provider');
 select throws_ok($$insert into public.customer_verification_events(verification_id,customer_id,step,sequence) values(current_setting('test.verification')::uuid,auth.uid(),'demo_passed',8)$$,'42501',null,'client cannot forge audit events');
 select set_config('request.jwt.claim.sub','97999999-9999-4999-8999-999999999972',true);
@@ -68,6 +72,7 @@ select set_config('request.jwt.claims','{"sub":"97999999-9999-4999-8999-99999999
 select is((select count(*)::integer from public.customer_verifications),0,'other customer cannot read sessions');
 select is((select count(*)::integer from public.customer_verification_events),0,'other customer cannot read events');
 select throws_ok($$select public.begin_demo_identity_verification(current_setting('test.reward')::uuid)$$,'42501',null,'cannot start another customer winner check');
+select throws_ok($$select public.restart_demo_identity_verification(current_setting('test.reward')::uuid)$$,'42501',null,'cannot replay another customer winner check');
 select throws_ok($$select public.advance_demo_identity_verification(current_setting('test.verification')::uuid,'consent','sample-adult-v1')$$,'42501',null,'cannot advance another customer check');
 select set_config('request.jwt.claims','{"sub":"97999999-9999-4999-8999-999999999972","iss":"https://other.supabase.co/auth/v1"}',true);
 select throws_ok($$select public.begin_demo_identity_verification(current_setting('test.reward')::uuid)$$,'42501',null,'wrong environment blocked');

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-const mocks = vi.hoisted(() => ({ beginDemoVerification: vi.fn(), advanceDemoVerification: vi.fn() }));
+const mocks = vi.hoisted(() => ({ beginDemoVerification: vi.fn(), advanceDemoVerification: vi.fn(), restartDemoVerification: vi.fn() }));
 vi.mock("@/lib/identity/demo-verification-actions", () => mocks);
 import { DemoVerificationDialog } from "./DemoVerificationDialog";
 const id = "97999999-9999-4999-8999-999999999971";
@@ -9,6 +9,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   mocks.beginDemoVerification.mockResolvedValue({ verification: sample });
+  mocks.restartDemoVerification.mockResolvedValue({ verification: sample });
   mocks.advanceDemoVerification.mockImplementation(async (_id, step) => ({ verification: { ...sample, step } }));
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); });
@@ -58,7 +59,17 @@ test("failed sample can start a new durable attempt", async () => {
   fireEvent.click(await screen.findByRole("button", { name: /Try the “photo needs retaking”/ }));
   fireEvent.click(await screen.findByRole("button", { name: "Try again with sample ID" }));
   await screen.findByRole("button", { name: "Start demo check" });
-  expect(mocks.beginDemoVerification).toHaveBeenCalledTimes(2);
+  expect(mocks.restartDemoVerification).toHaveBeenCalledOnce();
+});
+test("completed walkthrough can be replayed without claiming again", async () => {
+  mocks.beginDemoVerification.mockResolvedValue({ verification: { ...sample, step: "demo_passed" } });
+  const onComplete = vi.fn();
+  render(<DemoVerificationDialog rewardId={id} previewOnly onClose={vi.fn()} onComplete={onComplete} />);
+  await screen.findByRole("button", { name: "Back to reward" });
+  fireEvent.click(screen.getByRole("button", { name: "Replay the demo walkthrough" }));
+  await screen.findByRole("button", { name: "Start demo check" });
+  expect(mocks.restartDemoVerification).toHaveBeenCalledWith(id);
+  expect(onComplete).not.toHaveBeenCalled();
 });
 test("a network error preserves the current screen and offers the same step again", async () => {
   mocks.beginDemoVerification.mockResolvedValue({ verification: { ...sample, step: "details" } });

@@ -4,6 +4,7 @@ import { walletRewardHref, walletRewards, type AccountActivity, type ActivityIte
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
 import { RewardClaimControl } from "./RewardClaimControl";
+import { DemoIdentityPreviewButton } from "@/components/identity/DemoVerificationDialog";
 import styles from "./wallet-rewards.module.css";
 
 export function WalletRewards({ state, view = "ready" }: { state: AccountActivity; view?: "ready" | "history" }) {
@@ -133,6 +134,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null }: { it
           {rewardReady
             ? <RewardRedemptionActions displayCode={displayCode} isPreview={isPreview} />
             : <RewardClaimControl rewardId={item.rewardId!} />}
+          {isPreview && rewardReady && item.status === "prize" && item.rewardId ? <DemoIdentityPreviewButton rewardId={item.rewardId} /> : null}
         </article>
       </div>
 
