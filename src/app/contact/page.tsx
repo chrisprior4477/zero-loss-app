@@ -43,7 +43,7 @@ export default async function ContactPage() {
         {accountUnavailable ? <p role="alert">We couldn’t load your account. Refresh this page to try again. The answers and password-recovery link are still available.</p> : !account ? <>
           <p className="leading-7 text-white/75">Sign in to send a private request and keep track of the reply. We’ll bring you straight back to this form.</p><Link href={authNavigationHref("/login", "/contact#message")} className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Sign in to message us</Link><Link href="/forgot-password" className="mt-3 inline-flex min-h-11 items-center font-bold text-cyan-300 underline">Can’t sign in? Reset your password</Link><p className="mt-3 text-sm leading-6 text-white/60">A public contact email has not been added yet. You can read all FAQs without an account.</p>
         </> : !enabled ? <p role="status">Message submission is unavailable in this environment. You can still use the FAQs and account shortcuts.</p> : <>
-          <p className="mb-5 text-sm leading-6 text-white/70">Saved to your private support case. Check the conversation or Notifications for replies; this preview does not send support emails.</p><SupportForm requestKey={randomUUID()} />
+          <p className="mb-5 text-sm leading-6 text-white/70">Send a message to start a private support case. Check the conversation or Notifications for replies; this preview does not send support emails.</p><SupportForm requestKey={randomUUID()} />
         </>}
       </section>
       <div className="space-y-6">
