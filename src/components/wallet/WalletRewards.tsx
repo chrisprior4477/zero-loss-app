@@ -80,23 +80,43 @@ function SampleRewardBarcode({ value }: { value: string }) {
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
 export function WalletRewardDetail({ item, isPreview, claimedCode = null }: { item: ActivityItem; isPreview: boolean; claimedCode?: string | null }) {
-  const fallbackSample = isPreview ? sampleRewardNumber(item.slug) : null;
-  const rawCode = claimedCode ?? fallbackSample?.raw ?? null;
+  const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
+  const available = status === "ready";
+  // Illustrative cards can keep their sample. A stored reward must use its own
+  // authorized credential; a failed/withheld read must never invent a barcode.
+  const fallbackSample = isPreview && !item.rewardId && available ? sampleRewardNumber(item.slug) : null;
+  const claimed = Boolean(item.rewardClaimedAt || !item.rewardId);
+  const rawCode = available && claimed ? (claimedCode?.trim() || fallbackSample?.raw || null) : null;
   const displayCode = rawCode?.replaceAll(/\s/g, "").match(/.{1,4}/g)?.join(" ") ?? rawCode;
+  const rewardReady = available && claimed && Boolean(rawCode);
+  const canClaim = available && !claimed && Boolean(item.rewardId);
+  const notice = status === "expired"
+    ? { title: "Reward expired", message: "This reward has expired. Its record remains in your reward history." }
+    : status === "cancelled"
+      ? { title: "Reward cancelled", message: "This reward was cancelled and is no longer available to use. Its history is preserved." }
+      : status === "redeemed"
+        ? { title: "Reward redeemed", message: "This reward has already been redeemed. Its record remains here for your reference." }
+        : status === "issuance_pending"
+          ? { title: "Reward being issued", message: "Your gift card is still being issued. Its number will be available once issuance is complete." }
+          : status === "issuance_failed"
+            ? { title: "Issuance needs attention", message: "Your gift card could not be issued. Contact support to review this reward." }
+            : !item.rewardId && !isPreview
+              ? { title: "Not issued yet", message: "No gift card or redeemable barcode has been issued." }
+              : { title: "Reward temporarily unavailable", message: "We couldn’t load your saved gift-card number. Refresh to try again, or contact support if this continues." };
+  const statusLabel = rewardReady ? (item.rewardClaimedAt ? "Claimed — ready to use" : "Demo ready") : canClaim ? "Ready to claim" : notice.title;
   const claimDeadline = item.rewardClaimExpiresAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short" }).format(new Date(item.rewardClaimExpiresAt)) : "Not available";
   const detailRows = [
     ["Retailer", item.retailer],
     ["Value", formatUsdFromCents(item.priceCents)],
-    ["Status", item.rewardClaimedAt ? "Claimed — ready to use" : item.rewardStatus?.replaceAll("_", " ") ?? (isPreview ? "Demo ready" : "Not issued")],
+    ["Status", statusLabel],
     ["Claim by", claimDeadline],
   ];
-  const rewardReady = Boolean(item.rewardClaimedAt || !item.rewardId);
 
   return <main className={styles.detailPage}>
     <section aria-label="Reward redemption details" className={styles.detailShell}>
       <header className={styles.detailHeading}>
         <div>
-          <p className={styles.readyLabel}><span aria-hidden="true">✓</span>{rewardReady ? "Ready to use" : "Reward earned"}</p>
+          <p className={styles.readyLabel} data-unavailable={!available || (!rewardReady && !canClaim)}><span aria-hidden="true">{rewardReady || canClaim ? "✓" : "!"}</span>{rewardReady ? "Ready to use" : canClaim ? "Reward earned" : notice.title}</p>
           <h1>Your {formatUsdFromCents(item.priceCents)} {item.retailer} reward</h1>
         </div>
         <p className={styles.rewardReference}>Reward for <strong>{item.title}</strong></p>
@@ -119,21 +139,21 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null }: { it
             <div><p>{item.retailer} gift card</p><strong>{formatUsdFromCents(item.priceCents)}</strong></div>
             <span aria-hidden="true">♁</span>
           </header>
-          <p className={styles.storewideMessage}><strong>Use it on anything {item.retailer} sells.</strong> Apply it to this featured item—or choose something completely different from {item.retailer}.</p>
+          {available ? <p className={styles.storewideMessage}><strong>Use it on anything {item.retailer} sells.</strong> Apply it to this featured item—or choose something completely different from {item.retailer}.</p> : null}
 
           {rewardReady ? <div className={styles.codePanel}>
-            {rawCode ? <>
-              <SampleRewardBarcode value={rawCode.replaceAll(/\D/g, "")} />
-              <p className={styles.rewardCode}>{displayCode}</p>
-              <p className={styles.codeCaption}>{isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
-            </> : <div role="status" className={styles.notIssued}>
-              <div><p>Not issued yet</p><span>No gift card or redeemable barcode has been issued.</span></div>
-            </div>}
+            <SampleRewardBarcode value={rawCode!.replaceAll(/\D/g, "")} />
+            <p className={styles.rewardCode}>{displayCode}</p>
+            <p className={styles.codeCaption}>{isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
+          </div> : !canClaim ? <div className={styles.codePanel}>
+            <div role="status" className={styles.notIssued}>
+              <div><p>{notice.title}</p><span>{notice.message}</span><Link href="/support" className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
+            </div>
           </div> : null}
 
-          {rewardReady
-            ? <RewardRedemptionActions displayCode={displayCode} isPreview={isPreview} />
-            : <RewardClaimControl rewardId={item.rewardId!} />}
+          {canClaim
+            ? <RewardClaimControl rewardId={item.rewardId!} />
+            : <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview} />}
           {isPreview && rewardReady && item.status === "prize" && item.rewardId ? <DemoIdentityPreviewButton rewardId={item.rewardId} /> : null}
         </article>
       </div>
@@ -143,7 +163,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null }: { it
         <dl>
           {detailRows.map(([label, value]) => <div key={label}>
             <dt>{label}</dt>
-            <dd className={label === "Status" && !["expired", "cancelled"].includes(item.rewardStatus ?? "ready") ? styles.goodStatus : undefined}>{value}</dd>
+            <dd className={label === "Status" && (rewardReady || canClaim) ? styles.goodStatus : undefined}>{value}</dd>
           </div>)}
         </dl>
       </section>

@@ -79,6 +79,8 @@
 .detailHeading h1 { margin-top: 7px; font-size: clamp(28px, 4vw, 48px); font-weight: 900; line-height: 1; letter-spacing: -.045em; }
 .readyLabel { display: flex; align-items: center; gap: 8px; color: #69ff96; font-size: 11px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .readyLabel span { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #31e800; color: #052d0b; box-shadow: 0 0 17px #31e80070; }
+.readyLabel[data-unavailable="true"] { color: #b9cee0; }
+.readyLabel[data-unavailable="true"] span { background: #174666; color: #eaffff; box-shadow: none; }
 .rewardReference { max-width: 330px; color: #99b9d1; font-size: 11px; line-height: 1.45; text-align: right; }
 .rewardReference strong { color: #fff; }
 .rewardSplit { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 15px; }

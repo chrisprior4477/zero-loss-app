@@ -37,7 +37,7 @@ test("wallet collection contains only the authorized reward and its direct local
 test("specific reward opens its redemption destination without another dialog or reveal button", async () => {
   render(await WalletPage({ searchParams: Promise.resolve({ reward: "samsung-m70h-tv" }) }));
   expect(screen.getByRole("region", { name: "Reward redemption details" })).toBeTruthy();
-  expect(screen.getByText("Not issued yet")).toBeTruthy();
+  expect(screen.getByRole("status").textContent).toContain("Not issued yet");
   expect(screen.getByText(/No gift card or redeemable barcode has been issued/)).toBeTruthy();
   expect(screen.getAllByText("$400")).toHaveLength(2);
   expect((screen.getByRole("button", { name: "Add to Apple Wallet" }) as HTMLButtonElement).disabled).toBe(true);

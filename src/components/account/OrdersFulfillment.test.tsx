@@ -9,6 +9,7 @@ afterEach(cleanup);
 const order = (status: AccountOrder["status"], suffix: string): AccountOrder => ({
   orderNumber: `ord_${suffix}`,
   rewardSlug: `${suffix}-reward`,
+  rewardId: `${suffix}-reward-id`,
   title: `${suffix} gift card`,
   retailer: `${suffix} retailer`,
   image: `/products/${suffix}.png`,
@@ -31,9 +32,20 @@ test("shows only real retailer gift-card orders", () => {
 
 test("connects orders to rewards, activity and support", () => {
   render(<OrdersFulfillment state={{ source: "stored", orders: [order("fulfilled", "ready")] }} />);
-  expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward");
+  expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id");
   expect(screen.getByRole("link", { name: /View in My Activity/ }).getAttribute("href")).toBe("/account/entries");
   expect(screen.getByRole("link", { name: /Visit support/ }).getAttribute("href")).toBe("/support");
+});
+
+test("two orders for the same product open their own saved gift cards", () => {
+  render(<OrdersFulfillment state={{ source: "stored", orders: [
+    order("fulfilled", "ready"),
+    { ...order("fulfilled", "second"), rewardSlug: "ready-reward" },
+  ] }} />);
+  expect(screen.getAllByRole("link", { name: /Open gift card/ }).map(link => link.getAttribute("href"))).toEqual([
+    "/account/wallet?reward=ready-reward&rewardId=ready-reward-id",
+    "/account/wallet?reward=ready-reward&rewardId=second-reward-id",
+  ]);
 });
 
 test("uses honest empty and unavailable states", () => {

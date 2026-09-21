@@ -44,7 +44,7 @@ export const walletHistoryHref = "/account/wallet?view=history";
 export function isWalletReward(item: ActivityItem): boolean {
   return item.rewardKind === "digital" && (item.status === "prize" || Boolean(item.rewardStatus));
 }
-export function walletRewardHref(item: ActivityItem): string {
+export function walletRewardHref(item: Pick<ActivityItem, "slug" | "rewardId">): string {
   const params = new URLSearchParams({ reward: item.slug });
   if (item.rewardId) params.set("rewardId", item.rewardId);
   return `/account/wallet?${params}`;

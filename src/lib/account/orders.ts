@@ -5,6 +5,7 @@ export type AccountOrderStatus = "payment_confirmed" | "issuance_pending" | "ful
 export type AccountOrder = {
   orderNumber: string;
   rewardSlug: string;
+  rewardId: string;
   title: string;
   retailer: string;
   image: string;
@@ -27,12 +28,14 @@ function parseOrder(value: unknown): AccountOrder {
   if (!value || typeof value !== "object") throw new Error("Invalid order");
   const row = value as Record<string, unknown>;
   if (typeof row.order_number !== "string" || typeof row.reward_slug !== "string"
+      || typeof row.reward_id !== "string" || !row.reward_id.trim()
       || typeof row.title !== "string" || typeof row.retailer !== "string"
       || typeof row.image !== "string" || typeof row.status !== "string" || !statuses.has(row.status as AccountOrderStatus)
       || typeof row.created_at !== "string") throw new Error("Invalid order");
   return {
     orderNumber: row.order_number,
     rewardSlug: row.reward_slug,
+    rewardId: row.reward_id,
     title: row.title,
     retailer: row.retailer,
     image: row.image,

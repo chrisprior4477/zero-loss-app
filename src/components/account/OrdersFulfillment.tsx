@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AccountIcon } from "./AccountIcon";
 import type { AccountOrder, AccountOrders } from "@/lib/account/orders";
 import { formatUsdFromCents } from "@/lib/wallet/money";
+import { walletRewardHref } from "@/lib/account/activity";
 import styles from "./orders-fulfillment.module.css";
 
 function presentation(order: AccountOrder) {
@@ -71,7 +72,7 @@ export function OrdersFulfillment({ state }: { state: AccountOrders }) {
                   </dl>
                 </div>
                 <div className={styles.orderActions}>
-                  <Link href={`/account/wallet?${new URLSearchParams({ reward: order.rewardSlug })}`} className={styles.primaryAction}>Open gift card<AccountIcon name="arrow" /></Link>
+                  <Link href={walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId })} className={styles.primaryAction}>Open gift card<AccountIcon name="arrow" /></Link>
                   <Link href="/account/entries" className={styles.secondaryAction}>View in My Activity<AccountIcon name="chevron" /></Link>
                 </div>
               </article>;

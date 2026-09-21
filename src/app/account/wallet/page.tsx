@@ -37,10 +37,10 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   ]);
   if (requestedReward) {
     let claimedCode: string | null = null;
-    if (reward?.rewardId && reward.rewardClaimedAt) {
+    if (reward?.rewardId && reward.rewardClaimedAt && reward.rewardStatus === "ready") {
       const db = await createClient();
-      const { data } = await db.rpc("get_claimed_reward", { p_reward_id: reward.rewardId });
-      claimedCode = data && typeof data === "object" && "code" in data && typeof data.code === "string" ? data.code : null;
+      const { data, error } = await db.rpc("get_claimed_reward", { p_reward_id: reward.rewardId });
+      claimedCode = !error && data && typeof data === "object" && "code" in data && typeof data.code === "string" ? data.code : null;
     }
     return reward
       ? <WalletRewardDetail item={reward} isPreview={account.activity.isPreview} claimedCode={claimedCode} />
