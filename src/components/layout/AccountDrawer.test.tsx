@@ -79,7 +79,10 @@ test("authorized activity populates the three compact shortcuts", () => {
   const options = dialog.getByRole("link", { name: "Purchase Options — 1 available" });
   expect(options.getAttribute("href")).toBe("/account/entries?filter=completion");
   expect(within(options).getByText("1")).toBeTruthy();
-  expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active");
+  const ticketCounter = dialog.getByRole("link", { name: "1 active entry" });
+  expect(ticketCounter.getAttribute("href")).toBe("/account/entries?filter=active");
+  expect(ticketCounter.querySelectorAll("svg path")).toHaveLength(1);
+  expect(ticketCounter.querySelector("svg circle")).toBeNull();
   expect(dialog.getByRole("link", { name: "My Activity" }).getAttribute("aria-current")).toBe("page");
 });
 

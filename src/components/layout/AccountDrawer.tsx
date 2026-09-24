@@ -9,7 +9,6 @@ import { usePathname } from "next/navigation";
 import { DrawerOverview } from "@/components/account/DrawerOverview";
 import { AccountIcon, type AccountIconName } from "@/components/account/AccountIcon";
 import { DrawerIllustration } from "@/components/account/DrawerIllustration";
-import { EntryTicket } from "@/components/layout/EntryTicket";
 import styles from "@/components/account/drawer.module.css";
 import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { accountNavigation } from "@/lib/account/navigation";
@@ -53,6 +52,16 @@ function DrawerAvatar({ avatar, initials }: { avatar: string | null; initials: s
       {initials}
     </span>
   );
+}
+
+/** Drawer-only outline: the approved counter has no Zero Loss mark inside its ticket. */
+function DrawerTicketCounter({ count }: { count: number | null }) {
+  return <span className={styles.ticketCounter}>
+    <svg aria-hidden="true" viewBox="0 0 54 36" fill="none">
+      <path d="M3 3h48v9a6 6 0 0 0 0 12v9H3v-9a6 6 0 0 0 0-12V3Z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
+    </svg>
+    <span>{count ?? "—"}</span>
+  </span>;
 }
 
 export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel, fundingEnabled = false, activityState }: AccountDrawerProps) {
@@ -181,7 +190,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 <span id={titleId} className="sr-only">Your Zero Loss account menu</span>
                 <div className={styles.accountActions}>
                   <Link href={openEntriesHref} onClick={close} title={ticketLabel} aria-label={ticketLabel} className={styles.ticketLink}>
-                    <EntryTicket count={state.activeCount} />
+                    <DrawerTicketCounter count={state.activeCount} />
                   </Link>
                   <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className={styles.closeButton}>×</button>
                 </div>
