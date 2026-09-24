@@ -76,12 +76,12 @@
 .summaryLabel { display: block; font-size: 12px; font-weight: 800; line-height: 1.25; text-transform: uppercase; }
 .summaryValue { display: block; margin-top: 2px; font-size: 28px; font-weight: 850; line-height: 1.1; overflow-wrap: anywhere; }
 .summaryValue[data-unavailable="true"] { font-size: 15px; line-height: 1.4; }
-.primaryAction { display: flex; gap: 8px; flex: 0 0 43%; align-items: center; justify-content: center; min-height: 44px; margin: 11px 0; padding: 0 13px; border: 0; border-left: 3px dotted rgb(255 255 255 / 85%); background: none; color: inherit; font-size: 14px; font-weight: 750; line-height: 1.3; text-decoration: none; }
-.primaryAction svg { flex-shrink: 0; width: 20px; height: 20px; }
+.primaryAction { display: flex; gap: 4px; flex: 0 0 43%; align-items: center; justify-content: center; min-height: 44px; margin: 11px 0; padding: 0 6px; border: 0; border-left: 3px dotted rgb(255 255 255 / 85%); background: none; color: inherit; font-size: 14px; font-weight: 750; line-height: 1.3; text-decoration: none; white-space: nowrap; }
+.primaryAction svg { flex-shrink: 0; width: 18px; height: 18px; }
 .primaryAction:disabled { cursor: not-allowed; color: #fff; opacity: .85; }
 .primaryAction:disabled svg { display: none; }
 .summaryInfo:hover, a.primaryAction:hover { background: rgb(0 20 70 / 13%); }
-a.summary:hover { filter: brightness(.94); }
+a.summary:hover .primaryAction { text-decoration: underline; }
 .reward { --ticket-start: #32d74b; --ticket-end: #32d74b; --icon-ground: rgb(0 82 20 / 30%); text-shadow: 0 1px 2px rgb(0 49 12 / 90%), 0 0 4px rgb(0 49 12 / 50%); }
 .option { --ticket-start: #ff630f; --ticket-end: #ff630f; --icon-ground: rgb(119 34 0 / 30%); text-shadow: 0 1px 2px rgb(82 21 0 / 85%), 0 0 4px rgb(82 21 0 / 45%); }
 .nav { display: flex; flex-direction: column; gap: 9px; }
@@ -115,7 +115,7 @@ a.summary:hover { filter: brightness(.94); }
   .accountActions { gap: 10px; }
   .summaryIcon svg { width: 30px; height: 30px; }
   .summaryLabel { font-size: 11px; }
-  .primaryAction { font-size: 13px; gap: 6px; padding: 0 10px; }
+  .primaryAction { font-size: 13px; }
   .navLink { gap: 11px; padding: 8px 13px; }
   .illustration { width: 76px; height: 58px; }
   .navText strong { font-size: 15px; }
@@ -126,7 +126,7 @@ a.summary:hover { filter: brightness(.94); }
   .profile small { font-size: 12px; }
   .avatar { width: 36px; height: 36px; }
   .illustration { width: 60px; height: 52px; }
-  .primaryAction { flex-basis: 40%; }
+  .primaryAction { flex-basis: 43%; font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { .drawerFrame, .backdrop { animation: none; } }
 @media (forced-colors: active) {
