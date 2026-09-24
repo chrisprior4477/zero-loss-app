@@ -136,15 +136,6 @@
 .signOutButton:hover, .installButton:hover { background: #eaf1fa; }
 @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
-.previewOverlay .drawerFrame, .previewOverlay .backdrop { animation: none; }
-.previewOverlay .backdrop { background: #071528; }
-.previewReference { position: absolute; top: 0; left: 0; z-index: 5; width: 503px; height: 946px; max-width: none; pointer-events: none; }
-.previewHalf { opacity: .5; }
-.previewDifference { mix-blend-mode: difference; }
-.previewToolbar { position: fixed; right: 16px; bottom: 20px; z-index: 6; display: flex; max-width: min(480px, calc(100vw - 32px)); flex-wrap: wrap; gap: 4px; padding: 6px; border: 1px solid #b9cbe5; border-radius: 9px; background: #fffdf8; box-shadow: 0 4px 18px rgb(7 27 69 / 30%); }
-.previewToolbar a { padding: 5px 7px; border-radius: 5px; color: #071b45; font-size: 11px; font-weight: 700; text-decoration: none; }
-.previewToolbar a[aria-current="page"] { background: #087feb; color: #fff; }
-.previewToolbar a:hover { background: #deecff; }
 @media (max-width: 42rem) {
   .drawer { inset: 20px 20px 12px auto; }
   .profile strong { font-size: 21px; }

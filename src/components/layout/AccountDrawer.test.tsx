@@ -55,6 +55,16 @@ test("signed-in drawer follows the ticket-menu hierarchy with a conventional ham
   expect(dialog.getByRole("button", { name: "Sign out" })).toBeTruthy();
 });
 
+test("normal account menu mounts one drawer with no reference-comparison layer", () => {
+  render(<AccountDrawer {...props} />);
+  fireEvent.click(screen.getByLabelText("Open account menu"));
+  expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  const dialog = within(screen.getByRole("dialog"));
+  expect(dialog.getAllByRole("link", { name: "My Activity" })).toHaveLength(1);
+  expect(document.querySelector('[aria-label="Local drawer comparison"]')).toBeNull();
+  expect(document.querySelector('img[src*="account-drawer-golden-master"], svg image[href*="account-drawer-golden-master"]')).toBeNull();
+});
+
 test("balance failure displays Unavailable, never an invented zero", () => {
   render(<AccountDrawer {...props} balanceLabel={null} activityState={drawerState(false)} />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
