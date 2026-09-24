@@ -16,6 +16,8 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
   const [confirmation, setConfirmation] = useState<"purchase" | "decline" | null>(null);
   const inFlight = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const confirmationRef = useRef<HTMLElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
   const purchaseRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const [state, action, pending] = useActionState(async (_previous: PurchaseOptionActionState, form: FormData): Promise<PurchaseOptionActionState> => {
@@ -33,9 +35,16 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
     if (state.status === "succeeded") {
       if (state.href) router.replace(state.href);
       else router.refresh();
+    } else if (state.status === "error") {
+      resultRef.current?.scrollIntoView?.({ block: "nearest" });
     }
   }, [state, router]);
-  useEffect(() => { if (confirmation) headingRef.current?.focus(); }, [confirmation]);
+  useEffect(() => {
+    if (!confirmation) return;
+    headingRef.current?.focus({ preventScroll: true });
+    // Keep the amount and both choices together in the dialog's scroll area.
+    confirmationRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [confirmation]);
 
   function cancel() {
     if (pending || inFlight.current) return;
@@ -51,7 +60,7 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
     {!confirmation ? <>
       <button ref={purchaseRef} type="button" data-primary="true" disabled={pending || finished || needsCheck} onClick={() => setConfirmation("purchase")}>Complete gift-card purchase</button>
       <button type="button" disabled={pending || finished || needsCheck} onClick={() => setConfirmation("decline")}>Decline option</button>
-    </> : <section aria-labelledby={titleId}>
+    </> : <section ref={confirmationRef} aria-labelledby={titleId}>
       <h3 id={titleId} ref={headingRef} tabIndex={-1}>{confirmation === "purchase" ? "Confirm your purchase" : "Decline this option?"}</h3>
       {confirmation === "purchase" ? <>
         <p>{formatUsdFromCents(item.priceCents)} {item.retailer} gift card</p>
@@ -70,9 +79,11 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
       </form>
       <button type="button" disabled={pending || finished || needsCheck} onClick={cancel}>Cancel</button>
     </section>}
-    {state.status !== "idle" ? <p role="status" data-status={state.status}>{state.message}</p> : null}
-    {needsCheck ? <a href={activityHref(item)}>Check purchase status →</a> : null}
-    {state.status === "error" && state.recovery === "balance" ? <Link href={fundingHref(item.slug, item.entryId ?? undefined)}>Add funds →</Link> : null}
-    {state.status === "succeeded" && state.href ? <Link href={state.href}>Open your gift card or receipt →</Link> : null}
+    {state.status !== "idle" ? <div ref={resultRef}>
+      <p role="status" data-status={state.status}>{state.message}</p>
+      {needsCheck ? <a href={activityHref(item)}>Check purchase status →</a> : null}
+      {state.status === "error" && state.recovery === "balance" ? <Link href={fundingHref(item.slug, item.entryId ?? undefined)}>Add funds →</Link> : null}
+      {state.status === "succeeded" && state.href ? <Link href={state.href}>Open your gift card or receipt →</Link> : null}
+    </div> : null}
   </div>;
 }
