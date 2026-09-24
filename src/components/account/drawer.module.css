@@ -44,7 +44,8 @@
 .ticketCounter svg { display: block; width: 32px; height: 24px; flex-shrink: 0; }
 .closeButton { font-size: 32px; line-height: 1; cursor: pointer; }
 .ticketLink:hover, .closeButton:hover { background: #eaf1fa; }
-.accountContent { padding: 14px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left)); overscroll-behavior: contain; scrollbar-color: #9ba6b4 var(--paper); }
+.accountContent { padding: 14px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left)); overscroll-behavior: contain; scrollbar-width: none; }
+.accountContent::-webkit-scrollbar { display: none; }
 .overview { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .summary {
   --ticket-start: #087feb; --ticket-end: #168cff; --icon-ground: rgb(0 42 111 / 29%);
@@ -100,12 +101,12 @@ a.summary:hover .primaryAction { text-decoration: underline; }
 .navLink[aria-current="page"]::before { background: #e9f2ff; }
 .navLink[aria-current="page"] { box-shadow: 0 0 0 2px #087feb, 0 3px 7px rgb(59 43 21 / 12%); }
 .navLink > svg:last-child { width: 17px; height: 22px; flex-shrink: 0; margin-left: auto; stroke-width: 2.2; }
-.navArtwork { position: relative; display: grid; flex-shrink: 0; width: 112px; place-items: center; padding-right: 9px; }
+.navArtwork { position: relative; display: grid; flex-shrink: 0; width: 124px; place-items: center; padding-right: 9px; }
 .navArtwork::after {
   content: ""; position: absolute; top: 5px; right: 0; bottom: 5px; width: 3px;
   background: radial-gradient(circle, #8d9bad 1px, transparent 1.3px) center top / 3px 7px repeat-y;
 }
-.illustration { width: 102px; height: 56px; flex-shrink: 0; border-radius: 7px; }
+.illustration { width: 114px; height: 58px; flex-shrink: 0; border-radius: 7px; }
 .navText { display: block; min-width: 0; flex: 1; }
 .navText strong { display: block; font-size: 16px; font-weight: 800; line-height: 1.2; }
 .navText small { display: block; margin-top: 3px; color: #495e7a; font-size: 12px; line-height: 1.25; }
@@ -146,8 +147,8 @@ a.summary:hover .primaryAction { text-decoration: underline; }
   .summaryLabel { font-size: 11px; }
   .primaryAction { font-size: 13px; }
   .navLink { gap: 10px; padding: 5px 13px; }
-  .navArtwork { width: clamp(70px, 22vw, 112px); }
-  .illustration { width: min(102px, calc(22vw - 10px)); height: 56px; }
+  .navArtwork { width: clamp(70px, 24vw, 124px); }
+  .illustration { width: min(114px, calc(24vw - 10px)); height: 58px; }
   .navText strong { font-size: 15px; }
   .taglineTicket { padding-left: 18px; }
 }
