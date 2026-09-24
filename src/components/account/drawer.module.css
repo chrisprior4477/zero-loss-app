@@ -22,8 +22,9 @@
 }
 .drawer {
   --paper: #f7f4ef;
-  width: min(32rem, 100%); color: #071c40; background: var(--paper);
-  border-left: 1px solid #ddd8d0; box-shadow: -16px 0 48px rgb(0 9 27 / 25%); color-scheme: light;
+  inset: 12px 12px 12px auto; width: min(32rem, calc(100vw - 24px)); height: auto;
+  border: 1px solid #e7e4df; border-radius: 16px; color: #071c40; background: var(--paper);
+  box-shadow: -16px 0 48px rgb(0 9 27 / 25%); color-scheme: light;
 }
 .drawer :is(a, button):focus-visible { position: relative; z-index: 2; outline: 3px solid #052c61; outline-offset: 3px; }
 .accountHeader {
@@ -63,12 +64,16 @@
               radial-gradient(circle at right center, var(--paper) 0 7px, transparent 7.5px) right center / 8px 16px no-repeat;
 }
 .summary > :is(a, span, button) { position: relative; z-index: 2; }
-.navLink::before, .navLink::after {
-  content: ""; position: absolute; z-index: 1; top: calc(50% - 7px); width: 7px; height: 14px;
-  background: var(--paper); pointer-events: none;
+.navLink::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(105deg, #fff 45%, #fffdfa);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
 }
-.navLink::before { left: 0; border-radius: 0 9px 9px 0; }
-.navLink::after { right: 0; border-radius: 9px 0 0 9px; }
+.navLink::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(circle at left center, var(--paper) 0 7px, transparent 7.5px) left center / 8px 16px no-repeat,
+              radial-gradient(circle at right center, var(--paper) 0 7px, transparent 7.5px) right center / 8px 16px no-repeat;
+}
 .summaryInfo { display: flex; flex: 1; min-width: 0; gap: 12px; align-items: center; padding: 12px 12px 12px 16px; color: inherit; text-decoration: none; }
 .summaryIcon { display: grid; flex-shrink: 0; width: 54px; height: 50px; place-items: center; border: 1px solid rgb(255 255 255 / 24%); border-radius: 11px; background: var(--icon-ground); }
 .summaryIcon svg { width: 30px; height: 30px; stroke-width: 1.8; }
@@ -84,19 +89,43 @@
 a.summary:hover .primaryAction { text-decoration: underline; }
 .reward { --ticket-start: #32d74b; --ticket-end: #32d74b; --icon-ground: rgb(0 82 20 / 30%); text-shadow: 0 1px 2px rgb(0 49 12 / 90%), 0 0 4px rgb(0 49 12 / 50%); }
 .option { --ticket-start: #ff630f; --ticket-end: #ff630f; --icon-ground: rgb(119 34 0 / 30%); text-shadow: 0 1px 2px rgb(82 21 0 / 85%), 0 0 4px rgb(82 21 0 / 45%); }
-.nav { display: flex; flex-direction: column; gap: 9px; }
+.nav { display: flex; flex-direction: column; gap: 7px; }
 .navLink {
-  position: relative; display: flex; gap: 14px; min-height: 76px; align-items: center; padding: 7px 16px;
-  border-radius: 7px; background: linear-gradient(105deg, #fff 45%, #fffdfa);
-  box-shadow: 0 2px 5px rgb(59 43 21 / 12%); color: #091e43; text-decoration: none;
+  position: relative; display: flex; gap: 12px; min-height: 68px; align-items: center; padding: 5px 15px;
+  border-radius: 9px; background: transparent;
+  box-shadow: 0 3px 7px rgb(59 43 21 / 12%); color: #091e43; text-decoration: none;
 }
-.navLink:hover { background: #eef4fe; }
-.navLink[aria-current="page"] { background: #e9f2ff; box-shadow: inset 0 0 0 2px #1964bd, 0 2px 5px rgb(59 43 21 / 8%); }
+.navLink > * { position: relative; z-index: 2; }
+.navLink:hover::before { background: #eef4fe; }
+.navLink[aria-current="page"]::before { background: #e9f2ff; }
+.navLink[aria-current="page"] { box-shadow: 0 0 0 2px #087feb, 0 3px 7px rgb(59 43 21 / 12%); }
 .navLink > svg:last-child { width: 17px; height: 22px; flex-shrink: 0; margin-left: auto; stroke-width: 2.2; }
-.illustration { width: 96px; height: 62px; flex-shrink: 0; border-radius: 7px; }
+.navArtwork { position: relative; display: grid; flex-shrink: 0; width: 112px; place-items: center; padding-right: 9px; }
+.navArtwork::after {
+  content: ""; position: absolute; top: 5px; right: 0; bottom: 5px; width: 3px;
+  background: radial-gradient(circle, #8d9bad 1px, transparent 1.3px) center top / 3px 7px repeat-y;
+}
+.illustration { width: 102px; height: 56px; flex-shrink: 0; border-radius: 7px; }
 .navText { display: block; min-width: 0; flex: 1; }
 .navText strong { display: block; font-size: 16px; font-weight: 800; line-height: 1.2; }
-.navText small { display: block; margin-top: 4px; color: #495e7a; font-size: 12px; line-height: 1.35; }
+.navText small { display: block; margin-top: 3px; color: #495e7a; font-size: 12px; line-height: 1.25; }
+.taglineTicket {
+  position: relative; display: flex; min-height: 54px; align-items: center; gap: 12px;
+  margin-top: 7px; padding: 5px 18px 5px 44px; color: #fff;
+  font-size: 16px; font-weight: 800; text-shadow: 0 1px 2px rgb(0 26 57 / 70%);
+}
+.taglineTicket::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; background: linear-gradient(110deg, #087feb, #168cff);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+}
+.taglineTicket::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(circle at left center, var(--paper) 0 7px, transparent 7.5px) left center / 8px 16px no-repeat,
+              radial-gradient(circle at right center, var(--paper) 0 7px, transparent 7.5px) right center / 8px 16px no-repeat;
+}
+.taglineTicket > * { position: relative; z-index: 2; }
+.taglineMark { display: grid; width: 52px; height: 43px; flex-shrink: 0; place-items: center; border-radius: 8px; background: #0061d7; }
+.taglineMark > span { width: 29px; height: 29px; background: #fff; -webkit-mask: url('/zeroloss-favicon.svg') center / contain no-repeat; mask: url('/zeroloss-favicon.svg') center / contain no-repeat; }
 .installButton { display: flex; align-items: center; gap: 10px; min-height: 46px; width: 100%; margin-top: 14px; padding: 8px 12px; border: 1px solid #c8cfd8; border-radius: 8px; background: #fffdf9; color: #253c5a; font-size: 14px; font-weight: 650; cursor: pointer; }
 .installButton > svg:last-child { margin-left: auto; width: 16px; }
 .accountFooter { flex-shrink: 0; margin: 0; padding: 10px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); border-top: 1px solid #ddd8cf; background: var(--paper); }
@@ -105,7 +134,7 @@ a.summary:hover .primaryAction { text-decoration: underline; }
 @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
 @media (max-width: 42rem) {
-  .drawer { width: 100%; border-left: 0; }
+  .drawer { inset: 12px; width: auto; }
   .profile strong { font-size: 18px; }
   .accountHeader { gap: 8px; padding-top: max(34px, env(safe-area-inset-top)); }
   .accountContent { padding-top: 4px; }
@@ -116,9 +145,11 @@ a.summary:hover .primaryAction { text-decoration: underline; }
   .summaryIcon svg { width: 30px; height: 30px; }
   .summaryLabel { font-size: 11px; }
   .primaryAction { font-size: 13px; }
-  .navLink { gap: 11px; padding: 8px 13px; }
-  .illustration { width: 76px; height: 58px; }
+  .navLink { gap: 10px; padding: 5px 13px; }
+  .navArtwork { width: clamp(70px, 22vw, 112px); }
+  .illustration { width: min(102px, calc(22vw - 10px)); height: 56px; }
   .navText strong { font-size: 15px; }
+  .taglineTicket { padding-left: 18px; }
 }
 @media (max-width: 360px) {
   .accountHeader, .accountContent, .accountFooter { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
@@ -126,6 +157,11 @@ a.summary:hover .primaryAction { text-decoration: underline; }
   .profile small { font-size: 12px; }
   .avatar { width: 36px; height: 36px; }
   .illustration { width: 60px; height: 52px; }
+  .navArtwork { width: 68px; }
+  .navLink { gap: 7px; }
+  .navText strong { font-size: 13px; }
+  .navText small { font-size: 10px; }
+  .taglineTicket { gap: 8px; font-size: 13px; }
   .primaryAction { flex-basis: 43%; font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { .drawerFrame, .backdrop { animation: none; } }

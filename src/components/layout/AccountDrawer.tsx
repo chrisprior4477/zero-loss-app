@@ -212,9 +212,10 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 <nav aria-label="Account navigation" className={styles.nav}>
                   {accountNavigation.map(([label, href, icon]) => {
                     const active = href.startsWith("/account/wallet") ? pathname === "/account/wallet" && (href === walletHistoryHref) === walletHistoryOpen : pathname === href || pathname?.startsWith(href + "/");
-                    return <Link key={href} href={href} onClick={close} aria-label={label} aria-description={navigationDescriptions[label]} aria-current={active ? "page" : undefined} className={styles.navLink}><DrawerIllustration name={icon as AccountIconName} /><span className={styles.navText}><strong>{label}</strong><small>{navigationDescriptions[label]}</small></span><AccountIcon name="chevron" /></Link>;
+                    return <Link key={href} href={href} onClick={close} aria-label={label} aria-description={navigationDescriptions[label]} aria-current={active ? "page" : undefined} className={styles.navLink}><span className={styles.navArtwork}><DrawerIllustration name={icon as AccountIconName} /></span><span className={styles.navText}><strong>{label}</strong><small>{navigationDescriptions[label]}</small></span><AccountIcon name="chevron" /></Link>;
                   })}
                 </nav>
+                <div className={styles.taglineTicket} aria-hidden="true"><span className={styles.taglineMark}><span /></span><strong>Real prizes. Real possibilities.</strong></div>
                 <button type="button" onClick={requestInstall} className={styles.installButton}><AccountIcon name="install" /><span>Add to Home Screen</span><AccountIcon name="chevron" /></button>
                 {email ? <span className="sr-only">Signed in as {displayName}, {email}</span> : null}
               </> : <section className="space-y-4">
