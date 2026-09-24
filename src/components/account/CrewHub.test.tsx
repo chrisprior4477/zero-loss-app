@@ -55,6 +55,26 @@ test("a homepage preview choice carries into Your Crew and can be removed", asyn
   expect(localStorage.getItem("zero-loss-sample-crew-v1")).toBe("[]");
 });
 
+test("every sample uses one connected outline, which closes and returns with the Crew tab", async () => {
+  const { container } = render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  for (const name of ["Maya", "Daniel", "Ari", "Leo"]) {
+    fireEvent.click(await screen.findByRole("button", { name: `See ${name}'s sample shared activity` }));
+    const panel = screen.getByRole("region", { name: `${name}'s shared activity` });
+    expect(panel.className).toContain("connectedOutline");
+    expect(container.querySelectorAll('svg path[stroke="#67f768"][stroke-width="2"]')).toHaveLength(1);
+    expect(screen.getByRole("button", { name: `See ${name}'s sample shared activity` }).getAttribute("aria-expanded")).toBe("true");
+  }
+  fireEvent.click(screen.getByRole("tab", { name: "Requests" }));
+  expect(container.querySelector('svg path[stroke="#67f768"]')).toBeNull();
+  fireEvent.click(screen.getByRole("tab", { name: "Your Crew" }));
+  expect(screen.getByRole("region", { name: "Leo's shared activity" })).toBeTruthy();
+  expect(container.querySelectorAll('svg path[stroke="#67f768"]')).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: /Close/ }));
+  expect(container.querySelector('svg path[stroke="#67f768"]')).toBeNull();
+  expect(actions.removeCrewConnection).not.toHaveBeenCalled();
+  expect(actions.setEntryCrewSharing).not.toHaveBeenCalled();
+});
+
 test("the account Crew section expands approved people's activity in place", async () => {
   actions.getCrewSharedPicks.mockResolvedValue({ ok: true, picks: [{ title: "Nike Court Shot Shoes", retailer: "Dick’s Sporting Goods", image: "/catalog/nike-court-shot-side-cutout.png", offeringSlug: "nike-court-shot-shoes", sharedAt: "2026-09-19T10:00:00Z" }] });
   render(<CrewHub

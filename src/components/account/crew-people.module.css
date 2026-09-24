@@ -1,3 +1,6 @@
+.outlineStage { position: relative; min-width: 0; }
+.outline { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; filter: drop-shadow(0 0 4px #52fa4970); }
+.activityError { min-height: 96px; margin-top: 6px; border: 2px solid transparent; border-radius: 18px; padding: 24px; background: #092744; font-size: .875rem; }
 .root { min-width: 0; border: 1px solid #68dfff65; border-radius: 18px; padding: clamp(16px, 3vw, 24px); background: #092744; box-shadow: 0 0 22px #00b9ff22; }
 .rootSelected { border-bottom: 0; border-radius: 18px 18px 0 0; padding-bottom: 0; }
 .rootSelected .rail { padding-bottom: 0; }
@@ -6,11 +9,12 @@
 .heading p { margin-top: 5px; color: #bed4e4; font-size: .8rem; line-height: 1.4; }
 .arrows { display: flex; gap: 7px; }
 .arrows button { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #3ac3ec; border-radius: 50%; color: white; background: #0d3559; font-size: 1.55rem; line-height: 1; }
-.rail { display: flex; gap: 12px; overflow-x: auto; margin-top: 12px; padding: 12px 3px 7px; scrollbar-width: none; cursor: grab; user-select: none; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
+.rail { display: flex; gap: 12px; overflow-x: auto; margin-top: 12px; padding: 18px 3px 7px; scrollbar-width: none; cursor: grab; user-select: none; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
 .rail::-webkit-scrollbar { display: none; }
 .rail:active { cursor: grabbing; }
 .person, .discover { display: flex; flex: 0 0 142px; flex-direction: column; align-items: center; text-align: center; }
-.personSelected { border: 1px solid #67f768; border-bottom: 0; border-radius: 12px 12px 0 0; background: linear-gradient(#0e3b54, #102f4a); box-shadow: 0 0 18px #4afa4a36; }
+.person { padding-bottom: 8px; }
+.personSelected { position: relative; margin-top: -12px; padding-top: 12px; border-radius: 18px 18px 0 0; background: linear-gradient(#0e3b54, #102f4a); box-shadow: 0 0 18px #4afa4a36; }
 .personSelected .picksLink { color: #8cff80; }
 .avatar, .discoverAvatar { position: relative; display: grid; width: 104px; height: 104px; flex: none; place-items: center; overflow: hidden; border: 3px solid #34cbef; border-radius: 50%; background: #12536a; color: white; font-size: 2rem; font-weight: 850; box-shadow: 0 0 0 4px #061b34, 0 0 0 5px #1a6586, 0 8px 25px #0006; }
 .avatarImage { object-fit: cover; }

@@ -8,6 +8,8 @@ import {
 } from "@/lib/crew/actions";
 import type { CrewInvitation, CrewMember, OwnCrewEntry, SharedCrewPick } from "@/app/account/crew/page";
 import { CrewPeopleCarousel } from "./CrewPeopleCarousel";
+import { CrewActivityOutline } from "./CrewActivityOutline";
+import crewStyles from "./crew-people.module.css";
 import { CrewSearchPanel } from "./CrewSearchDialog";
 import { SharedPicksConcept } from "@/components/home/SharedPicksConcept";
 import { initializeSampleCrewPreview, removeSampleCrewPreview, useSampleCrewPreviews, type SampleCrewName } from "@/lib/crew/sample-preview";
@@ -37,6 +39,10 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
   const [memberPicksError, setMemberPicksError] = useState(false);
   const [memberPicksLoading, setMemberPicksLoading] = useState(false);
   const pickRequest = useRef(0);
+  const crewStageRef = useRef<HTMLDivElement>(null);
+  const crewRailRef = useRef<HTMLDivElement>(null);
+  const selectedPersonRef = useRef<HTMLDivElement>(null);
+  const activityPanelRef = useRef<HTMLElement>(null);
   const [pending, startTransition] = useTransition();
   const samples = useSampleCrewPreviews();
   useEffect(() => { initializeSampleCrewPreview(); }, []);
@@ -113,13 +119,14 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
       </div>
 
       {tab === "crew" ? <section className="mt-5 grid gap-5" aria-label="Approved Crew">
-        <div>
-          <CrewPeopleCarousel people={people} samples={samples} selectedKey={activeKey} onAdd={focusCrewSearch} onRemove={(id) => run(() => removeCrewConnection(id))} onSampleRemove={(name) => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(null); }} onSamplePicks={selectSample} onMemberPicks={selectMember} pending={pending} />
-          {samplePerson ? <SharedPicksConcept key={samplePerson} person={samplePerson} onClose={() => setSamplePerson(null)} /> : null}
+        <div className={crewStyles.outlineStage} ref={crewStageRef}>
+          <CrewPeopleCarousel railRef={crewRailRef} selectedRef={selectedPersonRef} people={people} samples={samples} selectedKey={activeKey} onAdd={focusCrewSearch} onRemove={(id) => run(() => removeCrewConnection(id))} onSampleRemove={(name) => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(null); }} onSamplePicks={selectSample} onMemberPicks={selectMember} pending={pending} />
+          {samplePerson ? <SharedPicksConcept key={samplePerson} person={samplePerson} onClose={() => setSamplePerson(null)} connectedOutline panelRef={activityPanelRef} /> : null}
           {activeMember ? <div id="shared-picks">
-            {memberPicksError ? <p role="alert" className="border border-cyan-300/45 bg-[#092744] p-5 text-sm">We couldn’t load this Crew member’s activity. Please try again.</p> :
-              <SharedPicksConcept key={activeMember.memberId} person={activeMember.name} avatarUrl={activeMember.avatarUrl} loading={memberPicksLoading} picks={memberPicks.map((pick) => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `Shared ${formatDate(pick.sharedAt)}` }))} onClose={() => setOpenMemberId(null)} />}
+            {memberPicksError ? <section ref={activityPanelRef} className={crewStyles.activityError}><p role="alert">We couldn’t load this Crew member’s activity. Please try again.</p></section> :
+              <SharedPicksConcept key={activeMember.memberId} person={activeMember.name} avatarUrl={activeMember.avatarUrl} loading={memberPicksLoading} picks={memberPicks.map((pick) => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `Shared ${formatDate(pick.sharedAt)}` }))} onClose={() => setOpenMemberId(null)} connectedOutline panelRef={activityPanelRef} />}
           </div> : null}
+          {samplePerson || activeMember ? <CrewActivityOutline stageRef={crewStageRef} railRef={crewRailRef} selectedRef={selectedPersonRef} panelRef={activityPanelRef} /> : null}
         </div>
         <CrewSearchPanel onSamplePicks={selectSample} disabled={!available} />
         <div className="rounded-2xl border border-cyan-300/35 bg-[#092744] p-5">

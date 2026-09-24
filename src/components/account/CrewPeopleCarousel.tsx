@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { type MouseEvent, type PointerEvent, useRef } from "react";
+import { type MouseEvent, type PointerEvent, type RefObject, useRef } from "react";
 import { sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import styles from "./crew-people.module.css";
 
 export type CrewPersonCard = { memberId: string; invitationId: string; name: string; avatarUrl: string | null };
 
-export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemove, onSampleRemove, onSamplePicks, onMemberPicks, pending }: {
+export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemove, onSampleRemove, onSamplePicks, onMemberPicks, pending, railRef, selectedRef }: {
   people: CrewPersonCard[];
   samples: SampleCrewName[];
   selectedKey: string | null;
@@ -17,8 +17,9 @@ export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemo
   onSamplePicks: (name: SampleCrewName) => void;
   onMemberPicks: (memberId: string) => void;
   pending: boolean;
+  railRef: RefObject<HTMLDivElement | null>;
+  selectedRef: RefObject<HTMLDivElement | null>;
 }) {
-  const railRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, moved: false, x: 0, scrollLeft: 0 });
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -66,7 +67,7 @@ export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemo
     </div>
     {samples.length ? <p className={styles.sampleNotice}>Sample profiles are fictional. “Preview added” did not send invitations; real members appear here after they approve a request.</p> : null}
     <div className={styles.rail} ref={railRef} aria-label="People in your Crew" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { dragRef.current.active = false; dragRef.current.moved = false; if (railRef.current) { railRef.current.style.scrollBehavior = ""; railRef.current.style.scrollSnapType = ""; } }} onClickCapture={onClickCapture} onDragStart={(event) => event.preventDefault()}>
-      {people.map((person) => <div className={`${styles.person} ${selectedKey === person.memberId ? styles.personSelected : ""}`} key={person.memberId}>
+      {people.map((person) => <div ref={selectedKey === person.memberId ? selectedRef : undefined} className={`${styles.person} ${selectedKey === person.memberId ? styles.personSelected : ""}`} key={person.memberId}>
         <button type="button" className={styles.avatar} aria-label={`See ${person.name}'s shared activity`} aria-expanded={selectedKey === person.memberId} onClick={() => onMemberPicks(person.memberId)}>
           {person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="112px" unoptimized className={styles.avatarImage} /> : <span>{person.name.slice(0, 1).toUpperCase()}</span>}
         </button>
@@ -75,7 +76,7 @@ export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemo
         <button type="button" aria-expanded={selectedKey === person.memberId} onClick={() => onMemberPicks(person.memberId)} className={styles.picksLink}>{selectedKey === person.memberId ? "Hide activity ↑" : "See activity ↓"}</button>
         <button type="button" disabled={pending} onClick={() => onRemove(person.invitationId)} className={styles.remove}>Remove</button>
       </div>)}
-      {sampleCrewPeople.filter((person) => samples.includes(person.name)).map((person) => <div className={`${styles.person} ${selectedKey === `sample-${person.name}` ? styles.personSelected : ""}`} key={`sample-${person.name}`}>
+      {sampleCrewPeople.filter((person) => samples.includes(person.name)).map((person) => <div ref={selectedKey === `sample-${person.name}` ? selectedRef : undefined} className={`${styles.person} ${selectedKey === `sample-${person.name}` ? styles.personSelected : ""}`} key={`sample-${person.name}`}>
         <button type="button" className={styles.avatar} aria-label={`See ${person.name}'s sample shared activity`} aria-expanded={selectedKey === `sample-${person.name}`} onClick={() => onSamplePicks(person.name)}>
           <Image src={person.photo} alt="" fill sizes="112px" className={styles.avatarImage} />
         </button>
