@@ -8,7 +8,7 @@ import {
   marketplaceCategoryId,
   productMatchesMarketplaceCategory,
 } from "@/lib/catalog/navigation";
-import { searchCatalog } from "@/lib/catalog/search";
+import { searchCatalogMatches } from "@/lib/catalog/search";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 
 export const metadata: Metadata = {
@@ -30,7 +30,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const selectedCategory = marketplaceCategoryId(query.category ?? (query.sort === "ending-soon" ? "ending-soon" : ""));
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
   const categoryProducts = availableProducts.filter((product) => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory));
-  const matchedProducts = searchTerm ? searchCatalog(categoryProducts, searchTerm) : categoryProducts;
+  const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm) : [];
+  const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
+  const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
   const products = query.sort === "ending-soon" || selectedCategory === "ending-soon"
     ? matchedProducts.sort((left, right) => Number(left.capacity === left.sold) - Number(right.capacity === right.sold)
       || (left.capacity - left.sold) - (right.capacity - right.sold))
@@ -78,6 +80,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     </div>
                     <p className="mt-3 text-[10px] font-black uppercase tracking-[0.1em] text-[#087feb] sm:text-xs">{product.retailer}</p>
                     <h2 className="mt-1 line-clamp-2 text-sm font-extrabold leading-5 sm:text-base">{product.title}</h2>
+                    {relatedRetailers.has(product.slug) ? <p className="my-2 text-xs leading-4 text-slate-600">Related retailer gift card · Check retailer product availability.</p> : null}
                     <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs">
                       <span><strong className="block text-sm">${product.entryPrice.toFixed(2)}</strong>per entry</span>
                       <span className="text-right text-slate-500"><strong className="block text-[#e34c16]">{remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>
