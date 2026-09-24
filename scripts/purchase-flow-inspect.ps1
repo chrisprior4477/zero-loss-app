@@ -24,7 +24,8 @@ left join public.completion_options c on c.customer_entry_id=e.id
 left join public.customer_rewards r on r.customer_entry_id=e.id
 left join public.customer_orders o on o.reward_id=r.id
 where e.customer_id='a7cb965c-0041-4267-8c1c-829cd75bfba0'
-  and e.offering_slug='babys-essentials-bundle' and e.created_at>='2026-09-24T00:00:00Z'
+  and e.offering_slug in ('babys-essentials-bundle','nike-court-shot-shoes')
+  and e.created_at>='2026-09-24T00:00:00Z' and e.created_at<'2026-09-25T00:00:00Z'
 order by e.created_at;
 commit;
 '@
