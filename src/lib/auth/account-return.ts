@@ -7,7 +7,7 @@ const matches = (pattern: RegExp) => (value: string) => pattern.test(value);
 const routes: Record<string, { query: Record<string, (value: string) => boolean>; hash?: RegExp }> = {
   "/contact": { query: {}, hash: /^#message$/ },
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), filter: oneOf("all", "active", "prize", "completion", "completed") } },
-  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), transaction: matches(uuid) }, hash: /^#(?:add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
+  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), entry: matches(/^ent_[a-f0-9]{32}$/i), transaction: matches(uuid) }, hash: /^#(?:add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
   "/account/crew": { query: { member: matches(uuid), tab: oneOf("crew", "requests", "picks"), request: matches(uuid) }, hash: /^#(?:sharing|crew-request-[0-9a-f-]{36})$/i },
   "/account/notifications": { query: {} },
   "/account/security": { query: {} },

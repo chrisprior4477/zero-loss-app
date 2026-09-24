@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export type PurchaseOptionActionState =
   | { status: "idle" }
-  | { status: "succeeded"; message: string }
-  | { status: "error"; message: string };
+  | { status: "succeeded"; message: string; href?: string }
+  | { status: "error"; message: string; recovery?: "balance" | "check" };
 
 export type RewardClaimActionState = PurchaseOptionActionState | { status: "verification_required"; message: string };
 
@@ -47,19 +47,39 @@ export async function purchaseGiftCard(
   const optionId = String(formData.get("completionOptionId") ?? "");
   if (!uuidPattern.test(optionId)) return { status: "error", message: "This purchase option is invalid." };
 
-  const db = await createClient();
-  const { data: { user }, error: authError } = await db.auth.getUser();
-  if (authError || !user) return { status: "error", message: "Your session expired. Sign in again before completing this option." };
+  let href = "/account/orders";
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user) return { status: "error", message: "Your session expired. Sign in again before completing this option." };
 
-  const { error } = await db.rpc("purchase_preview_gift_card", {
-    p_option_id: optionId,
-    p_idempotency_key: `checkout_${optionId.replaceAll("-", "")}`,
-  });
-  if (error) {
-    return {
-      status: "error",
-      message: error.code === "P0001" ? error.message : "This purchase option could not be completed. Refresh and try again.",
-    };
+    const { data, error } = await db.rpc("purchase_preview_gift_card", {
+      p_option_id: optionId,
+      // One logical purchase for this option, including retries and other tabs.
+      p_idempotency_key: `checkout_${optionId.replaceAll("-", "")}`,
+    });
+    if (error?.code === "P0001" && error.message === "Add demo funds before completing this option.") {
+      return { status: "error", recovery: "balance", message: "Your playable balance is too low for this purchase. Add funds, then return to this same option. No purchase was made." };
+    }
+    if (error && ["P0001", "42501", "22023"].includes(error.code)) {
+      return { status: "error", message: "This purchase option is no longer available. Check its current status before continuing.", recovery: "check" };
+    }
+    if (error || !data || data.status !== "purchased") {
+      return { status: "error", recovery: "check", message: "We couldn’t confirm the purchase result. Check purchase status before trying again; it may already be complete." };
+    }
+    if (typeof data.rewardId === "string" && uuidPattern.test(data.rewardId)) {
+      href = `/account/wallet?rewardId=${data.rewardId}`;
+    } else {
+      // Older duplicate receipts contain only an order number. Resolve the exact
+      // reward from this customer's authorized projection, never from form data.
+      try {
+        const { data: activity, error: readError } = await db.rpc("get_account_activity");
+        const saved = !readError && Array.isArray(activity) ? activity.find(row => row.completion_option_id === optionId) : null;
+        if (saved && typeof saved.reward_id === "string" && uuidPattern.test(saved.reward_id)) href = `/account/wallet?rewardId=${saved.reward_id}`;
+      } catch { /* Confirmed purchase; Orders remains the safe receipt fallback. */ }
+    }
+  } catch {
+    return { status: "error", recovery: "check", message: "The connection was interrupted. Check purchase status before trying again; the purchase may already be complete." };
   }
 
   revalidatePath("/", "layout");
@@ -67,7 +87,7 @@ export async function purchaseGiftCard(
   revalidatePath("/account/wallet");
   revalidatePath("/account/orders");
   revalidatePath("/account/notifications");
-  return { status: "succeeded", message: "Purchase complete. Your retailer gift card is ready in Gift Cards & Rewards." };
+  return { status: "succeeded", message: "Purchase complete. Your retailer gift card is ready in Gift Cards & Rewards.", href };
 }
 
 export async function setPurchaseOptionEmailPreference(

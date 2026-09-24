@@ -11,6 +11,27 @@ import WalletPage from "./page";
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
+const purchaseEntry = "ent_11111111111111111111111111111111";
+const purchaseActivity = { entryId: purchaseEntry, slug: "babys-essentials-bundle", title: "Baby bundle", retailer: "Walmart", image: "/test.png", status: "completion", rewardKind: "digital", priceCents: 10000, paidCents: 100, remainingCents: 9900, completionOptionId: "11111111-1111-4111-8111-111111111111" };
+test("funding returns to the exact authorized option even with another entry for the same product", async () => {
+  mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, entryId: "ent_22222222222222222222222222222222" }, purchaseActivity] } });
+  render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: purchaseActivity.slug, entry: purchaseEntry }) }));
+  expect(screen.getByRole("link", { name: "Back to purchase option" }).getAttribute("href")).toBe(`/account/entries?item=${purchaseActivity.slug}&entry=${purchaseEntry}`);
+  expect(screen.queryByRole("link", { name: "Back to this prize" })).toBeNull();
+});
+test.each(["ent_99999999999999999999999999999999", [purchaseEntry, purchaseEntry]])("foreign or ambiguous funding selectors cannot substitute another entry: %j", async entry => {
+  mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [purchaseActivity] } });
+  render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: purchaseActivity.slug, entry }) }));
+  expect(screen.queryByRole("link", { name: "Back to purchase option" })).toBeNull();
+  expect(screen.getByRole("link", { name: "View your purchase options →" })).toBeTruthy();
+});
+test("sign-in preserves the exact funding return entry", async () => {
+  mocks.getAccountContext.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(WalletPage({ searchParams: Promise.resolve({ view: "history", from: purchaseActivity.slug, entry: purchaseEntry }) })).rejects.toThrow("NEXT_REDIRECT");
+  expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe(`/account/wallet?view=history&from=${purchaseActivity.slug}&entry=${purchaseEntry}#add-funds`);
+});
+
 test.each([
   [{ reward: "samsung-m70h-tv", rewardId: "11111111-1111-4111-8111-111111111111" }, "/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111"],
   [{ view: "card" }, "/account/wallet?view=card"],

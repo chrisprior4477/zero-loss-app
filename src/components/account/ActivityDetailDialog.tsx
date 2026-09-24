@@ -106,7 +106,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
       </> : <section className={styles.detailPanel}><p className={styles.panelEyebrow}>COMPLETED</p><h3>Activity complete</h3><p className={styles.detailCopy}>Completed activity details. No additional fulfillment action is enabled in this checkpoint.</p></section>}
 
       {item.status === "completion" && item.completionOptionId
-        ? <PurchaseOptionControls optionId={item.completionOptionId} />
+        ? <PurchaseOptionControls key={item.completionOptionId} item={{ ...item, completionOptionId: item.completionOptionId }} />
         : <div className={styles.detailFooter}><button disabled type="button">{disabledAction} — not enabled</button><p>This action is not available yet.</p></div>}
     </div>
   </dialog>;
