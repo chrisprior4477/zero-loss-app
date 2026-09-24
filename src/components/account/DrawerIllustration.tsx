@@ -2,14 +2,14 @@ import { useId } from "react";
 import type { AccountIconName } from "./AccountIcon";
 import styles from "./drawer.module.css";
 
-/** Original, unbranded vector illustrations. All labels remain ordinary HTML. */
+/** Temporary drawer artwork until the approved, project-owned illustrations are supplied. */
 export function DrawerIllustration({ name }: { name: AccountIconName }) {
   const id = useId().replace(/:/g, "");
   const blue = `url(#${id}-blue)`;
   const dark = `url(#${id}-dark)`;
   const white = `url(#${id}-white)`;
   const warm = name === "bell" || name === "orders";
-  return <svg className={styles.illustration} viewBox="0 0 120 76" fill="none" aria-hidden="true" focusable="false">
+  return <svg className={styles.illustration} data-temporary-asset={name} viewBox="0 0 120 76" fill="none" aria-hidden="true" focusable="false">
     <defs>
       <linearGradient id={`${id}-bg`} x2="1" y2="1"><stop stopColor={warm ? "#fff0d4" : "#e5f5ff"} /><stop offset="1" stopColor={warm ? "#ffd4ae" : "#bedfff"} /></linearGradient>
       <linearGradient id={`${id}-blue`} x2=".9" y2="1"><stop stopColor="#23a6ff" /><stop offset=".5" stopColor="#0063df" /><stop offset="1" stopColor="#05327a" /></linearGradient>

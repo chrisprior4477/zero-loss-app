@@ -23,6 +23,8 @@ type AccountDrawerProps = {
   balanceLabel: string | null;
   fundingEnabled?: boolean;
   activityState: AccountActivity;
+  /** The local design fixture only; never passed by production account pages. */
+  preview?: { mode: "implementation" | "reference" | "overlay" | "difference"; capture: boolean; referenceImage: string };
 };
 
 const secondaryLinks = [
@@ -64,8 +66,9 @@ function DrawerTicketCounter({ count }: { count: number | null }) {
   </span>;
 }
 
-export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel, fundingEnabled = false, activityState }: AccountDrawerProps) {
+export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel, fundingEnabled = false, activityState, preview }: AccountDrawerProps) {
   const [open, setOpen] = useState(false);
+  const previewAutoOpen = Boolean(preview);
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
   const [walletHistoryOpen, setWalletHistoryOpen] = useState(false);
   const pathname = usePathname();
@@ -78,6 +81,12 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!previewAutoOpen) return;
+    const frame = window.requestAnimationFrame(() => setOpen(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [previewAutoOpen]);
 
   useEffect(() => {
     const updateAvatar = (event: Event) => {
@@ -102,7 +111,10 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
     const background = Array.from(document.body.children).filter((element) => element !== overlayRef.current);
     const inertBefore = background.map((element) => element.hasAttribute("inert"));
     background.forEach((element) => element.setAttribute("inert", ""));
-    const focusFrame = window.requestAnimationFrame(() => closeRef.current?.focus());
+    const focusFrame = window.requestAnimationFrame(() => {
+      if (previewAutoOpen) drawerRef.current?.focus();
+      else closeRef.current?.focus();
+    });
     const keepFocusInside = (event: FocusEvent) => {
       if (event.target instanceof Node && !drawerRef.current?.contains(event.target)) closeRef.current?.focus();
     };
@@ -145,7 +157,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
       document.removeEventListener("focusin", keepFocusInside);
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
-  }, [open]);
+  }, [open, previewAutoOpen]);
 
   const close = () => setOpen(false);
   const requestInstall = () => {
@@ -178,7 +190,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
       {isSignedIn ? <span id={countId} className="sr-only">{ticketLabel}</span> : null}
 
       {open && typeof document !== "undefined" ? createPortal(
-        <div ref={overlayRef} className={styles.overlay} role="presentation">
+        <div ref={overlayRef} className={`${styles.overlay} ${preview ? styles.previewOverlay : ""}`} role="presentation">
           <div aria-hidden="true" onClick={close} className={styles.backdrop} data-testid="account-menu-backdrop" />
           <aside id={drawerId} ref={drawerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`${styles.drawerFrame} ${showAccountContent ? styles.drawer : "w-[min(100%,440px)] border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]"}`}>
             {showAccountContent ? (
@@ -217,6 +229,9 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 </nav>
                 <div className={styles.taglineTicket} aria-hidden="true"><span className={styles.taglineMark}><span /></span><strong>Real prizes. Real possibilities.</strong></div>
                 <button type="button" onClick={requestInstall} className={styles.installButton}><AccountIcon name="install" /><span>Add to Home Screen</span><AccountIcon name="chevron" /></button>
+                <form action={signOutAction} className={styles.accountFooter}>
+                  <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
+                </form>
                 {email ? <span className="sr-only">Signed in as {displayName}, {email}</span> : null}
               </> : <section className="space-y-4">
                 <nav aria-label="Shop categories" className="zl-noscroll flex gap-2 overflow-x-auto pb-1">
@@ -256,12 +271,19 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 {moreOpen && <nav id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href} onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>}
               </div> : null}
             </div>
-            {showAccountContent ? (
-              <form action={signOutAction} className={styles.accountFooter}>
-                <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
-              </form>
-            ) : null}
+            {preview && !preview.capture ? <nav aria-label="Local drawer comparison" className={styles.previewToolbar}>
+              {(["implementation", "reference", "overlay", "difference"] as const).map((mode) =>
+                <Link key={mode} href={`/drawer-local-preview?mode=${mode}`} aria-current={preview.mode === mode ? "page" : undefined}>
+                  {mode === "overlay" ? "50% overlay" : mode === "difference" ? "Difference view" : mode[0].toUpperCase() + mode.slice(1)}
+                </Link>)}
+              <Link href={`/drawer-local-preview?mode=${preview.mode}&capture=1`}>Clean capture</Link>
+            </nav> : null}
           </aside>
+          {preview && preview.mode !== "implementation" ? <Image
+            src={preview.referenceImage} width={503} height={946} alt=""
+            className={`${styles.previewReference} ${preview.mode === "overlay" ? styles.previewHalf : ""} ${preview.mode === "difference" ? styles.previewDifference : ""}`}
+            draggable={false} unoptimized priority
+          /> : null}
         </div>,
         document.body,
       ) : null}
