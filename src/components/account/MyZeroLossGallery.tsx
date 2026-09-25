@@ -6,7 +6,7 @@ import { type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEv
 import { activityHref, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
-import styles from "./showroom.module.css";
+import styles from "./my-activity.module.css";
 
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
 function action(item: ActivityItem) {
@@ -101,10 +101,13 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
       onScroll={syncSwipe}
       role="region"
       aria-label="Your products"
+      data-single-row={items.length <= 2 ? "true" : undefined}
     >
       {items.map((item, index) => {
         const featured = item.status === "prize" && index === 0;
-        return <div key={item.entryId ?? item.slug} className={styles.galleryItem}>
+        const column = Math.floor(index / 4) * 2 + (index % 2) + 1;
+        const row = Math.floor((index % 4) / 2) + 1;
+        return <div key={item.entryId ?? item.slug} className={styles.galleryItem} style={{ gridColumn: column, gridRow: row }}>
           <Link href={activityHref(item, "/account/entries", filter)} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>

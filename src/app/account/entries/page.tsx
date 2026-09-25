@@ -6,7 +6,7 @@ import { MyZeroLossActivity } from "@/components/account/MyZeroLossActivity";
 import { AccountIcon, type AccountIconName } from "@/components/account/AccountIcon";
 import { getAccountContext } from "@/lib/account/context";
 import { activityFilter } from "@/lib/account/activity";
-import styles from "@/components/account/showroom.module.css";
+import styles from "@/components/account/my-activity.module.css";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 
@@ -23,7 +23,6 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const query = await searchParams;
   if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query)));
   return <div className={styles.page}><div className={styles.pageContent}>
-    <p className={styles.eyebrow}>MY ACTIVITY</p>
     <h1 className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
     <MyZeroLossActivity state={account.activity} filter={activityFilter(query.filter)} selectedSlug={typeof query.item === "string" ? query.item : undefined} selectedEntryId={typeof query.entry === "string" ? query.entry : undefined} />

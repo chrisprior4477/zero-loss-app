@@ -159,6 +159,9 @@ test("desktop gallery retains complete catalog names, purchase math and existing
   const gallery = document.querySelector("[data-activity-gallery]");
   expect(gallery?.getAttribute("aria-label")).toBe("Your products");
   expect(gallery?.querySelectorAll("a[data-activity-slug]")).toHaveLength(4);
+  expect(Array.from(gallery?.children ?? []).map(card => [(card as HTMLElement).style.gridColumn, (card as HTMLElement).style.gridRow])).toEqual([
+    ["1", "1"], ["2", "1"], ["1", "2"], ["2", "2"],
+  ]);
   expect(Array.from(gallery?.querySelectorAll("a[data-activity-slug]") ?? []).map(card => (card as HTMLElement).dataset.activitySlug)).toEqual([
     "samsung-m70h-tv", "playstation-5-slim", "nike-court-shot-shoes", "babys-essentials-bundle",
   ]);

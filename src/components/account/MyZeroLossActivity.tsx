@@ -3,7 +3,7 @@ import { activityFilters, filterActivity, type AccountActivity, type ActivityFil
 import { MyZeroLossGallery } from "./MyZeroLossGallery";
 import { ActivitySelection } from "./ActivitySelection";
 import { AccountIcon } from "./AccountIcon";
-import styles from "./showroom.module.css";
+import styles from "./my-activity.module.css";
 
 const galleryStatusOrder = { prize: 0, active: 1, completion: 2, completed: 3 } as const;
 
