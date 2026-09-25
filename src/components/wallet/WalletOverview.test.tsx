@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
+import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { WalletOverview } from "./WalletOverview";
 const empty: WalletSnapshot = { walletAccountId: null, scope: "production", currency: "USD", balanceCents: 0, transactionCount: 0, fundingAvailable: false, entries: [] };
 afterEach(cleanup);
@@ -36,6 +37,14 @@ test("enabled preview wallet puts Add Card beside Add funds", () => {
   render(<WalletOverview wallet={{ ...empty, walletAccountId: "wallet-a", scope: "demo", fundingAvailable: true }} fundingEnabled requests={[]} requestKey="stable_demo_request_001" />);
   expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
   expect(screen.getByRole("link", { name: "Add Card" }).getAttribute("href")).toBe("/account/wallet?view=card");
+  expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("/account/wallet?view=card");
+});
+
+test("wallet tickets reuse real account counts and direct destinations", () => {
+  render(<WalletOverview wallet={empty} activity={storedActivityFixture()} requests={[]} />);
+  expect(screen.getByRole("link", { name: "Playable Wallet: $0.00" }).getAttribute("href")).toBe("/account/wallet?view=history#balance");
+  expect(screen.getByRole("link", { name: "Prize Ready: 1" }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
+  expect(screen.getByRole("link", { name: "Purchase Options: 2" }).getAttribute("href")).toBe("/account/entries?filter=completion");
 });
 
 test("funding from a prize has a direct return to its entry controls", () => {
