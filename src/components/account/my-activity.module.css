@@ -12,7 +12,7 @@
 .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 30px; }
 .filter, .productCard, .accountTool {
   --ticket-side-notch: 10px;
-  --ticket-corner-notch: 7px;
+  --ticket-corner-notch: 12px;
   --ticket-cutouts:
     radial-gradient(circle at left center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)),
     radial-gradient(circle at right center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)),
@@ -76,7 +76,7 @@
 .galleryItem > .productCard { width: 100%; }
 .productCard {
   --ticket-side-notch: 14px;
-  --ticket-corner-notch: 9px;
+  --ticket-corner-notch: 16px;
   position: relative;
   display: block;
   min-width: 0;
@@ -139,7 +139,7 @@
 .eyebrow { color: #8bcfff; font-size: 12px; font-weight: 800; letter-spacing: .16em; }
 .accountToolsHeading h2 { margin-top: 5px; color: #fff; font-size: clamp(24px, 2.4vw, 37px); font-weight: 820; }
 .accountToolsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.accountTool { --ticket-side-notch: 11px; --ticket-corner-notch: 8px; position: relative; display: grid; min-height: 124px; grid-template-columns: 116px minmax(0, 1fr) 24px; align-items: center; gap: 18px; padding: 20px 28px; border-radius: 15px; background: #fffefa; color: #0b173b; box-shadow: 0 7px 17px #00112c61; }
+.accountTool { --ticket-side-notch: 11px; --ticket-corner-notch: 14px; position: relative; display: grid; min-height: 124px; grid-template-columns: 116px minmax(0, 1fr) 24px; align-items: center; gap: 18px; padding: 20px 28px; border-radius: 15px; background: #fffefa; color: #0b173b; box-shadow: 0 7px 17px #00112c61; }
 .accountTool::before { content: ""; position: absolute; top: 14px; bottom: 14px; left: 162px; width: 3px; background: radial-gradient(circle, #aab6c3 1.2px, transparent 1.5px) center top / 3px 10px repeat-y; }
 .profileTool { grid-template-columns: 78px minmax(0, 1fr) 24px; }
 .profileTool::before { left: 114px; }

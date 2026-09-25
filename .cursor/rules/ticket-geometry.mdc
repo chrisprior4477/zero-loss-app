@@ -5,8 +5,8 @@ alwaysApply: true
 
 # Ticket geometry
 
-- Every new or modified ticket-style control or card needs a true inward circular cutout at each of its four outer corners. Where the approved ticket pattern uses them, retain the inward semicircular scoops at the centers of both side edges too.
+- Every new or modified ticket-style control or card needs a clearly visible inward circular scoop at each of its four outer corners. Use the approved hamburger tickets as the minimum visual reference: their corner scoop is 10 CSS pixels on a roughly 60–80px-tall ticket. Scale the scoop up on larger tickets so it stays equally pronounced, never smaller or barely visible. Where the approved ticket pattern uses them, retain the inward semicircular scoops at the centers of both side edges too.
 - The corner cutouts are concave: they remove part of the ticket body and reveal the background. A rounded outer corner, 45-degree chamfer, or colored circle drawn over the ticket is not equivalent.
 - Preserve existing live values, labels, links, actions, and data sources when correcting ticket shape.
 - Verify all four corners and both side scoops at the intended desktop and mobile viewports. Check that no cutout clips text, artwork, or focus treatment.
-- Visual reference: the owner's My Activity screenshot with yellow circles around the ticket corners, September 25, 2026.
+- Visual references: the approved hamburger ticket shape and the owner's close-up of its pronounced corner scoop, September 25, 2026. The My Activity yellow-circle screenshot identifies every corner requiring this shape.
