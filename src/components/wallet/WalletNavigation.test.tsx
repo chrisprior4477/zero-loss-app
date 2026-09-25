@@ -28,10 +28,25 @@ test("wallet shortcut count comes only from digital prize activity, not entries 
 
 test("wallet collection contains only the authorized reward and its direct local destination", async () => {
   render(await WalletPage({ searchParams: Promise.resolve({}) }));
-  expect(screen.getByText('Samsung 50" M70H Mini LED 4K Smart TV')).toBeTruthy();
+  expect(screen.getAllByText('Samsung 50" M70H Mini LED 4K Smart TV')).toHaveLength(2);
   expect(screen.queryByText("PlayStation 5 Slim Model")).toBeNull();
   expect(screen.getByRole("link", { name: /Open reward/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
   expect(screen.queryByText("Sample · Not redeemable")).toBeNull();
+});
+
+test("reward overview uses real statuses and retains authorized history links", async () => {
+  const state = storedActivityFixture();
+  const ready = state.activity[1];
+  ready.rewardId = "ready-reward";
+  state.activity.push({ ...ready, entryId: "used-entry", rewardId: "used-reward", rewardStatus: "redeemed", status: "completed" });
+  state.activity.push({ ...ready, entryId: "expired-entry", rewardId: "expired-reward", rewardStatus: "expired", status: "completed" });
+  mocks.account.mockResolvedValue({ activity: state, wallet, balanceLabel: "$0.00", fundingEnabled: false });
+  render(await WalletPage({ searchParams: Promise.resolve({}) }));
+  expect(screen.getByRole("link", { name: /Prize Ready: 1/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=ready-reward");
+  expect(screen.getByRole("link", { name: /Used.*Already redeemed.*1/ }).getAttribute("href")).toBe("/account/wallet?rewards=used");
+  expect(screen.getByRole("link", { name: /Expired.*No longer available.*1/ }).getAttribute("href")).toBe("/account/wallet?rewards=expired");
+  expect(screen.getByRole("region", { name: "Reward history" }).querySelectorAll('a[aria-label^="Open "]')).toHaveLength(3);
+  expect(screen.getByRole("link", { name: /Open Samsung.*Used/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=used-reward");
 });
 
 test("specific reward opens its redemption destination without another dialog or reveal button", async () => {

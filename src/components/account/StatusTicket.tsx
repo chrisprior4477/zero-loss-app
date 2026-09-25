@@ -13,10 +13,11 @@ type StatusTicketProps = {
   ariaLabel?: string;
   valueTestId?: string;
   tooltip?: string;
+  size?: "default" | "overview";
 };
 
 /** The approved ticket shape, with separate wallet actions when funding is unavailable. */
-export function StatusTicket({ label, value, action, href, variant, actionHref, actionDisabled = false, onNavigate, ariaLabel, valueTestId, tooltip }: StatusTicketProps) {
+export function StatusTicket({ label, value, action, href, variant, actionHref, actionDisabled = false, onNavigate, ariaLabel, valueTestId, tooltip, size = "default" }: StatusTicketProps) {
   const information = (
     <>
         <span className={styles.iconPanel} aria-hidden="true">
@@ -54,7 +55,7 @@ export function StatusTicket({ label, value, action, href, variant, actionHref, 
 
   if (variant === "wallet" && (actionHref || actionDisabled)) {
     return (
-      <article className={className} aria-label={label}>
+      <article className={className} aria-label={label} data-size={size}>
         <Link href={href} onClick={onNavigate} className={styles.information} aria-label={`${label}: ${value}`}>
           {information}
         </Link>
@@ -69,7 +70,7 @@ export function StatusTicket({ label, value, action, href, variant, actionHref, 
   }
 
   return (
-    <Link className={className} href={href} onClick={onNavigate} title={tooltip} aria-label={ariaLabel ?? `${label}: ${value}. ${action}`}>
+    <Link className={className} href={href} onClick={onNavigate} title={tooltip} aria-label={ariaLabel ?? `${label}: ${value}. ${action}`} data-size={size}>
       <span className={styles.information}>{information}</span>
       <span className={styles.perforation} aria-hidden="true" />
       <span className={styles.action}>

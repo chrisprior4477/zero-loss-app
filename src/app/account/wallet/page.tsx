@@ -40,7 +40,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     ? matchingRewards.find(item => item.rewardId === query.rewardId)
     : typeof query.reward === "string" && matchingRewards.length === 1 ? matchingRewards[0] : undefined;
   const cardView = !requestedReward && query.view === "card";
-  const rewardView = query.rewards === "history" ? "history" : "ready";
+  const rewardView = ["ready", "used", "expired", "history"].includes(String(query.rewards))
+    ? query.rewards as "ready" | "used" | "expired" | "history" : "all";
   const provider = (history || cardView) && account.wallet?.scope === "demo" ? new DemoPaymentProvider(await createClient()) : null;
   const [requests, savedCard, transaction] = await Promise.all([
     history && provider ? provider.getRequests().catch(() => null) : null,
@@ -60,5 +61,5 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   }
   if (cardView) return <DemoCardManager displayName={account.displayName} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} enabled={Boolean(provider && account.fundingEnabled)} />;
   if (history) return <WalletOverview wallet={account.wallet} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
-  return <WalletRewards state={account.activity} view={rewardView} />;
+  return <WalletRewards state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} />;
 }
