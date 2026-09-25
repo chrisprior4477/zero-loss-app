@@ -1,5 +1,5 @@
 .drawer {
-  width: min(32rem, 100vw);
+  width: min(32rem, 100%);
   height: 100dvh !important;
   padding: 13px 8px 13px 17px;
   border: 0;
@@ -276,8 +276,8 @@
 }
 
 @media (max-width: 430px) {
-  .drawer { padding: 0; }
-  .drawer::before { inset: 0; border-radius: 0; }
+  .drawer { padding: 8px; }
+  .drawer::before { inset: 8px; border-radius: 16px; }
   .accountHeader { padding-inline: 12px; }
   .profile { gap: 8px; }
   .profile > span:first-child { width: 50px; height: 50px; flex-basis: 50px; font-size: 18px; }

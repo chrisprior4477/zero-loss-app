@@ -27,15 +27,13 @@
 }
 .filter {
   --ticket-color: #103c70;
-  --ticket-border: #278df8;
   display: flex;
   min-width: 0;
   min-height: clamp(70px, 6.2vw, 102px);
   align-items: center;
   gap: clamp(9px, 1.25vw, 20px);
   padding: 12px clamp(10px, 1.55vw, 25px);
-  border: 1px solid var(--ticket-border);
-  border-radius: 13px;
+  border: 0;
   background: var(--ticket-color);
   color: #f7fbff;
   font-size: clamp(13px, 1.4vw, 22px);
@@ -44,10 +42,10 @@
   transition: filter .15s ease, transform .15s ease;
 }
 .filter:hover { filter: brightness(1.1); transform: translateY(-2px); }
-.filter[aria-current="page"] { box-shadow: inset 0 0 0 2px #fff9; }
-.filter[data-filter="all"] { --ticket-color: #82d9fa; --ticket-border: #bcf0ff; color: #081b38; }
-.filter[data-filter="prize"] { --ticket-color: #4ee85d; --ticket-border: #a8ffae; color: #082528; }
-.filter[data-filter="completion"] { --ticket-color: #ff832b; --ticket-border: #ffb36e; color: #251c16; }
+.filter[aria-current="page"] { filter: brightness(1.04); }
+.filter[data-filter="all"] { --ticket-color: #82d9fa; color: #081b38; }
+.filter[data-filter="prize"] { --ticket-color: #4ee85d; color: #082528; }
+.filter[data-filter="completion"] { --ticket-color: #ff832b; color: #251c16; }
 .filter > svg { width: clamp(27px, 2.9vw, 47px); height: clamp(27px, 2.9vw, 47px); flex: 0 0 auto; }
 .filter > span:nth-child(2) { min-width: 0; }
 .filterCount { display: grid; flex: 0 0 auto; place-items: center; min-width: clamp(37px, 3.2vw, 52px); min-height: clamp(37px, 3.2vw, 52px); margin-left: auto; padding: 0 7px; border-radius: 13px; background: #062953af; color: #fff; font-size: clamp(17px, 1.65vw, 26px); font-variant-numeric: tabular-nums; }
@@ -215,8 +213,15 @@
   .ledgerNote { font-size: 10px; }
 }
 @media (max-width: 610px) {
-  .filters { grid-template-columns: minmax(0, 1fr); }
-  .filter, .filter:last-child { grid-column: 1; min-height: clamp(84px, 22vw, 130px); aspect-ratio: auto; }
+  .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filter { min-height: 76px; aspect-ratio: auto; gap: 5px; padding: 9px 12px; font-size: 12px; }
+  .filter > svg { width: 20px; height: 20px; }
+  .filterCount { min-width: 29px; min-height: 29px; padding-inline: 5px; }
+  .filter:last-child { grid-column: 1 / -1; min-height: 76px; }
+}
+@media (max-width: 355px) {
+  .filter { gap: 4px; padding-inline: 10px; font-size: 11px; }
+  .filter > svg { width: 18px; height: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .filter, .productCard { transition: none; }

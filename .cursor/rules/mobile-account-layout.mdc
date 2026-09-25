@@ -1,0 +1,12 @@
+---
+description: Keep mobile account pages compact, complete, and free of exposed horizontal scrollbars
+alwaysApply: true
+---
+
+# Mobile account layout
+
+- The signed-in drawer keeps a visible, rounded white outer shell and left/right breathing room at narrow widths; its ticket scoops and content must not be clipped against the viewport edge.
+- On mobile, reward history uses swipeable, snap-aligned cards as a carousel, without a visible bottom scrollbar or a wide table that requires horizontal panning. Preserve every reward destination and the same live history records.
+- Playable Wallet transaction filters must all be visible without horizontal scrolling; stack All, Funding, Entries, and Refunds vertically on a phone, retaining their real counts and filtering behavior.
+- Mobile transaction rows are compact two-row tickets, not tall three-row cards. Keep title, detail, date, amount, status, and the report link visible and clickable; retain the concave corner and side scoops.
+- Inspect the narrow phone layout in the browser and test representative links and filters before calling the page done. Do not change the underlying account data to solve a layout problem.

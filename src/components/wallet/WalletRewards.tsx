@@ -95,13 +95,16 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
             {(other.length > 0 || view === "history") && <Link href="/account/wallet?rewards=history" aria-current={view === "history" ? "page" : undefined}>History</Link>}
           </nav>
         </div>
-        {state.source === "unavailable" ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <p className={overview.message}>{view === "all" ? "No reward history yet." : `No ${view === "history" ? "past" : view} rewards yet.`}</p> : <div className={overview.historyTable}>
+        {state.source === "unavailable" ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <p className={overview.message}>{view === "all" ? "No reward history yet." : `No ${view === "history" ? "past" : view} rewards yet.`}</p> : <>
+          {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe to browse rewards</p> : null}
+          <div className={overview.historyTable} role="group" aria-roledescription="carousel" aria-label="Reward cards" tabIndex={0}>
           <div className={overview.tableHeader} aria-hidden="true"><span>Date</span><span>Reward</span><span>Type</span><span>Status</span><span>Value</span><span className={overview.visuallyHidden}>Open</span></div>
           {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={walletRewardHref(item)} aria-label={`Open ${item.title}, ${rewardLabel(item)}, ${formatUsdFromCents(item.priceCents)}`} className={overview.historyRow}>
             <span>{claimedDate(item.rewardClaimedAt)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" /></span><strong>{item.title}</strong></span>
             <span>Gift Card</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
           </Link>)}
-        </div>}
+          </div>
+        </>}
       </section>
     </div>
   </main>;

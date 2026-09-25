@@ -70,6 +70,7 @@
 .historyFilters a { display: grid; min-width: 70px; min-height: 38px; place-items: center; padding: 5px 12px; border: 1px solid #d4dbe4; border-radius: 11px; background: #f0f2f5; color: #0a1741; font-size: 13px; font-weight: 800; }
 .historyFilters a[aria-current="page"] { border-color: #0065c6; background: #07376b; color: #fff; }
 .historyTable { width: 100%; margin-top: 15px; overflow-x: auto; }
+.historySwipeHint { display: none; }
 .tableHeader, .historyRow { display: grid; min-width: 650px; grid-template-columns: minmax(110px, 15%) minmax(180px, 1fr) minmax(80px, 13%) minmax(100px, 16%) minmax(70px, 10%) 20px; align-items: center; gap: 10px; }
 .tableHeader { min-height: 33px; border-block: 1px solid #d9e0e7; color: #677c94; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .historyRow { min-height: 48px; border-bottom: 1px solid #e0e6eb; color: #4d6580; font-size: 13px; }
@@ -121,7 +122,19 @@
   .rewardImage { height: 118px; }
   .rewardTitle { font-size: 14px; }
   .rewardMeta, .delivered { font-size: 10px; }
-  .historyFilters { max-width: 100%; overflow-x: auto; }
+  .historyFilters { max-width: 100%; flex-wrap: wrap; overflow: visible; }
+  .historySwipeHint { display: block; margin-top: 13px; color: #526c87; font-size: 12px; }
+  .historyTable { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 10px; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-inline: contain; }
+  .historyTable::-webkit-scrollbar { display: none; }
+  .tableHeader { display: none; }
+  .historyRow { position: relative; display: grid; flex: 0 0 calc(100% - 26px); min-width: 0; min-height: 142px; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto; gap: 7px 9px; align-content: space-between; padding: 13px 14px; border: 1px solid #dde6ee; border-radius: 12px; background: #fff; box-shadow: 0 4px 12px #1b34511a; scroll-snap-align: start; scroll-snap-stop: always; }
+  .historyRow > span:first-child { grid-column: 1; grid-row: 2; }
+  .historyRow > .historyReward { grid-column: 1 / -1; grid-row: 1; padding-right: 22px; }
+  .historyReward strong { white-space: normal; line-height: 1.15; }
+  .historyRow > span:nth-child(3) { grid-column: 1; grid-row: 3; }
+  .historyRow > span:nth-child(4) { grid-column: 2; grid-row: 2; }
+  .historyRow > .historyValue { grid-column: 2; grid-row: 3; justify-self: end; }
+  .historyRow > span:last-child { position: absolute; top: 19px; right: 12px; }
 }
 @media (max-width: 460px) {
   .readyGrid { grid-template-columns: 1fr; }
