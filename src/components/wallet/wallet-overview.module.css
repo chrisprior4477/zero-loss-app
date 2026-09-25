@@ -1,7 +1,7 @@
 .page { min-height: calc(100svh - 140px); padding: 14px clamp(14px, 2.6vw, 44px) 64px; overflow: hidden; background: radial-gradient(ellipse at 49% 24%, #0a2d59, #061c3b 68%, #06172e); color: #fff; }
 .shell { max-width: 1550px; margin: 0 auto; }
 .shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.shortcut, .ticketPanel, .ledger li {
+.shortcut, .ticketPanel, .ledger li, .fundingRequests li {
   --corner-scoop: 16px;
   --side-scoop: 16px;
   -webkit-mask-image:
@@ -112,16 +112,45 @@
 .alert { color: #7a3813; }
 .olderTransaction { margin-top: 16px; }
 .olderTransaction h3 { margin-bottom: 9px; color: #d6eaff; font-size: 16px; font-weight: 800; }
-.funding { scroll-margin-top: 130px; margin-top: 32px; padding: 20px 27px 26px; border: 1px solid #1c5681; border-radius: 14px; background: #082647; }
-.funding > .sectionHeading { align-items: baseline; }
-.funding .sectionHeading h2 { font-size: 30px; }
-.funding .sectionHeading p, .funding .sectionHeading > span { color: #b5cce4; }
-.fundingReturn { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 14px 0; padding: 12px 14px; border: 1px solid #42eff84d; border-radius: 9px; background: #0b3449; }
-.fundingReturn p { flex: 1 1 220px; min-width: 0; color: #e9f7ff; font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
-.fundingReturn a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #69edff; font-size: 13px; font-weight: 800; }
-.funding .fundingReturn { color: #e9f7ff; }
-.funding .unavailable { border-color: #286186; background: #06213e; color: #b5cce4; }
-.funding :global(form[aria-label="Add funds"]) { max-width: 720px; }
+.funding { --corner-scoop: 19px; --side-scoop: 19px; scroll-margin-top: 130px; margin-top: 24px; padding: 28px clamp(24px, 3vw, 46px) 34px; }
+.funding > .sectionHeading { align-items: center; padding-bottom: 18px; border-bottom: 2px dotted #bed0e1; }
+.funding .sectionHeading h2 { color: #08163c; font-size: clamp(31px, 2.7vw, 43px); }
+.funding .sectionHeading p { color: #506989; font-size: 17px; }
+.funding .fundingBadge { flex: 0 0 auto; padding: 8px 13px; border-radius: 9px; background: #d7f0ff; color: #0856a7; font-size: 13px; font-weight: 850; text-transform: uppercase; }
+.fundingReturn { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 16px 0; padding: 12px 14px; border: 1px solid #85caed; border-radius: 9px; background: #e5f5ff; }
+.fundingReturn p { flex: 1 1 220px; min-width: 0; color: #153354; font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+.fundingReturn a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #075eb4; font-size: 13px; font-weight: 800; }
+.funding .fundingReturn { color: #153354; }
+.funding .unavailable { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; margin: 20px 0 0; padding: 23px; border: 1px solid #c7d5e2; background: #f1f8ff; color: #102646; }
+.unavailable h3 { font-size: 20px; font-weight: 850; }
+.unavailable p { margin-top: 4px; color: #506989; }
+.unavailable button { min-width: 160px; min-height: 48px; padding: 10px 18px; border: 0; border-radius: 9px; background: #0872fb; color: #fff; font-weight: 850; opacity: .48; cursor: not-allowed; }
+.fundingForm { display: grid; gap: 15px; max-width: 780px; margin-top: 20px; color: #0b1940; }
+.fundingForm :global(section[aria-label="Add Credit Card"]) { border-color: #b9d2e5; background: #e9f5ff; }
+.fundingForm :global(section[aria-label="Add Credit Card"]) :global(h3), .fundingForm :global(section[aria-label="Add Credit Card"]) :global(summary), .fundingForm :global(section[aria-label="Add Credit Card"]) :global(label) { color: #0b1940; }
+.fundingForm :global(section[aria-label="Add Credit Card"] > div > span) { background: #d1eefe; color: #075eb4; }
+.fundingForm :global(section[aria-label="Add Credit Card"]) :global(p), .fundingForm > :global(p) { color: #506989; }
+.fundingForm :global(input:not([type="hidden"]):not([type="checkbox"])), .fundingForm :global(select) { border-color: #b7ccdc; background: #fff; color: #0b1940; }
+.fundingForm :global(select) { border-radius: 9px; }
+.fundingSubmit { min-height: 52px; width: 100%; border: 0; border-radius: 9px; background: #0872fb; color: #fff; font-size: 17px; font-weight: 850; cursor: pointer; }
+.fundingSubmit:hover:not(:disabled) { filter: brightness(1.07); }
+.fundingSubmit:disabled { cursor: not-allowed; opacity: .5; }
+.fundingForm :global(dialog) { border-color: #73b3e1; background: #fffefa; color: #0b1940; }
+.fundingForm :global(dialog) :global(p), .fundingForm :global(dialog) :global(label) { color: #425f7f; }
+.fundingForm :global(dialog) :global(input[type="password"]) { border-color: #b7ccdc; background: #fff; color: #0b1940; }
+.fundingForm :global(dialog) :global(button[type="button"]) { border-color: #9cb9d0; color: #0b1940; }
+.fundingForm :global(dialog) :global(a) { color: #075eb4; }
+.fundingRequests { margin-top: 26px; padding-top: 21px; border-top: 2px dotted #bed0e1; color: #0b1940; }
+.fundingRequests h2 { color: #0b1940; font-size: 25px; font-weight: 850; }
+.fundingRequests > p { color: #506989; font-size: 14px; }
+.fundingRequests ul { display: grid; gap: 8px; margin-top: 16px; border: 0; border-radius: 0; background: transparent; }
+.fundingRequests li { --corner-scoop: 12px; --side-scoop: 12px; min-width: 0; border: 0; background: #eaf6ff; color: #0b1940; }
+.fundingRequests li + li { border-top: 0; }
+.fundingRequests li :global(p) { color: #0b1940; }
+.fundingRequests li :global(p + p) { color: #506989; }
+.fundingRequests li :global([data-reconciliation="reconciled"]) { color: #087238; }
+.fundingRequests li :global([data-reconciliation]:not([data-reconciliation="reconciled"])) { color: #9b5409; }
+.fundingRequests li :global(form button) { border-color: #78b0d6; color: #075eb4; }
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #93dcff; outline-offset: 3px; }
 @media (max-width: 1380px) {
   .shortcut { grid-template-columns: 68px 2px minmax(0, 1fr) 22px; gap: 12px; min-height: 101px; padding: 10px 20px 10px 27px; }

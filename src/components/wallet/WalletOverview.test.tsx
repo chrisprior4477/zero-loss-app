@@ -9,7 +9,9 @@ test("verified empty snapshot displays zero and no fabricated transactions", () 
   render(<WalletOverview wallet={empty} />);
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$0.00");
   expect(screen.getByText("No transactions yet")).toBeTruthy();
-  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
+  expect((screen.getByRole("button", { name: "Add funds unavailable" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("heading", { name: "Add funds is unavailable" })).toBeTruthy();
   expect((screen.getByRole("button", { name: "Add Card" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.queryByText("Pending funding")).toBeNull();
 });
@@ -23,7 +25,7 @@ test("only existing ledger records are rendered, funding remains disabled even w
   render(<WalletOverview wallet={{ ...empty, fundingAvailable: true, balanceCents: 2500, transactionCount: 2, entries: [{ id: "existing-funding", entry_type: "DEPOSIT", amount: 3000, created_at: "2026-09-14T12:00:00Z" }, { id: "existing-refund", entry_type: "REFUND", amount: -500, created_at: "2026-09-14T13:00:00Z" }] }} />);
   expect(screen.getByText("Refund")).toBeTruthy();
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$25");
-  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
 });
 test("wallet layout exposes responsive transaction filters without replacing ledger data", () => {
   render(<WalletOverview wallet={{ ...empty, balanceCents: 2500, transactionCount: 2, entries: [{ id: "funding", entry_type: "DEPOSIT", amount: 3000, created_at: "2026-09-14T12:00:00Z" }, { id: "entry", entry_type: "ENTRY_DEBIT", amount: -500, created_at: "2026-09-14T13:00:00Z" }] }} />);
@@ -38,6 +40,8 @@ test("enabled preview wallet puts Add Card beside Add funds", () => {
   expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
   expect(screen.getByRole("link", { name: "Add Card" }).getAttribute("href")).toBe("/account/wallet?view=card");
   expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("/account/wallet?view=card");
+  expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy();
 });
 
 test("wallet tickets reuse real account counts and direct destinations", () => {

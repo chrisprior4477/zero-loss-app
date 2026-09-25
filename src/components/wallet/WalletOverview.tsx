@@ -63,7 +63,7 @@ export function WalletOverview({ wallet, activity, selectedTransaction, fundingE
           <div className={styles.balanceCopy}>
             <h2>Current balance</h2><p data-testid="wallet-balance" className={styles.balance}>{balance}</p><p className={styles.balanceNote}>{wallet ? "Ready to use for entries." : "Balance could not be verified."}</p>
             <div className={styles.balanceActions}>
-              {canFund ? <a href="#add-funds" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></a> : <button disabled type="button" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></button>}
+              <a href="#add-funds" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></a>
               <div className={styles.fundingActions}>
                 {canFund ? <Link href="/account/wallet?view=card" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
                 {canFund ? <Link href="/account/wallet?view=card" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}
@@ -88,11 +88,11 @@ export function WalletOverview({ wallet, activity, selectedTransaction, fundingE
         {wallet && wallet.transactionCount > 50 ? <p className={styles.finePrint}>Latest 50 of {wallet.transactionCount} transactions. Balance includes all posted transactions.</p> : null}
       </section>
 
-      <section id="add-funds" className={styles.funding} aria-labelledby="funding-heading">
-        <div className={styles.sectionHeading}><div><h2 id="funding-heading">Add funds</h2><p>Use the preview payment flow to add playable balance.</p></div><span>{demo ? "Demo payment" : "Funding"}</span></div>
+      <section id="add-funds" className={`${styles.ticketPanel} ${styles.funding}`} aria-labelledby="funding-heading">
+        <div className={styles.sectionHeading}><div><h2 id="funding-heading">Add funds</h2><p>{canFund ? "Choose an amount and confirm your preview deposit." : "Add playable balance when funding is available for your account."}</p></div><span className={styles.fundingBadge}>{demo ? "Demo payment" : "Funding"}</span></div>
         {returnToProduct ? <div className={styles.fundingReturn}><p>{returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}
         {returnUnavailable ? <p role="status" className={styles.fundingReturn}>We couldn’t find that purchase option in your account. <Link href="/account/entries?filter=completion">View your purchase options →</Link></p> : null}
-        {canFund ? <DemoFundingForm requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} cardUnavailable={cardUnavailable} blocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} /> : <div className={styles.unavailable}><p>Funding is not available for this account.</p></div>}
+        {canFund ? <DemoFundingForm requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} cardUnavailable={cardUnavailable} blocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
         {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} /> : null}
       </section>
     </div>

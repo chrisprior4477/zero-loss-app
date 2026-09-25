@@ -122,7 +122,8 @@ test("history link opens authoritative balance and existing history directly; fa
   const { rerender } = render(await WalletPage({ searchParams: Promise.resolve({ view: "history" }) }));
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$0.00");
   expect(screen.getByText("No transactions yet")).toBeTruthy();
-  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
+  expect((screen.getByRole("button", { name: "Add funds unavailable" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByRole("link", { name: "Funds & history" }).getAttribute("aria-current")).toBe("page");
   mocks.account.mockResolvedValue({ activity: drawerState(false), wallet: null });
   rerender(await WalletPage({ searchParams: Promise.resolve({ view: "history" }) }));
