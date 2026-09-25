@@ -8,7 +8,7 @@ import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/
 import { usePathname } from "next/navigation";
 import { DrawerOverview } from "@/components/account/DrawerOverview";
 import { AccountIcon, type AccountIconName } from "@/components/account/AccountIcon";
-import { DrawerIllustration } from "@/components/account/DrawerIllustration";
+import { EntryTicket } from "@/components/layout/EntryTicket";
 import styles from "@/components/account/drawer.module.css";
 import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { accountNavigation } from "@/lib/account/navigation";
@@ -23,8 +23,6 @@ type AccountDrawerProps = {
   balanceLabel: string | null;
   fundingEnabled?: boolean;
   activityState: AccountActivity;
-  /** Opens the drawer automatically in the development-only local fixture. */
-  autoOpenForLocalFixture?: boolean;
 };
 
 const secondaryLinks = [
@@ -34,39 +32,20 @@ const secondaryLinks = [
   ["Privacy & Terms", "/privacy"],
 ] as const;
 
-const navigationDescriptions: Record<string, string> = {
-  "My Activity": "Track your entries and results.",
-  "Gift Cards & Rewards": "Browse prizes and claim rewards.",
-  "Wallet & Transactions": "Manage your balance and view transactions.",
-  "Orders & Fulfillment": "Track your orders and delivery updates.",
-  "Your Crew": "Build your crew and see their activity.",
-  "Notifications": "The updates that need your attention.",
-  "Account & Security": "Profile, preferences, and security settings.",
-};
-
-function DrawerAvatar({ avatar, initials }: { avatar: string | null; initials: string }) {
+function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initials: string; size: "small" | "large" }) {
+  const dimension = size === "small" ? "h-9 w-9" : "h-11 w-11";
   return avatar ? (
-    <span className={styles.avatar}>
+    <span className={`relative ${dimension} shrink-0 overflow-hidden rounded-full border-2 border-cyan-300/50`}>
       <Image src={avatar} alt="" fill unoptimized className="object-cover" />
     </span>
   ) : (
-    <span aria-hidden="true" className={styles.avatar}>
+    <span aria-hidden="true" className={`grid ${dimension} shrink-0 place-items-center rounded-full border border-cyan-300/40 bg-cyan-300 text-[13px] font-black text-[#002131]`}>
       {initials}
     </span>
   );
 }
 
-/** Drawer-only outline: the approved counter has no Zero Loss mark inside its ticket. */
-function DrawerTicketCounter({ count }: { count: number | null }) {
-  return <span className={styles.ticketCounter}>
-    <svg aria-hidden="true" viewBox="0 0 54 36" fill="none">
-      <path d="M3 3h48v9a6 6 0 0 0 0 12v9H3v-9a6 6 0 0 0 0-12V3Z" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
-    </svg>
-    <span>{count ?? "—"}</span>
-  </span>;
-}
-
-export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel, fundingEnabled = false, activityState, autoOpenForLocalFixture = false }: AccountDrawerProps) {
+export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel, fundingEnabled = false, activityState }: AccountDrawerProps) {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
   const [walletHistoryOpen, setWalletHistoryOpen] = useState(false);
@@ -74,18 +53,9 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
   const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
   const [avatarUpdate, setAvatarUpdate] = useState<{ original: string | null; photo: string | null } | null>(null);
   const titleId = useId();
-  const drawerId = useId();
-  const countId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!autoOpenForLocalFixture) return;
-    const frame = window.requestAnimationFrame(() => setOpen(true));
-    return () => window.cancelAnimationFrame(frame);
-  }, [autoOpenForLocalFixture]);
 
   useEffect(() => {
     const updateAvatar = (event: Event) => {
@@ -99,25 +69,10 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
-    const previousRootOverflow = document.documentElement.style.overflow;
-    const previousPadding = document.body.style.paddingRight;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const trigger = triggerRef.current;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    if (scrollbarWidth > 0) document.body.style.paddingRight = `${parseFloat(getComputedStyle(document.body).paddingRight) + scrollbarWidth}px`;
     document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    // Keep the underlying app out of keyboard and assistive-technology navigation.
-    const background = Array.from(document.body.children).filter((element) => element !== overlayRef.current);
-    const inertBefore = background.map((element) => element.hasAttribute("inert"));
-    background.forEach((element) => element.setAttribute("inert", ""));
-    const focusFrame = window.requestAnimationFrame(() => {
-      if (autoOpenForLocalFixture) drawerRef.current?.focus();
-      else closeRef.current?.focus();
-    });
-    const keepFocusInside = (event: FocusEvent) => {
-      if (event.target instanceof Node && !drawerRef.current?.contains(event.target)) closeRef.current?.focus();
-    };
-    const closeOnBack = () => setOpen(false);
+    const focusFrame = window.requestAnimationFrame(() => drawerRef.current?.focus());
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -127,36 +82,28 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
       }
       if (event.key !== "Tab") return;
       const focusable = Array.from(
-        drawerRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [],
+        drawerRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [],
       ).filter((element) => !element.hasAttribute("hidden") && element.getClientRects().length > 0);
-      if (focusable.length === 0) { event.preventDefault(); drawerRef.current?.focus(); return; }
+      if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      const outside = !drawerRef.current?.contains(document.activeElement) || document.activeElement === drawerRef.current;
-      if (event.shiftKey && (document.activeElement === first || outside)) {
+      if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && (document.activeElement === last || outside)) {
+      } else if (!event.shiftKey && document.activeElement === last) {
         event.preventDefault();
         first.focus();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("popstate", closeOnBack);
-    document.addEventListener("focusin", keepFocusInside);
     return () => {
       window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
-      document.documentElement.style.overflow = previousRootOverflow;
-      document.body.style.paddingRight = previousPadding;
-      background.forEach((element, index) => { if (!inertBefore[index]) element.removeAttribute("inert"); });
       window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("popstate", closeOnBack);
-      document.removeEventListener("focusin", keepFocusInside);
-      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+      (previouslyFocused?.isConnected ? previouslyFocused : trigger)?.focus();
     };
-  }, [open, autoOpenForLocalFixture]);
+  }, [open]);
 
   const close = () => setOpen(false);
   const requestInstall = () => {
@@ -168,6 +115,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
   const shownName = isSignedIn ? displayName : "Welcome";
   const initials = shownName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ZL";
   const resolvedAvatar = avatarUpdate?.original === avatarUrl ? avatarUpdate.photo : avatarUrl;
+  const hasSavedAvatar = isSignedIn && Boolean(resolvedAvatar);
   const ticketLabel = state.activeCount === null ? "Active entries unavailable" : `${state.activeCount} active ${state.activeCount === 1 ? "entry" : "entries"}`;
 
   return (
@@ -178,30 +126,29 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
         onClick={() => { setWalletHistoryOpen(new URLSearchParams(window.location.search).get("view") === "history"); setOpen(true); }}
         aria-label="Open account menu"
         aria-expanded={open}
-        aria-controls={open ? drawerId : undefined}
-        aria-describedby={isSignedIn ? countId : undefined}
-        aria-haspopup="dialog"
-        className={styles.trigger}
+        className={`grid h-9 w-9 place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${hasSavedAvatar ? "rounded-full border border-cyan-300/40 bg-[#07533f] hover:border-cyan-200" : "rounded-md text-white/75 hover:bg-white/8 hover:text-white"}`}
       >
-        <span aria-hidden="true" className={styles.hamburger}><span /><span /><span /></span>
-        {isSignedIn ? <span aria-hidden="true" className={styles.countBadge}>{state.activeCount === null ? "—" : state.activeCount > 99 ? "99+" : state.activeCount}</span> : null}
+        {hasSavedAvatar ? (
+          <DrawerAvatar avatar={resolvedAvatar} initials={initials} size="small" />
+        ) : (
+          <span aria-hidden="true" className="flex w-[17px] flex-col gap-[3px]"><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /><span className="h-px w-full bg-current" /></span>
+        )}
       </button>
-      {isSignedIn ? <span id={countId} className="sr-only">{ticketLabel}</span> : null}
 
       {open && typeof document !== "undefined" ? createPortal(
-        <div ref={overlayRef} className={styles.overlay} role="presentation">
-          <div aria-hidden="true" onClick={close} className={styles.backdrop} data-testid="account-menu-backdrop" />
-          <aside id={drawerId} ref={drawerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`${styles.drawerFrame} ${showAccountContent ? styles.drawer : "w-[min(100%,440px)] border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]"}`}>
+        <div className="fixed inset-0 z-[120]" role="presentation">
+          <button type="button" aria-label="Close account menu" onClick={close} className="absolute inset-0 h-full w-full cursor-default bg-black/65" />
+          <aside ref={drawerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`absolute inset-y-0 right-0 flex h-dvh flex-col overflow-hidden outline-none ${showAccountContent ? styles.drawer : "w-[min(100%,440px)] border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]"}`}>
             {showAccountContent ? (
               <div className={styles.accountHeader}>
                 <Link href="/account/profile" onClick={close} aria-label={`Open ${shownName}'s account`} className={styles.profile}>
-                  <DrawerAvatar avatar={resolvedAvatar} initials={initials} />
+                  <DrawerAvatar avatar={resolvedAvatar} initials={initials} size="large" />
                   <span><strong>{shownName}</strong><small>Your account</small></span>
                 </Link>
                 <span id={titleId} className="sr-only">Your Zero Loss account menu</span>
                 <div className={styles.accountActions}>
                   <Link href={openEntriesHref} onClick={close} title={ticketLabel} aria-label={ticketLabel} className={styles.ticketLink}>
-                    <DrawerTicketCounter count={state.activeCount} />
+                    <EntryTicket count={state.activeCount} />
                   </Link>
                   <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className={styles.closeButton}>×</button>
                 </div>
@@ -212,7 +159,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                   <span aria-hidden="true" className="h-7 w-7 bg-[#73e72d] [mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat] [-webkit-mask:url('/zeroloss-favicon.svg')_center/contain_no-repeat]" />
                 </Link>
               <div className="min-w-0 flex-1"><h2 id={titleId} className="truncate text-[18px] font-bold text-white">{shownName}</h2><p className="text-[12px] text-white/55">Sign in or create an account</p></div>
-              <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-2xl font-light text-white hover:bg-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
+              <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-2xl font-light text-white hover:bg-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
             </div>
             )}
 
@@ -223,14 +170,10 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 <nav aria-label="Account navigation" className={styles.nav}>
                   {accountNavigation.map(([label, href, icon]) => {
                     const active = href.startsWith("/account/wallet") ? pathname === "/account/wallet" && (href === walletHistoryHref) === walletHistoryOpen : pathname === href || pathname?.startsWith(href + "/");
-                    return <Link key={href} href={href} onClick={close} aria-label={label} aria-description={navigationDescriptions[label]} aria-current={active ? "page" : undefined} className={styles.navLink}><span className={styles.navArtwork}><DrawerIllustration name={icon as AccountIconName} /></span><span className={styles.navText}><strong>{label}</strong><small>{navigationDescriptions[label]}</small></span><AccountIcon name="chevron" /></Link>;
+                    return <Link key={href} href={href} onClick={close} aria-current={active ? "page" : undefined} className={styles.navLink}><AccountIcon name={icon as AccountIconName} /><span>{label}</span><AccountIcon name="chevron" /></Link>;
                   })}
+                  <button type="button" onClick={requestInstall} className={`${styles.navLink} ${styles.navButton}`}><AccountIcon name="install" /><span>Add to Home Screen</span><AccountIcon name="chevron" /></button>
                 </nav>
-                <div className={styles.taglineTicket} aria-hidden="true"><span className={styles.taglineMark}><span /></span><strong>Real prizes. Real possibilities.</strong></div>
-                <button type="button" onClick={requestInstall} className={styles.installButton}><AccountIcon name="install" /><span>Add to Home Screen</span><AccountIcon name="chevron" /></button>
-                <form action={signOutAction} className={styles.accountFooter}>
-                  <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
-                </form>
                 {email ? <span className="sr-only">Signed in as {displayName}, {email}</span> : null}
               </> : <section className="space-y-4">
                 <nav aria-label="Shop categories" className="zl-noscroll flex gap-2 overflow-x-auto pb-1">
@@ -270,6 +213,11 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 {moreOpen && <nav id="account-drawer-help-links" aria-label="Help, rules and policies" className="pb-2 pl-2">{secondaryLinks.map(([label, href]) => <Link key={label} href={href} onClick={close} className="flex min-h-11 items-center text-sm font-bold text-cyan-300 hover:underline">{label}</Link>)}</nav>}
               </div> : null}
             </div>
+            {showAccountContent ? (
+              <form action={signOutAction} className={styles.accountFooter}>
+                <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
+              </form>
+            ) : null}
           </aside>
         </div>,
         document.body,

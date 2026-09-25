@@ -16,17 +16,17 @@ export function DrawerOverview({ state, balanceLabel, fundingEnabled, onNavigate
     <article aria-label="Playable Wallet" className={styles.summary}>
       <Link href={walletHistoryHref} onClick={onNavigate} className={styles.summaryInfo}>
         <span className={styles.summaryIcon}><AccountIcon name="wallet" /></span>
-        <span className={styles.summaryText}><span className={styles.summaryLabel}>Playable Wallet</span><strong className={styles.summaryValue} data-unavailable={!balanceLabel || balanceLabel === "Unavailable"} data-testid="drawer-balance">{balanceLabel ?? "Unavailable"}</strong></span>
+        <span className={styles.summaryText}><span className={styles.summaryLabel}>Playable Wallet</span><strong className={styles.summaryValue} data-testid="drawer-balance">{balanceLabel ?? "Unavailable"}</strong></span>
       </Link>
       {fundingEnabled ? <Link href={`${walletHistoryHref}#add-funds`} onClick={onNavigate} className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></Link> : <button type="button" disabled title="Funding is not available" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></button>}
     </article>
     <Link href={single ? walletRewardHref(single) : accountRoutes.rewards} onClick={onNavigate} aria-label={`Prize Ready — ${count === null ? "Reward count unavailable" : `${count} ${count === 1 ? "reward" : "rewards"}`}`} className={`${styles.summary} ${styles.reward}`}>
-      <span className={styles.summaryInfo}><span className={styles.summaryIcon}><AccountIcon name="gift" /></span><span className={styles.summaryText}><span className={styles.summaryLabel}>Prize Ready</span><strong className={styles.summaryValue} data-unavailable={count === null}>{count === null ? "Unavailable" : count}<span className="sr-only">{count === null ? "" : " ready"}</span></strong></span></span>
-      <span className={styles.primaryAction}>{single ? "View reward" : "View rewards"}<AccountIcon name="arrow" /></span>
+      <span className={styles.summaryInfo}><span className={styles.summaryIcon}><AccountIcon name="gift" /></span><span className={styles.summaryText}><span className={styles.summaryLabel}>Prize Ready</span><strong className={styles.summaryValue}>{count === null ? "Unavailable" : count}<span className="sr-only">{count === null ? "" : " ready"}</span></strong></span></span>
+      <span className={styles.primaryAction}>{single ? "Show barcode" : "View rewards"}<AccountIcon name="arrow" /></span>
     </Link>
     <Link href={accountRoutes.purchaseOptions} onClick={onNavigate} aria-label={`Purchase Options — ${optionCount === null ? "Count unavailable" : `${optionCount} available`}`} className={`${styles.summary} ${styles.option}`}>
-      <span className={styles.summaryInfo}><span className={styles.summaryIcon}><AccountIcon name="completion" /></span><span className={styles.summaryText}><span className={styles.summaryLabel}>Purchase Options</span><strong className={styles.summaryValue} data-unavailable={optionCount === null}>{optionCount === null ? "Unavailable" : optionCount}</strong></span></span>
-      <span className={styles.primaryAction}>Review options<AccountIcon name="arrow" /></span>
+      <span className={styles.summaryInfo}><span className={styles.summaryIcon}><AccountIcon name="completion" /></span><span className={styles.summaryText}><span className={styles.summaryLabel}>Purchase Options</span><strong className={styles.summaryValue}>{optionCount === null ? "Unavailable" : optionCount}</strong><small className={styles.summaryNote}>Time-limited choices</small></span></span>
+      <span className={styles.secondaryAction}>Review now<AccountIcon name="arrow" /></span>
     </Link>
   </div>;
 }
