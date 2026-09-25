@@ -169,8 +169,8 @@
 }
 @media (max-width: 940px) {
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 22px; }
-  .filter { min-height: 70px; font-size: 16px; }
-  .filter:last-child { grid-column: 1 / -1; }
+  .filter { min-height: 84px; aspect-ratio: 3.7; font-size: 16px; }
+  .filter:last-child { grid-column: 1 / -1; min-height: clamp(84px, 9vw, 102px); aspect-ratio: auto; }
   .gallery { display: flex; flex-direction: column; gap: 12px; overflow: visible; padding: 0; scroll-snap-type: none; cursor: default; touch-action: auto; user-select: auto; }
   .galleryItem { display: block; }
   .productCard { min-height: 204px; }
@@ -184,8 +184,8 @@
   .page { padding: 28px 14px 45px; }
   .heading { font-size: clamp(31px, 8vw, 44px); }
   .subtitle { font-size: 17px; line-height: 1.35; }
-  .filters { gap: 6px; }
-  .filter { min-height: 58px; gap: 6px; padding: 7px 12px; font-size: 12px; }
+  .filters { gap: 8px; }
+  .filter { gap: 8px; padding: 10px 15px; font-size: 14px; }
   .filter > svg { width: 23px; height: 23px; }
   .filterCount { min-width: 29px; min-height: 29px; border-radius: 9px; font-size: 13px; }
   .galleryShell { margin-top: 17px; }
@@ -213,6 +213,10 @@
   .accountToolText span { font-size: 12px; }
   .accountToolText small { font-size: 10px; }
   .ledgerNote { font-size: 10px; }
+}
+@media (max-width: 610px) {
+  .filters { grid-template-columns: minmax(0, 1fr); }
+  .filter, .filter:last-child { grid-column: 1; min-height: clamp(84px, 22vw, 130px); aspect-ratio: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .filter, .productCard { transition: none; }

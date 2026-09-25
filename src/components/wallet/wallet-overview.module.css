@@ -165,6 +165,8 @@
   .ledgerDescription { align-items: flex-start; flex-direction: column; gap: 0; }
 }
 @media (max-width: 980px) {
+  .shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shortcut:last-child { grid-column: 1 / -1; }
   .summaryGrid { grid-template-columns: 1fr; }
   .balanceCard { grid-template-columns: minmax(200px, 38%) minmax(0, 1fr); }
   .walletSummary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; min-height: 0; }
@@ -177,7 +179,8 @@
 @media (max-width: 700px) {
   .page { padding: 14px 12px 42px; }
   .shortcuts { grid-template-columns: minmax(0, 1fr); gap: 7px; }
-  .shortcut { min-height: 76px; grid-template-columns: 52px 2px minmax(0, 1fr) 20px; gap: 12px; padding: 9px 22px; }
+  .shortcut:last-child { grid-column: 1; }
+  .shortcut { min-height: 94px; grid-template-columns: 52px 2px minmax(0, 1fr) 20px; gap: 12px; padding: 13px 22px; }
   .shortcutIcon { width: 52px; height: 52px; }
   .shortcutIcon svg { width: 36px; height: 36px; }
   .shortcutDivider { height: 52px; }
