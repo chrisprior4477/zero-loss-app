@@ -10,6 +10,21 @@
 .subtitle { margin-top: 12px; color: #d5dfed; font-size: clamp(17px, 2.2vw, 36px); line-height: 1.25; }
 
 .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 30px; }
+.filter, .productCard, .accountTool {
+  --ticket-side-notch: 10px;
+  --ticket-corner-notch: 7px;
+  --ticket-cutouts:
+    radial-gradient(circle at left center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)),
+    radial-gradient(circle at right center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)),
+    radial-gradient(circle at left top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)),
+    radial-gradient(circle at right top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)),
+    radial-gradient(circle at left bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)),
+    radial-gradient(circle at right bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px));
+  -webkit-mask-image: var(--ticket-cutouts);
+  mask-image: var(--ticket-cutouts);
+  -webkit-mask-composite: source-in, source-in, source-in, source-in, source-in;
+  mask-composite: intersect;
+}
 .filter {
   --ticket-color: #103c70;
   --ticket-border: #278df8;
@@ -26,8 +41,6 @@
   font-size: clamp(13px, 1.4vw, 22px);
   font-weight: 770;
   line-height: 1.15;
-  -webkit-mask: radial-gradient(circle at left center, transparent 0 10px, #000 10.8px) left / 50.1% 100% no-repeat, radial-gradient(circle at right center, transparent 0 10px, #000 10.8px) right / 50.1% 100% no-repeat;
-  mask: radial-gradient(circle at left center, transparent 0 10px, #000 10.8px) left / 50.1% 100% no-repeat, radial-gradient(circle at right center, transparent 0 10px, #000 10.8px) right / 50.1% 100% no-repeat;
   transition: filter .15s ease, transform .15s ease;
 }
 .filter:hover { filter: brightness(1.1); transform: translateY(-2px); }
@@ -62,6 +75,8 @@
 .galleryItem { display: flex; min-width: 0; min-height: 0; }
 .galleryItem > .productCard { width: 100%; }
 .productCard {
+  --ticket-side-notch: 14px;
+  --ticket-corner-notch: 9px;
   position: relative;
   display: block;
   min-width: 0;
@@ -72,8 +87,6 @@
   color: #0b173b;
   box-shadow: 0 8px 18px #00112c70, inset 0 0 0 1px #e7e7e6;
   scroll-snap-align: start;
-  -webkit-mask: radial-gradient(circle at left center, transparent 0 14px, #000 14.8px) left / 50.1% 100% no-repeat, radial-gradient(circle at right center, transparent 0 14px, #000 14.8px) right / 50.1% 100% no-repeat;
-  mask: radial-gradient(circle at left center, transparent 0 14px, #000 14.8px) left / 50.1% 100% no-repeat, radial-gradient(circle at right center, transparent 0 14px, #000 14.8px) right / 50.1% 100% no-repeat;
   transition: transform .15s ease, filter .15s ease;
 }
 .productCard:hover { transform: translateY(-2px); filter: brightness(1.015); }
@@ -126,9 +139,15 @@
 .eyebrow { color: #8bcfff; font-size: 12px; font-weight: 800; letter-spacing: .16em; }
 .accountToolsHeading h2 { margin-top: 5px; color: #fff; font-size: clamp(24px, 2.4vw, 37px); font-weight: 820; }
 .accountToolsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.accountTool { position: relative; display: grid; min-height: 124px; grid-template-columns: 78px minmax(0, 1fr) 24px; align-items: center; gap: 18px; padding: 20px 28px; border-radius: 15px; background: #fffefa; color: #0b173b; box-shadow: 0 7px 17px #00112c61; -webkit-mask: radial-gradient(circle at left center, transparent 0 11px, #000 11.8px) left / 50.1% 100% no-repeat, radial-gradient(circle at right center, transparent 0 11px, #000 11.8px) right / 50.1% 100% no-repeat; mask: radial-gradient(circle at left center, transparent 0 11px, #000 11.8px) left / 50.1% 100% no-repeat, radial-gradient(circle at right center, transparent 0 11px, #000 11.8px) right / 50.1% 100% no-repeat; }
-.accountTool::before { content: ""; position: absolute; top: 14px; bottom: 14px; left: 114px; width: 3px; background: radial-gradient(circle, #aab6c3 1.2px, transparent 1.5px) center top / 3px 10px repeat-y; }
+.accountTool { --ticket-side-notch: 11px; --ticket-corner-notch: 8px; position: relative; display: grid; min-height: 124px; grid-template-columns: 116px minmax(0, 1fr) 24px; align-items: center; gap: 18px; padding: 20px 28px; border-radius: 15px; background: #fffefa; color: #0b173b; box-shadow: 0 7px 17px #00112c61; }
+.accountTool::before { content: ""; position: absolute; top: 14px; bottom: 14px; left: 162px; width: 3px; background: radial-gradient(circle, #aab6c3 1.2px, transparent 1.5px) center top / 3px 10px repeat-y; }
+.profileTool { grid-template-columns: 78px minmax(0, 1fr) 24px; }
+.profileTool::before { left: 114px; }
 .accountAvatar, .accountToolIcon { position: relative; display: grid; width: 72px; height: 72px; place-items: center; overflow: hidden; border-radius: 13px; background: #d5ecff; color: #0963b6; }
+.accountToolIcon { width: 112px; height: 62px; }
+.accountToolIllustration { object-fit: contain; transform: scale(1.12); }
+.accountToolIcon[data-treatment="full"] .accountToolIllustration { transform: none; }
+.accountToolIcon[data-treatment="fill-panel"] .accountToolIllustration { transform: scale(1.22); }
 .accountAvatar { border-radius: 50%; background: #0a76ed; color: white; font-size: 24px; font-weight: 850; }
 .accountAvatarImage { object-fit: cover; }
 .accountToolIcon svg { width: 36px; height: 36px; }
@@ -183,9 +202,12 @@
   .productNote { font-size: 10px; }
   .cardAction { min-height: 29px; gap: 5px; padding: 4px 7px; border-radius: 7px; font-size: 10px; }
   .cardAction svg { width: 14px; height: 14px; }
-  .accountTool { min-height: 91px; grid-template-columns: 56px minmax(0, 1fr) 17px; gap: 10px; padding: 13px 16px; }
-  .accountTool::before { left: 78px; }
+  .accountTool { min-height: 91px; grid-template-columns: 80px minmax(0, 1fr) 17px; gap: 10px; padding: 13px 16px; }
+  .accountTool::before { left: 105px; }
+  .profileTool { grid-template-columns: 56px minmax(0, 1fr) 17px; }
+  .profileTool::before { left: 78px; }
   .accountAvatar, .accountToolIcon { width: 53px; height: 53px; }
+  .accountToolIcon { width: 80px; height: 44px; }
   .accountToolIcon svg { width: 27px; height: 27px; }
   .accountToolText { padding-left: 8px; }
   .accountToolText span { font-size: 12px; }

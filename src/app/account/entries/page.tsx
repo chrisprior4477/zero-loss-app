@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MyZeroLossActivity } from "@/components/account/MyZeroLossActivity";
-import { AccountIcon, type AccountIconName } from "@/components/account/AccountIcon";
+import { AccountIcon } from "@/components/account/AccountIcon";
 import { getAccountContext } from "@/lib/account/context";
 import { activityFilter } from "@/lib/account/activity";
 import styles from "@/components/account/my-activity.module.css";
@@ -13,10 +13,10 @@ import { accountPageReturnPath } from "@/lib/auth/account-return";
 export const metadata: Metadata = { title: "My Activity" };
 
 const accountLinks = [
-  ["Orders & Fulfillment", "Your orders and delivery updates", "/account/orders", "orders"],
-  ["Notifications", "Account messages and activity updates", "/account/notifications", "bell"],
-  ["Account & Security", "Email confirmation and sign-in details", "/account/security", "security"],
-] as const satisfies readonly (readonly [string, string, string, AccountIconName])[];
+  ["Orders & Fulfillment", "Your orders and delivery updates", "/account/orders", "/account/drawer/orders-fulfillment-324x180.png", "fill-panel"],
+  ["Notifications", "Account messages and activity updates", "/account/notifications", "/account/drawer/notifications-exact-324x180.png", "full"],
+  ["Account & Security", "Email confirmation and sign-in details", "/account/security", "/account/drawer/account-security-324x180.png", "zoom"],
+] as const;
 
 export default async function MyZeroLossPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const account = await getAccountContext();
@@ -39,8 +39,8 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
           <span className={styles.accountToolText}><strong>Your Account and Security</strong><span>{account.displayName}</span><small>Profile &amp; photo</small></span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />
         </Link>
-        {accountLinks.map(([title, detail, href, icon]) => <Link key={title} href={href} className={styles.accountTool}>
-          <span className={styles.accountToolIcon}><AccountIcon name={icon} /></span>
+        {accountLinks.map(([title, detail, href, imageSrc, treatment]) => <Link key={title} href={href} className={styles.accountTool}>
+          <span className={styles.accountToolIcon} data-treatment={treatment}><Image src={imageSrc} alt="" fill sizes="(max-width: 600px) 80px, 112px" className={styles.accountToolIllustration} /></span>
           <span className={styles.accountToolText}><strong>{title}</strong><span>{detail}</span>{title === "Account & Security" && <small>{account.emailConfirmed ? "Email confirmed" : "Confirmation pending"}</small>}</span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />
         </Link>)}

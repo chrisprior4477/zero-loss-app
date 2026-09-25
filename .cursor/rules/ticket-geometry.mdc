@@ -1,0 +1,12 @@
+---
+description: Preserve the approved Zero Loss ticket cutouts on every ticket-style UI
+alwaysApply: true
+---
+
+# Ticket geometry
+
+- Every new or modified ticket-style control or card needs a true inward circular cutout at each of its four outer corners. Where the approved ticket pattern uses them, retain the inward semicircular scoops at the centers of both side edges too.
+- The corner cutouts are concave: they remove part of the ticket body and reveal the background. A rounded outer corner, 45-degree chamfer, or colored circle drawn over the ticket is not equivalent.
+- Preserve existing live values, labels, links, actions, and data sources when correcting ticket shape.
+- Verify all four corners and both side scoops at the intended desktop and mobile viewports. Check that no cutout clips text, artwork, or focus treatment.
+- Visual reference: the owner's My Activity screenshot with yellow circles around the ticket corners, September 25, 2026.
