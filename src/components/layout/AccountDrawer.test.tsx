@@ -101,9 +101,21 @@ test("drawer account destinations follow the approved hierarchy", () => {
   render(<AccountDrawer {...props} />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const navigation = within(screen.getByRole("navigation", { name: "Account navigation" }));
-  expect(navigation.getAllByRole("link").map(link => link.textContent?.trim())).toEqual([
+  expect(navigation.getAllByRole("link").map(link => link.getAttribute("aria-label"))).toEqual([
     "My Activity", "Gift Cards & Rewards", "Wallet & Transactions", "Orders & Fulfillment", "Your Crew", "Notifications", "Account & Security",
   ]);
+});
+
+test("approved drawer controls keep their real routes and one mounted dialog", () => {
+  render(<AccountDrawer {...props} fundingEnabled activityState={storedActivity} />);
+  fireEvent.click(screen.getByLabelText("Open account menu"));
+  const dialog = within(screen.getByRole("dialog"));
+  expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+  expect(dialog.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("/account/wallet?view=history#add-funds");
+  expect(dialog.getByRole("link", { name: "Open notifications" }).getAttribute("href")).toBe("/account/notifications");
+  expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active");
+  expect(dialog.getByText("Real prizes. Real possibilities.")).toBeTruthy();
+  expect(dialog.getByRole("navigation", { name: "Account navigation" }).querySelectorAll("img")).toHaveLength(7);
 });
 
 test("Add to Home Screen closes the drawer and requests the device install flow", () => {

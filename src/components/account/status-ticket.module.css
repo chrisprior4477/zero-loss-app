@@ -1,0 +1,176 @@
+.ticket {
+  --cutout: 6.5px;
+  --corner-scoop: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 59.5%) 1px minmax(0, 1fr);
+  position: relative;
+  width: 100%;
+  min-height: 70px;
+  align-items: stretch;
+  isolation: isolate;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(110deg, #0279ff 0%, #0072ff 43%, #006ffe 100%);
+  -webkit-mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--cutout) at 0 50%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--cutout) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--cutout) at 0 50%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--cutout) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+  text-decoration: none;
+  box-shadow: 0 4px 8px rgba(23, 44, 76, .12);
+}
+
+.ticket:hover {
+  filter: brightness(1.045);
+}
+
+.ticket:focus-visible {
+  outline: 3px solid #031b53;
+  outline-offset: 3px;
+}
+
+.reward {
+  background: linear-gradient(110deg, #1fa433 0%, #1cac36 43%, #1cab35 100%);
+}
+
+.option {
+  background: linear-gradient(110deg, #fd6808 0%, #ff6607 50%, #fd6307 100%);
+}
+
+.reward .iconPanel {
+  background: linear-gradient(145deg, rgba(0, 113, 39, .52), rgba(0, 107, 38, .65));
+}
+
+.option .iconPanel {
+  background: linear-gradient(145deg, rgba(180, 50, 0, .48), rgba(174, 52, 0, .65));
+}
+
+.information {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 8px 8px 15px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.iconPanel {
+  display: grid;
+  width: 54px;
+  height: 52px;
+  flex: 0 0 54px;
+  place-items: center;
+  border-radius: 9px;
+  background: linear-gradient(145deg, rgba(1, 68, 175, .45), rgba(1, 69, 179, .65));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1);
+}
+
+.statusIcon {
+  width: 37px;
+  height: 37px;
+}
+
+.copy {
+  min-width: 0;
+  line-height: 1;
+  transform: translateY(4px);
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.value {
+  display: block;
+  margin-top: 3px;
+  font-size: 29px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.value[data-unavailable="true"] {
+  font-size: 18px;
+  letter-spacing: -.045em;
+}
+
+.perforation {
+  align-self: center;
+  width: 2px;
+  height: 59px;
+  background: radial-gradient(circle, #fff 1px, transparent 1.2px) center top / 2px 6px repeat-y;
+}
+
+.action {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 0 16px 0 19px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.disabledAction {
+  cursor: not-allowed;
+  opacity: .65;
+}
+
+.information:focus-visible,
+.action:focus-visible {
+  outline: 3px solid #031b53;
+  outline-offset: -3px;
+}
+
+.action svg {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+}
+
+@media (max-width: 430px) {
+  .ticket { grid-template-columns: minmax(0, 58%) 1px minmax(0, 1fr); }
+  .information { gap: 8px; padding: 7px 4px 7px 10px; }
+  .iconPanel { width: 45px; height: 47px; flex-basis: 45px; }
+  .statusIcon { width: 32px; height: 32px; }
+  .label { font-size: 11px; }
+  .value { font-size: 25px; }
+  .value[data-unavailable="true"] { font-size: 14px; }
+  .perforation { height: 54px; }
+  .action { gap: 4px; padding: 0 8px; font-size: 11px; }
+  .action svg { width: 18px; height: 18px; flex-basis: 18px; }
+}
+
+@media (max-width: 355px) {
+  .ticket { grid-template-columns: minmax(0, 57%) 1px minmax(0, 1fr); }
+  .information { gap: 6px; padding-left: 8px; }
+  .iconPanel { width: 41px; flex-basis: 41px; }
+  .label { font-size: 10px; }
+  .action { gap: 2px; padding-inline: 5px; font-size: 10px; }
+  .action svg { width: 15px; height: 15px; flex-basis: 15px; }
+}

@@ -7,11 +7,12 @@ import { createPortal } from "react-dom";
 import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
 import { usePathname } from "next/navigation";
 import { DrawerOverview } from "@/components/account/DrawerOverview";
-import { AccountIcon, type AccountIconName } from "@/components/account/AccountIcon";
+import { AccountIcon } from "@/components/account/AccountIcon";
 import { EntryTicket } from "@/components/layout/EntryTicket";
 import styles from "@/components/account/drawer.module.css";
 import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { accountNavigation } from "@/lib/account/navigation";
+import { MenuTicket } from "@/components/account/MenuTicket";
 import { signOutAction } from "@/lib/auth/actions";
 import { INSTALL_APP_REQUEST_EVENT } from "@/components/layout/InstallAppPrompt";
 
@@ -32,14 +33,24 @@ const secondaryLinks = [
   ["Privacy & Terms", "/privacy"],
 ] as const;
 
+const navigationVisuals: Record<(typeof accountNavigation)[number][0], { description: string; imageSrc: string; artworkTreatment?: "zoom" | "full" | "fit-wallet" | "fill-panel" }> = {
+  "My Activity": { description: "Track your entries and results.", imageSrc: "/account/drawer/my-activity-324x180.png" },
+  "Gift Cards & Rewards": { description: "Browse prizes and claim rewards.", imageSrc: "/account/drawer/gift-cards-rewards-324x180.png" },
+  "Wallet & Transactions": { description: "Manage your balance and view transactions.", imageSrc: "/account/drawer/wallet-transactions-324x180.png", artworkTreatment: "fit-wallet" },
+  "Orders & Fulfillment": { description: "Track your orders and delivery updates.", imageSrc: "/account/drawer/orders-fulfillment-324x180.png", artworkTreatment: "fill-panel" },
+  "Your Crew": { description: "Build your crew and see their activity.", imageSrc: "/account/drawer/your-crew-exact-324x180.png", artworkTreatment: "fill-panel" },
+  "Notifications": { description: "The updates that need your attention.", imageSrc: "/account/drawer/notifications-exact-324x180.png", artworkTreatment: "full" },
+  "Account & Security": { description: "Profile, preferences, and security settings.", imageSrc: "/account/drawer/account-security-324x180.png" },
+};
+
 function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initials: string; size: "small" | "large" }) {
-  const dimension = size === "small" ? "h-9 w-9" : "h-11 w-11";
+  const dimension = size === "small" ? "h-9 w-9" : "h-[62px] w-[62px]";
   return avatar ? (
-    <span className={`relative ${dimension} shrink-0 overflow-hidden rounded-full border-2 border-cyan-300/50`}>
+    <span className={`relative ${dimension} shrink-0 overflow-hidden rounded-full ${size === "small" ? "border-2 border-cyan-300/50" : ""}`}>
       <Image src={avatar} alt="" fill unoptimized className="object-cover" />
     </span>
   ) : (
-    <span aria-hidden="true" className={`grid ${dimension} shrink-0 place-items-center rounded-full border border-cyan-300/40 bg-cyan-300 text-[13px] font-black text-[#002131]`}>
+    <span aria-hidden="true" className={`grid ${dimension} shrink-0 place-items-center rounded-full font-black ${size === "small" ? "border border-cyan-300/40 bg-cyan-300 text-[13px] text-[#002131]" : "bg-gradient-to-br from-[#168cff] to-[#0965eb] text-[22px] text-white"}`}>
       {initials}
     </span>
   );
@@ -150,7 +161,10 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                   <Link href={openEntriesHref} onClick={close} title={ticketLabel} aria-label={ticketLabel} className={styles.ticketLink}>
                     <EntryTicket count={state.activeCount} />
                   </Link>
-                  <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className={styles.closeButton}>×</button>
+                  <Link href="/account/notifications" onClick={close} aria-label="Open notifications" className={styles.notificationLink}><AccountIcon name="bell" /></Link>
+                  <button ref={closeRef} type="button" onClick={close} aria-label="Close account menu" className={styles.closeButton}>
+                    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M7 7 25 25M25 7 7 25" /></svg>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -168,12 +182,18 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 <DrawerOverview state={state} balanceLabel={balanceLabel} fundingEnabled={fundingEnabled} onNavigate={close} />
 
                 <nav aria-label="Account navigation" className={styles.nav}>
-                  {accountNavigation.map(([label, href, icon]) => {
+                  {accountNavigation.map(([label, href]) => {
                     const active = href.startsWith("/account/wallet") ? pathname === "/account/wallet" && (href === walletHistoryHref) === walletHistoryOpen : pathname === href || pathname?.startsWith(href + "/");
-                    return <Link key={href} href={href} onClick={close} aria-current={active ? "page" : undefined} className={styles.navLink}><AccountIcon name={icon as AccountIconName} /><span>{label}</span><AccountIcon name="chevron" /></Link>;
+                    const visual = navigationVisuals[label];
+                    return <MenuTicket key={href} title={label} description={visual.description} href={href} imageSrc={visual.imageSrc} artworkTreatment={visual.artworkTreatment} onNavigate={close} active={active} />;
                   })}
-                  <button type="button" onClick={requestInstall} className={`${styles.navLink} ${styles.navButton}`}><AccountIcon name="install" /><span>Add to Home Screen</span><AccountIcon name="chevron" /></button>
                 </nav>
+                <div className={styles.promoWrap}>
+                  <div className={styles.promo}><span className={styles.promoIcon} aria-hidden="true"><span className={styles.promoMark} /></span><strong>Real prizes. Real possibilities.</strong></div>
+                </div>
+                <div className={styles.utilityWrap}>
+                  <button type="button" onClick={requestInstall} className={styles.installButton}><AccountIcon name="install" /><span>Add to Home Screen</span><AccountIcon name="chevron" /></button>
+                </div>
                 {email ? <span className="sr-only">Signed in as {displayName}, {email}</span> : null}
               </> : <section className="space-y-4">
                 <nav aria-label="Shop categories" className="zl-noscroll flex gap-2 overflow-x-auto pb-1">
