@@ -6,7 +6,7 @@
 .walletSections { display: flex; flex: 0 0 auto; gap: 14px; padding-bottom: 6px; font-size: 13px; }
 .walletSections a { color: #b7d8f4; text-decoration: underline; text-underline-offset: 4px; }
 .walletSections a[aria-current="page"] { color: #fff; font-weight: 800; text-decoration: none; }
-.statusTickets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.statusTickets { margin-top: 16px; }
 .mainGrid { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(280px, 1fr); gap: 14px; margin-top: 14px; }
 .ticketPanel {
   --corner-scoop: 16px;
@@ -93,12 +93,9 @@
 .visuallyHidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 .page a:focus-visible { outline: 3px solid #1e87e9; outline-offset: 2px; }
 @media (max-width: 1200px) {
-  .statusTickets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .statusTickets > :last-child { grid-column: 1 / -1; }
   .mainGrid { grid-template-columns: minmax(0, 1.7fr) minmax(270px, 1fr); }
   .readyGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .heading h1 { font-size: 48px; }
-  .statusTickets { gap: 7px; }
 }
 @media (max-width: 900px) {
   .mainGrid { grid-template-columns: 1fr; }
@@ -114,8 +111,7 @@
   .heading h1 { font-size: clamp(34px, 8vw, 44px); }
   .heading p { font-size: 16px; }
   .walletSections { font-size: 12px; }
-  .statusTickets { grid-template-columns: minmax(0, 1fr); margin-top: 17px; }
-  .statusTickets > :last-child { grid-column: 1; }
+  .statusTickets { margin-top: 17px; }
   .readySection, .summary, .historySection { padding: 18px 20px; }
   .readyGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
   .rewardCard { padding: 9px; }

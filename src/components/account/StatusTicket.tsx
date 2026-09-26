@@ -13,7 +13,7 @@ type StatusTicketProps = {
   ariaLabel?: string;
   valueTestId?: string;
   tooltip?: string;
-  size?: "default" | "overview" | "crew";
+  size?: "default" | "top";
 };
 
 /** The approved ticket shape, with separate wallet actions when funding is unavailable. */

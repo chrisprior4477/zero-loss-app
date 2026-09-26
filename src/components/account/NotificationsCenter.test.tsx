@@ -58,6 +58,15 @@ test("overview tickets and every existing notification category keep their desti
   expect(screen.getByText("No your crew updates")).toBeTruthy();
 });
 
+test("the confirmed-email notification is highlighted without changing its destination", () => {
+  const notifications = buildAccountNotifications(storedActivityFixture(), wallet, true);
+  render(<NotificationsCenter notifications={notifications} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+  const email = screen.getByText("Your email is confirmed").closest("article");
+  expect(email?.getAttribute("data-emphasis")).toBe("email");
+  expect(email?.querySelector("a")?.getAttribute("href")).toBe("/account/security");
+  expect(screen.getByText("Funds added to your playable wallet").closest("article")?.hasAttribute("data-emphasis")).toBe(false);
+});
+
 test("unavailable data sources are disclosed instead of replaced with samples", () => {
   render(<NotificationsCenter notifications={[]} initialReadIds={[]} activityAvailable={false} walletAvailable={false} crewAvailable={false} readAvailable={false} />);
   expect(screen.getByText(/Some account updates could not be verified/)).toBeTruthy();

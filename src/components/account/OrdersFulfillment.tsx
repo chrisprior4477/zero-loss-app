@@ -9,6 +9,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
 import { StatusTicket } from "./StatusTicket";
+import stripStyles from "./account-status-strip.module.css";
 import styles from "./orders-fulfillment.module.css";
 
 type OrderFilter = "all" | "processing" | "fulfilled" | "exceptions";
@@ -35,10 +36,10 @@ export function OrdersFulfillment({ state, overview }: { state: AccountOrders; o
 
   return <main className={styles.page}>
     <div className={styles.shell}>
-      {overview ? <div className={styles.statusTickets} aria-label="Your account overview">
-        <StatusTicket variant="wallet" size="overview" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
-        <StatusTicket variant="reward" size="overview" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
-        <StatusTicket variant="option" size="overview" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Review options" href={accountRoutes.purchaseOptions} />
+      {overview ? <div className={stripStyles.row} aria-label="Your account overview">
+        <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
+        <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
+        <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Review options" href={accountRoutes.purchaseOptions} />
       </div> : null}
       <header className={styles.heading}>
         <div><p>YOUR ACCOUNT</p><h1>Orders &amp; Fulfillment</h1><span>Operational status for retailer gift cards purchased through Zero Loss.</span></div>

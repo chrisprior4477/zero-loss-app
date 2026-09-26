@@ -7,21 +7,12 @@ import { accountRoutes } from "@/lib/account/navigation";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import type { DemoCard } from "@/lib/payments/demo-card";
-import { AccountIcon, type AccountIconName } from "@/components/account/AccountIcon";
+import { AccountIcon } from "@/components/account/AccountIcon";
+import { StatusTicket } from "@/components/account/StatusTicket";
+import stripStyles from "@/components/account/account-status-strip.module.css";
 import { WalletLedger } from "./WalletLedger";
 import styles from "./wallet-overview.module.css";
 import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
-
-type Shortcut = { label: string; value: string; href: string; icon: AccountIconName; tone: "wallet" | "reward" | "option" };
-
-function WalletShortcutTicket({ label, value, href, icon, tone }: Shortcut) {
-  return <Link href={href} className={styles.shortcut} data-tone={tone} aria-label={`${label}: ${value}`}>
-    <span className={styles.shortcutIcon}><AccountIcon name={icon} /></span>
-    <span className={styles.shortcutDivider} aria-hidden="true" />
-    <span className={styles.shortcutCopy}><strong>{label}</strong><b data-unavailable={value === "Unavailable"}>{value}</b></span>
-    <AccountIcon name="chevron" className={styles.shortcutArrow} />
-  </Link>;
-}
 
 export function WalletOverview({ wallet, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, cardUnavailable = false, returnToProduct, returnUnavailable = false }: {
   wallet: WalletSnapshot | null;
@@ -46,10 +37,10 @@ export function WalletOverview({ wallet, activity, selectedTransaction, fundingE
 
   return <main className={styles.page}>
     <div className={styles.shell}>
-      <nav aria-label="Account wallet overview" className={styles.shortcuts}>
-        <WalletShortcutTicket tone="wallet" icon="wallet" label="Playable Wallet" value={balance} href="/account/wallet?view=history#balance" />
-        <WalletShortcutTicket tone="reward" icon="gift" label="Prize Ready" value={ready === null ? "Unavailable" : String(ready.length)} href={rewardHref} />
-        <WalletShortcutTicket tone="option" icon="completion" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} href={accountRoutes.purchaseOptions} />
+      <nav aria-label="Account wallet overview" className={stripStyles.row}>
+        <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="/account/wallet?view=history#balance" actionHref={canFund ? "/account/wallet?view=history#add-funds" : undefined} actionDisabled={!canFund} />
+        <StatusTicket size="top" variant="reward" label="Prize Ready" value={ready === null ? "Unavailable" : String(ready.length)} action={ready?.length === 1 ? "View reward" : "View rewards"} href={rewardHref} />
+        <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Review options" href={accountRoutes.purchaseOptions} />
       </nav>
 
       <header className={styles.hero}>

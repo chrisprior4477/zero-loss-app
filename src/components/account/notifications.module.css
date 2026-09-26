@@ -6,25 +6,25 @@
 }
 
 .pageContent { max-width: 1440px; margin-inline: auto; }
-.statusTickets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+.pageContent > [aria-label="Your account overview"] { margin-bottom: 18px; }
 .header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 12px; }
 .header h1 { font-size: clamp(40px, 4.4vw, 62px); font-weight: 850; line-height: 1; letter-spacing: -.045em; }
 .header p { margin-top: 3px; color: #c8d8f5; font-size: clamp(17px, 1.9vw, 25px); line-height: 1.18; }
 .headerActions { display: flex; align-items: center; justify-content: flex-end; gap: 11px; }
 .headerActions button, .headerActions a {
-  --corner-scoop: 10px;
-  --side-scoop: 7px;
+  --corner-scoop: 8px;
+  --side-scoop: 5px;
   display: inline-flex;
-  min-height: 54px;
+  min-height: 47px;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 8px 20px;
-  border: 1px solid #82b6ef;
-  color: #fff;
-  background: linear-gradient(130deg, #184775, #0d3165);
-  font-size: 14px;
-  font-weight: 750;
+  padding: 9px 22px;
+  border: 0;
+  color: #e6f8ff;
+  background: #0b4168;
+  font-size: 13px;
+  font-weight: 800;
   line-height: 1.15;
   text-align: center;
   text-decoration: none;
@@ -34,7 +34,7 @@
   mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
   mask-composite: intersect;
 }
-.headerActions button:hover:not(:disabled), .headerActions a:hover { border-color: #a6d9ff; background: #173f77; }
+.headerActions button:hover:not(:disabled), .headerActions a:hover { filter: brightness(1.08); }
 .headerActions button:disabled { opacity: .58; cursor: default; }
 .headerActions svg { width: 23px; height: 23px; flex: 0 0 23px; }
 .sourceWarning { margin: 14px 0; padding: 12px 16px; border: 1px solid #eeb66b; color: #ffe4c6; background: #523614; font-size: 13px; }
@@ -80,10 +80,12 @@
 }
 .notification { position: relative; display: grid; grid-template-columns: 160px minmax(0, 1fr) minmax(125px, 190px) minmax(140px, 190px) 20px; align-items: center; gap: 16px; min-height: 112px; padding: 11px 19px 11px 48px; color: #0b1c4d; background: #fffdfa; }
 .notification[data-read="true"] { background: #eaf1f6; }
+.notification[data-emphasis="email"] { background: #fff1ca; box-shadow: inset 0 0 0 2px #eeb958; }
 .unreadDot { position: absolute; left: 22px; top: 50%; width: 15px; height: 15px; border-radius: 50%; background: #0876ff; transform: translateY(-50%); }
 .notification[data-tone="reward"] .unreadDot { background: #008946; }
 .notification[data-tone="completion"] .unreadDot { background: #ff5e19; }
 .notification[data-read="true"] .unreadDot { background: #7b94a8; }
+.notification[data-emphasis="email"] .unreadDot { background: #cc8300; }
 .copy { grid-column: 2; grid-row: 1; min-width: 0; }
 .copy h2 { color: #101b50; font-size: clamp(17px, 1.5vw, 21px); font-weight: 850; line-height: 1.17; letter-spacing: -.025em; overflow-wrap: anywhere; }
 .body { margin-top: 5px; color: #4e668b; font-size: 14px; line-height: 1.3; }
@@ -95,6 +97,7 @@
 .notification[data-tone="reward"] .visual { color: #007d41; background: #c9f8dc; }
 .notification[data-tone="completion"] .visual { color: #d65814; background: #ffe5cd; }
 .notification[data-tone="crew"] .visual { color: #006d7a; background: #d9f6f9; }
+.notification[data-emphasis="email"] .visual { color: #935400; background: #ffdc89; }
 .fallbackIcon { width: 30px; height: 30px; margin-bottom: 3px; }
 .productImage { object-fit: contain; padding: 5px 7px 17px; }
 .visual > span:not(.visualCaption) { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
@@ -107,8 +110,11 @@
 .details strong { align-self: flex-start; padding: 4px 10px; border-radius: 10px; color: #006331; background: #d4f8de; font-size: 10px; font-weight: 850; line-height: 1.1; text-transform: uppercase; }
 .notification[data-tone="completion"] .details strong { color: #b6410b; background: #ffead8; }
 .notification[data-tone="active"] .details strong, .notification[data-tone="account"] .details strong { color: #1452a6; background: #d8edff; }
+.notification[data-emphasis="email"] .details strong { color: #794400; background: #ffda86; }
 .rowAction { grid-column: 4; grid-row: 1; display: flex; min-height: 48px; min-width: 0; align-items: center; justify-content: center; gap: 7px; padding: 8px 10px; border-radius: 9px; color: #fff; background: #006dff; font-size: 13px; font-weight: 800; line-height: 1.15; text-align: center; text-decoration: none; }
 .rowAction:hover { background: #0052d5; }
+.notification[data-emphasis="email"] .rowAction { background: #a65c00; }
+.notification[data-emphasis="email"] .rowAction:hover { background: #824700; }
 .rowAction svg { width: 20px; height: 20px; flex: 0 0 20px; }
 .chevron { grid-column: 5; grid-row: 1; display: grid; min-height: 44px; place-items: center; color: #091947; }
 .chevron svg { width: 19px; }
@@ -128,7 +134,6 @@
   .visual { min-height: 80px; }
 }
 @media (max-width: 850px) {
-  .statusTickets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .notification { grid-template-columns: 112px minmax(0, 1fr) minmax(110px, 135px) 16px; }
   .details { grid-column: 3; }
   .rowAction { grid-column: 2 / 4; grid-row: 2; min-height: 40px; }
@@ -137,12 +142,11 @@
 }
 @media (max-width: 620px) {
   .page { padding: 14px 12px 32px; }
-  .statusTickets { grid-template-columns: 1fr; gap: 7px; }
   .header { gap: 13px; }
   .header h1 { font-size: 39px; }
   .header p { font-size: 16px; }
   .headerActions { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-  .headerActions button, .headerActions a { min-width: 0; min-height: 62px; padding: 7px 9px; font-size: 12px; white-space: normal; }
+  .headerActions button, .headerActions a { min-width: 0; min-height: 54px; padding: 7px 9px; font-size: 11px; white-space: normal; }
   .headerActions svg { width: 21px; height: 21px; flex-basis: 21px; }
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
   .filters button { min-height: 70px; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 6px; padding: 8px 12px; }

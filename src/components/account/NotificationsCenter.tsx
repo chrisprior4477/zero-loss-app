@@ -10,6 +10,7 @@ import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountAc
 import { accountRoutes } from "@/lib/account/navigation";
 import { AccountIcon, type AccountIconName } from "./AccountIcon";
 import { StatusTicket } from "./StatusTicket";
+import stripStyles from "./account-status-strip.module.css";
 import type { AccountNotification, NotificationCategory } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
 
@@ -87,10 +88,10 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
 
   return <div className={styles.page}>
     <div className={styles.pageContent}>
-      {overview ? <div className={styles.statusTickets} aria-label="Your account overview">
-        <StatusTicket variant="wallet" size="crew" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
-        <StatusTicket variant="reward" size="crew" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
-        <StatusTicket variant="option" size="crew" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Review options" href={accountRoutes.purchaseOptions} />
+      {overview ? <div className={stripStyles.row} aria-label="Your account overview">
+        <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
+        <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
+        <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Review options" href={accountRoutes.purchaseOptions} />
       </div> : null}
       <header className={styles.header}>
         <div><h1>Notifications</h1><p>The updates that need your attention.</p></div>
@@ -120,7 +121,7 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
             <span aria-hidden="true"><AccountIcon name={filter === "orders" ? "orders" : "bell"} /></span>
             <h2>{filter === "all" ? "No notifications" : filter === "orders" ? "No order updates" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} updates`}</h2>
             <p>New verified updates will appear here automatically.</p>
-          </div> : visible.map(notification => <article key={notification.id} className={styles.notification} data-tone={notification.tone} data-read={read.has(notification.id)}>
+          </div> : visible.map(notification => <article key={notification.id} className={styles.notification} data-tone={notification.tone} data-read={read.has(notification.id)} data-emphasis={notification.id === "account-email-confirmed" ? "email" : undefined}>
             <span aria-hidden="true" className={styles.unreadDot} />
             <div className={styles.copy}>
               <h2>{notification.title}</h2>

@@ -6,7 +6,6 @@
 }
 
 .shell { max-width: 1440px; margin-inline: auto; }
-.statusTickets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .heading { display: flex; align-items: end; justify-content: space-between; gap: 22px; margin-top: 18px; }
 .heading > div > p, .heroCopy > p, .sectionHeading p, .sideEyebrow { color: #a8d5f5; font-size: 10px; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; }
 .heading h1 { margin-top: 3px; font-size: clamp(38px, 4.6vw, 65px); font-weight: 850; line-height: 1; letter-spacing: -.055em; }
@@ -153,7 +152,6 @@
 }
 @media (max-width: 700px) {
   .page { padding: 18px 12px 36px; }
-  .statusTickets { grid-template-columns: 1fr; gap: 8px; }
   .heading { gap: 10px; margin-top: 20px; }
   .heading h1 { font-size: clamp(36px, 8vw, 48px); }
   .headingActions { width: 100%; }
@@ -176,7 +174,6 @@
   .orderActions { grid-column: 1; grid-row: 3; justify-content: flex-start; padding: 6px 18px 13px; }
 }
 @media (max-width: 400px) {
-  .statusTickets > :last-child { grid-template-columns: minmax(0, 54%) 1px minmax(0, 1fr); }
   .summary button { gap: 5px; padding-inline: 10px; font-size: 11px; }
   .summary button > svg { width: 20px; height: 20px; }
   .summary button > strong { min-width: 26px; min-height: 26px; font-size: 14px; }

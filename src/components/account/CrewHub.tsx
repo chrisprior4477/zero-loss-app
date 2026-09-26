@@ -14,6 +14,7 @@ import { CrewSearchPanel } from "./CrewSearchDialog";
 import { SharedPicksConcept } from "@/components/home/SharedPicksConcept";
 import { initializeSampleCrewPreview, removeSampleCrewPreview, useSampleCrewPreviews, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { StatusTicket } from "./StatusTicket";
+import stripStyles from "./account-status-strip.module.css";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
 import { AccountIcon } from "./AccountIcon";
@@ -144,10 +145,10 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
 
   return <main className={styles.page}>
     <div className={styles.shell}>
-      {overview ? <div className={styles.statusTickets} aria-label="Your account overview">
-        <StatusTicket variant="wallet" size="crew" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
-        <StatusTicket variant="reward" size="crew" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
-        <StatusTicket variant="option" size="crew" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Review options" href={accountRoutes.purchaseOptions} />
+      {overview ? <div className={stripStyles.row} aria-label="Your account overview">
+        <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
+        <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
+        <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Review options" href={accountRoutes.purchaseOptions} />
       </div> : null}
       <header className={styles.pageHeading}>
         <div><h1>Your Crew</h1><p>The people you brought with you.</p></div>

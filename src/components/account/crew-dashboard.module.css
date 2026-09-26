@@ -1,6 +1,5 @@
 .page { min-height: calc(100svh - 140px); padding: 18px clamp(12px, 2.4vw, 38px) 48px; color: #f8fbff; background: radial-gradient(ellipse at 60% 15%, #0a3564 0%, #061d3d 42%, #00152e 100%); }
 .shell { max-width: 1440px; margin-inline: auto; }
-.statusTickets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .pageHeading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 18px 0 0; }
 .pageHeading h1 { font-size: clamp(37px, 4.5vw, 64px); font-weight: 850; line-height: 1; letter-spacing: -.055em; }
 .pageHeading p { margin-top: 5px; color: #c1d5ef; font-size: clamp(14px, 1.4vw, 20px); }
@@ -96,7 +95,6 @@
   .sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
 }
 @media (max-width: 700px) {
-  .statusTickets { grid-template-columns: 1fr; gap: 8px; }
   .pageHeading { align-items: start; flex-direction: column; }
   .counts { justify-content: flex-start; }
   .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -104,8 +102,5 @@
   .sidebar { grid-template-columns: 1fr; }
   .incomingInvite { align-items: stretch; flex-direction: column; }
   .utilityGrid, .shareGrid { grid-template-columns: 1fr; }
-}
-@media (min-width: 701px) and (max-width: 950px) {
-  .statusTickets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .tabs button { transition: none; } }
