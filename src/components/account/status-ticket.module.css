@@ -162,6 +162,14 @@
 .ticket[data-size="overview"] .value { font-size: 42px; }
 .ticket[data-size="overview"] .perforation { height: 80px; }
 .ticket[data-size="overview"] .action { padding-inline: 20px; font-size: 17px; }
+.ticket[data-size="crew"] { grid-template-columns: minmax(0, 55%) 1px minmax(0, 1fr); }
+.ticket[data-size="crew"] .information { gap: 9px; padding-left: 13px; }
+.ticket[data-size="crew"] .iconPanel { width: 48px; height: 48px; flex-basis: 48px; }
+.ticket[data-size="crew"] .statusIcon { width: 33px; height: 33px; }
+.ticket[data-size="crew"] .label { font-size: 12px; }
+.ticket[data-size="crew"] .value { font-size: 25px; }
+.ticket[data-size="crew"] .action { gap: 5px; padding-inline: 10px; font-size: 12px; }
+.ticket[data-size="crew"] .action svg { width: 18px; height: 18px; flex-basis: 18px; }
 
 @media (max-width: 1380px) {
   .ticket[data-size="overview"] .iconPanel { width: 60px; height: 60px; flex-basis: 60px; }
@@ -181,6 +189,9 @@
 }
 
 @media (max-width: 430px) {
+  .ticket[data-size="crew"] { grid-template-columns: minmax(0, 57%) 1px minmax(0, 1fr); }
+  .ticket[data-size="crew"] .label { font-size: 11px; }
+  .ticket[data-size="crew"] .action { font-size: 11px; }
   .ticket { grid-template-columns: minmax(0, 58%) 1px minmax(0, 1fr); }
   .information { gap: 8px; padding: 7px 4px 7px 10px; }
   .iconPanel { width: 45px; height: 47px; flex-basis: 45px; }

@@ -78,6 +78,21 @@ export async function inviteToCrewById(memberId: string): Promise<CrewActionResu
   return { ok: true, message: "Crew request sent. They can approve it in Notifications; no picks are shared yet." };
 }
 
+export async function requestCrewInvitationFromLink(token: string): Promise<CrewActionResult> {
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in to request a Crew connection." };
+  if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(token)) return { ok: false, message: "This Crew invite link is invalid." };
+  const { data, error } = await session.db.rpc("request_crew_invitation_from_link", { p_token: token });
+  if (error) return { ok: false, message: error.code === "P0001" ? "You’ve reached today’s Crew invitation limit." : "We couldn’t send the Crew request. Please try again." };
+  if (data === "invalid") return { ok: false, message: "This Crew invite link is no longer available." };
+  if (data === "self") return { ok: false, message: "This is your own Crew invite link." };
+  if (data === "unavailable") return { ok: false, message: "Your account isn’t ready to send Crew requests yet." };
+  if (data === "already_requested") return { ok: true, message: "You’re already connected or a request is waiting for approval." };
+  if (data !== "request_sent") return { ok: false, message: "We couldn’t verify this Crew request." };
+  refreshCrew();
+  return { ok: true, message: "Crew request sent. The link owner can approve it in Notifications; no picks are shared yet." };
+}
+
 export async function setCrewDiscoverable(enabled: boolean): Promise<CrewActionResult> {
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to change your Crew settings." };

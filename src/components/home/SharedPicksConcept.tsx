@@ -69,13 +69,14 @@ const samplePicks = {
 
 export type CrewActivityPick = { title: string; retailer: string; image: string; slug: string; note?: string };
 
-export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false, connectedOutline = false, accent = "green", panelRef }: {
+export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false, connectedOutline = false, accountMode = false, accent = "green", panelRef }: {
   person: string;
   onClose: () => void;
   picks?: CrewActivityPick[];
   avatarUrl?: string | null;
   loading?: boolean;
   connectedOutline?: boolean;
+  accountMode?: boolean;
   accent?: "green" | "orange";
   panelRef?: RefObject<HTMLElement | null>;
 }) {
@@ -120,11 +121,11 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
     rail.scrollBy({ left: direction * (card.getBoundingClientRect().width + gap), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }
 
-  return <section ref={panelRef} className={`${styles.panel} ${connectedOutline ? styles.connectedOutline : ""} ${accent === "orange" ? styles.orange : ""}`} aria-label={`${person}'s shared activity`}>
+  return <section ref={panelRef} className={`${styles.panel} ${connectedOutline ? styles.connectedOutline : ""} ${accountMode ? styles.accountMode : ""} ${accent === "orange" ? styles.orange : ""}`} aria-label={`${person}'s shared activity`}>
     <div className={styles.header}>
       <div className={styles.personHeading}>
         {avatarUrl || sampleAvatar ? <span className={styles.avatar}><Image src={(avatarUrl || sampleAvatar)!} alt="" fill sizes="48px" className={styles.avatarImage} unoptimized={Boolean(avatarUrl)} /></span> : <span className={styles.initial}>{person.slice(0, 1).toUpperCase()}</span>}
-        <div><span className={styles.eyebrow}>YOUR CREW · SHARED ACTIVITY</span><h3>{person}’s shared activity</h3><p>Things {person} chose to share with their Crew.</p></div>
+        <div><span className={styles.eyebrow}>YOUR CREW · SHARED ACTIVITY</span><h3>{person}’s shared activity</h3><p>Things {person} chose to share with their Crew.</p>{accountMode ? <span className={styles.viewingBadge}>Viewing {person}&apos;s picks</span> : null}</div>
       </div>
       <button type="button" onClick={onClose} className={styles.close} aria-label={`Close ${person}'s shared activity`}>×<span> Close</span></button>
     </div>

@@ -5,15 +5,15 @@
 .header p { color: #75e4ff; font-size: .64rem; font-weight: 850; letter-spacing: .15em; }
 .header h2 { margin-top: 3px; font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 850; line-height: 1.1; }
 .intro { margin: 12px 0 18px; color: #c1d6e6; font-size: .88rem; line-height: 1.5; }
-.fields { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
-.field { display: flex; min-width: 0; flex-direction: column; gap: 7px; border: 1px solid #32759778; border-radius: 11px; padding: 12px; background: #061e37b8; }
+.fields { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.field { display: flex; min-width: 0; flex-direction: column; gap: 7px; border: 1px solid #32759778; border-radius: 11px; padding: 14px 16px; background: #061e37b8; }
 .field label { color: #f3fbff; font-size: .79rem; font-weight: 800; }
 .field small { color: #a9c4d5; font-size: .68rem; line-height: 1.4; }
 .row { display: flex; min-width: 0; gap: 6px; }
 .row input { width: 100%; min-width: 0; min-height: 46px; border: 1px solid #3484a7; border-radius: 8px; padding: 9px 11px; outline: none; background: #061a32; color: #fff; font-size: .8rem; }
 .row input::placeholder { color: #a8bbcb; }
 .row input:focus { border-color: #72e4ff; box-shadow: 0 0 0 2px #13bded3b; }
-.row button { display: flex; flex: none; align-items: center; justify-content: center; gap: 5px; min-height: 46px; border: 1px solid #4bf65a; border-radius: 8px; padding: 0 9px; background: linear-gradient(145deg,#62fb4d,#28cf34); color: #041f25; font-size: .7rem; font-weight: 850; }
+.row button { display: flex; flex: none; min-width: 136px; align-items: center; justify-content: center; gap: 5px; min-height: 46px; border: 1px solid #4bf65a; border-radius: 8px; padding: 0 12px; background: linear-gradient(145deg,#62fb4d,#28cf34); color: #041f25; font-size: .79rem; font-weight: 850; }
 .row button svg { width: 17px; height: 17px; }
 .row button:disabled, .result button:disabled, .contactButton:disabled { opacity: .55; }
 .contactButton { margin-top: 16px; border: 1px solid #53d9f5; border-radius: 9px; padding: 10px 13px; color: #d7f9ff; background: #0d3758; font-size: .79rem; font-weight: 800; }

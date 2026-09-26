@@ -14,6 +14,7 @@ const actions = vi.hoisted(() => ({
   setCrewDiscoverable: vi.fn(),
   setEntryCrewSharing: vi.fn(),
   getCrewSharedPicks: vi.fn(),
+  requestCrewInvitationFromLink: vi.fn(),
 }));
 
 vi.mock("@/lib/crew/actions", () => actions);
@@ -28,6 +29,7 @@ beforeEach(() => {
   actions.inviteToCrewByPhone.mockResolvedValue({ ok: true, message: "Request saved." });
   actions.inviteToCrew.mockResolvedValue({ ok: true, message: "Request saved." });
   actions.getCrewSharedPicks.mockResolvedValue({ ok: true, picks: [] });
+  actions.requestCrewInvitationFromLink.mockResolvedValue({ ok: true, message: "Crew request sent." });
 });
 afterEach(cleanup);
 
@@ -40,6 +42,9 @@ test("the four legacy homepage sample additions appear in the account carousel, 
   expect(screen.getByText("4 sample previews")).toBeTruthy();
   expect(screen.getByText("0 connected")).toBeTruthy();
   expect(screen.getByText(/fictional.*did not send invitations/i)).toBeTruthy();
+  expect(await screen.findByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "See Maya's sample shared activity" }));
+  expect(screen.queryByRole("region", { name: "Maya's shared activity" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "See Maya's sample shared activity" }));
   expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
@@ -55,24 +60,38 @@ test("a homepage preview choice carries into Your Crew and can be removed", asyn
   expect(localStorage.getItem("zero-loss-sample-crew-v1")).toBe("[]");
 });
 
-test("every sample uses one connected outline, which closes and returns with the Crew tab", async () => {
-  const { container } = render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+test("every sample clearly highlights the selected person and matches the shared-activity panel", async () => {
+  render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  await screen.findByRole("region", { name: "Maya's shared activity" });
   for (const name of ["Maya", "Daniel", "Ari", "Leo"]) {
-    fireEvent.click(await screen.findByRole("button", { name: `See ${name}'s sample shared activity` }));
+    const personButton = await screen.findByRole("button", { name: `See ${name}'s sample shared activity` });
+    if (personButton.getAttribute("aria-expanded") !== "true") fireEvent.click(personButton);
     const panel = screen.getByRole("region", { name: `${name}'s shared activity` });
     expect(panel.className).toContain("connectedOutline");
-    expect(container.querySelectorAll('svg path[stroke="#67f768"][stroke-width="2"]')).toHaveLength(1);
-    expect(screen.getByRole("button", { name: `See ${name}'s sample shared activity` }).getAttribute("aria-expanded")).toBe("true");
+    expect(panel.textContent).toContain(`Viewing ${name}'s picks`);
+    expect(personButton.getAttribute("aria-expanded")).toBe("true");
+    expect(personButton.parentElement?.className).toContain("personSelected");
   }
   fireEvent.click(screen.getByRole("tab", { name: "Requests" }));
-  expect(container.querySelector('svg path[stroke="#67f768"]')).toBeNull();
+  expect(screen.queryByRole("region", { name: "Leo's shared activity" })).toBeNull();
   fireEvent.click(screen.getByRole("tab", { name: "Your Crew" }));
   expect(screen.getByRole("region", { name: "Leo's shared activity" })).toBeTruthy();
-  expect(container.querySelectorAll('svg path[stroke="#67f768"]')).toHaveLength(1);
   fireEvent.click(screen.getByRole("button", { name: /Close/ }));
-  expect(container.querySelector('svg path[stroke="#67f768"]')).toBeNull();
+  expect(screen.queryByRole("region", { name: "Leo's shared activity" })).toBeNull();
   expect(actions.removeCrewConnection).not.toHaveBeenCalled();
   expect(actions.setEntryCrewSharing).not.toHaveBeenCalled();
+});
+
+test("a personal invite link is copyable and an incoming link sends an approval request", async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+  render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" ownInviteToken="11111111-2222-4333-8444-555555555555" incomingInviteToken="22222222-3333-4444-8555-666666666666" />);
+  fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith("http://localhost:3000/account/crew?invite=11111111-2222-4333-8444-555555555555"));
+  fireEvent.click(screen.getByRole("button", { name: "Request to join" }));
+  await waitFor(() => expect(actions.requestCrewInvitationFromLink).toHaveBeenCalledWith("22222222-3333-4444-8555-666666666666"));
+  expect(await screen.findByRole("button", { name: "Request sent" })).toBeTruthy();
+  Reflect.deleteProperty(navigator, "clipboard");
 });
 
 test("the account Crew section expands approved people's activity in place", async () => {
