@@ -2,7 +2,8 @@
 
 import { type PointerEvent as ReactPointerEvent, type TransitionEvent as ReactTransitionEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ZeroLossJourney } from "@/components/home/ZeroLossJourney";
+import Link from "next/link";
+import { HowItWorksExplainer } from "@/components/home/HowItWorksExplainer";
 
 const HERO_SLIDES = [
   {
@@ -287,45 +288,15 @@ function DesktopHeroCarousel() {
         ref={howItWorksPanelRef}
         id="desktop-how-it-works-panel"
         aria-label="How ZeroLoss works"
-        role="button"
-        tabIndex={0}
-        onClick={() => setShowHowItWorks(false)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") setShowHowItWorks(false);
-        }}
-        className="relative left-1/2 w-screen -translate-x-1/2 cursor-pointer border-y border-cyan-300/20 bg-[#00132e] px-4 py-7 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-[var(--live)] sm:px-6 md:px-[clamp(4rem,8vw,10rem)]"
+        className="relative left-1/2 w-screen -translate-x-1/2 border-y border-cyan-300/20 bg-[#00132e] px-4 py-7 sm:px-6 md:px-[clamp(4rem,8vw,10rem)]"
       >
         <div className="mx-auto max-w-[1440px]">
-          <Image
-            src="/perfect-zero-loss-four-card-v3.png"
-            alt="Four-step ZeroLoss walkthrough: choose a prize, try for one dollar, win the prize, or use the dollar toward buying the same product."
-            width={1774}
-            height={887}
-            sizes="(min-width: 1024px) 84vw, 100vw"
-            className="mb-9 hidden h-auto w-full rounded-2xl shadow-[0_18px_42px_rgba(0,0,0,0.32)] md:block"
-            priority
-          />
-          <div className="mb-8 md:hidden">
-            <ZeroLossJourney compact />
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="text-[22px] font-bold text-white">How ZeroLoss works</h2>
+            <button type="button" onClick={() => setShowHowItWorks(false)} aria-label="Close How It Works" className="grid h-10 w-10 place-items-center rounded-full border border-cyan-300/50 text-2xl text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#59dfff]">×</button>
           </div>
-          <h2 className="text-[22px] font-bold text-white">How ZeroLoss works</h2>
-          <div className="mt-4 grid gap-5 sm:grid-cols-2 sm:gap-8">
-            <div className="border-l-2 border-[var(--live)] pl-4">
-              <h3 className="text-[14px] font-bold text-[var(--live)]">Everyday items</h3>
-              <p className="mt-1.5 max-w-[560px] text-[14px] leading-[1.55] text-white/80">
-                If your entry is not selected, you can apply what you paid toward
-                the advertised retailer gift card and pay the remaining amount.
-              </p>
-            </div>
-            <div className="border-l-2 border-[#087feb] pl-4">
-              <h3 className="text-[14px] font-bold text-[#55b5ff]">Scarce or one-of-a-kind items</h3>
-              <p className="mt-1.5 max-w-[650px] text-[14px] leading-[1.55] text-white/80">
-                A promotion will clearly state when vendor inventory is set aside.
-                Otherwise, the reward is the advertised retailer gift-card value.
-              </p>
-            </div>
-          </div>
-
+          <HowItWorksExplainer />
+          <Link href="/how-it-works" className="mt-5 inline-flex text-sm font-semibold text-cyan-300 underline-offset-4 hover:underline">Open the full How It Works page →</Link>
         </div>
       </section>
     ) : null}

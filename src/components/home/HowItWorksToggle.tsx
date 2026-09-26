@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { ZeroLossJourney } from "@/components/home/ZeroLossJourney";
+import { HowItWorksExplainer } from "@/components/home/HowItWorksExplainer";
 
 /**
  * The hero's HOW IT WORKS control, from the Checkpoint 2 artboards.
@@ -13,9 +13,7 @@ import { ZeroLossJourney } from "@/components/home/ZeroLossJourney";
  * the full page; this control exists to answer the question without leaving
  * the homepage.
  *
- * The panel copy follows the current retailer gift-card fulfillment rules.
- *
- * Black text on the orange panel, per C4.
+ * The expanded panel shares the same five-step explainer as the full page.
  */
 export function HowItWorksToggle() {
   const [open, setOpen] = useState(false);
@@ -41,17 +39,7 @@ export function HowItWorksToggle() {
           id={panelId}
           className="mt-3 w-full rounded-2xl border border-white/10 bg-[#00132e] px-4 py-5"
         >
-          <p className="text-sm leading-[1.5] text-white/80">
-            If your entry is not selected, you can apply what you paid toward
-            the advertised retailer gift card and pay the remaining amount.
-          </p>
-          <p className="mt-2.5 text-sm leading-[1.5] text-white/80">
-            The option is available for 30 full calendar days. Zero Loss does
-            not ship products; you choose the item through the retailer.
-          </p>
-          <div className="mt-5 border-t border-white/10 pt-5">
-            <ZeroLossJourney compact />
-          </div>
+          <HowItWorksExplainer />
         </div>
       ) : null}
     </>
