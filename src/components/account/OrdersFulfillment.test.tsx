@@ -1,7 +1,8 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { OrdersFulfillment } from "./OrdersFulfillment";
 import type { AccountOrder, AccountOrders } from "@/lib/account/orders";
+import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role={alt ? "img" : undefined} aria-label={alt || undefined} /> }));
 afterEach(cleanup);
@@ -55,4 +56,19 @@ test("uses honest empty and unavailable states", () => {
   rerender(<OrdersFulfillment state={{ source: "unavailable", orders: [] }} />);
   expect(screen.getByRole("status").textContent).toMatch(/could not be verified/i);
   expect(screen.getByText("Orders unavailable")).toBeTruthy();
+});
+
+test("ticket filters use actual order statuses without changing saved destinations", () => {
+  render(<OrdersFulfillment state={{ source: "stored", orders: [order("issuance_pending", "pending"), order("fulfilled", "ready")] }} overview={{ balanceLabel: "$17", fundingEnabled: false, activity: storedActivityFixture() }} />);
+  expect(screen.getByRole("link", { name: "Playable Wallet: $17" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /In progress/ }));
+  expect(screen.getByRole("heading", { name: "pending gift card" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "ready gift card" })).toBeNull();
+  expect(screen.getByText("1 of 2 orders")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /Issued/ }));
+  expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id");
+  fireEvent.click(screen.getByRole("button", { name: /Exceptions/ }));
+  expect(screen.getByText("No orders in this status")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Show all orders" }));
+  expect(screen.getAllByRole("link", { name: /Open gift card/ })).toHaveLength(2);
 });

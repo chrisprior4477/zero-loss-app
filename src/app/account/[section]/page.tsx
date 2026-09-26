@@ -74,7 +74,7 @@ export default async function LiveAccountSection({
     />;
   }
 
-  if (section === "orders") return <OrdersFulfillment state={account.orders} />;
+  if (section === "orders") return <OrdersFulfillment state={account.orders} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
 
   return (
     <PageContainer>
