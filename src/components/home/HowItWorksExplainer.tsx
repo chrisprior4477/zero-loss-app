@@ -36,12 +36,12 @@ export function HowItWorksExplainer() {
         alt="How ZeroLoss works in five steps: pick a product, enter for $1, receive the full-value retailer gift card if you win, or pay the balance by the deadline if you don't; then use the gift card at that retailer."
         width={IMAGE_WIDTH}
         height={IMAGE_HEIGHT}
-        sizes="(min-width: 1280px) 1440px, 100vw"
-        className="hidden h-auto w-full rounded-2xl shadow-[0_18px_42px_rgba(0,0,0,0.32)] xl:block"
+        sizes="(min-width: 1024px) 1440px, 100vw"
+        className="hidden h-auto w-full rounded-2xl shadow-[0_18px_42px_rgba(0,0,0,0.32)] lg:block"
         unoptimized
       />
 
-      <div className="xl:hidden">
+      <div className="lg:hidden">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-sm font-medium text-white/80">Swipe through the five steps</p>
           <div className="flex shrink-0 gap-2">
