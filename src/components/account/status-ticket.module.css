@@ -160,26 +160,38 @@
 .ticket[data-size="top"] .label { font-size: 12px; }
 .ticket[data-size="top"] .value { font-size: 25px; }
 .ticket[data-size="top"] .value[data-unavailable="true"] { font-size: 15px; }
-.ticket[data-size="top"] .action { gap: 5px; padding-inline: 10px; font-size: 12px; }
+.ticket[data-size="top"] .action { gap: 7px; padding-inline: 10px; font-size: 15px; font-weight: 800; }
 .ticket[data-size="top"] .action svg { width: 18px; height: 18px; flex-basis: 18px; }
 
 @media (max-width: 1280px) {
-  .ticket[data-size="top"] { min-height: 84px; grid-template-columns: minmax(0, 58%) 1px minmax(0, 1fr); }
-  .ticket[data-size="top"] .information { gap: 8px; padding: 8px 4px 8px 12px; }
-  .ticket[data-size="top"] .iconPanel { width: 46px; height: 48px; flex-basis: 46px; }
+  .ticket[data-size="top"] { min-height: 72px; grid-template-columns: minmax(0, 56%) 1px minmax(0, 1fr); }
+  .ticket[data-size="top"] .information { gap: 6px; padding: 6px 3px 6px 10px; }
+  .ticket[data-size="top"] .iconPanel { width: 43px; height: 43px; flex-basis: 43px; }
+  .ticket[data-size="top"] .statusIcon { width: 30px; height: 30px; }
   .ticket[data-size="top"] .copy { transform: none; }
   .ticket[data-size="top"] .label { max-width: 9ch; font-size: 11px; line-height: 1.05; white-space: normal; }
   .ticket[data-size="top"].reward .label { max-width: none; }
   .ticket[data-size="top"] .value { font-size: 22px; }
   .ticket[data-size="top"] .value[data-unavailable="true"] { font-size: 14px; }
-  .ticket[data-size="top"] .action { gap: 5px; padding-inline: 8px; font-size: 11px; line-height: 1.1; white-space: normal; }
-  .ticket[data-size="top"] .action > span { max-width: 7ch; }
+  .ticket[data-size="top"] .perforation { height: 48px; }
+  .ticket[data-size="top"] .action { gap: 4px; padding-inline: 7px; font-size: 14px; line-height: 1.08; white-space: normal; }
+  .ticket[data-size="top"] .action > span { max-width: 8ch; }
+  .ticket[data-size="top"] .action svg { width: 17px; height: 17px; flex-basis: 17px; }
+}
+
+@media (max-width: 700px) {
+  .ticket[data-size="top"] { min-height: 64px; grid-template-columns: minmax(0, 57%) 1px minmax(0, 1fr); }
+  .ticket[data-size="top"] .information { gap: 8px; padding: 5px 5px 5px 14px; }
+  .ticket[data-size="top"] .iconPanel { width: 42px; height: 42px; flex-basis: 42px; }
+  .ticket[data-size="top"] .perforation { height: 43px; }
+  .ticket[data-size="top"] .action { padding-inline: 11px; font-size: 15px; }
+  .ticket[data-size="top"] .action > span { max-width: none; }
 }
 
 @media (max-width: 430px) {
   .ticket[data-size="top"] { grid-template-columns: minmax(0, 57%) 1px minmax(0, 1fr); }
   .ticket[data-size="top"] .label { font-size: 11px; }
-  .ticket[data-size="top"] .action { font-size: 11px; }
+  .ticket[data-size="top"] .action { font-size: 14px; }
   .ticket { grid-template-columns: minmax(0, 58%) 1px minmax(0, 1fr); }
   .information { gap: 8px; padding: 7px 4px 7px 10px; }
   .iconPanel { width: 45px; height: 47px; flex-basis: 45px; }
