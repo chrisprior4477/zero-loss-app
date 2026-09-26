@@ -41,7 +41,7 @@ test.each<RewardStatus>(["expired", "cancelled", "redeemed", "issuance_pending",
     expect(screen.queryByText("1234 5678 9012")).toBeNull();
     expect(screen.queryByText("Claimed — ready to use")).toBeNull();
     expect(screen.queryByRole("button", { name: "Claim reward" })).toBeNull();
-    expect((screen.getByRole("button", { name: /Present in store/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: /Show barcode/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByRole("status")).toBeTruthy();
   }
 });

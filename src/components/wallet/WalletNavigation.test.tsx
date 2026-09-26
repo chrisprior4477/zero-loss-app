@@ -54,7 +54,8 @@ test("specific reward opens its redemption destination without another dialog or
   expect(screen.getByRole("region", { name: "Reward redemption details" })).toBeTruthy();
   expect(screen.getByRole("status").textContent).toContain("Not issued yet");
   expect(screen.getByText(/No gift card or redeemable barcode has been issued/)).toBeTruthy();
-  expect(screen.getAllByText("$400")).toHaveLength(2);
+  expect(screen.getByRole("heading", { name: "$400 Best Buy gift card" })).toBeTruthy();
+  expect(screen.getByText("$400")).toBeTruthy();
   expect((screen.getByRole("button", { name: "Add to Apple Wallet" }) as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByRole("button", { name: "Save to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByRole("link", { name: "Back to Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet");
@@ -88,7 +89,7 @@ test("preview reward renders a responsive sample redemption without pretending i
   expect(screen.getByText(/Use it on anything Best Buy sells/)).toBeTruthy();
   expect(screen.getByText(/not a restriction on your reward/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Copy number" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Present in store" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Show barcode" })).toBeTruthy();
   expect((screen.getByRole("button", { name: "Add to Apple Wallet" }) as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByRole("button", { name: "Save to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
 });

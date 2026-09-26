@@ -236,3 +236,68 @@
   .productCard, .filter { transition: none; }
   .productCard:hover { transform: none; }
 }
+
+/* Completion click-through shares the site's full-size ticket treatment. */
+.detailDialog[data-status="completion"] { width: min(calc(100% - 28px), 1260px); max-width: 1260px; border-color: #f78331; background: #071e3e; }
+.detailDialog[data-status="completion"] .detailBody { color-scheme: light; }
+.purchaseHeading { margin: 1px 0 17px; }
+.purchaseHeading h2 { color: #fff; font-size: clamp(30px, 4vw, 48px); font-weight: 900; line-height: 1; letter-spacing: -.045em; }
+.purchaseHeading p { margin-top: 6px; color: #c8d9f4; font-size: clamp(17px, 2vw, 23px); }
+.purchaseLayout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(270px, .96fr); align-items: stretch; gap: 14px; }
+.purchaseTicket, .purchaseSteps {
+  --corner-scoop: 15px;
+  --side-scoop: 14px;
+  min-width: 0;
+  padding: clamp(19px, 2vw, 29px);
+  background: #fffdfa;
+  color: #101b4e;
+  -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}
+.purchaseTicket { display: grid; grid-template-columns: minmax(190px, .85fr) minmax(0, 1.15fr); align-items: start; gap: 23px; }
+.purchaseProductImage { position: relative; min-height: 340px; border-radius: 12px; background: #f6f2ed; }
+.purchaseProductImage img { object-fit: contain; padding: 17px; }
+.purchaseSummary { min-width: 0; }
+.purchaseBadge { display: flex; width: fit-content; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 99px; background: #ff963b; color: #2d1a10; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.purchaseBadge svg { width: 17px; height: 17px; }
+.purchaseSummary h3 { margin-top: 12px; font-size: clamp(25px, 2.3vw, 36px); font-weight: 900; line-height: 1.07; letter-spacing: -.04em; }
+.purchaseRetailer { margin-top: 3px; color: #526b8b; font-size: 14px; }
+.purchaseSummary .purchaseMath { display: grid; grid-template-columns: 1fr; gap: 0; margin-top: 17px; border: 0; border-radius: 0; background: transparent; }
+.purchaseSummary .purchaseMath > div { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; padding: 8px 3px; border-top: 1px solid #d1dbe5; background: transparent; }
+.purchaseSummary .purchaseMath dt { color: #526b8b; font-size: 14px; }
+.purchaseSummary .purchaseMath dd { margin-top: 0; color: #101b4e; font-size: 20px; }
+.purchaseSummary .purchaseMath > div:nth-child(2) dd { color: #079747; }
+.purchaseSummary .purchaseMath dd[data-emphasis="true"] { font-size: 26px; }
+.purchaseSummary .optionControls { display: grid; grid-template-columns: 1fr; margin-top: 14px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.purchaseSummary .optionControls button { border-color: #ff7b1a; color: #0f2250; }
+.purchaseSummary .optionControls button[data-primary="true"] { border-color: #ff7816; background: #ff7816; color: #17111a; }
+.purchaseSummary .optionControls button[data-primary="true"]:hover:not(:disabled) { background: #ff9a40; }
+.purchaseSummary .optionControls button:hover:not(:disabled) { background: #fff0e2; }
+.purchaseSummary .optionControls section { padding: 14px; border: 1px solid #f5c39c; border-radius: 10px; background: #fff6ed; }
+.purchaseSummary .optionControls h3, .purchaseSummary .optionControls p { color: #101b4e; }
+.purchaseSummary .optionControls a { color: #006bd6; }
+.purchaseNotice, .purchaseUnavailable { margin-top: 12px; color: #526b8b; font-size: 12px; line-height: 1.45; }
+.purchaseUnavailable { color: #9c3e12; }
+.purchaseSteps h3 { font-size: clamp(25px, 2.25vw, 32px); font-weight: 900; line-height: 1.12; letter-spacing: -.04em; }
+.purchaseSteps > p { margin-top: 6px; color: #526b8b; font-size: 15px; line-height: 1.4; }
+.purchaseSteps ol { margin-top: 19px; }
+.purchaseSteps li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 13px; padding: 14px 0; border-bottom: 1px dashed #cbd6df; }
+.purchaseSteps li:last-child { border-bottom: 0; }
+.purchaseSteps li > span { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: #d7ecff; color: #063467; font-weight: 900; }
+.purchaseSteps li strong { font-size: 15px; }
+.purchaseSteps li p { margin-top: 3px; color: #526b8b; font-size: 13px; line-height: 1.4; }
+.purchaseSteps .purchaseFinePrint { margin-top: 18px; font-size: 11px; }
+@media (max-width: 850px) {
+  .purchaseLayout { grid-template-columns: 1fr; }
+  .purchaseSteps ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .purchaseSteps li { border-bottom: 0; }
+}
+@media (max-width: 639px) {
+  .detailDialog[data-status="completion"] { width: 100%; max-width: none; }
+  .purchaseTicket { grid-template-columns: 1fr; gap: 16px; }
+  .purchaseProductImage { min-height: 235px; }
+  .purchaseSteps ol { display: block; }
+  .purchaseSteps li:not(:last-child) { border-bottom: 1px dashed #cbd6df; }
+}

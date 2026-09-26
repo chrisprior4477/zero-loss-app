@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { beginDemoVerification, advanceDemoVerification, restartDemoVerification } from "@/lib/identity/demo-verification-actions";
 import type { DemoVerification, DemoVerificationStep } from "@/lib/identity/demo-verification";
 import styles from "./demo-verification.module.css";
@@ -83,30 +84,39 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
   const step = verification?.step;
 
   useEffect(() => {
-    dialog.current?.showModal();
+    const modal = dialog.current;
+    if (modal && !modal.open) modal.showModal();
     let active = true;
     beginDemoVerification(rewardId).then(result => {
       if (!active) return;
       if (result.verification) setVerification(result.verification); else setError(result.error);
       setBusy(false);
+    }).catch(() => {
+      if (!active) return;
+      setError("We couldn’t open the demo check. Please retry.");
+      setBusy(false);
     });
-    return () => { active = false; };
+    return () => { active = false; if (modal?.open && typeof modal.close === "function") modal.close(); };
   }, [rewardId]);
   useEffect(() => { if (step) heading.current?.focus(); }, [step]);
 
   async function advance(next: DemoVerificationStep) {
     if (!verification || inFlight.current) return;
     inFlight.current = true; setBusy(true); setError(null);
-    const result = await advanceDemoVerification(verification.id, next);
-    if (result.verification) setVerification(result.verification); else setError(result.error);
-    setBusy(false); inFlight.current = false;
+    try {
+      const result = await advanceDemoVerification(verification.id, next);
+      if (result.verification) setVerification(result.verification); else setError(result.error);
+    } catch { setError("The connection was interrupted. Retry this step; your saved progress is safe."); }
+    finally { setBusy(false); inFlight.current = false; }
   }
   async function restart(replay = false) {
     if (inFlight.current) return;
     inFlight.current = true; setBusy(true); setError(null);
-    const result = await (replay ? restartDemoVerification(rewardId) : beginDemoVerification(rewardId));
-    if (result.verification) { setVerification(result.verification); setConsent(false); } else setError(result.error);
-    setBusy(false); inFlight.current = false;
+    try {
+      const result = await (replay ? restartDemoVerification(rewardId) : beginDemoVerification(rewardId));
+      if (result.verification) { setVerification(result.verification); setConsent(false); } else setError(result.error);
+    } catch { setError("The connection was interrupted. Please retry opening the demo check."); }
+    finally { setBusy(false); inFlight.current = false; }
   }
   const titles: Record<DemoVerificationStep, string> = { start: "Confirm your identity", consent: "Review your details", details: "Photograph the front of your ID", document_front: "Now, the back of your ID", document_back: "Record a short headshot video", selfie: "Review before submitting", submitted: "Ready for the demo check", demo_passed: "Demo identity check complete", requires_input: "Let’s try that photo again" };
 
@@ -114,7 +124,7 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
     <header className={styles.header}><span className={styles.demoBadge}>DEMO DATA · NO PERSONAL DATA COLLECTED</span><button type="button" className={styles.close} aria-label="Save progress and close identity check" disabled={busy} onClick={onClose}>×</button></header>
     <div className={styles.body}>
       <p className={styles.eyebrow}>PRIZE CLAIM · IDENTITY CHECK</p>
-      <h2 ref={heading} tabIndex={-1} id="identity-demo-title">{step ? titles[step] : "Opening your saved check…"}</h2>
+      <h2 ref={heading} tabIndex={-1} id="identity-demo-title">{step ? titles[step] : error ? "Couldn’t open the demo check" : "Opening your saved check…"}</h2>
       {step ? <nav aria-label="Verification progress"><p className={styles.mobileProgress}>Step {stageIndex[step] + 1} of 7 · {stages[stageIndex[step]]}</p><ol className={styles.progress}>{stages.map((label, index) => <li key={label} aria-current={stageIndex[step] === index ? "step" : undefined} data-complete={index < stageIndex[step]}><span>{index < stageIndex[step] ? "✓" : index + 1}</span>{label}</li>)}</ol></nav> : null}
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
       {!step && !busy ? <button type="button" className={styles.primary} onClick={() => restart()}>Retry opening check</button> : null}
@@ -154,5 +164,7 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
 
 export function DemoIdentityPreviewButton({ rewardId }: { rewardId: string }) {
   const [open, setOpen] = useState(false);
-  return <><button type="button" className="mt-4 min-h-11 w-full rounded-xl border border-[#08779f]/40 bg-[#052344] px-4 py-3 text-sm font-bold text-cyan-200" onClick={() => setOpen(true)}>Preview identity check</button>{open ? <DemoVerificationDialog rewardId={rewardId} previewOnly onClose={() => setOpen(false)} onComplete={() => setOpen(false)} /> : null}</>;
+  const trigger = useRef<HTMLButtonElement>(null);
+  const close = () => { setOpen(false); requestAnimationFrame(() => trigger.current?.focus()); };
+  return <><button ref={trigger} type="button" className="mt-4 min-h-11 w-full rounded-xl border border-[#08779f]/40 bg-[#052344] px-4 py-3 text-sm font-bold text-cyan-200" onClick={() => setOpen(true)}>Preview identity check</button>{open ? createPortal(<DemoVerificationDialog rewardId={rewardId} previewOnly onClose={close} onComplete={close} />, document.body) : null}</>;
 }

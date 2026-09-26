@@ -83,3 +83,9 @@ test("a network error preserves the current screen and offers the same step agai
   fireEvent.click(screen.getByRole("button", { name: "Finish later" }));
   expect(onClose).toHaveBeenCalledOnce();
 });
+test("a failed initial request leaves a clear retry action instead of a stuck loader", async () => {
+  mocks.beginDemoVerification.mockRejectedValueOnce(new Error("offline"));
+  render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={vi.fn()} />);
+  expect(await screen.findByRole("heading", { name: "Couldn’t open the demo check" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Retry opening check" })).toBeTruthy();
+});

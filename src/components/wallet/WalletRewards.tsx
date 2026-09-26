@@ -141,7 +141,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, claimedCode = null }: { item: ActivityItem; isPreview: boolean; claimedCode?: string | null }) {
+export function WalletRewardDetail({ item, isPreview, claimedCode = null, overview: accountOverview }: { item: ActivityItem; isPreview: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean } }) {
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
   // Illustrative cards can keep their sample. A stored reward must use its own
@@ -173,9 +173,17 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null }: { it
     ["Status", statusLabel],
     ["Claim by", claimDeadline],
   ];
+  const ready = accountOverview ? readyWalletRewards(accountOverview.activity) : [];
+  const optionCount = accountOverview?.activity.source === "unavailable" ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;
+  const singleReady = ready.length === 1 ? ready[0] : null;
 
   return <main className={styles.detailPage}>
     <section aria-label="Reward redemption details" className={styles.detailShell}>
+      {accountOverview ? <section aria-label="Your account overview" className={`${stripStyles.row} ${styles.detailStatusStrip}`}>
+        <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={accountOverview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={accountOverview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!accountOverview.fundingEnabled} />
+        <StatusTicket size="top" variant="reward" label="Prize Ready" value={accountOverview.activity.source === "unavailable" ? "Unavailable" : String(ready.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : accountRoutes.rewards} />
+        <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null || optionCount === undefined ? "Unavailable" : String(optionCount)} action="Review options" href={accountRoutes.purchaseOptions} />
+      </section> : null}
       <header className={styles.detailHeading}>
         <div>
           <p className={styles.readyLabel} data-unavailable={!available || (!rewardReady && !canClaim)}><span aria-hidden="true">{rewardReady || canClaim ? "✓" : "!"}</span>{rewardReady ? "Ready to use" : canClaim ? "Reward earned" : notice.title}</p>
@@ -185,50 +193,45 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null }: { it
       </header>
 
       <div className={styles.rewardSplit}>
-        <article className={styles.featuredProduct}>
-          <div className={styles.featuredImage}>
-            <Image src={item.image} alt={item.title} fill priority sizes="(max-width: 760px) 42vw, 48vw" />
-          </div>
-          <div className={styles.featuredCopy}>
-            <p className={styles.featuredEyebrow}>Featured item from your entry</p>
-            <h2>{item.title}</h2>
-            <p>This is the product featured in your entry—not a restriction on your reward.</p>
-          </div>
-        </article>
-
-        <article className={styles.rewardPass}>
-          <header className={styles.passHeader}>
-            <div><p>{item.retailer} gift card</p><strong>{formatUsdFromCents(item.priceCents)}</strong></div>
-            <span aria-hidden="true">♁</span>
-          </header>
-          {available ? <p className={styles.storewideMessage}><strong>Use it on anything {item.retailer} sells.</strong> Apply it to this featured item—or choose something completely different from {item.retailer}.</p> : null}
-
-          {rewardReady ? <div className={styles.codePanel}>
-            <SampleRewardBarcode value={rawCode!.replaceAll(/\D/g, "")} />
-            <p className={styles.rewardCode}>{displayCode}</p>
-            <p className={styles.codeCaption}>{isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
-          </div> : !canClaim ? <div className={styles.codePanel}>
-            <div role="status" className={styles.notIssued}>
-              <div><p>{notice.title}</p><span>{notice.message}</span><Link href="/support" className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
+        <article className={styles.rewardTicket}>
+          <p className={styles.ticketBadge}><AccountIcon name="prize" />{rewardReady ? "Your prize is ready" : canClaim ? "Ready to claim" : notice.title}</p>
+          <div className={styles.rewardContent}>
+            <div className={styles.featuredProduct}>
+              <div className={styles.featuredImage}><Image src={item.image} alt={item.title} fill priority sizes="(max-width: 760px) 85vw, 34vw" /></div>
+              <p className={styles.featuredEyebrow}>Featured item from your entry</p>
+              <p className={styles.featuredTitle}>{item.title}</p>
+              <p className={styles.featuredNote}>This is the product featured in your entry—not a restriction on your reward.</p>
             </div>
-          </div> : null}
-
-          {canClaim
-            ? <RewardClaimControl rewardId={item.rewardId!} />
-            : <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview} />}
-          {isPreview && rewardReady && item.status === "prize" && item.rewardId ? <DemoIdentityPreviewButton rewardId={item.rewardId} /> : null}
+            <div className={styles.rewardPass}>
+              <h2>{formatUsdFromCents(item.priceCents)} {item.retailer} gift card</h2>
+              <p className={styles.rewardIntro}>Your digital reward {rewardReady ? "is ready to use." : canClaim ? "is ready to claim." : "is shown below."}</p>
+              {rewardReady ? <div id="reward-barcode" className={styles.codePanel}>
+                {/^[0-9]+$/.test(rawCode!.replaceAll(/\s/g, "")) ? <SampleRewardBarcode value={rawCode!.replaceAll(/\s/g, "")} /> : null}
+                <p className={styles.rewardCode}>{displayCode}</p>
+                <p className={styles.codeCaption}>{isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
+              </div> : !canClaim ? <div className={styles.codePanel}><div role="status" className={styles.notIssued}>
+                <div><p>{notice.title}</p><span>{notice.message}</span><Link href="/support" className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
+              </div></div> : null}
+              {canClaim ? <RewardClaimControl rewardId={item.rewardId!} /> : <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview} />}
+              {isPreview && rewardReady && item.status === "prize" && item.rewardId ? <DemoIdentityPreviewButton rewardId={item.rewardId} /> : null}
+            </div>
+          </div>
+          <section aria-labelledby="reward-details-heading" className={styles.rewardDetails}>
+            <h3 id="reward-details-heading">Reward details</h3>
+            <dl>{detailRows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd className={label === "Status" && (rewardReady || canClaim) ? styles.goodStatus : undefined}>{value}</dd></div>)}</dl>
+          </section>
         </article>
+        <aside className={styles.howToTicket} aria-labelledby="how-to-heading">
+          <h2 id="how-to-heading">How to use it</h2>
+          <p>Follow these steps to use your reward.</p>
+          <ol>
+            <li><span>1</span><div><strong>Copy or show the code</strong><p>Use the gift-card number above at the retailer. Preview numbers are samples only.</p></div></li>
+            <li><span>2</span><div><strong>Redeem at checkout</strong><p>Follow {item.retailer}&apos;s gift-card instructions, online or in store where accepted.</p></div></li>
+            <li><span>3</span><div><strong>Enjoy your purchase</strong><p>Use it toward the featured item—or something else {item.retailer} sells.</p></div></li>
+          </ol>
+          {available ? <p className={styles.storewideMessage}><strong>Use it on anything {item.retailer} sells.</strong> Product availability and redemption methods are set by {item.retailer}.</p> : null}
+        </aside>
       </div>
-
-      <section aria-labelledby="reward-details-heading" className={styles.rewardDetails}>
-        <h2 id="reward-details-heading"><span aria-hidden="true" />Reward details</h2>
-        <dl>
-          {detailRows.map(([label, value]) => <div key={label}>
-            <dt>{label}</dt>
-            <dd className={label === "Status" && (rewardReady || canClaim) ? styles.goodStatus : undefined}>{value}</dd>
-          </div>)}
-        </dl>
-      </section>
 
       <p className={styles.rewardDisclosure}>This retailer gift card is not restricted to the featured product. Availability, pricing, and redemption methods are controlled by {item.retailer}.</p>
       <Link href="/account/wallet" className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>

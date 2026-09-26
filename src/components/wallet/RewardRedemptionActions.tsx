@@ -16,6 +16,7 @@ export function RewardRedemptionActions({
   googleWalletUrl = null,
 }: RewardRedemptionActionsProps) {
   const [message, setMessage] = useState("");
+  const hasBarcode = Boolean(displayCode && /^[0-9]+$/.test(displayCode.replaceAll(/\s/g, "")));
 
   async function copyCode() {
     if (!displayCode) return;
@@ -25,6 +26,11 @@ export function RewardRedemptionActions({
     } catch {
       setMessage("Copy is unavailable in this browser. Press and hold the number instead.");
     }
+  }
+  function showCode() {
+    if (!displayCode) return;
+    document.getElementById("reward-barcode")?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    setMessage(isPreview ? "This is a sample barcode and cannot be used at checkout." : "Your gift-card number is shown above. Follow the retailer’s redemption instructions.");
   }
 
   return <>
@@ -40,12 +46,12 @@ export function RewardRedemptionActions({
       </button>
       <button
         type="button"
-        onClick={() => setMessage(isPreview ? "This is a sample barcode and cannot be used at checkout." : "A redeemable barcode has not been issued yet.")}
+        onClick={showCode}
         disabled={!displayCode}
         className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#31e800] px-4 text-sm font-black text-[#062218] shadow-[0_8px_28px_rgba(49,232,0,.25)] transition hover:bg-[#65f33d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-45"
       >
         <span aria-hidden="true" className="text-xl">▱</span>
-        Present in store
+        {!displayCode || hasBarcode ? "Show barcode" : "Show code"}
       </button>
     </div>
 
