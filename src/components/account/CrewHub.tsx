@@ -183,8 +183,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
           </div>
         </div>
         <CrewSearchPanel onSamplePicks={selectSample} disabled={!available} />
-        <div className="rounded-2xl border border-cyan-300/35 bg-[#092744] p-5">
-          <label className="flex items-start gap-3 text-sm text-white/80"><input type="checkbox" checked={discoverable} disabled={pending || !available} onChange={(event) => run(() => setCrewDiscoverable(event.target.checked))} className="mt-1 accent-[#51ed40]" /><span>Let other members find my display name in Crew search. <small className="mt-1 block text-white/50">Off by default. This never shares your entries or wallet.</small></span></label>
+        <div className={styles.privacyTicket}>
+          <label><input type="checkbox" checked={discoverable} disabled={pending || !available} onChange={(event) => run(() => setCrewDiscoverable(event.target.checked))} /><span>Let other members find my display name in Crew search. <small>Off by default. This never shares your entries or wallet.</small></span></label>
         </div>
       </section> : null}
 

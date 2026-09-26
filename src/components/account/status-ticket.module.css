@@ -171,6 +171,18 @@
 .ticket[data-size="crew"] .action { gap: 5px; padding-inline: 10px; font-size: 12px; }
 .ticket[data-size="crew"] .action svg { width: 18px; height: 18px; flex-basis: 18px; }
 
+@media (max-width: 1280px) {
+  .ticket[data-size="crew"] { min-height: 84px; grid-template-columns: minmax(0, 58%) 1px minmax(0, 1fr); }
+  .ticket[data-size="crew"] .information { gap: 8px; padding: 8px 4px 8px 12px; }
+  .ticket[data-size="crew"] .iconPanel { width: 46px; height: 48px; flex-basis: 46px; }
+  .ticket[data-size="crew"] .copy { transform: none; }
+  .ticket[data-size="crew"] .label { max-width: 9ch; font-size: 11px; line-height: 1.05; white-space: normal; }
+  .ticket[data-size="crew"].reward .label { max-width: none; }
+  .ticket[data-size="crew"] .value { font-size: 22px; }
+  .ticket[data-size="crew"] .action { gap: 5px; padding-inline: 8px; font-size: 11px; line-height: 1.1; white-space: normal; }
+  .ticket[data-size="crew"] .action > span { max-width: 7ch; }
+}
+
 @media (max-width: 1380px) {
   .ticket[data-size="overview"] .iconPanel { width: 60px; height: 60px; flex-basis: 60px; }
   .ticket[data-size="overview"] .statusIcon { width: 40px; height: 40px; }

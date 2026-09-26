@@ -31,12 +31,13 @@
 .railFooter button { width: 30px; height: 30px; border: 1px solid #4bd0f1; border-radius: 50%; color: #fff; font-size: 1.3rem; line-height: 1; }
 .disclosure { margin-top: 12px; color: #a6bdca; font-size: .72rem; line-height: 1.45; }
 .empty { border: 1px dashed #68dfff65; border-radius: 10px; padding: 22px; color: #bed4e4; font-size: .85rem; }
-.accountMode { --corner-scoop: 14px; --side-scoop: 9px; border: 0; border-radius: 0; padding: clamp(17px, 2vw, 26px); background: #fcfbf8; color: #0a1741; box-shadow: 0 10px 28px #0002; animation: none;
+.accountMode { --corner-scoop: 14px; --side-scoop: 9px; border: 0; border-radius: 0; padding: clamp(17px, 2vw, 26px); background: linear-gradient(135deg, #edfff1 0%, #f7fff8 42%, #fcfbf8 100%); color: #0a1741; box-shadow: inset 0 0 28px #4af26724, 0 10px 28px #0002; filter: drop-shadow(0 0 5px #40ed60aa); animation: none;
   -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
   -webkit-mask-composite: source-in;
   mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
   mask-composite: intersect;
 }
+.accountMode::before { position: absolute; inset: 0; border: 3px solid #47ee62; box-shadow: inset 0 0 0 1px #c4ffd1, inset 0 0 22px #47ee621c; content: ""; pointer-events: none; }
 .accountMode.connectedOutline { margin-top: 0; border-color: transparent; }
 .accountMode .header { margin-bottom: 13px; }
 .accountMode .eyebrow { color: #148ab9; }
