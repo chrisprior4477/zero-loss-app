@@ -54,7 +54,7 @@ export function OrdersFulfillment({ state, overview }: { state: AccountOrders; o
           { key: "processing", label: "In progress", count: processing, icon: "active" },
           { key: "fulfilled", label: "Issued", count: fulfilled, icon: "gift" },
           { key: "exceptions", label: "Exceptions", count: exceptions, icon: "bell" },
-        ] as const).map(item => <button key={item.key} type="button" aria-label={`${item.label}: ${state.source === "unavailable" ? "count unavailable" : `${item.count} orders`}`} aria-pressed={filter === item.key} onClick={() => setFilter(item.key)}>
+        ] as const).map(item => <button key={item.key} type="button" aria-label={`${item.label}: ${state.source === "unavailable" ? "count unavailable" : `${item.count} ${item.count === 1 ? "order" : "orders"}`}`} aria-pressed={filter === item.key} onClick={() => setFilter(item.key)}>
           <AccountIcon name={item.icon} /><span>{item.label}</span><strong>{state.source === "unavailable" ? "—" : item.count}</strong>
         </button>)}
       </section>
