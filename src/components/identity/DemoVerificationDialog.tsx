@@ -69,7 +69,7 @@ function HeadshotSample({ disabled, onUse }: { disabled: boolean; onUse: () => v
     </div>
     <p className={styles.hint}>A real provider may ask for a short video or selfie. This example plays an illustrated person; it does not film you or test liveness.</p>
     {frame === 3 ? <div className={styles.actions}><button type="button" disabled={disabled} className={styles.secondary} onClick={() => { setFrame(0); setPlaying(true); }}>Replay sample</button><button type="button" disabled={disabled} className={styles.primary} onClick={onUse}>Use sample recording</button></div>
-      : <button type="button" className={styles.primary} disabled={disabled || playing} onClick={() => { setFrame(0); setPlaying(true); }}>{playing ? "Playing sample…" : "Play sample headshot"}</button>}
+      : <div className={styles.captureAction}><button type="button" className={styles.roundAction} disabled={disabled || playing} onClick={() => { setFrame(0); setPlaying(true); }} aria-label={playing ? "Playing sample…" : "Play sample headshot"}><span aria-hidden="true">▶</span></button><div><strong>{playing ? "Playing sample…" : "Play sample headshot"}</strong><p>The illustration follows the head-turn prompts. Your camera stays off.</p></div></div>}
   </>;
 }
 
@@ -121,10 +121,12 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
   const titles: Record<DemoVerificationStep, string> = { start: "Confirm your identity", consent: "Review your details", details: "Photograph the front of your ID", document_front: "Now, the back of your ID", document_back: "Record a short headshot video", selfie: "Review before submitting", submitted: "Ready for the demo check", demo_passed: "Demo identity check complete", requires_input: "Let’s try that photo again" };
 
   return <dialog ref={dialog} aria-labelledby="identity-demo-title" className={styles.dialog} onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>
-    <header className={styles.header}><span className={styles.demoBadge}>DEMO DATA · NO PERSONAL DATA COLLECTED</span><button type="button" className={styles.close} aria-label="Save progress and close identity check" disabled={busy} onClick={onClose}>×</button></header>
+    <header className={styles.header}>
+      <span className={styles.headerIcon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4.5 5v6.1c0 5.2 3.2 8.7 7.5 10.9 4.3-2.2 7.5-5.7 7.5-10.9V5L12 2Z" /><path d="m8.5 11.7 2.3 2.3 4.8-4.9" /></svg></span>
+      <div className={styles.headingBlock}><p className={styles.eyebrow}>PRIZE CLAIM · IDENTITY CHECK</p><h2 ref={heading} tabIndex={-1} id="identity-demo-title">{step ? titles[step] : error ? "Couldn’t open the demo check" : "Opening your saved check…"}</h2></div>
+      <button type="button" className={styles.close} aria-label="Save progress and close identity check" disabled={busy} onClick={onClose}>×</button>
+    </header>
     <div className={styles.body}>
-      <p className={styles.eyebrow}>PRIZE CLAIM · IDENTITY CHECK</p>
-      <h2 ref={heading} tabIndex={-1} id="identity-demo-title">{step ? titles[step] : error ? "Couldn’t open the demo check" : "Opening your saved check…"}</h2>
       {step ? <nav aria-label="Verification progress"><p className={styles.mobileProgress}>Step {stageIndex[step] + 1} of 7 · {stages[stageIndex[step]]}</p><ol className={styles.progress}>{stages.map((label, index) => <li key={label} aria-current={stageIndex[step] === index ? "step" : undefined} data-complete={index < stageIndex[step]}><span>{index < stageIndex[step] ? "✓" : index + 1}</span>{label}</li>)}</ol></nav> : null}
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
       {!step && !busy ? <button type="button" className={styles.primary} onClick={() => restart()}>Retry opening check</button> : null}
@@ -133,32 +135,33 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
         <div className={styles.notice}><strong>Try the complete experience—using a sample person.</strong><p>We supply every photo and detail. Do not upload an ID, enter a Social Security number, or turn on your camera. No actual identity verification takes place.</p></div>
         <ul className={styles.checklist}><li>Review sample identity details</li><li>Capture the sample ID, front and back</li><li>Play a sample head-turn video</li><li>Finish the demo check and return to your prize</li></ul>
         <label className={styles.consent}><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} disabled={busy} />I understand this walkthrough uses only fictional demo data.</label>
-        <button type="button" className={styles.primary} disabled={!consent || busy} onClick={() => advance("consent")}>Start demo check</button>
+        <div className={styles.actions}><button type="button" className={styles.primary} disabled={!consent || busy} onClick={() => advance("consent")}>Start demo check</button><span className={styles.demoBadge}>DEMO ONLY · NO PERSONAL DATA COLLECTED</span></div>
       </> : null}
       {step === "consent" ? <><p className={styles.copy}>These fields are automatically filled with our sample person—not your account details.</p><SampleDetails /><p className={styles.hint}>Read-only demo data. No identity details are submitted with this step.</p><button type="button" className={styles.primary} disabled={busy} onClick={() => advance("details")}>Confirm sample details</button></> : null}
       {step === "details" || step === "document_front" ? <>
         <p className={styles.copy}>Keep all four corners visible and avoid glare. For this walkthrough, the sample card is already positioned for you.</p>
         <div className={styles.capture}><span className={styles.cameraBadge}>DEMO CAPTURE · CAMERA OFF</span><SampleId back={step === "document_front"} /></div>
-        <p className={styles.hint}>A fictional Florida-address sample, not a reproduction of a government ID. No upload or camera permission is needed.</p>
-        <button type="button" className={styles.primary} disabled={busy} onClick={() => advance(step === "details" ? "document_front" : "document_back")}>Capture sample {step === "details" ? "front" : "back"}</button>
+        <div className={styles.captureAction}><button type="button" className={styles.roundAction} aria-label={`Capture sample ${step === "details" ? "front" : "back"}`} disabled={busy} onClick={() => advance(step === "details" ? "document_front" : "document_back")}><span aria-hidden="true">◎</span></button><div><strong>Capture sample {step === "details" ? "front" : "back"}</strong><p>A fictional Florida-address sample. No upload or camera permission is needed.</p></div></div>
       </> : null}
       {step === "document_back" ? <HeadshotSample disabled={busy} onUse={() => advance("selfie")} /> : null}
       {step === "selfie" ? <>
-        <SampleDetails /><ul className={styles.checklist}><li>Sample ID front captured</li><li>Sample ID back captured</li><li>Sample headshot recording selected</li></ul>
+        <SampleDetails /><ul className={styles.reviewChecklist}><li>Sample ID front captured</li><li>Sample ID back captured</li><li>Sample headshot recording selected</li></ul>
         <details className={styles.tax}><summary>What about Social Security numbers and taxes?</summary><p>Tax paperwork is separate from identity verification. This preview does not collect or submit a tax form.</p><label>Tax-number format example · not submitted<input readOnly value="XXX-XX-0000 — DEMO ONLY" aria-label="Tax-number example — demo only" /></label><p>Real tax information would only be requested when required, through an approved secure process.</p></details>
         <button type="button" className={styles.primary} disabled={busy} onClick={() => advance("submitted")}>Submit sample for review</button>
       </> : null}
       {step === "submitted" ? <>
         <div className={styles.notice}><strong>Sample submitted</strong><p>Your progress is saved. Run a simulated result below; no real document or face analysis is performed.</p></div>
-        <button type="button" className={styles.primary} disabled={busy} onClick={() => advance("demo_passed")}>{busy ? "Saving demo result…" : "Run successful demo check"}</button>
-        <button type="button" className={styles.textButton} disabled={busy} onClick={() => advance("requires_input")}>Try the “photo needs retaking” example</button>
+        <div className={styles.resultChoices}>
+          <button type="button" className={styles.successChoice} disabled={busy} onClick={() => advance("demo_passed")}><span aria-hidden="true">✓</span><strong>{busy ? "Saving demo result…" : "Run successful demo check"}</strong></button>
+          <button type="button" className={styles.retakeChoice} disabled={busy} onClick={() => advance("requires_input")}><span aria-hidden="true">↻</span><strong>Try the “photo needs retaking” example</strong></button>
+        </div>
       </> : null}
-      {step === "requires_input" ? <><div className={styles.notice}><strong>Sample outcome: photo not clear enough.</strong><p>In a real check, you could be asked to retake a photo. {previewOnly ? "Replaying does not change an existing claim." : "Your prize has not been claimed."} This failed demo attempt remains in the audit history.</p></div><button type="button" className={styles.primary} disabled={busy} onClick={() => restart(true)}>Try again with sample ID</button></> : null}
-      {step === "demo_passed" ? <><div className={styles.success}><span aria-hidden="true">✓</span><strong>Demo check passed</strong><p>Saved to your account. {previewOnly ? "Your existing prize claim is unchanged." : "You can now continue claiming this demo prize."} This is not real KYC approval.</p></div><p className={styles.hint}>Later demo wins can use this saved result under the same demo policy. Live verification may need to be repeated.</p><button type="button" className={styles.primary} disabled={busy} onClick={onComplete}>{previewOnly ? "Back to reward" : "Continue to claim prize"}</button><button type="button" className={styles.textButton} disabled={busy} onClick={() => restart(true)}>Replay the demo walkthrough</button></> : null}
+      {step === "requires_input" ? <><div className={`${styles.notice} ${styles.retakeNotice}`}><strong>Sample outcome: photo not clear enough.</strong><p>In a real check, you could be asked to retake a photo. {previewOnly ? "Replaying does not change an existing claim." : "Your prize has not been claimed."} This failed demo attempt remains in the audit history.</p></div><button type="button" className={styles.primary} disabled={busy} onClick={() => restart(true)}>Try again with sample ID</button></> : null}
+      {step === "demo_passed" ? <><div className={styles.success}><span aria-hidden="true">✓</span><div><strong>Demo check passed</strong><p>Saved to your account. {previewOnly ? "Your existing prize claim is unchanged." : "You can now continue claiming this demo prize."} This is not real KYC approval.</p></div></div><p className={styles.hint}>Later demo wins can use this saved result under the same demo policy. Live verification may need to be repeated.</p><div className={styles.actions}><button type="button" className={styles.primary} disabled={busy} onClick={onComplete}>{previewOnly ? "Back to reward" : "Continue to claim prize"}</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => restart(true)}>Replay the demo walkthrough</button></div></> : null}
       {busy ? <p role="status" className={styles.saving}>Saving securely…</p> : null}
       {verification ? <p className={styles.reference}>Demo session {verification.reference}</p> : null}
     </div>
-    <footer className={styles.footer}><span>Progress is saved to your account.</span><button type="button" disabled={busy} onClick={onClose}>Finish later</button></footer>
+    <footer className={styles.footer}><span><strong>DEMO DATA · NO PERSONAL DATA COLLECTED</strong><small>Progress is saved to your account.</small></span><button type="button" disabled={busy} onClick={onClose}>Finish later</button></footer>
   </dialog>;
 }
 
