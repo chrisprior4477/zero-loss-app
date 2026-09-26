@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { saveCrewDisplaySettings } from "@/lib/crew/actions";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { saveCrewDisplaySettings, saveCrewGroup } from "@/lib/crew/actions";
 import { type CrewAudience, type CrewVisibilityGroup, type CrewVisibilityRule } from "@/lib/crew/visibility";
 import styles from "./crew-display-settings.module.css";
 
@@ -61,9 +61,21 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDef
   const [groups, setGroups] = useState<CrewVisibilityGroup[]>(initialGroups);
   const [entryRules, setEntryRules] = useState<Record<string, CrewVisibilityRule>>(initialEntryRules);
   const [newGroupName, setNewGroupName] = useState("");
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
+  const [groupMessage, setGroupMessage] = useState("");
+  const [groupMessageError, setGroupMessageError] = useState(false);
+  const [editorMessage, setEditorMessage] = useState<{ id: string; text: string; error: boolean } | null>(null);
   const [message, setMessage] = useState("");
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
+  const groupToReveal = useRef<string | null>(null);
+  const persistedGroupIds = useRef(new Set(initialGroups.map((group) => group.id)));
+
+  useEffect(() => {
+    if (!groupToReveal.current) return;
+    document.getElementById(`crew-group-${groupToReveal.current}`)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    groupToReveal.current = null;
+  }, [groups]);
 
   function updateEntryRule(id: string, rule: CrewVisibilityRule | null) {
     setSaved(false);
@@ -77,23 +89,66 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDef
 
   function addGroup() {
     const name = newGroupName.trim();
-    if (!name) { setMessage("Give your group a name first."); return; }
-    if (name.length > 50) { setMessage("Group names can be up to 50 characters."); return; }
+    if (!name) { setGroupMessage("Give your group a name first."); setGroupMessageError(true); return; }
+    if (name.length > 50) { setGroupMessage("Group names can be up to 50 characters."); setGroupMessageError(true); return; }
     if (groups.some((group) => group.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase())) {
-      setMessage("You already have a group with that name."); return;
+      setGroupMessage("You already have a group with that name."); setGroupMessageError(true); return;
     }
-    if (groups.length >= 20) { setMessage("You can make up to 20 groups."); return; }
-    setGroups((current) => [...current, { id: crypto.randomUUID(), name, memberIds: [] }]);
+    const id = crypto.randomUUID();
+    groupToReveal.current = id;
+    setGroups((current) => [...current, { id, name, memberIds: [] }]);
+    setExpandedGroupId(id);
+    setEditorMessage(null);
     setNewGroupName("");
     setMessage("");
+    setGroupMessage(`${name} is ready. Add people below, then choose Save group.`);
+    setGroupMessageError(false);
     setSaved(false);
   }
 
-  function removeGroup(id: string) {
+  function discardGroup(id: string) {
     setGroups((current) => current.filter((group) => group.id !== id));
+    setExpandedGroupId((current) => current === id ? null : current);
+    setEditorMessage((current) => current?.id === id ? null : current);
     setDefaultRule((current) => ({ ...current, groupIds: current.groupIds.filter((value) => value !== id) }));
     setEntryRules((current) => Object.fromEntries(Object.entries(current).map(([entryId, rule]) => [entryId, { ...rule, groupIds: rule.groupIds.filter((value) => value !== id) }])));
     setSaved(false);
+  }
+
+  function saveGroup(group: CrewVisibilityGroup) {
+    const name = group.name.trim();
+    if (!name || name.length > 50 || groups.some((item) => item.id !== group.id && item.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase())) {
+      setEditorMessage({ id: group.id, text: "Give this group a unique name of 1–50 characters.", error: true });
+      return;
+    }
+    startTransition(async () => {
+      const result = await saveCrewGroup({ group: { ...group, name }, remove: false });
+      setEditorMessage({ id: group.id, text: result.ok ? `${name} saved. You can keep editing it or create another group.` : result.message, error: !result.ok });
+      if (result.ok) {
+        setGroupMessage("");
+        persistedGroupIds.current.add(group.id);
+        router.refresh();
+      }
+    });
+  }
+
+  function removeGroup(group: CrewVisibilityGroup) {
+    if (!persistedGroupIds.current.has(group.id)) {
+      discardGroup(group.id);
+      setGroupMessage(`${group.name} removed.`);
+      setGroupMessageError(false);
+      return;
+    }
+    startTransition(async () => {
+      const result = await saveCrewGroup({ group, remove: true });
+      if (result.ok) {
+        persistedGroupIds.current.delete(group.id);
+        discardGroup(group.id);
+        setGroupMessage(`${group.name} removed from your profile.`);
+        setGroupMessageError(false);
+        router.refresh();
+      } else setEditorMessage({ id: group.id, text: result.message, error: true });
+    });
   }
 
   function validate(): string | null {
@@ -116,7 +171,10 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDef
       const result = await saveCrewDisplaySettings({ discoverable, defaultRule, groups, entryRules });
       setMessage(result.message);
       setSaved(result.ok);
-      if (result.ok) router.refresh();
+      if (result.ok) {
+        persistedGroupIds.current = new Set(groups.map((group) => group.id));
+        router.refresh();
+      }
     });
   }
 
@@ -145,12 +203,31 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDef
 
       <section className={styles.ticket} aria-labelledby="groups-title">
         <div className={styles.sectionHead}><span className={styles.step}>03</span><div><h2 id="groups-title">Make your own groups</h2><p>Create several groups—Family, Friends, or any name you choose—and decide which approved Crew members belong in each.</p></div></div>
-        <div className={styles.addGroup}><label htmlFor="new-crew-group">New group name</label><div><input id="new-crew-group" value={newGroupName} maxLength={50} disabled={!available || pending} placeholder="Family, Friends, or your own name" onChange={(event) => setNewGroupName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addGroup(); } }} /><button type="button" onClick={addGroup} disabled={!available || pending}>+ Create group</button></div></div>
-        {groups.length ? <div className={styles.groupGrid}>{groups.map((group) => <div key={group.id} className={styles.groupCard}>
-          <div className={styles.groupTop}><label>Group name<input value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setSaved(false); }} /></label><button type="button" onClick={() => removeGroup(group.id)} disabled={!available || pending} aria-label={`Remove ${group.name} group`}>Remove</button></div>
-          <p>{group.memberIds.length} {group.memberIds.length === 1 ? "person" : "people"} in this group</p>
-          <div className={styles.targets}>{members.length ? members.map((member) => <label key={member.id} className={styles.target}><input type="checkbox" checked={group.memberIds.includes(member.id)} disabled={!available || pending} onChange={() => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, memberIds: toggleId(item.memberIds, member.id) } : item)); setSaved(false); }} /><span>{member.name}</span></label>) : <span className={styles.emptyTargets}>Connect with someone in Your Crew to add them here.</span>}</div>
-        </div>)}</div> : <p className={styles.emptyTargets}>No groups yet. Add as many named groups as you need, up to 20.</p>}
+        <div className={styles.groupArea}>
+          <div className={styles.groupListHeading}><strong>Your groups</strong><span>{groups.length} {groups.length === 1 ? "group" : "groups"}</span></div>
+          {groups.length ? <div className={styles.groupList}>{groups.map((group) => {
+            const expanded = expandedGroupId === group.id;
+            return <div id={`crew-group-${group.id}`} key={group.id} className={styles.groupRow}>
+              <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} {group.memberIds.length === 1 ? "person" : "people"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={`crew-group-editor-${group.id}`} onClick={() => setExpandedGroupId(expanded ? null : group.id)}>{expanded ? "Close editor" : "Edit group"}</button></div>
+              {expanded ? <div id={`crew-group-editor-${group.id}`} className={styles.groupEditor}>
+                <label className={styles.groupName}>Group name<input value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setSaved(false); }} /></label>
+                <div className={styles.memberEditor}>
+                  <div className={styles.memberPickerHeading}><strong>People in this group</strong><span>{group.memberIds.length ? "Use Remove to take someone out of this group." : "No one added yet."}</span></div>
+                  {group.memberIds.length ? <div className={styles.memberChips}>{group.memberIds.map((id) => {
+                    const member = members.find((item) => item.id === id);
+                    return <span className={styles.memberChip} key={id}>{member?.name ?? "Former member"}<button type="button" disabled={!available || pending} onClick={() => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, memberIds: item.memberIds.filter((value) => value !== id) } : item)); setSaved(false); }} aria-label={`Remove ${member?.name ?? "former member"} from ${group.name}`}>Remove</button></span>;
+                  })}</div> : null}
+                  <div className={styles.memberPickerHeading}><strong>Add people</strong><span>Choose approved Crew members.</span></div>
+                  <div className={styles.targets}>{members.length ? members.filter((member) => !group.memberIds.includes(member.id)).map((member) => <button type="button" key={member.id} className={styles.addMember} disabled={!available || pending} onClick={() => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, memberIds: [...item.memberIds, member.id] } : item)); setSaved(false); }}>+ Add {member.name}</button>) : <span className={styles.emptyTargets}>No approved Crew members yet. You can name this group now and add people after they accept an invitation.</span>}</div>
+                </div>
+                <div className={styles.groupActions}><button type="button" className={styles.removeGroup} onClick={() => removeGroup(group)} disabled={!available || pending}>Remove group</button><button type="button" className={styles.saveGroup} onClick={() => saveGroup(group)} disabled={!available || pending}>{pending ? "Saving…" : "Save group"}</button></div>
+                {editorMessage?.id === group.id ? <p role={editorMessage.error ? "alert" : "status"} className={editorMessage.error ? styles.groupError : styles.groupSaved}>{editorMessage.text}</p> : <p className={styles.groupHint}>Add or remove people, then choose Save group to apply this group’s changes.</p>}
+              </div> : null}
+            </div>;
+          })}</div> : <p className={styles.emptyGroup}>No groups yet. Create a name below; it will open here so you can add people.</p>}
+          {groupMessage ? <p role={groupMessageError ? "alert" : "status"} className={styles.groupNotice} data-error={groupMessageError}>{groupMessage}</p> : null}
+          <div className={styles.addGroup}><label htmlFor="new-crew-group">New group name</label><div><input id="new-crew-group" value={newGroupName} maxLength={50} disabled={!available || pending} placeholder="Family, Friends, or your own name" onChange={(event) => setNewGroupName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addGroup(); } }} /><button type="button" onClick={addGroup} disabled={!available || pending}>+ Create group</button></div></div>
+        </div>
       </section>
 
       <section className={styles.ticket} aria-labelledby="picks-title">

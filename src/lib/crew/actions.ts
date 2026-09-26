@@ -30,7 +30,7 @@ export async function saveCrewDisplaySettings(input: {
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to save your Crew sharing settings." };
   if (!input || typeof input.discoverable !== "boolean" || !isCrewVisibilityRule(input.defaultRule)
-    || !Array.isArray(input.groups) || input.groups.length > 20 || !input.groups.every(isCrewVisibilityGroup)
+    || !Array.isArray(input.groups) || input.groups.length > 500 || !input.groups.every(isCrewVisibilityGroup)
     || !input.entryRules || typeof input.entryRules !== "object" || Array.isArray(input.entryRules)
     || Object.keys(input.entryRules).length > 500
     || !Object.entries(input.entryRules).every(([id, rule]) => crewUuid.test(id) && isCrewVisibilityRule(rule))) {
@@ -49,6 +49,20 @@ export async function saveCrewDisplaySettings(input: {
   if (error) return { ok: false, message: "We couldn’t save those settings. Check that each person is still in your approved Crew, then try again." };
   refreshCrew();
   return { ok: true, message: "Saved to your profile. Your search visibility and pick audiences are updated." };
+}
+
+/** Save just one group, leaving other visibility edits for the main Save to profile action. */
+export async function saveCrewGroup(input: { group: CrewVisibilityGroup; remove: boolean }): Promise<CrewActionResult> {
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in to save your Crew group." };
+  if (!input || !isCrewVisibilityGroup(input.group) || typeof input.remove !== "boolean") {
+    return { ok: false, message: "Review the group name and people before saving." };
+  }
+  const group = { ...input.group, name: input.group.name.trim() };
+  const { error } = await session.db.rpc("save_crew_visibility_group", { p_group: group, p_remove: input.remove });
+  if (error) return { ok: false, message: "We couldn’t save that group. Check that everyone is still in your approved Crew, then try again." };
+  refreshCrew();
+  return { ok: true, message: input.remove ? "Group removed from your profile." : `${group.name} saved to your profile.` };
 }
 
 export async function inviteToCrew(email: string): Promise<CrewActionResult> {
