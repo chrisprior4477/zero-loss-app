@@ -37,6 +37,24 @@
   mask-composite: intersect;
 }
 
+/* Short tickets need separated scoops; larger side bites merge into their corners. */
+.headingActions a { --corner-scoop: 11px; --side-scoop: 4px; }
+.summary button { --corner-scoop: 16px; --side-scoop: 7px; }
+.truthNote {
+  --corner-scoop: 14px;
+  /* This shallow full-width ticket has corner scoops only; a middle bite reads as an arrow. */
+  -webkit-mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%);
+  mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%);
+}
+
 .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 17px; }
 .summary button { display: flex; min-width: 0; min-height: 65px; align-items: center; gap: 12px; padding: 11px 19px; border: 0; background: #fcfbf8; color: #0a1741; cursor: pointer; font-size: clamp(13px, 1.3vw, 18px); font-weight: 820; text-align: left; }
 .summary button:first-child { background: #91e5ff; }
@@ -47,9 +65,9 @@
 .summary button > strong { display: grid; min-width: 35px; min-height: 35px; flex: 0 0 auto; place-items: center; margin-left: auto; padding: 4px 7px; border-radius: 9px; background: #072c60; color: #fff; font-size: 20px; font-variant-numeric: tabular-nums; }
 .warning { margin-top: 12px; padding: 17px 22px; background: #fff0d5; color: #6c3710; font-size: 13px; }
 
-.contentGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(225px, 250px); align-items: start; gap: 10px; margin-top: 12px; }
-.orders { min-width: 0; }
-.sectionHeading { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin: 2px 0 10px; }
+.contentGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(225px, 250px); grid-template-areas: "heading ." "orders rail"; align-items: start; column-gap: 10px; row-gap: 0; margin-top: 12px; }
+.orders { grid-area: orders; min-width: 0; }
+.sectionHeading { display: flex; grid-area: heading; align-items: end; justify-content: space-between; gap: 12px; margin: 2px 0 10px; }
 .sectionHeading h2 { margin-top: 3px; font-size: 20px; font-weight: 820; letter-spacing: -.03em; }
 .sectionHeading > span { flex: 0 0 auto; color: #b8cce7; font-size: 12px; }
 .orderList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -85,7 +103,7 @@
 .empty a, .empty button, .helpCard > a { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 7px; margin-top: 14px; padding: 7px 14px; border: 0; border-radius: 8px; background: #bde8ff; color: #0a1741; cursor: pointer; font-size: 12px; font-weight: 800; text-decoration: none; }
 .empty a svg, .empty button svg, .helpCard > a svg { width: 16px; height: 16px; }
 
-.sideRail { display: grid; gap: 10px; }
+.sideRail { display: grid; grid-area: rail; gap: 10px; }
 .extraLinks { display: grid; gap: 10px; margin-top: 10px; }
 .helpCard, .linksCard, .truthNote { background: #fcfbf8; color: #0a1741; }
 .helpCard, .linksCard { padding: 20px 20px 23px; }
@@ -128,7 +146,8 @@
 }
 @media (max-width: 930px) {
   .heading { align-items: start; flex-direction: column; }
-  .contentGrid { grid-template-columns: 1fr; }
+  .contentGrid { grid-template-columns: 1fr; grid-template-areas: "heading" "orders" "rail"; }
+  .sideRail { margin-top: 10px; }
   .orderCard { grid-template-columns: minmax(115px, 33%) minmax(0, 1fr); }
   .summary button { gap: 6px; padding-inline: 12px; }
 }

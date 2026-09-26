@@ -62,8 +62,8 @@ export function OrdersFulfillment({ state, overview }: { state: AccountOrders; o
       {state.source === "unavailable" ? <div role="status" className={styles.warning}>Orders could not be verified right now. No sample orders have been substituted.</div> : null}
 
       <div className={styles.contentGrid}>
+        <header className={styles.sectionHeading}><div><p>YOUR ORDERS</p><h2 id="your-orders-heading">Retailer gift-card fulfillment</h2></div><span>{filter === "all" ? `${state.orders.length} ${state.orders.length === 1 ? "order" : "orders"}` : `${visibleOrders.length} of ${state.orders.length} orders`}</span></header>
         <section className={styles.orders} aria-labelledby="your-orders-heading">
-          <header className={styles.sectionHeading}><div><p>YOUR ORDERS</p><h2 id="your-orders-heading">Retailer gift-card fulfillment</h2></div><span>{filter === "all" ? `${state.orders.length} ${state.orders.length === 1 ? "order" : "orders"}` : `${visibleOrders.length} of ${state.orders.length} orders`}</span></header>
           {state.orders.length && visibleOrders.length ? <div className={styles.orderList}>
             {visibleOrders.map(order => {
               const detail = presentation(order);
