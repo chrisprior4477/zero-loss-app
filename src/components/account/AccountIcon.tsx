@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-export type AccountIconName = "all" | "active" | "prize" | "completion" | "completed" | "wallet" | "layers" | "gift" | "orders" | "crew" | "bell" | "security" | "install" | "signout" | "arrow" | "chevron";
+export type AccountIconName = "all" | "active" | "prize" | "completion" | "completed" | "wallet" | "layers" | "gift" | "orders" | "crew" | "bell" | "security" | "alert" | "mail" | "chat" | "settings" | "install" | "signout" | "arrow" | "chevron";
 
 /** Small, decorative line icons shared by the account showroom and drawer. */
 export function AccountIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: AccountIconName }) {
@@ -17,6 +17,10 @@ export function AccountIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name
     crew: <><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 6h4m-2-2v4M17 13a5 5 0 0 1 4 5v2"/></>,
     bell: <><path d="M18 8a6 6 0 0 0-12 0c0 8-3 8-3 10h18c0-2-3-2-3-10ZM10 21h4" /></>,
     security: <><path d="m12 2 9 4v6c0 5-9 10-9 10S3 17 3 12V6l9-4Z" /><path d="m8 12 3 3 5-6" /></>,
+    alert: <><circle cx="12" cy="12" r="9" /><path d="M12 6v7m0 4h.01" /></>,
+    mail: <><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m4 7 8 6 8-6m-5 8 2 2 3-4" /></>,
+    chat: <><path d="M4 4h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" /><path d="M7 11h.01M12 11h.01M17 11h.01" /></>,
+    settings: <><path d="M10 2h4l.7 2.5 2.1.9 2.3-1.3 2.8 2.8-1.3 2.3.9 2.1L24 12l-2.5.7-.9 2.1 1.3 2.3-2.8 2.8-2.3-1.3-2.1.9L14 22h-4l-.7-2.5-2.1-.9-2.3 1.3-2.8-2.8 1.3-2.3-.9-2.1L0 12l2.5-.7.9-2.1-1.3-2.3 2.8-2.8 2.3 1.3 2.1-.9L10 2Z" /><circle cx="12" cy="12" r="3" /></>,
     install: <><path d="M7 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" /><path d="M14 3h7v7M21 3l-9 9M8 17h8" /></>,
     signout: <><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5M14 8l5 4-5 4M19 12H9" /></>,
     arrow: <><path d="M4 12h16m-6-6 6 6-6 6" /></>,

@@ -44,5 +44,6 @@ export default async function NotificationsPage() {
     walletAvailable={account.wallet !== null}
     crewAvailable={!crewError}
     readAvailable={!readError}
+    overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
   /></>;
 }

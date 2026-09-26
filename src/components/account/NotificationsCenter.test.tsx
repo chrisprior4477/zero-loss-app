@@ -48,6 +48,16 @@ test("notification filters, links, and read controls remain functional", () => {
   expect(screen.getByRole("link", { name: /Sharing preferences/ }).getAttribute("href")).toBe("/account/crew?tab=picks#sharing");
 });
 
+test("overview tickets and every existing notification category keep their destinations", () => {
+  const activity = storedActivityFixture();
+  render(<NotificationsCenter notifications={buildAccountNotifications(activity, wallet, true)} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable overview={{ balanceLabel: "$146", fundingEnabled: true, activity }} />);
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("/account/wallet?view=history#add-funds");
+  expect(screen.getByRole("link", { name: /Prize Ready: 1/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
+  expect(screen.getByRole("link", { name: /Purchase Options: 2/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
+  fireEvent.click(screen.getByRole("button", { name: /Your Crew0/ }));
+  expect(screen.getByText("No your crew updates")).toBeTruthy();
+});
+
 test("unavailable data sources are disclosed instead of replaced with samples", () => {
   render(<NotificationsCenter notifications={[]} initialReadIds={[]} activityAvailable={false} walletAvailable={false} crewAvailable={false} readAvailable={false} />);
   expect(screen.getByText(/Some account updates could not be verified/)).toBeTruthy();
