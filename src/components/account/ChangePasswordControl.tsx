@@ -38,8 +38,13 @@ export function ChangePasswordControl() {
       className={styles.passwordToggle}
       aria-expanded={open}
       aria-controls="change-account-password-form"
+      aria-label={open ? "Close password form" : "Change password"}
       onClick={() => setOpen((wasOpen) => !wasOpen)}
-    >{open ? "Close password form" : "Change password"}<span aria-hidden="true">{open ? "↑" : "→"}</span></button>
+    >
+      <span className={styles.passwordIcon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="4.5" /><path d="m11 12 9-9 2 2-2 2 1.5 1.5-2 2L18 9l-2 2" /></svg></span>
+      <span className={styles.rowText}><strong>Password</strong><small>Change your password</small></span>
+      <span className={styles.passwordArrow} aria-hidden="true">{open ? "⌃" : "›"}</span>
+    </button>
     {open ? <ChangePasswordForm onCancel={() => setOpen(false)} /> : null}
   </div>;
 }

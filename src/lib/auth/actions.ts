@@ -433,3 +433,22 @@ export async function signOutAction(): Promise<void> {
   await supabase.auth.signOut();
   redirect("/");
 }
+
+export type SignOutEverywhereState = { status: "idle" | "error"; message: string | null };
+
+export async function signOutEverywhereAction(
+  _previous: SignOutEverywhereState,
+  _formData: FormData,
+): Promise<SignOutEverywhereState> {
+  const supabase = await createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return { status: "error", message: "Your session expired. Sign in again to manage your sessions." };
+  }
+
+  const { error } = await supabase.auth.signOut({ scope: "global" });
+  if (error) {
+    return { status: "error", message: "We could not sign out your sessions. Please try again." };
+  }
+  redirect("/login");
+}

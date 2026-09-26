@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ChangeEvent, PointerEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { saveProfilePhoto } from "@/lib/account/actions";
 
 const PHOTO_KEY = "zero-loss-profile-photo";
@@ -214,7 +215,7 @@ export function ProfilePhotoCard({
         {error ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
       </article>
 
-      {editing && draftPhoto ? (
+      {editing && draftPhoto ? createPortal(
         <div className="fixed inset-0 z-[160] grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="photo-editor-title">
           <div className="w-full max-w-md rounded-[28px] border border-cyan-300/25 bg-[#052447] p-6 shadow-2xl">
             <h2 id="photo-editor-title" className="text-2xl font-black text-white">Adjust your photo</h2>
@@ -254,7 +255,8 @@ export function ProfilePhotoCard({
               Choose a different photo
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );

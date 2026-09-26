@@ -71,6 +71,7 @@ export default async function LiveAccountSection({
       memberSince={account.memberSince}
       lastSignInAt={account.lastSignInAt}
       phone={account.phone}
+      overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
     />;
   }
 

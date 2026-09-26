@@ -9,10 +9,31 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
-import { changeAccountPasswordAction, requestPasswordResetAction, updateRecoveredPasswordAction } from "./actions";
+import { changeAccountPasswordAction, requestPasswordResetAction, signOutEverywhereAction, updateRecoveredPasswordAction } from "./actions";
 
 const initial = { status: "idle" as const, message: null };
 afterEach(() => vi.clearAllMocks());
+
+test("sign out everywhere requires a session and explicitly revokes every refresh session", async () => {
+  const signOut = vi.fn().mockResolvedValue({ error: null });
+  const getUser = vi.fn().mockResolvedValueOnce({ data: { user: null }, error: null }).mockResolvedValueOnce({ data: { user: { id: "user-1" } }, error: null });
+  mocks.createClient.mockResolvedValue({ auth: { getUser, signOut } });
+  const form = new FormData();
+  const expired = await signOutEverywhereAction({ status: "idle", message: null }, form);
+  expect(expired.status).toBe("error");
+  expect(signOut).not.toHaveBeenCalled();
+  await signOutEverywhereAction({ status: "idle", message: null }, form);
+  expect(signOut).toHaveBeenCalledWith({ scope: "global" });
+  expect(mocks.redirect).toHaveBeenCalledWith("/login");
+});
+
+test("failed global sign out reports failure without claiming the account signed out", async () => {
+  const signOut = vi.fn().mockResolvedValue({ error: new Error("network") });
+  mocks.createClient.mockResolvedValue({ auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } }, error: null }), signOut } });
+  const result = await signOutEverywhereAction({ status: "idle", message: null }, new FormData());
+  expect(result.status).toBe("error");
+  expect(mocks.redirect).not.toHaveBeenCalled();
+});
 
 test("reset request sends through Supabase and never confirms whether the address exists", async () => {
   const resetPasswordForEmail = vi.fn().mockResolvedValue({ error: null });

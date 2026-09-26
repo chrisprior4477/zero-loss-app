@@ -13,7 +13,7 @@ test("compact profile preserves stored name casing and the saved photo without w
   expect(screen.getByText("Test.Email@example.com")).toBeTruthy();
   expect(document.querySelector('[data-photo-source="https://example.com/saved-avatar.webp"]')).toBeTruthy();
   fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[0]);
-  expect(screen.getByRole("dialog", { name: "Adjust your photo" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "Adjust your photo" }).parentElement).toBe(document.body);
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(savePhoto).not.toHaveBeenCalled();
