@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
@@ -163,6 +164,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
       <div className={styles.tabs} role="tablist" aria-label="Your Crew sections">
         {([["crew", "Your Crew"], ["requests", `Requests${received.length ? ` (${received.length})` : ""}`], ["picks", "My shared picks"]] as const).map(([key, label]) =>
           <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)}>{label}</button>) }
+        <Link href="/account/crew/display" role="tab" aria-selected="false">How to display my picks</Link>
       </div>
 
       {tab === "crew" ? <section className={styles.crewSection} aria-label="Approved Crew">

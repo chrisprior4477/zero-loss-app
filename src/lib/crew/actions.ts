@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, type CrewVisibilityGroup, type CrewVisibilityRule } from "./visibility";
 
 type CrewActionResult = { ok: boolean; message: string };
 export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: string | null };
@@ -16,7 +17,38 @@ async function signedInClient() {
 
 function refreshCrew() {
   revalidatePath("/account/crew");
+  revalidatePath("/account/crew/display");
   revalidatePath("/account/notifications");
+}
+
+export async function saveCrewDisplaySettings(input: {
+  discoverable: boolean;
+  defaultRule: CrewVisibilityRule;
+  groups: CrewVisibilityGroup[];
+  entryRules: Record<string, CrewVisibilityRule>;
+}): Promise<CrewActionResult> {
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in to save your Crew sharing settings." };
+  if (!input || typeof input.discoverable !== "boolean" || !isCrewVisibilityRule(input.defaultRule)
+    || !Array.isArray(input.groups) || input.groups.length > 20 || !input.groups.every(isCrewVisibilityGroup)
+    || !input.entryRules || typeof input.entryRules !== "object" || Array.isArray(input.entryRules)
+    || Object.keys(input.entryRules).length > 500
+    || !Object.entries(input.entryRules).every(([id, rule]) => crewUuid.test(id) && isCrewVisibilityRule(rule))) {
+    return { ok: false, message: "Review the audience and group details before saving." };
+  }
+  const names = input.groups.map((group) => group.name.trim().toLocaleLowerCase());
+  if (new Set(names).size !== names.length || new Set(input.groups.map((group) => group.id)).size !== input.groups.length) {
+    return { ok: false, message: "Give every group a different name." };
+  }
+  const { error } = await session.db.rpc("save_crew_visibility_settings", {
+    p_default_rule: { audience: input.defaultRule.audience, memberIds: input.defaultRule.memberIds, groupIds: input.defaultRule.groupIds },
+    p_groups: input.groups.map((group) => ({ id: group.id, name: group.name.trim(), memberIds: group.memberIds })),
+    p_entry_rules: Object.fromEntries(Object.entries(input.entryRules).map(([id, rule]) => [id, { audience: rule.audience, memberIds: rule.memberIds, groupIds: rule.groupIds }])),
+    p_discoverable: input.discoverable,
+  });
+  if (error) return { ok: false, message: "We couldn’t save those settings. Check that each person is still in your approved Crew, then try again." };
+  refreshCrew();
+  return { ok: true, message: "Saved to your profile. Your search visibility and pick audiences are updated." };
 }
 
 export async function inviteToCrew(email: string): Promise<CrewActionResult> {

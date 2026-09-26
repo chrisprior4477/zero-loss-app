@@ -7,14 +7,15 @@
 .counts span { border-radius: 999px; padding: 6px 10px; background: #0a3b5e; color: #c4eefe; font-size: 11px; font-weight: 800; white-space: nowrap; }
 .counts span:first-child { color: #8cff7b; }
 .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-.tabs button { --corner-scoop: 8px; --side-scoop: 5px; min-height: 47px; padding: 9px 22px; border: 0; background: #0b4168; color: #e6f8ff; font-size: 13px; font-weight: 800; cursor: pointer;
+.tabs button, .tabs a { --corner-scoop: 8px; --side-scoop: 5px; min-height: 47px; padding: 9px 22px; border: 0; background: #0b4168; color: #e6f8ff; font-size: 13px; font-weight: 800; cursor: pointer;
   -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
   -webkit-mask-composite: source-in;
   mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
   mask-composite: intersect;
 }
 .tabs button[aria-selected="true"] { background: #bdeeff; color: #071b3e; filter: drop-shadow(0 0 5px #4af15f); }
-.tabs button:hover { filter: brightness(1.08); }
+.tabs button:hover, .tabs a:hover { filter: brightness(1.08); }
+.tabs a { display: grid; place-items: center; text-align: center; text-decoration: none; }
 .incomingInvite { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; border: 1px solid #6cef80; border-radius: 12px; padding: 14px 17px; background: #0b423e; }
 .incomingInvite strong { font-size: 15px; }
 .incomingInvite p { margin-top: 4px; color: #d1e8e3; font-size: 12px; }
@@ -97,8 +98,8 @@
 @media (max-width: 700px) {
   .pageHeading { align-items: start; flex-direction: column; }
   .counts { justify-content: flex-start; }
-  .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .tabs button { padding-inline: 7px; font-size: 11px; }
+  .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tabs button, .tabs a { padding-inline: 9px; font-size: 12px; }
   .sidebar { grid-template-columns: 1fr; }
   .incomingInvite { align-items: stretch; flex-direction: column; }
   .utilityGrid, .shareGrid { grid-template-columns: 1fr; }
