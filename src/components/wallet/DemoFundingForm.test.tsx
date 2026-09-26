@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn() }));
+import { completeDemoFunding } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 test("deposit confirmation stays on the page and asks for amount approval and password", () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
@@ -22,7 +23,40 @@ test("deposit confirmation stays on the page and asks for amount approval and pa
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
   expect(sessionStorage.length).toBe(0);
 });
-afterEach(() => { cleanup(); sessionStorage.clear(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); });
+test("a rejected password clears the recovery marker and can be corrected", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+  vi.mocked(completeDemoFunding)
+    .mockResolvedValueOnce({ status: "error", message: "We couldn’t verify your password.", beforePayment: true })
+    .mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
+  render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" blocked={false} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "wrong-password" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Try password again" })).toBeTruthy());
+  expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull();
+  expect(vi.mocked(completeDemoFunding).mock.calls[0]?.[1].get("password")).toBe("wrong-password");
+  fireEvent.click(screen.getByRole("button", { name: "Try password again" }));
+  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "correct-password" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
+  await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
+  expect(vi.mocked(completeDemoFunding).mock.calls[1]?.[1].get("password")).toBe("correct-password");
+});
+test("an uncertain payment keeps its recovery marker and request key", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "pending", message: "Check this request." });
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" blocked={false} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "test-password" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy());
+  expect(JSON.parse(sessionStorage.getItem("zero-loss-demo-request:wallet-a") ?? "null")).toMatchObject({ key: "stable_demo_request_001", amount: "2500" });
+  expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("stable_demo_request_001");
+});
 test("form submits cents, USD and a stable request key", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("2500");

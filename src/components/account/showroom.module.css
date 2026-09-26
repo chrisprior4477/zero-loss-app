@@ -138,6 +138,42 @@
 .detailFooter { margin-top: 16px; padding: 18px; border: 1px solid #185e7a; border-radius: 12px; background: #00172bd9; }
 .detailFooter button { min-height: 48px; width: 100%; padding: 9px 16px; border: 1px solid #40677c; border-radius: 8px; background: #ffffff08; color: #8daabe; font-size: 13px; font-weight: 750; cursor: not-allowed; }
 .detailFooter p { margin-top: 9px; color: #7696ad; font-size: 11px; line-height: 1.5; text-align: center; }
+
+/* Open entries use the same white, scooped ticket language as purchase options. */
+.detailDialog[data-status="active"] { border: 0; border-radius: 0; background: #071e3e; box-shadow: 0 24px 70px #000b18db; }
+.detailDialog[data-status="active"] .detailHeader { border: 0; background: #fffdfa; }
+.detailDialog[data-status="active"] .detailEyebrow { color: #087fbc; }
+.detailDialog[data-status="active"] .detailHeaderLabel { color: #101b4e; }
+.detailDialog[data-status="active"] .detailClose { border-color: #9fcde8; background: #e7f5ff; color: #101b4e; }
+.detailDialog[data-status="active"] .detailClose:hover { background: #d2edff; }
+.detailDialog[data-status="active"] .detailBody { color-scheme: light; }
+.detailDialog[data-status="active"] :is(.detailHero, .detailPanel, .detailFooter) {
+  --corner-scoop: 15px;
+  --side-scoop: 15px;
+  border: 0;
+  border-radius: 0;
+  background: #fffdfa;
+  color: #101b4e;
+  box-shadow: none;
+  -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}
+.detailDialog[data-status="active"] .detailStage { border-right: 2px dotted #c8d9e7; background: #e8f5ff; }
+.detailDialog[data-status="active"] .detailStage::after { background: #c9e7f8; border-bottom-color: #87c8e9; box-shadow: none; }
+.detailDialog[data-status="active"] .detailImage { filter: drop-shadow(0 12px 9px #30527548); }
+.detailDialog[data-status="active"] .detailRetailer { color: #52708e; }
+.detailDialog[data-status="active"] .detailTitle, .detailDialog[data-status="active"] .detailPanel h3 { color: #101b4e; }
+.detailDialog[data-status="active"] .detailStatus { border-color: #87d5eb; background: #d9f7ff; color: #007998; }
+.detailDialog[data-status="active"] :is(.detailIntroduction, .detailCopy) { color: #516b88; }
+.detailDialog[data-status="active"] .panelEyebrow { color: #087fbc; }
+.detailDialog[data-status="active"] .entryFacts { border-color: #c8deee; background: #c8deee; }
+.detailDialog[data-status="active"] .entryFacts > div { background: #eaf6ff; }
+.detailDialog[data-status="active"] .entryFacts dt { color: #526b8b; }
+.detailDialog[data-status="active"] .entryFacts dd { color: #101b4e; }
+.detailDialog[data-status="active"] .detailFooter button { border-color: #c6d7e4; background: #edf4f9; color: #667f98; }
+.detailDialog[data-status="active"] .detailFooter p { color: #59718c; }
 .optionControls { display: grid; gap: 10px; margin-top: 16px; padding: 18px; border: 1px solid #42d9f580; border-radius: 12px; background: #06223d; }
 .optionControls section { display: grid; gap: 12px; min-width: 0; }
 .optionControls h3 { color: #fff; font-size: 20px; font-weight: 800; }
@@ -219,6 +255,7 @@
   .detailBody { padding: 14px; }
   .detailHero { grid-template-columns: 1fr; }
   .detailStage { min-height: 215px; border-right: 0; border-bottom: 1px solid #137ca1; }
+  .detailDialog[data-status="active"] .detailStage { border-right: 0; border-bottom: 2px dotted #c8d9e7; }
   .detailSummary { padding: 22px 19px 24px; }
   .detailTitle { font-size: 28px; }
   .detailIntroduction { margin-top: 14px; font-size: 13px; }

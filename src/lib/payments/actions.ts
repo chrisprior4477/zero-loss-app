@@ -15,7 +15,7 @@ export type DemoFundingActionState =
   | { status: "idle" }
   | { status: "succeeded"; message: string }
   | { status: "pending"; message: string }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; beforePayment?: boolean };
 
 async function fundingProvider() {
   if (!isPreviewDataEnvironment()) throw new FundingFailure("42501", "Simulated funding is unavailable in this environment.");
@@ -63,7 +63,16 @@ export async function completeDemoFunding(
   let result: DemoFundingActionState;
   try {
     const provider = await fundingProvider();
-    if (!recoveryOnly) await authorizeFunding(await createClient(), formData, amountCents, idempotencyKey);
+    if (!recoveryOnly) {
+      try {
+        await authorizeFunding(await createClient(), formData, amountCents, idempotencyKey);
+      } catch (error) {
+        // Authentication failed before any payment session was created. The
+        // browser may discard its recovery marker and accept another password.
+        const reply = failure(error);
+        return reply.status === "error" ? { ...reply, beforePayment: true } : reply;
+      }
+    }
     const sessionId = await provider.createFundingSession(amountCents, idempotencyKey,
       recoveryOnly ? null : formData.get("makeDefault") === "true");
     await provider.finishFunding(sessionId);

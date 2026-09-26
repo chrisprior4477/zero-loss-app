@@ -23,17 +23,18 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
     confirmation.current?.showModal();
     passwordInput.current?.focus();
   }
-  const locked = pending || recovered || state.status !== "idle";
+  const beforePaymentError = state.status === "error" && state.beforePayment === true;
+  const locked = pending || (!beforePaymentError && (recovered || state.status !== "idle"));
   useEffect(() => {
     // React has captured FormData before the action becomes pending. Do not
     // retain a credential in the page during a request, after failure, or close.
     if (pending) clearConfirmation();
   }, [pending]);
   useEffect(() => {
-    if (state.status === "succeeded") {
+    if (state.status === "succeeded" || (state.status === "error" && state.beforePayment)) {
       try { sessionStorage.removeItem(storageKey); } catch { /* DB recovery remains available. */ }
     }
-  }, [state.status, storageKey]);
+  }, [state, storageKey]);
   if (state.status === "succeeded") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div>;
   return <form action={action} onSubmit={() => {
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
@@ -68,7 +69,7 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
         <option value="100">$1.00</option><option value="1000">$10.00</option><option value="2500">$25.00</option><option value="10000">$100.00</option>
       </select>
     </label>
-    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={styles.fundingSubmit}>{pending ? "Checking payment…" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
+    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={styles.fundingSubmit}>{pending ? "Checking payment…" : beforePaymentError ? "Try password again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-3xl border border-cyan-300/50 bg-[#052344] p-6 text-white shadow-2xl backdrop:bg-[#001027]/80">
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
@@ -81,7 +82,7 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
       <Link href="/forgot-password" className="mt-4 block text-sm font-bold text-cyan-300 underline">Forgot your password?</Link>
       <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. Your password is checked securely and is not saved with this deposit.</p>
     </dialog> : null}
-    {recovered ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
+    {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
     <p className="text-xs leading-5 text-[#b5cce4]">Only a test-card reference and your preference are saved—not a card number or security code. Limits: 3 requests/minute, 20/day and $1,000 total per account.</p>

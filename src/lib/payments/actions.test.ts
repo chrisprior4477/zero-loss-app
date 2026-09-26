@@ -35,7 +35,7 @@ test("request, durable provider and verified consumer run in order and refresh s
 });
 test("failed password authorization never creates or processes a payment", async () => {
   authorization.authorizeFunding.mockRejectedValue(new FundingFailure("P0001", "Password confirmation failed."));
-  expect(await completeDemoFunding({ status: "idle" }, form())).toEqual({ status: "error", message: "Password confirmation failed." });
+  expect(await completeDemoFunding({ status: "idle" }, form())).toEqual({ status: "error", message: "Password confirmation failed.", beforePayment: true });
   expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot"]);
 });
 test.each(["EUR", "", "usd"])("rejects altered currency %s before database access", async currency => {
