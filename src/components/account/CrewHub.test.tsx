@@ -60,6 +60,14 @@ test("a homepage preview choice carries into Your Crew and can be removed", asyn
   expect(localStorage.getItem("zero-loss-sample-crew-v1")).toBe("[]");
 });
 
+test("Maya opens first when saved sample previews were added in a different order", async () => {
+  addSampleCrewPreview("Leo");
+  addSampleCrewPreview("Maya");
+  addSampleCrewPreview("Daniel");
+  render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  expect(await screen.findByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
+});
+
 test("every sample clearly highlights the selected person and matches the shared-activity panel", async () => {
   render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
   await screen.findByRole("region", { name: "Maya's shared activity" });

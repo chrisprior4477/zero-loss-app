@@ -60,7 +60,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
   useEffect(() => {
     if (initialSampleSelected.current || selectedMemberId || !samples.length) return;
     initialSampleSelected.current = true;
-    setSamplePerson(samples[0]);
+    setSamplePerson(samples.includes("Maya") ? "Maya" : samples[0]);
   }, [samples, selectedMemberId]);
   const received = invitations.filter((item) => item.status === "pending" && item.recipient_id === currentUserId);
   const sent = invitations.filter((item) => item.status === "pending" && item.requester_id === currentUserId);
