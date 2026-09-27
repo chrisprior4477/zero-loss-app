@@ -73,3 +73,34 @@
   .actions { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .actions button, .actions a { transition: none; } }
+
+/* Account & Security ticket presentation; the same protected form still saves the profile. */
+.ticketForm .formSection {
+  --corner-scoop: 16px;
+  --side-scoop: 11px;
+  border: 0;
+  padding: clamp(20px, 2.5vw, 30px);
+  background: #fffdfa;
+  color: #101b4e;
+  box-shadow: none;
+  -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}
+.ticketForm .formSection > header { border-color: #cbddea; }
+.ticketForm .formSection > header > span { border: 0; color: #07558b; background: #d9f0ff; box-shadow: none; }
+.ticketForm .formSection h2 { color: #101b4e; font-size: 22px; }
+.ticketForm .formSection header p, .ticketForm .dateField > small, .ticketForm .identityNote { color: #526b87; }
+.ticketForm .field > label, .ticketForm .dateField > legend { color: #254461; font-size: 12px; }
+.ticketForm .fieldGrid input:not([type="hidden"]), .ticketForm .fieldGrid select { border-color: #a9c8df; background: #fff; color: #101b4e; color-scheme: light; }
+.ticketForm .fieldGrid input[readonly] { border-color: #c7d9e5; background: #eaf5fc; color: #46627f; }
+.ticketForm .clearButton { border-color: #b4d0e1; background: #eaf5fc; color: #365a76; }
+.ticketForm .verified { color: #087443; }
+.ticketForm .pending { color: #946011; }
+.ticketForm .actions { padding: 4px 0 0; }
+.ticketForm .actions button { border-color: #32e548; color: #061e23; background: #32e548; box-shadow: none; }
+.ticketForm .actions a { border-color: #93c0dd; color: #075083; background: #fffdfa; }
+.ticketForm .success { border-color: #b1e7bf; color: #085c26; background: #e3f9e9; }
+.ticketForm .error { border-color: #efba9c; color: #9c342d; background: #fff0e7; }
+@media (max-width: 700px) { .ticketForm .formSection { --corner-scoop: 14px; padding: 21px 19px; } }

@@ -3,10 +3,8 @@ import { AccountIcon } from "./AccountIcon";
 import { ChangePasswordControl } from "./ChangePasswordControl";
 import { ProfilePhotoCard } from "./ProfilePhotoCard";
 import { SignOutEverywhereControl } from "./SignOutEverywhereControl";
-import { StatusTicket } from "./StatusTicket";
-import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
-import { accountRoutes } from "@/lib/account/navigation";
-import stripStyles from "./account-status-strip.module.css";
+import { AccountSettingsNav, SecurityGlyph } from "./AccountSettingsNav";
+import { AccountSettingsStatusStrip, type AccountSettingsOverview } from "./AccountSettingsStatusStrip";
 import styles from "./account-security.module.css";
 
 type AccountSecurityDashboardProps = {
@@ -18,25 +16,10 @@ type AccountSecurityDashboardProps = {
   memberSince: string | null;
   lastSignInAt: string | null;
   phone: string | null;
-  overview?: { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
+  overview?: AccountSettingsOverview;
 };
 
 type GlyphName = "lock" | "shield" | "device" | "clock" | "person" | "card" | "key" | "alert" | "check";
-
-function SecurityGlyph({ name }: { name: GlyphName }) {
-  const paths = {
-    lock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></>,
-    shield: <><path d="m12 2 8 4v6c0 5-4.2 8.3-8 10-3.8-1.7-8-5-8-10V6l8-4Z" /><path d="m8.5 12 2.2 2.2 4.8-5" /></>,
-    device: <><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M1.5 21h21M9 17l-1 4m7-4 1 4" /></>,
-    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
-    person: <><circle cx="12" cy="8" r="4" /><path d="M4 22a8 8 0 0 1 16 0" /></>,
-    card: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></>,
-    key: <><circle cx="7.5" cy="15.5" r="4.5" /><path d="m11 12 9-9 2 2-2 2 1.5 1.5-2 2L18 9l-2 2" /></>,
-    alert: <><circle cx="12" cy="12" r="9" /><path d="M12 7v6m0 4h.01" /></>,
-    check: <><circle cx="12" cy="12" r="9" /><path d="m7.5 12 3 3 6-6" /></>,
-  } satisfies Record<GlyphName, React.ReactNode>;
-  return <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
-}
 
 function formatDate(value: string | null) {
   if (!value) return "Not available";
@@ -66,17 +49,10 @@ function SecurityDetail({ icon, title, status, children }: { icon: GlyphName; ti
 export function AccountSecurityDashboard({ displayName, initials, email, emailConfirmed, avatarUrl, memberSince, lastSignInAt, phone, overview }: AccountSecurityDashboardProps) {
   const emailLabel = email ?? "Email not available";
   const signIn = formatDateTime(lastSignInAt);
-  const rewards = overview ? readyWalletRewards(overview.activity) : [];
-  const singleReward = rewards.length === 1 ? rewards[0] : null;
-  const optionCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter(item => item.status === "completion").length;
 
   return <main className={styles.page}>
     <div className={styles.shell}>
-      {overview ? <div className={stripStyles.row} aria-label="Your account overview">
-        <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
-        <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(rewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
-        <StatusTicket variant="option" size="top" label="Purchase Options" value={optionCount === null || optionCount === undefined ? "Unavailable" : String(optionCount)} action="Review options" href={accountRoutes.purchaseOptions} />
-      </div> : null}
+      {overview ? <AccountSettingsStatusStrip overview={overview} /> : null}
 
       <header className={styles.heading}>
         <h1>Account &amp; Security</h1>
@@ -84,12 +60,7 @@ export function AccountSecurityDashboard({ displayName, initials, email, emailCo
       </header>
 
       <div className={styles.mainGrid}>
-        <nav aria-label="Account and security sections" className={styles.sectionNav}>
-          <Link href="/account/profile"><span className={styles.navIcon}><SecurityGlyph name="person" /></span><span>Profile</span><AccountIcon name="chevron" /></Link>
-          <Link href="/account/security" aria-current="page"><span className={styles.navIcon}><SecurityGlyph name="lock" /></span><span>Sign-in &amp; Security</span><AccountIcon name="chevron" /></Link>
-          <Link href="/account/wallet?view=card"><span className={styles.navIcon}><SecurityGlyph name="card" /></span><span>Payment Methods</span><AccountIcon name="chevron" /></Link>
-          <Link href="/account/crew?tab=picks#sharing"><span className={styles.navIcon}><AccountIcon name="crew" /></span><span>Sharing Preferences</span><AccountIcon name="chevron" /></Link>
-        </nav>
+        <AccountSettingsNav active="security" />
 
         <section className={styles.mainTicket} aria-labelledby="security-heading" id="security-controls">
           <header className={styles.ticketHeading}>

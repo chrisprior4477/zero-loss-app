@@ -56,8 +56,8 @@ test("opens a usable password form and honest explanations for unavailable contr
 test("every account section and review link points to a working destination", () => {
   render(<AccountSecurityDashboard {...props} />);
   expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/account/profile");
-  expect(screen.getByRole("link", { name: "Payment Methods" }).getAttribute("href")).toBe("/account/wallet?view=card");
-  expect(screen.getByRole("link", { name: "Sharing Preferences" }).getAttribute("href")).toBe("/account/crew?tab=picks#sharing");
+  expect(screen.getByRole("link", { name: "Payment Methods" }).getAttribute("href")).toBe("/account/payment-methods");
+  expect(screen.getByRole("link", { name: "Sharing Preferences" }).getAttribute("href")).toBe("/account/crew/display");
   expect(screen.getByRole("link", { name: "Review security" }).getAttribute("href")).toBe("#security-controls");
   expect(screen.getByRole("link", { name: /Manage sharing/ }).getAttribute("href")).toBe("/account/crew?tab=picks#sharing");
 });

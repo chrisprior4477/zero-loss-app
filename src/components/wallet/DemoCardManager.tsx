@@ -13,11 +13,12 @@ const TEST_CODE = "123";
 
 function digits(value: string) { return value.replace(/\D/g, ""); }
 
-export function DemoCardManager({ displayName, savedCard = null, cardUnavailable = false, enabled = false }: {
+export function DemoCardManager({ displayName, savedCard = null, cardUnavailable = false, enabled = false, embedded = false }: {
   displayName: string;
   savedCard?: DemoCard | null;
   cardUnavailable?: boolean;
   enabled?: boolean;
+  embedded?: boolean;
 }) {
   const [state, action, pending] = useActionState(saveDemoPaymentMethod, { status: "idle" });
   const [cardholder, setCardholder] = useState(displayName);
@@ -27,10 +28,11 @@ export function DemoCardManager({ displayName, savedCard = null, cardUnavailable
   const [makeDefault, setMakeDefault] = useState(savedCard?.isDefault ?? true);
   const [clientError, setClientError] = useState("");
 
-  return <main className={styles.page}>
+  const Root = embedded ? "div" : "main";
+  return <Root className={embedded ? styles.embedded : styles.page}>
     <div className={styles.shell}>
       <header className={styles.header}>
-        <div><span className={styles.eyebrow}>PAYMENT METHOD</span><h1>Add a card</h1><p>Keep a test card ready for faster preview funding.</p></div>
+        <div><span className={styles.eyebrow}>PAYMENT METHOD</span><h1>{embedded ? "Payment Methods" : "Add a card"}</h1><p>Keep a test card ready for faster preview funding.</p></div>
         <div className={styles.headerNote}><strong>SAFE PREVIEW MODE</strong><span>No real payment is processed.</span></div>
       </header>
 
@@ -81,5 +83,5 @@ export function DemoCardManager({ displayName, savedCard = null, cardUnavailable
         </section>
       </div>
     </div>
-  </main>;
+  </Root>;
 }

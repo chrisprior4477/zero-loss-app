@@ -53,10 +53,12 @@ test("retired account dashboard redirects to My Activity and preserves a selecte
 });
 
 test("profile destination preserves stored name/photo and requires authentication", async () => {
-  mocks.account.mockResolvedValue({ displayName: "O’Neill", initials: "O", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", emailConfirmed: true });
+  mocks.account.mockResolvedValue({ displayName: "O’Neill", initials: "O", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", emailConfirmed: true, activity: storedActivityFixture(), balanceLabel: "$17", fundingEnabled: false });
   render(await ProfilePage());
   expect(screen.getByTestId("profile-editor").textContent).toBe("O’Neill");
   expect(screen.getByTestId("profile-editor").getAttribute("data-avatar")).toBe("/saved-photo.webp");
+  expect(screen.getByRole("link", { name: "Profile" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("link", { name: "Payment Methods" }).getAttribute("href")).toBe("/account/payment-methods");
   mocks.account.mockResolvedValue(null);
   await expect(ProfilePage()).rejects.toThrow("redirect:/login");
 });

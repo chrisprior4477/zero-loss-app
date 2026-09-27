@@ -89,3 +89,53 @@
   .testBadge { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .actions button, .actions a { transition: none; } }
+
+/* Payment Methods inside the Account & Security ticket layout. */
+.embedded { min-width: 0; color: #101b4e; }
+.embedded .shell { max-width: none; }
+.embedded .header, .embedded .cardPreview, .embedded .formPanel {
+  --corner-scoop: 16px;
+  --side-scoop: 11px;
+  border: 0;
+  background: #fffdfa;
+  color: #101b4e;
+  box-shadow: none;
+  -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}
+.embedded .header { align-items: center; padding: clamp(19px, 2.4vw, 29px); }
+.embedded .eyebrow { color: #0878ae; }
+.embedded .header h1 { font-size: clamp(27px, 3vw, 39px); font-weight: 900; }
+.embedded .header p, .embedded .headerNote span { color: #506b8e; font-size: 13px; }
+.embedded .headerNote strong { color: #087443; }
+.embedded .contentGrid { grid-template-columns: minmax(230px, .8fr) minmax(380px, 1.2fr); gap: 12px; margin-top: 12px; }
+.embedded .cardPreview { min-height: 0; justify-content: flex-start; padding: clamp(19px, 2.4vw, 29px); }
+.embedded .cardGlow { min-height: 220px; padding: 19px; }
+.embedded .chip { width: 39px; height: 29px; margin-top: 20px; }
+.embedded .previewNumber { margin-top: 23px; font-size: clamp(15px, 1.6vw, 23px); letter-spacing: .07em; }
+.embedded .cardBottom { right: 19px; bottom: 18px; left: 19px; }
+.embedded .savedStatus { margin-top: 18px; border-color: #bdd8e9; background: #eaf6fd; color: #101b4e; }
+.embedded .savedStatus p { color: #526b87; }
+.embedded .formPanel { padding: clamp(19px, 2.4vw, 29px); }
+.embedded .panelHeading h2 { font-size: 23px; }
+.embedded .step { border: 0; background: #d9f0ff; color: #07558b; box-shadow: none; }
+.embedded .testBadge { border: 0; background: #dcfbe6; color: #087443; }
+.embedded .intro, .embedded .cardCheck p, .embedded .disclaimer { color: #526b87; }
+.embedded .formPanel label { color: #254461; font-size: 12px; }
+.embedded .formPanel input:not([type="checkbox"]) { border-color: #a9c8df; background: #fff; color: #101b4e; }
+.embedded .cardCheck { border-color: #bdd8e9; background: #eaf6fd; }
+.embedded .cardCheck > span { border-color: #98d0e8; color: #075b8f; background: #fff; }
+.embedded .defaultChoice { color: #101b4e !important; }
+.embedded .actions button { border-color: #32e548; background: #32e548; box-shadow: none; }
+.embedded .actions a { border-color: #93c0dd; color: #075083; background: #fff; }
+.embedded .error { border-color: #efba9c; color: #9c342d; background: #fff0e7; }
+.embedded .success { border-color: #b1e7bf; color: #085c26; background: #e3f9e9; }
+@media (max-width: 1150px) { .embedded .contentGrid { grid-template-columns: 1fr; } }
+@media (max-width: 700px) {
+  .embedded .header, .embedded .cardPreview, .embedded .formPanel { --corner-scoop: 14px; }
+  .embedded .header { display: block; }
+  .embedded .headerNote { align-items: flex-start; margin-top: 9px; text-align: left; }
+  .embedded .cardGlow { width: min(100%, 430px); }
+}

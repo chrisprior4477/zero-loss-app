@@ -38,8 +38,8 @@ test("wallet layout exposes responsive transaction filters without replacing led
 test("enabled preview wallet puts Add Card beside Add funds", () => {
   render(<WalletOverview wallet={{ ...empty, walletAccountId: "wallet-a", scope: "demo", fundingAvailable: true }} fundingEnabled requests={[]} requestKey="stable_demo_request_001" />);
   expect(screen.getAllByRole("link", { name: "Add funds" }).map(link => link.getAttribute("href"))).toEqual(expect.arrayContaining(["#add-funds", "/account/wallet?view=history#add-funds"]));
-  expect(screen.getByRole("link", { name: "Add Card" }).getAttribute("href")).toBe("/account/wallet?view=card");
-  expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("/account/wallet?view=card");
+  expect(screen.getByRole("link", { name: "Add Card" }).getAttribute("href")).toBe("/account/payment-methods");
+  expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("/account/payment-methods");
   expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy();
 });

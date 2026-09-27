@@ -13,6 +13,7 @@ const routes: Record<string, { query: Record<string, (value: string) => boolean>
   "/account/notifications": { query: {} },
   "/account/security": { query: {} },
   "/account/profile": { query: {} },
+  "/account/payment-methods": { query: {} },
   "/account/orders": { query: {} },
   "/account/results": { query: {} },
   "/support": { query: { case: matches(uuid), transaction: matches(uuid), view: oneOf("inbox"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/) }, hash: /^#(?:conversation|case-list)$/ },

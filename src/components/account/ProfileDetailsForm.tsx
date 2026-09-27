@@ -80,11 +80,11 @@ function ProfileDateOfBirth({ defaultValue }: { defaultValue: string | null }) {
   </fieldset>;
 }
 
-export function ProfileDetailsForm({ details }: { details: ProfileDetails }) {
+export function ProfileDetailsForm({ details, ticket = false }: { details: ProfileDetails; ticket?: boolean }) {
   const [state, action, pending] = useActionState(saveProfileDetails, { status: "idle" });
   const selectedCountry = details.country ?? "United States";
   const hasNonStandardCountry = !PROFILE_COUNTRIES.some(country => country === selectedCountry);
-  return <form action={action} className={styles.form} aria-label="Edit profile">
+  return <form action={action} className={`${styles.form} ${ticket ? styles.ticketForm : ""}`} aria-label="Edit profile">
     <section className={styles.formSection} aria-labelledby="personal-details-heading">
       <header><span>01</span><div><h2 id="personal-details-heading">Personal information</h2><p>Use a display name or alias, and keep your legal identity details accurate.</p></div></header>
       <div className={styles.fieldGrid}>

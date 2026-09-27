@@ -4,6 +4,8 @@
 .heading h1 { font-size: clamp(40px, 4.5vw, 65px); font-weight: 850; line-height: .99; letter-spacing: -.052em; }
 .heading p { margin-top: 4px; color: #c8d9f4; font-size: clamp(17px, 1.7vw, 23px); line-height: 1.15; }
 .mainGrid { display: grid; grid-template-columns: clamp(220px, 21vw, 270px) minmax(0, 1fr) clamp(250px, 25vw, 340px); align-items: start; gap: 14px; }
+.settingsGrid { display: grid; grid-template-columns: clamp(220px, 21vw, 270px) minmax(0, 1fr); align-items: start; gap: 14px; }
+.settingsContent { display: grid; min-width: 0; gap: 12px; }
 .sectionNav, .aside { display: grid; gap: 9px; min-width: 0; }
 .sectionNav a, .mainTicket, .checkupTicket, .signOutTicket, .lowerTicket {
   --corner-scoop: 14px;
@@ -118,6 +120,7 @@
 @media (max-width: 700px) {
   .page { padding: 14px 12px 36px; }
   .mainGrid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .settingsGrid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .sectionNav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
   .sectionNav a { grid-template-columns: 35px minmax(0, 1fr) 15px; min-height: 68px; gap: 7px; padding: 7px 12px; font-size: 12px; }
   .navIcon { width: 35px; height: 35px; }

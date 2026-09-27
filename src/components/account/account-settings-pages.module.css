@@ -1,0 +1,31 @@
+.introTicket {
+  --corner-scoop: 16px;
+  --side-scoop: 11px;
+  display: grid;
+  grid-template-columns: minmax(190px, .65fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  padding: clamp(20px, 2.5vw, 30px);
+  background: #fffdfa;
+  color: #101b4e;
+  -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}
+.eyebrow { color: #0878ae; font-size: 11px; font-weight: 900; letter-spacing: .16em; }
+.introTicket h2 { margin-top: 6px; font-size: clamp(28px, 3vw, 39px); font-weight: 900; letter-spacing: -.045em; line-height: 1; }
+.introTicket p { margin-top: 7px; color: #506b8e; font-size: 14px; line-height: 1.45; }
+.profileCard { min-width: 0; }
+.profileCard > article { border: 1px solid #cde3ef; background: #eaf6ff; }
+.profileCard h2 { color: #101b4e; }
+.profileCard article p { color: #506b8e; }
+.profileCard article button:last-child { color: #005cbe; border-color: #a6cfe7; background: #fff; }
+.profileCard article button:first-child { color: #fff; background: #006dff; }
+@media (max-width: 1000px) {
+  .introTicket { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .introTicket { --corner-scoop: 14px; padding: 21px 19px; }
+}

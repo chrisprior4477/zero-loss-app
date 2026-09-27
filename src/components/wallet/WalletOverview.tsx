@@ -56,8 +56,8 @@ export function WalletOverview({ wallet, activity, selectedTransaction, fundingE
             <div className={styles.balanceActions}>
               <a href="#add-funds" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></a>
               <div className={styles.fundingActions}>
-                {canFund ? <Link href="/account/wallet?view=card" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
-                {canFund ? <Link href="/account/wallet?view=card" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}
+                {canFund ? <Link href="/account/payment-methods" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
+                {canFund ? <Link href="/account/payment-methods" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}
               </div>
               <a href="#transactions" className={styles.transactionsLink}>View transactions <AccountIcon name="arrow" /></a>
             </div>
