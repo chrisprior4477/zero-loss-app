@@ -39,7 +39,8 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams)
       if (searchParams.get("view") === "history") return [accountRoot, { label: "Wallet & Transactions" }];
       return [accountRoot, { label: "Gift Cards & Rewards" }];
     }
-    if (second === "profile") return [accountRoot, { label: "Account & Security", href: "/account/security" }, { label: "Edit Profile" }];
+    if (second === "profile") return [accountRoot, { label: "Account & Security", href: "/account/security" }, { label: "Profile" }];
+    if (second === "payment-methods") return [accountRoot, { label: "Account & Security", href: "/account/security" }, { label: "Payment Methods" }];
     if (second === "security") return [accountRoot, { label: "Account & Security" }];
     if (second === "orders") return [accountRoot, { label: "Orders & Fulfillment" }];
     if (second === "crew") return [accountRoot, { label: "Your Crew" }];

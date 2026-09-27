@@ -17,7 +17,12 @@ test("account destinations lead back through Your Account", () => {
   expect(trail("/account/profile")).toEqual([
     { label: "Your Account", href: "/account/entries" },
     { label: "Account & Security", href: "/account/security" },
-    { label: "Edit Profile" },
+    { label: "Profile" },
+  ]);
+  expect(trail("/account/payment-methods")).toEqual([
+    { label: "Your Account", href: "/account/entries" },
+    { label: "Account & Security", href: "/account/security" },
+    { label: "Payment Methods" },
   ]);
 });
 

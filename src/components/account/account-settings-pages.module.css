@@ -21,6 +21,8 @@
 .profileCard > article { border: 1px solid #cde3ef; background: #eaf6ff; }
 .profileCard h2 { color: #101b4e; }
 .profileCard article p { color: #506b8e; }
+.profileCard [data-status="verified"] { color: #087443; }
+.profileCard [data-status="pending"] { color: #946011; }
 .profileCard article button:last-child { color: #005cbe; border-color: #a6cfe7; background: #fff; }
 .profileCard article button:first-child { color: #fff; background: #006dff; }
 @media (max-width: 1000px) {

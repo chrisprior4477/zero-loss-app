@@ -201,7 +201,7 @@ export function ProfilePhotoCard({
             <h2 className={`break-words font-black text-white ${compact ? "text-xl" : "text-2xl"}`}>{fullName}</h2>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
               <p className={`break-all text-white/60 ${compact ? "text-xs" : "text-sm"}`}>{email}</p>
-              {emailStatus ? <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${emailStatus === "verified" ? "text-[#63ff7d]" : "text-amber-300"}`}><span aria-hidden="true" className="grid h-4 w-4 place-items-center rounded-full bg-current text-[10px] text-[#002333]">{emailStatus === "verified" ? "✓" : "!"}</span>{emailStatus === "verified" ? "Verified" : "Confirmation pending"}</span> : null}
+              {emailStatus ? <span data-status={emailStatus} className={`inline-flex items-center gap-1 text-[11px] font-bold ${emailStatus === "verified" ? "text-[#63ff7d]" : "text-amber-300"}`}><span aria-hidden="true" className={`grid h-4 w-4 place-items-center rounded-full text-[10px] text-white ${emailStatus === "verified" ? "bg-[#07883c]" : "bg-amber-600"}`}>{emailStatus === "verified" ? "✓" : "!"}</span>{emailStatus === "verified" ? "Verified" : "Confirmation pending"}</span> : null}
             </div>
             <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={choosePhoto} className="sr-only" aria-label="Choose a profile photo" />
             <button type="button" onClick={openEditor} className={`inline-flex min-h-11 items-center rounded-full border border-cyan-300/40 bg-cyan-300/10 px-4 text-sm font-bold text-cyan-200 transition hover:bg-cyan-300 hover:text-[#00132e] ${compact ? "mt-2" : "mt-4"}`}>

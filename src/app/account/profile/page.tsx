@@ -7,7 +7,7 @@ import { getAccountContext } from "@/lib/account/context";
 import styles from "@/components/account/account-settings-pages.module.css";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 
-export const metadata: Metadata = { title: "Your account" };
+export const metadata: Metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
   const account = await getAccountContext();

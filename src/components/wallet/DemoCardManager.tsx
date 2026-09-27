@@ -32,7 +32,7 @@ export function DemoCardManager({ displayName, savedCard = null, cardUnavailable
   return <Root className={embedded ? styles.embedded : styles.page}>
     <div className={styles.shell}>
       <header className={styles.header}>
-        <div><span className={styles.eyebrow}>PAYMENT METHOD</span><h1>{embedded ? "Payment Methods" : "Add a card"}</h1><p>Keep a test card ready for faster preview funding.</p></div>
+        <div><span className={styles.eyebrow}>PAYMENT METHOD</span>{embedded ? <h2>Payment Methods</h2> : <h1>Add a card</h1>}<p>Keep a test card ready for faster preview funding.</p></div>
         <div className={styles.headerNote}><strong>SAFE PREVIEW MODE</strong><span>No real payment is processed.</span></div>
       </header>
 
