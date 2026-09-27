@@ -6,7 +6,7 @@ import { authorizeFunding } from "./funding-authorization";
 const attempt = vi.fn();
 const requestKey = "test-request-00000000";
 const db = { auth: { getUser: mocks.getUser }, rpc: attempt } as unknown as SupabaseClient;
-function form() { const f = new FormData(); f.set("password", "test-only-password"); f.set("fundingPolicy", "funding-confirmation-v1"); f.set("makeDefault", "false"); return f; }
+function form() { const f = new FormData(); f.set("password", "test-only-password"); f.set("fundingPolicy", "funding-confirmation-v1"); f.set("makeDefault", "false"); f.set("paymentMethod", "demo_card_4242"); return f; }
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
@@ -22,7 +22,7 @@ test("fresh isolated authentication binds exact amount and key; password is neve
   await authorizeFunding(db, form(), 2500, requestKey);
   expect(mocks.signIn).toHaveBeenCalledWith({ email: "owner@example.test", password: "test-only-password" });
   expect(attempt).toHaveBeenCalledWith("begin_demo_funding_authentication", { p_amount: 2500, p_request_key: requestKey });
-  expect(mocks.rpc).toHaveBeenCalledWith("authorize_demo_funding", { p_amount: 2500, p_request_key: requestKey, p_make_default: false, p_policy_version: "funding-confirmation-v1" });
+  expect(mocks.rpc).toHaveBeenCalledWith("authorize_demo_funding", { p_amount: 2500, p_request_key: requestKey, p_payment_method: "demo_card_4242", p_make_default: false, p_policy_version: "funding-confirmation-v1" });
   expect(mocks.create).toHaveBeenCalledWith(expect.any(String), expect.any(String), { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
   expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
 });

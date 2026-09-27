@@ -8,7 +8,7 @@ import { DemoPaymentProvider, FundingFailure } from "./demo-provider";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
-import { DEMO_CARD_TOKEN } from "./demo-card";
+import { demoCardFixture } from "./demo-card";
 import { authorizeFunding } from "./funding-authorization";
 
 export type DemoFundingActionState =
@@ -52,7 +52,7 @@ export async function completeDemoFunding(
     if (formData.get("currency") !== "USD") throw new Error("Only USD demo funding is supported.");
     assertFundingAmount(amountCents);
     assertIdempotencyKey(idempotencyKey);
-    if (!recoveryOnly && (formData.get("paymentMethod") !== DEMO_CARD_TOKEN
+    if (!recoveryOnly && (!demoCardFixture(formData.get("paymentMethod"))
       || !["true", "false"].includes(String(formData.get("makeDefault"))))) {
       throw new Error("Choose the supplied test card. Real cards are not accepted.");
     }
@@ -74,7 +74,8 @@ export async function completeDemoFunding(
       }
     }
     const sessionId = await provider.createFundingSession(amountCents, idempotencyKey,
-      recoveryOnly ? null : formData.get("makeDefault") === "true");
+      recoveryOnly ? null : formData.get("makeDefault") === "true",
+      (demoCardFixture(formData.get("paymentMethod"))?.token ?? "demo_card_4242"));
     await provider.finishFunding(sessionId);
     result = { status: "succeeded", message: "Demo funds added. Your updated balance comes from the database ledger. No real money was charged." };
   } catch (error) { result = failure(error); }
@@ -86,13 +87,14 @@ export async function saveDemoPaymentMethod(
   _previous: DemoFundingActionState,
   formData: FormData,
 ): Promise<DemoFundingActionState> {
-  if (formData.get("paymentMethod") !== DEMO_CARD_TOKEN
+  const fixture = demoCardFixture(formData.get("paymentMethod"));
+  if (!fixture
     || !["true", "false"].includes(String(formData.get("makeDefault")))) {
     return { status: "error", message: "Use the supplied preview test card. Real card details are not accepted." };
   }
   let result: DemoFundingActionState;
   try {
-    const card = await (await fundingProvider()).savePaymentMethod(formData.get("makeDefault") === "true");
+    const card = await (await fundingProvider()).savePaymentMethod(formData.get("makeDefault") === "true", fixture.token);
     result = {
       status: "succeeded",
       message: `Test card •••• ${card.lastFour} saved${card.isDefault ? " as your default" : ""}. No real card details were stored.`,

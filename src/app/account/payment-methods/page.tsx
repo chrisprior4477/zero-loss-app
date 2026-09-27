@@ -13,8 +13,9 @@ export default async function PaymentMethodsPage() {
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", "/account/payment-methods"));
   const provider = account.wallet?.scope === "demo" ? new DemoPaymentProvider(await createClient()) : null;
-  const savedCard = provider && account.fundingEnabled ? await provider.getPaymentMethod().catch(() => undefined) : null;
+  const savedCards = provider && account.fundingEnabled ? await provider.getPaymentMethods().catch(() => undefined) : [];
+  const savedCard = savedCards?.find(card => card.isDefault) ?? savedCards?.[0] ?? null;
   return <AccountSettingsFrame active="payment" overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}>
-    <DemoCardManager embedded displayName={account.displayName} savedCard={savedCard ?? null} cardUnavailable={savedCard === undefined} enabled={Boolean(provider && account.fundingEnabled)} />
+    <DemoCardManager embedded displayName={account.displayName} savedCard={savedCard} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} enabled={Boolean(provider && account.fundingEnabled)} />
   </AccountSettingsFrame>;
 }

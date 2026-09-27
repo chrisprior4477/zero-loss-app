@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { WalletSnapshot } from "@/lib/wallet/snapshot";
+import type { LedgerEntryRow, WalletSnapshot } from "@/lib/wallet/snapshot";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { readyWalletRewards, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
@@ -14,14 +14,16 @@ import { WalletLedger } from "./WalletLedger";
 import styles from "./wallet-overview.module.css";
 import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
 
-export function WalletOverview({ wallet, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, cardUnavailable = false, returnToProduct, returnUnavailable = false }: {
+export function WalletOverview({ wallet, ledgerEntries, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false }: {
   wallet: WalletSnapshot | null;
+  ledgerEntries?: LedgerEntryRow[] | null;
   activity?: AccountActivity;
   selectedTransaction?: SelectedTransaction;
   fundingEnabled?: boolean;
   requestKey?: string;
   requests?: DemoFundingRequest[] | null;
   savedCard?: DemoCard | null;
+  savedCards?: DemoCard[];
   cardUnavailable?: boolean;
   returnToProduct?: { title: string; href: string; label?: "Back to purchase option" };
   returnUnavailable?: boolean;
@@ -72,18 +74,18 @@ export function WalletOverview({ wallet, activity, selectedTransaction, fundingE
       </section>
 
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
-        <div className={styles.sectionHeading}><div><h2 id="transactions-heading">Transaction history</h2><p>Posted activity from this account’s ledger.</p></div>{wallet ? <span>Showing {wallet.entries.length} of {wallet.transactionCount} transactions</span> : null}</div>
+        <div className={styles.sectionHeading}><div><h2 id="transactions-heading">Transaction history</h2><p>Posted activity from this account’s ledger.</p></div></div>
         {selectedTransaction?.requested && !selectedTransaction.entry ? <p role="status" className={styles.alert}>That transaction could not be opened for this account. Your available history is shown below.</p> : null}
-        {selectedTransaction?.entry && !wallet?.entries.some(entry => entry.id === selectedTransaction.entry?.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger entries={[selectedTransaction.entry]} selectedId={selectedTransaction.entry.id} /></section> : null}
-        {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger entries={wallet.entries} selectedId={selectedTransaction?.entry?.id} />}
-        {wallet && wallet.transactionCount > 50 ? <p className={styles.finePrint}>Latest 50 of {wallet.transactionCount} transactions. Balance includes all posted transactions.</p> : null}
+        {selectedTransaction?.entry && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selectedTransaction.entry?.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger compact entries={[selectedTransaction.entry]} selectedId={selectedTransaction.entry.id} /></section> : null}
+        {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger entries={ledgerEntries ?? wallet.entries} totalCount={wallet.transactionCount} selectedId={selectedTransaction?.entry?.id} />}
+        {wallet && !ledgerEntries && wallet.transactionCount > wallet.entries.length ? <p className={styles.finePrint}>Only the latest {wallet.entries.length} transactions could be loaded. Refresh to try the full history again. Balance includes all posted transactions.</p> : null}
       </section>
 
       <section id="add-funds" className={`${styles.ticketPanel} ${styles.funding}`} aria-labelledby="funding-heading">
         <div className={styles.sectionHeading}><div><h2 id="funding-heading">Add funds</h2><p>{canFund ? "Choose an amount and confirm your preview deposit." : "Add playable balance when funding is available for your account."}</p></div><span className={styles.fundingBadge}>{demo ? "Demo payment" : "Funding"}</span></div>
         {returnToProduct ? <div className={styles.fundingReturn}><p>{returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}
         {returnUnavailable ? <p role="status" className={styles.fundingReturn}>We couldn’t find that purchase option in your account. <Link href="/account/entries?filter=completion">View your purchase options →</Link></p> : null}
-        {canFund ? <DemoFundingForm requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} cardUnavailable={cardUnavailable} blocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
+        {canFund ? <DemoFundingForm requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} blocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
         {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} /> : null}
       </section>
     </div>

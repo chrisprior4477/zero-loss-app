@@ -26,3 +26,18 @@ test("Refunds remains its own filter, separate from released entry holds", () =>
   expect(screen.queryByText("Entry reservation released")).toBeNull();
   expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=33333333-3333-4333-8333-333333333333");
 });
+
+test("history starts with five rows, expands, and filters an inclusive date range", () => {
+  const entries = Array.from({ length: 7 }, (_, index) => ({
+    id: `11111111-1111-4111-8111-11111111111${index}`,
+    entry_type: "DEPOSIT", amount: 100, created_at: `2026-09-${String(20 + index).padStart(2, "0")}T12:00:00Z`,
+  }));
+  render(<WalletLedger entries={entries} />);
+  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(5);
+  fireEvent.click(screen.getByRole("button", { name: /See all 7 transactions/ }));
+  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(7);
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-09-23" } });
+  fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-09-24" } });
+  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(2);
+  expect(screen.getByText(/Showing 2 of 2 transactions/)).toBeTruthy();
+});

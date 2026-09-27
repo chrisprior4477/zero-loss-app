@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn() }));
-import { completeDemoFunding } from "@/lib/payments/actions";
+vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn() }));
+import { completeDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 test("deposit confirmation stays on the page and asks for amount approval and password", () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
@@ -23,7 +23,7 @@ test("deposit confirmation stays on the page and asks for amount approval and pa
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
   expect(sessionStorage.length).toBe(0);
 });
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); });
 test("a rejected password clears the recovery marker and can be corrected", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
@@ -72,7 +72,7 @@ test("unknown or outstanding requests block a new form submission", () => {
 test("failed request list is unavailable, not empty", () => {
   render(<DemoFundingRequests requests={null} fundingEnabled />);
   expect(screen.getByRole("alert").textContent).toContain("unavailable");
-  expect(screen.queryByText("No funding requests yet.")).toBeNull();
+  expect(screen.queryByText("No payment deposits yet.")).toBeNull();
 });
 test("reload restores the original payment key and amount, never a fresh payment", () => {
   sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount: "1000" }));
@@ -83,14 +83,10 @@ test("reload restores the original payment key and amount, never a fresh payment
   expect(container.querySelector<HTMLInputElement>('[name="recoveryOnly"]')?.value).toBe("true");
 });
 
-test("test card is read-only and card credentials are never submitted", () => {
+test("supplied test-card details are display-only and never submitted", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   expect(screen.getByRole("region", { name: "Add Credit Card" })).toBeTruthy();
-  for (const name of ["Test card number", "Test card expiry", "Test card security code"]) {
-    const input = screen.getByLabelText(name) as HTMLInputElement;
-    expect(input.readOnly).toBe(true);
-    expect(input.name).toBe("");
-  }
+  expect(screen.getByText("4242 4242 4242 4242")).toBeTruthy();
   const form = new FormData(container.querySelector("form")!);
   expect(form.get("paymentMethod")).toBe("demo_card_4242");
   expect(form.get("makeDefault")).toBe("false");
@@ -98,13 +94,24 @@ test("test card is read-only and card credentials are never submitted", () => {
   expect([...form.values()]).not.toContain("123");
 });
 
-test("saved default is restored and customer may opt out", () => {
+test("saved default is restored and customer may opt out", async () => {
+  vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCard={{ token: "demo_card_4242", lastFour: "4242", isDefault: true }} />);
   const checkbox = screen.getByRole("checkbox", { name: "Use as my default payment method" }) as HTMLInputElement;
   expect(checkbox.checked).toBe(true);
-  expect(container.querySelector("details")?.open).toBe(false);
   fireEvent.click(checkbox);
-  expect(container.querySelector<HTMLInputElement>('[name="makeDefault"]')?.value).toBe("false");
+  await waitFor(() => expect(container.querySelector<HTMLInputElement>('[name="makeDefault"]')?.value).toBe("false"));
+});
+
+test("additional sample cards form a two-card selection and can be saved", async () => {
+  vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
+  fireEvent.click(screen.getByRole("button", { name: /Add another card/ }));
+  expect(screen.getByText("Test card •••• 5556")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Save this card" }));
+  await waitFor(() => expect(saveDemoPaymentMethod).toHaveBeenCalled());
+  expect(vi.mocked(saveDemoPaymentMethod).mock.calls[0]?.[1].get("paymentMethod")).toBe("demo_card_5556");
+  expect(container.querySelectorAll("article")).toHaveLength(2);
 });
 
 test("retry restores and locks the original default preference, not the current preference", () => {
@@ -128,4 +135,13 @@ test("pending request offers recovery but discrepancy requires review", () => {
   ]} />);
   expect(screen.getAllByRole("button", { name: "Finish / check" })).toHaveLength(1);
   expect(screen.getByRole("alert").textContent).toContain("operator review");
+});
+
+test("payment deposits initially show five and expand on demand", () => {
+  const requests = Array.from({ length: 7 }, (_, index) => ({ id: `request-${index}`, amount: 100, currency: "USD" as const, status: "succeeded", created_at: "2026-09-14", reconciliation: "reconciled" as const }));
+  render(<DemoFundingRequests fundingEnabled requests={requests} />);
+  expect(screen.getByRole("region", { name: "Payment deposits" })).toBeTruthy();
+  expect(screen.getAllByText("Payment & credit matched")).toHaveLength(5);
+  fireEvent.click(screen.getByRole("button", { name: /See all 7 payment deposits/ }));
+  expect(screen.getAllByText("Payment & credit matched")).toHaveLength(7);
 });

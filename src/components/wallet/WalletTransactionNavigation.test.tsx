@@ -16,7 +16,7 @@ test("an older transaction stays accessible without inflating the recent history
   render(<WalletOverview wallet={{ ...wallet, entries: [], transactionCount: 51 }} selectedTransaction={{ requested: true, entry }} />);
   expect(screen.getByRole("region", { name: "Selected older transaction" })).toBeTruthy();
   expect(document.getElementById(`transaction-${entry.id}`)).toBeTruthy();
-  expect(screen.getByText("Showing 0 of 51 transactions")).toBeTruthy();
+  expect(screen.getByText("Showing 0 of 0 available (51 total) transactions")).toBeTruthy();
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$1");
 });
 test("unavailable selection preserves the customer's actual history and provides feedback", () => {

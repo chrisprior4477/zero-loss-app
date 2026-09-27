@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DEMO_CARD_TOKEN, parseDemoCard, type DemoCard } from "./demo-card";
+import { DEMO_CARD_TOKEN, demoCardFixture, parseDemoCard, parseDemoCards, type DemoCard, type DemoCardToken } from "./demo-card";
 
 export type DemoFundingRequest = {
   id: string; amount: number; currency: "USD"; status: string; created_at: string;
@@ -18,11 +18,11 @@ export class FundingFailure extends Error {
 export class DemoPaymentProvider {
   constructor(private readonly db: SupabaseClient) {}
 
-  async createFundingSession(amountCents: number, key: string, makeDefault: boolean | null): Promise<string> {
+  async createFundingSession(amountCents: number, key: string, makeDefault: boolean | null, paymentMethod: DemoCardToken = DEMO_CARD_TOKEN): Promise<string> {
     const { data, error } = makeDefault === null
       ? await this.db.rpc("resume_demo_funding_session", { p_amount: amountCents, p_idempotency_key: key })
       : await this.db.rpc("create_demo_card_funding_session", { p_amount: amountCents, p_idempotency_key: key,
-        p_payment_method: DEMO_CARD_TOKEN, p_make_default: makeDefault });
+        p_payment_method: paymentMethod, p_make_default: makeDefault });
     if (error) throw new FundingFailure(error.code, error.message);
     if (!data || typeof data.id !== "string") throw new Error("Unconfirmed funding request");
     return data.id;
@@ -34,9 +34,16 @@ export class DemoPaymentProvider {
     return parseDemoCard(data);
   }
 
-  async savePaymentMethod(makeDefault: boolean): Promise<DemoCard> {
+  async getPaymentMethods(): Promise<DemoCard[]> {
+    const { data, error } = await this.db.rpc("get_demo_payment_methods");
+    if (error) throw new FundingFailure(error.code, error.message);
+    return parseDemoCards(data);
+  }
+
+  async savePaymentMethod(makeDefault: boolean, paymentMethod: DemoCardToken = DEMO_CARD_TOKEN): Promise<DemoCard> {
+    if (!demoCardFixture(paymentMethod)) throw new Error("Unsupported test card");
     const { data, error } = await this.db.rpc("save_demo_payment_method", {
-      p_payment_method: DEMO_CARD_TOKEN,
+      p_payment_method: paymentMethod,
       p_make_default: makeDefault,
     });
     if (error) throw new FundingFailure(error.code, error.message);

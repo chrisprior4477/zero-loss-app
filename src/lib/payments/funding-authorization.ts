@@ -29,7 +29,7 @@ export async function authorizeFunding(db: SupabaseClient, form: FormData, amoun
       throw new FundingFailure("P0001", "We couldn’t verify your password. Try again, or reset it before adding funds.");
     }
     const { error: confirmationError } = await verifier.rpc("authorize_demo_funding", {
-      p_amount: amount, p_request_key: key, p_make_default: form.get("makeDefault") === "true", p_policy_version: FUNDING_POLICY_VERSION,
+      p_amount: amount, p_request_key: key, p_payment_method: form.get("paymentMethod"), p_make_default: form.get("makeDefault") === "true", p_policy_version: FUNDING_POLICY_VERSION,
     });
     if (confirmationError) throw new FundingFailure("P0001", "We couldn’t authorize this deposit. Check your password and try again shortly.");
   } finally {

@@ -13,9 +13,10 @@ const TEST_CODE = "123";
 
 function digits(value: string) { return value.replace(/\D/g, ""); }
 
-export function DemoCardManager({ displayName, savedCard = null, cardUnavailable = false, enabled = false, embedded = false }: {
+export function DemoCardManager({ displayName, savedCard = null, savedCards, cardUnavailable = false, enabled = false, embedded = false }: {
   displayName: string;
   savedCard?: DemoCard | null;
+  savedCards?: DemoCard[];
   cardUnavailable?: boolean;
   enabled?: boolean;
   embedded?: boolean;
@@ -25,7 +26,8 @@ export function DemoCardManager({ displayName, savedCard = null, cardUnavailable
   const [cardNumber, setCardNumber] = useState(TEST_CARD);
   const [expiry, setExpiry] = useState(TEST_EXPIRY);
   const [securityCode, setSecurityCode] = useState(TEST_CODE);
-  const [makeDefault, setMakeDefault] = useState(savedCard?.isDefault ?? true);
+  const firstCard = savedCards?.find(card => card.token === DEMO_CARD_TOKEN) ?? (savedCard?.token === DEMO_CARD_TOKEN ? savedCard : null);
+  const [makeDefault, setMakeDefault] = useState(firstCard?.isDefault ?? !savedCard);
   const [clientError, setClientError] = useState("");
 
   const Root = embedded ? "div" : "main";
@@ -48,6 +50,7 @@ export function DemoCardManager({ displayName, savedCard = null, cardUnavailable
             <span className={styles.statusIcon}><AccountIcon name="completed" /></span>
             <div><strong>{savedCard ? `Test card •••• ${savedCard.lastFour}` : "No saved card yet"}</strong><p>{savedCard?.isDefault ? "Current default payment method" : "Add the supplied test card below"}</p></div>
           </div>
+          {savedCards && savedCards.length > 0 ? <div className={styles.savedStatus} aria-label="Saved sample cards"><div><strong>Your saved sample cards</strong>{savedCards.map(card => <p key={card.token}>Test card •••• {card.lastFour}{card.isDefault ? " · Default" : ""}</p>)}<Link href="/account/wallet?view=history#add-funds">Add another sample card in Add funds →</Link></div></div> : null}
         </aside>
 
         <section className={styles.formPanel} aria-labelledby="card-form-heading">
@@ -75,7 +78,7 @@ export function DemoCardManager({ displayName, savedCard = null, cardUnavailable
             {clientError ? <p role="alert" className={styles.error}>{clientError}</p> : null}
             {state.status !== "idle" ? <p role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
             <div className={styles.actions}>
-              <button type="submit" disabled={pending || !enabled}>{pending ? "Saving card…" : savedCard ? "Update card" : "Save card"}<AccountIcon name="arrow" /></button>
+              <button type="submit" disabled={pending || !enabled}>{pending ? "Saving card…" : firstCard ? "Update card" : "Save card"}<AccountIcon name="arrow" /></button>
               <Link href="/account/wallet?view=history#add-funds">{state.status === "succeeded" ? "Continue to Add funds" : "Back to wallet"}</Link>
             </div>
           </form>
