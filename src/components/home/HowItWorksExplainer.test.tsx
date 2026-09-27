@@ -14,7 +14,7 @@ test("uses the supplied five-step artwork at full width and as readable swipe pa
   render(<HowItWorksExplainer />);
 
   const fullImage = screen.getByRole("img", { name: /How ZeroLoss works in five steps/ });
-  expect(fullImage.getAttribute("data-src")).toBe("/how-it-works-five-steps.png");
+  expect(fullImage.getAttribute("data-src")).toBe("/how-it-works-five-steps-option-b.png");
 
   const strip = screen.getByRole("region", { name: "How ZeroLoss works, five swipeable steps" });
   expect(within(strip).getAllByRole("img")).toHaveLength(5);

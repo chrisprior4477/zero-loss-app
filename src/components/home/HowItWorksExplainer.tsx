@@ -3,16 +3,16 @@
 import { useRef } from "react";
 import Image from "next/image";
 
-const IMAGE_WIDTH = 2055;
-const IMAGE_HEIGHT = 765;
-const IMAGE_SRC = "/how-it-works-five-steps.png";
+const IMAGE_WIDTH = 3840;
+const IMAGE_HEIGHT = 1429;
+const IMAGE_SRC = "/how-it-works-five-steps-option-b.png";
 
 const steps = [
-  { start: 0, end: 444, description: "Step 1: Pick it. Choose a product and see its full offer total." },
-  { start: 444, end: 821, description: "Step 2: Enter one dollar. Your dollar starts the offer." },
-  { start: 821, end: 1234, description: "Step 3: You win. Get a gift card for the full offer value." },
-  { start: 1234, end: 1628, description: "Step 4: Didn't win? Pay the remaining balance by the deadline for the same gift card." },
-  { start: 1628, end: IMAGE_WIDTH, description: "Step 5: Your call. Use the gift card for your pick or other items at that retailer." },
+  { start: 0, end: 768, description: "Step 1: Pick it. Choose a product and see its full offer total." },
+  { start: 768, end: 1536, description: "Step 2: Enter one dollar. Your dollar starts the offer." },
+  { start: 1536, end: 2304, description: "Step 3: You win. Get a gift card for the full offer value." },
+  { start: 2304, end: 3072, description: "Step 4: Didn't win? What you spent still counts. Pay the balance by the deadline to receive the same gift card." },
+  { start: 3072, end: IMAGE_WIDTH, description: "Step 5: Your call. Use the gift card for your pick or other items at that retailer." },
 ] as const;
 
 export function HowItWorksExplainer() {
@@ -33,7 +33,7 @@ export function HowItWorksExplainer() {
     <div>
       <Image
         src={IMAGE_SRC}
-        alt="How ZeroLoss works in five steps: pick a product, enter for $1, receive the full-value retailer gift card if you win, or pay the balance by the deadline if you don't; then use the gift card at that retailer."
+        alt="How ZeroLoss works in five steps: pick a product, enter for $1, receive the full-value retailer gift card if you win, or use what you spent toward the balance if you don't; then use the gift card at that retailer."
         width={IMAGE_WIDTH}
         height={IMAGE_HEIGHT}
         sizes="(min-width: 1024px) 1440px, 100vw"

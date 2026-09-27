@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   categorySubcategories,
   endingSoonItemHrefs,
 } from "@/lib/home/placeholder-data";
 import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { HomeIcon } from "./HomeIcon";
-import { useHorizontalCategoryScroll } from "./useHorizontalCategoryScroll";
 
 const desktopCategories = [
   "Ending Soon",
@@ -45,7 +44,28 @@ const desktopCategoryItems: Record<string, readonly string[]> = {
 
 export function DesktopCategoryNav() {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
-  const { navRef, canScrollLeft, canScrollRight, updateEdges, scroll } = useHorizontalCategoryScroll();
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const slideWithWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+      if (event.target instanceof Element && event.target.closest('[role="menu"]')) return;
+
+      const maxScroll = nav.scrollWidth - nav.clientWidth;
+      if (maxScroll <= 0) return;
+      const next = Math.max(0, Math.min(maxScroll, nav.scrollLeft + event.deltaY));
+      if (Math.abs(next - nav.scrollLeft) < 1) return;
+
+      event.preventDefault();
+      nav.scrollBy({ left: event.deltaY, behavior: "smooth" });
+    };
+
+    nav.addEventListener("wheel", slideWithWheel, { passive: false });
+    return () => nav.removeEventListener("wheel", slideWithWheel);
+  }, []);
 
   useEffect(() => {
     if (!openCategory) return;
@@ -67,16 +87,12 @@ export function DesktopCategoryNav() {
     };
   }, [navRef, openCategory]);
 
-  const arrowClass = "hidden h-8 w-8 shrink-0 place-items-center rounded-full border border-cyan-300/55 bg-[#07315c] text-lg font-bold text-cyan-200 transition hover:bg-cyan-300 hover:text-[#00132e] disabled:pointer-events-none disabled:opacity-30 sm:grid";
-
   return <>
-    <button type="button" aria-label="Scroll marketplace categories left" disabled={!canScrollLeft} onClick={() => scroll(-1)} className={arrowClass}>‹</button>
     <nav
       ref={navRef}
       aria-label="Marketplace categories"
-      className="min-w-0 self-stretch flex-1 overflow-x-auto zl-noscroll"
+      className="min-w-0 self-stretch flex-1 overflow-x-auto overscroll-x-contain scroll-smooth zl-noscroll"
       onMouseLeave={() => setOpenCategory(null)}
-      onScroll={updateEdges}
     >
       <ul className="flex h-full w-max min-w-full items-center justify-start gap-1 px-2 lg:justify-center lg:px-0 xl:gap-2">
         <li className="flex h-full shrink-0 items-center">
@@ -149,6 +165,5 @@ export function DesktopCategoryNav() {
         })}
       </ul>
     </nav>
-    <button type="button" aria-label="Scroll marketplace categories right" disabled={!canScrollRight} onClick={() => scroll(1)} className={arrowClass}>›</button>
   </>;
 }

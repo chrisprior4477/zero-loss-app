@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { SiteBreadcrumbs } from "./SiteBreadcrumbs";
 import { DesktopCategoryNav } from "./DesktopCategoryNav";
 
@@ -26,4 +26,19 @@ test("the category rail shows only a small labeled-for-accessibility house befor
   expect(links[0].getAttribute("aria-label")).toBe("Home");
   expect(links[0].textContent).toBe("");
   expect(links[1].textContent).toBe("Ending Soon");
+  expect(screen.queryByRole("button", { name: /Scroll marketplace categories/ })).toBeNull();
+});
+
+test("the category rail slides smoothly with a mouse wheel when it overflows", () => {
+  render(<DesktopCategoryNav />);
+  const nav = screen.getByRole("navigation", { name: "Marketplace categories" });
+  Object.defineProperties(nav, {
+    clientWidth: { configurable: true, value: 600 },
+    scrollWidth: { configurable: true, value: 1000 },
+  });
+  nav.scrollBy = vi.fn();
+
+  fireEvent.wheel(nav, { deltaY: 120 });
+
+  expect(nav.scrollBy).toHaveBeenCalledWith({ left: 120, behavior: "smooth" });
 });
