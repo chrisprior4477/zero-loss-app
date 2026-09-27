@@ -10,7 +10,7 @@
 .subtitle { margin-top: 12px; color: #d5dfed; font-size: clamp(17px, 2.2vw, 36px); line-height: 1.25; }
 
 .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 30px; }
-.filter, .productCard, .accountTool {
+.filter, .productCard, .accountTool, .empty {
   --ticket-side-notch: 10px;
   --ticket-corner-notch: 12px;
   --ticket-cutouts:
@@ -127,7 +127,7 @@
 .previousIcon { transform: rotate(180deg); }
 .position { color: #d6e8f8; font-size: 13px; font-variant-numeric: tabular-nums; }
 
-.empty { margin-top: 24px; padding: 34px; border-radius: 15px; background: #fffefa; color: #112044; }
+.empty { --ticket-side-notch: 14px; --ticket-corner-notch: 18px; margin-top: 24px; padding: 38px 42px; background: #fffefa; color: #112044; }
 .empty h2 { color: #112044; }
 .empty p { color: #536d87; }
 .empty a { display: inline-flex; min-height: 44px; align-items: center; margin-top: 20px; padding: 9px 17px; border-radius: 10px; background: #44ec62; color: #08251d; font-weight: 800; }
@@ -187,6 +187,7 @@
   .filter > svg { width: 23px; height: 23px; }
   .filterCount { min-width: 29px; min-height: 29px; border-radius: 9px; font-size: 13px; }
   .galleryShell { margin-top: 17px; }
+  .empty { --ticket-side-notch: 10px; --ticket-corner-notch: 13px; padding: 28px 26px; }
   .productCard, .cardInner { min-height: 176px; }
   .productCard::after { top: 29%; right: 17px; width: 10px; height: 10px; border-width: 2px; }
   .cardInner { grid-template-columns: minmax(0, 37%) minmax(0, 1fr); grid-template-rows: 13px 25px minmax(37px, auto) minmax(0, 1fr); gap: 0 13px; padding: 11px 13px; }

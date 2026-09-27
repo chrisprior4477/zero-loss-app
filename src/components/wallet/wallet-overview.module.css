@@ -95,7 +95,7 @@
 .posted { justify-self: center; min-width: 82px; padding: 5px 9px; border-radius: 8px; background: #bbf6cd; color: #0a5b34; font-size: 11px; font-weight: 850; text-align: center; text-transform: uppercase; }
 .reportLink { display: flex; align-items: center; justify-content: center; color: #0a1940; }
 .reportLink svg { width: 25px; height: 25px; }
-.showAllTicket { --corner-scoop: 12px; --side-scoop: 12px; display: flex; grid-column: 1 / -1; width: 100%; min-height: 55px; align-items: center; justify-content: center; gap: 12px; margin-top: 11px; padding: 12px 28px; border: 0; background: #0872fb; color: #fff; font-size: 16px; font-weight: 850; cursor: pointer; }
+.showAllTicket { --corner-scoop: 21px; --side-scoop: 13px; display: flex; grid-column: 1 / -1; width: 100%; min-height: 68px; align-items: center; justify-content: center; gap: 12px; margin-top: 13px; padding: 14px 38px; border: 0; background: #0872fb; color: #fff; font-size: 16px; font-weight: 850; cursor: pointer; }
 .showAllTicket:hover { background: #0869e6; }
 .showAllTicket svg { width: 22px; height: 22px; }
 .finePrint { grid-column: 1 / -1; margin-top: 10px; color: #c5d8ee; font-size: 12px; }
@@ -147,7 +147,30 @@
 .fundingSubmit { min-height: 52px; width: 100%; border: 0; border-radius: 9px; background: #0872fb; color: #fff; font-size: 17px; font-weight: 850; cursor: pointer; }
 .fundingSubmit:hover:not(:disabled) { filter: brightness(1.07); }
 .fundingSubmit:disabled { cursor: not-allowed; opacity: .5; }
-.fundingForm :global(dialog) { border-color: #73b3e1; background: #fffefa; color: #0b1940; }
+.fundingForm .confirmationTicket {
+  --corner-scoop: 20px;
+  --side-scoop: 14px;
+  border: 0;
+  border-radius: 0;
+  background: #fffefa;
+  color: #0b1940;
+  -webkit-mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}
 .fundingForm :global(dialog) :global(p), .fundingForm :global(dialog) :global(label) { color: #425f7f; }
 .fundingForm :global(dialog) :global(input[type="password"]) { border-color: #b7ccdc; background: #fff; color: #0b1940; }
 .fundingForm :global(dialog) :global(button[type="button"]) { border-color: #9cb9d0; color: #0b1940; }
@@ -184,6 +207,8 @@
   .ledger { margin-top: 0; }
 }
 @media (max-width: 700px) {
+  .showAllTicket { --corner-scoop: 15px; --side-scoop: 10px; min-height: 62px; padding-inline: 25px; font-size: 14px; }
+  .fundingForm .confirmationTicket { --corner-scoop: 15px; --side-scoop: 10px; }
   .page { padding: 14px 12px 42px; }
   .hero { align-items: flex-start; flex-direction: column; padding: 18px 3px 13px; }
   .hero h1 { font-size: clamp(35px, 9vw, 50px); }

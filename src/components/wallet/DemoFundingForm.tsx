@@ -105,7 +105,7 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
       </select>
     </label>
     <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={styles.fundingSubmit}>{pending ? "Checking payment…" : beforePaymentError ? "Try password again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
-    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className="m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-3xl border border-cyan-300/50 bg-[#052344] p-6 text-white shadow-2xl backdrop:bg-[#001027]/80">
+    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
       <p className="mt-2 text-sm text-[#b5cce4]">Test card •••• {demoCardFixture(selectedToken)?.lastFour} · USD · Simulation only</p>
