@@ -120,11 +120,14 @@ export function HeroSearchRow({ winnerCount = null }: HeroSearchRowProps) {
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          enterKeyHint="search"
           aria-describedby="hero-search-status"
           placeholder={`Search ${SEARCH_WORDS[wordIndex]}`}
           className="min-w-0 flex-1 truncate border-none bg-transparent text-[13px] text-[var(--ink)] outline-none placeholder:text-[rgba(0,48,95,0.55)]"
         />
-        <VoiceSearchButton onTranscript={setQuery} />
+        {query.trim() ? (
+          <button type="submit" aria-label="Go to search results" className="min-h-9 shrink-0 rounded-md bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
+        ) : <VoiceSearchButton onTranscript={setQuery} />}
       </form>
       <p
         id="hero-search-status"

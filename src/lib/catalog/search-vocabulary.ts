@@ -9,8 +9,9 @@ export const productSearchTerms: Readonly<Record<string, string>> = {
 export const retailerSearchTerms: Readonly<Record<string, string>> = {
   "The Home Depot": "tool power tool hand tool reciprocating saw sawzall drill screwdriver hammer hardware lumber paint garden gardening home improvement repair renovation",
   PetSmart: "pet dog puppy cat kitten food treat kibble pet supply pet toy cat litter aquarium fish bird grooming",
-  Walmart: "baby infant newborn diaper formula grocery groceries food household cleaning school supply",
-  CVS: "baby diaper formula personal care toiletries shampoo toothpaste health beauty skincare",
+  Walmart: "baby infant newborn diaper formula grocery groceries food household cleaning school supply paper towel tissue napkin medicine medication otc over the counter cold allergy pain reliever pharmacy first aid",
+  CVS: "baby diaper formula personal care toiletries shampoo toothpaste health beauty skincare paper towel tissue medicine medication otc over the counter cold allergy pain reliever pharmacy first aid",
+  Publix: "grocery groceries food household cleaning paper towel tissue napkin",
   Adidas: "shoe sneaker trainer footwear sportswear athletic clothing workout running",
   Nintendo: "video game gaming console switch controller",
   Starbucks: "coffee cafe latte espresso tea drink",
@@ -33,4 +34,5 @@ export const searchSynonyms: readonly (readonly string[])[] = [
   ["electronic", "tech", "technology"],
   ["diaper", "nappy", "nappies"],
   ["treat", "snack"],
+  ["medicine", "medication", "meds"],
 ];

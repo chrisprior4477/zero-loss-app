@@ -87,10 +87,15 @@ function HeaderSearchForm({ inputId, initialQuery }: { inputId: string; initialQ
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
+        enterKeyHint="search"
         placeholder="Search products, brands, and categories..."
         className="min-w-0 flex-1 bg-transparent text-[14px] text-[#00132e] outline-none placeholder:text-slate-500"
       />
-      <button
+      {query.trim() && !isListening ? (
+        <button type="submit" aria-label="Go to search results" className="ml-2 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">
+          Go
+        </button>
+      ) : <button
         type="button"
         onClick={toggleVoiceSearch}
         aria-label={isListening ? "Stop voice search" : "Start voice search"}
@@ -103,7 +108,7 @@ function HeaderSearchForm({ inputId, initialQuery }: { inputId: string; initialQ
         }`}
       >
         <HeaderMicrophoneIcon />
-      </button>
+      </button>}
     </form>
   );
 }

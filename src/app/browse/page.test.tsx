@@ -33,4 +33,18 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: /\$25 The Home Depot Gift Card/i }).getAttribute("href")).toBe("/items/home-depot-25-gift-card");
     expect(screen.queryByRole("heading", { name: "Reciprocating Saw" })).toBeNull();
   });
+
+  test("keeps a search term when browsing its categories", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels" }) }));
+    expect(screen.getByRole("link", { name: "Groceries" }).getAttribute("href")).toBe("/browse?category=groceries&q=paper+towels");
+    expect(screen.getByRole("link", { name: "All" }).getAttribute("href")).toBe("/browse?q=paper+towels");
+    expect(screen.getByRole("button", { name: "Scroll search categories right" })).toBeTruthy();
+    expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.")).toHaveLength(9);
+  });
+
+  test("does not claim the whole catalog is empty when only a selected category has no matches", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels", category: "gas" }) }));
+    expect(screen.getByRole("heading", { name: "No “paper towels” matches in Gas." })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=paper+towels");
+  });
 });

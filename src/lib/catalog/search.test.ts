@@ -38,6 +38,27 @@ describe("catalog search", () => {
     expect(matches.every(match => match.product.retailer === "PetSmart" && match.kind === "retailer")).toBe(true);
   });
 
+  test.each(["medicine", "medication", "meds", "cold medicine"])("offers existing CVS and Walmart cards for %s", query => {
+    const matches = searchCatalogMatches(demoProducts, query);
+    expect(matches).toHaveLength(8);
+    expect(matches.every(match => ["CVS", "Walmart"].includes(match.product.retailer) && match.kind === "retailer")).toBe(true);
+  });
+
+  test("keeps a named medicine retailer specific", () => {
+    const matches = searchCatalogMatches(demoProducts, "CVS medicine");
+    expect(matches).toHaveLength(4);
+    expect(matches.every(match => match.product.retailer === "CVS")).toBe(true);
+  });
+
+  test("finds existing paper-towel retailers without inventing an item", () => {
+    const matches = searchCatalogMatches(demoProducts, "paper towels");
+    expect(matches).toHaveLength(9);
+    expect(new Set(matches.map(match => match.product.retailer))).toEqual(new Set(["Walmart", "CVS", "Publix"]));
+    expect(matches.every(match => match.kind === "retailer" && match.product.title.includes("Gift Card"))).toBe(true);
+    expect(searchCatalog(demoProducts, "Walmart paper towels")).toHaveLength(4);
+    expect(searchCatalog(demoProducts, "paper towels spaceship")).toEqual([]);
+  });
+
   test.each(["Pet Smart", "PETSMART", "petsmrat", "PetSmart giftcards"])("normalizes retailer spelling and spacing for %s", query => {
     const products = searchCatalog(demoProducts, query);
     expect(products).toHaveLength(4);
