@@ -63,7 +63,7 @@ function DesktopHeroCarousel() {
   }, [showHowItWorks]);
 
   useEffect(() => {
-    if (!showHowItWorks || window.matchMedia("(min-width: 1440px)").matches) return;
+    if (!showHowItWorks || window.matchMedia("(min-width: 1024px)").matches) return;
     const frame = requestAnimationFrame(() => {
       const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const panel = howItWorksPanelRef.current;

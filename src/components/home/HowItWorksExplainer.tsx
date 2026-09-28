@@ -84,7 +84,7 @@ export function HowItWorksExplainer() {
         alt="How ZeroLoss works in five steps: pick a product, enter for $1, receive the full-value retailer gift card if you win, or use what you spent toward the balance if you don't; then use the gift card at that retailer."
         width={IMAGE_WIDTH}
         height={IMAGE_HEIGHT}
-        sizes="(min-width: 1440px) 1440px, 100vw"
+        sizes="(min-width: 1024px) 1440px, 100vw"
         className={styles.desktopArtwork}
         unoptimized
       />

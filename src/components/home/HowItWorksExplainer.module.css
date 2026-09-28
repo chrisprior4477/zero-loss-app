@@ -102,7 +102,7 @@
   .stepSlot { flex-basis: clamp(260px, 34vw, 310px); }
 }
 
-@media (min-width: 1440px) {
+@media (min-width: 1024px) {
   .desktopArtwork { display: block; }
   .rail { display: none; }
 }
