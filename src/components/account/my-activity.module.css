@@ -97,6 +97,9 @@
 }
 .productCard:hover { transform: translateY(-2px); filter: brightness(1.015); }
 .productCard::after { content: ""; position: absolute; top: 25%; right: 15px; width: 10px; height: 10px; border-top: 2px solid #0a1741; border-right: 2px solid #0a1741; transform: rotate(45deg); pointer-events: none; }
+.productCard[data-has-progress="true"]::after { top: 58%; }
+.offerProgress { position: absolute; z-index: 1; top: 9px; right: 34px; display: grid; width: 54px; height: 54px; place-items: center; border-radius: 50%; background: conic-gradient(#ff254b var(--offer-progress), #dfe7ef 0); box-shadow: 0 2px 6px #09224a21; color: #10213d; pointer-events: none; }
+.offerProgress > span { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 13px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .cardInner {
   position: relative;
   display: grid;
@@ -115,6 +118,7 @@
 [data-status="completion"] .status { background: #ffac57; color: #34200c; }
 [data-status="completed"] .status { background: #e0eaf2; color: #173151; }
 .productTitle { grid-column: 2; grid-row: 3; align-self: start; max-width: calc(100% - 16px); margin: 0; color: #0a1439; font-size: clamp(15px, 1.2vw, 19px); font-weight: 850; line-height: 1.1; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.productCard[data-has-progress="true"] .retailer, .productCard[data-has-progress="true"] .productTitle { max-width: calc(100% - 54px); }
 .productStage { position: relative; grid-column: 1; grid-row: 1 / 5; width: 100%; height: 100%; min-height: 0; overflow: hidden; border-radius: 15px; background: linear-gradient(140deg, #d9efff, #acdcff); }
 [data-status="prize"] .productStage { background: linear-gradient(140deg, #f8eadd, #efe0cd); }
 [data-status="completion"] .productStage { background: linear-gradient(140deg, #ffe9cf, #f8d8b6); }
@@ -203,6 +207,10 @@
   .empty { --ticket-side-notch: 10px; --ticket-corner-notch: 13px; padding: 28px 26px; }
   .productCard { --ticket-side-notch: 8px; --ticket-corner-notch: 10px; }
   .productCard::after { top: 22%; right: 11px; width: 8px; height: 8px; }
+  .productCard[data-has-progress="true"]::after { top: 58%; }
+  .offerProgress { top: 7px; right: 24px; width: 42px; height: 42px; }
+  .offerProgress > span { width: 32px; height: 32px; font-size: 10px; }
+  .productCard[data-has-progress="true"] .retailer, .productCard[data-has-progress="true"] .productTitle { max-width: calc(100% - 42px); }
   .cardInner { grid-template-columns: minmax(0, 28%) minmax(0, 1fr); grid-template-rows: 11px 22px minmax(40px, auto) minmax(0, 1fr); gap: 0 7px; padding: 9px 10px; }
   .cardInner::before { top: 9px; bottom: 9px; left: calc(28% + 7px); }
   .productStage { border-radius: 10px; }

@@ -14,7 +14,7 @@ function action(item: ActivityItem) {
   return { active: "Track entry", completion: "Review option", completed: "View details" }[item.status];
 }
 
-export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; filter: ActivityFilter }) {
+export function MyZeroLossGallery({ items, filter, progressBySlug }: { items: ActivityItem[]; filter: ActivityFilter; progressBySlug: Record<string, number> }) {
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
   const [dragging, setDragging] = useState(false);
@@ -123,6 +123,7 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
     >
       {items.map((item, index) => {
         const featured = item.status === "prize" && index === 0;
+        const offerProgress = item.status === "active" ? progressBySlug[item.slug] : undefined;
         const desktopColumn = Math.floor(index / 6) * 2 + (index % 2) + 1;
         const desktopRow = Math.floor((index % 6) / 2) + 1;
         const stackedColumn = Math.floor(index / 2) + 1;
@@ -134,7 +135,7 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={item.entryId ?? item.slug} className={styles.galleryItem} style={placement}>
-          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} className={styles.productCard}>
+          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerProgress !== undefined ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
@@ -150,6 +151,7 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
                 <span className={styles.cardAction}>{action(item)}<AccountIcon name="arrow" /></span>
               </div>
             </div>
+            {offerProgress !== undefined ? <span className={styles.offerProgress} role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerProgress} aria-valuemin={0} aria-valuemax={100} style={{ "--offer-progress": `${offerProgress}%` } as CSSProperties}><span>{offerProgress}%</span></span> : null}
           </Link>
           {featured && items.length > 1 ? <p className={styles.mobileRestLabel}>Everything else</p> : null}
         </div>;

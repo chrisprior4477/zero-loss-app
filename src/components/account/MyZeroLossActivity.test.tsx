@@ -33,6 +33,15 @@ test("same activity source yields matching still-open count and full-row links",
   expect(screen.queryByText("Baby's Essentials Bundle")).toBeNull();
   expect(activityFilter("demo=true")).toBe("all");
 });
+test("only still-open tickets show their own offer-fill progress", () => {
+  const state = storedActivityFixture();
+  state.activity.push({ ...state.activity[0], slug: "another-open-offer", title: "Another open offer" });
+  render(<MyZeroLossActivity state={state} filter="all" progressBySlug={{ "playstation-5-slim": 36, "another-open-offer": 75, "samsung-m70h-tv": 99 }} />);
+  const indicators = screen.getAllByRole("progressbar");
+  expect(indicators.map(indicator => indicator.getAttribute("aria-valuenow"))).toEqual(["36", "75"]);
+  expect(indicators.map(indicator => indicator.textContent)).toEqual(["36%", "75%"]);
+  expect(within(screen.getByRole("link", { name: /Samsung 50" M70H Mini LED 4K Smart TV/ })).queryByRole("progressbar")).toBeNull();
+});
 test("completion displays exact product math and stays unavailable without a stored option id", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="completion" selectedSlug="babys-essentials-bundle" />);
   expect(screen.getByText("$100")).toBeTruthy();

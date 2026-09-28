@@ -9,6 +9,8 @@ import { activityFilter } from "@/lib/account/activity";
 import styles from "@/components/account/my-activity.module.css";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
+import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { activityOfferProgress } from "@/lib/account/activity-progress";
 
 export const metadata: Metadata = { title: "My Activity" };
 
@@ -22,10 +24,12 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const account = await getAccountContext();
   const query = await searchParams;
   if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query)));
+  const availability = await getOfferingAvailability();
+  const progressBySlug = activityOfferProgress(account.activity.activity, availability);
   return <div className={styles.page}><div className={styles.pageContent}>
     <h1 className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
-    <MyZeroLossActivity state={account.activity} filter={activityFilter(query.filter)} selectedSlug={typeof query.item === "string" ? query.item : undefined} selectedEntryId={typeof query.entry === "string" ? query.entry : undefined} />
+    <MyZeroLossActivity state={account.activity} filter={activityFilter(query.filter)} progressBySlug={progressBySlug} selectedSlug={typeof query.item === "string" ? query.item : undefined} selectedEntryId={typeof query.entry === "string" ? query.entry : undefined} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>
         <p className={styles.eyebrow}>ACCOUNT DASHBOARD</p>
