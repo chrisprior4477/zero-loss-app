@@ -62,6 +62,21 @@ function DesktopHeroCarousel() {
     };
   }, [showHowItWorks]);
 
+  useEffect(() => {
+    if (!showHowItWorks || window.matchMedia("(min-width: 1440px)").matches) return;
+    const frame = requestAnimationFrame(() => {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const panel = howItWorksPanelRef.current;
+      if (!panel) return;
+      const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+      window.scrollTo({
+        top: window.scrollY + panel.getBoundingClientRect().top - headerBottom - 16,
+        behavior: reducedMotion ? "instant" : "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [showHowItWorks]);
+
   const showSlide = (index: number) => {
     if (index < 0) {
       setActiveSlide(HERO_SLIDES.length - 1);
@@ -288,13 +303,9 @@ function DesktopHeroCarousel() {
         ref={howItWorksPanelRef}
         id="desktop-how-it-works-panel"
         aria-label="How ZeroLoss works"
-        className="relative left-1/2 w-screen -translate-x-1/2 border-y border-cyan-300/20 bg-[#00132e] px-4 py-7 sm:px-6 md:px-[clamp(4rem,8vw,10rem)]"
+        className="relative left-1/2 w-screen -translate-x-1/2 border-y border-cyan-300/20 bg-[#00132e] px-4 py-5 sm:px-6 md:px-[clamp(4rem,8vw,10rem)]"
       >
         <div className="mx-auto max-w-[1440px]">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <h2 className="text-[22px] font-bold text-white">How ZeroLoss works</h2>
-            <button type="button" onClick={() => setShowHowItWorks(false)} aria-label="Close How It Works" className="grid h-10 w-10 place-items-center rounded-full border border-cyan-300/50 text-2xl text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#59dfff]">×</button>
-          </div>
           <HowItWorksExplainer />
           <Link href="/how-it-works" className="mt-5 inline-flex text-sm font-semibold text-cyan-300 underline-offset-4 hover:underline">Open the full How It Works page →</Link>
         </div>

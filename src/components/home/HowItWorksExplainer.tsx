@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import Image from "next/image";
+import styles from "./HowItWorksExplainer.module.css";
 
 const IMAGE_WIDTH = 3840;
 const IMAGE_HEIGHT = 1429;
@@ -16,17 +17,64 @@ const steps = [
 ] as const;
 
 export function HowItWorksExplainer() {
-  const stripRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
-  function move(direction: -1 | 1) {
-    const strip = stripRef.current;
-    if (!strip) return;
-    const cards = [...strip.querySelectorAll<HTMLElement>("[data-explainer-step]")];
-    const stripLeft = strip.getBoundingClientRect().left;
-    const current = cards.reduce((best, card, index) =>
-      Math.abs(card.getBoundingClientRect().left - stripLeft) < Math.abs(cards[best].getBoundingClientRect().left - stripLeft) ? index : best, 0);
-    const target = cards[Math.min(cards.length - 1, Math.max(0, current + direction))];
-    if (target) strip.scrollTo({ left: strip.scrollLeft + target.getBoundingClientRect().left - stripLeft, behavior: "smooth" });
+  function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    const rail = railRef.current;
+    if (!rail) return;
+    dragRef.current = { active: true, moved: false, startX: event.clientX, scrollLeft: rail.scrollLeft };
+  }
+
+  function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const rail = railRef.current;
+    const drag = dragRef.current;
+    if (!rail || !drag.active) return;
+    const distance = event.clientX - drag.startX;
+    if (Math.abs(distance) > 5) {
+      drag.moved = true;
+      rail.dataset.dragging = "true";
+      if (!rail.hasPointerCapture(event.pointerId)) rail.setPointerCapture(event.pointerId);
+    }
+    if (drag.moved) {
+      event.preventDefault();
+      rail.scrollLeft = drag.scrollLeft - distance;
+    }
+  }
+
+  function onPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    const rail = railRef.current;
+    const drag = dragRef.current;
+    drag.active = false;
+    if (!rail) return;
+    if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
+    if (!drag.moved) return;
+    rail.dataset.dragging = "false";
+    const cards = [...rail.querySelectorAll<HTMLElement>("[data-explainer-step]")];
+    const railLeft = rail.getBoundingClientRect().left;
+    const closest = cards.reduce<HTMLElement | null>((best, card) =>
+      !best || Math.abs(card.getBoundingClientRect().left - railLeft) < Math.abs(best.getBoundingClientRect().left - railLeft) ? card : best, null);
+    if (closest) {
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      rail.scrollTo({ left: rail.scrollLeft + closest.getBoundingClientRect().left - railLeft, behavior: reducedMotion ? "instant" : "smooth" });
+    }
+  }
+
+  function cancelDrag() {
+    dragRef.current.active = false;
+    if (railRef.current) railRef.current.dataset.dragging = "false";
+  }
+
+  function showStep(index: number) {
+    const rail = railRef.current;
+    const nextStep = rail?.querySelectorAll<HTMLElement>("[data-explainer-step]")[index];
+    if (!rail || !nextStep) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    rail.scrollTo({
+      left: rail.scrollLeft + nextStep.getBoundingClientRect().left - rail.getBoundingClientRect().left,
+      behavior: reducedMotion ? "instant" : "smooth",
+    });
   }
 
   return (
@@ -36,54 +84,54 @@ export function HowItWorksExplainer() {
         alt="How ZeroLoss works in five steps: pick a product, enter for $1, receive the full-value retailer gift card if you win, or use what you spent toward the balance if you don't; then use the gift card at that retailer."
         width={IMAGE_WIDTH}
         height={IMAGE_HEIGHT}
-        sizes="(min-width: 1024px) 1440px, 100vw"
-        className="hidden h-auto w-full rounded-2xl shadow-[0_18px_42px_rgba(0,0,0,0.32)] lg:block"
+        sizes="(min-width: 1440px) 1440px, 100vw"
+        className={styles.desktopArtwork}
         unoptimized
       />
 
-      <div className="lg:hidden">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-medium text-white/80">Swipe through the five steps</p>
-          <div className="flex shrink-0 gap-2">
-            <button type="button" onClick={() => move(-1)} aria-label="Previous how-it-works step" className="grid h-10 w-10 place-items-center rounded-full border border-cyan-300/50 bg-[#08264b] text-xl text-white transition hover:bg-[#123d6b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#59dfff]">‹</button>
-            <button type="button" onClick={() => move(1)} aria-label="Next how-it-works step" className="grid h-10 w-10 place-items-center rounded-full border border-cyan-300/50 bg-[#08264b] text-xl text-white transition hover:bg-[#123d6b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#59dfff]">›</button>
-          </div>
-        </div>
-        <div
-          ref={stripRef}
-          role="region"
-          aria-label="How ZeroLoss works, five swipeable steps"
-          tabIndex={0}
-          className="zl-noscroll flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#59dfff]"
-        >
-          {steps.map((step, index) => {
-            const cropWidth = step.end - step.start;
-            return (
-              <div
-                key={step.start}
-                data-explainer-step
-                role="img"
-                aria-label={step.description}
-                className="relative h-[min(72vh,540px)] shrink-0 snap-start overflow-hidden rounded-2xl border border-cyan-300/25 bg-[#00132e] shadow-[0_16px_36px_rgba(0,0,0,0.32)]"
-                style={{ aspectRatio: `${cropWidth} / ${IMAGE_HEIGHT}` }}
-              >
+      <div
+        ref={railRef}
+        role="region"
+        aria-label="How ZeroLoss works, five swipeable steps"
+        tabIndex={0}
+        className={`${styles.rail} zl-noscroll`}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={cancelDrag}
+        onDragStart={(event) => event.preventDefault()}
+      >
+        {steps.map((step, index) => {
+          const cropWidth = step.end - step.start;
+          return (
+            <div key={step.start} data-explainer-step className={styles.stepSlot}>
+              <div role="img" aria-label={step.description} className={styles.step}>
                 <Image
                   src={IMAGE_SRC}
                   alt=""
                   aria-hidden="true"
+                  draggable={false}
                   width={IMAGE_WIDTH}
                   height={IMAGE_HEIGHT}
                   sizes="1600px"
-                  className="absolute top-0 h-full max-w-none"
+                  className={styles.stepArtwork}
                   style={{ width: `${(IMAGE_WIDTH / cropWidth) * 100}%`, left: `-${(step.start / cropWidth) * 100}%` }}
                   loading={index === 0 ? "eager" : "lazy"}
                   unoptimized
                 />
               </div>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-xs text-white/65">Pick it → Enter $1 → Win or pay the balance → Your call</p>
+              {index < steps.length - 1 ? (
+                <button
+                  type="button"
+                  aria-label={`Show how it works step ${index + 2} of ${steps.length}`}
+                  className={styles.lightningArrow}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={() => showStep(index + 1)}
+                />
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

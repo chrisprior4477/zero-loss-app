@@ -1,0 +1,112 @@
+.desktopArtwork {
+  display: none;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 18px 42px rgb(0 0 0 / 32%);
+}
+
+.rail {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 10px 1px 14px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  cursor: grab;
+  user-select: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rail:active { cursor: grabbing; }
+
+.rail:focus-visible {
+  outline: 2px solid #59dfff;
+  outline-offset: 2px;
+}
+
+.rail[data-dragging="true"] {
+  scroll-behavior: auto;
+  scroll-snap-type: none;
+}
+
+.stepSlot {
+  position: relative;
+  flex: 0 0 clamp(230px, 72vw, 300px);
+  aspect-ratio: 768 / 1429;
+  scroll-snap-align: start;
+}
+
+.step {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgb(103 232 249 / 25%);
+  border-radius: 16px;
+  background: #00132e;
+  box-shadow: 0 16px 36px rgb(0 0 0 / 32%);
+}
+
+.lightningArrow {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: calc(100% + 9px);
+  width: 54px;
+  height: 44px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  filter: drop-shadow(0 0 7px #a0ff00);
+}
+
+.lightningArrow::before {
+  position: absolute;
+  inset: 2px 1px;
+  clip-path: polygon(0 33%, 44% 33%, 36% 5%, 100% 50%, 36% 95%, 44% 66%, 0 66%, 15% 50%);
+  background: #95ff00;
+  content: "";
+}
+
+.lightningArrow::after {
+  position: absolute;
+  top: 21px;
+  left: -6px;
+  width: 15px;
+  height: 2px;
+  background: #16d4ff;
+  box-shadow: 0 0 8px #16d4ff;
+  content: "";
+}
+
+.lightningArrow:hover { filter: drop-shadow(0 0 11px #a0ff00); }
+
+.lightningArrow:focus-visible {
+  outline: 2px solid #b4ff4a;
+  outline-offset: 3px;
+}
+
+.stepArtwork {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .stepSlot { flex-basis: clamp(260px, 34vw, 310px); }
+}
+
+@media (min-width: 1440px) {
+  .desktopArtwork { display: block; }
+  .rail { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail { scroll-behavior: auto; }
+}
