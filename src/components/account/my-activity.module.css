@@ -172,7 +172,7 @@
 }
 @media (max-width: 940px) {
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; margin-top: 22px; }
-  .filter { min-height: 70px; aspect-ratio: 4.35; gap: 9px; padding-inline: 18px; font-size: 17px; }
+  .filter { width: 100%; min-height: 70px; aspect-ratio: 4.35; gap: 9px; padding-inline: 18px; font-size: 17px; }
   .filter > svg { width: 29px; height: 29px; }
   .filterCount { min-width: 39px; min-height: 39px; font-size: 18px; }
   .filter:last-child { grid-column: 1 / -1; min-height: 0; aspect-ratio: auto; }
