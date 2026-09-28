@@ -132,7 +132,7 @@
 .arrowButton { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #77c9ff; border-radius: 50%; background: #113a66; color: #fff; }
 .arrowButton:disabled { opacity: .38; cursor: default; }
 .previousIcon { transform: rotate(180deg); }
-.position { color: #d6e8f8; font-size: 13px; font-variant-numeric: tabular-nums; }
+.position { color: #d6e8f8; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .empty { --ticket-side-notch: 14px; --ticket-corner-notch: 18px; margin-top: 24px; padding: 38px 42px; background: #fffefa; color: #112044; }
 .empty h2 { color: #112044; }
@@ -210,7 +210,7 @@
   .retailer { font-size: 8px; }
   .status { gap: 4px; padding: 3px 6px; border-radius: 6px; font-size: 9px; }
   .status svg { width: 14px; height: 14px; }
-  .productTitle { max-width: calc(100% - 9px); font-size: 11px; line-height: 1.08; }
+  .productTitle { max-width: calc(100% - 9px); font-size: clamp(11px, 3vw, 12px); line-height: 1.08; }
   .productNote { font-size: 9px; }
   .cardAction { min-height: 26px; gap: 4px; padding: 4px 6px; border-radius: 7px; font-size: 9px; }
   .cardAction svg { width: 12px; height: 12px; }
