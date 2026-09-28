@@ -47,8 +47,9 @@ export function MyZeroLossGallery({ items, filter, progressBySlug }: { items: Ac
   }, [syncSwipe]);
 
   function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    if (window.matchMedia?.("(max-width: 940px)").matches) return;
     if (event.pointerType !== "mouse" || event.button !== 0) return;
+    drag.current.moved = false;
+    if (event.target instanceof Element && event.target.closest("[data-activity-click]")) return;
     const element = track.current;
     if (!element) return;
     drag.current = { active: true, moved: false, pointerId: event.pointerId, startScrollLeft: element.scrollLeft, startX: event.clientX };
@@ -99,6 +100,13 @@ export function MyZeroLossGallery({ items, filter, progressBySlug }: { items: Ac
     drag.current.moved = false;
   }
 
+  function onlyOpenFromAction(event: ReactMouseEvent<HTMLAnchorElement>) {
+    // The rest of the white ticket is a drag surface, not a navigation target.
+    // Keyboard and assistive-technology activation still open the focused link.
+    if (event.detail === 0 || (event.target instanceof Element && event.target.closest("[data-activity-click]"))) return;
+    event.preventDefault();
+  }
+
   return <div className={styles.galleryShell}>
     <div
       id={galleryId}
@@ -135,12 +143,12 @@ export function MyZeroLossGallery({ items, filter, progressBySlug }: { items: Ac
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={item.entryId ?? item.slug} className={styles.galleryItem} style={placement}>
-          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerProgress !== undefined ? "true" : undefined} className={styles.productCard}>
+          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerProgress !== undefined ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
               <span className={styles.status}><AccountIcon name={item.status} />{labels[item.status]}</span>
-              <div className={styles.productStage}>
+              <div className={styles.productStage} data-activity-click>
                 <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 44vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
               </div>
               <div className={styles.cardFoot}>
@@ -148,9 +156,10 @@ export function MyZeroLossGallery({ items, filter, progressBySlug }: { items: Ac
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · Still in play`
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : "Your completed activity."}</p>
-                <span className={styles.cardAction}>{action(item)}<AccountIcon name="arrow" /></span>
+                <span className={styles.cardAction} data-activity-click>{action(item)}<AccountIcon name="arrow" /></span>
               </div>
             </div>
+            <span className={styles.cardChevron} data-activity-click aria-hidden="true" />
             {offerProgress !== undefined ? <span className={styles.offerProgress} role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerProgress} aria-valuemin={0} aria-valuemax={100} style={{ "--offer-progress": `${offerProgress}%` } as CSSProperties}><span>{offerProgress}%</span></span> : null}
           </Link>
           {featured && items.length > 1 ? <p className={styles.mobileRestLabel}>Everything else</p> : null}

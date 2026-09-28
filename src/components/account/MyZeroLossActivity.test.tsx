@@ -219,6 +219,21 @@ test("mobile hybrid marks only the first winner as featured and keeps every prod
   ]);
 });
 
+test("white ticket space drags while the image, action and chevron remain click targets", () => {
+  render(<MyZeroLossActivity state={storedActivityFixture()} filter="active" />);
+  const card = screen.getByRole("link", { name: /PlayStation 5 Slim Model/ });
+  function wasPreventedBeforeTarget(target: Element) {
+    let prevented = false;
+    target.addEventListener("click", event => { prevented = event.defaultPrevented; event.preventDefault(); }, { once: true });
+    fireEvent.click(target, { detail: 1 });
+    return prevented;
+  }
+  expect(wasPreventedBeforeTarget(within(card).getByText("PlayStation 5 Slim Model"))).toBe(true);
+  expect(wasPreventedBeforeTarget(card.querySelector("[class*='productStage']")!)).toBe(false);
+  expect(wasPreventedBeforeTarget(within(card).getByText("Track entry"))).toBe(false);
+  expect(wasPreventedBeforeTarget(card.querySelector("[class*='cardChevron']")!)).toBe(false);
+});
+
 test("unavailable activity never displays a stale card or opens its detail", () => {
   render(<MyZeroLossActivity state={{ ...storedActivityFixture(), source: "unavailable", activeCount: null }} filter="all" selectedSlug="playstation-5-slim" />);
   expect(screen.getByText("Activity unavailable")).toBeTruthy();
@@ -287,4 +302,17 @@ test("gallery supports click-hold dragging without opening the dragged card", ()
   fireEvent.pointerUp(card, { clientX: 140, pointerId: 8, pointerType: "mouse" });
   fireEvent.click(card);
   expect(preventedBeforeCardHandler).toBe(false);
+
+  const image = card.querySelector("[data-activity-click]")!;
+  fireEvent.pointerDown(image, { button: 0, clientX: 220, pointerId: 9, pointerType: "mouse" });
+  fireEvent.pointerMove(image, { clientX: 140, pointerId: 9, pointerType: "mouse" });
+  expect(track.scrollLeft).toBe(120);
+  fireEvent.pointerUp(image, { clientX: 140, pointerId: 9, pointerType: "mouse" });
+
+  vi.stubGlobal("matchMedia", vi.fn((query: string) => ({ matches: query === "(max-width: 940px)" })));
+  fireEvent.pointerDown(card, { button: 0, clientX: 220, pointerId: 10, pointerType: "mouse" });
+  fireEvent.pointerMove(card, { clientX: 140, pointerId: 10, pointerType: "mouse" });
+  expect(track.scrollLeft).toBe(200);
+  fireEvent.pointerUp(card, { clientX: 140, pointerId: 10, pointerType: "mouse" });
+  vi.unstubAllGlobals();
 });

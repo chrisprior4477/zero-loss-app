@@ -78,6 +78,7 @@
 .gallery[data-desktop-rows="1"] { grid-template-rows: clamp(151px, 10.6vw, 172px); }
 .gallery[data-desktop-rows="2"] { grid-template-rows: repeat(2, clamp(151px, 10.6vw, 172px)); }
 .gallery[data-dragging="true"] { cursor: grabbing; scroll-snap-type: none; }
+.gallery[data-dragging="true"] .productCard, .gallery[data-dragging="true"] [data-activity-click] { cursor: grabbing; }
 .galleryItem { display: flex; min-width: 0; min-height: 0; grid-column: var(--desktop-column); grid-row: var(--desktop-row); scroll-snap-align: start; }
 .galleryItem > .productCard { width: 100%; }
 .productCard {
@@ -94,10 +95,12 @@
   box-shadow: 0 8px 18px #00112c70, inset 0 0 0 1px #e7e7e6;
   transition: transform .15s ease, filter .15s ease;
   -webkit-user-drag: none;
+  cursor: grab;
 }
 .productCard:hover { transform: translateY(-2px); filter: brightness(1.015); }
-.productCard::after { content: ""; position: absolute; top: 25%; right: 15px; width: 10px; height: 10px; border-top: 2px solid #0a1741; border-right: 2px solid #0a1741; transform: rotate(45deg); pointer-events: none; }
-.productCard[data-has-progress="true"]::after { top: 58%; }
+.productCard [data-activity-click] { cursor: pointer; }
+.cardChevron { position: absolute; top: 25%; right: 15px; width: 10px; height: 10px; border-top: 2px solid #0a1741; border-right: 2px solid #0a1741; transform: rotate(45deg); }
+.productCard[data-has-progress="true"] .cardChevron { top: 58%; }
 .offerProgress { position: absolute; z-index: 1; top: 9px; right: 18px; display: grid; width: 54px; height: 54px; place-items: center; border-radius: 50%; background: conic-gradient(#ff254b var(--offer-progress), #dfe7ef 0); box-shadow: 0 2px 6px #09224a21; color: #10213d; pointer-events: none; }
 .offerProgress > span { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 13px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .cardInner {
@@ -180,7 +183,7 @@
   .filter > svg { width: 29px; height: 29px; }
   .filterCount { min-width: 39px; min-height: 39px; font-size: 18px; }
   .filter:last-child { grid-column: 1 / -1; min-height: 0; aspect-ratio: auto; }
-  .gallery { --gallery-gap: 12px; grid-template-rows: repeat(2, 143px); grid-auto-columns: 100%; cursor: auto; touch-action: auto; user-select: auto; -webkit-overflow-scrolling: touch; }
+  .gallery { --gallery-gap: 12px; grid-template-rows: repeat(2, 143px); grid-auto-columns: 100%; touch-action: auto; -webkit-overflow-scrolling: touch; }
   .gallery[data-desktop-rows="1"], .gallery[data-desktop-rows="2"] { grid-template-rows: repeat(2, 143px); }
   .gallery[data-stacked-rows="1"] { grid-template-rows: 143px; }
   .gallery[data-overflowing="true"] { grid-auto-columns: 100%; }
@@ -206,8 +209,8 @@
   .arrowButton { width: 36px; height: 36px; }
   .empty { --ticket-side-notch: 10px; --ticket-corner-notch: 13px; padding: 28px 26px; }
   .productCard { --ticket-side-notch: 8px; --ticket-corner-notch: 10px; }
-  .productCard::after { top: 22%; right: 11px; width: 8px; height: 8px; }
-  .productCard[data-has-progress="true"]::after { top: 58%; }
+  .cardChevron { top: 22%; right: 11px; width: 8px; height: 8px; }
+  .productCard[data-has-progress="true"] .cardChevron { top: 58%; }
   .offerProgress { top: 7px; right: 12px; width: 42px; height: 42px; }
   .offerProgress > span { width: 32px; height: 32px; font-size: 10px; }
   .productCard[data-has-progress="true"] .retailer, .productCard[data-has-progress="true"] .productTitle { max-width: calc(100% - 42px); }
