@@ -158,6 +158,8 @@ test("desktop gallery retains complete catalog names, purchase math and existing
   }
   const gallery = document.querySelector("[data-activity-gallery]");
   expect(gallery?.getAttribute("aria-label")).toBe("Your products");
+  expect(gallery?.getAttribute("data-multiple")).toBe("true");
+  expect(gallery?.hasAttribute("data-overflowing")).toBe(false);
   expect(gallery?.querySelectorAll("a[data-activity-slug]")).toHaveLength(4);
   expect(Array.from(gallery?.children ?? []).map(card => [(card as HTMLElement).style.gridColumn, (card as HTMLElement).style.gridRow])).toEqual([
     ["1", "1"], ["2", "1"], ["1", "2"], ["2", "2"],
@@ -172,6 +174,15 @@ test("desktop gallery retains complete catalog names, purchase math and existing
   const essentials = screen.getByRole("link", { name: /Baby's Essentials Bundle/ });
   expect(within(essentials).getByText("$99 remaining · $1 applied")).toBeTruthy();
   expect(television.getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
+});
+
+test("gallery reserves a next-card peek only when another desktop column exists", () => {
+  const state = storedActivityFixture();
+  state.activity.push({ ...state.activity[0], slug: "fifth-item", title: "Fifth product" });
+  const { rerender } = render(<MyZeroLossActivity state={state} filter="all" />);
+  expect(document.querySelector("[data-activity-gallery]")?.getAttribute("data-overflowing")).toBe("true");
+  rerender(<MyZeroLossActivity state={state} filter="active" />);
+  expect(document.querySelector("[data-activity-gallery]")?.hasAttribute("data-overflowing")).toBe(false);
 });
 
 test("mobile hybrid marks only the first winner as featured and keeps every product link intact", () => {

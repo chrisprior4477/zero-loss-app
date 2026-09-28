@@ -54,23 +54,30 @@
 
 .galleryShell { margin-top: 26px; }
 .gallery {
+  --gallery-gap: 18px;
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(2, clamp(215px, 15.15vw, 246px));
-  grid-auto-columns: calc((100% - 18px) / 2);
-  gap: 18px;
+  grid-auto-columns: calc((100% - var(--gallery-gap)) / 2);
+  gap: var(--gallery-gap);
   overflow-x: auto;
   padding: 0 2px 8px;
   scroll-snap-type: x mandatory;
+  overscroll-behavior-inline: contain;
   scrollbar-width: none;
   cursor: grab;
   touch-action: pan-y pinch-zoom;
   user-select: none;
 }
+.gallery[data-overflowing="true"] {
+  --gallery-peek: clamp(120px, 12vw, 200px);
+  grid-auto-columns: calc((100% - var(--gallery-gap) - var(--gallery-gap) - var(--gallery-peek)) / 2);
+  scroll-padding-inline-start: calc(var(--gallery-peek) / 2);
+}
 .gallery::-webkit-scrollbar { display: none; }
 .gallery[data-single-row="true"] { grid-template-rows: clamp(215px, 15.15vw, 246px); }
 .gallery[data-dragging="true"] { cursor: grabbing; scroll-snap-type: none; }
-.galleryItem { display: flex; min-width: 0; min-height: 0; }
+.galleryItem { display: flex; min-width: 0; min-height: 0; scroll-snap-align: start; }
 .galleryItem > .productCard { width: 100%; }
 .productCard {
   --ticket-side-notch: 14px;
@@ -84,7 +91,6 @@
   background: #fffefa;
   color: #0b173b;
   box-shadow: 0 8px 18px #00112c70, inset 0 0 0 1px #e7e7e6;
-  scroll-snap-align: start;
   transition: transform .15s ease, filter .15s ease;
 }
 .productCard:hover { transform: translateY(-2px); filter: brightness(1.015); }
@@ -159,6 +165,7 @@
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #87e6ff; outline-offset: 3px; }
 
 @media (max-width: 1200px) {
+  .gallery[data-overflowing="true"] { --gallery-peek: clamp(64px, 7vw, 90px); }
   .filter { gap: 8px; padding-inline: 11px; }
   .cardInner { grid-template-columns: minmax(0, 39%) minmax(0, 1fr); column-gap: 19px; padding: 14px; }
   .cardInner::before { left: calc(39% + 7px); }
@@ -169,14 +176,16 @@
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 22px; }
   .filter { min-height: 84px; aspect-ratio: 3.7; font-size: 16px; }
   .filter:last-child { grid-column: 1 / -1; min-height: clamp(84px, 9vw, 102px); aspect-ratio: auto; }
-  .gallery { display: flex; flex-direction: column; gap: 12px; overflow: visible; padding: 0; scroll-snap-type: none; cursor: default; touch-action: auto; user-select: auto; }
-  .galleryItem { display: block; }
+  .gallery { --gallery-gap: 12px; display: flex; flex-direction: row; overflow-x: auto; padding: 0 2px 8px; scroll-snap-type: x mandatory; cursor: auto; touch-action: auto; user-select: auto; -webkit-overflow-scrolling: touch; }
+  .gallery[data-multiple="true"] { --gallery-peek: clamp(55px, 9vw, 100px); scroll-padding-inline-start: calc(var(--gallery-peek) / 2); }
+  .galleryItem { flex: 0 0 100%; }
+  .gallery[data-multiple="true"] .galleryItem { flex-basis: calc(100% - var(--gallery-gap) - var(--gallery-peek)); }
   .productCard { min-height: 204px; }
   .cardInner { min-height: 204px; grid-template-columns: minmax(0, 38%) minmax(0, 1fr); grid-template-rows: 15px 30px minmax(45px, auto) minmax(0, 1fr); }
   .cardInner::before { left: calc(38% + 7px); }
-  .galleryControls { display: none; }
+  .galleryControls { margin-top: 2px; }
   .accountToolsGrid { grid-template-columns: 1fr; }
-  .mobileRestLabel { display: block; margin: 10px 3px 3px; color: #b9cde2; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .mobileRestLabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 @media (max-width: 600px) {
   .page { padding: 28px 14px 45px; }
@@ -187,11 +196,17 @@
   .filter > svg { width: 23px; height: 23px; }
   .filterCount { min-width: 29px; min-height: 29px; border-radius: 9px; font-size: 13px; }
   .galleryShell { margin-top: 17px; }
+  .gallery { --gallery-gap: 8px; }
+  .gallery[data-multiple="true"] { --gallery-peek: clamp(30px, 9vw, 42px); }
+  .galleryControls { gap: 8px; }
+  .galleryHint { max-width: 52%; font-size: 11px; line-height: 1.3; }
+  .carouselButtons { gap: 7px; }
+  .arrowButton { width: 36px; height: 36px; }
   .empty { --ticket-side-notch: 10px; --ticket-corner-notch: 13px; padding: 28px 26px; }
-  .productCard, .cardInner { min-height: 176px; }
+  .productCard, .cardInner { min-height: 190px; }
   .productCard::after { top: 29%; right: 17px; width: 10px; height: 10px; border-width: 2px; }
-  .cardInner { grid-template-columns: minmax(0, 37%) minmax(0, 1fr); grid-template-rows: 13px 25px minmax(37px, auto) minmax(0, 1fr); gap: 0 13px; padding: 11px 13px; }
-  .cardInner::before { top: 10px; bottom: 10px; left: calc(37% + 6px); }
+  .cardInner { grid-template-columns: minmax(0, 32%) minmax(0, 1fr); grid-template-rows: 13px 25px minmax(37px, auto) minmax(0, 1fr); gap: 0 9px; padding: 11px 13px; }
+  .cardInner::before { top: 10px; bottom: 10px; left: calc(32% + 8px); }
   .productStage { border-radius: 10px; }
   .productImage { padding: 5px; }
   .retailer { font-size: 8px; }

@@ -102,6 +102,8 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
       role="region"
       aria-label="Your products"
       data-single-row={items.length <= 2 ? "true" : undefined}
+      data-multiple={items.length > 1 ? "true" : undefined}
+      data-overflowing={items.length > 4 ? "true" : undefined}
     >
       {items.map((item, index) => {
         const featured = item.status === "prize" && index === 0;
