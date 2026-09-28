@@ -93,6 +93,7 @@
   color: #0b173b;
   box-shadow: 0 8px 18px #00112c70, inset 0 0 0 1px #e7e7e6;
   transition: transform .15s ease, filter .15s ease;
+  -webkit-user-drag: none;
 }
 .productCard:hover { transform: translateY(-2px); filter: brightness(1.015); }
 .productCard::after { content: ""; position: absolute; top: 25%; right: 15px; width: 10px; height: 10px; border-top: 2px solid #0a1741; border-right: 2px solid #0a1741; transform: rotate(45deg); pointer-events: none; }

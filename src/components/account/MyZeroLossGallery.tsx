@@ -48,7 +48,7 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
 
   function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (window.matchMedia?.("(max-width: 940px)").matches) return;
-    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
     const element = track.current;
     if (!element) return;
     drag.current = { active: true, moved: false, pointerId: event.pointerId, startScrollLeft: element.scrollLeft, startX: event.clientX };
@@ -61,6 +61,8 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
     const distance = event.clientX - gesture.startX;
     if (Math.abs(distance) > 4 && !gesture.moved) {
       gesture.moved = true;
+      // Disable snapping before the first scrollLeft write, not after React rerenders.
+      element.style.scrollSnapType = "none";
       element.setPointerCapture?.(event.pointerId);
       setDragging(true);
     }
@@ -74,6 +76,7 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
     if (!drag.current.active || drag.current.pointerId !== event.pointerId) return;
     drag.current.active = false;
     if (element?.hasPointerCapture?.(event.pointerId)) element.releasePointerCapture(event.pointerId);
+    if (element) element.style.scrollSnapType = "";
     setDragging(false);
     syncSwipe();
   }
@@ -120,7 +123,7 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={item.entryId ?? item.slug} className={styles.galleryItem} style={placement}>
-          <Link href={activityHref(item, "/account/entries", filter)} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} className={styles.productCard}>
+          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
