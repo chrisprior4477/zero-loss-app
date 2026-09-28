@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import { type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useRef, useState } from "react";
 import { activityHref, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
@@ -101,15 +101,25 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
       onScroll={syncSwipe}
       role="region"
       aria-label="Your products"
-      data-single-row={items.length <= 2 ? "true" : undefined}
+      data-desktop-rows={Math.min(3, Math.ceil(items.length / 2))}
+      data-stacked-rows={Math.min(2, items.length)}
       data-multiple={items.length > 1 ? "true" : undefined}
-      data-overflowing={items.length > 4 ? "true" : undefined}
+      data-overflowing={items.length > 6 ? "true" : undefined}
+      data-stacked-overflowing={items.length > 2 ? "true" : undefined}
     >
       {items.map((item, index) => {
         const featured = item.status === "prize" && index === 0;
-        const column = Math.floor(index / 4) * 2 + (index % 2) + 1;
-        const row = Math.floor((index % 4) / 2) + 1;
-        return <div key={item.entryId ?? item.slug} className={styles.galleryItem} style={{ gridColumn: column, gridRow: row }}>
+        const desktopColumn = Math.floor(index / 6) * 2 + (index % 2) + 1;
+        const desktopRow = Math.floor((index % 6) / 2) + 1;
+        const stackedColumn = Math.floor(index / 2) + 1;
+        const stackedRow = index % 2 + 1;
+        const placement = {
+          "--desktop-column": desktopColumn,
+          "--desktop-row": desktopRow,
+          "--stacked-column": stackedColumn,
+          "--stacked-row": stackedRow,
+        } as CSSProperties;
+        return <div key={item.entryId ?? item.slug} className={styles.galleryItem} style={placement}>
           <Link href={activityHref(item, "/account/entries", filter)} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>

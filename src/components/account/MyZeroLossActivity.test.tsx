@@ -161,8 +161,15 @@ test("desktop gallery retains complete catalog names, purchase math and existing
   expect(gallery?.getAttribute("data-multiple")).toBe("true");
   expect(gallery?.hasAttribute("data-overflowing")).toBe(false);
   expect(gallery?.querySelectorAll("a[data-activity-slug]")).toHaveLength(4);
-  expect(Array.from(gallery?.children ?? []).map(card => [(card as HTMLElement).style.gridColumn, (card as HTMLElement).style.gridRow])).toEqual([
-    ["1", "1"], ["2", "1"], ["1", "2"], ["2", "2"],
+  expect(gallery?.getAttribute("data-desktop-rows")).toBe("2");
+  expect(gallery?.getAttribute("data-stacked-rows")).toBe("2");
+  expect(Array.from(gallery?.children ?? []).map(card => [
+    (card as HTMLElement).style.getPropertyValue("--desktop-column"),
+    (card as HTMLElement).style.getPropertyValue("--desktop-row"),
+    (card as HTMLElement).style.getPropertyValue("--stacked-column"),
+    (card as HTMLElement).style.getPropertyValue("--stacked-row"),
+  ])).toEqual([
+    ["1", "1", "1", "1"], ["2", "1", "1", "2"], ["1", "2", "2", "1"], ["2", "2", "2", "2"],
   ]);
   expect(Array.from(gallery?.querySelectorAll("a[data-activity-slug]") ?? []).map(card => (card as HTMLElement).dataset.activitySlug)).toEqual([
     "samsung-m70h-tv", "playstation-5-slim", "nike-court-shot-shoes", "babys-essentials-bundle",
@@ -178,10 +185,14 @@ test("desktop gallery retains complete catalog names, purchase math and existing
 
 test("gallery reserves a next-card peek only when another desktop column exists", () => {
   const state = storedActivityFixture();
-  state.activity.push({ ...state.activity[0], slug: "fifth-item", title: "Fifth product" });
+  for (let index = 5; index <= 10; index++) {
+    state.activity.push({ ...state.activity[0], slug: `item-${index}`, title: `Product ${index}` });
+  }
   const { rerender } = render(<MyZeroLossActivity state={state} filter="all" />);
   expect(document.querySelector("[data-activity-gallery]")?.getAttribute("data-overflowing")).toBe("true");
-  rerender(<MyZeroLossActivity state={state} filter="active" />);
+  expect(document.querySelector("[data-activity-gallery]")?.getAttribute("data-stacked-overflowing")).toBe("true");
+  expect(document.querySelector("[data-activity-gallery]")?.getAttribute("data-desktop-rows")).toBe("3");
+  rerender(<MyZeroLossActivity state={state} filter="prize" />);
   expect(document.querySelector("[data-activity-gallery]")?.hasAttribute("data-overflowing")).toBe(false);
 });
 
