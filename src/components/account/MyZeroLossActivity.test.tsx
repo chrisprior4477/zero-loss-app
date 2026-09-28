@@ -250,13 +250,17 @@ test("gallery supports click-hold dragging without opening the dragged card", ()
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
   const track = screen.getByRole("region", { name: "Your products" });
   const card = track.querySelector("a[data-activity-slug]")!;
+  const scrollTo = vi.fn();
   expect(card.getAttribute("draggable")).toBe("false");
+  track.style.columnGap = "18px";
   Object.defineProperties(track, {
     scrollLeft: { configurable: true, value: 40, writable: true },
+    scrollTo: { configurable: true, value: scrollTo },
     setPointerCapture: { configurable: true, value: vi.fn() },
     hasPointerCapture: { configurable: true, value: vi.fn(() => true) },
     releasePointerCapture: { configurable: true, value: vi.fn() },
   });
+  vi.spyOn(track.firstElementChild as HTMLElement, "getBoundingClientRect").mockReturnValue({ width: 300 } as DOMRect);
   fireEvent.pointerDown(card, { button: 0, clientX: 220, pointerId: 7, pointerType: "mouse" });
   fireEvent.pointerMove(card, { clientX: 140, pointerId: 7, pointerType: "mouse" });
   expect(track.scrollLeft).toBe(120);
@@ -265,6 +269,7 @@ test("gallery supports click-hold dragging without opening the dragged card", ()
   fireEvent.pointerUp(card, { clientX: 140, pointerId: 7, pointerType: "mouse" });
   expect(track.getAttribute("data-dragging")).toBe("false");
   expect(track.style.scrollSnapType).toBe("");
+  expect(scrollTo).toHaveBeenCalledWith({ left: 318, behavior: "smooth" });
   expect(card.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }))).toBe(false);
 
   let preventedBeforeCardHandler = true;

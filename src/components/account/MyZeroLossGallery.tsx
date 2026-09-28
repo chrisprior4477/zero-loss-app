@@ -73,10 +73,21 @@ export function MyZeroLossGallery({ items, filter }: { items: ActivityItem[]; fi
 
   function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
     const element = track.current;
-    if (!drag.current.active || drag.current.pointerId !== event.pointerId) return;
-    drag.current.active = false;
+    const gesture = drag.current;
+    if (!gesture.active || gesture.pointerId !== event.pointerId) return;
+    gesture.active = false;
     if (element?.hasPointerCapture?.(event.pointerId)) element.releasePointerCapture(event.pointerId);
     if (element) element.style.scrollSnapType = "";
+    const distance = event.clientX - gesture.startX;
+    if (element && event.type === "pointerup" && gesture.moved && Math.abs(distance) > 48) {
+      const card = element.firstElementChild as HTMLElement | null;
+      const step = card ? card.getBoundingClientRect().width + (parseFloat(getComputedStyle(element).columnGap) || 0) : 0;
+      if (step > 0) {
+        const columns = Math.max(1, Math.round(Math.abs(distance) / step));
+        const target = (Math.round(gesture.startScrollLeft / step) - Math.sign(distance) * columns) * step;
+        element.scrollTo({ left: target, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      }
+    }
     setDragging(false);
     syncSwipe();
   }
