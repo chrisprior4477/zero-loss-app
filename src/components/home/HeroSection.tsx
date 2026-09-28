@@ -132,7 +132,7 @@ function DesktopHeroCarousel() {
       onPointerMove={trackSwipe}
       onPointerUp={finishSwipe}
       onPointerCancel={() => { swipeRef.current.active = false; }}
-      className="relative left-1/2 w-screen touch-pan-y -translate-x-1/2 overflow-hidden bg-transparent"
+      className="relative left-1/2 w-screen touch-pan-y -translate-x-1/2 overflow-clip bg-transparent"
     >
       <div
         onTransitionEnd={settleInfiniteTrack}
@@ -146,7 +146,8 @@ function DesktopHeroCarousel() {
             key={`${slide.id}-${renderIndex}`}
             aria-roledescription="slide"
             aria-label={`${index + 1} of ${HERO_SLIDES.length}`}
-            aria-hidden={activeSlide !== index}
+            aria-hidden={trackSlide !== renderIndex}
+            inert={trackSlide !== renderIndex}
             className="relative min-h-[270px] w-full shrink-0 overflow-hidden px-5 py-5 sm:px-8 md:min-h-[clamp(240px,20vw,290px)] md:px-[clamp(4.5rem,7vw,8rem)]"
           >
             <div className="absolute inset-0 overflow-hidden md:left-auto md:w-[80%] lg:w-[72%]">
