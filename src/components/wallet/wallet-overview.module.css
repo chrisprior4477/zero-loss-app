@@ -95,8 +95,9 @@
 .posted { justify-self: center; min-width: 82px; padding: 5px 9px; border-radius: 8px; background: #bbf6cd; color: #0a5b34; font-size: 11px; font-weight: 850; text-align: center; text-transform: uppercase; }
 .reportLink { display: flex; align-items: center; justify-content: center; color: #0a1940; }
 .reportLink svg { width: 25px; height: 25px; }
-.showAllTicket { --corner-scoop: 21px; --side-scoop: 13px; display: flex; grid-column: 1 / -1; width: 100%; min-height: 68px; align-items: center; justify-content: center; gap: 12px; margin-top: 13px; padding: 14px 38px; border: 0; background: #0872fb; color: #fff; font-size: 16px; font-weight: 850; cursor: pointer; }
+.showAllTicket { --corner-scoop: 12px; --side-scoop: 8px; display: flex; grid-column: 1 / -1; width: 100%; min-height: 68px; align-items: center; justify-content: center; gap: 12px; margin-top: 13px; padding: 14px 38px; border: 0; background: #0872fb; color: #fff; font-size: 16px; font-weight: 850; cursor: pointer; }
 .showAllTicket:hover { background: #0869e6; }
+.showAllTicket:focus-visible { outline: 3px solid #b4edff; outline-offset: 2px; filter: drop-shadow(0 0 6px #b4edff); }
 .showAllTicket svg { width: 22px; height: 22px; }
 .finePrint { grid-column: 1 / -1; margin-top: 10px; color: #c5d8ee; font-size: 12px; }
 .empty, .alert, .unavailable { margin-top: 10px; padding: 22px; border: 1px solid #9cc9e4; border-radius: 10px; background: #fffefa; color: #102646; font-size: 14px; line-height: 1.45; }
