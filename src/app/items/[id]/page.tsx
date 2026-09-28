@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DemoParticipationPanel } from "@/components/product/DemoParticipationPanel";
+import { GiftCardFulfillmentNotice } from "@/components/product/GiftCardFulfillmentNotice";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { getAccountContext } from "@/lib/account/context";
@@ -70,15 +71,7 @@ export default async function ItemPage({ params }: PageProps) {
           <div className="order-2 lg:sticky lg:top-32 lg:order-none">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">{product.category}</p>
             <h1 className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">{product.title}</h1>
-            <div className="mt-4 rounded-2xl border border-cyan-300/30 bg-cyan-300/8 px-4 py-3">
-              <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-cyan-300">Digital retailer fulfillment</p>
-              <p className="mt-1 font-bold">Issued as ${product.value.toLocaleString()} in {product.retailer} digital gift-card value</p>
-              {isGiftCardOffering ? (
-                <p className="mt-1 text-xs leading-5 text-white/60">If awarded or purchased, the retailer-specific digital gift card is delivered to Gift Cards &amp; Rewards—not as Playable Balance or withdrawable cash.</p>
-              ) : (
-                <p className="mt-1 text-xs leading-5 text-white/60">You will not receive the displayed {product.title} directly from Zero Loss. If awarded or purchased, you receive the retailer-specific digital gift-card value in Gift Cards &amp; Rewards to purchase it from {product.retailer}, either online or in a participating store where supported.</p>
-              )}
-            </div>
+            <GiftCardFulfillmentNotice productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
             <div className="my-6 flex items-baseline gap-2 border-y border-white/12 py-4">
               <span className="text-sm text-white/60">Retail value</span>
               <strong className="text-2xl">${product.value.toLocaleString()}</strong>
