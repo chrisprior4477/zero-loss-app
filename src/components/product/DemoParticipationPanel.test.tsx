@@ -78,7 +78,7 @@ test("the first additional entry requires acknowledgment before saving and incre
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   expect(screen.getByRole("dialog", { name: "How Extra Chances Work" })).toBeTruthy();
-  expect(screen.getByRole("img", { name: /How extra chances work/i })).toBeTruthy();
+  expect(screen.getByRole("img", { name: /How extra chances work/i }).getAttribute("src")).toContain("extra-entry-explainer-seamless-neon.jpg");
   expect(screen.getByText("Why does each entry stand alone?")).toBeTruthy();
   expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
   expect(screen.getByText(/options cannot be stacked/i)).toBeTruthy();
