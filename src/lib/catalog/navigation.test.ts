@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { demoProducts } from "./demo-products";
-import { marketplaceCategoryHref, productMatchesMarketplaceCategory } from "./navigation";
+import { isGiftCardListing, marketplaceCategoryHref, productMatchesMarketplaceCategory } from "./navigation";
+
+test("distinguishes pictured merchandise from gift-card artwork", () => {
+  expect(isGiftCardListing(demoProducts.find(product => product.slug === "babys-essentials-bundle")!)).toBe(false);
+  expect(isGiftCardListing(demoProducts.find(product => product.slug === "dyson-v8-cordless-vacuum")!)).toBe(false);
+  expect(isGiftCardListing(demoProducts.find(product => product.slug === "home-style-50-gift-card-bundle")!)).toBe(true);
+});
 
 describe("Gas marketplace category", () => {
   test("contains the four supplied fuel and convenience brands", () => {

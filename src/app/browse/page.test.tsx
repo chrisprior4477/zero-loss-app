@@ -27,6 +27,18 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i }).getAttribute("href")).toBe("/items/babys-essentials-bundle");
   });
 
+  test.each(["everyday-items", "groceries", "electronics", "home-essentials", "ending-soon"])(
+    "puts pictured items before gift cards in %s",
+    async category => {
+      render(await BrowsePage({ searchParams: Promise.resolve(category === "ending-soon" ? { sort: "ending-soon" } : { category }) }));
+      const headings = Array.from(document.querySelectorAll('section[aria-label="Products"] article h2'), heading => heading.textContent ?? "");
+      const firstGiftCard = headings.findIndex(title => /gift card|bed bath & beyond \+ wayfair bundle/i.test(title));
+      expect(firstGiftCard).toBeGreaterThan(0);
+      expect(headings.slice(0, firstGiftCard).every(title => !/gift card/i.test(title))).toBe(true);
+      expect(headings.slice(firstGiftCard).every(title => /gift card|bed bath & beyond \+ wayfair bundle/i.test(title))).toBe(true);
+    },
+  );
+
   test("clearly identifies indirect retailer results as gift cards", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "reciprocating saw" }) }));
     expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.")).toHaveLength(4);

@@ -6,6 +6,7 @@ import {
   marketplaceCategories,
   marketplaceCategoryId,
   productMatchesMarketplaceCategory,
+  isGiftCardListing,
 } from "@/lib/catalog/navigation";
 import { searchCatalogMatches } from "@/lib/catalog/search";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
@@ -33,12 +34,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
   const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
+  const picturedFirst = (left: typeof matchedProducts[number], right: typeof matchedProducts[number]) =>
+    Number(isGiftCardListing(left)) - Number(isGiftCardListing(right));
   const products = query.sort === "ending-soon" || selectedCategory === "ending-soon"
-    ? matchedProducts.sort((left, right) => Number(left.capacity === left.sold) - Number(right.capacity === right.sold)
+    ? matchedProducts.sort((left, right) => (!searchTerm ? picturedFirst(left, right) : 0)
+      || Number(left.capacity === left.sold) - Number(right.capacity === right.sold)
       || (left.capacity - left.sold) - (right.capacity - right.sold))
     : searchTerm
       ? matchedProducts
-      : matchedProducts.sort((left, right) => left.title.localeCompare(right.title));
+      : matchedProducts.sort((left, right) => picturedFirst(left, right) || left.title.localeCompare(right.title));
   const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm })}`;
   const allSearchHref = `/browse?${new URLSearchParams({ q: searchTerm })}`;
 

@@ -40,6 +40,12 @@ export function marketplaceCategoryHref(value: string, subcategory?: string): st
   return query ? `/browse?${query}` : "/browse";
 }
 
+/** A pictured item leads category browsing; retailer gift-card listings follow. */
+export function isGiftCardListing(product: DemoProduct): boolean {
+  return product.gallery[0]?.fit === "reward"
+    || /gift[ -]?card/i.test(`${product.slug} ${product.title}`);
+}
+
 const includesAny = (value: string, needles: readonly string[]) =>
   needles.some((needle) => value.includes(needle));
 

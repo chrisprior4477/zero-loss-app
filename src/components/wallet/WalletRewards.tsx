@@ -8,6 +8,7 @@ import { AccountIcon } from "@/components/account/AccountIcon";
 import { accountRoutes } from "@/lib/account/navigation";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
 import { RewardClaimControl } from "./RewardClaimControl";
+import { DemoRewardRestartControl } from "./DemoRewardRestartControl";
 import { DemoIdentityPreviewButton } from "@/components/identity/DemoVerificationDialog";
 import styles from "./wallet-rewards.module.css";
 import overview from "./gift-rewards-overview.module.css";
@@ -142,6 +143,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
 export function WalletRewardDetail({ item, isPreview, claimedCode = null, overview: accountOverview }: { item: ActivityItem; isPreview: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean } }) {
+  const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
   // Illustrative cards can keep their sample. A stored reward must use its own
@@ -213,6 +215,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
                 <div><p>{notice.title}</p><span>{notice.message}</span><Link href="/support" className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
               </div></div> : null}
               {canClaim ? <RewardClaimControl rewardId={item.rewardId!} /> : <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview} />}
+              {isPreview && available && repeatableDemoOutcome && item.rewardId && (item.status === "prize" || item.status === "completed") ? <DemoRewardRestartControl rewardId={item.rewardId} /> : null}
               {isPreview && rewardReady && item.status === "prize" && item.rewardId ? <DemoIdentityPreviewButton rewardId={item.rewardId} /> : null}
             </div>
           </div>

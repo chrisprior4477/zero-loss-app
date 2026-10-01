@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getDemoProduct } from "@/lib/catalog/demo-products";
+import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 
 export type PurchaseOptionActionState =
   | { status: "idle" }
@@ -11,6 +13,34 @@ export type PurchaseOptionActionState =
 export type RewardClaimActionState = PurchaseOptionActionState | { status: "verification_required"; message: string };
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export async function restartPreviewReward(
+  _previous: PurchaseOptionActionState,
+  formData: FormData,
+): Promise<PurchaseOptionActionState> {
+  const rewardId = String(formData.get("rewardId") ?? "");
+  if (!uuidPattern.test(rewardId) || !isPreviewDataEnvironment()) {
+    return { status: "error", message: "Demo restart is unavailable for this reward." };
+  }
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user) return { status: "error", message: "Sign in again before restarting this demo." };
+    const { data, error } = await db.rpc("restart_preview_reward", {
+      p_reward_id: rewardId,
+      p_idempotency_key: `restart_${rewardId.replaceAll("-", "")}`,
+    });
+    if (error || data?.status !== "restarted" || typeof data.slug !== "string" || !getDemoProduct(data.slug)) {
+      return { status: "error", message: "We couldn’t restart this demo. Your reward is still saved; refresh and try again." };
+    }
+    revalidatePath("/", "layout");
+    revalidatePath("/account/entries");
+    revalidatePath("/account/wallet");
+    return { status: "succeeded", message: "Sample reward removed from your demo view. The original entry and wallet history are preserved.", href: `/items/${data.slug}#enter-entry` };
+  } catch {
+    return { status: "error", message: "We couldn’t confirm the restart. Refresh your rewards before trying again." };
+  }
+}
 
 export async function declinePurchaseOption(
   _previous: PurchaseOptionActionState,
