@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { livePulseDemoItems } from "@/lib/home/demo-data";
+import { useVisibleMotion } from "@/components/home/useVisibleMotion";
 
 function TickerSequence({ hidden = false }: { hidden?: boolean }) {
   return (
@@ -32,23 +33,44 @@ function TickerSequence({ hidden = false }: { hidden?: boolean }) {
 }
 
 export function LivePulseTicker() {
+  const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const sequenceWidthRef = useRef(0);
   const offsetRef = useRef(0);
   const draggingRef = useRef(false);
   const pointerXRef = useRef(0);
+  const canAnimate = useVisibleMotion(sectionRef);
+
+  const normalizeAndRender = useCallback(() => {
+    const track = trackRef.current;
+    const sequenceWidth = sequenceWidthRef.current;
+    if (!track || !sequenceWidth) return;
+    while (offsetRef.current <= -sequenceWidth) offsetRef.current += sequenceWidth;
+    while (offsetRef.current > 0) offsetRef.current -= sequenceWidth;
+    track.style.transform = `translate3d(${offsetRef.current}px,0,0)`;
+  }, []);
 
   useEffect(() => {
+    const sequence = trackRef.current?.firstElementChild;
+    if (!sequence) return;
+    const measure = () => {
+      sequenceWidthRef.current = sequence.getBoundingClientRect().width;
+      normalizeAndRender();
+    };
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    resizeObserver?.observe(sequence);
+    window.addEventListener("resize", measure);
+    measure();
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [normalizeAndRender]);
+
+  useEffect(() => {
+    if (!canAnimate) return;
     let frame = 0;
     let previous = performance.now();
-
-    const normalizeAndRender = () => {
-      const track = trackRef.current;
-      const sequenceWidth = track?.firstElementChild?.getBoundingClientRect().width ?? 0;
-      if (!track || !sequenceWidth) return;
-      while (offsetRef.current <= -sequenceWidth) offsetRef.current += sequenceWidth;
-      while (offsetRef.current > 0) offsetRef.current -= sequenceWidth;
-      track.style.transform = `translate3d(${offsetRef.current}px,0,0)`;
-    };
 
     const animate = (now: number) => {
       if (!draggingRef.current) offsetRef.current -= Math.min(now - previous, 40) * 0.04;
@@ -58,13 +80,8 @@ export function LivePulseTicker() {
     };
 
     frame = requestAnimationFrame(animate);
-    const handleResize = () => normalizeAndRender();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
+    return () => cancelAnimationFrame(frame);
+  }, [canAnimate, normalizeAndRender]);
 
   const finishDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     draggingRef.current = false;
@@ -73,6 +90,7 @@ export function LivePulseTicker() {
 
   return (
     <section
+      ref={sectionRef}
       aria-label="Live marketplace activity"
       className="group relative flex h-10 items-center overflow-hidden border-y border-cyan-300/15 bg-[#020d20]"
     >
@@ -94,6 +112,7 @@ export function LivePulseTicker() {
           if (!draggingRef.current) return;
           offsetRef.current += event.clientX - pointerXRef.current;
           pointerXRef.current = event.clientX;
+          normalizeAndRender();
         }}
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}

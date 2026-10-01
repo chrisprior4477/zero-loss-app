@@ -2,24 +2,28 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { recentWinnerDemoItems } from "@/lib/home/demo-data";
+import { useVisibleMotion } from "@/components/home/useVisibleMotion";
 
 export function RecentWinnerRoll() {
+  const sectionRef = useRef<HTMLElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const canAnimate = useVisibleMotion(sectionRef);
 
   useEffect(() => {
+    if (!canAnimate) return;
     const interval = window.setInterval(() => {
       setActiveIndex((current) => (current + 1) % recentWinnerDemoItems.length);
     }, 3000);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [canAnimate]);
 
   const winner = recentWinnerDemoItems[activeIndex];
 
   return (
-    <section aria-label="Someone just won" className="overflow-hidden rounded-[22px] border border-cyan-300/20 bg-[linear-gradient(135deg,#00142f,#042654)] shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
+    <section ref={sectionRef} aria-label="Someone just won" className="overflow-hidden rounded-[22px] border border-cyan-300/20 bg-[linear-gradient(135deg,#00142f,#042654)] shadow-[0_16px_40px_rgba(0,0,0,0.22)]">
       <div className="hidden items-center justify-between border-b border-white/8 px-5 py-3 sm:flex">
         <div className="flex items-center gap-2.5">
           <span className="relative grid h-7 w-7 place-items-center rounded-full bg-[#72e82e]/15 text-[14px] text-[#7df33c]">

@@ -31,11 +31,11 @@ export default async function ItemPage({ params }: PageProps) {
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-4 text-white sm:px-7 sm:py-12 lg:px-12">
       <div className="mx-auto max-w-7xl">
         <Link href="/#ending-soon" className="inline-flex items-center gap-2 text-sm font-bold text-cyan-300 hover:text-white">← Back to marketplace</Link>
 
-        <div className="mt-6 flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)] lg:items-start">
+        <div className="mt-3 flex flex-col gap-4 sm:mt-6 sm:gap-8 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)] lg:items-start">
           <div className="contents lg:block">
             <ProductGallery gallery={product.gallery} title={product.title} />
             <section className="order-3 rounded-3xl border border-white/12 bg-white/5 p-5 sm:p-8 lg:mt-8">
@@ -71,6 +71,7 @@ export default async function ItemPage({ params }: PageProps) {
           <div className="order-2 lg:sticky lg:top-32 lg:order-none">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">{product.category}</p>
             <h1 className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">{product.title}</h1>
+            <Link href="#enter-entry" className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-cyan-300/55 bg-[#0b4b7c] px-4 text-sm font-extrabold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 sm:hidden">See entry options ↓</Link>
             <GiftCardFulfillmentNotice productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
             <div className="my-6 flex items-baseline gap-2 border-y border-white/12 py-4">
               <span className="text-sm text-white/60">Retail value</span>

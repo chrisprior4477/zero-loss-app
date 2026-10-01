@@ -10,17 +10,17 @@ export function ProductGallery({ gallery, title }: Pick<DemoProduct, "gallery" |
 
   return (
     <div>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-white/15 bg-white shadow-[0_24px_70px_rgba(0,0,0,.2)]">
+      <div className="relative aspect-[16/9] overflow-hidden rounded-3xl border border-white/15 bg-white shadow-[0_24px_70px_rgba(0,0,0,.2)] sm:aspect-[4/3]">
         <Image
           src={image.src}
           alt={image.alt}
           fill
           priority
-          sizes="(max-width: 768px) 100vw, 54vw"
+          sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 768px) 100vw, 54vw"
           className={image.fit === "cover" ? "object-cover" : image.fit === "reward" ? "object-contain p-2 sm:p-3" : "object-contain p-5 sm:p-9"}
         />
       </div>
-      <div className="mt-3 flex gap-3 overflow-x-auto pb-1" aria-label={`${title} image gallery`}>
+      <div className="mt-2 flex gap-2 overflow-x-auto pb-1 sm:mt-3 sm:gap-3" aria-label={`${title} image gallery`}>
         {gallery.map((galleryImage, index) => (
           <button
             key={`${galleryImage.src}-${index}`}
@@ -28,9 +28,9 @@ export function ProductGallery({ gallery, title }: Pick<DemoProduct, "gallery" |
             onClick={() => setSelected(index)}
             aria-label={`Show image ${index + 1} of ${gallery.length}`}
             aria-pressed={selected === index}
-            className={`relative h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-white transition ${selected === index ? "ring-3 ring-cyan-300" : "border border-white/25 opacity-75 hover:opacity-100"}`}
+            className={`relative h-12 w-16 shrink-0 overflow-hidden rounded-xl bg-white transition sm:h-20 sm:w-24 ${selected === index ? "ring-3 ring-cyan-300" : "border border-white/25 opacity-75 hover:opacity-100"}`}
           >
-            <Image src={galleryImage.src} alt="" fill sizes="96px" className={galleryImage.fit === "reward" ? "object-contain p-1" : "object-contain p-2"} />
+            <Image src={galleryImage.src} alt="" fill sizes="(max-width: 640px) 64px, 96px" className={galleryImage.fit === "reward" ? "object-contain p-1" : "object-contain p-2"} />
           </button>
         ))}
       </div>

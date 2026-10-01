@@ -214,16 +214,17 @@
   .offerProgress { top: 7px; right: 12px; width: 42px; height: 42px; }
   .offerProgress > span { width: 32px; height: 32px; font-size: 10px; }
   .productCard[data-has-progress="true"] .retailer, .productCard[data-has-progress="true"] .productTitle { max-width: calc(100% - 42px); }
-  .cardInner { grid-template-columns: minmax(0, 28%) minmax(0, 1fr); grid-template-rows: 11px 22px minmax(40px, auto) minmax(0, 1fr); gap: 0 7px; padding: 9px 10px; }
-  .cardInner::before { top: 9px; bottom: 9px; left: calc(28% + 7px); }
+  .cardInner { grid-template-columns: minmax(0, 24%) minmax(0, 1fr); grid-template-rows: 12px 24px minmax(37px, auto) minmax(0, 1fr); gap: 0 7px; padding: 9px 10px; }
+  .cardInner::before { top: 9px; bottom: 9px; left: calc(24% + 7px); }
   .productStage { border-radius: 10px; }
-  .productImage { padding: 5px; }
-  .retailer { font-size: 8px; }
-  .status { gap: 4px; padding: 3px 6px; border-radius: 6px; font-size: 9px; }
+  .productImage { padding: 3px; }
+  .retailer { font-size: 10px; }
+  .status { gap: 4px; padding: 3px 6px; border-radius: 6px; font-size: 10px; }
   .status svg { width: 14px; height: 14px; }
-  .productTitle { max-width: calc(100% - 9px); font-size: clamp(11px, 3vw, 12px); line-height: 1.08; }
-  .productNote { font-size: 9px; }
-  .cardAction { min-height: 26px; gap: 4px; padding: 4px 6px; border-radius: 7px; font-size: 9px; }
+  .productTitle, .productCard[data-has-progress="true"] .productTitle { max-width: 100%; font-size: clamp(13px, 3.5vw, 14px); line-height: 1.06; }
+  .cardFoot { flex-direction: row; align-items: flex-end; gap: 4px; }
+  .productNote { min-width: 0; font-size: 10px; line-height: 1.12; }
+  .cardAction { flex: 0 0 auto; min-height: 30px; gap: 4px; padding: 4px 5px; border-radius: 7px; font-size: 10px; }
   .cardAction svg { width: 12px; height: 12px; }
   .accountTool { min-height: 91px; grid-template-columns: 80px minmax(0, 1fr) 17px; gap: 10px; padding: 13px 16px; }
   .accountTool::before { left: 105px; }
@@ -237,6 +238,10 @@
   .accountToolText small { font-size: 10px; }
   .ledgerNote { font-size: 10px; }
 }
+@media (min-width: 356px) and (max-width: 600px) {
+  .retailer, .status, .productNote, .cardAction { font-size: 11px; }
+  .cardAction { min-height: 32px; }
+}
 @media (max-width: 610px) {
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filter { min-height: 65px; aspect-ratio: auto; gap: 5px; padding: 7px 17px; font-size: 13px; }
@@ -245,9 +250,9 @@
   .filter:last-child { grid-column: 1 / -1; min-height: 65px; }
 }
 @media (max-width: 355px) {
-  .filter { gap: 4px; padding-inline: 13px; font-size: 11.5px; }
+  .filter { gap: 4px; padding-inline: 13px; font-size: 12px; }
   .filter > svg { width: 20px; height: 20px; }
-  .filterCount { min-width: 29px; min-height: 29px; font-size: 13px; }
+  .filterCount { min-width: 29px; min-height: 29px; font-size: 14px; }
   .offerProgress { top: 6px; right: 8px; width: 38px; height: 38px; }
   .offerProgress > span { width: 29px; height: 29px; font-size: 9px; }
 }
