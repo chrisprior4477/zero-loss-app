@@ -23,6 +23,7 @@ export function PendingEntryNotice() {
   const [busy, setBusy] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const [collapsedIds, setCollapsedIds] = useState<string[]>([]);
   const dismissed = useRef(new Set<string>());
   const inFlight = useRef(new Set<string>());
   const refreshing = useRef(false);
@@ -99,6 +100,23 @@ export function PendingEntryNotice() {
     } finally { inFlight.current.delete(r.requestId); setBusy([...inFlight.current]); }
   }, [router]);
 
+  const dismissReceipt = useCallback(async (r: EntryRequest) => {
+    if (inFlight.current.has(r.requestId)) return;
+    inFlight.current.add(r.requestId);
+    setBusy([...inFlight.current]);
+    const epoch = generation.current;
+    let result: { error?: string };
+    try { result = await acknowledgeEntryReceipt(r.requestId); }
+    catch { result = { error: "Connection interrupted. Please retry dismissing this receipt." }; }
+    finally { inFlight.current.delete(r.requestId); setBusy([...inFlight.current]); }
+    if (epoch !== generation.current) return;
+    if (result.error) { setErrors(previous => ({ ...previous, [r.requestId]: result.error! })); return; }
+    dismissed.current.add(r.requestId);
+    setHiddenIds([...dismissed.current]);
+    setRequests(previous => previous.filter(item => item.requestId !== r.requestId));
+    void refresh();
+  }, [refresh]);
+
   const pending = requests.some(r => r.status === "pending");
   useEffect(() => {
     if (!pending) return;
@@ -124,27 +142,30 @@ export function PendingEntryNotice() {
       const seconds = secondsLeft(r, now);
       const working = busy.includes(r.requestId);
       const isPending = r.status === "pending";
+      const isCollapsed = collapsedIds.includes(r.requestId) && !errors[r.requestId];
+      if (isCollapsed) return <div key={r.requestId} className="rounded-2xl border border-cyan-300/60 bg-[#001b3d] px-3 py-2.5 text-white shadow-[0_12px_48px_rgba(0,0,0,.65),0_0_24px_rgba(0,185,255,.16)]">
+        <div className="flex min-h-11 items-center gap-2">
+          <div className="min-w-0 flex-1" role="status">
+            <p className="truncate text-xs font-extrabold uppercase tracking-wide text-cyan-300">{isPending ? seconds > 0 ? `Undo available · ${seconds}s` : "Checking result…" : r.status === "accepted" ? "Entries confirmed" : r.status === "cancelled" ? "Entry undone" : "Entry not submitted"}</p>
+            <p className="truncate text-xs font-semibold text-white/80">{r.title}</p>
+          </div>
+          {isPending ? <button type="button" disabled={working || seconds === 0} aria-label={`Undo ${r.quantity === 1 ? "entry" : "all entries"} for ${r.title}`} onClick={() => void resolve(r, true)} className="min-h-11 shrink-0 rounded-xl bg-[#00b9ff] px-3 text-sm font-extrabold text-[#00132e] hover:bg-cyan-200 disabled:opacity-60">{working ? "Checking…" : "Undo"}</button>
+            : r.href ? <Link href={r.href} className="grid min-h-11 shrink-0 place-items-center rounded-xl bg-[#67ff42] px-3 text-xs font-extrabold text-[#00132e]">View entries</Link> : null}
+          <button type="button" disabled={working} aria-label={`${isPending ? "Expand" : "Dismiss"} confirmation for ${r.title}`} className={`grid h-10 shrink-0 place-items-center rounded-full text-cyan-100 hover:bg-white/10 disabled:opacity-50 ${isPending ? "px-1 text-xs font-bold" : "w-10 text-xl"}`} onClick={() => {
+            if (isPending) setCollapsedIds(previous => previous.filter(id => id !== r.requestId));
+            else void dismissReceipt(r);
+          }}>{isPending ? "Details" : "×"}</button>
+        </div>
+      </div>;
       return <div key={r.requestId} className="rounded-2xl border border-cyan-300/60 bg-[#001b3d] p-4 text-white shadow-[0_12px_48px_rgba(0,0,0,.65),0_0_24px_rgba(0,185,255,.16)]">
         <div className="flex items-start justify-between gap-3">
           <div role="status"><p className="text-xs font-extrabold uppercase tracking-wider text-cyan-300">{isPending ? "A moment to double-check" : r.status === "accepted" ? "Entries confirmed" : r.status === "cancelled" ? "Entry undone" : "Entry not submitted"}</p>
             <p className="mt-1 text-sm font-bold">{r.title}</p>
           </div>
-          {!isPending ? <button type="button" disabled={working} aria-label={`Dismiss confirmation for ${r.title}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-2xl text-cyan-100 hover:bg-white/10 disabled:opacity-50" onClick={async () => {
-            if (inFlight.current.has(r.requestId)) return;
-            inFlight.current.add(r.requestId);
-            setBusy([...inFlight.current]);
-            const epoch = generation.current;
-            let result: { error?: string };
-            try { result = await acknowledgeEntryReceipt(r.requestId); }
-            catch { result = { error: "Connection interrupted. Please retry dismissing this receipt." }; }
-            finally { inFlight.current.delete(r.requestId); setBusy([...inFlight.current]); }
-            if (epoch !== generation.current) return;
-            if (result.error) { setErrors(previous => ({ ...previous, [r.requestId]: result.error! })); return; }
-            dismissed.current.add(r.requestId);
-            setHiddenIds([...dismissed.current]);
-            setRequests(previous => previous.filter(item => item.requestId !== r.requestId));
-            void refresh();
-          }}>×</button> : <span aria-hidden="true" className="grid h-10 min-w-10 place-items-center rounded-full border border-cyan-300/50 font-mono text-lg font-bold text-cyan-200">{seconds}s</span>}
+          {!isPending ? <button type="button" disabled={working} aria-label={`Dismiss confirmation for ${r.title}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-2xl text-cyan-100 hover:bg-white/10 disabled:opacity-50" onClick={() => void dismissReceipt(r)}>×</button> : <div className="flex shrink-0 items-center gap-1">
+            <span aria-hidden="true" className="grid h-10 min-w-10 place-items-center rounded-full border border-cyan-300/50 font-mono text-lg font-bold text-cyan-200">{seconds}s</span>
+            <button type="button" aria-label={`Close full confirmation for ${r.title}; Undo stays available`} title="Close full confirmation; Undo stays available" className="grid h-10 w-10 place-items-center rounded-full text-2xl text-cyan-100 hover:bg-white/10" onClick={() => setCollapsedIds(previous => previous.includes(r.requestId) ? previous : [...previous, r.requestId])}>×</button>
+          </div>}
         </div>
         <p className="mt-2 text-sm leading-6 text-white/80">{r.quantity} {r.quantity === 1 ? "ticket" : "tickets"} · {formatUsdFromCents(r.amountCents)}{isPending ? " reserved" : ""}</p>
         <p className="mt-1 text-xs leading-5 text-white/65">{isPending

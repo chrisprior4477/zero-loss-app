@@ -46,6 +46,38 @@ test("restores pending entries after navigation, with exact quantity and a websi
   expect(screen.queryByRole("button", { name: /Dismiss/ })).toBeNull();
   expect(mocks.resolve).not.toHaveBeenCalled();
 });
+test("closing the large pending notice keeps a compact Undo reminder through refreshes", async () => {
+  render(<PendingEntryNotice />);
+  fireEvent.click(await screen.findByRole("button", { name: "Close full confirmation for Test prize; Undo stays available" }));
+  expect(screen.getByText("Undo available · 30s")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Undo all entries for Test prize" })).toBeTruthy();
+  expect(screen.queryByText(/not your payment card/)).toBeNull();
+  expect(mocks.resolve).not.toHaveBeenCalled();
+  expect(mocks.acknowledge).not.toHaveBeenCalled();
+  fireEvent(window, new Event("online"));
+  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
+  expect(screen.getByRole("button", { name: "Undo all entries for Test prize" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Expand confirmation for Test prize" }));
+  expect(screen.getByText(/not your payment card/)).toBeTruthy();
+});
+test("Undo from the compact reminder still calls the server and stays compact afterward", async () => {
+  mocks.resolve.mockResolvedValue({ request: { ...request, status: "cancelled" } });
+  render(<PendingEntryNotice />);
+  fireEvent.click(await screen.findByRole("button", { name: "Close full confirmation for Test prize; Undo stays available" }));
+  fireEvent.click(screen.getByRole("button", { name: "Undo all entries for Test prize" }));
+  expect(await screen.findByText("Entry undone")).toBeTruthy();
+  expect(mocks.resolve).toHaveBeenCalledWith(request.requestId, true);
+  expect(screen.queryByText(/not your payment card/)).toBeNull();
+  expect(screen.getByRole("button", { name: "Dismiss confirmation for Test prize" })).toBeTruthy();
+});
+test("a compact pending reminder does not reopen when the server confirms entries", async () => {
+  render(<PendingEntryNotice />);
+  fireEvent.click(await screen.findByRole("button", { name: "Close full confirmation for Test prize; Undo stays available" }));
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted", href: "/account/entries?entry=ent_abcd" } })));
+  expect(screen.getByText("Entries confirmed")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "View entries" }).getAttribute("href")).toBe("/account/entries?entry=ent_abcd");
+  expect(screen.queryByText(/not your payment card/)).toBeNull();
+});
 test("Undo waits for the server, restores the receipt, and never pretends a network failure succeeded", async () => {
   mocks.resolve.mockResolvedValueOnce({ error: "Connection interrupted." }).mockResolvedValueOnce({ request: { ...request, status: "cancelled" } });
   render(<PendingEntryNotice />);
