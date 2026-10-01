@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { DemoParticipationPanel } from "@/components/product/DemoParticipationPanel";
 import { GiftCardFulfillmentNotice } from "@/components/product/GiftCardFulfillmentNotice";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { MobileEntrySummary } from "@/components/product/MobileEntrySummary";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { getAccountContext } from "@/lib/account/context";
 import { randomUUID } from "node:crypto";
@@ -29,6 +30,7 @@ export default async function ItemPage({ params }: PageProps) {
   const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
   const current = availability?.[product.slug];
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
+  const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-4 text-white sm:px-7 sm:py-12 lg:px-12">
@@ -71,13 +73,13 @@ export default async function ItemPage({ params }: PageProps) {
           <div className="order-2 lg:sticky lg:top-32 lg:order-none">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">{product.category}</p>
             <h1 className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">{product.title}</h1>
-            <Link href="#enter-entry" className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-cyan-300/55 bg-[#0b4b7c] px-4 text-sm font-extrabold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 sm:hidden">See entry options ↓</Link>
+            <MobileEntrySummary entryPrice={entryPrice} giftCardValue={product.value} retailer={product.retailer} remaining={current ? Math.max(0, current.capacity - current.sold) : null} />
             <GiftCardFulfillmentNotice productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
-            <div className="my-6 flex items-baseline gap-2 border-y border-white/12 py-4">
+            <div className="my-6 hidden items-baseline gap-2 border-y border-white/12 py-4 sm:flex">
               <span className="text-sm text-white/60">Retail value</span>
               <strong className="text-2xl">${product.value.toLocaleString()}</strong>
             </div>
-            <DemoParticipationPanel productSlug={product.slug} requestKey={randomUUID()} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={current ? current.entryPriceCents / 100 : product.entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isSignedIn={Boolean(account)} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} />
+            <DemoParticipationPanel productSlug={product.slug} requestKey={randomUUID()} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isSignedIn={Boolean(account)} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} />
             <details className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 open:border-cyan-300/35">
               <summary className="cursor-pointer font-bold text-white">Prefer to enter without a purchase?</summary>
               <p className="mt-3 text-sm leading-6 text-white/65">No purchase is necessary. Review the proposed mail-in alternative method of entry and printable postcard insert. The prototype does not create an entry.</p>

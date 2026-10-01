@@ -69,7 +69,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
         {products.length ? (
-          <section aria-label="Products" className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+          <section aria-label="Products" className={`mt-7 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {products.map((product) => {
               const remaining = Math.max(0, product.capacity - product.sold);
               return (

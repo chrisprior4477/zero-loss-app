@@ -154,7 +154,7 @@ export function DemoParticipationPanel({
   };
 
   return (
-    <aside id="enter-entry" className="scroll-mt-[180px] rounded-3xl border border-cyan-300/30 bg-[#001b3d] p-5 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-7 md:scroll-mt-32">
+    <aside id="enter-entry" className="scroll-mt-[180px] rounded-3xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-7 md:scroll-mt-32">
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.13em] text-cyan-300">Entry price</p>
@@ -163,7 +163,7 @@ export function DemoParticipationPanel({
         <span className="rounded-full bg-[#ff630f] px-3 py-1.5 text-xs font-extrabold text-black">Ending soon</span>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-4 sm:mt-8">
         <PoolProgress ticketsSold={sold} ticketCapacity={capacity} />
         <div className="mt-3 flex justify-between text-xs text-white/65">
           <span>{sold.toLocaleString()} entries</span>
@@ -171,7 +171,7 @@ export function DemoParticipationPanel({
         </div>
       </div>
 
-      <fieldset disabled={uncertain} className="mt-7 flex items-center justify-between rounded-2xl bg-white/7 p-3">
+      <fieldset disabled={uncertain} className="mt-4 flex items-center justify-between rounded-2xl bg-white/7 p-3 sm:mt-7">
         <div>
           <p className="text-xs text-white/60">Your entries</p>
           <p className="mt-0.5 font-bold" aria-live="polite">${total.toFixed(2)} total</p>

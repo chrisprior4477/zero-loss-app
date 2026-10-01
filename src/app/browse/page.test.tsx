@@ -27,6 +27,12 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i }).getAttribute("href")).toBe("/items/babys-essentials-bundle");
   });
 
+  test("uses the available mobile width for one search result", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "dyson v8" }) }));
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "Products" }).className).toContain("grid-cols-1");
+  });
+
   test.each(["everyday-items", "groceries", "electronics", "home-essentials", "ending-soon"])(
     "puts pictured items before gift cards in %s",
     async category => {

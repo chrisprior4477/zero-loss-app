@@ -20,7 +20,7 @@ export function ProductGallery({ gallery, title }: Pick<DemoProduct, "gallery" |
           className={image.fit === "cover" ? "object-cover" : image.fit === "reward" ? "object-contain p-2 sm:p-3" : "object-contain p-5 sm:p-9"}
         />
       </div>
-      <div className="mt-2 flex gap-2 overflow-x-auto pb-1 sm:mt-3 sm:gap-3" aria-label={`${title} image gallery`}>
+      {gallery.length > 1 ? <div className="mt-2 flex gap-2 overflow-x-auto pb-1 sm:mt-3 sm:gap-3" aria-label={`${title} image gallery`}>
         {gallery.map((galleryImage, index) => (
           <button
             key={`${galleryImage.src}-${index}`}
@@ -33,7 +33,7 @@ export function ProductGallery({ gallery, title }: Pick<DemoProduct, "gallery" |
             <Image src={galleryImage.src} alt="" fill sizes="(max-width: 640px) 64px, 96px" className={galleryImage.fit === "reward" ? "object-contain p-1" : "object-contain p-2"} />
           </button>
         ))}
-      </div>
+      </div> : null}
     </div>
   );
 }
