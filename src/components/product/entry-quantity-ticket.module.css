@@ -1,0 +1,41 @@
+.ticket {
+  --corner-scoop: 10px;
+  --side-scoop: 6px;
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 20px;
+  border: 0;
+  background: #eaf6ff;
+  color: #0b1940;
+  -webkit-mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}
+
+.label {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+@media (max-width: 350px) {
+  .ticket { padding-inline: 17px; }
+  .label { font-size: 12px; }
+}

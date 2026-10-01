@@ -9,6 +9,7 @@ afterEach(() => { cleanup(); vi.resetAllMocks(); });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
+  expect(screen.getByTestId("entry-quantity-ticket")).toBeTruthy();
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$26");
   expect(screen.queryByText("$24.00")).toBeNull();
   expect(screen.getByRole("button", { name: "Enter for $1.00" })).toBeTruthy();
@@ -91,6 +92,8 @@ test("the first additional entry requires acknowledgment before saving and incre
   await waitFor(() => expect(actionMocks.acknowledge).toHaveBeenCalledTimes(1));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
+  expect(screen.getByText("2 tickets selected")).toBeTruthy();
+  expect(screen.getByText(/Nothing is entered until you press Enter for \$2\.00/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Enter for $2.00" })).toBeTruthy();
   expect(document.querySelector('input[name="quantity"]')?.getAttribute("value")).toBe("2");
 
@@ -115,6 +118,9 @@ test("a stored acknowledgment adds directly without opening the explainer", () =
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
+  expect(screen.getByText("2 tickets selected")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Remove one entry" }));
+  expect(screen.queryByText("2 tickets selected")).toBeNull();
 });
 test("failed product balance cannot become zero", () => {
   render(<DemoParticipationPanel {...props} />);

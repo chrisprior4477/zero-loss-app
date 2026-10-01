@@ -10,6 +10,7 @@ import { InsufficientBalanceToast } from "@/components/product/InsufficientBalan
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
+import quantityTicketStyles from "./entry-quantity-ticket.module.css";
 
 type Props = {
   productSlug: string;
@@ -55,6 +56,7 @@ export function DemoParticipationPanel({
     catch { return { status: "error" as const, code: "outcome_unknown" as const, message: "The connection was interrupted. Check the saved submission before starting another entry." }; }
   }, { status: "idle" });
   const [quantity, setQuantity] = useState(1);
+  const [selectedTicketsToast, setSelectedTicketsToast] = useState<number | null>(null);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
   const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
   const receivedRequests = useRef(new Map<string, EntryRequest["status"]>());
@@ -84,13 +86,20 @@ export function DemoParticipationPanel({
   const entryLoginHref = `/login?next=${encodeURIComponent(`/items/${productSlug}#enter-entry`)}`;
   const addFundsHref = fundingHref(productSlug);
 
+  const addNextEntry = () => {
+    const next = Math.min(maxQuantity, quantity + 1);
+    if (next === quantity) return;
+    setQuantity(next);
+    setSelectedTicketsToast(next);
+  };
+
   const requestAdditionalEntry = () => {
     if (entryBusy || uncertain || quantity >= maxQuantity) return;
     if (!additionalEntryTermsSeen && !skipFutureExplainer) {
       setAdditionalEntryNoticeOpen(true);
       return;
     }
-    setQuantity((value) => Math.min(maxQuantity, value + 1));
+    addNextEntry();
   };
 
   const acknowledgeAndAddEntry = async () => {
@@ -108,9 +117,15 @@ export function DemoParticipationPanel({
     }
     setSkipFutureExplainer(true);
     setAdditionalEntryTermsSeen(true);
-    setQuantity((value) => Math.min(maxQuantity, value + 1));
+    addNextEntry();
     setAdditionalEntryNoticeOpen(false);
   };
+
+  useEffect(() => {
+    if (selectedTicketsToast === null) return;
+    const timer = window.setTimeout(() => setSelectedTicketsToast(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [selectedTicketsToast]);
 
   useEffect(() => {
     if (state.status !== "succeeded") return;
@@ -172,16 +187,20 @@ export function DemoParticipationPanel({
         </div>
       </div> : null}
 
-      <fieldset disabled={uncertain} className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-white/7 px-3 py-2">
-        <div>
-          <p className="text-sm font-bold">How many entries?</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-white/20 text-xl transition hover:border-cyan-300 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
-          <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
-          <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup="dialog">+</button>
-        </div>
-      </fieldset>
+      <div className="relative mt-3">
+        {selectedTicketsToast !== null ? <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-[calc(100%+8px)] right-0 z-20 w-full max-w-80 rounded-xl border border-[#67ff42]/60 bg-[#083a43] px-4 py-3 text-sm text-white shadow-[0_12px_30px_rgba(0,0,0,.4),0_0_18px_rgba(81,255,59,.22)]">
+          <strong className="block text-[#8aff6f]">{selectedTicketsToast} tickets selected</strong>
+          <span>Separate chances. Nothing is entered until you press Enter for ${(selectedTicketsToast * entryPrice).toFixed(2)}.</span>
+        </div> : null}
+        <fieldset disabled={uncertain} data-testid="entry-quantity-ticket" className={quantityTicketStyles.ticket}>
+          <p className={quantityTicketStyles.label}>How many entries?</p>
+          <div className="flex shrink-0 items-center gap-2">
+            <button type="button" onClick={() => { setQuantity((value) => Math.max(1, value - 1)); setSelectedTicketsToast(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
+            <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
+            <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
+          </div>
+        </fieldset>
+      </div>
       <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine. Terms apply.</p>
       {requestReceipt && requestReceipt.status !== "pending" ? <div className="mt-2 flex flex-wrap items-baseline gap-x-2 rounded-lg bg-[#062b4d] px-3 py-2 text-xs leading-4" role="status">
         <p>{requestReceipt.status === "accepted" ? `Previous ${requestReceipt.quantity}-ticket submission saved. A new entry is separate.` : "Your previous submission was not entered. You can start a new submission below."}</p>
@@ -197,6 +216,7 @@ export function DemoParticipationPanel({
         <button type="button" disabled className="mt-3 w-full rounded-xl bg-[#0b668b] px-5 py-3 text-base font-extrabold text-white/60">No entries remaining</button>
       ) : isSignedIn ? (
         <form ref={entryFormRef} action={action} onSubmit={(event) => {
+          setSelectedTicketsToast(null);
           if (entryBusy) { event.preventDefault(); return; }
           // Retry the original intent, not new balance/quantity/sharing choices.
           if (uncertain) return;
