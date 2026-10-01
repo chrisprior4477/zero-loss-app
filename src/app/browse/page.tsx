@@ -11,6 +11,7 @@ import {
 import { searchCatalogMatches } from "@/lib/catalog/search";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { BrowseCategoryNav } from "@/components/catalog/BrowseCategoryNav";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
 export const metadata: Metadata = {
   title: "Browse",
@@ -73,7 +74,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             {products.map((product) => {
               const remaining = Math.max(0, product.capacity - product.sold);
               return (
-                <article key={product.slug} className="overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
+                <article key={product.slug} className="relative overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
                   <Link href={`/items/${product.slug}`} className="group flex h-full flex-col p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan-500 sm:p-4">
                     <div className="relative aspect-[1.28/1] overflow-hidden rounded-xl bg-[#f1f4f7]">
                       <Image src={product.gallery[0].src} alt="" fill sizes="(max-width: 640px) 50vw, 25vw" className="object-contain p-2 transition-transform group-hover:scale-105" />
@@ -86,6 +87,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                       <span className="text-right text-slate-500"><strong className="block text-[#e34c16]">{remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>
                     </div>
                   </Link>
+                  <FavoriteButton itemName={product.title} itemHref={`/items/${product.slug}`} size="large" className="absolute right-5 top-5 z-10" />
                 </article>
               );
             })}

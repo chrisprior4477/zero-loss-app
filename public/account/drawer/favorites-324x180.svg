@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 324 180" role="img" aria-label="Favorites artwork">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#021a3d"/><stop offset="1" stop-color="#055089"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#5cfb37" stop-opacity=".36"/><stop offset="1" stop-color="#5cfb37" stop-opacity="0"/></radialGradient>
+    <filter id="shine"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <rect width="324" height="180" fill="url(#bg)"/>
+  <circle cx="166" cy="89" r="87" fill="url(#glow)"/>
+  <g transform="rotate(-11 102 98)"><rect x="34" y="45" width="125" height="100" rx="12" fill="#0a3573" stroke="#00b9ff" stroke-width="3"/><rect x="46" y="56" width="101" height="55" rx="5" fill="#bfe9ff"/><path d="M48 99 78 68l22 19 18-14 28 26" fill="none" stroke="#087feb" stroke-width="7"/><path d="M48 99h98v12H48z" fill="#087feb"/></g>
+  <g transform="rotate(12 233 98)"><rect x="174" y="31" width="111" height="112" rx="12" fill="#0b2d69" stroke="#5cfb37" stroke-width="3"/><rect x="186" y="44" width="87" height="62" rx="6" fill="#ecf7ff"/><circle cx="230" cy="75" r="22" fill="#ff7a22"/><path d="M205 78h50M216 64l29 29" stroke="#ffd68b" stroke-width="4"/></g>
+  <path d="M157 46c-25-27-65 4-43 32l43 45 43-45c22-28-18-59-43-32Z" fill="#5cfb37" opacity=".5" filter="url(#shine)"/>
+  <path d="M157 46c-25-27-65 4-43 32l43 45 43-45c22-28-18-59-43-32Z" fill="#57ef2a" stroke="#c9ff96" stroke-width="3"/>
+  <circle cx="66" cy="28" r="4" fill="#00b9ff"/><circle cx="279" cy="155" r="5" fill="#5cfb37"/>
+</svg>

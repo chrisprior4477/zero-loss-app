@@ -102,7 +102,7 @@ test("drawer account destinations follow the approved hierarchy", () => {
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const navigation = within(screen.getByRole("navigation", { name: "Account navigation" }));
   expect(navigation.getAllByRole("link").map(link => link.getAttribute("aria-label"))).toEqual([
-    "My Activity", "Gift Cards & Rewards", "Wallet & Transactions", "Orders & Fulfillment", "Your Crew", "Notifications", "Account & Security",
+    "My Activity", "Favorites", "Gift Cards & Rewards", "Wallet & Transactions", "Orders & Fulfillment", "Your Crew", "Notifications", "Account & Security",
   ]);
 });
 
@@ -115,7 +115,8 @@ test("approved drawer controls keep their real routes and one mounted dialog", (
   expect(dialog.getByRole("link", { name: "Open notifications" }).getAttribute("href")).toBe("/account/notifications");
   expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active");
   expect(dialog.getByText("Real prizes. Real possibilities.")).toBeTruthy();
-  expect(dialog.getByRole("navigation", { name: "Account navigation" }).querySelectorAll("img")).toHaveLength(7);
+  expect(dialog.getByRole("navigation", { name: "Account navigation" }).querySelectorAll("img")).toHaveLength(8);
+  expect(dialog.getByRole("link", { name: "Favorites" }).getAttribute("href")).toBe("/account/favorites");
 });
 
 test("Add to Home Screen closes the drawer and requests the device install flow", () => {
@@ -135,6 +136,7 @@ test("signed-out business and personal paths and shopping categories remain avai
   fireEvent.click(screen.getByRole("button", { name: /For business/ }));
   expect(screen.getByRole("link", { name: "Sign up" }).getAttribute("href")).toBe("/signup?account=business");
   expect(screen.getByRole("navigation", { name: "Shop categories" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Favorites" }).getAttribute("href")).toBe("/account/favorites");
 });
 
 test("Escape closes the drawer and restores body scrolling", () => {

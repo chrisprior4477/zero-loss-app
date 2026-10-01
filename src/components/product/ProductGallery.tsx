@@ -3,8 +3,9 @@
 import Image from "next/image";
 import { useState } from "react";
 import type { DemoProduct } from "@/lib/catalog/demo-products";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
-export function ProductGallery({ gallery, title }: Pick<DemoProduct, "gallery" | "title">) {
+export function ProductGallery({ gallery, title, slug }: Pick<DemoProduct, "gallery" | "title" | "slug">) {
   const [selected, setSelected] = useState(0);
   const image = gallery[selected];
 
@@ -19,6 +20,7 @@ export function ProductGallery({ gallery, title }: Pick<DemoProduct, "gallery" |
           sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 768px) 100vw, 54vw"
           className={image.fit === "cover" ? "object-cover" : image.fit === "reward" ? "object-contain p-2 sm:p-3" : "object-contain p-5 sm:p-9"}
         />
+        <FavoriteButton itemName={title} itemHref={`/items/${slug}`} size="large" className="absolute right-3 top-3 z-10 sm:right-5 sm:top-5" />
       </div>
       {gallery.length > 1 ? <div className="mt-2 flex gap-2 overflow-x-auto pb-1 sm:mt-3 sm:gap-3" aria-label={`${title} image gallery`}>
         {gallery.map((galleryImage, index) => (

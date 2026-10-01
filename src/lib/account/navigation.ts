@@ -2,6 +2,7 @@
 export const accountRoutes = {
   dashboard: "/account/entries",
   activity: "/account/entries",
+  favorites: "/account/favorites",
   openEntries: "/account/entries?filter=active",
   purchaseOptions: "/account/entries?filter=completion",
   rewards: "/account/wallet",
@@ -14,6 +15,7 @@ export const accountRoutes = {
 
 export const accountNavigation = [
   ["My Activity", accountRoutes.activity, "layers"],
+  ["Favorites", accountRoutes.favorites, "prize"],
   ["Gift Cards & Rewards", accountRoutes.rewards, "gift"],
   ["Wallet & Transactions", accountRoutes.walletHistory, "wallet"],
   ["Orders & Fulfillment", accountRoutes.orders, "orders"],

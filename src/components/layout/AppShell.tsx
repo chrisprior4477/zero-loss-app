@@ -5,13 +5,19 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { InstallAppPrompt } from "@/components/layout/InstallAppPrompt";
 import { SiteBreadcrumbs } from "@/components/layout/SiteBreadcrumbs";
 import { PendingEntryNotice } from "@/components/product/PendingEntryNotice";
+import { FavoritesProvider } from "@/components/favorites/FavoritesProvider";
+import { getAccountContext } from "@/lib/account/context";
+import { getFavoriteSnapshot } from "@/lib/favorites/reader";
 
 type AppShellProps = {
   children: ReactNode;
 };
 
-export function AppShell({ children }: AppShellProps) {
+export async function AppShell({ children }: AppShellProps) {
+  const account = await getAccountContext();
+  const favorites = account ? await getFavoriteSnapshot(account.userId) : { slugs: [], available: true };
   return (
+    <FavoritesProvider key={account?.userId ?? "guest"} initialSlugs={favorites.slugs} isSignedIn={Boolean(account)} available={favorites.available}>
     <div className="flex min-h-full flex-col">
       <a
         href="#main-content"
@@ -28,5 +34,6 @@ export function AppShell({ children }: AppShellProps) {
       <InstallAppPrompt />
       <Suspense fallback={null}><PendingEntryNotice /></Suspense>
     </div>
+    </FavoritesProvider>
   );
 }

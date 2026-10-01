@@ -133,7 +133,7 @@ export function DollarChoiceCarousel() {
                     <span className="font-bold text-white">{item.percentFilled}% filled</span>
                   </div>
                 </Link>
-                <FavoriteButton itemName={item.title} className="absolute right-1 top-1 z-30" />
+                <FavoriteButton itemName={item.title} itemHref={item.href} className="absolute right-1 top-1 z-30" />
               </article>
             );
           })}

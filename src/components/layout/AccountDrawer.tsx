@@ -11,7 +11,7 @@ import { AccountIcon } from "@/components/account/AccountIcon";
 import { EntryTicket } from "@/components/layout/EntryTicket";
 import styles from "@/components/account/drawer.module.css";
 import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
-import { accountNavigation } from "@/lib/account/navigation";
+import { accountNavigation, accountRoutes } from "@/lib/account/navigation";
 import { MenuTicket } from "@/components/account/MenuTicket";
 import { signOutAction } from "@/lib/auth/actions";
 import { INSTALL_APP_REQUEST_EVENT } from "@/components/layout/InstallAppPrompt";
@@ -35,6 +35,7 @@ const secondaryLinks = [
 
 const navigationVisuals: Record<(typeof accountNavigation)[number][0], { description: string; imageSrc: string; artworkTreatment?: "zoom" | "full" | "fit-wallet" | "fill-panel" }> = {
   "My Activity": { description: "Track your entries and results.", imageSrc: "/account/drawer/my-activity-324x180.png" },
+  "Favorites": { description: "Your saved products, ready to revisit.", imageSrc: "/account/drawer/favorites-324x180.svg", artworkTreatment: "full" },
   "Gift Cards & Rewards": { description: "Browse prizes and claim rewards.", imageSrc: "/account/drawer/gift-cards-rewards-324x180.png" },
   "Wallet & Transactions": { description: "Manage your balance and view transactions.", imageSrc: "/account/drawer/wallet-transactions-324x180.png", artworkTreatment: "fit-wallet" },
   "Orders & Fulfillment": { description: "Track your orders and delivery updates.", imageSrc: "/account/drawer/orders-fulfillment-324x180.png", artworkTreatment: "fill-panel" },
@@ -224,6 +225,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
                 <Link href={accountPath === "business" ? "/signup?account=business" : "/signup"} onClick={close} className="grid min-h-12 w-full place-items-center rounded-xl bg-[#087feb] px-4 text-sm font-black text-white transition hover:bg-[#1692ff]">Sign up</Link>
                 <p className="text-center text-xs text-white/50">Already registered? <Link href="/login?focus=email#login-form" onClick={close} className="font-bold text-cyan-300 hover:underline">Sign in</Link></p>
                 <Link href="/how-it-works" onClick={close} className="grid min-h-11 w-full place-items-center rounded-xl border border-[#ff7a2d] bg-[#ff630f] px-4 text-sm font-black text-white transition hover:bg-[#ff7a2d]">How It Works</Link>
+                <Link href={accountRoutes.favorites} onClick={close} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/35 bg-[#082848] px-4 text-sm font-bold text-cyan-100"><span aria-hidden="true" className="text-lg text-[#31e800]">♡</span>Favorites</Link>
               </section>}
 
               {!showAccountContent ? <div className="mt-3 border-t border-cyan-200/15 pt-3">

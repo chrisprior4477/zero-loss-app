@@ -148,7 +148,7 @@ export function DollarChoiceCarouselLight() {
                 >
                   Enter $1
                 </Link>
-                <FavoriteButton itemName={`${item.title} alternate layout`} className="absolute right-2 top-2 z-30" />
+                <FavoriteButton itemName={item.title} itemHref={item.href} className="absolute right-2 top-2 z-30" />
               </article>
             );
           })}

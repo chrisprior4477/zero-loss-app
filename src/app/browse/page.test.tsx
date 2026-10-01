@@ -1,6 +1,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import BrowsePage from "./page";
+
+vi.mock("@/components/ui/FavoriteButton", () => ({ FavoriteButton: () => null }));
 
 afterEach(cleanup);
 

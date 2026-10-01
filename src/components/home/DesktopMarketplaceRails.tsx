@@ -335,7 +335,7 @@ export function DesktopMarketplaceRails() {
                   </span>
                   </div>
                 </Link>
-                <FavoriteButton itemName={item.title} className="absolute right-1.5 top-1.5 z-10" />
+                <FavoriteButton itemName={item.title} itemHref={item.href ?? ""} className="absolute right-1.5 top-1.5 z-10" />
               </article>
             );
             })}

@@ -40,7 +40,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
 
         <div className="mt-3 flex flex-col gap-4 sm:mt-6 sm:gap-8 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)] lg:items-start">
           <div className="contents lg:block">
-            <ProductGallery gallery={product.gallery} title={product.title} />
+            <ProductGallery gallery={product.gallery} title={product.title} slug={product.slug} />
             <section className="order-3 rounded-3xl border border-white/12 bg-white/5 p-5 sm:p-8 lg:mt-8">
               <h2 className="text-2xl font-extrabold">Product details</h2>
               <p className="mt-3 max-w-3xl leading-7 text-white/75">{product.summary}</p>
