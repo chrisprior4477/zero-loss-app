@@ -9,12 +9,13 @@ type Props = {
   totalCents: number;
   balanceCents: number | null;
   fundingHref: string;
+  onAddFunds?: () => void;
   onClose: () => void;
 };
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-export function InsufficientBalanceToast({ quantity, totalCents, balanceCents, fundingHref, onClose }: Props) {
+export function InsufficientBalanceToast({ quantity, totalCents, balanceCents, fundingHref, onAddFunds, onClose }: Props) {
   const fundingLink = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export function InsufficientBalanceToast({ quantity, totalCents, balanceCents, f
         <p className="mt-2 text-xs leading-5 text-white/60">No entries were placed. You’ll return to this prize to confirm.</p>
       </div>
       <div className="mt-5 flex flex-wrap gap-3">
-        <Link ref={fundingLink} href={fundingHref} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#31e800] px-5 font-extrabold text-[#00132e] hover:bg-[#67ff42] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-200">Add funds <span aria-hidden="true">→</span></Link>
+        <Link ref={fundingLink} href={fundingHref} onClick={onAddFunds} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#31e800] px-5 font-extrabold text-[#00132e] hover:bg-[#67ff42] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-200">Add funds <span aria-hidden="true">→</span></Link>
         <button type="button" onClick={onClose} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-5 font-bold text-cyan-200 hover:bg-cyan-300/10">Keep browsing</button>
       </div>
     </section>, document.body,

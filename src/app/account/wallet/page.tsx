@@ -15,19 +15,21 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { selectedTransaction } from "@/lib/wallet/selected-transaction";
 import { getCompleteLedgerHistory } from "@/lib/wallet/history";
+import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
 
 export const metadata: Metadata = { title: "Gift Cards & Rewards" };
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; view?: string | string[]; rewards?: string | string[]; from?: string | string[]; entry?: string | string[]; transaction?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; view?: string | string[]; rewards?: string | string[]; from?: string | string[]; entry?: string | string[]; quantity?: string | string[]; transaction?: string | string[] }> }) {
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
   const cardView = !requestedReward && query.view === "card";
   // A return link may name an existing catalog prize, not arbitrary content.
   const fromProduct = history && typeof query.from === "string" ? getDemoProduct(query.from) : undefined;
+  const requestedQuantity = parseEntryQuantity(query.quantity) ?? 1;
   const account = await getAccountContext();
   if (!account) {
-    const next = history && !query.transaction ? fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined) : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : "");
+    const next = history && !query.transaction ? fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity) : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : "");
     redirect(`${authNavigationHref("/login", next)}&focus=email#login-form`);
   }
   if (cardView) redirect("/account/payment-methods");
@@ -35,7 +37,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     ? findActivityItem(account.activity.activity, fromProduct.slug, query.entry) : undefined;
   const fundingReturn = query.entry !== undefined
     ? fromEntry ? { title: fromEntry.title, href: activityHref(fromEntry), label: "Back to purchase option" as const } : undefined
-    : fromProduct ? { title: fromProduct.title, href: `/items/${fromProduct.slug}#enter-entry` } : undefined;
+    : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity) } : undefined;
   // A URL only selects from this authenticated account's authorized data.
   const matchingRewards = walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
   const reward = typeof query.rewardId === "string"

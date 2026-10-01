@@ -45,6 +45,18 @@ test("a rejected password clears the recovery marker and can be corrected", asyn
   await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
   expect(vi.mocked(completeDemoFunding).mock.calls[1]?.[1].get("password")).toBe("correct-password");
 });
+test("successful funding offers an explicit return to the selected product", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
+  render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv?quantity=4#enter-entry" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "local-test-only" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
+  await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
+  expect(screen.getByRole("link", { name: "Continue your entry" }).getAttribute("href")).toBe("/items/samsung-m70h-tv?quantity=4#enter-entry");
+  expect(screen.getByRole("button", { name: "Add more funds" })).toBeTruthy();
+});
 test("an uncertain payment keeps its recovery marker and request key", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "pending", message: "Check this request." });

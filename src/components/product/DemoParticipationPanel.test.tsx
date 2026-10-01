@@ -5,7 +5,7 @@ import { DemoParticipationPanel } from "./DemoParticipationPanel";
 const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), enter: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge }));
-afterEach(() => { cleanup(); vi.resetAllMocks(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
@@ -56,6 +56,30 @@ test("Add funds opens the funding form and remembers this prize", () => {
   expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(
     "/account/wallet?view=history&from=test-product#add-funds",
   );
+});
+
+test("selected quantity resumes after sign-in and add funds", () => {
+  render(<DemoParticipationPanel {...props} initialQuantity={3} isSignedIn />);
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("3");
+  expect(screen.getByRole("button", { name: "Enter for $3.00" })).toBeTruthy();
+  const addFunds = screen.getByRole("link", { name: "Add funds" });
+  expect(addFunds.getAttribute("href")).toBe("/account/wallet?view=history&from=test-product&quantity=3#add-funds");
+  fireEvent.click(addFunds);
+  expect(JSON.parse(sessionStorage.getItem("zero-loss-entry-intent-v1") ?? "null")).toMatchObject({ slug: "test-product", quantity: 3 });
+});
+
+test("saved count is lowered if fewer tickets remain on return", () => {
+  render(<DemoParticipationPanel {...props} sold={18} capacity={20} initialQuantity={5} isSignedIn />);
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
+  expect(screen.getByRole("status").textContent).toContain("saved selection was adjusted");
+});
+
+test("signed-out selected quantity survives login", () => {
+  render(<DemoParticipationPanel {...props} initialQuantity={4} />);
+  const href = screen.getByRole("link", { name: "Sign in to enter" }).getAttribute("href")!;
+  expect(new URL(href, "https://example.test").searchParams.get("next")).toBe("/items/test-product?quantity=4#enter-entry");
+  fireEvent.click(screen.getByRole("link", { name: "Sign in to enter" }));
+  expect(JSON.parse(sessionStorage.getItem("zero-loss-entry-intent-v1") ?? "null")).toMatchObject({ slug: "test-product", quantity: 4 });
 });
 
 test("unavailable inventory offers refresh instead of accepting a purchase against sample counts", () => {

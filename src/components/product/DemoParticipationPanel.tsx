@@ -10,6 +10,7 @@ import { InsufficientBalanceToast } from "@/components/product/InsufficientBalan
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
+import { clearEntryIntent, productEntryHref, saveEntryIntent } from "@/lib/entries/return-intent";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
 
 type Props = {
@@ -21,6 +22,7 @@ type Props = {
   entryPrice: number;
   sold: number;
   capacity: number;
+  initialQuantity?: number;
   availabilityConfirmed?: boolean;
   balanceLabel?: string;
   balanceCents?: number | null;
@@ -38,6 +40,7 @@ export function DemoParticipationPanel({
   entryPrice,
   sold,
   capacity,
+  initialQuantity = 1,
   availabilityConfirmed = true,
   balanceLabel = "Unavailable",
   balanceCents = null,
@@ -46,6 +49,8 @@ export function DemoParticipationPanel({
   extraEntryExplainerAcknowledged = false,
 }: Props) {
   const router = useRouter();
+  const remaining = Math.max(0, capacity - sold);
+  const maxQuantity = Math.min(10, remaining);
   // A lost response must retry the exact intent. Server comparison also protects
   // reloads/new tabs, where this transient form memory has been lost.
   const attemptedForm = useRef<FormData | null>(null);
@@ -55,7 +60,7 @@ export function DemoParticipationPanel({
     try { return await createPreviewEntry(previous, payload); }
     catch { return { status: "error" as const, code: "outcome_unknown" as const, message: "The connection was interrupted. Check the saved submission before starting another entry." }; }
   }, { status: "idle" });
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(() => Math.min(Math.max(1, initialQuantity), Math.max(1, maxQuantity)));
   const [selectedTicketsToast, setSelectedTicketsToast] = useState<number | null>(null);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
   const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
@@ -75,21 +80,21 @@ export function DemoParticipationPanel({
   const entryFormRef = useRef<HTMLFormElement>(null);
   const shareChoiceRef = useRef<HTMLInputElement>(null);
   const shareChoiceConfirmed = useRef(false);
-  const remaining = Math.max(0, capacity - sold);
-  const maxQuantity = Math.min(10, remaining);
   const remainingBalance = Math.max(0, productValue - entryPrice);
   const totalCents = quantity * Math.round(entryPrice * 100);
   const total = totalCents / 100;
   const knownBalance = typeof balanceCents === "number" && Number.isSafeInteger(balanceCents) ? balanceCents : null;
   const serverBalanceError = state.status === "error" && state.code === "insufficient_balance";
   const showBalanceNotice = balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state);
-  const entryLoginHref = `/login?next=${encodeURIComponent(`/items/${productSlug}#enter-entry`)}`;
-  const addFundsHref = fundingHref(productSlug);
+  const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity))}`;
+  const addFundsHref = fundingHref(productSlug, undefined, quantity);
+  const rememberEntry = (selected = quantity) => saveEntryIntent(productSlug, productTitle, selected);
 
   const addNextEntry = () => {
     const next = Math.min(maxQuantity, quantity + 1);
     if (next === quantity) return;
     setQuantity(next);
+    rememberEntry(next);
     setSelectedTicketsToast(next);
   };
 
@@ -138,6 +143,10 @@ export function DemoParticipationPanel({
   }, [state]);
 
   useEffect(() => {
+    if (state.status === "request" || state.status === "succeeded") clearEntryIntent(productSlug);
+  }, [productSlug, state.status]);
+
+  useEffect(() => {
     const receive = (event: Event) => {
       const request = (event as CustomEvent<EntryRequest>).detail;
       if (request.slug !== productSlug) return;
@@ -147,7 +156,7 @@ export function DemoParticipationPanel({
       latestReceipt.current = request;
       receivedRequests.current.set(request.requestId, request.status);
       setRequestReceipt(request);
-      if (request.status === "pending") setQuantity(request.quantity);
+      if (request.status === "pending") { setQuantity(request.quantity); clearEntryIntent(productSlug); }
       if (request.status !== "pending") {
         setSubmissionKey(crypto.randomUUID());
         shareChoiceConfirmed.current = false;
@@ -187,6 +196,8 @@ export function DemoParticipationPanel({
         </div>
       </div> : null}
 
+      {availabilityConfirmed && initialQuantity > maxQuantity && maxQuantity > 0 ? <p role="status" className="mt-3 text-xs font-semibold text-cyan-200">Only {maxQuantity} {maxQuantity === 1 ? "entry remains" : "entries remain"}, so your saved selection was adjusted.</p> : null}
+
       <div className="relative mt-3">
         {selectedTicketsToast !== null ? <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-[calc(100%+8px)] right-0 z-20 w-full max-w-80 rounded-xl border border-[#67ff42]/60 bg-[#083a43] px-4 py-3 text-sm text-white shadow-[0_12px_30px_rgba(0,0,0,.4),0_0_18px_rgba(81,255,59,.22)]">
           <strong className="block text-[#8aff6f]">{selectedTicketsToast} tickets selected</strong>
@@ -195,7 +206,7 @@ export function DemoParticipationPanel({
         <fieldset disabled={uncertain} data-testid="entry-quantity-ticket" className={quantityTicketStyles.ticket}>
           <p className={quantityTicketStyles.label}>How many entries?</p>
           <div className="flex shrink-0 items-center gap-2">
-            <button type="button" onClick={() => { setQuantity((value) => Math.max(1, value - 1)); setSelectedTicketsToast(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
+            <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
             <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
             <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
           </div>
@@ -241,14 +252,14 @@ export function DemoParticipationPanel({
           </button>
         </form>
       ) : (
-        <Link href={entryLoginHref} className="mt-3 grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200">
+        <Link href={entryLoginHref} onClick={() => rememberEntry()} className="mt-3 grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200">
           Sign in to enter
         </Link>
       )}
 
       <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm">
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
-        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
+        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={() => rememberEntry()} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>
 
       {state.status !== "idle" && state.status !== "request" && !serverBalanceError ? (
@@ -258,7 +269,7 @@ export function DemoParticipationPanel({
         </div>
       ) : null}
 
-      {showBalanceNotice ? <InsufficientBalanceToast quantity={quantity} totalCents={totalCents} balanceCents={serverBalanceError ? null : knownBalance} fundingHref={addFundsHref} onClose={() => {
+      {showBalanceNotice ? <InsufficientBalanceToast quantity={quantity} totalCents={totalCents} balanceCents={serverBalanceError ? null : knownBalance} fundingHref={addFundsHref} onAddFunds={() => rememberEntry()} onClose={() => {
         setBalanceNoticeOpen(false);
         setDismissedBalanceError(state);
       }} /> : null}
@@ -306,7 +317,7 @@ export function DemoParticipationPanel({
             ) : (
               <>
                 <p className="text-xs leading-5 text-white/60">Sign in to choose extra entries and save this explanation preference.</p>
-                <Link href={entryLoginHref} className="grid w-full place-items-center rounded-xl bg-[#00b9ff] px-4 py-3.5 font-extrabold text-[#00132e] transition hover:bg-cyan-200">Sign in to add entries</Link>
+                <Link href={entryLoginHref} onClick={() => rememberEntry()} className="grid w-full place-items-center rounded-xl bg-[#00b9ff] px-4 py-3.5 font-extrabold text-[#00132e] transition hover:bg-cyan-200">Sign in to add entries</Link>
               </>
             )}
             </div>

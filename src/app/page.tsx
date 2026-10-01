@@ -9,6 +9,7 @@ import { TransparencyStatsPod } from "@/components/home/TransparencyStatsPod";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { OfferingAvailabilityProvider } from "@/components/home/OfferingAvailabilityProvider";
+import { ContinueEntryBanner } from "@/components/home/ContinueEntryBanner";
 
 /**
  * Homepage composition (spec §4), following the Checkpoint 2 artboards with
@@ -28,6 +29,7 @@ export default async function HomePage() {
       <LivePulseTicker />
 
       <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0 md:pb-4">
+        <ContinueEntryBanner />
         <HeroSection />
         <OfferingAvailabilityProvider snapshot={availability}>
           <DesktopMarketplaceRails />

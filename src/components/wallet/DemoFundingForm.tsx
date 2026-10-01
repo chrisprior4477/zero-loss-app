@@ -8,7 +8,9 @@ import { saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken } from "@/lib/payments/demo-card";
 import styles from "./wallet-overview.module.css";
 
-function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false }: { requestKey: string; blocked: boolean; onNew: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean }) {
+type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" };
+
+function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; onNew: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
   const [state, action, pending] = useActionState(completeDemoFunding, { status: "idle" });
   const [amount, setAmount] = useState(initialAmount);
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
@@ -62,7 +64,7 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
       try { sessionStorage.removeItem(storageKey); } catch { /* DB recovery remains available. */ }
     }
   }, [state, storageKey]);
-  if (state.status === "succeeded") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div>;
+  if (state.status === "succeeded") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo ? <Link href={continueTo.href} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
   return <form action={action} onSubmit={() => {
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
     try { sessionStorage.setItem(storageKey, JSON.stringify({ key: requestKey, amount,
@@ -124,7 +126,7 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
   </form>;
 }
 
-export function DemoFundingForm({ requestKey, blocked, walletId = "test", savedCard = null, savedCards, cardUnavailable = false }: { requestKey: string; blocked: boolean; walletId?: string; savedCard?: DemoCard | null; savedCards?: DemoCard[]; cardUnavailable?: boolean }) {
+export function DemoFundingForm({ requestKey, blocked, walletId = "test", savedCard = null, savedCards, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; walletId?: string; savedCard?: DemoCard | null; savedCards?: DemoCard[]; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
   const storageKey = `zero-loss-demo-request:${walletId}`;
   const [attempt, setAttempt] = useState<{ key: string; amount: string; recovered: boolean; ready: boolean; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean }>({ key: requestKey, amount: "2500", recovered: false, ready: false });
   useEffect(() => {
@@ -145,7 +147,7 @@ export function DemoFundingForm({ requestKey, blocked, walletId = "test", savedC
   }, [storageKey]);
   return <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
     savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly} cardUnavailable={cardUnavailable}
-    blocked={!attempt.ready || blocked} onNew={() => setAttempt({ key: crypto.randomUUID(), amount: "2500", recovered: false, ready: true })} />;
+    blocked={!attempt.ready || blocked} continueTo={continueTo} onNew={() => setAttempt({ key: crypto.randomUUID(), amount: "2500", recovered: false, ready: true })} />;
 }
 
 function CheckFundingRequest({ id }: { id: string }) {

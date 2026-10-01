@@ -36,3 +36,11 @@ test("page builders forward only approved selectors and reject ambiguous selecto
   expect(accountPageReturnPath("/account/wallet", { reward: "samsung-m70h-tv", rewardId: [id, id] })).toBe("/account/wallet");
   expect(accountPageReturnPath("/account/wallet", { reward: "samsung-m70h-tv", rewardId: "bad" })).toBe("/account/wallet");
 });
+test("ticket count is carried only with a specific funding return", () => {
+  const destination = "/account/wallet?view=history&from=samsung-m70h-tv&quantity=4#add-funds";
+  expect(signInReturnPath(destination)).toBe(destination);
+  expect(accountPageReturnPath("/account/wallet", { view: "history", from: "samsung-m70h-tv", quantity: "4" }, "#add-funds")).toBe(destination);
+  for (const invalid of ["/account/wallet?quantity=4", "/account/wallet?from=samsung-m70h-tv&quantity=4", "/account/wallet?view=history&from=samsung-m70h-tv&quantity=11", "/account/wallet?view=history&from=samsung-m70h-tv&entry=ent_11111111111111111111111111111111&quantity=4"]) {
+    expect(signInReturnPath(invalid)).toBeNull();
+  }
+});

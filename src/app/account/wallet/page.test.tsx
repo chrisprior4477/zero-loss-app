@@ -57,6 +57,20 @@ test("an expired session keeps the funding destination and catalog prize through
   expect(destination.hash).toBe("#login-form");
 });
 
+test("funding preserves the selected count through login and back to the product", async () => {
+  mocks.getAccountContext.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(WalletPage({ searchParams: Promise.resolve({ view: "history", from: "samsung-m70h-tv", quantity: "4" }) })).rejects.toThrow("NEXT_REDIRECT");
+  expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe("/account/wallet?view=history&from=samsung-m70h-tv&quantity=4#add-funds");
+  mocks.redirect.mockReset();
+  mocks.getAccountContext.mockResolvedValue({
+    activity: { source: "customer-empty", isPreview: false, activity: [], activeCount: 0 },
+    wallet: null, fundingEnabled: false,
+  });
+  render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: "samsung-m70h-tv", quantity: "4" }) }));
+  expect(screen.getByRole("link", { name: "Back to this prize" }).getAttribute("href")).toBe("/items/samsung-m70h-tv?quantity=4#enter-entry");
+});
+
 test.each(["expired", "cancelled", "redeemed", "issuance_pending", "issuance_failed"])("%s never requests a saved code", async rewardStatus => {
   mocks.getAccountContext.mockResolvedValue({ activity: { source: "stored", isPreview: true, activity: [{
     slug: "test-reward", title: "Test", retailer: "Test retailer", image: "/test.png", priceCents: 2500,

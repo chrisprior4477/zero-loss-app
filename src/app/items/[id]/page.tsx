@@ -8,8 +8,9 @@ import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { getAccountContext } from "@/lib/account/context";
 import { randomUUID } from "node:crypto";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { parseEntryQuantity } from "@/lib/entries/return-intent";
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ quantity?: string | string[] }> };
 
 export function generateStaticParams() {
   return demoProducts.map((product) => ({ id: product.slug }));
@@ -22,8 +23,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: product.title, description: product.summary };
 }
 
-export default async function ItemPage({ params }: PageProps) {
+export default async function ItemPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const requestedQuantity = parseEntryQuantity((await searchParams).quantity) ?? 1;
   const product = getDemoProduct(id);
   if (!product) notFound();
   const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
@@ -73,7 +75,7 @@ export default async function ItemPage({ params }: PageProps) {
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">{product.category}</p>
             <h1 className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">{product.title}</h1>
             <GiftCardFulfillmentNotice productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
-            <DemoParticipationPanel productSlug={product.slug} requestKey={randomUUID()} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isSignedIn={Boolean(account)} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} />
+            <DemoParticipationPanel key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} requestKey={randomUUID()} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isSignedIn={Boolean(account)} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} />
             <details className="mt-4 rounded-2xl border border-white/15 bg-white/5 p-4 open:border-cyan-300/35">
               <summary className="cursor-pointer font-bold text-white">Prefer to enter without a purchase?</summary>
               <p className="mt-3 text-sm leading-6 text-white/65">No purchase is necessary. Review the proposed mail-in alternative method of entry and printable postcard insert. The prototype does not create an entry.</p>

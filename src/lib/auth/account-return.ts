@@ -7,7 +7,7 @@ const matches = (pattern: RegExp) => (value: string) => pattern.test(value);
 const routes: Record<string, { query: Record<string, (value: string) => boolean>; hash?: RegExp }> = {
   "/contact": { query: {}, hash: /^#message$/ },
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), filter: oneOf("all", "active", "prize", "completion", "completed") } },
-  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), entry: matches(/^ent_[a-f0-9]{32}$/i), transaction: matches(uuid) }, hash: /^#(?:add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
+  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: matches(/^(?:[1-9]|10)$/), transaction: matches(uuid) }, hash: /^#(?:add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
   "/account/crew": { query: { member: matches(uuid), tab: oneOf("crew", "requests", "picks"), request: matches(uuid), invite: matches(uuid) }, hash: /^#(?:sharing|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {} },
   "/account/notifications": { query: {} },
@@ -31,6 +31,8 @@ export function accountReturnPath(value: unknown): string | null {
     if (seen.has(key) || !Object.hasOwn(route.query, key) || !route.query[key](entry)) return null;
     seen.add(key);
   }
+  if (url.pathname === "/account/wallet" && url.searchParams.has("quantity") &&
+    (url.searchParams.get("view") !== "history" || !url.searchParams.has("from") || url.searchParams.has("entry"))) return null;
   return value;
 }
 
