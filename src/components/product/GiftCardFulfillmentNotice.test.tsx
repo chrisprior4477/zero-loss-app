@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test } from "vitest";
 import { demoProducts } from "@/lib/catalog/demo-products";
@@ -9,7 +9,10 @@ afterEach(cleanup);
 test("describes the retailer card instead of direct product delivery", () => {
   render(<GiftCardFulfillmentNotice productTitle={'Samsung 50" M70H Mini LED 4K Smart TV'} retailer="Best Buy" value={400} isGiftCardOffering={false} />);
 
-  expect(screen.getByText(/\$400 Best Buy digital gift card/)).toBeTruthy();
+  const disclosure = screen.getByText(/\$400 Best Buy digital gift card/).closest("details");
+  expect(disclosure?.open).toBe(false);
+  fireEvent.click(screen.getByText(/\$400 Best Buy digital gift card/).closest("summary")!);
+  expect(disclosure?.open).toBe(true);
   expect(screen.getByText(/Zero Loss does not ship the Samsung 50" M70H Mini LED 4K Smart TV/)).toBeTruthy();
   expect(screen.getByRole("link", { name: "Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet");
   expect(screen.getByText(/online or in store where accepted/)).toBeTruthy();
@@ -36,7 +39,7 @@ test("every catalog product and category gets its own retailer and value", () =>
       />,
     );
     const page = new DOMParser().parseFromString(html, "text/html");
-    expect(page.querySelector("mark")?.textContent, product.slug).toBe(`$${product.value.toLocaleString()} ${product.retailer} digital gift card`);
+    expect(page.querySelector("summary strong")?.textContent, product.slug).toBe(`$${product.value.toLocaleString()} ${product.retailer} digital gift card`);
     expect(page.querySelector('a[href="/account/wallet"]')?.textContent, product.slug).toBe("Gift Cards & Rewards");
   }
 });

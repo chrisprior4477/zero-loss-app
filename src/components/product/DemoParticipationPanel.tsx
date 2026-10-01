@@ -154,47 +154,47 @@ export function DemoParticipationPanel({
   };
 
   return (
-    <aside id="enter-entry" className="scroll-mt-[180px] rounded-3xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-7 md:scroll-mt-32">
-      <div className="flex items-end justify-between gap-4">
+    <aside id="enter-entry" className="mt-3 scroll-mt-[180px] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.13em] text-cyan-300">Entry price</p>
-          <p className="mt-1 text-4xl font-extrabold">${entryPrice.toFixed(2)}</p>
+          <p className="text-3xl font-extrabold leading-none">${entryPrice.toFixed(2)} <span className="text-sm font-bold text-white/80">per entry</span></p>
         </div>
-        <span className="rounded-full bg-[#ff630f] px-3 py-1.5 text-xs font-extrabold text-black">Ending soon</span>
+        <span className="rounded-full bg-[#ff630f] px-2.5 py-1 text-right text-xs font-extrabold leading-4 text-black">
+          Ending soon{availabilityConfirmed ? <><br />{remaining.toLocaleString()} left</> : null}
+        </span>
       </div>
 
-      <div className="mt-4 sm:mt-8">
-        <PoolProgress ticketsSold={sold} ticketCapacity={capacity} />
-        <div className="mt-3 flex justify-between text-xs text-white/65">
+      {availabilityConfirmed ? <div className="mt-3">
+        <PoolProgress ticketsSold={sold} ticketCapacity={capacity} showRemainingLabel={false} />
+        <div className="mt-1 flex justify-between text-xs text-white/60">
           <span>{sold.toLocaleString()} entries</span>
           <span>{remaining.toLocaleString()} remaining</span>
         </div>
-      </div>
+      </div> : null}
 
-      <fieldset disabled={uncertain} className="mt-4 flex items-center justify-between rounded-2xl bg-white/7 p-3 sm:mt-7">
+      <fieldset disabled={uncertain} className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-white/7 px-3 py-2">
         <div>
-          <p className="text-xs text-white/60">Your entries</p>
-          <p className="mt-0.5 font-bold" aria-live="polite">${total.toFixed(2)} total</p>
+          <p className="text-sm font-bold">How many entries?</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-white/20 text-xl transition hover:border-cyan-300 hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
           <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
           <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup="dialog">+</button>
         </div>
       </fieldset>
-      <p className="mt-2 text-[11px] leading-5 text-white/55">Each entry is separate. Entry amounts and completion options never combine.</p>
-      {requestReceipt && requestReceipt.status !== "pending" ? <div className="mt-3 rounded-xl border border-cyan-300/35 bg-[#062b4d] p-3 text-sm" role="status">
-        <p>{requestReceipt.status === "accepted" ? `Your previous submission of ${requestReceipt.quantity} ${requestReceipt.quantity === 1 ? "ticket is" : "tickets are"} saved. Entering again creates a separate submission.` : "Your previous submission was not entered. You can start a new submission below."}</p>
-        {requestReceipt.href ? <Link href={requestReceipt.href} className="mt-2 inline-block font-bold text-cyan-300 underline">View previous submission →</Link> : null}
+      <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine. Terms apply.</p>
+      {requestReceipt && requestReceipt.status !== "pending" ? <div className="mt-2 flex flex-wrap items-baseline gap-x-2 rounded-lg bg-[#062b4d] px-3 py-2 text-xs leading-4" role="status">
+        <p>{requestReceipt.status === "accepted" ? `Previous ${requestReceipt.quantity}-ticket submission saved. A new entry is separate.` : "Your previous submission was not entered. You can start a new submission below."}</p>
+        {requestReceipt.href ? <Link href={requestReceipt.href} className="font-bold text-cyan-300 underline">View previous submission →</Link> : null}
       </div> : null}
 
       {!availabilityConfirmed ? (
-        <div role="status" className="mt-4 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-4 text-sm">
+        <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm">
           <p>We couldn’t refresh availability. Your balance has not been charged.</p>
           <button type="button" onClick={() => router.refresh()} className="mt-3 min-h-11 rounded-lg bg-[#00b9ff] px-4 py-2 font-bold text-[#00132e]">Refresh availability</button>
         </div>
       ) : remaining === 0 ? (
-        <button type="button" disabled className="mt-4 w-full rounded-xl bg-[#0b668b] px-5 py-3.5 text-base font-extrabold text-white/60">No entries remaining</button>
+        <button type="button" disabled className="mt-3 w-full rounded-xl bg-[#0b668b] px-5 py-3 text-base font-extrabold text-white/60">No entries remaining</button>
       ) : isSignedIn ? (
         <form ref={entryFormRef} action={action} onSubmit={(event) => {
           if (entryBusy) { event.preventDefault(); return; }
@@ -216,23 +216,19 @@ export function DemoParticipationPanel({
           <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? "" : ""} />
           <input type="hidden" name="quantity" value={quantity} />
           <input ref={shareChoiceRef} type="hidden" name="shareWithCrew" value="no" />
-          <button type="submit" disabled={entryBusy} className="mt-4 w-full rounded-xl bg-[#00b9ff] px-5 py-3.5 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">
+          <button type="submit" disabled={entryBusy} className="mt-3 min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">
             {pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}
           </button>
         </form>
       ) : (
-        <Link href={entryLoginHref} className="mt-4 grid w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3.5 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200">
+        <Link href={entryLoginHref} className="mt-3 grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200">
           Sign in to enter
         </Link>
       )}
 
-      <div className="mt-4 flex items-center justify-between rounded-xl border border-white/10 px-4 py-3 text-sm">
+      <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm">
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
         <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
-      </div>
-
-      <div className="mt-5 rounded-xl border border-[#31e800]/30 bg-[#31e800]/8 p-4 text-sm leading-6 text-white/85">
-        <strong className="text-[#67ff42]">Each ${entryPrice.toFixed(2)} still counts.</strong> If an entry is not selected, its payment remains attached to this exact {retailer} offering as its own completion option, subject to the published terms.
       </div>
 
       {state.status !== "idle" && state.status !== "request" && !serverBalanceError ? (

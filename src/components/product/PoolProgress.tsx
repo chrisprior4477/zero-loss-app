@@ -14,6 +14,7 @@
 type PoolProgressProps = {
   ticketsSold: number;
   ticketCapacity: number;
+  showRemainingLabel?: boolean;
 };
 
 const URGENT_THRESHOLD = 85;
@@ -21,6 +22,7 @@ const URGENT_THRESHOLD = 85;
 export function PoolProgress({
   ticketsSold,
   ticketCapacity,
+  showRemainingLabel = true,
 }: PoolProgressProps) {
   const safeCapacity = Math.max(1, ticketCapacity);
   const clampedSold = Math.min(Math.max(0, ticketsSold), safeCapacity);
@@ -30,7 +32,7 @@ export function PoolProgress({
 
   return (
     <div className="relative">
-      <div
+      {showRemainingLabel ? <div
         className="absolute bottom-full right-0 mb-1 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold leading-none tracking-[0.04em]"
         style={{
           background: isUrgent ? "var(--urgent)" : "var(--accent-deep)",
@@ -39,7 +41,7 @@ export function PoolProgress({
         }}
       >
         {remaining.toLocaleString()} left
-      </div>
+      </div> : null}
 
       <div
         role="progressbar"
