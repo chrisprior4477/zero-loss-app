@@ -40,6 +40,7 @@ export const footerLinkGroups: {
   {
     title: "Legal",
     links: [
+      { href: "/legal", label: "Legal Center" },
       { href: "/terms", label: "Terms of Service" },
       { href: "/privacy", label: "Privacy Policy" },
       { href: "/responsible-participation", label: "Responsible Play" },

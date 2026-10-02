@@ -47,4 +47,6 @@ test("marketplace and informational routes have a route back home", () => {
     { label: "Playstation 5 Slim" },
   ]);
   expect(trail("/contact/product-request").at(-1)).toEqual({ label: "Suggest a Product" });
+  expect(trail("/legal").at(-1)).toEqual({ label: "Legal and Safety" });
+  expect(trail("/responsible-participation").at(-1)).toEqual({ label: "Responsible Play" });
 });
