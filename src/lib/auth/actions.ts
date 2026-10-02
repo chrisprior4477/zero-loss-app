@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { signInReturnPath, signupVerificationPath } from "@/lib/auth/entry-return";
+import { entryReturnPath, productReturnFromReferer, signInReturnPath, signupVerificationPath } from "@/lib/auth/entry-return";
 import { passwordUpdateErrorMessage } from "@/lib/auth/password-update-error";
 import {
   isAtLeastAge,
@@ -428,10 +428,13 @@ export async function changeAccountPasswordAction(
   return { status: "updated", message: "Your password has been changed. You can keep using your account." };
 }
 
-export async function signOutAction(): Promise<void> {
+export async function signOutAction(formData: FormData): Promise<void> {
+  const submittedReturn = entryReturnPath(formData.get("returnTo"));
+  const requestHeaders = submittedReturn ? null : await headers();
+  const returnTo = submittedReturn ?? productReturnFromReferer(requestHeaders?.get("referer"), requestHeaders?.get("host"));
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/");
+  redirect(returnTo ?? "/");
 }
 
 export type SignOutEverywhereState = { status: "idle" | "error"; message: string | null };

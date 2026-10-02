@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { signOutAction } from "@/lib/auth/actions";
+import { SignOutForm } from "@/components/auth/SignOutForm";
 
 type HeaderAuthControlsProps = {
   firstName: string | null;
@@ -17,11 +17,11 @@ export function HeaderAuthControls({ firstName }: HeaderAuthControlsProps) {
         <Link href="/account/entries" className={secondaryClass}>
           Account
         </Link>
-        <form action={signOutAction}>
+        <SignOutForm>
           <button type="submit" className={secondaryClass}>
             Sign out
           </button>
-        </form>
+        </SignOutForm>
       </div>
     );
   }

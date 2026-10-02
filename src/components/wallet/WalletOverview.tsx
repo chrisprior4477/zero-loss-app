@@ -86,7 +86,7 @@ export function WalletOverview({ wallet, ledgerEntries, activity, selectedTransa
         {returnToProduct ? <div className={styles.fundingReturn}><p>{returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}
         {returnUnavailable ? <p role="status" className={styles.fundingReturn}>We couldn’t find that purchase option in your account. <Link href="/account/entries?filter=completion">View your purchase options →</Link></p> : null}
         {canFund ? <DemoFundingForm requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} blocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
-        {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} /> : null}
+        {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} continueTo={returnToProduct} /> : null}
       </section>
     </div>
   </main>;

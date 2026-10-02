@@ -15,6 +15,15 @@ export function productEntryHref(slug: string, quantity = 1): string {
   return `/items/${slug}${selected > 1 ? `?quantity=${selected}` : ""}#enter-entry`;
 }
 
+/** Keep a shopper on the same prize when they sign out from its page. */
+export function currentProductEntryHref(pathname: string, search: string, intent: EntryIntent | null): string | null {
+  const match = /^\/items\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(pathname);
+  if (!match) return null;
+  const slug = match[1];
+  const queryQuantity = parseEntryQuantity(new URLSearchParams(search).get("quantity")) ?? 1;
+  return productEntryHref(slug, intent?.slug === slug ? intent.quantity : queryQuantity);
+}
+
 function validIntent(value: unknown): value is EntryIntent {
   if (!value || typeof value !== "object") return false;
   const intent = value as Partial<EntryIntent>;

@@ -1,4 +1,5 @@
 import { fundingReturnPath } from "@/lib/wallet/funding-navigation";
+import { currentProductEntryHref } from "@/lib/entries/return-intent";
 import { accountReturnPath } from "./account-return";
 
 /** Only allow a sign-in return to a product's entry section on this site. */
@@ -7,6 +8,17 @@ export function entryReturnPath(value: unknown): string | null {
   return /^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?quantity=(?:[1-9]|10))?#enter-entry$/.test(value)
     ? value
     : null;
+}
+
+/** Referrer is only a fallback when a sign-out form could not send its return path. */
+export function productReturnFromReferer(referer: unknown, requestHost: unknown): string | null {
+  if (typeof referer !== "string" || typeof requestHost !== "string") return null;
+  try {
+    const url = new URL(referer);
+    return url.host === requestHost ? currentProductEntryHref(url.pathname, url.search, null) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Resume only known in-site destinations, never an arbitrary redirect URL. */

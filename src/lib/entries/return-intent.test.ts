@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { clearEntryIntent, parseEntryQuantity, productEntryHref, readEntryIntent, saveEntryIntent } from "./return-intent";
+import { clearEntryIntent, currentProductEntryHref, parseEntryQuantity, productEntryHref, readEntryIntent, saveEntryIntent } from "./return-intent";
 
 afterEach(() => { sessionStorage.clear(); vi.restoreAllMocks(); });
 
@@ -12,6 +12,14 @@ test("a product return carries only a bounded ticket count to the entry section"
   expect(parseEntryQuantity("0")).toBeNull();
   expect(parseEntryQuantity("11")).toBeNull();
   expect(parseEntryQuantity(["2", "3"])).toBeNull();
+});
+
+test("signing out on a product keeps that product and its selected quantity", () => {
+  const intent = { slug: "dyson-v8-cordless-vacuum", title: "Dyson vacuum", quantity: 4, savedAt: Date.now() };
+  expect(currentProductEntryHref("/items/dyson-v8-cordless-vacuum", "", intent)).toBe("/items/dyson-v8-cordless-vacuum?quantity=4#enter-entry");
+  expect(currentProductEntryHref("/items/dyson-v8-cordless-vacuum", "?quantity=3", null)).toBe("/items/dyson-v8-cordless-vacuum?quantity=3#enter-entry");
+  expect(currentProductEntryHref("/items/another-prize", "", intent)).toBe("/items/another-prize#enter-entry");
+  expect(currentProductEntryHref("/account/entries", "", intent)).toBeNull();
 });
 
 test("the homepage hint remembers only a recent, valid navigation intent", () => {

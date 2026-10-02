@@ -1,6 +1,7 @@
 "use client";
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { completeDemoFunding, reconcileDemoFunding } from "@/lib/payments/actions";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -11,6 +12,7 @@ import styles from "./wallet-overview.module.css";
 type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" };
 
 function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; onNew: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(completeDemoFunding, { status: "idle" });
   const [amount, setAmount] = useState(initialAmount);
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
@@ -64,6 +66,9 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
       try { sessionStorage.removeItem(storageKey); } catch { /* DB recovery remains available. */ }
     }
   }, [state, storageKey]);
+  useEffect(() => {
+    if (state.status === "succeeded" && continueTo?.href) router.replace(continueTo.href);
+  }, [state.status, continueTo?.href, router]);
   if (state.status === "succeeded") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo ? <Link href={continueTo.href} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
   return <form action={action} onSubmit={() => {
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
@@ -150,8 +155,12 @@ export function DemoFundingForm({ requestKey, blocked, walletId = "test", savedC
     blocked={!attempt.ready || blocked} continueTo={continueTo} onNew={() => setAttempt({ key: crypto.randomUUID(), amount: "2500", recovered: false, ready: true })} />;
 }
 
-function CheckFundingRequest({ id }: { id: string }) {
+function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: ContinueDestination }) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(reconcileDemoFunding, { status: "idle" });
+  useEffect(() => {
+    if (state.status === "succeeded" && continueTo?.href) router.replace(continueTo.href);
+  }, [state.status, continueTo?.href, router]);
   return <form action={action} className="mt-2">
     <input type="hidden" name="sessionId" value={id} />
     <button disabled={pending} className="min-h-11 rounded-lg border border-cyan-300/30 px-3 text-sm font-bold text-cyan-300 disabled:opacity-60">{pending ? "Checking…" : "Finish / check"}</button>
@@ -159,7 +168,7 @@ function CheckFundingRequest({ id }: { id: string }) {
   </form>;
 }
 
-export function DemoFundingRequests({ requests, fundingEnabled }: { requests: DemoFundingRequest[] | null; fundingEnabled: boolean }) {
+export function DemoFundingRequests({ requests, fundingEnabled, continueTo }: { requests: DemoFundingRequest[] | null; fundingEnabled: boolean; continueTo?: ContinueDestination }) {
   const [showAll, setShowAll] = useState(false);
   return <section className={styles.fundingRequests} aria-label="Payment deposits"><h2 className="text-xl font-bold text-white">Payment deposits</h2>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
@@ -168,7 +177,7 @@ export function DemoFundingRequests({ requests, fundingEnabled }: { requests: De
       : <><ul className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]">{(showAll ? requests : requests.slice(0, 5)).map(request => <li key={request.id} className="p-4">
         <p className="flex flex-wrap justify-between gap-2 text-sm font-bold text-white"><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         <p className="mt-2 break-all text-[10px] text-[#b5cce4]">Request {request.id}</p>
-        {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it.</p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} /> : null}
+        {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it.</p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} continueTo={continueTo} /> : null}
       </li>)}</ul>{requests.length > 5 ? <button type="button" className={styles.showAllTicket} onClick={() => setShowAll(value => !value)} aria-expanded={showAll}>{showAll ? "Show just the first five payment deposits" : `See all ${requests.length} payment deposits`}<span aria-hidden="true">→</span></button> : null}</>}
   </section>;
 }

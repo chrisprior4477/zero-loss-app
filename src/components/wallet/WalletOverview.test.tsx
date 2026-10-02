@@ -1,5 +1,6 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { WalletOverview } from "./WalletOverview";

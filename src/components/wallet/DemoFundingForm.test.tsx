@@ -1,7 +1,9 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn() }));
-import { completeDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
+import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 test("deposit confirmation stays on the page and asks for amount approval and password", () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
@@ -23,7 +25,7 @@ test("deposit confirmation stays on the page and asks for amount approval and pa
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
   expect(sessionStorage.length).toBe(0);
 });
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); });
 test("a rejected password clears the recovery marker and can be corrected", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
@@ -36,7 +38,7 @@ test("a rejected password clears the recovery marker and can be corrected", asyn
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Try password again" })).toBeTruthy());
-  expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull();
+  await waitFor(() => expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull());
   expect(vi.mocked(completeDemoFunding).mock.calls[0]?.[1].get("password")).toBe("wrong-password");
   fireEvent.click(screen.getByRole("button", { name: "Try password again" }));
   fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "correct-password" } });
@@ -45,7 +47,7 @@ test("a rejected password clears the recovery marker and can be corrected", asyn
   await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
   expect(vi.mocked(completeDemoFunding).mock.calls[1]?.[1].get("password")).toBe("correct-password");
 });
-test("successful funding offers an explicit return to the selected product", async () => {
+test("successful funding automatically returns to the selected product and quantity", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
   render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv?quantity=4#enter-entry" }} />);
@@ -54,6 +56,7 @@ test("successful funding offers an explicit return to the selected product", asy
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
+  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=4#enter-entry"));
   expect(screen.getByRole("link", { name: "Continue your entry" }).getAttribute("href")).toBe("/items/samsung-m70h-tv?quantity=4#enter-entry");
   expect(screen.getByRole("button", { name: "Add more funds" })).toBeTruthy();
 });
@@ -68,6 +71,16 @@ test("an uncertain payment keeps its recovery marker and request key", async () 
   await waitFor(() => expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy());
   expect(JSON.parse(sessionStorage.getItem("zero-loss-demo-request:wallet-a") ?? "null")).toMatchObject({ key: "stable_demo_request_001", amount: "2500" });
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("stable_demo_request_001");
+  expect(navigation.replace).not.toHaveBeenCalled();
+});
+
+test("a reconciled deposit also returns to the selected product", async () => {
+  vi.mocked(reconcileDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Credit confirmed." });
+  render(<DemoFundingRequests fundingEnabled continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv#enter-entry" }} requests={[
+    { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", reconciliation: "credit_pending" },
+  ]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Finish / check" }));
+  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv#enter-entry"));
 });
 test("form submits cents, USD and a stable request key", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);

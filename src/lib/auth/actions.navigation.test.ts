@@ -1,9 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ createClient: vi.fn(), redirect: vi.fn() }));
+const mocks = vi.hoisted(() => ({ createClient: vi.fn(), redirect: vi.fn(), headers: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-import { signInAction } from "./actions";
+vi.mock("next/headers", () => ({ headers: mocks.headers }));
+import { signInAction, signOutAction } from "./actions";
 
 afterEach(() => vi.clearAllMocks());
 
@@ -25,4 +26,26 @@ test.each([
   form.set("returnTo", returnTo);
   await expect(signInAction({ ok: false, message: null }, form)).rejects.toThrow("NEXT_REDIRECT");
   expect(mocks.redirect).toHaveBeenCalledWith(expected);
+});
+
+test("sign-out keeps the selected product available without keeping the session", async () => {
+  const signOut = vi.fn().mockResolvedValue({ error: null });
+  mocks.createClient.mockResolvedValue({ auth: { signOut } });
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  const form = new FormData();
+  form.set("returnTo", "/items/dyson-v8-cordless-vacuum?quantity=4#enter-entry");
+  await expect(signOutAction(form)).rejects.toThrow("NEXT_REDIRECT");
+  expect(signOut).toHaveBeenCalledOnce();
+  expect(mocks.redirect).toHaveBeenCalledWith("/items/dyson-v8-cordless-vacuum?quantity=4#enter-entry");
+});
+
+test("sign-out ignores an unsafe return and falls back to the current product", async () => {
+  const signOut = vi.fn().mockResolvedValue({ error: null });
+  mocks.createClient.mockResolvedValue({ auth: { signOut } });
+  mocks.headers.mockResolvedValue(new Headers({ host: "preview.example", referer: "https://preview.example/items/samsung-m70h-tv?quantity=2" }));
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  const form = new FormData();
+  form.set("returnTo", "https://evil.example");
+  await expect(signOutAction(form)).rejects.toThrow("NEXT_REDIRECT");
+  expect(mocks.redirect).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=2#enter-entry");
 });

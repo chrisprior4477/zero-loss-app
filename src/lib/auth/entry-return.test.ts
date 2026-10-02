@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { entryReturnPath, signInReturnPath } from "./entry-return";
+import { entryReturnPath, productReturnFromReferer, signInReturnPath } from "./entry-return";
 
 test("keeps a product entry destination after sign-in", () => {
   expect(entryReturnPath("/items/playstation-5-slim#enter-entry")).toBe(
@@ -25,4 +25,11 @@ test("rejects external or unrelated sign-in destinations", () => {
   for (const value of ["/items/thing?quantity=0#enter-entry", "/items/thing?quantity=11#enter-entry", "/items/thing?quantity=2&next=https://evil.test#enter-entry", "/items/thing?quantity=2&quantity=3#enter-entry"]) {
     expect(entryReturnPath(value)).toBeNull();
   }
+});
+
+test("sign-out referrer fallback can only return to a same-host product", () => {
+  expect(productReturnFromReferer("https://preview.example/items/dyson-v8-cordless-vacuum?quantity=5", "preview.example"))
+    .toBe("/items/dyson-v8-cordless-vacuum?quantity=5#enter-entry");
+  expect(productReturnFromReferer("https://evil.example/items/dyson-v8-cordless-vacuum", "preview.example")).toBeNull();
+  expect(productReturnFromReferer("https://preview.example/account/security", "preview.example")).toBeNull();
 });

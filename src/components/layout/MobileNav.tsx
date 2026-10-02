@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
 import { MainNav } from "@/components/layout/MainNav";
 import { WalletBalanceDisplay } from "@/components/layout/WalletBalanceDisplay";
-import { signOutAction } from "@/lib/auth/actions";
+import { SignOutForm } from "@/components/auth/SignOutForm";
 import { walletHistoryHref } from "@/lib/account/activity";
 
 type MobileNavProps = {
@@ -149,14 +149,14 @@ export function MobileNav({ isSignedIn, balanceLabel }: MobileNavProps) {
                     </Link>
                   </li>
                   <li>
-                    <form action={signOutAction}>
+                    <SignOutForm>
                       <button
                         type="submit"
                         className={`${linkClassName} w-full cursor-pointer touch-manipulation text-left`}
                       >
                         Sign out
                       </button>
-                    </form>
+                    </SignOutForm>
                   </li>
                 </ul>
               ) : (
