@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ account: vi.fn(), from: vi.fn(), redirect: vi.fn() }));
+const mocks = vi.hoisted(() => ({ account: vi.fn(), from: vi.fn(), rpc: vi.fn(), redirect: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: mocks.from }) }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: mocks.from, rpc: mocks.rpc }) }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/components/account/NotificationsCenter", () => ({ NotificationsCenter: () => null }));
 import NotificationsPage from "./page";
@@ -16,6 +16,7 @@ function query(data: unknown, error: unknown = null) {
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.account.mockResolvedValue({ userId: "owner", emailConfirmed: true, wallet: null, activity: { source: "customer-empty", activity: [] } });
+  mocks.rpc.mockResolvedValue({ data: true, error: null });
 });
 test("signed-out visitors return to Notifications after login", async () => {
   mocks.account.mockResolvedValue(null);
@@ -30,10 +31,12 @@ test("Crew, support and persisted read receipts are scoped to the signed-in owne
   const reads = query([{ notification_id: `crew-${id}` }]);
   mocks.from.mockImplementation(table => ({ crew_invitations: crew, support_cases: support, customer_notification_reads: reads })[table as string]);
   const page = await NotificationsPage();
-  const center = page.props.children[1] as ReactElement<{ notifications: AccountNotification[]; initialReadIds: string[]; readAvailable: boolean }>;
+  const center = page.props.children[1] as ReactElement<{ notifications: AccountNotification[]; initialReadIds: string[]; readAvailable: boolean; outcomeEmailEnabled: boolean | null }>;
   expect(center.props.notifications.find(item => item.crewRequestId === id)?.href).toBe(`/account/crew?tab=requests&request=${id}#crew-request-${id}`);
   expect(center.props.notifications.find(item => item.id.startsWith("support-"))?.href).toBe(`/support?case=${id}#conversation`);
   expect(center.props.initialReadIds).toEqual([`crew-${id}`]);
+  expect(center.props.outcomeEmailEnabled).toBe(true);
+  expect(mocks.rpc).toHaveBeenCalledWith("get_entry_outcome_email_enabled");
   expect(crew.eq).toHaveBeenCalledWith("recipient_id", "owner");
   expect(crew.eq).toHaveBeenCalledWith("status", "pending");
   expect(support.eq).toHaveBeenCalledWith("customer_id", "owner");

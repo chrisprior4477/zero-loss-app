@@ -14,7 +14,8 @@ export async function saveEntryOutcomeEmailPreference(_previous: EntryOutcomeEma
     const { error } = await db.rpc("set_entry_outcome_email_enabled", { p_enabled: enabled });
     if (error) return { status: "error", message: "We couldn't save your email preference. Try again later." };
     revalidatePath("/account/entries");
-    return { status: "succeeded", message: "Preference saved. Check Notifications for outcomes while preview email delivery is unavailable." };
+    revalidatePath("/account/notifications");
+    return { status: "succeeded", message: "Email preference saved. You can change it here any time." };
   } catch {
     return { status: "error", message: "We couldn't confirm this change. Refresh the page before trying again." };
   }

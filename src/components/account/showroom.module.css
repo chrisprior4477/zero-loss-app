@@ -183,6 +183,7 @@
 .offerMetrics > p { margin-top: 7px; color: #516b88; font-size: 12px; font-variant-numeric: tabular-nums; }
 .detailDialog[data-status="active"] .detailCopy a { color: #087fbc; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
 .outcomeEmail { margin-top: 16px; padding: clamp(20px, 3vw, 30px); }
+.outcomeEmail[data-placement="account"] { margin: 0 0 24px; border: 1px solid #a7d8ee; border-radius: 16px; background: #fffdfa; scroll-margin-top: 24px; }
 .outcomeEmail h3 { color: #101b4e; font-size: 20px; font-weight: 800; }
 .outcomeEmail > p { margin-top: 8px; color: #516b88; font-size: 14px; line-height: 1.5; }
 .outcomeEmail form { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; }

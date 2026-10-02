@@ -19,6 +19,7 @@ test.each([[true, "true"], [false, null]])("saves the account-wide email prefere
   expect(result.status).toBe("succeeded");
   expect(mocks.rpc).toHaveBeenCalledWith("set_entry_outcome_email_enabled", { p_enabled: enabled });
   expect(mocks.revalidate).toHaveBeenCalledWith("/account/entries");
+  expect(mocks.revalidate).toHaveBeenCalledWith("/account/notifications");
 });
 
 test("does not write if the session expired", async () => {

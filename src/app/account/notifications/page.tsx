@@ -37,6 +37,7 @@ export default async function NotificationsPage() {
   const { data: readRows, error: readError } = await db.from("customer_notification_reads")
     .select("notification_id").eq("customer_id", account.userId)
     .in("notification_id", notifications.map((notification) => notification.id));
+  const { data: outcomeEmailEnabled, error: outcomeEmailError } = await db.rpc("get_entry_outcome_email_enabled");
   return <>{support.error ? <p role="status" className="mx-auto max-w-6xl rounded-xl border border-cyan-300/30 bg-[#001b3d] p-4 text-sm">Support updates couldn’t be loaded. Your other notifications are still available.</p> : null}<NotificationsCenter
     notifications={notifications}
     initialReadIds={(readRows ?? []).map((row) => row.notification_id)}
@@ -44,6 +45,7 @@ export default async function NotificationsPage() {
     walletAvailable={account.wallet !== null}
     crewAvailable={!crewError}
     readAvailable={!readError}
+    outcomeEmailEnabled={outcomeEmailError || typeof outcomeEmailEnabled !== "boolean" ? null : outcomeEmailEnabled}
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
   /></>;
 }

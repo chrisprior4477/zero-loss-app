@@ -10,7 +10,7 @@ const projectUrl = Deno.env.get("SUPABASE_URL");
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const resendKey = Deno.env.get("RESEND_OUTCOME_API_KEY");
 const scheduledWorkerToken = Deno.env.get("OUTCOME_EMAIL_WORKER_TOKEN");
-const previewOrigin = "https://zero-loss-app-git-openai-homepage-experiment-zero-loss.vercel.app";
+const configuredSiteOrigin = Deno.env.get("OUTCOME_EMAIL_SITE_ORIGIN");
 const sender = "Zero Loss Accounts <accounts@getzeroloss.com>";
 
 function response(status: number, body: Record<string, unknown>): Response {
@@ -19,6 +19,15 @@ function response(status: number, body: Record<string, unknown>): Response {
 
 function safeError(error: unknown): string {
   return error instanceof Error ? error.message.slice(0, 500) : "Unknown delivery error";
+}
+
+function siteOrigin(): string {
+  if (!configuredSiteOrigin) throw new Error("Outcome email website is not configured");
+  const url = new URL(configuredSiteOrigin);
+  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || url.pathname !== "/") {
+    throw new Error("Outcome email website must be an HTTPS origin");
+  }
+  return url.origin;
 }
 
 function isVerifiedServiceRoleBearer(authorization: string | null): boolean {
@@ -64,10 +73,12 @@ async function sendPreviewTests(): Promise<Response> {
   if (Deno.env.get("OUTCOME_EMAIL_TESTS_ENABLED") !== "true") return response(503, { error: "Preview email tests are disabled" });
   const recipient = Deno.env.get("OUTCOME_EMAIL_TEST_RECIPIENT");
   if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) return response(503, { error: "Preview recipient is not configured" });
+  const previewOrigin = siteOrigin();
   const entryHref = `${previewOrigin}/account/entries`;
   const rewardHref = `${previewOrigin}/account/wallet?view=rewards`;
+  const preferencesHref = `${previewOrigin}/account/notifications#email-preferences`;
   const completionDeadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  const sample = { title: "$50 Best Buy Gift Card — EMAIL TEST", retailer: "Best Buy", giftCardValueCents: 5000, entryHref, rewardHref, preview: true };
+  const sample = { title: "$50 Best Buy Gift Card — EMAIL TEST", retailer: "Best Buy", giftCardValueCents: 5000, entryHref, rewardHref, preferencesHref, preview: true };
   const cases = [
     { kind: "winner" as const, paidCents: 100, completionCents: null, completionDeadline: null },
     { kind: "paid_not_selected" as const, paidCents: 100, completionCents: 4900, completionDeadline },
@@ -106,7 +117,10 @@ Deno.serve(async request => {
     catch (error) { return response(500, { error: safeError(error) }); }
   }
   if (Deno.env.get("OUTCOME_EMAIL_DELIVERY_ENABLED") !== "true") return response(503, { error: "Outcome email delivery is disabled" });
-  if (!projectUrl || !resendKey) return response(503, { error: "Email service is not configured" });
+  if (!projectUrl || !resendKey || !configuredSiteOrigin) return response(503, { error: "Email service is not configured" });
+  let previewOrigin: string;
+  try { previewOrigin = siteOrigin(); }
+  catch { return response(503, { error: "Email website is not configured" }); }
 
   const db = createClient(projectUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
   const { data: deliveries, error: claimError } = await db.rpc("claim_outcome_email_deliveries", { p_limit: 10 });
@@ -136,6 +150,7 @@ Deno.serve(async request => {
       const rewardUrl = new URL("/account/wallet", previewOrigin);
       rewardUrl.searchParams.set("reward", payload.slug);
       if (payload.rewardId) rewardUrl.searchParams.set("rewardId", payload.rewardId);
+      const preferencesUrl = new URL("/account/notifications#email-preferences", previewOrigin);
       const message = renderOutcomeEmail({
         kind: payload.kind,
         title: payload.title,
@@ -146,6 +161,7 @@ Deno.serve(async request => {
         completionDeadline: payload.completionDeadline,
         entryHref: entryUrl.toString(),
         rewardHref: payload.rewardId ? rewardUrl.toString() : null,
+        preferencesHref: preferencesUrl.toString(),
         preview: true,
       });
       const providerMessageId = await sendMessage(account.user.email, message.subject, message.html, message.text,
