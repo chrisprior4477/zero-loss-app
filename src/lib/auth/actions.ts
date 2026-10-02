@@ -77,6 +77,12 @@ async function getRecoveryCallbackOrigin(): Promise<string> {
   // Supabase permits the stable Vercel branch and production URLs, not each
   // one-off deployment URL. Email links must point at an allowed, current host.
   if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_BRANCH_URL) {
+    // The branded MVP hostname is assigned only to this preview branch and is
+    // explicitly present in Supabase's redirect allowlist. Keep customers on
+    // that hostname after email verification or password recovery.
+    if (await getSiteOrigin() === "https://mvp.getzeroloss.com") {
+      return "https://mvp.getzeroloss.com";
+    }
     return `https://${process.env.VERCEL_BRANCH_URL}`;
   }
   if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL) {

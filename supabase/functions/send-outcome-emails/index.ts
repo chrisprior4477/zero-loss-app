@@ -78,7 +78,7 @@ async function sendPreviewTests(): Promise<Response> {
   const rewardHref = `${previewOrigin}/account/wallet?view=rewards`;
   const preferencesHref = `${previewOrigin}/account/notifications#email-preferences`;
   const completionDeadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-  const sample = { title: "$50 Best Buy Gift Card — EMAIL TEST", retailer: "Best Buy", giftCardValueCents: 5000, entryHref, rewardHref, preferencesHref, preview: true };
+  const sample = { title: "$50 Best Buy Gift Card", retailer: "Best Buy", giftCardValueCents: 5000, entryHref, rewardHref, preferencesHref, preview: true };
   const cases = [
     { kind: "winner" as const, paidCents: 100, completionCents: null, completionDeadline: null },
     { kind: "paid_not_selected" as const, paidCents: 100, completionCents: 4900, completionDeadline },
@@ -87,8 +87,8 @@ async function sendPreviewTests(): Promise<Response> {
   const sent: string[] = [];
   for (const test of cases) {
     const message = renderOutcomeEmail({ ...sample, ...test });
-    await sendMessage(recipient, `[TEST] ${message.subject}`, message.html, message.text,
-      `zero-loss-outcome-preview-${test.kind}-20261002`);
+    await sendMessage(recipient, `[MVP preview] ${message.subject}`, message.html, message.text,
+      `zero-loss-outcome-preview-${test.kind}-branded-20261002`);
     sent.push(test.kind);
   }
   return response(200, { sent });

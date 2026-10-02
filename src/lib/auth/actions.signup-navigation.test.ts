@@ -8,8 +8,20 @@ import { signUpAction, resendVerificationAction } from "./actions";
 beforeEach(() => {
   vi.stubEnv("VERCEL_ENV", "preview");
   vi.stubEnv("VERCEL_BRANCH_URL", "zero-loss-app-git-openai-homepage-experiment-zero-loss.vercel.app");
+  mocks.headers.mockResolvedValue(new Headers({ origin: "https://zero-loss-app-git-openai-homepage-experiment-zero-loss.vercel.app" }));
   mocks.signUp.mockResolvedValue({ data: { user: { identities: [{ id: "test" }] }, session: null }, error: null });
   mocks.resend.mockResolvedValue({ error: null });
+});
+
+test("signup and verification stay on the branded experimental MVP domain", async () => {
+  mocks.headers.mockResolvedValue(new Headers({ origin: "https://mvp.getzeroloss.com" }));
+  const form = new FormData();
+  Object.entries({ legal_first_name: "Test", legal_last_name: "Person", date_of_birth: "1990-01-01", email: "test@example.test", password: "test-password", confirm_password: "test-password", accepted_terms: "on", returnTo: "/items/samsung-m70h-tv#enter-entry", verification_email: "test@example.test" }).forEach(([key, value]) => form.set(key, value));
+  await signUpAction({ ok: false, message: null }, form);
+  await resendVerificationAction({ ok: false, message: null }, form);
+  const callback = new URL(mocks.signUp.mock.calls[0][0].options.emailRedirectTo);
+  expect(callback.origin).toBe("https://mvp.getzeroloss.com");
+  expect(mocks.resend.mock.calls[0][0].options.emailRedirectTo).toBe(callback.href);
 });
 afterEach(() => { vi.resetAllMocks(); vi.unstubAllEnvs(); });
 

@@ -72,6 +72,29 @@ test("Vercel preview emails use the allowed branch URL instead of an immutable d
   }
 });
 
+test("password recovery started on the branded MVP returns there", async () => {
+  const previousEnvironment = process.env.VERCEL_ENV;
+  const previousBranch = process.env.VERCEL_BRANCH_URL;
+  process.env.VERCEL_ENV = "preview";
+  process.env.VERCEL_BRANCH_URL = "zero-loss-app-git-openai-homepage-experiment-zero-loss.vercel.app";
+  try {
+    const resetPasswordForEmail = vi.fn().mockResolvedValue({ error: null });
+    mocks.createClient.mockResolvedValue({ auth: { resetPasswordForEmail } });
+    mocks.headers.mockResolvedValue(new Headers({ origin: "https://mvp.getzeroloss.com" }));
+    const form = new FormData();
+    form.set("email", "person@example.test");
+    await requestPasswordResetAction(initial, form);
+    expect(resetPasswordForEmail).toHaveBeenCalledWith("person@example.test", {
+      redirectTo: "https://mvp.getzeroloss.com/auth/confirm?flow=recovery",
+    });
+  } finally {
+    if (previousEnvironment === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = previousEnvironment;
+    if (previousBranch === undefined) delete process.env.VERCEL_BRANCH_URL;
+    else process.env.VERCEL_BRANCH_URL = previousBranch;
+  }
+});
+
 test("successful recovery redirects to a success view that survives signing out", async () => {
   const updateUser = vi.fn().mockResolvedValue({ error: null });
   const signOut = vi.fn().mockResolvedValue({ error: null });
