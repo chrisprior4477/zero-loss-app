@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import type { AvailabilitySnapshot } from "@/lib/catalog/availability";
 import { storedActivityFixture } from "./activity.test-fixture";
-import { activityOfferProgress } from "./activity-progress";
+import { activityOfferMetrics, activityOfferProgress } from "./activity-progress";
 
 test("each still-open ticket uses its own current sold-to-capacity percentage", () => {
   const items = storedActivityFixture().activity;
@@ -16,9 +16,15 @@ test("each still-open ticket uses its own current sold-to-capacity percentage", 
     "playstation-5-slim": 36,
     "another-open-offer": 75,
   });
+  expect(activityOfferMetrics(items, availability)["playstation-5-slim"]).toEqual({ percentFilled: 36, sold: 73, capacity: 200, remaining: 127 });
 });
 
 test("an unknown offering has no made-up percentage", () => {
   const unknown = { ...storedActivityFixture().activity[0], slug: "unknown-offer" };
   expect(activityOfferProgress([unknown], null)).toEqual({});
+});
+
+test("a known offer does not display sample ticket counts when the database is unavailable", () => {
+  const active = storedActivityFixture().activity[0];
+  expect(activityOfferMetrics([active], null)).toEqual({});
 });

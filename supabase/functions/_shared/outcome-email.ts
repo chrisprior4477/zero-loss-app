@@ -1,0 +1,62 @@
+export type OutcomeEmailKind = "winner" | "paid_not_selected" | "amoe_not_selected";
+
+export type OutcomeEmailInput = {
+  kind: OutcomeEmailKind;
+  title: string;
+  retailer: string;
+  giftCardValueCents: number;
+  paidCents: number;
+  completionCents: number | null;
+  completionDeadline: string | null;
+  entryHref: string;
+  rewardHref: string | null;
+  preview: boolean;
+};
+
+function money(cents: number): string {
+  if (!Number.isSafeInteger(cents) || cents < 0) throw new Error("Invalid money amount");
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100);
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!);
+}
+
+function validHttpsHref(value: string): string {
+  const url = new URL(value);
+  if (url.protocol !== "https:") throw new Error("Email links must use HTTPS");
+  return escapeHtml(url.toString());
+}
+
+/** All three outcomes use the same Zero Loss transactional email shell. */
+export function renderOutcomeEmail(input: OutcomeEmailInput): { subject: string; html: string; text: string } {
+  if (!input.title.trim() || !input.retailer.trim()) throw new Error("Missing offer details");
+  const value = money(input.giftCardValueCents);
+  const retailer = input.retailer.trim();
+  const title = input.title.trim();
+  const win = input.kind === "winner";
+  const amoe = input.kind === "amoe_not_selected";
+  if (amoe && (input.paidCents !== 0 || input.completionCents !== input.giftCardValueCents)) {
+    throw new Error("Free entries must have no paid credit and the full completion price");
+  }
+  if (!win && (input.completionCents === null || input.completionCents !== input.giftCardValueCents - input.paidCents || !input.completionDeadline)) {
+    throw new Error("Completion amount or deadline does not match the entry");
+  }
+  if (win && !input.rewardHref) throw new Error("Winner reward link is required");
+  const subject = win ? `You won: ${title}` : `Your result is ready: ${title}`;
+  const eyebrow = win ? "YOU WON" : "YOUR ENTRY RESULT";
+  const headline = win ? `Your ${value} ${retailer} digital gift card is ready.` : "This entry wasn't selected.";
+  const paragraphs = win
+    ? [`Your prize for ${title} is a ${value} ${retailer} digital gift card. Use it for the pictured product or another eligible purchase at ${retailer}.`, "Open Gift Cards & Rewards to see your card details."]
+    : [
+        `${amoe ? "Your free entry" : `Your ${money(input.paidCents)} paid entry`} for ${title} was not selected.`,
+        `${amoe ? "Because this was a free entry, no paid entry amount is credited toward completion." : `Your ${money(input.paidCents)} entry amount is reflected in the completion price.`} If you choose to complete the purchase, the remaining amount is ${money(input.completionCents!)} for a ${value} ${retailer} digital gift card.`,
+        `This option is voluntary and ends ${new Date(input.completionDeadline!).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" })} Eastern. Each entry and completion option stands alone; amounts do not stack.`,
+      ];
+  const href = validHttpsHref(win ? input.rewardHref! : input.entryHref);
+  const button = win ? "View gift card" : "Review your option";
+  const previewNote = input.preview ? "This is a Zero Loss experimental MVP email. Demo entries, payments, and rewards are simulated." : "";
+  const text = [`ZERO LOSS`, eyebrow, headline, ...paragraphs, `${button}: ${win ? input.rewardHref : input.entryHref}`, previewNote].filter(Boolean).join("\n\n");
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#061b36;font-family:Arial,Helvetica,sans-serif;color:#081d3f"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#061b36"><tr><td align="center" style="padding:28px 12px"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;background:#fff;border-radius:16px;overflow:hidden"><tr><td style="background:#082751;padding:24px 28px;border-bottom:4px solid #12b9ef;color:#fff"><span style="font-size:26px;font-weight:900;letter-spacing:.05em">ZERØ <span style="color:#56f21e">LØSS</span></span><br><span style="font-size:12px;letter-spacing:.12em;color:#b8d3eb">REAL SHOTS. REAL WINS. ZERO LOSS.</span></td></tr><tr><td style="padding:30px 28px"><p style="margin:0 0 10px;font-size:12px;font-weight:800;letter-spacing:.12em;color:#067e57">${escapeHtml(eyebrow)}</p><h1 style="font-size:25px;line-height:1.22;margin:0 0 20px;color:#081d3f">${escapeHtml(headline)}</h1>${paragraphs.map(paragraph => `<p style="font-size:16px;line-height:1.55;color:#355375;margin:0 0 16px">${escapeHtml(paragraph)}</p>`).join("")}<a href="${href}" style="display:inline-block;background:#04b9ee;color:#001a35;text-decoration:none;font-size:16px;font-weight:800;padding:14px 22px;border-radius:9px;margin:10px 0 6px">${escapeHtml(button)}</a></td></tr><tr><td style="background:#eaf5fb;padding:18px 28px;font-size:12px;line-height:1.5;color:#55718c">${previewNote ? escapeHtml(previewNote) + "<br>" : ""}Zero Loss · View the offer and official rules on the website.</td></tr></table></td></tr></table></body></html>`;
+  return { subject, html, text };
+}

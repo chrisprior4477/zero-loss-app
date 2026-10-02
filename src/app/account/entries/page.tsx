@@ -5,12 +5,13 @@ import { redirect } from "next/navigation";
 import { MyZeroLossActivity } from "@/components/account/MyZeroLossActivity";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { getAccountContext } from "@/lib/account/context";
-import { activityFilter } from "@/lib/account/activity";
+import { activityFilter, findActivityItem } from "@/lib/account/activity";
 import styles from "@/components/account/my-activity.module.css";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
-import { activityOfferProgress } from "@/lib/account/activity-progress";
+import { activityOfferMetrics } from "@/lib/account/activity-progress";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "My Activity" };
 
@@ -24,23 +25,34 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const account = await getAccountContext();
   const query = await searchParams;
   if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query)));
+  const filter = activityFilter(query.filter);
+  const selectedSlug = typeof query.item === "string" ? query.item : undefined;
+  const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;
   const availability = await getOfferingAvailability();
-  const progressBySlug = activityOfferProgress(account.activity.activity, availability);
+  const metricsBySlug = activityOfferMetrics(account.activity.activity, availability);
+  let outcomeEmailPreference: boolean | null = null;
+  if (findActivityItem(account.activity.activity, selectedSlug, selectedEntryId, filter)?.status === "active") {
+    try {
+      const db = await createClient();
+      const { data, error } = await db.rpc("get_entry_outcome_email_enabled");
+      if (!error) outcomeEmailPreference = data === true;
+    } catch { /* The detail view remains usable when preferences are unavailable. */ }
+  }
   return <div className={styles.page}><div className={styles.pageContent}>
     <h1 className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
-    <MyZeroLossActivity state={account.activity} filter={activityFilter(query.filter)} progressBySlug={progressBySlug} selectedSlug={typeof query.item === "string" ? query.item : undefined} selectedEntryId={typeof query.entry === "string" ? query.entry : undefined} />
+    <MyZeroLossActivity state={account.activity} filter={filter} metricsBySlug={metricsBySlug} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>
         <p className={styles.eyebrow}>ACCOUNT DASHBOARD</p>
         <h2 id="account-tools-heading">Your account, all in one place.</h2>
       </div>
       <div className={styles.accountToolsGrid}>
-        <Link href="/account/security" aria-label="Open Your Account and Security" className={`${styles.accountTool} ${styles.profileTool}`}>
+        <Link href="/account/security" aria-label="Open Your Profile" className={`${styles.accountTool} ${styles.profileTool}`}>
           <span className={styles.accountAvatar}>
             {account.avatarUrl ? <Image src={account.avatarUrl} alt="" fill unoptimized sizes="54px" className={styles.accountAvatarImage} /> : <span aria-hidden="true">{account.initials}</span>}
           </span>
-          <span className={styles.accountToolText}><strong>Your Account and Security</strong><span>{account.displayName}</span><small>Profile &amp; photo</small></span>
+          <span className={styles.accountToolText}><strong>Your Profile</strong><span>{account.displayName}</span><small>Profile &amp; photo</small></span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />
         </Link>
         {accountLinks.map(([title, detail, href, imageSrc, treatment]) => <Link key={title} href={href} className={styles.accountTool}>

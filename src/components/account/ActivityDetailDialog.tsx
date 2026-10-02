@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { activityPresentation, type ActivityDestination, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
@@ -8,11 +9,15 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./showroom.module.css";
 import { PurchaseOptionControls } from "./PurchaseOptionControls";
+import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
+import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 
-export function ActivityDetailDialog({ item, destination, filter = "all" }: {
+export function ActivityDetailDialog({ item, destination, filter = "all", offerMetrics, outcomeEmailPreference = null }: {
   item: ActivityItem;
   destination: ActivityDestination;
   filter?: ActivityFilter;
+  offerMetrics?: ActivityOfferMetrics;
+  outcomeEmailPreference?: boolean | null;
 }) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -46,7 +51,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
     : item.status === "prize"
       ? "Your winning outcome is ready. Follow its fulfillment path whenever you are ready."
       : item.status === "active"
-        ? "Your entry is still in play. Its result will appear here as soon as the outcome is available."
+        ? "Your entry is still in play. Watch this offer fill and check back for the result."
         : "This activity is complete. Its outcome remains here as part of your Zero Loss history.";
   return <dialog ref={dialogRef} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); close(); }}
     onKeyDown={event => {
@@ -118,9 +123,15 @@ export function ActivityDetailDialog({ item, destination, filter = "all" }: {
         <section className={styles.detailPanel}>
           <p className={styles.panelEyebrow}>IN PLAY</p>
           <h3>Your entry is still open</h3>
-          <p className={styles.detailCopy}>When an outcome is available, it will appear with this product.</p>
+          {offerMetrics ? <div className={styles.offerMetrics}>
+            <div className={styles.offerMetricsHeading}><strong>{offerMetrics.percentFilled}% full</strong><span>{offerMetrics.remaining.toLocaleString("en-US")} tickets left</span></div>
+            <div role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerMetrics.percentFilled} aria-valuemin={0} aria-valuemax={100} className={styles.offerMetricsTrack}><span style={{ width: `${offerMetrics.percentFilled}%` }} /></div>
+            <p>{offerMetrics.sold.toLocaleString("en-US")} of {offerMetrics.capacity.toLocaleString("en-US")} entries filled</p>
+          </div> : <p className={styles.detailCopy}>Current ticket availability could not be verified. Check the product page for the latest count.</p>}
+          <p className={styles.detailCopy}>After this offer closes and an outcome is posted, your result—win or no win—will appear here and in <Link href="/account/notifications">Notifications</Link>. If you do not win, you can decide whether to complete the gift-card purchase. Its deadline and remaining balance will be shown then; completing it is optional.</p>
           <dl className={styles.entryFacts}><div><dt>Entry amount</dt><dd>{formatUsdFromCents(item.paidCents)}</dd></div><div><dt>Current status</dt><dd>Still open</dd></div></dl>
         </section>
+        <EntryOutcomeEmailPreference initialEnabled={outcomeEmailPreference} />
       </> : <section className={styles.detailPanel}><p className={styles.panelEyebrow}>COMPLETED</p><h3>Activity complete</h3><p className={styles.detailCopy}>Completed activity details. No additional fulfillment action is enabled in this checkpoint.</p></section>}
 
       <div className={styles.detailFooter}><button disabled type="button">{disabledAction} — not enabled</button><p>This action is not available yet.</p></div>

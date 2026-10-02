@@ -1,15 +1,25 @@
-import { getDemoProduct } from "@/lib/catalog/demo-products";
 import type { AvailabilitySnapshot } from "@/lib/catalog/availability";
 import type { ActivityItem } from "./activity";
 
-/** Use the same current-offering data and demo fallback as the product pages. */
-export function activityOfferProgress(items: ActivityItem[], availability: AvailabilitySnapshot | null): Record<string, number> {
-  const progress: Record<string, number> = {};
+export type ActivityOfferMetrics = { percentFilled: number; sold: number; capacity: number; remaining: number };
+
+/** Show activity progress only when the current database availability was verified. */
+export function activityOfferMetrics(items: ActivityItem[], availability: AvailabilitySnapshot | null): Record<string, ActivityOfferMetrics> {
+  const metrics: Record<string, ActivityOfferMetrics> = {};
   for (const item of items) {
     if (item.status !== "active") continue;
-    const offering = availability?.[item.slug] ?? getDemoProduct(item.slug);
+    const offering = availability?.[item.slug];
     if (!offering || offering.capacity <= 0) continue;
-    progress[item.slug] = Math.max(0, Math.min(100, Math.floor(offering.sold / offering.capacity * 100)));
+    metrics[item.slug] = {
+      percentFilled: Math.floor(offering.sold / offering.capacity * 100),
+      sold: offering.sold,
+      capacity: offering.capacity,
+      remaining: offering.remaining,
+    };
   }
-  return progress;
+  return metrics;
+}
+
+export function activityOfferProgress(items: ActivityItem[], availability: AvailabilitySnapshot | null): Record<string, number> {
+  return Object.fromEntries(Object.entries(activityOfferMetrics(items, availability)).map(([slug, value]) => [slug, value.percentFilled]));
 }

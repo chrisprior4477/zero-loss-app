@@ -25,9 +25,9 @@ test("login preserves the selected entry and filter", async () => {
   expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe("/account/entries?item=nike-court-shot-shoes&entry=ent_123&filter=completion");
 });
 
-test("Your Account and Security opens Account & Security from My Zero Loss", async () => {
+test("Your Profile keeps its Account & Security destination from My Activity", async () => {
   render(await MyZeroLossPage({ searchParams: Promise.resolve({}) }));
-  const link = screen.getByRole("link", { name: "Open Your Account and Security" });
+  const link = screen.getByRole("link", { name: "Open Your Profile" });
   expect(link.getAttribute("href")).toBe("/account/security");
-  expect(link.textContent).toContain("Your Account and Security");
+  expect(link.textContent).toContain("Your Profile");
 });

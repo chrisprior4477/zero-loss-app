@@ -7,6 +7,7 @@ import { activityHref, type ActivityFilter, type ActivityItem } from "@/lib/acco
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./my-activity.module.css";
+import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
 function action(item: ActivityItem) {
@@ -14,7 +15,7 @@ function action(item: ActivityItem) {
   return { active: "Track entry", completion: "Review option", completed: "View details" }[item.status];
 }
 
-export function MyZeroLossGallery({ items, filter, progressBySlug }: { items: ActivityItem[]; filter: ActivityFilter; progressBySlug: Record<string, number> }) {
+export function MyZeroLossGallery({ items, filter, metricsBySlug }: { items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics> }) {
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
   const [dragging, setDragging] = useState(false);
@@ -131,7 +132,7 @@ export function MyZeroLossGallery({ items, filter, progressBySlug }: { items: Ac
     >
       {items.map((item, index) => {
         const featured = item.status === "prize" && index === 0;
-        const offerProgress = item.status === "active" ? progressBySlug[item.slug] : undefined;
+        const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
         const desktopColumn = Math.floor(index / 6) * 2 + (index % 2) + 1;
         const desktopRow = Math.floor((index % 6) / 2) + 1;
         const stackedColumn = Math.floor(index / 2) + 1;
@@ -143,7 +144,7 @@ export function MyZeroLossGallery({ items, filter, progressBySlug }: { items: Ac
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={item.entryId ?? item.slug} className={styles.galleryItem} style={placement}>
-          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerProgress !== undefined ? "true" : undefined} className={styles.productCard}>
+          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
@@ -154,13 +155,13 @@ export function MyZeroLossGallery({ items, filter, progressBySlug }: { items: Ac
               <div className={styles.cardFoot}>
                 <p className={styles.productNote}>{item.status === "completion"
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
-                  : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · Still in play`
+                  : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · ${offerMetrics ? `${offerMetrics.remaining.toLocaleString("en-US")} tickets left` : "Still in play"}`
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : "Your completed activity."}</p>
                 <span className={styles.cardAction} data-activity-click>{action(item)}<AccountIcon name="arrow" /></span>
               </div>
             </div>
             <span className={styles.cardChevron} data-activity-click aria-hidden="true" />
-            {offerProgress !== undefined ? <span className={styles.offerProgress} role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerProgress} aria-valuemin={0} aria-valuemax={100} style={{ "--offer-progress": `${offerProgress}%` } as CSSProperties}><span>{offerProgress}%</span></span> : null}
+            {offerMetrics ? <span className={styles.offerProgress} role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerMetrics.percentFilled} aria-valuemin={0} aria-valuemax={100} style={{ "--offer-progress": `${offerMetrics.percentFilled}%` } as CSSProperties}><span>{offerMetrics.percentFilled}%</span></span> : null}
           </Link>
           {featured && items.length > 1 ? <p className={styles.mobileRestLabel}>Everything else</p> : null}
         </div>;

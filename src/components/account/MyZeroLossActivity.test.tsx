@@ -36,11 +36,22 @@ test("same activity source yields matching still-open count and full-row links",
 test("only still-open tickets show their own offer-fill progress", () => {
   const state = storedActivityFixture();
   state.activity.push({ ...state.activity[0], slug: "another-open-offer", title: "Another open offer" });
-  render(<MyZeroLossActivity state={state} filter="all" progressBySlug={{ "playstation-5-slim": 36, "another-open-offer": 75, "samsung-m70h-tv": 99 }} />);
+  render(<MyZeroLossActivity state={state} filter="all" metricsBySlug={{ "playstation-5-slim": { percentFilled: 36, sold: 73, capacity: 200, remaining: 127 }, "another-open-offer": { percentFilled: 75, sold: 60, capacity: 80, remaining: 20 }, "samsung-m70h-tv": { percentFilled: 99, sold: 99, capacity: 100, remaining: 1 } }} />);
   const indicators = screen.getAllByRole("progressbar");
   expect(indicators.map(indicator => indicator.getAttribute("aria-valuenow"))).toEqual(["36", "75"]);
   expect(indicators.map(indicator => indicator.textContent)).toEqual(["36%", "75%"]);
+  expect(screen.getByText("$1 entered · 127 tickets left")).toBeTruthy();
+  expect(screen.getByText("$1 entered · 20 tickets left")).toBeTruthy();
   expect(within(screen.getByRole("link", { name: /Samsung 50" M70H Mini LED 4K Smart TV/ })).queryByRole("progressbar")).toBeNull();
+});
+test("open entry details reuse the same live count and explain outcomes", () => {
+  render(<MyZeroLossActivity state={storedActivityFixture()} filter="active" selectedSlug="playstation-5-slim" metricsBySlug={{ "playstation-5-slim": { percentFilled: 36, sold: 73, capacity: 200, remaining: 127 } }} outcomeEmailPreference={false} />);
+  const dialog = screen.getByRole("dialog", { name: "PlayStation 5 Slim Model" });
+  expect(within(dialog).getByRole("progressbar").getAttribute("aria-valuenow")).toBe("36");
+  expect(within(dialog).getByText("127 tickets left")).toBeTruthy();
+  expect(within(dialog).getByText("73 of 200 entries filled")).toBeTruthy();
+  expect(within(dialog).getByText(/win or no win/)).toBeTruthy();
+  expect(within(dialog).getByRole("checkbox", { name: /Email me when any of my entry outcomes posts/ })).toBeTruthy();
 });
 test("completion displays exact product math and stays unavailable without a stored option id", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="completion" selectedSlug="babys-essentials-bundle" />);
@@ -148,14 +159,14 @@ test("closing details restores scroll and focuses the originating product row", 
   expect(document.activeElement).toBe(opener);
 });
 
-test("Tab and Shift+Tab wrap between close and keyboard-scrollable detail content", () => {
+test("Tab and Shift+Tab wrap through the new notification link in entry details", () => {
   render(<DashboardActivity state={storedActivityFixture()} selectedSlug="playstation-5-slim" />);
   const close = screen.getByRole("button", { name: "Close activity details" });
-  const content = screen.getByRole("region", { name: "Product details" });
+  const notificationLink = screen.getByRole("link", { name: "Notifications" });
   close.focus();
   fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
-  expect(document.activeElement).toBe(content);
-  fireEvent.keyDown(content, { key: "Tab" });
+  expect(document.activeElement).toBe(notificationLink);
+  fireEvent.keyDown(notificationLink, { key: "Tab" });
   expect(document.activeElement).toBe(close);
 });
 
