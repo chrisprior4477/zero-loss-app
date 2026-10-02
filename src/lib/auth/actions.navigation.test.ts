@@ -36,7 +36,7 @@ test("sign-out keeps the selected product available without keeping the session"
   form.set("returnTo", "/items/dyson-v8-cordless-vacuum?quantity=4#enter-entry");
   await expect(signOutAction(form)).rejects.toThrow("NEXT_REDIRECT");
   expect(signOut).toHaveBeenCalledOnce();
-  expect(mocks.redirect).toHaveBeenCalledWith("/items/dyson-v8-cordless-vacuum?quantity=4#enter-entry");
+  expect(mocks.redirect).toHaveBeenCalledWith("/login?next=%2Fitems%2Fdyson-v8-cordless-vacuum%3Fquantity%3D4%23enter-entry");
 });
 
 test("sign-out ignores an unsafe return and falls back to the current product", async () => {
@@ -47,5 +47,5 @@ test("sign-out ignores an unsafe return and falls back to the current product", 
   const form = new FormData();
   form.set("returnTo", "https://evil.example");
   await expect(signOutAction(form)).rejects.toThrow("NEXT_REDIRECT");
-  expect(mocks.redirect).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=2#enter-entry");
+  expect(mocks.redirect).toHaveBeenCalledWith("/login?next=%2Fitems%2Fsamsung-m70h-tv%3Fquantity%3D2%23enter-entry");
 });

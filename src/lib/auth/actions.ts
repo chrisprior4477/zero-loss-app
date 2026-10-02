@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { entryReturnPath, productReturnFromReferer, signInReturnPath, signupVerificationPath } from "@/lib/auth/entry-return";
+import { authNavigationHref, entryReturnPath, productReturnFromReferer, signInReturnPath, signupVerificationPath } from "@/lib/auth/entry-return";
 import { passwordUpdateErrorMessage } from "@/lib/auth/password-update-error";
 import {
   isAtLeastAge,
@@ -434,7 +434,7 @@ export async function signOutAction(formData: FormData): Promise<void> {
   const returnTo = submittedReturn ?? productReturnFromReferer(requestHeaders?.get("referer"), requestHeaders?.get("host"));
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect(returnTo ?? "/");
+  redirect(returnTo ? authNavigationHref("/login", returnTo) : "/");
 }
 
 export type SignOutEverywhereState = { status: "idle" | "error"; message: string | null };
