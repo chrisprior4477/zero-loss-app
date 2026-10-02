@@ -5,13 +5,13 @@ import { useState } from "react";
 import type { DemoProduct } from "@/lib/catalog/demo-products";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
-export function ProductGallery({ gallery, title, slug }: Pick<DemoProduct, "gallery" | "title" | "slug">) {
+export function ProductGallery({ gallery, title, slug, signedOutCompact = false }: Pick<DemoProduct, "gallery" | "title" | "slug"> & { signedOutCompact?: boolean }) {
   const [selected, setSelected] = useState(0);
   const image = gallery[selected];
 
   return (
     <div>
-      <div className="relative aspect-[16/9] overflow-hidden rounded-3xl border border-white/15 bg-white shadow-[0_24px_70px_rgba(0,0,0,.2)] sm:aspect-[4/3]">
+      <div className={`relative overflow-hidden rounded-3xl border border-white/15 bg-white shadow-[0_24px_70px_rgba(0,0,0,.2)] ${signedOutCompact ? "h-36 min-[480px]:h-64 lg:aspect-[4/3] lg:h-auto" : "aspect-[16/9] sm:aspect-[4/3]"}`}>
         <Image
           src={image.src}
           alt={image.alt}
@@ -22,7 +22,7 @@ export function ProductGallery({ gallery, title, slug }: Pick<DemoProduct, "gall
         />
         <FavoriteButton itemName={title} itemHref={`/items/${slug}`} size="large" className="absolute right-3 top-3 z-10 sm:right-5 sm:top-5" />
       </div>
-      {gallery.length > 1 ? <div className="mt-2 flex gap-2 overflow-x-auto pb-1 sm:mt-3 sm:gap-3" aria-label={`${title} image gallery`}>
+      {gallery.length > 1 ? <div className={signedOutCompact ? "mt-2 flex gap-2 overflow-x-auto pb-1 lg:mt-3 lg:gap-3" : "mt-2 flex gap-2 overflow-x-auto pb-1 sm:mt-3 sm:gap-3"} aria-label={`${title} image gallery`}>
         {gallery.map((galleryImage, index) => (
           <button
             key={`${galleryImage.src}-${index}`}
@@ -30,7 +30,7 @@ export function ProductGallery({ gallery, title, slug }: Pick<DemoProduct, "gall
             onClick={() => setSelected(index)}
             aria-label={`Show image ${index + 1} of ${gallery.length}`}
             aria-pressed={selected === index}
-            className={`relative h-12 w-16 shrink-0 overflow-hidden rounded-xl bg-white transition sm:h-20 sm:w-24 ${selected === index ? "ring-3 ring-cyan-300" : "border border-white/25 opacity-75 hover:opacity-100"}`}
+            className={`relative shrink-0 overflow-hidden rounded-xl bg-white transition ${signedOutCompact ? "h-10 w-14 lg:h-20 lg:w-24" : "h-12 w-16 sm:h-20 sm:w-24"} ${selected === index ? "ring-3 ring-cyan-300" : "border border-white/25 opacity-75 hover:opacity-100"}`}
           >
             <Image src={galleryImage.src} alt="" fill sizes="(max-width: 640px) 64px, 96px" className={galleryImage.fit === "reward" ? "object-contain p-1" : "object-contain p-2"} />
           </button>

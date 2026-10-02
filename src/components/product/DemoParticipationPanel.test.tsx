@@ -82,6 +82,15 @@ test("signed-out selected quantity survives login", () => {
   expect(JSON.parse(sessionStorage.getItem("zero-loss-entry-intent-v1") ?? "null")).toMatchObject({ slug: "test-product", quantity: 4 });
 });
 
+test("compact signed-out entry keeps quantity, live counts, and login redirect together", () => {
+  render(<DemoParticipationPanel {...props} signedOutCompact initialQuantity={2} />);
+  expect(screen.getByText("11 remaining")).toBeTruthy();
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
+  expect(screen.queryByText(/Each \$1\.00 entry stands alone/)).toBeNull();
+  const href = screen.getByRole("link", { name: "Sign in to enter" }).getAttribute("href")!;
+  expect(new URL(href, "https://example.test").searchParams.get("next")).toBe("/items/test-product?quantity=2#enter-entry");
+});
+
 test("unavailable inventory offers refresh instead of accepting a purchase against sample counts", () => {
   render(<DemoParticipationPanel {...props} availabilityConfirmed={false} isSignedIn />);
   expect(screen.queryByRole("button", { name: "Enter for $1.00" })).toBeNull();

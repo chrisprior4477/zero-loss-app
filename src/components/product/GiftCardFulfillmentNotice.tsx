@@ -28,3 +28,17 @@ export function GiftCardFulfillmentNotice({ productTitle, retailer, value, isGif
     </section>
   );
 }
+
+export function SignedOutRewardSummary({ retailer, value, isGiftCardOffering }: GiftCardFulfillmentNoticeProps) {
+  return (
+    <section aria-label="Prize fulfillment" className="rounded-2xl bg-[#0872df] px-4 py-3 text-white sm:px-5 sm:py-4">
+      <p className="text-[11px] font-extrabold uppercase tracking-[.15em] text-white/80">If you win or complete</p>
+      <p className="mt-1 text-xl font-extrabold leading-tight sm:text-2xl">${value.toLocaleString()} {retailer} digital gift card</p>
+      <p className="mt-1 text-sm leading-5 text-white/90">
+        {isGiftCardOffering
+          ? `Use it for eligible purchases at ${retailer}.`
+          : `Use it for the pictured product or another eligible purchase at ${retailer}.`}
+      </p>
+    </section>
+  );
+}

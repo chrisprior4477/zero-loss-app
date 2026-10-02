@@ -29,6 +29,7 @@ type Props = {
   isDemoWallet?: boolean;
   isSignedIn?: boolean;
   extraEntryExplainerAcknowledged?: boolean;
+  signedOutCompact?: boolean;
 };
 
 export function DemoParticipationPanel({
@@ -47,6 +48,7 @@ export function DemoParticipationPanel({
   isDemoWallet = false,
   isSignedIn = false,
   extraEntryExplainerAcknowledged = false,
+  signedOutCompact = false,
 }: Props) {
   const router = useRouter();
   const remaining = Math.max(0, capacity - sold);
@@ -178,7 +180,7 @@ export function DemoParticipationPanel({
   };
 
   return (
-    <aside id="enter-entry" className="mt-3 scroll-mt-[180px] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32">
+    <aside id="enter-entry" className={`scroll-mt-[180px] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-3xl font-extrabold leading-none">${entryPrice.toFixed(2)} <span className="text-sm font-bold text-white/80">per entry</span></p>
@@ -212,7 +214,7 @@ export function DemoParticipationPanel({
           </div>
         </fieldset>
       </div>
-      <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine. Terms apply.</p>
+      {signedOutCompact && !isSignedIn ? null : <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine. Terms apply.</p>}
       {requestReceipt && requestReceipt.status !== "pending" ? <div className="mt-2 flex flex-wrap items-baseline gap-x-2 rounded-lg bg-[#062b4d] px-3 py-2 text-xs leading-4" role="status">
         <p>{requestReceipt.status === "accepted" ? `Previous ${requestReceipt.quantity}-ticket submission saved. A new entry is separate.` : "Your previous submission was not entered. You can start a new submission below."}</p>
         {requestReceipt.href ? <Link href={requestReceipt.href} className="font-bold text-cyan-300 underline">View previous submission →</Link> : null}
@@ -257,7 +259,7 @@ export function DemoParticipationPanel({
         </Link>
       )}
 
-      <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm">
+      <div className={`${signedOutCompact && !isSignedIn ? "mt-2" : "mt-3"} flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm`}>
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
         <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={() => rememberEntry()} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>

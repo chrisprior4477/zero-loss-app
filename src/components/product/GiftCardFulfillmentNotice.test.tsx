@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test } from "vitest";
 import { demoProducts } from "@/lib/catalog/demo-products";
-import { GiftCardFulfillmentNotice } from "./GiftCardFulfillmentNotice";
+import { GiftCardFulfillmentNotice, SignedOutRewardSummary } from "./GiftCardFulfillmentNotice";
 
 afterEach(cleanup);
 
@@ -41,5 +41,22 @@ test("every catalog product and category gets its own retailer and value", () =>
     const page = new DOMParser().parseFromString(html, "text/html");
     expect(page.querySelector("summary strong")?.textContent, product.slug).toBe(`$${product.value.toLocaleString()} ${product.retailer} digital gift card`);
     expect(page.querySelector('a[href="/account/wallet"]')?.textContent, product.slug).toBe("Gift Cards & Rewards");
+  }
+});
+
+test("signed-out reward is visible without expanding details and uses each offer's data", () => {
+  for (const product of demoProducts) {
+    const html = renderToStaticMarkup(
+      <SignedOutRewardSummary
+        productTitle={product.title}
+        retailer={product.retailer}
+        value={product.value}
+        isGiftCardOffering={/gift card|shopping reward/i.test(product.title)}
+      />,
+    );
+    const page = new DOMParser().parseFromString(html, "text/html");
+    expect(page.querySelector("section[aria-label='Prize fulfillment']")?.textContent, product.slug).toContain("If you win or complete");
+    expect(page.querySelector("section[aria-label='Prize fulfillment']")?.textContent, product.slug).toContain(`$${product.value.toLocaleString()} ${product.retailer} digital gift card`);
+    expect(page.querySelector("section[aria-label='Prize fulfillment'] details"), product.slug).toBeNull();
   }
 });
