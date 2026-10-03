@@ -85,17 +85,18 @@
 .checkupLink:hover { background: #0059d0; }
 .checkupLink svg { width: 18px; height: 18px; }
 .signOutTicket { display: grid; grid-template-columns: 55px minmax(0, 1fr); gap: 8px 12px; padding: 17px 19px; }
-.signOutIcon { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 9px; color: #f04419; background: #ffe0c3; }
+.signOutIcon { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 9px; color: #fff; background: #ff630f; }
 .signOutIcon svg { width: 34px; height: 34px; }
-.signOutTicket h2 { color: #c92b0d; font-size: 17px; font-weight: 850; }
+.signOutTicket h2 { color: #101b4e; font-size: 17px; font-weight: 850; }
 .signOutTicket p { margin-top: 3px; color: #526c8f; font-size: 12px; line-height: 1.3; }
 .signOutDisclosure { grid-column: 1 / -1; }
-.signOutDisclosure summary { display: grid; min-height: 43px; place-items: center; border: 1px solid #ff9a53; border-radius: 8px; color: #c62e0a; background: #ffead7; font-size: 12px; font-weight: 850; list-style: none; cursor: pointer; }
+.signOutDisclosure summary { display: grid; min-height: 43px; place-items: center; border: 1px solid #ff630f; border-radius: 8px; color: #fff; background: #ff630f; font-size: 12px; font-weight: 850; list-style: none; cursor: pointer; }
 .signOutDisclosure summary::-webkit-details-marker { display: none; }
-.signOutDisclosure summary:hover { background: #ffdcc0; }
+.signOutDisclosure summary:hover { background: #e9560a; }
 .signOutConfirmation { padding: 9px 2px 0; }
-.signOutConfirmation p { color: #633c2d; font-size: 11px; }
-.signOutConfirmation button { width: 100%; min-height: 42px; margin-top: 10px; border-radius: 7px; color: #fff; background: #d52b0a; font-size: 12px; font-weight: 850; }
+.signOutConfirmation p { color: #344d70; font-size: 11px; }
+.signOutConfirmation button { width: 100%; min-height: 42px; margin-top: 10px; border-radius: 7px; color: #fff; background: #ff630f; font-size: 12px; font-weight: 850; }
+.signOutConfirmation button:hover:not(:disabled) { background: #e9560a; }
 .signOutConfirmation button:disabled { opacity: .6; cursor: wait; }
 .lowerGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
 .lowerTicket { min-height: 156px; padding: 18px 22px; }

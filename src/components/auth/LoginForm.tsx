@@ -36,10 +36,18 @@ export function LoginForm({
   const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!focusOnMount) return;
+    // Every mobile sign-in route should land on the form, including plain
+    // /login links that do not carry the explicit focus=email parameter.
+    const isMobile = window.matchMedia?.("(max-width: 767px)").matches ?? false;
+    if (!isMobile && !focusOnMount) return;
     const frame = window.requestAnimationFrame(() => {
-      document.querySelector("#login-form")?.scrollIntoView({ block: "start" });
-      emailRef.current?.focus({ preventScroll: true });
+      const form = document.getElementById("login-form");
+      if (!form) return;
+      const header = document.querySelector("header.sticky");
+      const headerHeight = header?.getBoundingClientRect().height ?? 0;
+      const formTop = form.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: Math.max(0, formTop - headerHeight - 8), behavior: "auto" });
+      if (focusOnMount) emailRef.current?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [focusOnMount]);

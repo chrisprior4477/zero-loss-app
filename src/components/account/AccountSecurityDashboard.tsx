@@ -109,7 +109,7 @@ export function AccountSecurityDashboard({ displayName, initials, email, emailCo
             <a href="#security-controls" className={styles.checkupLink}>Review security <AccountIcon name="arrow" /></a>
           </section>
           <section className={styles.signOutTicket} id="sign-out-everywhere" aria-labelledby="signout-heading">
-            <span className={styles.signOutIcon}><SecurityGlyph name="alert" /></span>
+            <span className={styles.signOutIcon}><AccountIcon name="signout" /></span>
             <div><h2 id="signout-heading">Sign out everywhere</h2><p>Revoke sign-in sessions on this and other devices.</p></div>
             <SignOutEverywhereControl />
           </section>

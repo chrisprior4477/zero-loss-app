@@ -36,3 +36,10 @@ test("existing method can update its explicit default preference", () => {
   expect(container.querySelector<HTMLInputElement>('[name="makeDefault"]')?.value).toBe("false");
   expect(screen.getByRole("button", { name: /Update card/ })).toBeTruthy();
 });
+
+test("saved sample cards offer a prominent add-funds route without changing its destination", () => {
+  render(<DemoCardManager displayName="Chris Prior" enabled embedded savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
+  const link = screen.getByRole("link", { name: "Add another sample card in Add funds" });
+  expect(link.getAttribute("href")).toBe("/account/wallet?view=history#add-funds");
+  expect(link.textContent).not.toContain("→");
+});

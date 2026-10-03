@@ -26,10 +26,14 @@
 .cardBottom span:last-child { flex: 0 0 auto; }
 .cardBottom small { display: block; margin-bottom: 3px; color: #9dbbd1; font-size: 8px; letter-spacing: .12em; }
 .savedStatus { display: flex; align-items: center; gap: 13px; margin-top: 32px; padding: 15px; border: 1px solid #146b90; border-radius: 9px; background: #00182ddb; }
+.savedStatus > div { min-width: 0; flex: 1; }
 .statusIcon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border: 1px solid #33ea65; border-radius: 8px; color: #69ff91; background: #0a5035; }
 .statusIcon svg { width: 23px; height: 23px; }
 .savedStatus strong { font-size: 13px; }
 .savedStatus p { margin-top: 3px; color: #a9c2d5; font-size: 10px; }
+.addFundsLink { display: flex; min-height: 44px; align-items: center; justify-content: center; margin-top: 12px; padding: 9px 13px; border: 2px solid #31e800; border-radius: 9px; color: #fff; background: #087a1e; box-shadow: 0 0 14px #31e80055; font-size: 13px; font-weight: 850; line-height: 1.2; text-align: center; text-decoration: none; }
+.addFundsLink:hover { background: #0b9225; box-shadow: 0 0 18px #31e80077; }
+.addFundsLink:focus-visible { outline: 3px solid #83ff80; outline-offset: 3px; }
 .formPanel { padding: clamp(22px, 3vw, 38px); }
 .panelHeading, .panelHeading > div { display: flex; align-items: center; gap: 12px; }
 .panelHeading { justify-content: space-between; }
@@ -118,6 +122,7 @@
 .embedded .cardBottom { right: 19px; bottom: 18px; left: 19px; }
 .embedded .savedStatus { margin-top: 18px; border-color: #bdd8e9; background: #eaf6fd; color: #101b4e; }
 .embedded .savedStatus p { color: #526b87; }
+.embedded .addFundsLink { color: #fff; }
 .embedded .formPanel { padding: clamp(19px, 2.4vw, 29px); }
 .embedded .panelHeading h2 { font-size: 23px; }
 .embedded .step { border: 0; background: #d9f0ff; color: #07558b; box-shadow: none; }
