@@ -33,5 +33,23 @@ export function availabilityForHref(snapshot: AvailabilitySnapshot | null, href?
 }
 
 export function filledPercent(availability: OfferingAvailability): number {
-  return Math.floor(availability.sold / availability.capacity * 100);
+  return availabilityStatus(availability.capacity, availability.sold).percentFilled;
+}
+
+/** Availability language and colors always follow the same ticket-count bands. */
+export function progressAppearance(percentFilled: number, full = false) {
+  const color = percentFilled >= 90 ? "#f32343"
+    : percentFilled >= 75 ? "#ff6b22"
+      : percentFilled >= 50 ? "#0787e8" : "#25c46a";
+  const label = full ? "Pool full" : percentFilled >= 90 ? "Almost full" : `${percentFilled}% full`;
+  return { color, label, almostFull: !full && percentFilled >= 90 };
+}
+
+export function availabilityStatus(capacity: number, sold: number) {
+  const safeCapacity = Math.max(1, capacity);
+  const safeSold = Math.min(safeCapacity, Math.max(0, sold));
+  const remaining = safeCapacity - safeSold;
+  // Floor instead of round: one remaining ticket must never read as 100% full.
+  const percentFilled = Math.floor(safeSold / safeCapacity * 100);
+  return { remaining, percentFilled, ...progressAppearance(percentFilled, remaining === 0) };
 }

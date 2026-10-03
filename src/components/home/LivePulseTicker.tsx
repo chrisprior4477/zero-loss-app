@@ -91,13 +91,13 @@ export function LivePulseTicker() {
   return (
     <section
       ref={sectionRef}
-      aria-label="Live marketplace activity"
+      aria-label="Sample marketplace activity"
       className="group relative flex h-10 items-center overflow-hidden border-y border-cyan-300/15 bg-[#020d20]"
     >
       <div className="absolute inset-y-0 left-0 z-10 flex items-center bg-[#020d20] pl-3 pr-3 shadow-[18px_0_24px_#020d20] sm:pl-6 sm:pr-5 lg:pl-[clamp(3rem,6vw,7rem)]">
-        <span className="zl-pulse-live mr-2 inline-block h-2 w-2 rounded-full bg-[#31e800] shadow-[0_0_10px_rgba(49,232,0,0.8)]" aria-hidden="true" />
+        <span className="mr-2 inline-block h-2 w-2 rounded-full bg-cyan-300" aria-hidden="true" />
         <span className="whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.16em] text-white">
-          Live
+          Sample
         </span>
       </div>
       <div

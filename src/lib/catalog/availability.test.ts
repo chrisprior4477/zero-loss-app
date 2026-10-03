@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { availabilityForHref, filledPercent, parseAvailability } from "./availability";
+import { availabilityForHref, availabilityStatus, filledPercent, parseAvailability } from "./availability";
 
 const row = { slug: "walmart-25-gift-card", capacity: 75, sold: 71, remaining: 4, entryPriceCents: 100, repeatableScenario: false };
 test("ordinary availability uses the database's sample-plus-purchase total", () => {
@@ -12,6 +12,16 @@ test("known showcase scenarios retain their one-slot sample display", () => {
   const tv = { ...row, slug: "samsung-m70h-tv", capacity: 1200, sold: 1199, remaining: 1, repeatableScenario: true };
   expect(parseAvailability([tv])?.[tv.slug]).toEqual(tv);
   expect(filledPercent(tv)).toBe(99);
+  expect(availabilityStatus(tv.capacity, tv.sold)).toMatchObject({ remaining: 1, percentFilled: 99, label: "Almost full", color: "#f32343" });
+});
+test.each([
+  [35,  "35% full", "#25c46a"],
+  [50, "50% full", "#0787e8"],
+  [75, "75% full", "#ff6b22"],
+  [90, "Almost full", "#f32343"],
+  [100, "Pool full", "#f32343"],
+] as const)("uses honest count-based language and circle color at %i%%", (sold, label, color) => {
+  expect(availabilityStatus(100, sold)).toMatchObject({ percentFilled: sold, remaining: 100 - sold, label, color });
 });
 test.each([
   null, [], {}, [{ ...row, sold: 76 }], [{ ...row, sold: -1 }],

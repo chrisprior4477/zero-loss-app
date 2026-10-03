@@ -11,6 +11,7 @@ import styles from "./showroom.module.css";
 import { PurchaseOptionControls } from "./PurchaseOptionControls";
 import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
+import { availabilityStatus } from "@/lib/catalog/availability";
 
 export function ActivityDetailDialog({ item, destination, filter = "all", offerMetrics, outcomeEmailPreference = null }: {
   item: ActivityItem;
@@ -24,6 +25,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
   const closeRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const presentation = activityPresentation(item);
+  const offerStatus = offerMetrics ? availabilityStatus(offerMetrics.capacity, offerMetrics.sold) : undefined;
   // The return destination is a fixed application route, never user-provided URL text.
   const returnHref = destination === "/account/entries" && filter !== "all" ? `${destination}?filter=${filter}` : destination;
   const close = () => router.replace(returnHref, { scroll: false });
@@ -51,7 +53,9 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
     : item.status === "prize"
       ? "Your winning outcome is ready. Follow its fulfillment path whenever you are ready."
       : item.status === "active"
-        ? "Your entry is still in play. Watch this offer fill and check back for the result."
+        ? offerStatus?.remaining === 0
+          ? "The pool is full. Your entry remains in play while the result is being prepared."
+          : "Your entry is still in play. Watch this offer fill and check back for the result."
         : "This activity is complete. Its outcome remains here as part of your Zero Loss history.";
   return <dialog ref={dialogRef} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); close(); }}
     onKeyDown={event => {
@@ -108,7 +112,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
         <div className={styles.detailSummary}>
           <p className={styles.detailRetailer}>{item.retailer}</p>
           <h2 id={titleId} className={styles.detailTitle}>{item.title}</h2>
-          <p className={styles.detailStatus}><AccountIcon name={item.status} />{presentation.label}</p>
+          <p className={styles.detailStatus}><AccountIcon name={item.status} />{offerStatus?.remaining === 0 ? "Awaiting result" : presentation.label}</p>
           <p className={styles.detailIntroduction}>{introduction}</p>
         </div>
       </section>
@@ -122,14 +126,14 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
       </> : item.status === "active" ? <>
         <section className={styles.detailPanel}>
           <p className={styles.panelEyebrow}>IN PLAY</p>
-          <h3>Your entry is still open</h3>
+          <h3>{offerStatus?.remaining === 0 ? "Pool full — awaiting result" : "Your entry is still open"}</h3>
           {offerMetrics ? <div className={styles.offerMetrics}>
-            <div className={styles.offerMetricsHeading}><strong>{offerMetrics.percentFilled}% full</strong><span>{offerMetrics.remaining.toLocaleString("en-US")} tickets left</span></div>
-            <div role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerMetrics.percentFilled} aria-valuemin={0} aria-valuemax={100} className={styles.offerMetricsTrack}><span style={{ width: `${offerMetrics.percentFilled}%` }} /></div>
+            <div className={styles.offerMetricsHeading}><strong>{offerMetrics.percentFilled}% full</strong><span>{offerStatus?.remaining === 0 ? "Pool full" : `${offerMetrics.remaining.toLocaleString("en-US")} tickets left`}</span></div>
+            <div role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerMetrics.percentFilled} aria-valuemin={0} aria-valuemax={100} className={styles.offerMetricsTrack}><span style={{ width: `${offerMetrics.percentFilled}%`, backgroundColor: offerStatus?.color }} /></div>
             <p>{offerMetrics.sold.toLocaleString("en-US")} of {offerMetrics.capacity.toLocaleString("en-US")} entries filled</p>
           </div> : <p className={styles.detailCopy}>Current ticket availability could not be verified. Check the product page for the latest count.</p>}
           <p className={styles.detailCopy}>After this offer closes and an outcome is posted, your result—win or no win—will appear here and in <Link href="/account/notifications">Notifications</Link>. If you do not win, you can decide whether to complete the gift-card purchase. Its deadline and remaining balance will be shown then; completing it is optional.</p>
-          <dl className={styles.entryFacts}><div><dt>Entry amount</dt><dd>{formatUsdFromCents(item.paidCents)}</dd></div><div><dt>Current status</dt><dd>Still open</dd></div></dl>
+          <dl className={styles.entryFacts}><div><dt>Entry amount</dt><dd>{formatUsdFromCents(item.paidCents)}</dd></div><div><dt>Current status</dt><dd>{offerStatus?.remaining === 0 ? "Awaiting result" : "Still open"}</dd></div></dl>
         </section>
         <EntryOutcomeEmailPreference initialEnabled={outcomeEmailPreference} />
       </> : <section className={styles.detailPanel}><p className={styles.panelEyebrow}>COMPLETED</p><h3>Activity complete</h3><p className={styles.detailCopy}>Completed activity details. No additional fulfillment action is enabled in this checkpoint.</p></section>}

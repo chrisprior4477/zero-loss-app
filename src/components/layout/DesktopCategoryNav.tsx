@@ -10,7 +10,7 @@ import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { HomeIcon } from "./HomeIcon";
 
 const desktopCategories = [
-  "Ending Soon",
+  "Popular Products",
   "Everyday Items",
   "Groceries",
   "Gas",
@@ -102,7 +102,7 @@ export function DesktopCategoryNav() {
         </li>
         {desktopCategories.map((category, index) => {
           const isOpen = openCategory === category;
-          const isEndingSoon = index === 0;
+          const isMerchandising = index === 0;
           const items = desktopCategoryItems[category] ?? [];
 
           return (
@@ -118,7 +118,7 @@ export function DesktopCategoryNav() {
                 onFocus={() => setOpenCategory(category)}
                 onClick={() => setOpenCategory(null)}
                 className={
-                  isEndingSoon
+                  isMerchandising
                     ? "inline-flex h-8 items-center rounded-full bg-[var(--urgent)] px-3 text-[13px] font-medium text-white shadow-[0_2px_0_rgba(0,0,0,0.14)] transition-colors hover:bg-[#ff7a24] sm:px-4 sm:text-[15px] lg:text-[16px]"
                     : "inline-flex h-7 items-center rounded-md px-2 text-[13px] font-medium text-white/90 transition-colors hover:bg-white/8 hover:text-white sm:text-[15px] lg:text-[16px]"
                 }

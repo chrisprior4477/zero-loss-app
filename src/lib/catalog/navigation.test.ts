@@ -32,3 +32,11 @@ describe("Gas marketplace category", () => {
     expect(marketplaceCategoryHref("gas")).toBe("/browse?category=gas");
   });
 });
+
+test("almost-full category includes only open pools at least 90% filled", () => {
+  const nearFull = { ...demoProducts[0], capacity: 100, sold: 90 };
+  expect(productMatchesMarketplaceCategory(nearFull, "ending-soon")).toBe(true);
+  expect(productMatchesMarketplaceCategory({ ...nearFull, sold: 89 }, "ending-soon")).toBe(false);
+  expect(productMatchesMarketplaceCategory({ ...nearFull, sold: 100 }, "ending-soon")).toBe(false);
+  expect(marketplaceCategoryHref("almost full")).toBe("/browse?sort=ending-soon");
+});

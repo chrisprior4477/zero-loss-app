@@ -16,7 +16,7 @@ export const footerLinkGroups: {
     title: "Marketplace",
     links: [
       { href: "/browse", label: "All Rewards" },
-      { href: "/browse?sort=ending-soon", label: "Ending Soon" },
+      { href: "/browse?sort=ending-soon", label: "Almost Full" },
       { href: "/#meet-winners-heading", label: "Winners" },
     ],
   },

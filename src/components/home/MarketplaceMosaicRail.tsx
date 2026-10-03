@@ -6,7 +6,7 @@ import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { CircularProgress } from "@/components/home/DollarChoiceCarouselLight";
 import { dollarChoiceDemoItems, entryCapacityForValue, marketplaceMovementDemoItems } from "@/lib/home/demo-data";
-import { availabilityForHref, filledPercent } from "@/lib/catalog/availability";
+import { availabilityForHref, availabilityStatus, progressAppearance } from "@/lib/catalog/availability";
 import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
 
 const products = dollarChoiceDemoItems;
@@ -19,10 +19,10 @@ function EntryButton({ compact = false }: { compact?: boolean }) {
 
 function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
   const current = availabilityForHref(useOfferingAvailability(), sample.href);
-  const item = { ...sample, percentFilled: current ? filledPercent(current) : sample.percentFilled };
-  const meterColor = item.percentFilled >= 90 ? "#f32343" : item.percentFilled >= 75 ? "#ff6b22" : item.percentFilled >= 50 ? "#0787e8" : "#25c46a";
+  const status = current ? availabilityStatus(current.capacity, current.sold) : { percentFilled: sample.percentFilled, ...progressAppearance(sample.percentFilled) };
+  const item = { ...sample, percentFilled: status.percentFilled };
   const movement = marketplaceMovementDemoItems.find((entry) => entry.itemId === item.id);
-  const ticketsLeft = current?.remaining ?? movement?.spotsLeft ?? Math.max(25, Math.round((100 - item.percentFilled) * 12));
+  const ticketsLeft = current?.remaining ?? movement?.spotsLeft;
   const entryCapacity = current?.capacity ?? entryCapacityForValue(item.prizeValue);
 
   return (
@@ -40,17 +40,17 @@ function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
             style={{ objectPosition: "left center" }}
             className="object-contain p-3 pr-[68px] drop-shadow-[0_15px_14px_rgba(0,19,46,0.22)] transition-transform duration-300 group-hover:scale-[1.035] sm:p-4 sm:pr-[92px]"
           />
-          <span style={{ position: "absolute", right: 10, top: 48 }} className="z-10 text-right text-[8px] font-extrabold uppercase leading-tight tracking-[0.04em] text-slate-500 sm:right-[14px] sm:top-[76px] sm:text-[10px]">
+          {ticketsLeft !== undefined ? <span style={{ position: "absolute", right: 10, top: 48 }} className="z-10 text-right text-[8px] font-extrabold uppercase leading-tight tracking-[0.04em] text-slate-500 sm:right-[14px] sm:top-[76px] sm:text-[10px]">
             <span className="block text-[15px] leading-none text-[#00132e]">{ticketsLeft.toLocaleString()}</span>
-            tickets left
-          </span>
+            {ticketsLeft === 0 ? "pool full" : "tickets left"}
+          </span> : null}
           <span className="absolute bottom-2 right-2 z-10 scale-[.76] sm:bottom-5 sm:right-4 sm:scale-100">
-            <CircularProgress percent={item.percentFilled} color={meterColor} label={`${item.title} pool filled`} />
+            <CircularProgress percent={item.percentFilled} color={status.color} label={`${item.title} pool filled`} />
           </span>
         </div>
         <div className="flex min-h-[68px] items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-5 sm:py-3">
           <div style={{ maxWidth: 180 }} className="min-w-0">
-            {item.endingSoon && <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#ff8a35] sm:text-[9px]">Ending soon</p>}
+            {status.almostFull || ticketsLeft === 0 ? <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] sm:text-[9px]" style={{ color: status.color }}>{ticketsLeft === 0 ? "Pool full" : status.label}</p> : null}
             <h3 className="text-[11px] font-extrabold leading-tight text-white sm:text-[15px]">{item.title}</h3>
             <p className="mt-1 text-[8px] font-semibold leading-tight text-white/60 sm:text-[10px]">
               ${item.prizeValue.toLocaleString()} value · {entryCapacity.toLocaleString()} entries
@@ -66,7 +66,8 @@ function FeatureCard({ item: sample }: { item: (typeof products)[number] }) {
 
 function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
   const current = availabilityForHref(useOfferingAvailability(), sample.href);
-  const item = { ...sample, percentFilled: current ? filledPercent(current) : sample.percentFilled };
+  const status = current ? availabilityStatus(current.capacity, current.sold) : { percentFilled: sample.percentFilled, ...progressAppearance(sample.percentFilled) };
+  const item = { ...sample, percentFilled: status.percentFilled };
   const entryCapacity = current?.capacity ?? entryCapacityForValue(item.prizeValue);
   return (
     <article className="group relative min-h-[95px] w-[125px] flex-1 overflow-hidden rounded-xl border border-cyan-200/15 bg-[linear-gradient(120deg,#052350,#021630)] shadow-[0_14px_30px_rgba(0,0,0,0.22)] sm:min-h-[123px] sm:w-[230px] sm:rounded-[20px]">
@@ -76,7 +77,7 @@ function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
           <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="110px" className="object-contain p-0.5 drop-shadow-[0_10px_10px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-105 sm:p-1" />
         </div>
         <div className="min-w-0 flex-1">
-          {item.endingSoon && <p className="mb-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-[#ff8a35] sm:text-[8px]">Ending soon</p>}
+          {status.almostFull || current?.remaining === 0 ? <p className="mb-0.5 text-[7px] font-black uppercase tracking-[0.08em] sm:text-[8px]" style={{ color: status.color }}>{status.label}</p> : null}
           <h3 className="line-clamp-2 text-[9px] font-extrabold leading-tight text-white sm:text-[14px]">{item.title}</h3>
           <p className="mt-1 text-[7px] font-semibold leading-tight text-white/60 sm:text-[9px]">
             ${item.prizeValue.toLocaleString()} · {entryCapacity.toLocaleString()} entries

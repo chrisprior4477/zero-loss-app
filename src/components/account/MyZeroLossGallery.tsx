@@ -8,6 +8,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./my-activity.module.css";
 import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
+import { availabilityStatus } from "@/lib/catalog/availability";
 
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
 function action(item: ActivityItem) {
@@ -133,6 +134,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug }: { items: Act
       {items.map((item, index) => {
         const featured = item.status === "prize" && index === 0;
         const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
+        const offerStatus = offerMetrics ? availabilityStatus(offerMetrics.capacity, offerMetrics.sold) : undefined;
         const desktopColumn = Math.floor(index / 6) * 2 + (index % 2) + 1;
         const desktopRow = Math.floor((index % 6) / 2) + 1;
         const stackedColumn = Math.floor(index / 2) + 1;
@@ -148,20 +150,20 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug }: { items: Act
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
-              <span className={styles.status}><AccountIcon name={item.status} />{labels[item.status]}</span>
+              <span className={styles.status}><AccountIcon name={item.status} />{offerStatus?.remaining === 0 ? "Awaiting result" : labels[item.status]}</span>
               <div className={styles.productStage} data-activity-click>
                 <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 44vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
               </div>
               <div className={styles.cardFoot}>
                 <p className={styles.productNote}>{item.status === "completion"
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
-                  : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · ${offerMetrics ? `${offerMetrics.remaining.toLocaleString("en-US")} tickets left` : "Still in play"}`
+                  : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · ${offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : `${offerStatus.remaining.toLocaleString("en-US")} tickets left`) : "Still in play"}`
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : "Your completed activity."}</p>
                 <span className={styles.cardAction} data-activity-click>{action(item)}<AccountIcon name="arrow" /></span>
               </div>
             </div>
             <span className={styles.cardChevron} data-activity-click aria-hidden="true" />
-            {offerMetrics ? <span className={styles.offerProgress} role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerMetrics.percentFilled} aria-valuemin={0} aria-valuemax={100} style={{ "--offer-progress": `${offerMetrics.percentFilled}%` } as CSSProperties}><span>{offerMetrics.percentFilled}%</span></span> : null}
+            {offerMetrics ? <span className={styles.offerProgress} role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerMetrics.percentFilled} aria-valuemin={0} aria-valuemax={100} style={{ "--offer-progress": `${offerMetrics.percentFilled}%`, "--offer-progress-color": offerStatus?.color } as CSSProperties}><span>{offerMetrics.percentFilled}%</span></span> : null}
           </Link>
           {featured && items.length > 1 ? <p className={styles.mobileRestLabel}>Everything else</p> : null}
         </div>;

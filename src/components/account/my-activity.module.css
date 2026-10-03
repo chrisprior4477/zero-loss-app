@@ -101,7 +101,7 @@
 .productCard [data-activity-click] { cursor: pointer; }
 .cardChevron { position: absolute; top: 25%; right: 15px; width: 10px; height: 10px; border-top: 2px solid #0a1741; border-right: 2px solid #0a1741; transform: rotate(45deg); }
 .productCard[data-has-progress="true"] .cardChevron { top: 58%; }
-.offerProgress { position: absolute; z-index: 1; top: 9px; right: 18px; display: grid; width: 54px; height: 54px; place-items: center; border-radius: 50%; background: conic-gradient(#ff254b var(--offer-progress), #dfe7ef 0); box-shadow: 0 2px 6px #09224a21; color: #10213d; pointer-events: none; }
+.offerProgress { position: absolute; z-index: 1; top: 9px; right: 18px; display: grid; width: 54px; height: 54px; place-items: center; border-radius: 50%; background: conic-gradient(var(--offer-progress-color, #f32343) var(--offer-progress), #dfe7ef 0); box-shadow: 0 2px 6px #09224a21; color: #10213d; pointer-events: none; }
 .offerProgress > span { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 13px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .cardInner {
   position: relative;

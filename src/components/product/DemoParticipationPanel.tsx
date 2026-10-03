@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PoolProgress } from "@/components/product/PoolProgress";
+import { availabilityStatus } from "@/lib/catalog/availability";
 import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "@/lib/entries/actions";
@@ -51,7 +52,8 @@ export function DemoParticipationPanel({
   signedOutCompact = false,
 }: Props) {
   const router = useRouter();
-  const remaining = Math.max(0, capacity - sold);
+  const availability = availabilityStatus(capacity, sold);
+  const remaining = availability.remaining;
   const maxQuantity = Math.min(10, remaining);
   // A lost response must retry the exact intent. Server comparison also protects
   // reloads/new tabs, where this transient form memory has been lost.
@@ -185,8 +187,8 @@ export function DemoParticipationPanel({
         <div>
           <p className="text-3xl font-extrabold leading-none">${entryPrice.toFixed(2)} <span className="text-sm font-bold text-white/80">per entry</span></p>
         </div>
-        <span className="rounded-full bg-[#ff630f] px-2.5 py-1 text-right text-xs font-extrabold leading-4 text-black">
-          Ending soon{availabilityConfirmed ? <><br />{remaining.toLocaleString()} left</> : null}
+        <span className="rounded-full px-2.5 py-1 text-right text-xs font-extrabold leading-4 text-[#00132e]" style={{ backgroundColor: availabilityConfirmed ? availability.color : "#8ba5bd" }}>
+          {availabilityConfirmed ? <>{availability.label}<br />{remaining === 0 ? "No entries left" : `${remaining.toLocaleString()} left`}</> : "Availability unverified"}
         </span>
       </div>
 

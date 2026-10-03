@@ -203,17 +203,14 @@ export const placeholderPopularBrands = [
 /**
  * Category strip, ordered to match the Checkpoint 2 artboards.
  *
- * "Ending Soon" and "Everyday Items" lead, as they do in the design. An
- * earlier revision dropped both, reading C6 ("keep the existing category
- * taxonomy rather than the design.s version") as excluding them — but those
- * two are merchandising entries rather than taxonomy, and removing them
- * visibly changed the top of the nav.
+ * "Popular Products" and "Everyday Items" lead. The first is a curated
+ * merchandising menu, not a claim that every listed product is near capacity.
  *
  * "All" from spec §7 is currently not shown, because the design has no such
  * chip and "Everyday Items" fills the browse-everything role.
  */
 export const homeCategories = [
-  "Ending Soon",
+  "Popular Products",
   "Everyday Items",
   "Groceries & Gas",
   "Movie Night",
@@ -226,7 +223,7 @@ export const homeCategories = [
 /** Promo rail tiles from the artboards, using our approved vocabulary (C10). */
 export const placeholderPromoTiles = [
   { id: "promo-1", label: "WHAT'S NEW", href: "/browse" },
-  { id: "promo-2", label: "ENDING SOON", href: "/browse" },
+  { id: "promo-2", label: "ALMOST FULL", href: "/browse?sort=ending-soon" },
   { id: "promo-3", label: "WINNERS", href: "/browse" },
   { id: "promo-4", label: "FEATURED", href: "/browse" },
   { id: "promo-5", label: "EVERYDAY ITEMS", href: "/browse" },
@@ -251,9 +248,7 @@ export const shopByPriceTiers = [
  * Two deliberate departures, both following from C6 (keep our taxonomy, not
  * the design's):
  *
- * - "All" has no menu. In the artboards the first chip is "Ending Soon", a
- *   curated list of individual items; ours is "All", which means "no filter"
- *   and has nothing to expand into.
+ * - The first curated product menu is separate from the browse-all filter.
  * - "Home Essentials" is a top-level category for us but only a child of the
  *   artboard's "Everyday Items". Its children here are the rest of that
  *   Everyday Items list, with "Groceries & Gas" (already top-level) and
@@ -333,9 +328,9 @@ export const categorySubcategories: Record<string, readonly string[]> = {
 };
 
 /* Menus for the two merchandising chips that lead the strip, from the
-   artboards. "Ending Soon" lists individual items rather than subcategories,
+   artboards. "Popular Products" lists individual items rather than subcategories,
    which is why it reads differently from the taxonomy menus above. */
-categorySubcategories["Ending Soon"] = [
+categorySubcategories["Popular Products"] = [
   'Samsung 50" M70H Smart TV',
   "Nike Men's Court Shot Shoes",
   "Baby's Essentials Bundle",

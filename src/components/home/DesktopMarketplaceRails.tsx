@@ -16,7 +16,7 @@ import {
 import { popularRewardBrands } from "@/lib/catalog/popular-rewards";
 import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
-import { availabilityForHref } from "@/lib/catalog/availability";
+import { availabilityForHref, availabilityStatus } from "@/lib/catalog/availability";
 
 const desktopCategories = [
   { id: "groceries", label: "Groceries", image: "/category-groceries-v2.png" },
@@ -28,15 +28,13 @@ const desktopCategories = [
   { id: "movie-night", label: "Movie Night", image: "/category-movie-night-v2.png" },
 ];
 
-const endingSoonRemaining = [1, 1, 1, 5, 7, 8, 12, 14, 21] as const;
-
 const sampleEndingSoon = [
   ...placeholderFeaturedOpportunities,
   ...placeholderDiscoveryOpportunities,
 ]
-  .map((item, index) => ({
+  .map((item) => ({
     item,
-    remaining: endingSoonRemaining[index] ?? 21,
+    remaining: Math.max(0, item.ticketCapacity - item.ticketsSold),
   }))
   .sort((a, b) => a.remaining - b.remaining);
 
@@ -259,12 +257,12 @@ export function DesktopMarketplaceRails() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Ending Soon</h2>
+              <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Ticket Progress</h2>
               <span className="rounded-full border border-cyan-300/50 px-2 py-1 text-[9px] uppercase tracking-[0.08em] text-cyan-300">Demo data</span>
             </div>
-            <p className="mt-1 text-[13px] text-white/60">Popular opportunities closest to completion.</p>
+            <p className="mt-1 text-[13px] text-white/60">See how many entries are filled and how many remain.</p>
           </div>
-          <Link href={marketplaceCategoryHref("ending-soon")} className="text-[14px] font-semibold text-cyan-300 hover:text-cyan-200">See all</Link>
+          <Link href={marketplaceCategoryHref("ending-soon")} className="shrink-0 whitespace-nowrap text-[12px] font-semibold text-cyan-300 hover:text-cyan-200 sm:text-[14px]">Almost full</Link>
         </div>
 
         <div className="relative">
@@ -275,20 +273,7 @@ export function DesktopMarketplaceRails() {
             {...endingDrag}
           >
             {endingSoon.map(({ item, remaining }) => {
-            const percent = Math.min(
-              ((item.ticketCapacity - remaining) / item.ticketCapacity) * 100,
-              100
-            );
-            const filledSegments = Math.round(percent / 10);
-            const progressColor =
-              percent >= 90
-                ? "#e31937"
-                : percent >= 72
-                  ? "#ff6b22"
-                  : percent >= 45
-                    ? "#0787e8"
-                    : "#70c51c";
-            const urgencyLabel = remaining === 0 ? "Pool full" : remaining <= 10 ? "Almost gone!" : "Going fast!";
+            const status = availabilityStatus(item.ticketCapacity, item.ticketCapacity - remaining);
 
             return (
               <article
@@ -309,29 +294,28 @@ export function DesktopMarketplaceRails() {
                     <span aria-hidden="true"> · </span>
                     <span>{item.ticketCapacity.toLocaleString()} entries</span>
                   </p>
-                  <div className="mt-2 flex gap-1" aria-label={`${Math.round(percent)}% filled`}>
-                  {Array.from({ length: 10 }, (_, segment) => (
-                    <span
+                  <div className="mt-2 flex gap-1" aria-label={`${status.percentFilled}% filled`}>
+                  {Array.from({ length: 10 }, (_, segment) => {
+                    const segmentFill = Math.min(100, Math.max(0, status.percentFilled - segment * 10) * 10);
+                    return <span
                       key={segment}
                       aria-hidden="true"
                       className="h-2 flex-1 rounded-[3px]"
-                      style={{
-                        backgroundColor:
-                          segment < filledSegments ? progressColor : "#e5e7eb",
-                      }}
-                    />
-                  ))}
+                      style={{ background: `linear-gradient(90deg, ${status.color} ${segmentFill}%, #e5e7eb ${segmentFill}%)` }}
+                    />;
+                  })}
                   </div>
                   <div className="mt-1.5 flex items-center gap-2.5">
                   <span
                     aria-hidden="true"
-                    className="relative grid h-9 w-[54px] shrink-0 place-items-center overflow-hidden rounded-[4px] bg-[#e31937] text-[19px] font-extrabold leading-none text-white before:absolute before:-left-1.5 before:top-1/2 before:h-3 before:w-3 before:-translate-y-1/2 before:rounded-full before:bg-white after:absolute after:-right-1.5 after:top-1/2 after:h-3 after:w-3 after:-translate-y-1/2 after:rounded-full after:bg-white"
+                    className="relative grid h-9 w-[54px] shrink-0 place-items-center overflow-hidden rounded-[4px] text-[19px] font-extrabold leading-none text-white before:absolute before:-left-1.5 before:top-1/2 before:h-3 before:w-3 before:-translate-y-1/2 before:rounded-full before:bg-white after:absolute after:-right-1.5 after:top-1/2 after:h-3 after:w-3 after:-translate-y-1/2 after:rounded-full after:bg-white"
+                    style={{ backgroundColor: status.color }}
                   >
                     {remaining}
                   </span>
                   <span className="leading-tight">
-                    <span className="block text-[14px] font-bold text-[#e31937]">{remaining} left</span>
-                    <span className="mt-1 block text-[12px] font-semibold text-slate-500">{urgencyLabel}</span>
+                    <span className="block text-[14px] font-bold" style={{ color: status.color }}>{status.remaining === 0 ? "Pool full" : `${status.remaining.toLocaleString()} left`}</span>
+                    <span className="mt-1 block text-[12px] font-semibold text-slate-500">{status.label}</span>
                   </span>
                   </div>
                 </Link>

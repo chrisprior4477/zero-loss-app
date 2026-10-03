@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { dollarChoiceDemoItems, entryCapacityForValue } from "@/lib/home/demo-data";
-import { availabilityForHref, filledPercent } from "@/lib/catalog/availability";
+import { availabilityForHref, availabilityStatus, progressAppearance } from "@/lib/catalog/availability";
 import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
 
 export function CircularProgress({ percent, color, label }: { percent: number; color: string; label: string }) {
@@ -119,9 +119,9 @@ export function DollarChoiceCarouselLight() {
         >
           {dollarChoiceDemoItems.map((sample) => {
             const current = availabilityForHref(availability, sample.href);
-            const item = { ...sample, percentFilled: current ? filledPercent(current) : sample.percentFilled };
-            const meterColor = item.percentFilled >= 90 ? "#f32343" : item.percentFilled >= 75 ? "#ff6b22" : item.percentFilled >= 50 ? "#0787e8" : "#25c46a";
-            const entryCapacity = current?.capacity ?? entryCapacityForValue(item.prizeValue);
+            const entryCapacity = current?.capacity ?? entryCapacityForValue(sample.prizeValue);
+            const status = current ? availabilityStatus(current.capacity, current.sold) : { percentFilled: sample.percentFilled, ...progressAppearance(sample.percentFilled) };
+            const item = { ...sample, percentFilled: status.percentFilled };
             return (
               <article key={item.id} className="group relative flex h-[250px] w-[174px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#a9bfd0] bg-white shadow-[0_16px_35px_rgba(0,19,46,0.2)] transition-transform duration-300 hover:-translate-y-1 sm:h-[292px] sm:w-[244px] sm:rounded-[22px]">
                 <Link href={item.href} draggable={false} className="flex min-h-0 flex-1 flex-col p-3 pb-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500">
@@ -131,13 +131,13 @@ export function DollarChoiceCarouselLight() {
                   </div>
                   <div className="mt-3 flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      {item.endingSoon && <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#e94f10] sm:text-[9px]">Ending soon</p>}
+                      {status.almostFull || current?.remaining === 0 ? <p className="mb-0.5 text-[8px] font-black uppercase tracking-[0.08em] sm:text-[9px]" style={{ color: status.color }}>{status.label}</p> : null}
                       <h3 className="line-clamp-2 text-left text-[13px] font-extrabold leading-[1.22] text-[#00132e] sm:text-[15px]">{item.title}</h3>
                       <p className="mt-1 text-[9px] font-semibold leading-tight text-slate-500 sm:text-[11px]">
                         ${item.prizeValue.toLocaleString()} value<br />{entryCapacity.toLocaleString()} entries
                       </p>
                     </div>
-                    <CircularProgress percent={item.percentFilled} color={meterColor} label={`${item.title} pool filled`} />
+                    <CircularProgress percent={item.percentFilled} color={status.color} label={`${item.title} pool filled`} />
                   </div>
                 </Link>
                 <Link

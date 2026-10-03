@@ -10,6 +10,7 @@ import {
 } from "@/lib/catalog/navigation";
 import { searchCatalogMatches } from "@/lib/catalog/search";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { availabilityStatus } from "@/lib/catalog/availability";
 import { BrowseCategoryNav } from "@/components/catalog/BrowseCategoryNav";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
@@ -72,7 +73,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {products.length ? (
           <section aria-label="Products" className={`mt-7 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {products.map((product) => {
-              const remaining = Math.max(0, product.capacity - product.sold);
+              const status = availabilityStatus(product.capacity, product.sold);
               return (
                 <article key={product.slug} className="relative overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
                   <Link href={`/items/${product.slug}`} className="group flex h-full flex-col p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan-500 sm:p-4">
@@ -84,7 +85,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     {relatedRetailers.has(product.slug) ? <p className="my-2 text-xs leading-4 text-slate-600">Related retailer gift card · Check retailer product availability.</p> : null}
                     <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs">
                       <span><strong className="block text-sm">${product.entryPrice.toFixed(2)}</strong>per entry</span>
-                      <span className="text-right text-slate-500"><strong className="block text-[#e34c16]">{remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>
+                      <span className="text-right text-slate-500"><strong className="block" style={{ color: status.color }}>{status.remaining === 0 ? "Pool full" : `${status.remaining.toLocaleString()} left`}</strong>${product.value.toLocaleString()} value</span>
                     </div>
                   </Link>
                   <FavoriteButton itemName={product.title} itemHref={`/items/${product.slug}`} size="large" className="absolute right-5 top-5 z-10" />

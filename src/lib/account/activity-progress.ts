@@ -1,4 +1,4 @@
-import type { AvailabilitySnapshot } from "@/lib/catalog/availability";
+import { filledPercent, type AvailabilitySnapshot } from "@/lib/catalog/availability";
 import type { ActivityItem } from "./activity";
 
 export type ActivityOfferMetrics = { percentFilled: number; sold: number; capacity: number; remaining: number };
@@ -11,7 +11,7 @@ export function activityOfferMetrics(items: ActivityItem[], availability: Availa
     const offering = availability?.[item.slug];
     if (!offering || offering.capacity <= 0) continue;
     metrics[item.slug] = {
-      percentFilled: Math.floor(offering.sold / offering.capacity * 100),
+      percentFilled: filledPercent(offering),
       sold: offering.sold,
       capacity: offering.capacity,
       remaining: offering.remaining,

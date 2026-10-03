@@ -91,6 +91,15 @@ test("compact signed-out entry keeps quantity, live counts, and login redirect t
   expect(new URL(href, "https://example.test").searchParams.get("next")).toBe("/items/test-product?quantity=2#enter-entry");
 });
 
+test("product urgency follows counts and identifies a full pool", () => {
+  const { rerender } = render(<DemoParticipationPanel {...props} sold={7} capacity={20} />);
+  expect(screen.getByText(/35% full/)).toBeTruthy();
+  expect(screen.queryByText(/Ending soon/i)).toBeNull();
+  rerender(<DemoParticipationPanel {...props} sold={20} capacity={20} />);
+  expect(screen.getByText(/Pool full/)).toBeTruthy();
+  expect(screen.getByText(/No entries left/)).toBeTruthy();
+});
+
 test("unavailable inventory offers refresh instead of accepting a purchase against sample counts", () => {
   render(<DemoParticipationPanel {...props} availabilityConfirmed={false} isSignedIn />);
   expect(screen.queryByRole("button", { name: "Enter for $1.00" })).toBeNull();

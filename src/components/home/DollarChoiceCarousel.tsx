@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { dollarChoiceDemoItems, entryCapacityForValue } from "@/lib/home/demo-data";
-import { availabilityForHref, filledPercent } from "@/lib/catalog/availability";
+import { availabilityForHref, availabilityStatus, progressAppearance } from "@/lib/catalog/availability";
 import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
 
 export function DollarChoiceCarousel() {
@@ -99,8 +99,8 @@ export function DollarChoiceCarousel() {
         >
           {dollarChoiceDemoItems.map((sample) => {
             const current = availabilityForHref(availability, sample.href);
-            const item = { ...sample, percentFilled: current ? filledPercent(current) : sample.percentFilled };
-            const meterColor = item.percentFilled >= 80 ? "#ff630f" : item.percentFilled >= 60 ? "#31e800" : "#00b9ff";
+            const status = current ? availabilityStatus(current.capacity, current.sold) : { percentFilled: sample.percentFilled, ...progressAppearance(sample.percentFilled) };
+            const item = { ...sample, percentFilled: status.percentFilled };
             const entryCapacity = current?.capacity ?? entryCapacityForValue(item.prizeValue);
             return (
               <article key={item.id} className="group relative w-[156px] shrink-0 sm:w-[230px]">
@@ -121,13 +121,13 @@ export function DollarChoiceCarousel() {
                     <span aria-hidden="true" className="absolute inset-[18%] rounded-full blur-2xl" style={{ backgroundColor: item.accentSoft, boxShadow: `0 0 42px ${item.accent}` }} />
                     <Image src={item.image} alt="" aria-hidden="true" draggable={false} fill sizes="230px" className="relative z-10 object-contain p-1 drop-shadow-[0_18px_18px_rgba(0,0,0,0.42)] transition-transform duration-300 group-hover:scale-105" />
                   </div>
-                  {item.endingSoon && <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.1em] text-[#ff7a22]">Ending soon</p>}
-                  <h3 className={`${item.endingSoon ? "mt-0.5" : "mt-2"} min-h-10 text-center text-[14px] font-bold leading-[1.25] text-white`}>{item.title}</h3>
+                  {status.almostFull || current?.remaining === 0 ? <p className="mt-2 text-center text-[9px] font-black uppercase tracking-[0.1em]" style={{ color: status.color }}>{status.label}</p> : null}
+                  <h3 className={`${status.almostFull || current?.remaining === 0 ? "mt-0.5" : "mt-2"} min-h-10 text-center text-[14px] font-bold leading-[1.25] text-white`}>{item.title}</h3>
                   <p className="mt-1 text-center text-[10px] font-semibold text-white/70 sm:text-[11px]">
                     ${item.prizeValue.toLocaleString()} value · {entryCapacity.toLocaleString()} entries
                   </p>
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/12" role="progressbar" aria-label={`${item.title} pool filled`} aria-valuenow={item.percentFilled} aria-valuemin={0} aria-valuemax={100}>
-                    <span className="block h-full rounded-full" style={{ width: `${item.percentFilled}%`, backgroundColor: meterColor }} />
+                    <span className="block h-full rounded-full" style={{ width: `${item.percentFilled}%`, backgroundColor: status.color }} />
                   </div>
                   <div className="mt-2 text-center text-[11px]">
                     <span className="font-bold text-white">{item.percentFilled}% filled</span>

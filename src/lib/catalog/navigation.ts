@@ -1,7 +1,8 @@
 import type { DemoProduct } from "./demo-products";
+import { availabilityStatus } from "./availability";
 
 export const marketplaceCategories = [
-  { id: "ending-soon", label: "Ending Soon" },
+  { id: "ending-soon", label: "Almost Full" },
   { id: "everyday-items", label: "Everyday Items" },
   { id: "groceries", label: "Groceries" },
   { id: "gas", label: "Gas" },
@@ -14,6 +15,7 @@ export type MarketplaceCategoryId = (typeof marketplaceCategories)[number]["id"]
 
 const categoryAliases: Record<string, MarketplaceCategoryId> = {
   "ending soon": "ending-soon",
+  "almost full": "ending-soon",
   "everyday items": "everyday-items",
   groceries: "groceries",
   gas: "gas",
@@ -53,7 +55,7 @@ export function productMatchesMarketplaceCategory(product: DemoProduct, category
   const haystack = `${product.category} ${product.title} ${product.brand} ${product.retailer}`.toLowerCase();
   switch (category) {
     case "ending-soon":
-      return product.capacity - product.sold <= 25;
+      return availabilityStatus(product.capacity, product.sold).almostFull;
     case "everyday-items":
       return includesAny(haystack, ["grocery", "shopping", "essentials", "baby", "health", "pet", "home", "coffee", "dining"]);
     case "groceries":

@@ -53,7 +53,7 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams)
     const category = searchParams.get("category");
     if (category) return [{ label: "Browse the Marketplace", href: "/browse" }, { label: humanize(category) }];
     if (searchParams.has("q")) return [{ label: "Search results" }];
-    if (searchParams.get("sort") === "ending-soon") return [{ label: "Ending Soon" }];
+    if (searchParams.get("sort") === "ending-soon") return [{ label: "Almost Full" }];
     return [{ label: "Browse the Marketplace" }];
   }
   if (root === "items") return [{ label: "Browse the Marketplace", href: "/browse" }, { label: second ? humanize(second) : "Product details" }];

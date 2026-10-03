@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { PoolProgress } from "@/components/product/PoolProgress";
+import { availabilityStatus } from "@/lib/catalog/availability";
 import type {
   OpportunityStatus,
   PlaceholderOpportunity,
@@ -35,7 +36,8 @@ const STATUS_STYLE: Record<
 };
 
 export function ProductCard({ opportunity, href = "/browse" }: ProductCardProps) {
-  const status = STATUS_STYLE[opportunity.status];
+  const progress = availabilityStatus(opportunity.ticketCapacity, opportunity.ticketsSold);
+  const status = opportunity.status === "closing" ? { background: progress.color, color: "#00132e" } : STATUS_STYLE[opportunity.status];
 
   return (
     <article className="h-full">
@@ -59,7 +61,7 @@ export function ProductCard({ opportunity, href = "/browse" }: ProductCardProps)
             className="rounded-full px-2.5 py-1 font-mono text-[9.5px] font-bold uppercase leading-none tracking-[0.08em]"
             style={status}
           >
-            {opportunity.statusLabel}
+            {opportunity.status === "closing" ? progress.label : opportunity.statusLabel}
           </span>
           <span className="font-mono text-[10.5px] font-medium text-[rgba(0,0,0,0.45)]">
             {opportunity.category}

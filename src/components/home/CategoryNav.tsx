@@ -108,7 +108,7 @@ export function CategoryNav() {
             const hasMenu = Boolean(categorySubcategories[category]);
             /* The artboards give the leading merchandising chip a green
                outlined treatment rather than the taxonomy chips. style. */
-            const isMerchandising = category === "Ending Soon";
+            const isMerchandising = category === "Popular Products";
 
             return (
               <li key={category} className="shrink-0">

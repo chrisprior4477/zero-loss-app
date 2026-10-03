@@ -7,9 +7,10 @@
  * from the two props passed in — there is no prop to set an urgency state by
  * hand, because spec §15 prohibits artificial scarcity.
  *
- * The fill colour carries the semantic role: cyan while a pool is filling
- * normally, orange once it crosses into genuine urgency.
+ * The fill uses the same green/blue/orange/red capacity bands as the circles.
  */
+
+import { availabilityStatus } from "@/lib/catalog/availability";
 
 type PoolProgressProps = {
   ticketsSold: number;
@@ -17,45 +18,38 @@ type PoolProgressProps = {
   showRemainingLabel?: boolean;
 };
 
-const URGENT_THRESHOLD = 85;
-
 export function PoolProgress({
   ticketsSold,
   ticketCapacity,
   showRemainingLabel = true,
 }: PoolProgressProps) {
-  const safeCapacity = Math.max(1, ticketCapacity);
-  const clampedSold = Math.min(Math.max(0, ticketsSold), safeCapacity);
-  const percentComplete = Math.round((clampedSold / safeCapacity) * 100);
-  const remaining = safeCapacity - clampedSold;
-  const isUrgent = percentComplete >= URGENT_THRESHOLD;
+  const status = availabilityStatus(ticketCapacity, ticketsSold);
 
   return (
     <div className="relative">
       {showRemainingLabel ? <div
         className="absolute bottom-full right-0 mb-1 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold leading-none tracking-[0.04em]"
         style={{
-          background: isUrgent ? "var(--urgent)" : "var(--accent-deep)",
-          /* C4: orange pills carry black text, not white. */
-          color: isUrgent ? "#000" : "#fff",
+          background: status.color,
+          color: "#00132e",
         }}
       >
-        {remaining.toLocaleString()} left
+        {status.remaining === 0 ? "Pool full" : `${status.remaining.toLocaleString()} left`}
       </div> : null}
 
       <div
         role="progressbar"
-        aria-valuenow={percentComplete}
+        aria-valuenow={status.percentFilled}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`Pool ${percentComplete}% complete, ${remaining} entries remaining`}
+        aria-label={`Pool ${status.percentFilled}% complete, ${status.remaining} entries remaining`}
         className="h-[11px] overflow-hidden rounded-full bg-[rgba(0,71,149,0.12)]"
       >
         <div
           className="zl-bar-fill h-full rounded-full"
           style={{
-            ["--zl-target" as string]: `${percentComplete}%`,
-            background: isUrgent ? "var(--urgent)" : "var(--accent)",
+            ["--zl-target" as string]: `${status.percentFilled}%`,
+            background: status.color,
           }}
         />
       </div>
