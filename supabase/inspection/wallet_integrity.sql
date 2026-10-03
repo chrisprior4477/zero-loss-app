@@ -1,4 +1,4 @@
--- Read-only operational inspection. No raw credentials, receipts, or customer PII.
+-- Read-only operational inspection, not a pgTAP test. No raw credentials, receipts, or customer PII.
 begin read only;
 select jsonb_build_object(
   'environment', (select jsonb_build_object('name',environment,'fundingEnabled',enabled,
