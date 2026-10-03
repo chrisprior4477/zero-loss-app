@@ -106,9 +106,8 @@ export function CategoryNav() {
             const isActive = category === activeCategory;
             const isOpen = category === openCategory;
             const hasMenu = Boolean(categorySubcategories[category]);
-            /* The artboards give the leading merchandising chip a green
-               outlined treatment rather than the taxonomy chips. style. */
-            const isMerchandising = category === "Popular Products";
+            /* Keep the leading Ending Soon chip distinct from regular categories. */
+            const isMerchandising = category === "Ending Soon";
 
             return (
               <li key={category} className="shrink-0">

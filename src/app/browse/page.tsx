@@ -10,7 +10,7 @@ import {
 import { searchCatalogMatches } from "@/lib/catalog/search";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { availabilityStatus } from "@/lib/catalog/availability";
-import { BrowseCategoryNav } from "@/components/catalog/BrowseCategoryNav";
+import { RetailerCategoryNav } from "@/components/catalog/RetailerCategoryNav";
 import { BrowseFilters } from "@/components/catalog/BrowseFilters";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups } from "@/lib/catalog/browse-filters";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 type BrowsePageProps = {
-  searchParams: Promise<{ category?: string; sort?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; available?: string }>;
+  searchParams: Promise<{ category?: string; sort?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; partnerCategory?: string; available?: string; minValue?: string; maxValue?: string }>;
 };
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
@@ -37,12 +37,18 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const categoryProducts = availableProducts.filter((product) => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory));
   const retailers = browseRetailers(categoryProducts);
   const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts);
+  const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
   const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
-  const products = filterBrowseProducts(matchedProducts, filters, searchTerm, selectedCategory === "ending-soon");
+  const allowedRetailers = selectedRetailerGroup
+    ? new Set(selectedRetailerGroup.options.filter(option => option.hasOffer).map(option => option.value))
+    : undefined;
+  const products = filterBrowseProducts(matchedProducts, filters, searchTerm, selectedCategory === "ending-soon", allowedRetailers);
   const activeFilters = filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
+    || Boolean(selectedRetailerGroup)
+    || filters.minValue !== null || filters.maxValue !== null
     || (filters.sort !== "featured" && !(selectedCategory === "ending-soon" && filters.sort === "fewest-left"));
   const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm })}`;
   const allSearchHref = `/browse?${new URLSearchParams({ q: searchTerm })}`;
@@ -70,12 +76,12 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <Link href="/" className="font-bold text-cyan-300 hover:text-white">← Marketplace home</Link>
         </div>
 
-        <BrowseCategoryNav selectedCategory={selectedCategory} searchTerm={searchTerm} filters={filters} />
+        <RetailerCategoryNav groups={retailerGroups} selectedGroupId={selectedRetailerGroup?.id ?? ""} selectedCategory={selectedCategory} filters={filters} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} />
 
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
         <div className="mt-5 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-6">
-          <BrowseFilters filters={filters} retailerGroups={retailerGroups} retailers={retailers} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
+          <BrowseFilters filters={filters} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
           <div className="min-w-0">
             <p aria-live="polite" className="mt-4 text-sm font-bold text-white/75 lg:mt-0">{products.length} {products.length === 1 ? "product" : "products"} shown</p>
         {products.length ? (
@@ -101,9 +107,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               );
             })}
           </section>
-        ) : activeFilters && matchedProducts.length ? (
+        ) : activeFilters && (!searchTerm || matchedProducts.length) ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
-            <h2 className="text-2xl font-bold">{filters.retailer ? `No current ${filters.retailer} offer matches here.` : "No products match these filters."}</h2>
+            <h2 className="text-2xl font-bold">{filters.retailer ? `No current ${filters.retailer} offer matches here.` : selectedRetailerGroup ? `No current ${selectedRetailerGroup.category} offers match here.` : "No products match these filters."}</h2>
             <p className="mt-2 text-white/65">The partner directory is subject to availability. Try another retailer or clear your filters.</p>
             <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link>
           </section>

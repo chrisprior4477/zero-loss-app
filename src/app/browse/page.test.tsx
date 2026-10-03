@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import BrowsePage from "./page";
 
@@ -55,11 +55,15 @@ describe("Browse search results", () => {
     expect(screen.queryByRole("heading", { name: "Reciprocating Saw" })).toBeNull();
   });
 
-  test("keeps a search term when browsing its categories", async () => {
+  test("keeps a search term when browsing retailer categories without a duplicate product-category row", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels" }) }));
-    expect(screen.getByRole("link", { name: "Groceries" }).getAttribute("href")).toBe("/browse?category=groceries&q=paper+towels");
-    expect(screen.getByRole("link", { name: "All" }).getAttribute("href")).toBe("/browse?q=paper+towels");
-    expect(screen.getByRole("button", { name: "Scroll search categories right" })).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: "Browse categories" })).toBeNull();
+    const categories = within(screen.getByRole("navigation", { name: "Retailer categories" }));
+    fireEvent.click(categories.getByRole("button", { name: "Groceries" }));
+    const panel = within(document.getElementById("retailer-category-panel")!);
+    const publix = new URL(panel.getByRole("link", { name: /Publix/ }).getAttribute("href") ?? "", "https://example.test");
+    expect(publix.searchParams.get("partnerCategory")).toBe("groceries");
+    expect(publix.searchParams.get("q")).toBe("paper towels");
     expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.")).toHaveLength(9);
   });
 
@@ -73,12 +77,35 @@ describe("Browse search results", () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "everyday-items", retailer: "Walmart", type: "pictured" }) }));
     expect(screen.getByText("1 product shown")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Groceries" }).getAttribute("href")).toBe("/browse?category=groceries&type=pictured");
+    expect(screen.getByText(/Showing Walmart/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "View all in this category" }).getAttribute("href")).toBe("/browse?category=everyday-items&type=pictured");
   });
 
   test("shows an honest no-offer state for a directory-only retailer", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "everyday-items", retailer: "AutoZone®" }) }));
     expect(screen.getByRole("heading", { name: "No current AutoZone® offer matches here." })).toBeTruthy();
     expect(screen.getAllByRole("link", { name: "Clear filters" }).some(link => link.getAttribute("href") === "/browse?category=everyday-items")).toBe(true);
+  });
+
+  test("drills from a partner category into only its current offers", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy" }) }));
+    const retailerNav = within(screen.getByRole("navigation", { name: "Retailer categories" }));
+    expect(retailerNav.getByRole("button", { name: "Pharmacy" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("4 products shown")).toBeTruthy();
+    expect(screen.getAllByRole("article")).toHaveLength(4);
+    expect(screen.queryByRole("link", { name: /Walmart Gift Card/i })).toBeNull();
+  });
+
+  test("keeps directory-only retailers visible without inventing an offer", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy", retailer: "Walgreens" }) }));
+    expect(screen.getByRole("heading", { name: "No current Walgreens offer matches here." })).toBeTruthy();
+  });
+
+  test("filters by the displayed prize value while retaining the inline search", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ type: "gift-cards", maxValue: "25" }) }));
+    const cards = screen.getAllByRole("article");
+    expect(cards.length).toBeGreaterThan(0);
+    expect(cards.every(card => /\$25 value/.test(card.textContent ?? ""))).toBe(true);
+    expect(screen.getAllByRole("searchbox", { name: "Search products" })).toHaveLength(2);
   });
 });

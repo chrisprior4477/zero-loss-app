@@ -257,12 +257,12 @@ export function DesktopMarketplaceRails() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Ticket Progress</h2>
+              <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Ending Soon</h2>
               <span className="rounded-full border border-cyan-300/50 px-2 py-1 text-[9px] uppercase tracking-[0.08em] text-cyan-300">Demo data</span>
             </div>
             <p className="mt-1 text-[13px] text-white/60">See how many entries are filled and how many remain.</p>
           </div>
-          <Link href={marketplaceCategoryHref("ending-soon")} className="shrink-0 whitespace-nowrap text-[12px] font-semibold text-cyan-300 hover:text-cyan-200 sm:text-[14px]">Almost full</Link>
+          <Link href={marketplaceCategoryHref("ending-soon")} className="shrink-0 whitespace-nowrap text-[12px] font-semibold text-cyan-300 hover:text-cyan-200 sm:text-[14px]">See all</Link>
         </div>
 
         <div className="relative">

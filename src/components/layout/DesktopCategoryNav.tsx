@@ -10,6 +10,7 @@ import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { HomeIcon } from "./HomeIcon";
 
 const desktopCategories = [
+  "Ending Soon",
   "Popular Products",
   "Everyday Items",
   "Groceries",

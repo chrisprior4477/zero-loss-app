@@ -203,13 +203,14 @@ export const placeholderPopularBrands = [
 /**
  * Category strip, ordered to match the Checkpoint 2 artboards.
  *
- * "Popular Products" and "Everyday Items" lead. The first is a curated
- * merchandising menu, not a claim that every listed product is near capacity.
+ * "Ending Soon" leads, followed by the separate curated "Popular Products"
+ * menu and the regular shopping categories.
  *
  * "All" from spec §7 is currently not shown, because the design has no such
  * chip and "Everyday Items" fills the browse-everything role.
  */
 export const homeCategories = [
+  "Ending Soon",
   "Popular Products",
   "Everyday Items",
   "Groceries & Gas",
@@ -248,7 +249,7 @@ export const shopByPriceTiers = [
  * Two deliberate departures, both following from C6 (keep our taxonomy, not
  * the design's):
  *
- * - The first curated product menu is separate from the browse-all filter.
+ * - The curated product menus are separate from the browse-all filter.
  * - "Home Essentials" is a top-level category for us but only a child of the
  *   artboard's "Everyday Items". Its children here are the rest of that
  *   Everyday Items list, with "Groceries & Gas" (already top-level) and
@@ -341,6 +342,8 @@ categorySubcategories["Popular Products"] = [
   "$100 Best Buy Gift Card",
   "$25 Netflix Gift Card",
 ];
+
+categorySubcategories["Ending Soon"] = categorySubcategories["Popular Products"];
 
 /** Detail routes available in the current investor-demo catalog. */
 export const endingSoonItemHrefs: Record<string, string> = {

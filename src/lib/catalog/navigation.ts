@@ -2,7 +2,7 @@ import type { DemoProduct } from "./demo-products";
 import { availabilityStatus } from "./availability";
 
 export const marketplaceCategories = [
-  { id: "ending-soon", label: "Almost Full" },
+  { id: "ending-soon", label: "Ending Soon" },
   { id: "everyday-items", label: "Everyday Items" },
   { id: "groceries", label: "Groceries" },
   { id: "gas", label: "Gas" },
