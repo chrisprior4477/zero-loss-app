@@ -25,6 +25,15 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: /Tell us what you'd like to see/i }).getAttribute("href")).toBe("/contact/product-request?product=kayak");
   });
 
+  test.each(["auto", "spark plugs"])("takes %s to the Automotive directory from either search box", async query => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: query }) }));
+    const matches = within(screen.getByRole("region", { name: "Matching retailer categories" }));
+    expect(matches.getByRole("link", { name: /Automotive/ }).getAttribute("href"))
+      .toBe("/browse?partnerCategory=automotive");
+    expect(screen.getByText(/0 products · 1 matching retailer category for/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: `No current product listings match “${query}” yet.` })).toBeTruthy();
+  });
+
   test("finds baby essentials using everyday language", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "baby stuff" }) }));
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i }).getAttribute("href")).toBe("/items/babys-essentials-bundle");
@@ -106,6 +115,6 @@ describe("Browse search results", () => {
     const cards = screen.getAllByRole("article");
     expect(cards.length).toBeGreaterThan(0);
     expect(cards.every(card => /\$25 value/.test(card.textContent ?? ""))).toBe(true);
-    expect(screen.getAllByRole("searchbox", { name: "Search products" })).toHaveLength(2);
+    expect(screen.getAllByRole("searchbox", { name: "Search products & categories" })).toHaveLength(2);
   });
 });

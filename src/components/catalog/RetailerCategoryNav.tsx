@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
 import type { BrowseFilterState, RetailerFilterGroup } from "@/lib/catalog/browse-filters";
 import type { MarketplaceCategoryId } from "@/lib/catalog/navigation";
+import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 
 type Props = {
   groups: RetailerFilterGroup[];
@@ -39,10 +41,10 @@ export function RetailerCategoryNav(props: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const openGroup = props.groups.find(group => group.id === openId);
-  const search = mobileSearch.trim().toLocaleLowerCase();
-  const visibleGroups = search
-    ? props.groups.filter(group => group.category.toLocaleLowerCase().includes(search)
-      || group.options.some(option => option.label.toLocaleLowerCase().includes(search)))
+  const search = mobileSearch.trim();
+  const lowerSearch = search.toLocaleLowerCase();
+  const visibleGroups = search.length >= 2
+    ? searchRetailerDirectory(props.groups, search, props.groups.length)
     : props.groups;
 
   const closeMenu = () => {
@@ -80,7 +82,7 @@ export function RetailerCategoryNav(props: Props) {
 
   const brands = openGroup
     ? [...openGroup.options].sort((left, right) =>
-      Number(Boolean(search && right.label.toLocaleLowerCase().includes(search))) - Number(Boolean(search && left.label.toLocaleLowerCase().includes(search)))
+      Number(Boolean(search && right.label.toLocaleLowerCase().includes(lowerSearch))) - Number(Boolean(search && left.label.toLocaleLowerCase().includes(lowerSearch)))
       || Number(right.hasOffer) - Number(left.hasOffer)
       || left.label.localeCompare(right.label))
     : [];
@@ -116,13 +118,19 @@ export function RetailerCategoryNav(props: Props) {
         <h2 id="retailer-categories-heading" className="text-xl font-black">Shop by retailer category</h2>
         <p className="hidden text-sm text-white/60 lg:block">Hover to preview retailers · click to keep a list open</p>
       </div>
-      <label className="mb-3 block lg:hidden">
-        <span className="sr-only">Search retailer categories or names</span>
-        <input type="search" value={mobileSearch} onChange={event => {
+      <form action="/browse" method="get" className="mb-3 flex min-h-11 w-full items-center rounded-full bg-white px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] focus-within:outline focus-within:outline-2 focus-within:outline-cyan-300 lg:hidden">
+        <button type="submit" aria-label="Search catalog" title="Search catalog" className="relative mr-2 h-5 w-5 shrink-0 text-[#087feb]">
+          <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
+          <span className="absolute left-[12px] top-[12px] h-0.5 w-2 origin-left rotate-45 rounded-full bg-current" />
+        </button>
+        <label htmlFor="retailer-category-search" className="sr-only">Search retailer categories or names</label>
+        <input id="retailer-category-search" name="q" type="search" value={mobileSearch} onChange={event => {
           setMobileSearch(event.target.value);
           closeMenu();
-        }} placeholder="Search categories or retailers" className="min-h-11 w-full rounded-xl border border-cyan-300/45 bg-[#0d2b50] px-4 text-sm text-white placeholder:text-white/55 focus-visible:outline-2 focus-visible:outline-cyan-300" />
-      </label>
+        }} enterKeyHint="search" placeholder="Search categories or retailers" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
+        {search ? <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
+          : <VoiceSearchButton onTranscript={text => { setMobileSearch(text); closeMenu(); }} />}
+      </form>
       <nav aria-label="Retailer categories" className="grid grid-cols-2 gap-2 lg:grid-cols-6">
         {!search ? <Link href={retailerHref("", props)} aria-current={!props.selectedGroupId ? "page" : undefined} onPointerEnter={() => { if (!pinnedId) setOpenId(null); }} onClick={closeMenu} className={`flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-center text-sm font-bold transition-colors lg:min-h-14 lg:px-3 ${!openId && !props.selectedGroupId ? "border-cyan-300 bg-cyan-300 text-[#00132e]" : "border-white/25 bg-[#0d2b50] text-white hover:border-cyan-300"}`}>All retailers</Link> : null}
         {visibleGroups.map(group => (

@@ -14,6 +14,7 @@ import { RetailerCategoryNav } from "@/components/catalog/RetailerCategoryNav";
 import { BrowseFilters } from "@/components/catalog/BrowseFilters";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups } from "@/lib/catalog/browse-filters";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
+import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const retailers = browseRetailers(categoryProducts);
   const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts);
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
+  const directoryMatches = searchTerm ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
@@ -64,12 +66,10 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Zero Loss Marketplace</p>
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{searchTerm ? "Search results" : selectedLabel ?? "Browse every product"}</h1>
+            <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{searchTerm ? "Search results" : selectedLabel ?? selectedRetailerGroup?.category ?? "Browse every product"}</h1>
             <p className="mt-2 text-white/65">
               {searchTerm
-                ? products.length === 1
-                  ? <>1 match for <strong className="text-white">“{searchTerm}”</strong></>
-                  : <>{products.length} matches for <strong className="text-white">“{searchTerm}”</strong></>
+                ? <>{products.length} {products.length === 1 ? "product" : "products"}{directoryMatches.length ? ` · ${directoryMatches.length} matching retailer ${directoryMatches.length === 1 ? "category" : "categories"}` : ""} for <strong className="text-white">“{searchTerm}”</strong></>
                 : "Choose a product to see its entry details and current availability."}
             </p>
           </div>
@@ -78,10 +78,22 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         <RetailerCategoryNav groups={retailerGroups} selectedGroupId={selectedRetailerGroup?.id ?? ""} selectedCategory={selectedCategory} filters={filters} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} />
 
+        {directoryMatches.length ? (
+          <section aria-label="Matching retailer categories" className="mt-5 rounded-2xl border border-cyan-300/35 bg-[#061e3d] p-4 sm:p-5">
+            <h2 className="text-sm font-black uppercase tracking-[.1em] text-cyan-200">Matching retailer categories</h2>
+            <p className="mt-1 text-sm text-white/65">Explore the retailer directory. Current offers are marked separately.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {directoryMatches.map(group => (
+                <Link key={group.id} href={`/browse?${new URLSearchParams({ partnerCategory: group.id })}`} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">{group.category} →</Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
         <div className="mt-5 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-6">
-          <BrowseFilters filters={filters} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
+          <BrowseFilters filters={filters} retailerGroups={retailerGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
           <div className="min-w-0">
             <p aria-live="polite" className="mt-4 text-sm font-bold text-white/75 lg:mt-0">{products.length} {products.length === 1 ? "product" : "products"} shown</p>
         {products.length ? (
@@ -106,6 +118,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 </article>
               );
             })}
+          </section>
+        ) : searchTerm && directoryMatches.length && matchedProducts.length === 0 ? (
+          <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
+            <h2 className="text-2xl font-bold">No current product listings match “{searchTerm}” yet.</h2>
+            <p className="mt-2 text-white/65">Explore the matching retailer category above to see its directory and any available offers.</p>
           </section>
         ) : activeFilters && (!searchTerm || matchedProducts.length) ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">

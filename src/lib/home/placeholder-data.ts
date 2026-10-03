@@ -203,15 +203,12 @@ export const placeholderPopularBrands = [
 /**
  * Category strip, ordered to match the Checkpoint 2 artboards.
  *
- * "Ending Soon" leads, followed by the separate curated "Popular Products"
- * menu and the regular shopping categories.
- *
- * "All" from spec §7 is currently not shown, because the design has no such
- * chip and "Everyday Items" fills the browse-everything role.
+ * "Ending Soon" leads, followed by "All" (the browse-everything destination)
+ * and the regular shopping categories.
  */
 export const homeCategories = [
   "Ending Soon",
-  "Popular Products",
+  "All",
   "Everyday Items",
   "Groceries & Gas",
   "Movie Night",
@@ -328,10 +325,10 @@ export const categorySubcategories: Record<string, readonly string[]> = {
   ],
 };
 
-/* Menus for the two merchandising chips that lead the strip, from the
-   artboards. "Popular Products" lists individual items rather than subcategories,
-   which is why it reads differently from the taxonomy menus above. */
-categorySubcategories["Popular Products"] = [
+/* Menus for the two leading chips, from the artboards. "All" retains the
+   existing quick links to individual products while its main destination
+   browses the full catalog. */
+categorySubcategories["All"] = [
   'Samsung 50" M70H Smart TV',
   "Nike Men's Court Shot Shoes",
   "Baby's Essentials Bundle",
@@ -343,7 +340,7 @@ categorySubcategories["Popular Products"] = [
   "$25 Netflix Gift Card",
 ];
 
-categorySubcategories["Ending Soon"] = categorySubcategories["Popular Products"];
+categorySubcategories["Ending Soon"] = categorySubcategories["All"];
 
 /** Detail routes available in the current investor-demo catalog. */
 export const endingSoonItemHrefs: Record<string, string> = {

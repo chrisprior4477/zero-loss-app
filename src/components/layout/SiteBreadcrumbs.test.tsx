@@ -19,14 +19,15 @@ test("the shared account trail has a labeled home exit and the right wallet dest
   expect(breadcrumbs.getByText("Wallet & Transactions").getAttribute("aria-current")).toBe("page");
 });
 
-test("the category rail shows a small home link, then Ending Soon and Popular Products", () => {
+test("the category rail shows a small home link, then Ending Soon and All", () => {
   render(<DesktopCategoryNav />);
   const links = within(screen.getByRole("navigation", { name: "Marketplace categories" })).getAllByRole("link");
   expect(links[0].getAttribute("href")).toBe("/");
   expect(links[0].getAttribute("aria-label")).toBe("Home");
   expect(links[0].textContent).toBe("");
   expect(links[1].textContent).toBe("Ending Soon");
-  expect(links[2].textContent).toBe("Popular Products");
+  expect(links[2].textContent).toBe("All");
+  expect(links[2].getAttribute("href")).toBe("/browse");
   expect(screen.queryByRole("button", { name: /Scroll marketplace categories/ })).toBeNull();
 });
 

@@ -11,7 +11,7 @@ import { HomeIcon } from "./HomeIcon";
 
 const desktopCategories = [
   "Ending Soon",
-  "Popular Products",
+  "All",
   "Everyday Items",
   "Groceries",
   "Gas",
@@ -155,7 +155,7 @@ export function DesktopCategoryNav() {
                         onClick={() => setOpenCategory(null)}
                         className="col-span-2 mt-2 flex min-h-11 items-center justify-center rounded-lg border border-[var(--accent)]/55 bg-[var(--accent)]/10 px-4 text-[14px] font-extrabold text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] md:hidden"
                       >
-                        See All {category}
+                        {category === "All" ? "See all products" : `See all ${category}`}
                       </Link>
                     </div>
                   </div>

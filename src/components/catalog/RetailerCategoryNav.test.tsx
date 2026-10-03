@@ -49,6 +49,23 @@ test("mobile search finds the right category from a retailer name, then tapping 
   expect(within(document.getElementById("retailer-category-panel")!).getByRole("link", { name: /Publix/ })).toBeTruthy();
 });
 
+test("mobile category search shares the header controls and recognizes related terms", () => {
+  render(<RetailerCategoryNav {...props} />);
+  const input = screen.getByRole("searchbox", { name: "Search retailer categories or names" });
+  const form = input.closest("form")!;
+  expect(form.className).toContain("bg-white");
+  expect(form.getAttribute("action")).toBe("/browse");
+  expect(screen.getByRole("button", { name: "Search catalog" })).toBeTruthy();
+  expect(form.querySelector("svg")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Go to search results" })).toBeNull();
+
+  fireEvent.change(input, { target: { value: "spark plugs" } });
+  const nav = within(screen.getByRole("navigation", { name: "Retailer categories" }));
+  expect(nav.getByRole("button", { name: "Automotive" })).toBeTruthy();
+  expect(nav.queryByRole("button", { name: "Groceries" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Go to search results" })).toBeTruthy();
+});
+
 test("a clicked category stays open while the pointer crosses another category", () => {
   render(<RetailerCategoryNav {...props} />);
   const nav = within(screen.getByRole("navigation", { name: "Retailer categories" }));
