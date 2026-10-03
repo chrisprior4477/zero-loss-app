@@ -6,12 +6,14 @@ import {
   marketplaceCategories,
   marketplaceCategoryId,
   productMatchesMarketplaceCategory,
-  isGiftCardListing,
 } from "@/lib/catalog/navigation";
 import { searchCatalogMatches } from "@/lib/catalog/search";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { BrowseCategoryNav } from "@/components/catalog/BrowseCategoryNav";
+import { BrowseFilters } from "@/components/catalog/BrowseFilters";
+import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups } from "@/lib/catalog/browse-filters";
+import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
 export const metadata: Metadata = {
@@ -19,12 +21,12 @@ export const metadata: Metadata = {
 };
 
 type BrowsePageProps = {
-  searchParams: Promise<{ category?: string; sort?: string; subcategory?: string; q?: string | string[] }>;
+  searchParams: Promise<{ category?: string; sort?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; available?: string }>;
 };
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const query = await searchParams;
-  const availability = await getOfferingAvailability();
+  const [availability, partnerGroups] = await Promise.all([getOfferingAvailability(), getGiftCardPartnerGroups()]);
   const availableProducts = demoProducts.map(product => {
     const current = availability?.[product.slug];
     return current ? { ...product, capacity: current.capacity, sold: current.sold, entryPrice: current.entryPriceCents / 100 } : product;
@@ -33,20 +35,22 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const selectedCategory = marketplaceCategoryId(query.category ?? (query.sort === "ending-soon" ? "ending-soon" : ""));
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
   const categoryProducts = availableProducts.filter((product) => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory));
+  const retailers = browseRetailers(categoryProducts);
+  const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts);
+  const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
   const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
-  const picturedFirst = (left: typeof matchedProducts[number], right: typeof matchedProducts[number]) =>
-    Number(isGiftCardListing(left)) - Number(isGiftCardListing(right));
-  const products = query.sort === "ending-soon" || selectedCategory === "ending-soon"
-    ? matchedProducts.sort((left, right) => (!searchTerm ? picturedFirst(left, right) : 0)
-      || Number(left.capacity === left.sold) - Number(right.capacity === right.sold)
-      || (left.capacity - left.sold) - (right.capacity - right.sold))
-    : searchTerm
-      ? matchedProducts
-      : matchedProducts.sort((left, right) => picturedFirst(left, right) || left.title.localeCompare(right.title));
+  const products = filterBrowseProducts(matchedProducts, filters, searchTerm, selectedCategory === "ending-soon");
+  const activeFilters = filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
+    || (filters.sort !== "featured" && !(selectedCategory === "ending-soon" && filters.sort === "fewest-left"));
   const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm })}`;
   const allSearchHref = `/browse?${new URLSearchParams({ q: searchTerm })}`;
+  const clearHrefParams = new URLSearchParams();
+  if (selectedCategory) clearHrefParams.set("category", selectedCategory);
+  if (searchTerm) clearHrefParams.set("q", searchTerm);
+  if (query.subcategory) clearHrefParams.set("subcategory", query.subcategory);
+  const clearHref = `/browse${clearHrefParams.size ? `?${clearHrefParams}` : ""}`;
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
@@ -66,12 +70,16 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <Link href="/" className="font-bold text-cyan-300 hover:text-white">← Marketplace home</Link>
         </div>
 
-        <BrowseCategoryNav selectedCategory={selectedCategory} searchTerm={searchTerm} />
+        <BrowseCategoryNav selectedCategory={selectedCategory} searchTerm={searchTerm} filters={filters} />
 
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
+        <div className="mt-5 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+          <BrowseFilters filters={filters} retailerGroups={retailerGroups} retailers={retailers} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
+          <div className="min-w-0">
+            <p aria-live="polite" className="mt-4 text-sm font-bold text-white/75 lg:mt-0">{products.length} {products.length === 1 ? "product" : "products"} shown</p>
         {products.length ? (
-          <section aria-label="Products" className={`mt-7 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+          <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {products.map((product) => {
               const status = availabilityStatus(product.capacity, product.sold);
               return (
@@ -92,6 +100,12 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 </article>
               );
             })}
+          </section>
+        ) : activeFilters && matchedProducts.length ? (
+          <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
+            <h2 className="text-2xl font-bold">{filters.retailer ? `No current ${filters.retailer} offer matches here.` : "No products match these filters."}</h2>
+            <p className="mt-2 text-white/65">The partner directory is subject to availability. Try another retailer or clear your filters.</p>
+            <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link>
           </section>
         ) : searchTerm ? (
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
@@ -118,6 +132,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <Link href="/browse" className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">View all products</Link>
           </section>
         )}
+          </div>
+        </div>
       </div>
     </main>
   );

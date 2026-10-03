@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import BrowsePage from "./page";
 
 vi.mock("@/components/ui/FavoriteButton", () => ({ FavoriteButton: () => null }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 afterEach(cleanup);
 
@@ -66,5 +67,18 @@ describe("Browse search results", () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels", category: "gas" }) }));
     expect(screen.getByRole("heading", { name: "No “paper towels” matches in Gas." })).toBeTruthy();
     expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=paper+towels");
+  });
+
+  test("filters to a current retailer and keeps product-type selection", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "everyday-items", retailer: "Walmart", type: "pictured" }) }));
+    expect(screen.getByText("1 product shown")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Groceries" }).getAttribute("href")).toBe("/browse?category=groceries&type=pictured");
+  });
+
+  test("shows an honest no-offer state for a directory-only retailer", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "everyday-items", retailer: "AutoZone®" }) }));
+    expect(screen.getByRole("heading", { name: "No current AutoZone® offer matches here." })).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Clear filters" }).some(link => link.getAttribute("href") === "/browse?category=everyday-items")).toBe(true);
   });
 });
