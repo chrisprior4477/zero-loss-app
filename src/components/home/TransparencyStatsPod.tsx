@@ -46,7 +46,7 @@ export function TransparencyStatsPod() {
                 <h2 className="text-[18px] font-extrabold tracking-[-0.025em] text-white">Built to be worth trusting</h2>
                 <p className="mt-0.5 text-[10px] text-white/55">Clear protections behind every marketplace experience.</p>
               </div>
-              <Link href="/how-it-works" className="shrink-0 text-[10px] font-bold text-cyan-300 hover:text-white">View full reports</Link>
+              <Link href="/how-it-works" className="shrink-0 text-[10px] font-bold text-cyan-300 hover:text-white">See how it works</Link>
             </div>
 
             <ul className="grid grid-cols-2 gap-y-3 sm:grid-cols-4 sm:divide-x sm:divide-white/10">

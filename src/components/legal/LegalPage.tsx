@@ -45,7 +45,7 @@ export function ReviewNotice() {
   return (
     <aside className="mt-8 max-w-4xl rounded-2xl border border-amber-300/35 bg-amber-300/10 p-5 sm:p-6" aria-label="Preview status">
       <p className="text-xs font-black uppercase tracking-[.15em] text-amber-200">Preview draft — review required</p>
-      <p className="mt-2 text-sm leading-7 text-white/85">These pages describe the current demo and proposed policies. The supplied Official Rules are a working draft, not approved for publication or a live promotion. Legal review, an operational no-purchase entry method, final eligibility, and operator details are still required before real entries or payments.</p>
+      <p className="mt-2 text-sm leading-7 text-white/85">These pages describe the current demo and proposed policies. The supplied Official Rules are a working draft, not approved for publication or a live promotion. Legal review, payment-processor approval, an operational no-purchase entry method, final eligibility, and operator details are still required before real entries or payments.</p>
     </aside>
   );
 }

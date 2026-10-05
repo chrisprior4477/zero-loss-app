@@ -28,7 +28,6 @@ type AccountDrawerProps = {
 
 const secondaryLinks = [
   ["Official Rules & Free Entry", "/free-entry"],
-  ["Fairness & Verification", "/about"],
   ["Help Center", "/support"],
   ["Privacy & Terms", "/privacy"],
 ] as const;

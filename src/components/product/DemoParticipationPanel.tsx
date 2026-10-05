@@ -198,6 +198,7 @@ export function DemoParticipationPanel({
           <span>{sold.toLocaleString()} entries</span>
           <span>{remaining.toLocaleString()} remaining</span>
         </div>
+        <p className="mt-1 text-xs leading-4 text-white/60">Under the proposed model, when all available entries for an offer are filled, one entry is selected.</p>
       </div> : null}
 
       {availabilityConfirmed && initialQuantity > maxQuantity && maxQuantity > 0 ? <p role="status" className="mt-3 text-xs font-semibold text-cyan-200">Only {maxQuantity} {maxQuantity === 1 ? "entry remains" : "entries remain"}, so your saved selection was adjusted.</p> : null}
@@ -298,13 +299,13 @@ export function DemoParticipationPanel({
               <div className="border-t border-cyan-300/20 px-4 py-4">
                 <ol className="space-y-3 text-sm leading-6 text-white/78">
                   <li><strong className="text-white">1. Another entry means another independent chance.</strong> Each entry receives the same chance of selection, subject to the published pool rules.</li>
-                  <li><strong className="text-white">2. Non-selected entries do not become wallet cash.</strong> Each qualifying non-selected entry creates its own option to complete this exact offering.</li>
+                  <li><strong className="text-white">2. Non-selected entries do not become wallet cash.</strong> Each non-selected paid entry has its own optional 30-day right to complete this exact offering.</li>
                   <li><strong className="text-white">3. The options cannot be stacked.</strong> Entry payments and completion options cannot be combined with one another or with Playable Balance.</li>
                   <li><strong className="text-white">4. Each option requires its own remaining payment.</strong> For this ${productValue.toLocaleString()} {retailer} offering, one ${entryPrice.toFixed(2)} entry would leave ${remainingBalance.toFixed(2)} to complete one purchase.</li>
                   <li><strong className="text-white">5. The option stays with this entry and retailer.</strong> It cannot move to a different product, retailer, account, entry, or cash withdrawal.</li>
                 </ol>
                 <div className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/8 p-3 text-sm leading-6">
-                  <strong className="text-[#67ff42]">Example with three entries:</strong> You receive three separate chances for {productTitle}. If none is selected, you may receive three separate completion options—not a combined ${(entryPrice * 3).toFixed(2)} credit. Completing all three purchases would require three separate remaining payments of ${remainingBalance.toFixed(2)} each.
+                  <strong className="text-[#67ff42]">Example with three entries:</strong> You receive three separate chances for {productTitle}. If none is selected, you have three separate optional 30-day completion rights—not a combined ${(entryPrice * 3).toFixed(2)} credit. Completing all three purchases would require three separate remaining payments of ${remainingBalance.toFixed(2)} each.
                 </div>
               </div>
             </details>
