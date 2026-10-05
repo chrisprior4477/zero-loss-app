@@ -8,6 +8,21 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 afterEach(cleanup);
 
 describe("Browse search results", () => {
+  test("keeps the full retailer layout on All but collapses both controls on category pages", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({}) }));
+    expect(screen.getByRole("heading", { name: "Browse every product" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Shop by retailer category" }).closest("details")?.open).toBe(true);
+    expect(screen.getByRole("complementary", { name: "Filter products" })).toBeTruthy();
+    cleanup();
+
+    render(await BrowsePage({ searchParams: Promise.resolve({ sort: "ending-soon" }) }));
+    expect(screen.getByRole("heading", { name: "Ending Soon" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Shop by retailer category" }).closest("details")?.open).toBe(false);
+    expect(screen.getByText("Filter & sort").closest("details")?.open).toBe(false);
+    expect(screen.queryByRole("complementary", { name: "Filter products" })).toBeNull();
+    expect(screen.getAllByRole("article").length).toBeGreaterThan(0);
+  });
+
   test("shows matching catalog items for familiar wording", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "TV" }) }));
 
@@ -36,7 +51,8 @@ describe("Browse search results", () => {
 
   test("finds baby essentials using everyday language", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "baby stuff" }) }));
-    expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i }).getAttribute("href")).toBe("/items/babys-essentials-bundle");
+    expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i }).getAttribute("href"))
+      .toBe("/items/babys-essentials-bundle?from=%2Fbrowse%3Fq%3Dbaby%2Bstuff");
   });
 
   test("uses the available mobile width for one search result", async () => {
@@ -60,7 +76,8 @@ describe("Browse search results", () => {
   test("clearly identifies indirect retailer results as gift cards", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "reciprocating saw" }) }));
     expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.")).toHaveLength(4);
-    expect(screen.getByRole("link", { name: /\$25 The Home Depot Gift Card/i }).getAttribute("href")).toBe("/items/home-depot-25-gift-card");
+    expect(screen.getByRole("link", { name: /\$25 The Home Depot Gift Card/i }).getAttribute("href"))
+      .toBe("/items/home-depot-25-gift-card?from=%2Fbrowse%3Fq%3Dreciprocating%2Bsaw");
     expect(screen.queryByRole("heading", { name: "Reciprocating Saw" })).toBeNull();
   });
 
@@ -88,6 +105,12 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i })).toBeTruthy();
     expect(screen.getByText(/Showing Walmart/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "View all in this category" }).getAttribute("href")).toBe("/browse?category=everyday-items&type=pictured");
+  });
+
+  test("product links preserve the chosen category and filters for a return trip", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "groceries", type: "gift-cards", available: "1" }) }));
+    expect(screen.getByRole("link", { name: /\$100 Walmart Gift Card/i }).getAttribute("href"))
+      .toBe("/items/walmart-100-gift-card?from=%2Fbrowse%3Fcategory%3Dgroceries%26type%3Dgift-cards%26available%3D1");
   });
 
   test("shows an honest no-offer state for a directory-only retailer", async () => {

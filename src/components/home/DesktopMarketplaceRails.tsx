@@ -15,6 +15,7 @@ import {
 } from "@/lib/home/placeholder-data";
 import { popularRewardBrands } from "@/lib/catalog/popular-rewards";
 import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
+import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
 import { availabilityForHref, availabilityStatus } from "@/lib/catalog/availability";
 
@@ -281,7 +282,9 @@ export function DesktopMarketplaceRails() {
                 className="relative w-[150px] shrink-0 overflow-hidden rounded-xl bg-white text-[#00132e] transition-transform hover:-translate-y-0.5 sm:w-[220px] sm:rounded-2xl"
               >
                 <Link
-                  href={item.href ?? "/browse"}
+                  href={item.href?.startsWith("/items/")
+                    ? productHrefWithBrowseReturn(item.href.slice("/items/".length), "/browse?sort=ending-soon")
+                    : item.href ?? "/browse"}
                   draggable={false}
                   className="block h-full p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-cyan-500"
                 >

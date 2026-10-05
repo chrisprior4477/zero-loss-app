@@ -17,6 +17,7 @@ type Props = {
   searchTerm: string;
   subcategory: string;
   clearHref: string;
+  collapseOnDesktop?: boolean;
 };
 
 function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, searchTerm, subcategory, clearHref, id }: Props & { id: string }) {
@@ -150,6 +151,14 @@ export function BrowseFilters(props: Props) {
     + Number(Boolean(props.filters.retailer)) + Number(props.filters.availableOnly) + Number(sortActive)
     + Number(props.filters.minValue !== null || props.filters.maxValue !== null);
   const key = `${props.selectedCategory}-${props.selectedRetailerGroup?.id}-${props.searchTerm}-${props.filters.type}-${props.filters.retailer}-${props.filters.availableOnly}-${props.filters.sort}-${props.filters.minValue}-${props.filters.maxValue}`;
+  if (props.collapseOnDesktop) {
+    return <details key={key} className="group">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between rounded-xl border border-cyan-300/70 bg-[#0b3b69] px-4 font-bold text-white marker:hidden focus-visible:outline-2 focus-visible:outline-cyan-300 [&::-webkit-details-marker]:hidden">
+        <span>Filter &amp; sort{activeCount ? ` (${activeCount})` : ""}</span><span aria-hidden="true" className="text-2xl leading-none group-open:rotate-45">+</span>
+      </summary>
+      <div className="mt-2 max-w-xl"><FilterForm key={`collapsed-${key}`} {...props} id="collapsed-browse" /></div>
+    </details>;
+  }
   return (
     <>
       <details className="group lg:hidden">

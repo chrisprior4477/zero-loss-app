@@ -1,3 +1,5 @@
+import { productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
+
 export type BreadcrumbItem = { label: string; href?: string };
 
 const accountRoot: BreadcrumbItem = { label: "Your Account", href: "/account/entries" };
@@ -56,7 +58,14 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams)
     if (searchParams.get("sort") === "ending-soon") return [{ label: "Ending Soon" }];
     return [{ label: "Browse the Marketplace" }];
   }
-  if (root === "items") return [{ label: "Browse the Marketplace", href: "/browse" }, { label: second ? humanize(second) : "Product details" }];
+  if (root === "items") {
+    const returnHref = productBrowseReturnHref(searchParams.get("from"));
+    const returnLabel = productBrowseReturnLabel(returnHref);
+    return [
+      { label: returnLabel === "marketplace" ? "Browse the Marketplace" : returnLabel, href: returnHref },
+      { label: second ? humanize(second) : "Product details" },
+    ];
+  }
   if (root === "rewards") return [{ label: "Popular Rewards", href: "/#popular-rewards" }, { label: second ? humanize(second) : "Retailer" }];
   if (root === "contact" && second === "product-request") return [{ label: "Contact Us", href: "/contact" }, { label: "Suggest a Product" }];
   if (root === "free-entry" && second === "print") return [{ label: "Free-entry information", href: "/free-entry" }, { label: "Print Form" }];

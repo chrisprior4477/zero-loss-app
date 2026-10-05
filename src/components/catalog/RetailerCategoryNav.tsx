@@ -14,6 +14,7 @@ type Props = {
   filters: BrowseFilterState;
   searchTerm: string;
   subcategory: string;
+  collapseByDefault?: boolean;
 };
 
 function retailerHref(groupId: string, props: Props, retailer = "") {
@@ -34,6 +35,7 @@ function retailerHref(groupId: string, props: Props, retailer = "") {
 }
 
 export function RetailerCategoryNav(props: Props) {
+  const [categoriesExpanded, setCategoriesExpanded] = useState(!props.collapseByDefault);
   const [openId, setOpenId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [menuTop, setMenuTop] = useState(0);
@@ -114,10 +116,18 @@ export function RetailerCategoryNav(props: Props) {
     <section ref={sectionRef} aria-labelledby="retailer-categories-heading" className="relative mt-5" onPointerLeave={() => {
       if (!pinnedId) setOpenId(null);
     }}>
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <h2 id="retailer-categories-heading" className="text-xl font-black">Shop by retailer category</h2>
-        <p className="hidden text-sm text-white/60 lg:block">Hover to preview retailers · click to keep a list open</p>
-      </div>
+      <details className="group" open={categoriesExpanded} onToggle={event => setCategoriesExpanded(event.currentTarget.open)}>
+      <summary className={props.collapseByDefault
+        ? "flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-cyan-300/70 bg-[#0b3b69] px-4 font-bold text-white marker:hidden focus-visible:outline-2 focus-visible:outline-cyan-300 [&::-webkit-details-marker]:hidden"
+        : "mb-3 flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden focus-visible:outline-2 focus-visible:outline-cyan-300 [&::-webkit-details-marker]:hidden"}>
+        <h2 id="retailer-categories-heading" className={props.collapseByDefault ? "text-base font-black" : "text-xl font-black"}>Shop by retailer category</h2>
+        <span className="flex items-center gap-2 text-sm text-cyan-200">
+          {props.selectedGroupId ? <span className="hidden sm:inline">{props.groups.find(group => group.id === props.selectedGroupId)?.category}</span> : null}
+          <span aria-hidden="true" className="text-2xl leading-none group-open:rotate-45">+</span>
+        </span>
+      </summary>
+      <div className={props.collapseByDefault ? "pt-3" : ""}>
+      <p className="mb-3 hidden text-sm text-white/60 lg:block">Hover to preview retailers · click to keep a list open</p>
       <form action="/browse" method="get" className="mb-3 flex min-h-11 w-full items-center rounded-full bg-white px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] focus-within:outline focus-within:outline-2 focus-within:outline-cyan-300 lg:hidden">
         <button type="submit" aria-label="Search catalog" title="Search catalog" className="relative mr-2 h-5 w-5 shrink-0 text-[#087feb]">
           <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
@@ -159,6 +169,8 @@ export function RetailerCategoryNav(props: Props) {
       </nav>
       {search && visibleGroups.length === 0 ? <p className="mt-3 text-sm text-white/70">No matching retailer category. Try another name.</p> : null}
       {props.filters.retailer ? <p className="mt-3 text-sm text-white/75">Showing {props.filters.retailer}. <Link href={retailerHref(props.selectedGroupId, props)} className="font-bold text-cyan-300 underline-offset-4 hover:underline">View all in this category</Link></p> : null}
+      </div>
+      </details>
     </section>
   );
 }

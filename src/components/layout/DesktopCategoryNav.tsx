@@ -43,7 +43,9 @@ const desktopCategoryItems: Record<string, readonly string[]> = {
   ],
 };
 
-export function DesktopCategoryNav() {
+type EndingSoonMenuItem = { title: string; href: string; remaining: number };
+
+export function DesktopCategoryNav({ endingSoonItems }: { endingSoonItems: EndingSoonMenuItem[] }) {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
 
@@ -104,7 +106,15 @@ export function DesktopCategoryNav() {
         {desktopCategories.map((category, index) => {
           const isOpen = openCategory === category;
           const isMerchandising = index === 0;
-          const items = desktopCategoryItems[category] ?? [];
+          const items = category === "Ending Soon"
+            ? endingSoonItems.map((item) => ({ label: item.title, href: item.href, remaining: item.remaining }))
+            : (desktopCategoryItems[category] ?? []).map((item) => ({
+                label: item,
+                href: category === "All" && endingSoonItemHrefs[item]
+                  ? `${endingSoonItemHrefs[item]}?from=${encodeURIComponent("/browse")}`
+                  : marketplaceCategoryHref(category, item),
+                remaining: null,
+              }));
 
           return (
             <li
@@ -140,20 +150,22 @@ export function DesktopCategoryNav() {
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:gap-x-10 lg:grid-cols-3 xl:grid-cols-4">
                       {items.map((item) => (
                       <Link
-                        key={item}
-                        href={endingSoonItemHrefs[item] ?? marketplaceCategoryHref(category, item)}
+                        key={item.href}
+                        href={item.href}
                         role="menuitem"
                         onClick={() => setOpenCategory(null)}
-                        className="flex min-h-11 items-center border-b border-white/8 px-1 text-[16px] font-medium text-white/85 transition-colors hover:border-[var(--accent)] hover:text-white focus-visible:border-[var(--accent)] focus-visible:text-white focus-visible:outline-none"
+                        className="flex min-h-11 items-center justify-between gap-2 border-b border-white/8 px-1 text-[16px] font-medium text-white/85 transition-colors hover:border-[var(--accent)] hover:text-white focus-visible:border-[var(--accent)] focus-visible:text-white focus-visible:outline-none"
                       >
-                        {item}
+                        <span>{item.label}</span>
+                        {item.remaining !== null ? <span className="shrink-0 text-xs text-cyan-300">{item.remaining} left</span> : null}
                       </Link>
                       ))}
+                      {category === "Ending Soon" && !items.length ? <p className="col-span-full py-2 text-sm text-white/70">No offers are near capacity right now.</p> : null}
                       <Link
                         href={marketplaceCategoryHref(category)}
                         role="menuitem"
                         onClick={() => setOpenCategory(null)}
-                        className="col-span-2 mt-2 flex min-h-11 items-center justify-center rounded-lg border border-[var(--accent)]/55 bg-[var(--accent)]/10 px-4 text-[14px] font-extrabold text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] md:hidden"
+                        className="col-span-full mt-2 flex min-h-11 items-center justify-center rounded-lg border border-[var(--accent)]/55 bg-[var(--accent)]/10 px-4 text-[14px] font-extrabold text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
                       >
                         {category === "All" ? "See all products" : `See all ${category}`}
                       </Link>

@@ -9,8 +9,9 @@ import { getAccountContext } from "@/lib/account/context";
 import { randomUUID } from "node:crypto";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { parseEntryQuantity } from "@/lib/entries/return-intent";
+import { productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
 
-type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ quantity?: string | string[] }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ quantity?: string | string[]; from?: string | string[] }> };
 
 export function generateStaticParams() {
   return demoProducts.map((product) => ({ id: product.slug }));
@@ -25,7 +26,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ItemPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const requestedQuantity = parseEntryQuantity((await searchParams).quantity) ?? 1;
+  const query = await searchParams;
+  const requestedQuantity = parseEntryQuantity(query.quantity) ?? 1;
+  const browseReturnHref = productBrowseReturnHref(query.from);
+  const browseReturnLabel = productBrowseReturnLabel(browseReturnHref);
   const product = getDemoProduct(id);
   if (!product) notFound();
   const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
@@ -76,7 +80,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-4 text-white sm:px-7 sm:py-12 lg:px-12">
       <div className="mx-auto max-w-7xl">
-        <Link href="/#ending-soon" className="inline-flex items-center gap-2 text-sm font-bold text-cyan-300 hover:text-white">← Back to marketplace</Link>
+        <Link href={browseReturnHref} className="inline-flex items-center gap-2 text-sm font-bold text-cyan-300 hover:text-white">← Back to {browseReturnLabel}</Link>
 
         {account ? <div className="mt-3 flex flex-col gap-4 sm:mt-6 sm:gap-8 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)] lg:items-start">
           <div className="contents lg:block">

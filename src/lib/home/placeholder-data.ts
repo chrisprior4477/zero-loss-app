@@ -325,9 +325,9 @@ export const categorySubcategories: Record<string, readonly string[]> = {
   ],
 };
 
-/* Menus for the two leading chips, from the artboards. "All" retains the
-   existing quick links to individual products while its main destination
-   browses the full catalog. */
+/* "All" retains the existing quick links to individual products while its
+   main destination browses the full catalog. Ending Soon is built from live
+   availability in the shared header instead of copying this static list. */
 categorySubcategories["All"] = [
   'Samsung 50" M70H Smart TV',
   "Nike Men's Court Shot Shoes",
@@ -339,8 +339,6 @@ categorySubcategories["All"] = [
   "$100 Best Buy Gift Card",
   "$25 Netflix Gift Card",
 ];
-
-categorySubcategories["Ending Soon"] = categorySubcategories["All"];
 
 /** Detail routes available in the current investor-demo catalog. */
 export const endingSoonItemHrefs: Record<string, string> = {
