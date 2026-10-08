@@ -19,7 +19,7 @@ test("asks for a fresh balance, explains the impact, and allows cancellation", a
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   render(<DeleteAllFundsButton value="$17.50" />);
-  fireEvent.click(screen.getByRole("button", { name: "Delete All Funds" }));
+  fireEvent.click(screen.getByRole("button", { name: "Delete Funds" }));
   await waitFor(() => expect(screen.getByRole("dialog")).toBeTruthy());
   expect(screen.getByText(/This will clear/).textContent).toContain("$17.50");
   expect(screen.getByText(/It will not delete your entries/)).toBeTruthy();
@@ -30,7 +30,7 @@ test("asks for a fresh balance, explains the impact, and allows cancellation", a
 test("zero balance does not issue a destructive request", async () => {
   actions.preview.mockResolvedValue({ status: "ready", balanceCents: 0 });
   render(<DeleteAllFundsButton value="$0.00" />);
-  fireEvent.click(screen.getByRole("button", { name: "Delete All Funds" }));
+  fireEvent.click(screen.getByRole("button", { name: "Delete Funds" }));
   await waitFor(() => expect(screen.getByRole("status").textContent).toContain("already $0"));
   expect(actions.clear).not.toHaveBeenCalled();
 });

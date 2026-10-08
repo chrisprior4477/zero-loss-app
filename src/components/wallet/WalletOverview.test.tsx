@@ -43,6 +43,8 @@ test("enabled preview wallet puts Add Card beside Add funds", () => {
   expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("/account/payment-methods");
   expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy();
+  expect(screen.getByRole("article", { name: "Current balance" }).querySelector("button")?.textContent).toBe("Delete Funds");
+  expect(screen.getByRole("navigation", { name: "Account wallet overview" }).querySelector("button")?.textContent).not.toBe("Delete Funds");
 });
 
 test("wallet tickets reuse real account counts and direct destinations", () => {

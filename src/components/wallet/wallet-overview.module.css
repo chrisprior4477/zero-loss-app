@@ -33,6 +33,7 @@
 .balanceArt img { display: block; width: min(100%, 324px); height: auto; max-height: 180px; object-fit: contain; clip-path: polygon(10% 22%, 13% 19%, 70% 5%, 76% 6%, 81% 9%, 83% 12%, 90% 76%, 87% 84%, 83% 87%, 23% 100%, 17% 98%, 13% 91%); }
 .balanceCopy { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding-left: 19px; border-left: 3px dotted #afbdce; }
 .balanceCopy h2 { color: #647793; font-size: clamp(17px, 1.4vw, 23px); font-weight: 850; line-height: 1.1; text-transform: uppercase; }
+.balanceAmountRow { display: flex; min-width: 0; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 14px; }
 .balance { margin-top: 2px; font-size: clamp(54px, 5.5vw, 90px); font-weight: 850; line-height: .95; letter-spacing: -.06em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .balanceNote { color: #506989; font-size: clamp(14px, 1.3vw, 20px); }
 .balanceActions { margin-top: 14px; }

@@ -22,7 +22,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   } = await supabase.auth.getUser();
 
   if (user?.email_confirmed_at) {
-    redirect(returnTo ?? "/account/entries");
+    redirect(returnTo ?? "/");
   }
 
   const initialError =

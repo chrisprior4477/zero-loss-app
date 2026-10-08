@@ -11,6 +11,7 @@ import { AccountIcon } from "@/components/account/AccountIcon";
 import { StatusTicket } from "@/components/account/StatusTicket";
 import stripStyles from "@/components/account/account-status-strip.module.css";
 import { WalletLedger } from "./WalletLedger";
+import { DeleteAllFundsButton } from "./DeleteAllFundsButton";
 import styles from "./wallet-overview.module.css";
 import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
 
@@ -40,7 +41,7 @@ export function WalletOverview({ wallet, ledgerEntries, activity, selectedTransa
   return <main className={styles.page}>
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
-        <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="/account/wallet?view=history#balance" actionHref={canFund ? "/account/wallet?view=history#add-funds" : undefined} actionDisabled={!canFund} allowDemoClear={canFund} />
+        <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="/account/wallet?view=history#balance" actionHref={canFund ? "/account/wallet?view=history#add-funds" : undefined} actionDisabled={!canFund} />
         <StatusTicket size="top" variant="reward" label="Prize Ready" value={ready === null ? "Unavailable" : String(ready.length)} action={ready?.length === 1 ? "View reward" : "View rewards"} href={rewardHref} />
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Review options" href={accountRoutes.purchaseOptions} />
       </nav>
@@ -54,7 +55,12 @@ export function WalletOverview({ wallet, ledgerEntries, activity, selectedTransa
         <article id="balance" className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance">
           <div className={styles.balanceArt}><Image src="/account/drawer/wallet-transactions-324x180.png" alt="Zero Loss leather wallet" width={324} height={180} priority sizes="324px" /></div>
           <div className={styles.balanceCopy}>
-            <h2>Current balance</h2><p data-testid="wallet-balance" className={styles.balance}>{balance}</p><p className={styles.balanceNote}>{wallet ? "Ready to use for entries." : "Balance could not be verified."}</p>
+            <h2>Current balance</h2>
+            <div className={styles.balanceAmountRow}>
+              <p data-testid="wallet-balance" className={styles.balance}>{balance}</p>
+              {canFund ? <DeleteAllFundsButton value={balance} /> : null}
+            </div>
+            <p className={styles.balanceNote}>{wallet ? "Ready to use for entries." : "Balance could not be verified."}</p>
             <div className={styles.balanceActions}>
               <a href="#add-funds" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></a>
               <div className={styles.fundingActions}>

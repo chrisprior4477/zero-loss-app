@@ -326,7 +326,7 @@ export async function signInAction(
     };
   }
 
-  redirect(returnTo ?? "/account/entries");
+  redirect(returnTo ?? "/");
 }
 
 export async function requestPasswordResetAction(

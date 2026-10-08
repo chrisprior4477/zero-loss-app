@@ -13,7 +13,7 @@ test.each([
   ["/items/samsung-m70h-tv#enter-entry", "/items/samsung-m70h-tv#enter-entry"],
   ["/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111", "/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111"],
   ["/support?case=11111111-1111-4111-8111-111111111111#conversation", "/support?case=11111111-1111-4111-8111-111111111111#conversation"],
-  ["https://evil.test", "/account/entries"],
+  ["https://evil.test", "/"],
 ])("sign-in returns only to an approved in-site destination: %s", async (returnTo, expected) => {
   mocks.createClient.mockResolvedValue({ auth: {
     signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
@@ -26,6 +26,19 @@ test.each([
   form.set("returnTo", returnTo);
   await expect(signInAction({ ok: false, message: null }, form)).rejects.toThrow("NEXT_REDIRECT");
   expect(mocks.redirect).toHaveBeenCalledWith(expected);
+});
+
+test("ordinary sign-in without a return destination opens Home", async () => {
+  mocks.createClient.mockResolvedValue({ auth: {
+    signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+    getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1", email_confirmed_at: "2026-09-21" } } }),
+  } });
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  const form = new FormData();
+  form.set("email", "person@example.test");
+  form.set("password", "test-password");
+  await expect(signInAction({ ok: false, message: null }, form)).rejects.toThrow("NEXT_REDIRECT");
+  expect(mocks.redirect).toHaveBeenCalledWith("/");
 });
 
 test("sign-out keeps the selected product available without keeping the session", async () => {

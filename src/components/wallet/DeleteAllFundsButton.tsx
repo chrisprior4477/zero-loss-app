@@ -47,13 +47,13 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
   return <>
     <div className={styles.control}>
       <button type="button" className={styles.trigger} onClick={openConfirmation} disabled={pending || value === "Unavailable"}>
-        {pending && balanceCents === null ? "Checking balance…" : "Delete All Funds"}
+        {pending && balanceCents === null ? "Checking balance…" : "Delete Funds"}
       </button>
       {notice && balanceCents === null ? <span className={styles.notice} role="status">{notice}</span> : null}
     </div>
     {balanceCents !== null && typeof document !== "undefined" ? createPortal(
       <dialog ref={dialogRef} className={styles.dialog} onCancel={event => { event.preventDefault(); if (!pending) closeDialog(); }} aria-labelledby="demo-balance-clear-title" aria-describedby="demo-balance-clear-description">
-        <h2 id="demo-balance-clear-title">Delete All Funds?</h2>
+        <h2 id="demo-balance-clear-title">Delete demo funds?</h2>
         <p id="demo-balance-clear-description">This will clear <strong>{formatUsdFromCents(balanceCents)}</strong> from your demo Playable Balance. It will not delete your entries, gift cards, rewards, or wallet history. This does not charge or refund a card.</p>
         <p className={styles.caution}>Funds added or returned after this reset will appear in your wallet normally.</p>
         {notice ? <p role="alert" className={styles.error}>{notice}</p> : null}
