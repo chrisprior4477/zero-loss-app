@@ -9,6 +9,7 @@ import { AccountIcon } from "./AccountIcon";
 import styles from "./my-activity.module.css";
 import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 import { availabilityStatus } from "@/lib/catalog/availability";
+import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
 
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
 function action(item: ActivityItem) {
@@ -16,7 +17,7 @@ function action(item: ActivityItem) {
   return { active: "Track entry", completion: "Review option", completed: "View details" }[item.status];
 }
 
-export function MyZeroLossGallery({ items, filter, metricsBySlug }: { items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics> }) {
+export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEntries = false }: { items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean }) {
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
   const [dragging, setDragging] = useState(false);
@@ -169,12 +170,15 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug }: { items: Act
         </div>;
       })}
     </div>
-    {items.length > 1 && <div className={styles.galleryControls}>
+    {(items.length > 1 || canClearDemoEntries) && <div className={styles.galleryControls}>
       <p className={styles.galleryHint}>{view.previous || view.next ? "Swipe or use the arrows to explore." : "Every choice. Your next step, all in one place."}</p>
-      <div className={styles.carouselButtons}>
+      <div className={styles.galleryActions}>
+      {canClearDemoEntries ? <ClearAllEntriesButton /> : null}
+      {items.length > 1 ? <div className={styles.carouselButtons}>
         <button type="button" onClick={() => move(-1)} disabled={!view.previous} aria-controls={galleryId} aria-label="Previous product" className={styles.arrowButton}><AccountIcon name="chevron" className={styles.previousIcon} /></button>
         <span className={styles.position} aria-live="polite" aria-atomic="true">{view.start === view.end ? view.start + 1 : `${view.start + 1}–${view.end + 1}`} / {items.length}</span>
         <button type="button" onClick={() => move(1)} disabled={!view.next} aria-controls={galleryId} aria-label="Next product" className={styles.arrowButton}><AccountIcon name="chevron" /></button>
+      </div> : null}
       </div>
     </div>}
   </div>;

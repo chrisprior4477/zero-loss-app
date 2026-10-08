@@ -136,6 +136,7 @@
 .mobileRestLabel { display: none; }
 .galleryControls { display: flex; min-height: 56px; align-items: center; justify-content: space-between; gap: 16px; margin-top: 6px; }
 .galleryHint { color: #b9cde2; font-size: 13px; }
+.galleryActions { display: flex; min-width: 0; align-items: center; gap: 24px; margin-left: auto; }
 .carouselButtons { display: flex; align-items: center; gap: 12px; }
 .arrowButton { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #77c9ff; border-radius: 50%; background: #113a66; color: #fff; }
 .arrowButton:disabled { opacity: .38; cursor: default; }
@@ -203,8 +204,9 @@
   .gallery[data-desktop-rows="1"], .gallery[data-desktop-rows="2"] { grid-template-rows: repeat(2, 133px); }
   .gallery[data-stacked-rows="1"] { grid-template-rows: 133px; }
   .gallery[data-stacked-overflowing="true"], .gallery[data-overflowing="true"][data-stacked-overflowing="true"] { --gallery-peek: clamp(30px, 9vw, 42px); }
-  .galleryControls { gap: 8px; }
-  .galleryHint { max-width: 52%; font-size: 11px; line-height: 1.3; }
+  .galleryControls { flex-wrap: wrap; gap: 8px; }
+  .galleryHint { flex-basis: 100%; max-width: none; font-size: 11px; line-height: 1.3; }
+  .galleryActions { width: 100%; justify-content: flex-end; gap: 12px; }
   .carouselButtons { gap: 7px; }
   .arrowButton { width: 36px; height: 36px; }
   .empty { --ticket-side-notch: 10px; --ticket-corner-notch: 13px; padding: 28px 26px; }

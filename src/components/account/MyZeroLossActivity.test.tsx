@@ -33,6 +33,13 @@ test("same activity source yields matching still-open count and full-row links",
   expect(screen.queryByText("Baby's Essentials Bundle")).toBeNull();
   expect(activityFilter("demo=true")).toBe("all");
 });
+test("entry reset control appears only when explicitly enabled for a demo account", () => {
+  const state = storedActivityFixture();
+  const { rerender } = render(<MyZeroLossActivity state={state} filter="all" />);
+  expect(screen.queryByRole("button", { name: "Clear All Entries" })).toBeNull();
+  rerender(<MyZeroLossActivity state={state} filter="all" canClearDemoEntries />);
+  expect(screen.getByRole("button", { name: "Clear All Entries" })).toBeTruthy();
+});
 test("only still-open tickets show their own offer-fill progress", () => {
   const state = storedActivityFixture();
   state.activity.push({ ...state.activity[0], slug: "another-open-offer", title: "Another open offer" });
