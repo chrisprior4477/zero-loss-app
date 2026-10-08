@@ -9,7 +9,7 @@ import { PoolProgress } from "@/components/product/PoolProgress";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
-import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest } from "@/lib/entries/actions";
+import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, resetExtraEntryExplainer, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 import { clearEntryIntent, productEntryHref, saveEntryIntent } from "@/lib/entries/return-intent";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
@@ -28,6 +28,7 @@ type Props = {
   balanceLabel?: string;
   balanceCents?: number | null;
   isDemoWallet?: boolean;
+  isPreviewExperience?: boolean;
   isSignedIn?: boolean;
   extraEntryExplainerAcknowledged?: boolean;
   signedOutCompact?: boolean;
@@ -47,6 +48,7 @@ export function DemoParticipationPanel({
   balanceLabel = "Unavailable",
   balanceCents = null,
   isDemoWallet = false,
+  isPreviewExperience = false,
   isSignedIn = false,
   extraEntryExplainerAcknowledged = false,
   signedOutCompact = false,
@@ -82,6 +84,8 @@ export function DemoParticipationPanel({
   const [skipFutureExplainer, setSkipFutureExplainer] = useState(extraEntryExplainerAcknowledged);
   const [preferenceSaving, setPreferenceSaving] = useState(false);
   const [preferenceError, setPreferenceError] = useState<string | null>(null);
+  const [preferenceResetting, setPreferenceResetting] = useState(false);
+  const [preferenceResetMessage, setPreferenceResetMessage] = useState<string | null>(null);
   const [sharePromptOpen, setSharePromptOpen] = useState(false);
   const [balanceNoticeOpen, setBalanceNoticeOpen] = useState(false);
   const [dismissedBalanceError, setDismissedBalanceError] = useState<typeof state | null>(null);
@@ -132,6 +136,23 @@ export function DemoParticipationPanel({
     setAdditionalEntryTermsSeen(true);
     addNextEntry();
     setAdditionalEntryNoticeOpen(false);
+  };
+
+  const resetExplanation = async () => {
+    setPreferenceResetting(true);
+    setPreferenceResetMessage(null);
+    const result = await resetExtraEntryExplainer();
+    setPreferenceResetting(false);
+    if (result.status === "error") {
+      setPreferenceResetMessage(result.message);
+      return;
+    }
+    setSkipFutureExplainer(false);
+    setAdditionalEntryTermsSeen(false);
+    setRememberExplanation(false);
+    setAdditionalEntryNoticeOpen(false);
+    setPreferenceResetMessage("Extra-entry explanation reset. Tap + to see it again.");
+    router.refresh();
   };
 
   useEffect(() => {
@@ -269,7 +290,7 @@ export function DemoParticipationPanel({
           <span>Separate chances. Nothing is entered until you press Enter for ${(selectedTicketsToast * entryPrice).toFixed(2)}.</span>
         </div> : null}
         <fieldset disabled={uncertain} data-testid="entry-quantity-ticket" className={quantityTicketStyles.ticket}>
-          <p className={quantityTicketStyles.label}>How many entries?</p>
+          <p className={quantityTicketStyles.label}>Want to add extra entries?<span className={quantityTicketStyles.hint}>Click + to add one.</span></p>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
             <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
@@ -277,7 +298,9 @@ export function DemoParticipationPanel({
           </div>
         </fieldset>
       </div>
-      {signedOutCompact && !isSignedIn ? null : <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine. Terms apply.</p>}
+      {signedOutCompact && !isSignedIn ? null : <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine.{isPreviewExperience ? "" : " Terms apply."}</p>}
+      {isPreviewExperience && isDemoWallet && isSignedIn && skipFutureExplainer ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceResetting} className="mt-1 inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60">{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null}
+      {preferenceResetMessage ? <p role="status" className="mt-1 text-xs text-cyan-200">{preferenceResetMessage}</p> : null}
       {requestReceipt?.status === "pending" ? <div className="mt-3 rounded-xl border border-[#ff9a45] bg-[#ff6a00] p-3 text-sm text-[#00132e]" role="status">
         <p className="font-extrabold">{undoSeconds > 0 ? `Entry submitted · Undo available for ${undoSeconds}s` : "Checking your saved entry…"}</p>
         <p className="mt-1 text-xs text-[#00132e]/80">{requestReceipt.quantity} {requestReceipt.quantity === 1 ? "ticket" : "tickets"} · ${(requestReceipt.amountCents / 100).toFixed(2)} reserved from your Playable Wallet.</p>
@@ -352,14 +375,14 @@ export function DemoParticipationPanel({
         <div className="fixed inset-0 z-[200] grid place-items-end bg-[#000914]/75 p-2 backdrop-blur-sm sm:place-items-center sm:p-4" role="presentation" onMouseDown={(event) => {
           if (event.currentTarget === event.target) setAdditionalEntryNoticeOpen(false);
         }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border border-cyan-300/55 bg-[#001b3d] text-left shadow-[0_28px_90px_rgba(0,0,0,.68),0_0_30px_rgba(0,185,255,.24)]">
+          <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className="max-h-[94dvh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border border-cyan-300/55 bg-[#001b3d] text-left shadow-[0_28px_90px_rgba(0,0,0,.68),0_0_30px_rgba(0,185,255,.24)] md:grid md:max-h-[90dvh] md:max-w-[820px] md:grid-cols-2 md:items-center">
             <h2 id="additional-entry-title" className="sr-only">How Extra Chances Work</h2>
-            <div className="relative">
-              <Image src="/account/extra-entry-explainer-seamless-neon.jpg" alt="How extra chances work: each entry is a separate chance and never combines into one discount" width={2286} height={2922} className="h-auto w-full" priority sizes="(max-width: 640px) calc(100vw - 16px), 576px" />
+            <div className="relative md:self-stretch">
+              <Image src="/account/extra-entry-explainer-seamless-neon.jpg" alt="How extra chances work: each entry is a separate chance and never combines into one discount" width={2286} height={2922} className="h-auto w-full md:h-full md:object-contain" priority sizes="(max-width: 767px) calc(100vw - 16px), 410px" />
               <button type="button" onClick={() => setAdditionalEntryNoticeOpen(false)} className="absolute right-[.5%] top-0 h-9 w-9 rounded-full bg-transparent transition hover:bg-[#001b3d]/35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300" aria-label="Close extra entry explanation" />
             </div>
 
-            <div className="space-y-4 px-4 pb-5 pt-4 sm:px-6 sm:pb-6">
+            <div className="space-y-4 px-4 pb-5 pt-4 sm:px-6 sm:pb-6 md:py-5">
             <details className="group rounded-xl border border-cyan-300/35 bg-[#001632] open:border-cyan-300/60">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-bold text-white marker:hidden">
                 <span className="flex items-center gap-3"><span className="grid h-7 w-7 place-items-center rounded-full bg-[#00b9ff] text-[#00132e]">?</span>Why does each entry stand alone?</span>

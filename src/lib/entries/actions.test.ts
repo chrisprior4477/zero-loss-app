@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("@/lib/preview/provisioning", () => ({ ensurePreviewCustomer: mocks.provision }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, listPendingEntryRequests, resolvePendingEntryRequest } from "./actions";
+import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, listPendingEntryRequests, resetExtraEntryExplainer, resolvePendingEntryRequest } from "./actions";
 
 function entryForm(quantity = "3") {
   const value = new FormData();
@@ -52,6 +52,25 @@ test("stores the extra-entry explainer acknowledgment on the authenticated profi
   expect(await acknowledgeExtraEntryExplainer()).toEqual({ status: "succeeded" });
   expect(mocks.rpc).toHaveBeenCalledWith("acknowledge_extra_entry_explainer");
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+});
+
+test("clears only a confirmed preview customer's saved explainer preference", async () => {
+  mocks.rpc.mockImplementation(async (name: string) => name === "get_wallet_snapshot"
+    ? { data: { walletAccountId: "99999999-9999-4999-8999-999999999999", scope: "demo", currency: "USD", balanceCents: "0", transactionCount: "0", fundingAvailable: true, entries: [] } }
+    : { data: true });
+  expect(await resetExtraEntryExplainer()).toEqual({ status: "succeeded" });
+  expect(mocks.rpc).toHaveBeenCalledWith("reset_extra_entry_explainer");
+  expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+});
+
+test("never resets a preference outside preview or a demo wallet", async () => {
+  vi.stubEnv("APP_DATA_ENVIRONMENT", "production");
+  expect((await resetExtraEntryExplainer()).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+  vi.stubEnv("APP_DATA_ENVIRONMENT", "development-test");
+  mocks.rpc.mockResolvedValue({ data: { walletAccountId: "99999999-9999-4999-8999-999999999999", scope: "production", currency: "USD", balanceCents: "0", transactionCount: "0", fundingAvailable: false, entries: [] } });
+  expect((await resetExtraEntryExplainer()).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalledWith("reset_extra_entry_explainer");
 });
 
 test("explicit Crew sharing uses the atomic entry-and-share function", async () => {

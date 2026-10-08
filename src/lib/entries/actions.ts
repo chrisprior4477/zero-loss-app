@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 import { entryReceiptHref, parseEntryRequest, type EntryRequest } from "./request";
 
 export type PreviewEntryActionState =
@@ -43,6 +44,29 @@ export async function acknowledgeExtraEntryExplainer(): Promise<EntryExplainerPr
     return { status: "succeeded" };
   } catch {
     return { status: "error", message: "We could not save this preference. Please try again." };
+  }
+}
+
+export async function resetExtraEntryExplainer(): Promise<EntryExplainerPreferenceState> {
+  if (!isPreviewDataEnvironment()) {
+    return { status: "error", message: "This demo reset is unavailable here." };
+  }
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user?.email_confirmed_at) {
+      return { status: "error", message: "Sign in to your confirmed demo account." };
+    }
+    const { data: walletData, error: walletError } = await db.rpc("get_wallet_snapshot");
+    if (walletError || parseWalletSnapshot(walletData).scope !== "demo") {
+      return { status: "error", message: "This reset is available only to demo accounts." };
+    }
+    const { error } = await db.rpc("reset_extra_entry_explainer");
+    if (error) return { status: "error", message: "We could not reset the explanation. Please try again." };
+    revalidatePath("/", "layout");
+    return { status: "succeeded" };
+  } catch {
+    return { status: "error", message: "We could not reset the explanation. Please try again." };
   }
 }
 
