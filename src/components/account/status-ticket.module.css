@@ -35,6 +35,16 @@
   filter: brightness(1.045);
 }
 
+.walletWithClear {
+  grid-template-rows: minmax(70px, auto) auto;
+}
+
+.walletWithClear > .information,
+.walletWithClear > .perforation,
+.walletWithClear > .action {
+  grid-row: 1;
+}
+
 .ticket:focus-visible {
   outline: 3px solid #031b53;
   outline-offset: 3px;

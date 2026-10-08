@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeleteAllFundsButton } from "@/components/wallet/DeleteAllFundsButton";
 import styles from "./status-ticket.module.css";
 
 type StatusTicketProps = {
@@ -14,10 +15,11 @@ type StatusTicketProps = {
   valueTestId?: string;
   tooltip?: string;
   size?: "default" | "top";
+  allowDemoClear?: boolean;
 };
 
 /** The approved ticket shape, with separate wallet actions when funding is unavailable. */
-export function StatusTicket({ label, value, action, href, variant, actionHref, actionDisabled = false, onNavigate, ariaLabel, valueTestId, tooltip, size = "default" }: StatusTicketProps) {
+export function StatusTicket({ label, value, action, href, variant, actionHref, actionDisabled = false, onNavigate, ariaLabel, valueTestId, tooltip, size = "default", allowDemoClear = false }: StatusTicketProps) {
   const information = (
     <>
         <span className={styles.iconPanel} aria-hidden="true">
@@ -55,7 +57,7 @@ export function StatusTicket({ label, value, action, href, variant, actionHref, 
 
   if (variant === "wallet" && (actionHref || actionDisabled)) {
     return (
-      <article className={className} aria-label={label} data-size={size}>
+      <article className={`${className} ${allowDemoClear ? styles.walletWithClear : ""}`} aria-label={label} data-size={size}>
         <Link href={href} onClick={onNavigate} className={styles.information} aria-label={`${label}: ${value}`}>
           {information}
         </Link>
@@ -65,6 +67,7 @@ export function StatusTicket({ label, value, action, href, variant, actionHref, 
         ) : (
           <Link href={actionHref!} onClick={onNavigate} className={styles.action}><span>{action}</span>{arrow}</Link>
         )}
+        {allowDemoClear ? <DeleteAllFundsButton value={value} /> : null}
       </article>
     );
   }

@@ -40,7 +40,7 @@ export function WalletOverview({ wallet, ledgerEntries, activity, selectedTransa
   return <main className={styles.page}>
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
-        <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="/account/wallet?view=history#balance" actionHref={canFund ? "/account/wallet?view=history#add-funds" : undefined} actionDisabled={!canFund} />
+        <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="/account/wallet?view=history#balance" actionHref={canFund ? "/account/wallet?view=history#add-funds" : undefined} actionDisabled={!canFund} allowDemoClear={canFund} />
         <StatusTicket size="top" variant="reward" label="Prize Ready" value={ready === null ? "Unavailable" : String(ready.length)} action={ready?.length === 1 ? "View reward" : "View rewards"} href={rewardHref} />
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Review options" href={accountRoutes.purchaseOptions} />
       </nav>
