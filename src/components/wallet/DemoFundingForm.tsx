@@ -23,16 +23,14 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
   const [cardMessage, setCardMessage] = useState("");
   const makeDefault = initialDefault ?? selectedToken === defaultToken;
   const confirmation = useRef<HTMLDialogElement>(null);
-  const passwordInput = useRef<HTMLInputElement>(null);
   const policyInput = useRef<HTMLInputElement>(null);
   function clearConfirmation() {
-    if (passwordInput.current) passwordInput.current.value = "";
     if (policyInput.current) policyInput.current.checked = false;
   }
   function openConfirmation() {
     clearConfirmation();
     confirmation.current?.showModal();
-    passwordInput.current?.focus();
+    policyInput.current?.focus();
   }
   const beforePaymentError = state.status === "error" && state.beforePayment === true;
   const locked = pending || (!beforePaymentError && (recovered || state.status !== "idle"));
@@ -57,8 +55,7 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
     finally { setSavingCard(null); }
   }
   useEffect(() => {
-    // React has captured FormData before the action becomes pending. Do not
-    // retain a credential in the page during a request, after failure, or close.
+    // React has captured FormData before the action becomes pending.
     if (pending) clearConfirmation();
   }, [pending]);
   useEffect(() => {
@@ -81,6 +78,7 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
     <input type="hidden" name="paymentMethod" value={recoveryOnly ? "" : selectedToken} />
     <input type="hidden" name="makeDefault" value={String(makeDefault)} />
     <input type="hidden" name="recoveryOnly" value={String(recoveryOnly)} />
+    {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     {!recoveryOnly ? <section aria-label="Add Credit Card" className={styles.demoCardsPanel}>
       <div className={styles.demoCardsHeading}><div><h3>Add a card</h3><p>Choose a supplied sample card. No real card details are accepted.</p></div>
         <button type="button" disabled={locked || cardUnavailable || visibleTokens.length === DEMO_CARD_FIXTURES.length} onClick={() => {
@@ -111,18 +109,16 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
         <option value="100">$1.00</option><option value="1000">$10.00</option><option value="2500">$25.00</option><option value="10000">$100.00</option>
       </select>
     </label>
-    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={styles.fundingSubmit}>{pending ? "Checking payment…" : beforePaymentError ? "Try password again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
+    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={styles.fundingSubmit}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
       <p className="mt-2 text-sm text-[#b5cce4]">Test card •••• {demoCardFixture(selectedToken)?.lastFour} · USD · Simulation only</p>
       <p className="mt-4 text-sm leading-6">Deposits stay in your Zero Loss balance and cannot normally be withdrawn. Exceptional refund requests are reviewed separately. This does not limit your rights for unauthorized charges or payment errors.</p>
-      <label className="mt-4 block text-sm font-bold">Account password<input ref={passwordInput} name="password" type="password" autoComplete="current-password" required disabled={pending} maxLength={1024} className="mt-2 min-h-12 w-full rounded-xl border border-cyan-300/40 bg-[#031b32] px-3 text-white" /></label>
       <label className="mt-4 flex items-start gap-3 text-sm leading-6"><input ref={policyInput} name="fundingPolicy" type="checkbox" value="funding-confirmation-v1" required disabled={pending} className="mt-1 h-5 w-5 shrink-0 accent-[#31e800]" />I confirm this amount and understand how deposited funds can be used.</label>
       {state.status !== "idle" ? <p role="alert" className="mt-3 text-sm leading-6 text-amber-100">{state.message}</p> : null}
       <div className="mt-5 flex flex-wrap gap-3"><button type="button" disabled={pending} onClick={() => { clearConfirmation(); confirmation.current?.close(); }} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending} className="min-h-12 flex-[2] rounded-xl bg-[#31e800] px-4 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
-      <Link href="/forgot-password" className="mt-4 block text-sm font-bold text-cyan-300 underline">Forgot your password?</Link>
-      <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. Your password is checked securely and is not saved with this deposit.</p>
+      <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. This simulated deposit requires your signed-in account and the confirmation above.</p>
     </dialog> : null}
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
@@ -163,6 +159,7 @@ function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: Cont
   }, [state.status, continueTo?.href, router]);
   return <form action={action} className="mt-2">
     <input type="hidden" name="sessionId" value={id} />
+    {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     <button disabled={pending} className="min-h-11 rounded-lg border border-cyan-300/30 px-3 text-sm font-bold text-cyan-300 disabled:opacity-60">{pending ? "Checking…" : "Finish / check"}</button>
     {state.status !== "idle" ? <p role="status" className="mt-2 text-xs leading-5 text-[#b5cce4]">{state.message}</p> : null}
   </form>;

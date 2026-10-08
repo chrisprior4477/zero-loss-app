@@ -9,8 +9,8 @@ import { PoolProgress } from "@/components/product/PoolProgress";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
-import { acknowledgeExtraEntryExplainer, createPreviewEntry } from "@/lib/entries/actions";
-import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
+import { acknowledgeExtraEntryExplainer, createPreviewEntry, resolvePendingEntryRequest } from "@/lib/entries/actions";
+import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 import { clearEntryIntent, productEntryHref, saveEntryIntent } from "@/lib/entries/return-intent";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
 
@@ -68,6 +68,10 @@ export function DemoParticipationPanel({
   const [selectedTicketsToast, setSelectedTicketsToast] = useState<number | null>(null);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
   const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
+  const [undoNow, setUndoNow] = useState(0);
+  const [receiptReceivedAt, setReceiptReceivedAt] = useState(0);
+  const [undoBusy, setUndoBusy] = useState(false);
+  const [undoError, setUndoError] = useState("");
   const receivedRequests = useRef(new Map<string, EntryRequest["status"]>());
   const latestReceipt = useRef<EntryRequest | null>(null);
   const uncertain = state.status === "error" && state.code === "outcome_unknown";
@@ -158,8 +162,11 @@ export function DemoParticipationPanel({
         (request.requestId === latestReceipt.current.requestId && latestReceipt.current.status !== "pending" && request.status === "pending"))) return;
       if (receivedRequests.current.get(request.requestId) === request.status) return;
       latestReceipt.current = request;
+      setReceiptReceivedAt(performance.now());
       receivedRequests.current.set(request.requestId, request.status);
       setRequestReceipt(request);
+      setUndoNow(performance.now());
+      setUndoError("");
       if (request.status === "pending") { setQuantity(request.quantity); clearEntryIntent(productSlug); }
       if (request.status !== "pending") {
         setSubmissionKey(crypto.randomUUID());
@@ -171,8 +178,34 @@ export function DemoParticipationPanel({
   }, [productSlug]);
 
   useEffect(() => {
-    if (state.status === "request") window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: state.request }));
+    if (state.status === "request") {
+      window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: state.request.requestId }));
+      window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: state.request }));
+    }
   }, [state]);
+
+  useEffect(() => {
+    if (requestReceipt?.status !== "pending") return;
+    const timer = window.setInterval(() => setUndoNow(performance.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [requestReceipt?.status]);
+
+  const undoSeconds = requestReceipt?.status === "pending"
+    ? Math.max(0, Math.ceil((Date.parse(requestReceipt.undoUntil) - Date.parse(requestReceipt.serverNow)
+      - (undoNow - receiptReceivedAt)) / 1000)) : 0;
+  async function undoEntry() {
+    if (requestReceipt?.status !== "pending" || undoBusy || undoSeconds === 0) return;
+    setUndoBusy(true);
+    setUndoError("");
+    try {
+      const result = await resolvePendingEntryRequest(requestReceipt.requestId, true);
+      if (result.request) {
+        window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: result.request }));
+        router.refresh();
+      } else setUndoError(result.error ?? "Could not check the saved submission. Try again.");
+    } catch { setUndoError("Connection interrupted. Try again to check the saved submission."); }
+    finally { setUndoBusy(false); }
+  }
 
   const chooseEntrySharing = (share: boolean) => {
     if (shareChoiceRef.current) shareChoiceRef.current.value = share ? "yes" : "no";
@@ -218,6 +251,12 @@ export function DemoParticipationPanel({
         </fieldset>
       </div>
       {signedOutCompact && !isSignedIn ? null : <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine. Terms apply.</p>}
+      {requestReceipt?.status === "pending" ? <div className="mt-3 rounded-xl border border-cyan-300/50 bg-[#062b4d] p-3 text-sm text-white" role="status">
+        <p className="font-extrabold">{undoSeconds > 0 ? `Entry submitted · Undo available for ${undoSeconds}s` : "Checking your saved entry…"}</p>
+        <p className="mt-1 text-xs text-white/75">{requestReceipt.quantity} {requestReceipt.quantity === 1 ? "ticket" : "tickets"} · ${(requestReceipt.amountCents / 100).toFixed(2)} reserved from your Playable Wallet.</p>
+        {undoError ? <p role="alert" className="mt-2 text-xs text-amber-100">{undoError}</p> : null}
+        {undoSeconds > 0 ? <button type="button" disabled={undoBusy} onClick={() => void undoEntry()} className="mt-2 min-h-11 rounded-lg border border-cyan-300/60 px-4 font-bold text-cyan-200 disabled:opacity-60">{undoBusy ? "Checking…" : "Undo entry"}</button> : null}
+      </div> : null}
       {requestReceipt && requestReceipt.status !== "pending" ? <div className="mt-2 flex flex-wrap items-baseline gap-x-2 rounded-lg bg-[#062b4d] px-3 py-2 text-xs leading-4" role="status">
         <p>{requestReceipt.status === "accepted" ? `Previous ${requestReceipt.quantity}-ticket submission saved. A new entry is separate.` : "Your previous submission was not entered. You can start a new submission below."}</p>
         {requestReceipt.href ? <Link href={requestReceipt.href} className="font-bold text-cyan-300 underline">View previous submission →</Link> : null}

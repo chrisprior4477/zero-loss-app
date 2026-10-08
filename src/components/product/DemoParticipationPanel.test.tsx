@@ -2,9 +2,9 @@ import { afterEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ENTRY_REQUEST_EVENT } from "@/lib/entries/request";
 import { DemoParticipationPanel } from "./DemoParticipationPanel";
-const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), enter: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge }));
+const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), enter: vi.fn(), resolve: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
+vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resolvePendingEntryRequest: actionMocks.resolve }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
@@ -49,6 +49,19 @@ test("recovered receipt links to original entry and explicitly distinguishes a n
   act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...receipt, status: "pending" } })));
   expect(document.querySelector('input[name="idempotencyKey"]')?.getAttribute("value")).toBe(key);
   expect(screen.queryByText("Entry awaiting confirmation…")).toBeNull();
+});
+
+test("30-second Undo appears inline by the entry controls, not in a floating toast", async () => {
+  render(<DemoParticipationPanel {...props} isSignedIn />);
+  const receipt = { requestId: "41414141-4141-4141-8141-414141414141", slug: props.productSlug,
+    title: props.productTitle, quantity: 1, amountCents: 100, status: "pending", undoUntil: "2026-09-20T12:00:30Z",
+    serverNow: "2026-09-20T12:00:00Z", href: null };
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: receipt })));
+  expect(screen.getByText(/Entry submitted · Undo available/).closest("aside")?.id).toBe("enter-entry");
+  expect(document.querySelector(".fixed[aria-label='Entry confirmations']")).toBeNull();
+  actionMocks.resolve.mockResolvedValue({ request: { ...receipt, status: "cancelled" } });
+  fireEvent.click(screen.getByRole("button", { name: "Undo entry" }));
+  await waitFor(() => expect(actionMocks.resolve).toHaveBeenCalledWith(receipt.requestId, true));
 });
 
 test("Add funds opens the funding form and remembers this prize", () => {

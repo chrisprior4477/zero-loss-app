@@ -11,6 +11,8 @@ export type EntryRequest = {
 };
 
 export const ENTRY_REQUEST_EVENT = "zero-loss-entry-request";
+export const ENTRY_REQUEST_CREATED_EVENT = "zero-loss-entry-request-created-here";
+export const RECENT_ENTRY_STORAGE_KEY = "zero-loss:recent-entry";
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
 export function entryReceiptHref(data: Record<string, unknown>, slug: string): string {

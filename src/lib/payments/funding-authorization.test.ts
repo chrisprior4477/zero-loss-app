@@ -2,7 +2,7 @@ import { beforeEach, afterEach, expect, test, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 const mocks = vi.hoisted(() => ({ create: vi.fn(), signIn: vi.fn(), signOut: vi.fn(), rpc: vi.fn(), getUser: vi.fn() }));
 vi.mock("@supabase/supabase-js", () => ({ createClient: mocks.create }));
-import { authorizeFunding } from "./funding-authorization";
+import { authorizeFunding, confirmDemoFunding } from "./funding-authorization";
 const attempt = vi.fn();
 const requestKey = "test-request-00000000";
 const db = { auth: { getUser: mocks.getUser }, rpc: attempt } as unknown as SupabaseClient;
@@ -55,4 +55,18 @@ test("network error during verification revokes only the isolated session", asyn
   mocks.rpc.mockRejectedValue(new Error("network unavailable"));
   await expect(authorizeFunding(db, form(), 2500, requestKey)).rejects.toThrow("network unavailable");
   expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+});
+test("checkbox confirmation binds the amount, key and sample method without sending a password", async () => {
+  const data = form(); data.delete("password");
+  await confirmDemoFunding(db, data, 2500, requestKey);
+  expect(attempt).toHaveBeenCalledWith("confirm_demo_checkbox_funding", {
+    p_amount: 2500, p_request_key: requestKey, p_payment_method: "demo_card_4242",
+    p_make_default: false, p_policy_version: "funding-confirmation-v1",
+  });
+  expect(mocks.create).not.toHaveBeenCalled();
+});
+test("unchecked confirmation cannot reach the database", async () => {
+  const data = form(); data.delete("fundingPolicy");
+  await expect(confirmDemoFunding(db, data, 2500, requestKey)).rejects.toThrow("Check the box");
+  expect(attempt).not.toHaveBeenCalled();
 });

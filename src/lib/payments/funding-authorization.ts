@@ -5,6 +5,23 @@ import { FundingFailure } from "./demo-provider";
 
 export const FUNDING_POLICY_VERSION = "funding-confirmation-v1";
 
+/** Preview-only acknowledgment. The database repeats the account, environment,
+ * amount, method, rate-limit and request-key checks before recording evidence.
+ */
+export async function confirmDemoFunding(db: SupabaseClient, form: FormData, amount: number, key: string) {
+  if (form.get("fundingPolicy") !== FUNDING_POLICY_VERSION) {
+    throw new FundingFailure("P0001", "Check the box to confirm this demo deposit.");
+  }
+  const { error } = await db.rpc("confirm_demo_checkbox_funding", {
+    p_amount: amount,
+    p_request_key: key,
+    p_payment_method: form.get("paymentMethod"),
+    p_make_default: form.get("makeDefault") === "true",
+    p_policy_version: FUNDING_POLICY_VERSION,
+  });
+  if (error) throw new FundingFailure(error.code, error.message);
+}
+
 /** Auth owns credentials; the database stores only transaction-bound evidence.
  * The temporary password session never replaces the customer's browser session.
  */

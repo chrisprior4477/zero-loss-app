@@ -9,7 +9,10 @@ import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { demoCardFixture } from "./demo-card";
-import { authorizeFunding } from "./funding-authorization";
+import { confirmDemoFunding } from "./funding-authorization";
+import { entryReturnPath } from "@/lib/auth/entry-return";
+import { accountReturnPath } from "@/lib/auth/account-return";
+import { redirect } from "next/navigation";
 
 export type DemoFundingActionState =
   | { status: "idle" }
@@ -40,6 +43,13 @@ function failure(error: unknown): DemoFundingActionState {
 
 function updateWalletViews() { revalidatePath("/", "layout"); }
 
+function fundingContinuation(value: unknown): string | null {
+  const product = entryReturnPath(value);
+  if (product) return product;
+  const account = accountReturnPath(value);
+  return account?.startsWith("/account/entries?item=") ? account : null;
+}
+
 export async function completeDemoFunding(
   _previous: DemoFundingActionState,
   formData: FormData,
@@ -47,6 +57,7 @@ export async function completeDemoFunding(
   const amountCents = Number(formData.get("amountCents"));
   const idempotencyKey = String(formData.get("idempotencyKey") ?? "");
   const recoveryOnly = formData.get("recoveryOnly") === "true";
+  const returnTo = fundingContinuation(formData.get("returnTo"));
 
   try {
     if (formData.get("currency") !== "USD") throw new Error("Only USD demo funding is supported.");
@@ -65,10 +76,9 @@ export async function completeDemoFunding(
     const provider = await fundingProvider();
     if (!recoveryOnly) {
       try {
-        await authorizeFunding(await createClient(), formData, amountCents, idempotencyKey);
+        await confirmDemoFunding(await createClient(), formData, amountCents, idempotencyKey);
       } catch (error) {
-        // Authentication failed before any payment session was created. The
-        // browser may discard its recovery marker and accept another password.
+        // Confirmation failed before any payment session was created.
         const reply = failure(error);
         return reply.status === "error" ? { ...reply, beforePayment: true } : reply;
       }
@@ -80,6 +90,7 @@ export async function completeDemoFunding(
     result = { status: "succeeded", message: "Demo funds added. Your updated balance comes from the database ledger. No real money was charged." };
   } catch (error) { result = failure(error); }
   updateWalletViews();
+  if (result.status === "succeeded" && returnTo) redirect(returnTo);
   return result;
 }
 
@@ -108,6 +119,7 @@ export async function saveDemoPaymentMethod(
 
 export async function reconcileDemoFunding(_previous: DemoFundingActionState, formData: FormData): Promise<DemoFundingActionState> {
   const sessionId = formData.get("sessionId");
+  const returnTo = fundingContinuation(formData.get("returnTo"));
   if (typeof sessionId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
     return { status: "error", message: "Invalid funding request." };
   }
@@ -117,5 +129,6 @@ export async function reconcileDemoFunding(_previous: DemoFundingActionState, fo
     result = { status: "succeeded", message: "Payment checked and ledger credit confirmed. Rechecking cannot add another credit." };
   } catch (error) { result = failure(error); }
   updateWalletViews();
+  if (result.status === "succeeded" && returnTo) redirect(returnTo);
   return result;
 }

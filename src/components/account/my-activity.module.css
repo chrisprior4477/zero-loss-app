@@ -127,7 +127,10 @@
 [data-status="completion"] .productStage { background: linear-gradient(140deg, #ffe9cf, #f8d8b6); }
 .productImage { object-fit: contain; padding: 7px; -webkit-user-drag: none; }
 .cardFoot { display: flex; grid-column: 2; grid-row: 4; min-height: 0; flex-direction: column; align-items: stretch; justify-content: space-between; gap: 5px; }
+.noteStack { min-width: 0; }
 .productNote { color: #526985; font-size: clamp(10px, .83vw, 13px); line-height: 1.2; }
+.newEntryLabel { display: inline-block; margin-top: 2px; color: #027c2a; font-size: 11px; font-weight: 900; line-height: 1.1; animation: newEntryPulse 1.1s ease-in-out 3; }
+@keyframes newEntryPulse { 50% { opacity: .45; transform: scale(1.04); } }
 .cardAction { display: inline-flex; align-self: flex-end; min-height: 32px; align-items: center; justify-content: center; gap: 7px; padding: 5px 10px; border-radius: 9px; background: #c9efff; color: #0a1b3e; font-size: clamp(10px, .83vw, 13px); font-weight: 800; white-space: nowrap; }
 .cardAction svg { width: 16px; height: 16px; }
 [data-status="prize"] .cardAction { background: #41ea59; }
@@ -261,4 +264,5 @@
 @media (prefers-reduced-motion: reduce) {
   .filter, .productCard { transition: none; }
   .filter:hover, .productCard:hover { transform: none; }
+  .newEntryLabel { animation: none; }
 }

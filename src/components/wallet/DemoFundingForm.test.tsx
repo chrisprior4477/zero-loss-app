@@ -5,54 +5,50 @@ vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn() }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
-test("deposit confirmation stays on the page and asks for amount approval and password", () => {
+test("deposit confirmation stays on the page and requires an unchecked acknowledgment, not a password", () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   expect(screen.getByRole("dialog", { name: "Add $25 to your balance?" })).toBeTruthy();
-  expect((screen.getByLabelText("Account password") as HTMLInputElement).type).toBe("password");
+  expect(screen.queryByLabelText("Account password")).toBeNull();
   expect(screen.getByRole("button", { name: "Confirm $25 deposit" })).toBeTruthy();
   expect(screen.getByText(/does not limit your rights/)).toBeTruthy();
-  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "local-test-only" } });
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   fireEvent.change(screen.getByLabelText("Amount (USD)"), { target: { value: "1000" } });
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   expect(screen.getByRole("dialog", { name: "Add $10 to your balance?" })).toBeTruthy();
-  expect((screen.getByLabelText("Account password") as HTMLInputElement).value).toBe("");
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
   expect(sessionStorage.length).toBe(0);
 });
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); });
-test("a rejected password clears the recovery marker and can be corrected", async () => {
+test("a rejected confirmation clears the recovery marker and can be retried", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   vi.mocked(completeDemoFunding)
-    .mockResolvedValueOnce({ status: "error", message: "We couldn’t verify your password.", beforePayment: true })
+    .mockResolvedValueOnce({ status: "error", message: "Check the box to confirm this demo deposit.", beforePayment: true })
     .mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
   render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" blocked={false} />);
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
-  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "wrong-password" } });
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
-  await waitFor(() => expect(screen.getByRole("button", { name: "Try password again" })).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Confirm deposit again" })).toBeTruthy());
   await waitFor(() => expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull());
-  expect(vi.mocked(completeDemoFunding).mock.calls[0]?.[1].get("password")).toBe("wrong-password");
-  fireEvent.click(screen.getByRole("button", { name: "Try password again" }));
-  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "correct-password" } });
+  expect(vi.mocked(completeDemoFunding).mock.calls[0]?.[1].get("fundingPolicy")).toBe("funding-confirmation-v1");
+  fireEvent.click(screen.getByRole("button", { name: "Confirm deposit again" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
-  expect(vi.mocked(completeDemoFunding).mock.calls[1]?.[1].get("password")).toBe("correct-password");
+  expect(vi.mocked(completeDemoFunding).mock.calls[1]?.[1].get("fundingPolicy")).toBe("funding-confirmation-v1");
 });
 test("successful funding automatically returns to the selected product and quantity", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
-  render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv?quantity=4#enter-entry" }} />);
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv?quantity=4#enter-entry" }} />);
+  expect(container.querySelector<HTMLInputElement>('[name="returnTo"]')?.value).toBe("/items/samsung-m70h-tv?quantity=4#enter-entry");
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
-  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "local-test-only" } });
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
@@ -65,7 +61,6 @@ test("an uncertain payment keeps its recovery marker and request key", async () 
   vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "pending", message: "Check this request." });
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" blocked={false} />);
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
-  fireEvent.change(screen.getByLabelText("Account password"), { target: { value: "test-password" } });
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy());

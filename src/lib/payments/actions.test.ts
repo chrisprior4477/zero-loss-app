@@ -1,15 +1,16 @@
 import { beforeEach, afterEach, expect, test, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn() }));
-const authorization = vi.hoisted(() => ({ authorizeFunding: vi.fn() }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn(), redirect: vi.fn() }));
+const authorization = vi.hoisted(() => ({ confirmDemoFunding: vi.fn() }));
 vi.mock("./funding-authorization", () => authorization);
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod } from "./actions";
 import { FundingFailure } from "./demo-provider";
 const sid = "99999999-9999-4999-8999-999999999999";
 const snapshot = { walletAccountId: sid, scope: "demo", currency: "USD", balanceCents: "0", transactionCount: "0", entries: [], fundingAvailable: true };
 function form() {
-  const value = new FormData(); value.set("amountCents", "2500"); value.set("currency", "USD"); value.set("idempotencyKey", "funding_review_check_001"); value.set("paymentMethod", "demo_card_4242"); value.set("makeDefault", "true"); return value;
+  const value = new FormData(); value.set("amountCents", "2500"); value.set("currency", "USD"); value.set("idempotencyKey", "funding_review_check_001"); value.set("paymentMethod", "demo_card_4242"); value.set("makeDefault", "true"); value.set("fundingPolicy", "funding-confirmation-v1"); return value;
 }
 beforeEach(() => {
   vi.resetAllMocks();
@@ -27,15 +28,29 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 test("request, durable provider and verified consumer run in order and refresh shared views", async () => {
   expect((await completeDemoFunding({ status: "idle" }, form())).status).toBe("succeeded");
-  expect(authorization.authorizeFunding).toHaveBeenCalledOnce();
+  expect(authorization.confirmDemoFunding).toHaveBeenCalledOnce();
   expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot", "create_demo_card_funding_session", "simulate_demo_payment", "accept_demo_payment_event"]);
   expect(mocks.rpc).toHaveBeenCalledWith("create_demo_card_funding_session", { p_amount: 2500, p_idempotency_key: "funding_review_check_001", p_payment_method: "demo_card_4242", p_make_default: true });
   expect(mocks.rpc).toHaveBeenCalledWith("accept_demo_payment_event", { p_body: "signed-by-demo-provider", p_signature: "provider-signature" });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
 });
-test("failed password authorization never creates or processes a payment", async () => {
-  authorization.authorizeFunding.mockRejectedValue(new FundingFailure("P0001", "Password confirmation failed."));
-  expect(await completeDemoFunding({ status: "idle" }, form())).toEqual({ status: "error", message: "Password confirmation failed.", beforePayment: true });
+test("confirmed credit redirects on the server to the same product and quantity", async () => {
+  const f = form(); f.set("returnTo", "/items/samsung-m70h-tv?quantity=4#enter-entry");
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.rpc.mock.calls.at(-1)?.[0]).toBe("accept_demo_payment_event");
+  expect(mocks.redirect).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=4#enter-entry");
+});
+test("return destination cannot be replaced with an external or unrelated URL", async () => {
+  const f = form(); f.set("returnTo", "https://example.test/steal");
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.redirect).not.toHaveBeenCalled();
+  f.set("returnTo", "/account/wallet?view=history");
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.redirect).not.toHaveBeenCalled();
+});
+test("failed checkbox confirmation never creates or processes a payment", async () => {
+  authorization.confirmDemoFunding.mockRejectedValue(new FundingFailure("P0001", "Confirmation failed."));
+  expect(await completeDemoFunding({ status: "idle" }, form())).toEqual({ status: "error", message: "Confirmation failed.", beforePayment: true });
   expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot"]);
 });
 test.each(["EUR", "", "usd"])("rejects altered currency %s before database access", async currency => {
@@ -109,7 +124,7 @@ test("legacy browser recovery only looks up an existing request", async () => {
   expect((await completeDemoFunding({ status: "idle" }, f)).status).toBe("succeeded");
   expect(mocks.rpc).toHaveBeenCalledWith("resume_demo_funding_session", { p_amount: 2500, p_idempotency_key: "funding_review_check_001" });
   expect(mocks.rpc.mock.calls.some(call => call[0].startsWith("create_demo"))).toBe(false);
-  expect(authorization.authorizeFunding).not.toHaveBeenCalled();
+  expect(authorization.confirmDemoFunding).not.toHaveBeenCalled();
 });
 
 test("saved card uses the confirmed preview account boundary without funding", async () => {

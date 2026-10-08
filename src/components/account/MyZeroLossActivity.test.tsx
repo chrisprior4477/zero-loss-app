@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { drawerState } from "@/lib/account/drawer-state";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { activityFilter, activityHref, activityPresentation, filterActivity } from "@/lib/account/activity";
 import { MyZeroLossActivity } from "./MyZeroLossActivity";
 import { DashboardActivity } from "./DashboardActivity";
 import { ActivitySelection } from "./ActivitySelection";
+import { RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 const { replace, redirect } = vi.hoisted(() => ({ replace: vi.fn(), redirect: vi.fn((href: string) => { throw new Error(`redirect:${href}`); }) }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }), redirect }));
 vi.mock("next/image", () => ({ default: () => <span /> }));
@@ -18,6 +19,14 @@ beforeEach(() => {
   Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: function(this: HTMLDialogElement) { this.open = false; } });
 });
 afterEach(() => { cleanup(); document.body.style.overflow = ""; });
+
+test("newly confirmed card gets a brief Your new entry label without changing other cards", async () => {
+  sessionStorage.setItem(RECENT_ENTRY_STORAGE_KEY, JSON.stringify({ slug: "playstation-5-slim", entryId: null, at: Date.now() }));
+  render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
+  await waitFor(() => expect(screen.getByText("Your new entry")).toBeTruthy());
+  expect(screen.getByText("Your new entry").closest("[data-activity-slug]")?.getAttribute("data-activity-slug")).toBe("playstation-5-slim");
+  expect(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY)).toBeNull();
+});
 
 test("normal empty state cannot expose a fixture by selected slug or filter", () => {
   render(<MyZeroLossActivity state={drawerState(true)} filter="all" selectedSlug="nike-court-shot-shoes" />);

@@ -10,6 +10,7 @@ import styles from "./my-activity.module.css";
 import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
+import { RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
 function action(item: ActivityItem) {
@@ -22,6 +23,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
   const [dragging, setDragging] = useState(false);
   const [view, setView] = useState({ start: 0, end: items.length - 1, previous: false, next: false });
+  const [recentEntry, setRecentEntry] = useState<{ slug: string; entryId: string | null } | null>(null);
   const galleryId = useId();
 
   function move(direction: number) {
@@ -48,6 +50,28 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
     if (track.current) observer?.observe(track.current);
     return () => { cancelAnimationFrame(frame); observer?.disconnect(); };
   }, [syncSwipe]);
+
+  useEffect(() => {
+    try {
+      const value = JSON.parse(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY) ?? "null");
+      if (!value || typeof value.slug !== "string" || !Number.isFinite(value.at)
+        || Date.now() - value.at > 30_000) {
+        sessionStorage.removeItem(RECENT_ENTRY_STORAGE_KEY);
+        return;
+      }
+      const match = items.find(item => item.slug === value.slug && (!value.entryId || item.entryId === value.entryId));
+      if (!match) return;
+      sessionStorage.removeItem(RECENT_ENTRY_STORAGE_KEY);
+      const frame = requestAnimationFrame(() => {
+        const card = Array.from(track.current?.querySelectorAll<HTMLElement>("[data-activity-entry-id]") ?? [])
+          .find(element => element.dataset.activityEntryId === match.entryId);
+        card?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+        setRecentEntry({ slug: match.slug, entryId: match.entryId ?? null });
+      });
+      const timer = window.setTimeout(() => setRecentEntry(null), 15_000);
+      return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
+    } catch { /* Recent-entry emphasis is transient presentation only. */ }
+  }, [items]);
 
   function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType !== "mouse" || event.button !== 0) return;
@@ -135,6 +159,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
       {items.map((item, index) => {
         const featured = item.status === "prize" && index === 0;
         const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
+        const isRecent = recentEntry?.slug === item.slug && (!recentEntry.entryId || recentEntry.entryId === item.entryId);
         const offerStatus = offerMetrics ? availabilityStatus(offerMetrics.capacity, offerMetrics.sold) : undefined;
         const desktopColumn = Math.floor(index / 6) * 2 + (index % 2) + 1;
         const desktopRow = Math.floor((index % 6) / 2) + 1;
@@ -156,10 +181,11 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
                 <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 44vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
               </div>
               <div className={styles.cardFoot}>
-                <p className={styles.productNote}>{item.status === "completion"
+                <div className={styles.noteStack}><p className={styles.productNote}>{item.status === "completion"
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · ${offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : `${offerStatus.remaining.toLocaleString("en-US")} tickets left`) : "Still in play"}`
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : "Your completed activity."}</p>
+                  {isRecent ? <span className={styles.newEntryLabel}>Your new entry</span> : null}</div>
                 <span className={styles.cardAction} data-activity-click>{action(item)}<AccountIcon name="arrow" /></span>
               </div>
             </div>

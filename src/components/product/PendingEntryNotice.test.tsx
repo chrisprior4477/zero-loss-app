@@ -1,133 +1,45 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), acknowledge: vi.fn(), refresh: vi.fn(), path: "/items/test-prize" }));
-vi.mock("next/navigation", () => ({ usePathname: () => mocks.path, useRouter: () => ({ refresh: mocks.refresh }) }));
+import { act, cleanup, render, waitFor } from "@testing-library/react";
+const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), acknowledge: vi.fn(), refresh: vi.fn(), replace: vi.fn(), path: "/items/test-prize" }));
+vi.mock("next/navigation", () => ({ usePathname: () => mocks.path, useRouter: () => ({ refresh: mocks.refresh, replace: mocks.replace }) }));
 vi.mock("@/lib/entries/actions", () => ({ listPendingEntryRequests: mocks.list, resolvePendingEntryRequest: mocks.resolve, acknowledgeEntryReceipt: mocks.acknowledge }));
 import { PendingEntryNotice } from "./PendingEntryNotice";
-import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
+import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 const request: EntryRequest = { requestId: "41414141-4141-4141-8141-414141414141", slug: "test-prize", title: "Test prize", quantity: 3, amountCents: 300, status: "pending", undoUntil: "2026-09-21T12:00:30Z", serverNow: "2026-09-21T12:00:00Z", href: null };
-beforeEach(() => { vi.resetAllMocks(); mocks.path = "/items/test-prize"; sessionStorage.clear(); mocks.list.mockResolvedValue({ requests: [request] }); });
+beforeEach(() => { vi.resetAllMocks(); mocks.path = "/items/test-prize"; sessionStorage.clear(); mocks.list.mockResolvedValue({ requests: [] }); mocks.acknowledge.mockResolvedValue({}); });
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
-test("old completed receipts are restored and dismissal is persisted before hiding", async () => {
-  mocks.list.mockResolvedValue({ requests: [{ ...request, status: "accepted", href: "/account/entries?entry=ent_abcd" }] });
-  mocks.acknowledge.mockResolvedValueOnce({ error: "Connection interrupted." }).mockResolvedValueOnce({});
+test("does not render either the countdown or View entry toast", async () => {
+  mocks.list.mockResolvedValue({ requests: [request] });
+  const { container } = render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  expect(container.firstChild).toBeNull();
+});
+
+test("local accepted entry returns to My Activity and leaves a transient exact-entry marker", async () => {
   render(<PendingEntryNotice />);
-  fireEvent.click(await screen.findByRole("button", { name: "Dismiss confirmation for Test prize" }));
-  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Connection interrupted.");
-  expect(screen.getByRole("link", { name: "View entries →" })).toBeTruthy();
-  mocks.list.mockResolvedValue({ requests: [] });
-  fireEvent.click(screen.getByRole("button", { name: "Dismiss confirmation for Test prize" }));
-  await waitFor(() => expect(screen.queryByRole("region", { name: "Entry confirmations" })).toBeNull());
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => {
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted", href: "/account/entries?item=test-prize&entry=ent_abcd" } }));
+  });
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries"));
+  expect(JSON.parse(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY) ?? "null")).toMatchObject({ slug: "test-prize", entryId: "ent_abcd" });
   expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId);
 });
 
-test("returning online recovers a missed receipt even if no pending toast was known", async () => {
-  mocks.list.mockResolvedValueOnce({ requests: [], error: "Offline" }).mockResolvedValue({ requests: [request] });
+test("restored older receipt is acknowledged without redirecting", async () => {
+  mocks.list.mockResolvedValue({ requests: [{ ...request, status: "accepted", href: "/account/entries" }] });
   render(<PendingEntryNotice />);
-  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
-  fireEvent(window, new Event("online"));
-  expect(await screen.findByRole("button", { name: "Undo all entries" })).toBeTruthy();
-});
-test("a transport failure while refreshing keeps a known receipt and can recover online", async () => {
-  mocks.list.mockRejectedValueOnce(new Error("Offline")).mockResolvedValue({ requests: [request] });
-  render(<PendingEntryNotice />);
-  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
-  fireEvent(window, new Event("online"));
-  expect(await screen.findByRole("button", { name: "Undo all entries" })).toBeTruthy();
+  await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId));
+  expect(mocks.replace).not.toHaveBeenCalled();
 });
 
-test("restores pending entries after navigation, with exact quantity and a website-styled Undo", async () => {
-  render(<PendingEntryNotice />);
-  expect(await screen.findByRole("button", { name: "Undo all entries" })).toBeTruthy();
-  expect(screen.getByText("3 tickets · $3 reserved")).toBeTruthy();
-  expect(screen.getByText("30s")).toBeTruthy();
-  expect(screen.getByText(/not your payment card/)).toBeTruthy();
-  expect(screen.queryByRole("button", { name: /Dismiss/ })).toBeNull();
-  expect(mocks.resolve).not.toHaveBeenCalled();
-});
-test("closing the large pending notice keeps a compact Undo reminder through refreshes", async () => {
-  render(<PendingEntryNotice />);
-  fireEvent.click(await screen.findByRole("button", { name: "Close full confirmation for Test prize; Undo stays available" }));
-  expect(screen.getByText("Undo available · 30s")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Undo all entries for Test prize" })).toBeTruthy();
-  expect(screen.queryByText(/not your payment card/)).toBeNull();
-  expect(mocks.resolve).not.toHaveBeenCalled();
-  expect(mocks.acknowledge).not.toHaveBeenCalled();
-  fireEvent(window, new Event("online"));
-  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
-  expect(screen.getByRole("button", { name: "Undo all entries for Test prize" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Expand confirmation for Test prize" }));
-  expect(screen.getByText(/not your payment card/)).toBeTruthy();
-});
-test("Undo from the compact reminder still calls the server and stays compact afterward", async () => {
-  mocks.resolve.mockResolvedValue({ request: { ...request, status: "cancelled" } });
-  render(<PendingEntryNotice />);
-  fireEvent.click(await screen.findByRole("button", { name: "Close full confirmation for Test prize; Undo stays available" }));
-  fireEvent.click(screen.getByRole("button", { name: "Undo all entries for Test prize" }));
-  expect(await screen.findByText("Entry undone")).toBeTruthy();
-  expect(mocks.resolve).toHaveBeenCalledWith(request.requestId, true);
-  expect(screen.queryByText(/not your payment card/)).toBeNull();
-  expect(screen.getByRole("button", { name: "Dismiss confirmation for Test prize" })).toBeTruthy();
-});
-test("a compact pending reminder does not reopen when the server confirms entries", async () => {
-  render(<PendingEntryNotice />);
-  fireEvent.click(await screen.findByRole("button", { name: "Close full confirmation for Test prize; Undo stays available" }));
-  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted", href: "/account/entries?entry=ent_abcd" } })));
-  expect(screen.getByText("Entries confirmed")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "View entries" }).getAttribute("href")).toBe("/account/entries?entry=ent_abcd");
-  expect(screen.queryByText(/not your payment card/)).toBeNull();
-});
-test("Undo waits for the server, restores the receipt, and never pretends a network failure succeeded", async () => {
-  mocks.resolve.mockResolvedValueOnce({ error: "Connection interrupted." }).mockResolvedValueOnce({ request: { ...request, status: "cancelled" } });
-  render(<PendingEntryNotice />);
-  fireEvent.click(await screen.findByRole("button", { name: "Undo all entries" }));
-  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Connection interrupted.");
-  expect(screen.queryByText("Entry undone")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Undo all entries" }));
-  expect(await screen.findByText("Entry undone")).toBeTruthy();
-  expect(mocks.resolve).toHaveBeenLastCalledWith(request.requestId, true);
-  expect(screen.getByText(/\$3 returned to Playable Balance/)).toBeTruthy();
-});
-test("deadline expiration checks the server instead of granting a client-side result", async () => {
+test("expired pending request is checked with the server, not accepted by the browser", async () => {
   mocks.list.mockResolvedValue({ requests: [{ ...request, serverNow: request.undoUntil }] });
-  mocks.resolve.mockResolvedValue({ request: { ...request, status: "accepted", href: "/account/entries?entry=ent_abcd" } });
+  mocks.resolve.mockResolvedValue({ request: { ...request, status: "accepted", href: "/account/entries" } });
   render(<PendingEntryNotice />);
-  const link = await screen.findByRole("link", { name: "View entries →" });
-  expect(mocks.resolve).toHaveBeenCalledWith(request.requestId, false);
-  expect(link.getAttribute("href")).toBe("/account/entries?entry=ent_abcd");
-  expect(screen.queryByRole("button", { name: "Undo all entries" })).toBeNull();
-});
-test("receipts published by submission appear without leaving the prize page", async () => {
-  mocks.list.mockResolvedValue({ requests: [] });
-  render(<PendingEntryNotice />);
-  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
-  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request })));
-  expect(screen.getByRole("button", { name: "Undo all entries" })).toBeTruthy();
-});
-test("signed-out visitors see no other customer's receipts", async () => {
-  mocks.list.mockResolvedValue({ requests: [] });
-  render(<PendingEntryNotice />);
-  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
-  expect(screen.queryByRole("region", { name: "Entry confirmations" })).toBeNull();
-});
-test("navigation during an in-flight read retries for the new route", async () => {
-  let finish!: (value: { requests: EntryRequest[] }) => void;
-  mocks.list.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  const view = render(<PendingEntryNotice />);
-  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
-  mocks.path = "/account/wallet";
-  view.rerender(<PendingEntryNotice />);
-  await act(async () => { finish({ requests: [] }); });
-  expect(await screen.findByRole("button", { name: "Undo all entries" })).toBeTruthy();
-  expect(mocks.list.mock.calls.length).toBeGreaterThanOrEqual(2);
-});
-test("an old empty read cannot erase a newly submitted request", async () => {
-  let finish!: (value: { requests: EntryRequest[] }) => void;
-  mocks.list.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  render(<PendingEntryNotice />);
-  await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
-  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request })));
-  await act(async () => { finish({ requests: [] }); });
-  expect(screen.getByRole("button", { name: "Undo all entries" })).toBeTruthy();
+  await waitFor(() => expect(mocks.resolve).toHaveBeenCalledWith(request.requestId, false));
+  expect(mocks.replace).not.toHaveBeenCalled();
 });
