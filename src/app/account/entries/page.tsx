@@ -13,6 +13,7 @@ import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { activityOfferMetrics } from "@/lib/account/activity-progress";
 import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
 
 export const metadata: Metadata = { title: "My Activity" };
 
@@ -31,6 +32,14 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;
   const availability = await getOfferingAvailability();
   const metricsBySlug = activityOfferMetrics(account.activity.activity, availability);
+  let pendingEntries: EntryRequest[] = [];
+  if (isPreviewDataEnvironment() && account.activity.source !== "unavailable") {
+    try {
+      const db = await createClient();
+      const { data, error } = await db.rpc("list_preview_entry_requests");
+      if (!error && Array.isArray(data)) pendingEntries = data.map(parseEntryRequest).filter(request => request.status === "pending");
+    } catch { /* The account still shows only confirmed, authoritative activity. */ }
+  }
   let outcomeEmailPreference: boolean | null = null;
   if (findActivityItem(account.activity.activity, selectedSlug, selectedEntryId, filter)?.status === "active") {
     try {
@@ -42,7 +51,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   return <div className={styles.page}><div className={styles.pageContent}>
     <h1 className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
-    <MyZeroLossActivity state={account.activity} filter={filter} metricsBySlug={metricsBySlug} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
+    <MyZeroLossActivity state={account.activity} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>
         <p className={styles.eyebrow}>ACCOUNT DASHBOARD</p>

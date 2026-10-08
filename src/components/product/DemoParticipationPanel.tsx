@@ -9,8 +9,8 @@ import { PoolProgress } from "@/components/product/PoolProgress";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
-import { acknowledgeExtraEntryExplainer, createPreviewEntry, resolvePendingEntryRequest } from "@/lib/entries/actions";
-import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
+import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest } from "@/lib/entries/actions";
+import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 import { clearEntryIntent, productEntryHref, saveEntryIntent } from "@/lib/entries/return-intent";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
 
@@ -207,6 +207,33 @@ export function DemoParticipationPanel({
     finally { setUndoBusy(false); }
   }
 
+  async function confirmEntry() {
+    if (requestReceipt?.status !== "pending" || undoBusy) return;
+    setUndoBusy(true);
+    setUndoError("");
+    try {
+      const result = await confirmPendingEntryRequest(requestReceipt.requestId);
+      if (!result.request) {
+        setUndoError(result.error ?? "Could not check the saved entry. Try again.");
+        return;
+      }
+      window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: result.request }));
+      if (result.request.status === "accepted") {
+        try {
+          const entryId = result.request.href ? new URL(result.request.href, window.location.origin).searchParams.get("entry") : null;
+          sessionStorage.setItem(RECENT_ENTRY_STORAGE_KEY, JSON.stringify({ slug: result.request.slug, entryId, at: Date.now() }));
+        } catch { /* The accepted entry is still saved in the database. */ }
+        router.replace("/account/entries");
+      } else if (result.request.status === "pending") {
+        setUndoError("Still checking this saved request. Confirm again or wait for the automatic result.");
+      } else {
+        setUndoError("This submission could not be confirmed. Its reserved funds were returned to your Playable Wallet.");
+        router.refresh();
+      }
+    } catch { setUndoError("Connection interrupted. Check the saved entry before retrying."); }
+    finally { setUndoBusy(false); }
+  }
+
   const chooseEntrySharing = (share: boolean) => {
     if (shareChoiceRef.current) shareChoiceRef.current.value = share ? "yes" : "no";
     shareChoiceConfirmed.current = true;
@@ -251,11 +278,14 @@ export function DemoParticipationPanel({
         </fieldset>
       </div>
       {signedOutCompact && !isSignedIn ? null : <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine. Terms apply.</p>}
-      {requestReceipt?.status === "pending" ? <div className="mt-3 rounded-xl border border-cyan-300/50 bg-[#062b4d] p-3 text-sm text-white" role="status">
+      {requestReceipt?.status === "pending" ? <div className="mt-3 rounded-xl border border-[#ff9a45] bg-[#ff6a00] p-3 text-sm text-[#00132e]" role="status">
         <p className="font-extrabold">{undoSeconds > 0 ? `Entry submitted · Undo available for ${undoSeconds}s` : "Checking your saved entry…"}</p>
-        <p className="mt-1 text-xs text-white/75">{requestReceipt.quantity} {requestReceipt.quantity === 1 ? "ticket" : "tickets"} · ${(requestReceipt.amountCents / 100).toFixed(2)} reserved from your Playable Wallet.</p>
-        {undoError ? <p role="alert" className="mt-2 text-xs text-amber-100">{undoError}</p> : null}
-        {undoSeconds > 0 ? <button type="button" disabled={undoBusy} onClick={() => void undoEntry()} className="mt-2 min-h-11 rounded-lg border border-cyan-300/60 px-4 font-bold text-cyan-200 disabled:opacity-60">{undoBusy ? "Checking…" : "Undo entry"}</button> : null}
+        <p className="mt-1 text-xs text-[#00132e]/80">{requestReceipt.quantity} {requestReceipt.quantity === 1 ? "ticket" : "tickets"} · ${(requestReceipt.amountCents / 100).toFixed(2)} reserved from your Playable Wallet.</p>
+        {undoError ? <p role="alert" className="mt-2 text-xs font-bold text-[#00132e]">{undoError}</p> : null}
+        <div className={`mt-2 grid gap-2 ${undoSeconds > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
+          {undoSeconds > 0 ? <button type="button" disabled={undoBusy} onClick={() => void undoEntry()} className="min-h-11 rounded-lg bg-[#bcecff] px-2 font-bold text-[#00132e] transition hover:bg-[#def6ff] disabled:opacity-60">Undo entry</button> : null}
+          <button type="button" disabled={undoBusy} onClick={() => void confirmEntry()} className="min-h-11 rounded-lg bg-[#31e800] px-2 font-extrabold text-[#002719] transition hover:bg-[#66f34c] disabled:opacity-60">{undoBusy ? "Checking…" : "Confirm entry"}</button>
+        </div>
       </div> : null}
       {requestReceipt && requestReceipt.status !== "pending" ? <div className="mt-2 flex flex-wrap items-baseline gap-x-2 rounded-lg bg-[#062b4d] px-3 py-2 text-xs leading-4" role="status">
         <p>{requestReceipt.status === "accepted" ? `Previous ${requestReceipt.quantity}-ticket submission saved. A new entry is separate.` : "Your previous submission was not entered. You can start a new submission below."}</p>

@@ -23,8 +23,8 @@ function safeText(value: string | undefined, fallback: string, maxLength: number
 export default async function PrintFreeEntryPage({ searchParams }: Props) {
   const params = await searchParams;
   const product = (params.offering ? getDemoProduct(params.offering) : undefined) ?? demoProducts[0];
-  const name = safeText(params.name, "Chris P.", 80);
-  const account = safeText(params.account, "DEMO-ACCOUNT-001", 80);
+  const name = safeText(params.name, "LEGAL NAME NEEDED", 80);
+  const account = safeText(params.account, "DEMO ACCOUNT NEEDED", 80);
   const reference = safeText(params.reference, "ZL-DEMO001", 24).toUpperCase();
   const pdfParams = new URLSearchParams({
     offering: product.slug,

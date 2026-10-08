@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
+import { getAccountContext } from "@/lib/account/context";
 
 export const metadata: Metadata = { title: "Free Entry Information" };
 
@@ -10,6 +11,9 @@ type Props = { searchParams: Promise<{ offering?: string }> };
 export default async function FreeEntryPage({ searchParams }: Props) {
   const { offering } = await searchParams;
   const product = (offering ? getDemoProduct(offering) : undefined) ?? demoProducts[0];
+  const account = await getAccountContext();
+  const legalName = [account?.legalFirstName, account?.legalLastName].filter(Boolean).join(" ");
+  const demoAccountReference = account ? `DEMO-${account.userId.replace(/-/g, "").slice(0, 12).toUpperCase()}` : "";
 
   return (
     <main className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
@@ -22,7 +26,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
         <section className="mt-8 rounded-3xl border border-cyan-300/30 bg-[#06264d] p-5 sm:p-7">
           <h2 className="text-xl font-extrabold">Proposed steps</h2>
           <ol className="mt-4 space-y-3 text-sm leading-6 text-white/75">
-            <li><strong className="text-white">1.</strong> Confirm the offering shown below and enter the name and account reference that must match your eligible Zero Loss account.</li>
+            <li><strong className="text-white">1.</strong> Confirm the offering shown below. If you are signed in, your saved legal name and demo account reference appear automatically; check them before printing.</li>
             <li><strong className="text-white">2.</strong> Print the sheet, cut around the dotted outline, and securely attach the insert to a standard rectangular postcard.</li>
             <li><strong className="text-white">3.</strong> Keep the entry barcode uncovered, flat, and readable. Secure the insert at its edges; do not place tape over either the Zero Loss barcode or postal markings.</li>
             <li><strong className="text-white">4.</strong> Add one current domestic postcard stamp. USPS currently lists standard postcard postage at $0.65; verify the rate when mailing.</li>
@@ -30,7 +34,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
           </ol>
         </section>
 
-        <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} />
+        <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference} />
 
         <section className="print:hidden mt-8 rounded-3xl border border-white/12 bg-white/5 p-5 text-sm leading-6 text-white/65">
           <h2 className="text-lg font-extrabold text-white">Still awaiting approval</h2>

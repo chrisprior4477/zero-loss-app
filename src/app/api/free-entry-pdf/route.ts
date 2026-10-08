@@ -26,8 +26,8 @@ function fitText(text: string, font: PDFFont, size: number, maxWidth: number) {
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const product = getDemoProduct(params.get("offering") ?? "") ?? demoProducts[0];
-  const name = safeText(params.get("name"), "Chris P.", 80);
-  const account = safeText(params.get("account"), "DEMO-ACCOUNT-001", 80);
+  const name = safeText(params.get("name"), "LEGAL NAME NEEDED", 80);
+  const account = safeText(params.get("account"), "DEMO ACCOUNT NEEDED", 80);
   const reference = safeText(params.get("reference"), "ZL-DEMO001", 24).toUpperCase();
 
   const document = await PDFDocument.create();

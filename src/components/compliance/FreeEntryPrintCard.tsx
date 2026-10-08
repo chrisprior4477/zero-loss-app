@@ -26,12 +26,12 @@ export function Barcode({ value }: { value: string }) {
   return <div className="flex h-14 w-full max-w-[250px] items-stretch justify-center overflow-hidden bg-white px-2 py-1" aria-label={`Entry reference barcode ${value}`}>{bars.map((bar) => <span key={bar.key} className={bar.dark ? "bg-black" : "bg-white"} style={{ width: `${bar.width}px` }} />)}</div>;
 }
 
-type Props = { offeringTitle: string; offeringSlug: string };
+type Props = { offeringTitle: string; offeringSlug: string; initialLegalName?: string; initialAccountReference?: string };
 
-export function FreeEntryPrintCard({ offeringTitle, offeringSlug }: Props) {
-  const [name, setName] = useState("Chris P.");
-  const [accountReference, setAccountReference] = useState("DEMO-ACCOUNT-001");
-  const [addressSide, setAddressSide] = useState(false);
+export function FreeEntryPrintCard({ offeringTitle, offeringSlug, initialLegalName = "", initialAccountReference = "" }: Props) {
+  const [name, setName] = useState(initialLegalName);
+  const [accountReference, setAccountReference] = useState(initialAccountReference);
+  const [addressSide, setAddressSide] = useState(true);
   const [demoNoteVisible, setDemoNoteVisible] = useState(false);
   const reference = useMemo(() => shortReference(`${offeringSlug}-${accountReference}`), [accountReference, offeringSlug]);
 
@@ -47,15 +47,15 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug }: Props) {
 
   return <>
     <div className="print:hidden grid gap-4 rounded-2xl border border-white/15 bg-white/5 p-5 sm:grid-cols-2">
-      <label className="text-sm font-bold">Your full legal name<input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
-      <label className="text-sm font-bold">Zero Loss account reference<input value={accountReference} onChange={(event) => setAccountReference(event.target.value)} className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
+      <label className="text-sm font-bold">Your full legal name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Enter your legal name" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
+      <label className="text-sm font-bold">Zero Loss account reference<input value={accountReference} onChange={(event) => setAccountReference(event.target.value)} readOnly={Boolean(initialAccountReference)} placeholder="Sign in to fill your reference" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
     </div>
 
     <div className="print:hidden mt-5 flex items-center justify-between gap-3 text-sm text-white/60"><span>Tap the postcard to see both sides.</span><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-full border border-cyan-300/30 px-3 py-1 font-bold text-cyan-300 transition hover:border-cyan-200 hover:bg-cyan-300/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-label={`Show ${addressSide ? "entry" : "address"} side of postcard`}>{addressSide ? "Address side" : "Entry side"}</button></div>
 
     <div role="button" tabIndex={0} onClick={() => setAddressSide((side) => !side)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setAddressSide((side) => !side); } }} className="group relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] cursor-pointer text-left [perspective:1800px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 print:pointer-events-none print:mt-0 print:max-w-none" aria-label={`Show ${addressSide ? "entry" : "address"} side of postcard`}>
       <span className={`absolute inset-0 block transition-transform duration-700 [transform-style:preserve-3d] motion-reduce:duration-0 ${addressSide ? "[transform:rotateY(180deg)]" : ""}`}>
-        <span aria-hidden={addressSide} style={{ backgroundImage: "url('/catalog/zero-loss-marketplace-postcard-front-v1.png')" }} className="absolute inset-0 block overflow-hidden rounded-[22px] border-[6px] border-white bg-cover bg-center text-white shadow-[0_28px_70px_rgba(0,0,0,.38)] [backface-visibility:hidden] print:rounded-none print:shadow-none">
+        <span aria-hidden={addressSide} style={{ backgroundImage: "url('/catalog/zero-loss-marketplace-postcard-front-v1.png')" }} className="absolute inset-0 block overflow-hidden border border-white bg-cover bg-center text-white shadow-[0_28px_70px_rgba(0,0,0,.38)] [backface-visibility:hidden] print:shadow-none">
           <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,19,46,.78)_0%,rgba(0,19,46,.08)_48%,rgba(0,19,46,.2)_100%)]" />
           <span className="relative flex h-full flex-col justify-between p-[clamp(16px,4vw,38px)]">
             <span><span className="block text-3xl font-black tracking-[-0.05em] drop-shadow-[0_3px_8px_rgba(0,0,0,.8)] sm:text-6xl">ZERØ <span className="text-[#31e800]">LØSS</span></span><span className="mt-1 block text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200 drop-shadow sm:text-sm">Real shots. Real wins.</span></span>
@@ -63,7 +63,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug }: Props) {
           </span>
         </span>
 
-        <span aria-hidden={!addressSide} className="absolute inset-0 block overflow-hidden rounded-[22px] border-[6px] border-[#ff630f] bg-[#fffdf7] p-3 text-[#00132e] shadow-[0_28px_70px_rgba(0,0,0,.38)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:p-[clamp(14px,3.2vw,30px)]">
+        <span aria-hidden={!addressSide} className="absolute inset-0 block overflow-hidden border border-slate-300 bg-[#fffdf7] p-3 text-[#00132e] shadow-[0_28px_70px_rgba(0,0,0,.38)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:p-[clamp(14px,3.2vw,30px)]">
           <span className="flex h-full flex-col">
             <span className="flex items-start justify-between gap-2"><span><span className="block text-[8px] font-black uppercase tracking-[0.18em] text-[#067abb] sm:text-xs">Zero Loss AMOE</span><span className="block text-sm font-black sm:mt-1 sm:text-2xl">Mail-in entry request</span></span><span className={`grid aspect-[.82/1] w-10 place-items-center border-2 border-dashed border-[#ff630f] bg-[#fff3e7] text-center text-[6px] font-black leading-2 text-[#b43d00] shadow-md transition-all duration-700 sm:w-20 sm:text-[10px] sm:leading-3 ${addressSide ? "translate-y-0 rotate-[-2deg] opacity-100 delay-300" : "-translate-y-10 rotate-12 opacity-0"}`}>USA<br /><span className="text-xs sm:text-xl">65¢</span><br />POSTCARD</span></span>
             <span className="mt-2 grid min-h-0 flex-1 grid-cols-[1.18fr_.82fr] gap-2 sm:mt-3 sm:grid-cols-[.95fr_1.05fr] sm:gap-6">

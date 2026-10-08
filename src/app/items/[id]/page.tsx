@@ -70,11 +70,9 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     </section>
   );
   const freeEntryDetails = (
-    <details className="rounded-2xl border border-white/15 bg-white/5 p-4 open:border-cyan-300/35">
-      <summary className="cursor-pointer font-bold text-white">Prefer to enter without a purchase?</summary>
-      <p className="mt-3 text-sm leading-6 text-white/65">No purchase is necessary. Review the proposed mail-in alternative method of entry and printable postcard insert. The prototype does not create an entry.</p>
-      <Link href={`/free-entry?offering=${product.slug}`} className="mt-3 inline-block font-bold text-cyan-300 hover:text-white">View free-entry instructions →</Link>
-    </details>
+    <Link href={`/free-entry?offering=${product.slug}`} className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 text-center font-extrabold text-[#002719] transition hover:bg-[#66f34c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
+      Prefer to enter without a purchase?
+    </Link>
   );
 
   return (

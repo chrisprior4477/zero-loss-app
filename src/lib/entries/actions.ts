@@ -155,3 +155,23 @@ export async function resolvePendingEntryRequest(requestId: string, undo: boolea
     return { error: "We couldn’t confirm that change. Retry to check the saved result; you won’t be charged twice." };
   }
 }
+
+/** Finalize the caller's own pending demo request through the database's
+ * existing eligibility, ledger, entry, and audit writer. */
+export async function confirmPendingEntryRequest(requestId: string): Promise<{ request?: EntryRequest; error?: string }> {
+  if (!isPreviewDataEnvironment() || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(requestId)) {
+    return { error: "Invalid entry request." };
+  }
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user?.email_confirmed_at) return { error: "Sign in again to confirm this entry." };
+    const { data, error } = await db.rpc("confirm_preview_entry_request", { p_request_id: requestId });
+    if (error) throw error;
+    const request = parseEntryRequest(data);
+    revalidatePath("/", "layout");
+    return { request };
+  } catch {
+    return { error: "We couldn’t confirm the saved entry. Check its status before trying again; you won’t be charged twice." };
+  }
+}

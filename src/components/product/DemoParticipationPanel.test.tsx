@@ -1,10 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { ENTRY_REQUEST_EVENT } from "@/lib/entries/request";
+import { ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 import { DemoParticipationPanel } from "./DemoParticipationPanel";
-const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), enter: vi.fn(), resolve: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
-vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resolvePendingEntryRequest: actionMocks.resolve }));
+const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), enter: vi.fn(), resolve: vi.fn(), confirm: vi.fn(), replace: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: actionMocks.replace, refresh: vi.fn() }) }));
+vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resolvePendingEntryRequest: actionMocks.resolve, confirmPendingEntryRequest: actionMocks.confirm }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
@@ -58,10 +58,24 @@ test("30-second Undo appears inline by the entry controls, not in a floating toa
     serverNow: "2026-09-20T12:00:00Z", href: null };
   act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: receipt })));
   expect(screen.getByText(/Entry submitted · Undo available/).closest("aside")?.id).toBe("enter-entry");
+  expect(screen.getByText(/Entry submitted · Undo available/).closest("[role=status]")?.className).toContain("bg-[#ff6a00]");
+  expect(screen.getByRole("button", { name: "Undo entry" }).className).toContain("bg-[#bcecff]");
+  expect(screen.getByRole("button", { name: "Confirm entry" }).className).toContain("bg-[#31e800]");
   expect(document.querySelector(".fixed[aria-label='Entry confirmations']")).toBeNull();
   actionMocks.resolve.mockResolvedValue({ request: { ...receipt, status: "cancelled" } });
   fireEvent.click(screen.getByRole("button", { name: "Undo entry" }));
   await waitFor(() => expect(actionMocks.resolve).toHaveBeenCalledWith(receipt.requestId, true));
+});
+test("Confirm entry accepts the saved request and opens My Activity with its exact-entry marker", async () => {
+  render(<DemoParticipationPanel {...props} isSignedIn />);
+  const receipt = { requestId: "41414141-4141-4141-8141-414141414141", slug: props.productSlug, title: props.productTitle,
+    quantity: 1, amountCents: 100, status: "pending" as const, undoUntil: "2026-09-20T12:00:30Z", serverNow: "2026-09-20T12:00:00Z", href: null };
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: receipt })));
+  actionMocks.confirm.mockResolvedValue({ request: { ...receipt, status: "accepted", href: "/account/entries?item=test-product&entry=ent_1234" } });
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry" }));
+  await waitFor(() => expect(actionMocks.confirm).toHaveBeenCalledWith(receipt.requestId));
+  await waitFor(() => expect(actionMocks.replace).toHaveBeenCalledWith("/account/entries"));
+  expect(JSON.parse(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY) ?? "null")).toMatchObject({ slug: "test-product", entryId: "ent_1234" });
 });
 
 test("Add funds opens the funding form and remembers this prize", () => {

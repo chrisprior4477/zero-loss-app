@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("@/lib/preview/provisioning", () => ({ ensurePreviewCustomer: mocks.provision }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-import { acknowledgeExtraEntryExplainer, createPreviewEntry, listPendingEntryRequests, resolvePendingEntryRequest } from "./actions";
+import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, listPendingEntryRequests, resolvePendingEntryRequest } from "./actions";
 
 function entryForm(quantity = "3") {
   const value = new FormData();
@@ -124,10 +124,18 @@ test("Undo is server-authenticated and targets a request rather than an arbitrar
   expect(mocks.getUser).toHaveBeenCalled();
   expect(mocks.rpc).toHaveBeenCalledWith("resolve_preview_entry_request", { p_request_id: pendingReceipt.requestId, p_undo: true });
 });
+test("Confirm entry finalizes only the authenticated request and returns its saved receipt", async () => {
+  mocks.rpc.mockResolvedValue({ data: { ...pendingReceipt, status: "accepted", receipt: { status: "active", entryId: "ent_abcdef123" } } });
+  expect(await confirmPendingEntryRequest(pendingReceipt.requestId)).toMatchObject({ request: { status: "accepted", href: "/account/entries?item=samsung-m70h-tv&entry=ent_abcdef123" } });
+  expect(mocks.getUser).toHaveBeenCalled();
+  expect(mocks.rpc).toHaveBeenCalledWith("confirm_preview_entry_request", { p_request_id: pendingReceipt.requestId });
+  expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+});
 test("unsigned users cannot resolve or list another user's request", async () => {
   mocks.getUser.mockResolvedValue({ data: { user: null } });
   expect(await listPendingEntryRequests()).toEqual({ requests: [] });
   expect(await resolvePendingEntryRequest(pendingReceipt.requestId, true)).toHaveProperty("error");
+  expect(await confirmPendingEntryRequest(pendingReceipt.requestId)).toHaveProperty("error");
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
 test("malformed or missing final receipt fails closed", async () => {
