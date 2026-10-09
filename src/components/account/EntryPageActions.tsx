@@ -32,6 +32,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   const activeRequestId = useRef<string | null>(null);
   const crewRail = useRef<HTMLDivElement>(null);
   const sampleNames = useSampleCrewPreviews();
+  const sampleNamesKey = sampleNames.join("|");
   const [selectedCrew, setSelectedCrew] = useState<string[]>([]);
   const [demoAlertPrepared, setDemoAlertPrepared] = useState(false);
   const maxQuantity = Math.min(10, Math.max(0, remaining ?? 0));
@@ -42,6 +43,9 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   const uncertain = result.status === "error" && result.code === "outcome_unknown";
 
   useEffect(() => { initializeSampleCrewPreview(); }, []);
+  useEffect(() => {
+    if (crewRail.current) crewRail.current.scrollLeft = 0;
+  }, [sampleNamesKey, crew.length]);
   useEffect(() => {
     const onReceipt = (event: Event) => {
       const updated = (event as CustomEvent<EntryRequest>).detail;
