@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { randomUUID } from "node:crypto";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -29,7 +30,11 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
   ]);
   const crew = crewResult.error || !Array.isArray(crewResult.data) ? [] : crewResult.data
     .filter((member: { member_id?: unknown; name?: unknown }) => typeof member.member_id === "string" && typeof member.name === "string")
-    .map((member: { member_id: string; name: string }) => ({ id: member.member_id, name: member.name }));
+    .map((member: { member_id: string; name: string; avatar_reference?: string | null }) => ({
+      id: member.member_id,
+      name: member.name,
+      avatarUrl: member.avatar_reference ? db.storage.from("profile-photos").getPublicUrl(member.avatar_reference).data.publicUrl : null,
+    }));
   const enteredAt = item.enteredAt && Number.isFinite(Date.parse(item.enteredAt)) ? item.enteredAt : null;
   const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}`;
 
@@ -45,7 +50,7 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
           <dl className={styles.entryIdentity}>
             <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd></div>
             <div><dt>Entry number</dt><dd className={styles.entryNumber}>{entryId}</dd></div>
-            <div><dt>Entry amount</dt><dd>{formatUsdFromCents(item.paidCents)}</dd></div>
+            <div><dt>What you’ve entered on this prize</dt><dd>{formatUsdFromCents(item.paidCents)}</dd></div>
           </dl>
         </div>
         {metrics ? <div className={styles.progressCorner}>
@@ -55,9 +60,9 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
       </section>
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
-        <h2 id="in-play-title">{item.title} prize pool is {metrics?.remaining === 0 ? "full and awaiting a result" : "still open"}.</h2>
+        <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
         <p>Your saved entry is one chance in this pool. {metrics ? `${metrics.sold.toLocaleString("en-US")} of ${metrics.capacity.toLocaleString("en-US")} places are filled.` : "Check back for verified pool progress."}</p>
-        <EntryPageActions itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
+        <EntryPageActions itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
       </section>
     </div>
   </main>;

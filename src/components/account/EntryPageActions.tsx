@@ -1,48 +1,180 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { productEntryHref } from "@/lib/entries/return-intent";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest, type PreviewEntryActionState } from "@/lib/entries/actions";
+import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
+import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
+import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import styles from "./entry-page.module.css";
 
-type CrewMember = { id: string; name: string };
+type CrewMember = { id: string; name: string; avatarUrl: string | null };
 
-export function EntryPageActions({ itemTitle, slug, remaining, crew, senderName, emailEnabled, returnHref }: {
-  itemTitle: string; slug: string; remaining: number | null; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
+export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, crew, senderName, emailEnabled, returnHref }: {
+  itemTitle: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
+  crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
 }) {
+  const router = useRouter();
   const [nextOpen, setNextOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [crewOpen, setCrewOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [approved, setApproved] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [result, setResult] = useState<PreviewEntryActionState>({ status: "idle" });
+  const [receipt, setReceipt] = useState<EntryRequest | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [submissionKey, setSubmissionKey] = useState(requestKey);
+  const attemptedForm = useRef<FormData | null>(null);
+  const activeRequestId = useRef<string | null>(null);
+  const crewRail = useRef<HTMLDivElement>(null);
+  const sampleNames = useSampleCrewPreviews();
   const [selectedCrew, setSelectedCrew] = useState<string[]>([]);
   const [demoAlertPrepared, setDemoAlertPrepared] = useState(false);
   const maxQuantity = Math.min(10, Math.max(0, remaining ?? 0));
+  const totalCents = quantity * (entryPriceCents ?? 0);
+  const insufficientBalance = balanceCents !== null && totalCents > balanceCents;
+  const canEnter = entryEnabled && entryPriceCents !== null && balanceCents !== null;
+  const busy = working || receipt?.status === "pending";
+  const uncertain = result.status === "error" && result.code === "outcome_unknown";
+
+  useEffect(() => { initializeSampleCrewPreview(); }, []);
+  useEffect(() => {
+    const onReceipt = (event: Event) => {
+      const updated = (event as CustomEvent<EntryRequest>).detail;
+      if (updated.requestId !== activeRequestId.current) return;
+      setReceipt(updated);
+      if (updated.status !== "pending") {
+        setSubmissionKey(crypto.randomUUID());
+        attemptedForm.current = null;
+        router.refresh();
+      }
+    };
+    window.addEventListener(ENTRY_REQUEST_EVENT, onReceipt);
+    return () => window.removeEventListener(ENTRY_REQUEST_EVENT, onReceipt);
+  }, [router]);
+  useEffect(() => {
+    if (!receipt || receipt.status !== "pending") return;
+    const serverOffset = Date.parse(receipt.serverNow) - Date.now();
+    const update = () => setSecondsLeft(Math.max(0, Math.ceil((Date.parse(receipt.undoUntil) - Date.now() - serverOffset) / 1000)));
+    update();
+    const timer = window.setInterval(update, 250);
+    return () => window.clearInterval(timer);
+  }, [receipt]);
+
+  const displayCrew = [
+    ...crew.map(member => ({ ...member, sample: false })),
+    ...sampleCrewPeople.filter(person => sampleNames.includes(person.name)).map(person => ({ id: `sample:${person.name}`, name: person.name, avatarUrl: person.photo as string, sample: true })),
+  ];
+
+  async function submitInlineEntry() {
+    if (!canEnter || !approved || insufficientBalance || busy || maxQuantity === 0) return;
+    const form = uncertain && attemptedForm.current ? attemptedForm.current : new FormData();
+    if (!uncertain || !attemptedForm.current) {
+      form.set("offeringSlug", slug);
+      form.set("quantity", String(quantity));
+      form.set("idempotencyKey", submissionKey);
+      if (receipt && receipt.status !== "pending") form.set("previousRequestId", receipt.requestId);
+      attemptedForm.current = form;
+    }
+    setWorking(true);
+    setActionError("");
+    try {
+      const response = await createPreviewEntry({ status: "idle" }, form);
+      setResult(response);
+      if (response.status === "request") {
+        activeRequestId.current = response.request.requestId;
+        setReceipt(response.request);
+        // The global coordinator auto-finalizes, but only product-checkout-created requests navigate away.
+        window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: response.request }));
+      } else if (response.status === "succeeded") {
+        attemptedForm.current = null;
+        setSubmissionKey(crypto.randomUUID());
+        router.refresh();
+      }
+    } catch {
+      setResult({ status: "error", code: "outcome_unknown", message: "The connection was interrupted. Check this saved submission before starting another entry." });
+    } finally { setWorking(false); }
+  }
+
+  async function resolveEntry(undo: boolean) {
+    if (!receipt || receipt.status !== "pending" || working) return;
+    setWorking(true);
+    setActionError("");
+    try {
+      const response = undo ? await resolvePendingEntryRequest(receipt.requestId, true) : await confirmPendingEntryRequest(receipt.requestId);
+      if (response.request) window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: response.request }));
+      else setActionError(response.error ?? "Please check this entry again.");
+    } catch { setActionError("Please check this entry again. You won’t be charged twice."); }
+    finally { setWorking(false); }
+  }
+
+  function adjustQuantity(next: number) {
+    setQuantity(next);
+    setApproved(false);
+    setCheckoutOpen(false);
+    setActionError("");
+  }
 
   return <>
     <button type="button" className={styles.nextButton} aria-expanded={nextOpen} onClick={() => setNextOpen(open => !open)}>What happens next <span aria-hidden="true">{nextOpen ? "−" : "+"}</span></button>
-    {nextOpen ? <div className={styles.nextPanel}>
-      <p>The pool stays open until its available tickets are filled. Once the result is posted, your outcome will appear in My Activity and Notifications. If your entry is not selected, any optional purchase offer and its deadline will be shown separately.</p>
-    </div> : null}
-
+    {nextOpen ? <div className={styles.nextPanel}><p>The pool stays open until its available tickets are filled. Once the result is posted, your outcome will appear in My Activity and Notifications. If your entry is not selected, any optional purchase offer and its deadline will be shown separately.</p></div> : null}
     <div className={styles.actionGrid}>
       <section className={styles.actionPanel} aria-labelledby="add-entries-title">
         <h3 id="add-entries-title">Want to help this pool close faster?</h3>
-        <p>Add more separate chances for {itemTitle}. You will review and confirm them in the existing entry checkout.</p>
-        {maxQuantity > 0 ? <><div className={styles.quantityControls} aria-label="Choose additional entries">
-          <button type="button" aria-label="Remove one extra entry" onClick={() => setQuantity(value => Math.max(1, value - 1))} disabled={quantity === 1}>−</button>
-          <output aria-live="polite">{quantity}</output>
-          <button type="button" aria-label="Add one extra entry" onClick={() => setQuantity(value => Math.min(maxQuantity, value + 1))} disabled={quantity === maxQuantity}>+</button>
-          <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
-        </div><Link className={styles.primaryLink} href={productEntryHref(slug, quantity)}>Review {quantity === 1 ? "one more entry" : `${quantity} more entries`} →</Link></> : <p className={styles.unavailable}>No additional tickets are available right now.</p>}
+        <p>Add more separate chances for {itemTitle}, right here on this page.</p>
+        {maxQuantity > 0 ? <>
+          <div className={styles.quantityControls} aria-label="Choose additional entries">
+            <button type="button" aria-label="Remove one extra entry" onClick={() => adjustQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1 || busy || uncertain}>−</button>
+            <output aria-live="polite">{quantity}</output>
+            <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity === maxQuantity || busy || uncertain}>+</button>
+            <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
+          </div>
+          {!checkoutOpen ? <button type="button" className={styles.primaryLink} onClick={() => setCheckoutOpen(true)}>Add {quantity === 1 ? "one more entry" : `${quantity} more entries`}</button> : null}
+          {checkoutOpen ? <div className={styles.inlineCheckout} aria-label="Additional entry checkout">
+            <h4>Review additional entries</h4>
+            <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>
+            <p>Demo Playable Balance: <strong>{balanceCents === null ? "Unavailable" : formatUsdFromCents(balanceCents)}</strong></p>
+            {insufficientBalance ? <p className={styles.checkoutError}>Not enough demo funds for this quantity. <Link href="/account/wallet">Add funds</Link></p> : null}
+            {!canEnter ? <p className={styles.checkoutError}>This demo checkout is unavailable for this account right now.</p> : null}
+            {receipt?.status === "pending" ? <div className={styles.receiptBox} role="status"><strong>Entry submitted · Undo available for {secondsLeft}s</strong><span>{receipt.quantity} {receipt.quantity === 1 ? "entry" : "entries"} · {formatUsdFromCents(receipt.amountCents)} reserved from your demo balance.</span><div className={styles.receiptActions}><button type="button" onClick={() => void resolveEntry(true)} disabled={working || secondsLeft === 0}>Undo entry</button><button type="button" onClick={() => void resolveEntry(false)} disabled={working}>Confirm entry</button></div></div> : null}
+            {receipt?.status === "accepted" ? <p role="status" className={styles.checkoutSuccess}>Your {receipt.quantity === 1 ? "new entry is" : `${receipt.quantity} new entries are`} confirmed and saved in My Activity. You can stay on this page.</p> : null}
+            {receipt?.status === "cancelled" || receipt?.status === "rejected" ? <p role="status" className={styles.checkoutError}>This submission was not entered. Any reservation was released.</p> : null}
+            {result.status === "succeeded" ? <p role="status" className={styles.checkoutSuccess}>{result.message} You can stay on this page.</p> : null}
+            {result.status === "error" ? <p role="alert" className={styles.checkoutError}>{result.message}</p> : null}
+            {actionError ? <p role="alert" className={styles.checkoutError}>{actionError}</p> : null}
+            {receipt?.status !== "pending" && receipt?.status !== "accepted" && result.status !== "succeeded" ? <>
+              <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} disabled={working} />I approve this demo entry transaction.</label>
+              <button type="button" className={styles.checkoutConfirm} disabled={!approved || !canEnter || insufficientBalance || working} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
+            </> : null}
+            {receipt?.status === "accepted" || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); setResult({ status: "idle" }); setApproved(false); setCheckoutOpen(false); }}>Add another entry</button> : null}
+          </div> : null}
+        </> : <p className={styles.unavailable}>No additional tickets are available right now.</p>}
       </section>
-
       <section className={styles.actionPanel} aria-labelledby="crew-title">
         <h3 id="crew-title">Invite your Crew to this prize</h3>
-        <p>Choose approved Crew members to share the {itemTitle} prize page. They will not see your entry or wallet details.</p>
-        {crew.length ? <><button type="button" className={styles.crewToggle} aria-expanded={crewOpen} onClick={() => setCrewOpen(open => !open)}>Choose Crew members <span aria-hidden="true">⌄</span></button>
-          {crewOpen ? <div className={styles.crewChoices}>{crew.map(member => <label key={member.id}><input type="checkbox" checked={selectedCrew.includes(member.id)} onChange={event => { setSelectedCrew(current => event.target.checked ? [...current, member.id] : current.filter(id => id !== member.id)); setDemoAlertPrepared(false); }} />{member.name}</label>)}</div> : null}
-          <button type="button" className={styles.crewSend} disabled={!selectedCrew.length || demoAlertPrepared} onClick={() => setDemoAlertPrepared(true)}>{demoAlertPrepared ? "Demo alerts prepared for your Crew" : `Send demo alert${selectedCrew.length === 1 ? "" : "s"} to selected Crew`}</button>
-          {demoAlertPrepared ? <div role="status" className={styles.demoNotice}><p>Demo alert from {senderName} for {selectedCrew.length} approved Crew {selectedCrew.length === 1 ? "member" : "members"}: <Link href={`/items/${slug}`}>View the {itemTitle} prize page</Link>.</p><p>No emails or messages were actually delivered.</p></div> : null}</> : <p className={styles.unavailable}>No approved Crew members yet. <Link href="/account/crew">Manage your Crew</Link></p>}
+        <p>Choose who to notify about {itemTitle}. Sample people are a visual demo; no emails or messages are sent.</p>
+        <div className={styles.crewRailWrap}>
+          <button type="button" className={styles.railArrow} aria-label="Scroll Crew left" onClick={() => crewRail.current?.scrollBy({ left: -220, behavior: "smooth" })}>‹</button>
+          <div className={styles.crewRail} ref={crewRail} aria-label="Crew members">
+            {displayCrew.map(member => {
+              const selected = selectedCrew.includes(member.id);
+              return <div className={styles.crewCard} key={member.id}>
+                <div className={styles.crewAvatar}>{member.avatarUrl ? <Image src={member.avatarUrl} alt="" fill sizes="72px" unoptimized={member.avatarUrl.startsWith("http")} /> : <span aria-hidden="true">{member.name.charAt(0).toUpperCase()}</span>}</div>
+                <strong>{member.name}</strong>
+                <button type="button" className={`${styles.notifyButton} ${selected ? styles.notifySelected : ""}`} aria-pressed={selected} aria-label={`${selected ? "Remove" : "Notify"} ${member.name}`} onClick={() => { setSelectedCrew(current => selected ? current.filter(id => id !== member.id) : [...current, member.id]); setDemoAlertPrepared(false); }}>{selected ? "Selected ✓" : "Notify"}</button>
+                <small>{member.sample ? "Sample preview" : "Approved Crew"}</small>
+              </div>;
+            })}
+            <Link href="/account/crew" className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
+          </div>
+          <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: "smooth" })}>›</button>
+        </div>
+        <button type="button" className={styles.crewSend} disabled={!selectedCrew.length || demoAlertPrepared} onClick={() => setDemoAlertPrepared(true)}>{demoAlertPrepared ? "Crew preview prepared" : "Send to My Crew"}</button>
+        {demoAlertPrepared ? <div role="status" className={styles.demoNotice}><p>Preview from {senderName} for {selectedCrew.length} selected {selectedCrew.length === 1 ? "person" : "people"}: <Link href={`/items/${slug}`}>View the {itemTitle} prize page</Link>.</p><p>No emails or messages were actually delivered.</p></div> : null}
       </section>
     </div>
     <div className={styles.preference}><EntryOutcomeEmailPreference initialEnabled={emailEnabled} placement="entry-page" /></div>
