@@ -29,7 +29,7 @@ export type AccountActivity = {
 };
 
 export const activityFilters = [
-  ["all", "All"], ["active", "Still Open"], ["prize", "You Won"],
+  ["all", "All"], ["active", "See Open Entries"], ["prize", "You Won"],
   ["completion", "Purchase Options"], ["completed", "Completed"],
 ] as const;
 export type ActivityFilter = typeof activityFilters[number][0];

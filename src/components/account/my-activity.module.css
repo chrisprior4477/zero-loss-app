@@ -44,6 +44,7 @@
 .filter:hover { filter: brightness(1.1); transform: translateY(-2px); }
 .filter[aria-current="page"] { filter: brightness(1.04); }
 .filter[data-filter="all"] { --ticket-color: #82d9fa; color: #081b38; }
+.filter[data-filter="active"] { --ticket-color: #0077ff; }
 .filter[data-filter="prize"] { --ticket-color: #4ee85d; color: #082528; }
 .filter[data-filter="completion"] { --ticket-color: #ff832b; color: #251c16; }
 .filter > svg { width: clamp(27px, 2.9vw, 47px); height: clamp(27px, 2.9vw, 47px); flex: 0 0 auto; }

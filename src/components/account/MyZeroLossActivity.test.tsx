@@ -41,7 +41,7 @@ test("a saved pending request is visible without counting it as a confirmed entr
   expect(screen.getByText("Your entry is being confirmed")).toBeTruthy();
   expect(screen.getByText(/Best Buy Gift Card is saved as a pending request/)).toBeTruthy();
   expect(screen.getByRole("link", { name: /Review pending entry/ }).getAttribute("href")).toBe("/items/best-buy-100-gift-card#enter-entry");
-  expect(screen.getByRole("link", { name: "Still Open0" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "See Open Entries0" })).toBeTruthy();
 });
 test("a pending request is also visible when other confirmed activity exists", () => {
   const pending = { requestId: "41414141-4141-4141-8141-414141414141", slug: "best-buy-100-gift-card", title: "$100 Best Buy Gift Card",
@@ -206,7 +206,7 @@ test("Tab and Shift+Tab wrap through the new notification link in entry details"
 test("desktop gallery retains complete catalog names, purchase math and existing filter counts", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
   const filters = within(screen.getByRole("navigation", { name: "Filter My Activity" }));
-  for (const name of ["All4", "Still Open1", "You Won1", "Purchase Options2", "Completed0"]) {
+  for (const name of ["All4", "See Open Entries1", "You Won1", "Purchase Options2", "Completed0"]) {
     expect(filters.getByRole("link", { name })).toBeTruthy();
   }
   const gallery = document.querySelector("[data-activity-gallery]");

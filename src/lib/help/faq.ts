@@ -47,7 +47,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "entry-status", category: "entries", question: "How do I know my entry went through?",
-    answer: "Wait for the saved confirmation, then check My Activity. Still Open shows active entries; other filters show winning outcomes, purchase options, and completed activity. If the connection drops, check the saved result instead of starting another purchase just to see whether the first one worked.",
+    answer: "Wait for the saved confirmation, then check My Activity. See Open Entries shows active entries; other filters show winning outcomes, purchase options, and completed activity. If the connection drops, check the saved result instead of starting another purchase just to see whether the first one worked.",
     keywords: "success confirmation pending missing duplicate retry refresh", action: { label: "See my open entries", href: "/account/entries?filter=active" },
   },
   {
