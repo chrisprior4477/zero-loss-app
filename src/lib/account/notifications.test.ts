@@ -54,8 +54,9 @@ test("ready rewards retain exact identities and a new status does not inherit an
 test.each(["declined", "purchased", "expired", "cancelled"] as CompletionOptionStatus[])("%s purchase options don't ask the customer to pay again", status => {
   const state = storedActivityFixture();
   state.activity[2].completionOptionStatus = status;
-  const item = buildAccountNotifications(state, null, true).find(item => item.href.includes("nike-court"))!;
-  expect(item.action).toBe("View details");
+  const item = buildAccountNotifications(state, null, true).find(item => item.id.endsWith(status))!;
+  expect(item.action).toBe(status === "declined" ? "Review declined offers" : "View details");
+  if (status === "declined") expect(item.href).toBe("/account/declined-offers");
   expect(item.body).not.toContain("Pay $");
   expect(item.id.endsWith(status)).toBe(true);
 });

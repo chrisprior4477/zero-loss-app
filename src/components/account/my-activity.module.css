@@ -10,7 +10,7 @@
 .subtitle { margin-top: 12px; color: #d5dfed; font-size: clamp(17px, 2.2vw, 36px); line-height: 1.25; }
 
 .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 30px; }
-.filter, .productCard, .accountTool, .empty {
+.filter, .productCard, .accountTool, .empty, .declinedRow {
   --ticket-side-notch: 10px;
   --ticket-corner-notch: 12px;
   --ticket-cutouts:
@@ -156,6 +156,16 @@
 .eyebrow { color: #8bcfff; font-size: 12px; font-weight: 800; letter-spacing: .16em; }
 .accountToolsHeading h2 { margin-top: 5px; color: #fff; font-size: clamp(24px, 2.4vw, 37px); font-weight: 820; }
 .accountToolsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.declinedTool { grid-column: 1 / -1; width: min(100%, calc((100% - 18px) / 2)); justify-self: center; }
+.declinedBack { display: inline-flex; min-height: 44px; align-items: center; margin-bottom: 18px; color: #63dfff; font-size: 15px; font-weight: 800; }
+.declinedList { display: grid; gap: 11px; margin-top: 30px; }
+.declinedRow { --ticket-side-notch: 11px; --ticket-corner-notch: 14px; display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; align-items: center; gap: 20px; min-height: 125px; padding: 16px 26px; background: #fffefa; color: #0b173b; }
+.declinedImage { position: relative; width: 104px; height: 80px; overflow: hidden; border-radius: 9px; background: #e1f2ff; }
+.declinedImage img { object-fit: contain; }
+.declinedRetailer { color: #1675c1; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.declinedDetails h2 { margin: 2px 0 5px; font-size: clamp(17px, 1.8vw, 23px); line-height: 1.1; }
+.declinedDetails p { color: #536d87; font-size: 13px; line-height: 1.45; }
+.declinedDetails strong { color: #0b173b; }
 .accountTool { --ticket-side-notch: 11px; --ticket-corner-notch: 14px; position: relative; display: grid; min-height: 124px; grid-template-columns: 116px minmax(0, 1fr) 24px; align-items: center; gap: 18px; padding: 20px 28px; border-radius: 15px; background: #fffefa; color: #0b173b; box-shadow: 0 7px 17px #00112c61; }
 .accountTool::before { content: ""; position: absolute; top: 14px; bottom: 14px; left: 162px; width: 3px; background: radial-gradient(circle, #aab6c3 1.2px, transparent 1.5px) center top / 3px 10px repeat-y; }
 .profileTool { grid-template-columns: 78px minmax(0, 1fr) 24px; }
@@ -195,9 +205,14 @@
   .galleryItem { grid-column: var(--stacked-column); grid-row: var(--stacked-row); }
   .galleryControls { margin-top: 2px; }
   .accountToolsGrid { grid-template-columns: 1fr; }
+  .declinedTool { width: 100%; }
   .mobileRestLabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 @media (max-width: 600px) {
+  .declinedRow { grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 14px 17px; }
+  .declinedImage { width: 76px; height: 76px; }
+  .declinedRow form { grid-column: 2; align-items: flex-start; }
+  .declinedRow form span { text-align: left; }
   .page { padding: 28px 14px 45px; }
   .heading { font-size: clamp(31px, 8vw, 44px); }
   .subtitle { font-size: 17px; line-height: 1.35; }

@@ -11,6 +11,7 @@ export const accountRoutes = {
   crew: "/account/crew",
   notifications: "/account/notifications",
   security: "/account/security",
+  declinedOffers: "/account/declined-offers",
 } as const;
 
 export const accountNavigation = [
@@ -22,4 +23,5 @@ export const accountNavigation = [
   ["Your Crew", accountRoutes.crew, "crew"],
   ["Notifications", accountRoutes.notifications, "bell"],
   ["Account & Security", accountRoutes.security, "security"],
+  ["Declined Offers", accountRoutes.declinedOffers, "completion"],
 ] as const;

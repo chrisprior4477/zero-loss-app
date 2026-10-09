@@ -37,7 +37,7 @@ export function activityFilter(value: unknown): ActivityFilter {
   return activityFilters.find(([key]) => key === value)?.[0] ?? "all";
 }
 export function filterActivity(items: ActivityItem[], filter: ActivityFilter): ActivityItem[] {
-  return filter === "all" ? items : items.filter(item => item.status === filter);
+  return filter === "all" ? items : items.filter(item => item.status === filter && (filter !== "completed" || item.completionOptionStatus !== "declined"));
 }
 export type ActivityDestination = "/account" | "/account/entries";
 export const walletHistoryHref = "/account/wallet?view=history";
@@ -58,6 +58,7 @@ export function readyWalletRewards(state: AccountActivity): ActivityItem[] {
 }
 export function activityHref(item: ActivityItem, destination: ActivityDestination = "/account/entries", filter: ActivityFilter = "all"): string {
   if (isWalletReward(item)) return walletRewardHref(item);
+  if (item.completionOptionStatus === "declined") return "/account/declined-offers";
   const params = new URLSearchParams({ item: item.slug });
   if (item.entryId) params.set("entry", item.entryId);
   if (destination === "/account/entries" && filter !== "all") params.set("filter", filter);
@@ -76,6 +77,8 @@ export function activityPresentation(item: ActivityItem) {
     case "active": return { label: "Still Open", action: "View Entry", color: "text-cyan-300", background: "bg-[#154b74]" };
     case "prize": return { label: "Prize Ready", action: item.rewardKind === "digital" ? "View Gift Card" : "Claim Prize", color: "text-[#31ff83]", background: "bg-[#16703f]" };
     case "completion": return { label: "Purchase Option", action: "Review Option", color: "text-[#ff8a45]", background: "bg-[#8c3d15]" };
-    case "completed": return { label: "Completed", action: "View Details", color: "text-[#b5cce4]", background: "bg-[#154b74]" };
+    case "completed": return item.completionOptionStatus === "declined"
+      ? { label: "Declined", action: "Review declined offer", color: "text-[#ff8a45]", background: "bg-[#8c3d15]" }
+      : { label: "Completed", action: "View Details", color: "text-[#b5cce4]", background: "bg-[#154b74]" };
   }
 }

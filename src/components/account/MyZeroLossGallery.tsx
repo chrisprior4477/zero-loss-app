@@ -15,6 +15,7 @@ import { RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
 function action(item: ActivityItem) {
   if (item.status === "prize") return item.rewardKind === "digital" ? "Open reward" : "Claim prize";
+  if (item.completionOptionStatus === "declined") return "Review declined";
   return { active: "Track entry", completion: "Review option", completed: "View details" }[item.status];
 }
 
@@ -176,7 +177,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
-              <span className={styles.status}><AccountIcon name={item.status} />{offerStatus?.remaining === 0 ? "Awaiting result" : labels[item.status]}</span>
+              <span className={styles.status}><AccountIcon name={item.completionOptionStatus === "declined" ? "completion" : item.status} />{item.completionOptionStatus === "declined" ? "Declined" : offerStatus?.remaining === 0 ? "Awaiting result" : labels[item.status]}</span>
               <div className={styles.productStage} data-activity-click>
                 <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 44vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
               </div>
@@ -184,7 +185,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
                 <div className={styles.noteStack}><p className={styles.productNote}>{item.status === "completion"
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · ${offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : `${offerStatus.remaining.toLocaleString("en-US")} tickets left`) : "Still in play"}`
-                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : "Your completed activity."}</p>
+                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p>
                   {isRecent ? <span className={styles.newEntryLabel}>Your new entry</span> : null}</div>
                 <span className={styles.cardAction} data-activity-click>{action(item)}<AccountIcon name="arrow" /></span>
               </div>

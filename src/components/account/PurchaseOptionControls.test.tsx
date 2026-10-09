@@ -58,7 +58,7 @@ test("insufficient balance carries this exact entry into Add funds", async () =>
   expect((await screen.findByRole("link", { name: "Add funds →" })).getAttribute("href")).toBe(`/account/wallet?view=history&from=${item.slug}&entry=${item.entryId}#add-funds`);
 });
 test("declining still requires confirmation and preserves its no-refund explanation", async () => {
-  mocks.decline.mockResolvedValue({ status: "succeeded", message: "Declined" });
+  mocks.decline.mockResolvedValue({ status: "succeeded", message: "Declined", href: "/account/entries" });
   render(<PurchaseOptionControls item={item} />);
   fireEvent.click(screen.getByRole("button", { name: "Decline option" }));
   expect(screen.getByText(/original entry will not be refunded/)).toBeTruthy();
@@ -66,4 +66,5 @@ test("declining still requires confirmation and preserves its no-refund explanat
   fireEvent.click(screen.getByRole("button", { name: "Confirm decline" }));
   await waitFor(() => expect(mocks.decline).toHaveBeenCalledOnce());
   expect(mocks.purchase).not.toHaveBeenCalled();
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries"));
 });

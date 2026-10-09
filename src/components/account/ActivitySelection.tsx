@@ -17,5 +17,6 @@ export function ActivitySelection({ state, selectedSlug, selectedEntryId, destin
   const item = findActivityItem(state.activity, selectedSlug, selectedEntryId, filter);
   // Keep previously shared detail URLs working, without the old second panel.
   if (item && isWalletReward(item) && state.source !== "unavailable") redirect(walletRewardHref(item));
+  if (item?.completionOptionStatus === "declined") redirect("/account/declined-offers");
   return item ? <ActivityDetailDialog key={item.entryId ?? item.slug} item={item} destination={destination} filter={filter} offerMetrics={metricsBySlug?.[item.slug]} outcomeEmailPreference={outcomeEmailPreference} /> : <p role="status" className="mt-4 rounded-xl border border-white/10 px-4 py-3 text-sm text-[#b5cce4]">That activity is not available in your account.</p>;
 }

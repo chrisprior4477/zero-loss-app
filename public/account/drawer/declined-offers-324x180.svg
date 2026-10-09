@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 324 180" role="img" aria-label="Headphones with stop symbol">
+  <rect width="324" height="180" rx="18" fill="#d5ecff"/>
+  <ellipse cx="158" cy="156" rx="92" ry="11" fill="#89bee3" opacity=".42"/>
+  <path d="M91 102V75a70 70 0 0 1 140 0v27" fill="none" stroke="#086bc7" stroke-width="19" stroke-linecap="round"/>
+  <rect x="77" y="95" width="42" height="62" rx="15" fill="#086bc7"/>
+  <rect x="203" y="95" width="42" height="62" rx="15" fill="#086bc7"/>
+  <circle cx="224" cy="113" r="51" fill="#ff6b0b" stroke="#fffefa" stroke-width="8"/>
+  <path d="m189 148 70-70" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round"/>
+</svg>

@@ -30,4 +30,5 @@ test("Your Profile keeps its Account & Security destination from My Activity", a
   const link = screen.getByRole("link", { name: "Open Your Profile" });
   expect(link.getAttribute("href")).toBe("/account/security");
   expect(link.textContent).toContain("Your Profile");
+  expect(screen.getByRole("link", { name: /Declined Offers/ }).getAttribute("href")).toBe("/account/declined-offers");
 });

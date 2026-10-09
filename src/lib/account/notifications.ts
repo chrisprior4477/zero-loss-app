@@ -49,6 +49,13 @@ function activityNotification(item: ActivityItem): AccountNotification {
     visualValue: formatUsdFromCents(item.priceCents),
     tone: "reward",
   };
+  if (item.completionOptionStatus === "declined") return {
+    id: `completion-${item.completionOptionId ?? item.entryId ?? item.slug}-declined`,
+    category: "orders", title: `Your ${item.retailer} gift-card option was declined`,
+    body: "Review it in Declined Offers. Revival is available only before the original deadline.",
+    meta: "Purchase option update", href: "/account/declined-offers", action: "Review declined offers",
+    image: item.image, visualLabel: item.retailer, tone: "order",
+  };
   if (item.status === "completion" && item.completionOptionStatus && item.completionOptionStatus !== "available") return {
     id: `completion-${item.completionOptionId ?? item.entryId ?? item.slug}-${item.completionOptionStatus}`,
     category: "orders", title: `Your ${item.retailer} gift-card option is ${item.completionOptionStatus}`,

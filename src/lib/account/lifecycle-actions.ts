@@ -66,8 +66,37 @@ export async function declinePurchaseOption(
 
   revalidatePath("/", "layout");
   revalidatePath("/account/entries");
+  revalidatePath("/account/declined-offers");
   revalidatePath("/account/notifications");
-  return { status: "succeeded", message: "Purchase option declined. Its reminders have been stopped and the original entry was not refunded." };
+  return { status: "succeeded", message: "Purchase option declined. Its reminders have been stopped and the original entry was not refunded.", href: "/account/entries" };
+}
+
+export async function revivePurchaseOption(
+  _previous: PurchaseOptionActionState,
+  formData: FormData,
+): Promise<PurchaseOptionActionState> {
+  const optionId = String(formData.get("completionOptionId") ?? "");
+  if (!uuidPattern.test(optionId) || !isPreviewDataEnvironment()) {
+    return { status: "error", message: "Revival is available only for a declined demo option." };
+  }
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user) return { status: "error", message: "Sign in again before reviving this option." };
+    const { data, error } = await db.rpc("revive_preview_purchase_option", {
+      p_completion_option_id: optionId,
+      p_idempotency_key: `revive_${optionId.replaceAll("-", "")}`,
+    });
+    if (error || data?.status !== "available") {
+      return { status: "error", message: error?.code === "P0001" ? error.message : "We couldn’t verify the revived option. Refresh and check its current status." };
+    }
+    revalidatePath("/account/entries");
+    revalidatePath("/account/declined-offers");
+    revalidatePath("/account/notifications");
+    return { status: "succeeded", message: "Option revived with its original deadline and remaining balance.", href: "/account/entries?filter=completion" };
+  } catch {
+    return { status: "error", recovery: "check", message: "The connection was interrupted. Check Purchase Options before trying again." };
+  }
 }
 
 export async function purchaseGiftCard(

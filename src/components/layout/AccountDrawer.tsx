@@ -41,6 +41,7 @@ const navigationVisuals: Record<(typeof accountNavigation)[number][0], { descrip
   "Your Crew": { description: "Build your crew and see their activity.", imageSrc: "/account/drawer/your-crew-exact-324x180.png", artworkTreatment: "fill-panel" },
   "Notifications": { description: "The updates that need your attention.", imageSrc: "/account/drawer/notifications-exact-324x180.png", artworkTreatment: "full" },
   "Account & Security": { description: "Profile, preferences, and security settings.", imageSrc: "/account/drawer/account-security-324x180.png" },
+  "Declined Offers": { description: "Review or revive a saved option.", imageSrc: "/account/drawer/declined-offers-324x180.svg", artworkTreatment: "full" },
 };
 
 function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initials: string; size: "small" | "large" }) {

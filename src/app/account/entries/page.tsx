@@ -70,6 +70,11 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
           <span className={styles.accountToolText}><strong>{title}</strong><span>{detail}</span>{title === "Account & Security" && <small>{account.emailConfirmed ? "Email confirmed" : "Confirmation pending"}</small>}</span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />
         </Link>)}
+        <Link href="/account/declined-offers" className={`${styles.accountTool} ${styles.declinedTool}`}>
+          <span className={styles.accountToolIcon} data-treatment="full"><Image src="/account/drawer/declined-offers-324x180.svg" alt="" fill sizes="(max-width: 600px) 80px, 112px" className={styles.accountToolIllustration} /></span>
+          <span className={styles.accountToolText}><strong>Declined Offers</strong><span>Changed your mind? Review saved options.</span></span>
+          <AccountIcon name="chevron" className={styles.accountToolArrow} />
+        </Link>
       </div>
       <p className={styles.ledgerNote}>The balance is read from your account&apos;s database ledger. {account.fundingEnabled ? "Demo funding is enabled." : "Demo funding is not enabled."} Real payments, entry purchases and rewards remain disabled.</p>
     </section>
