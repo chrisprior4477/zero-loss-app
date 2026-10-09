@@ -28,9 +28,9 @@
 .entryRailHeader strong { font-size: 18px; font-weight: 900; line-height: 1.2; }
 .entryRailHeader span { color: #526e8a; font-size: 13px; line-height: 1.35; }
 .entryRailChoices { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 10px; border-radius: 14px; background: #e4f4ff; padding: 10px; }
-.entryRailLink { --ticket-side-notch: 7px; --ticket-corner-notch: 10px; display: flex; width: 68px; height: 58px; flex: 0 0 68px; align-items: center; flex-direction: column; justify-content: center; gap: 2px; background: #0b376a; color: #fff; font-size: 19px; font-weight: 900; text-decoration: none; }
-.entryRailLink small { font-size: 10px; font-weight: 700; letter-spacing: .08em; }
-.entryRailLink i { width: 25px; height: 2px; background: #79d7ff; }
+.entryRailLink { --ticket-side-notch: 5px; --ticket-corner-notch: 7px; display: flex; width: 46px; height: 38px; flex: 0 0 46px; align-items: center; flex-direction: column; justify-content: center; gap: 0; background: #0b376a; color: #fff; font-size: 16px; font-weight: 900; line-height: 1; text-decoration: none; }
+.entryRailLink small { font-size: 9px; font-weight: 700; letter-spacing: .03em; line-height: 1; }
+.entryRailLink i { width: 18px; height: 2px; margin-top: 2px; background: #79d7ff; }
 .entryRailLink[aria-current="page"] { background: #0789ef; color: #fff; }
 .entryRailLink[aria-current="page"] i { background: #fff; }
 .entryRailLink:hover:not([aria-current="page"]) { background: #15528f; }
