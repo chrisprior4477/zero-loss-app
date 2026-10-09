@@ -72,6 +72,10 @@
   transform: none;
 }
 
+.artworkFrame[data-treatment="declined"] .artwork {
+  transform: scale(.86);
+}
+
 .artworkFrame[data-treatment="fill-panel"] .artwork {
   transform: scale(1.22);
 }

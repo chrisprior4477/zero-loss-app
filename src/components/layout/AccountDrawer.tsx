@@ -32,7 +32,7 @@ const secondaryLinks = [
   ["Privacy & Terms", "/privacy"],
 ] as const;
 
-const navigationVisuals: Record<(typeof accountNavigation)[number][0], { description: string; imageSrc: string; artworkTreatment?: "zoom" | "full" | "fit-wallet" | "fill-panel" }> = {
+const navigationVisuals: Record<(typeof accountNavigation)[number][0], { description: string; imageSrc: string; artworkTreatment?: "zoom" | "full" | "fit-wallet" | "fill-panel" | "declined" }> = {
   "My Activity": { description: "Track your entries and results.", imageSrc: "/account/drawer/my-activity-324x180.png" },
   "Favorites": { description: "Your saved products, ready to revisit.", imageSrc: "/account/drawer/favorites-324x180.svg", artworkTreatment: "full" },
   "Gift Cards & Rewards": { description: "Browse prizes and claim rewards.", imageSrc: "/account/drawer/gift-cards-rewards-324x180.png" },
@@ -41,7 +41,7 @@ const navigationVisuals: Record<(typeof accountNavigation)[number][0], { descrip
   "Your Crew": { description: "Build your crew and see their activity.", imageSrc: "/account/drawer/your-crew-exact-324x180.png", artworkTreatment: "fill-panel" },
   "Notifications": { description: "The updates that need your attention.", imageSrc: "/account/drawer/notifications-exact-324x180.png", artworkTreatment: "full" },
   "Account & Security": { description: "Profile, preferences, and security settings.", imageSrc: "/account/drawer/account-security-324x180.png" },
-  "Declined Offers": { description: "Review or revive a saved option.", imageSrc: "/account/drawer/declined-offers-324x180.svg", artworkTreatment: "full" },
+  "Declined Offers": { description: "Review or revive a saved option.", imageSrc: "/account/drawer/declined-offers-no-shopping.png", artworkTreatment: "declined" },
 };
 
 function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initials: string; size: "small" | "large" }) {

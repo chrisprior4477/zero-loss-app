@@ -71,7 +71,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
           <AccountIcon name="chevron" className={styles.accountToolArrow} />
         </Link>)}
         <Link href="/account/declined-offers" className={`${styles.accountTool} ${styles.declinedTool}`}>
-          <span className={styles.accountToolIcon} data-treatment="full"><Image src="/account/drawer/declined-offers-324x180.svg" alt="" fill sizes="(max-width: 600px) 80px, 112px" className={styles.accountToolIllustration} /></span>
+          <span className={styles.accountToolIcon} data-treatment="declined"><Image src="/account/drawer/declined-offers-no-shopping.png" alt="" fill sizes="(max-width: 600px) 80px, 112px" className={styles.accountToolIllustration} /></span>
           <span className={styles.accountToolText}><strong>Declined Offers</strong><span>Changed your mind? Review saved options.</span></span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />
         </Link>

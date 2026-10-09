@@ -67,6 +67,56 @@ async function sendMessage(to: string, subject: string, html: string, text: stri
   return result.id;
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
+}
+
+async function sendDeclinedOfferReminders(origin: string) {
+  if (!projectUrl || !serviceKey) throw new Error("Email database is not configured");
+  const db = createClient(projectUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+  const { data: reminders, error: claimError } = await db.rpc("claim_declined_offer_email_reminders", { p_limit: 10 });
+  if (claimError) throw new Error("Could not claim due declined-offer reminders");
+  let sent = 0;
+  let skipped = 0;
+  let failed = 0;
+  for (const reminder of reminders ?? []) {
+    try {
+      const { data: payload, error: payloadError } = await db.rpc("get_declined_offer_email_payload", { p_id: reminder.id });
+      if (payloadError || !payload) throw new Error("Declined-offer reminder could not be loaded");
+      if (!payload.eligible) {
+        const { error } = await db.rpc("finish_declined_offer_email_reminder", {
+          p_id: reminder.id, p_provider_message_id: null, p_error: null, p_cancelled: true,
+        });
+        if (error) throw error;
+        skipped++;
+        continue;
+      }
+      const { data: account, error: accountError } = await db.auth.admin.getUserById(payload.customerId);
+      if (accountError || !account?.user?.email || !account.user.email_confirmed_at) throw new Error("Verified recipient unavailable");
+      const link = new URL("/account/declined-offers", origin).toString();
+      const title = String(payload.title);
+      const deadline = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short", timeZone: "America/New_York" }).format(new Date(payload.deadline));
+      const subject = `Your declined ${String(payload.retailer)} offer expires in two days`;
+      const plain = `${title} expires on ${deadline} Eastern Time. You can still revive this offer before its original deadline: ${link}\n\nThis is the two-day reminder you requested for this offer.`;
+      const html = `<main style="font:16px/1.5 Arial,sans-serif;color:#0b173b"><h1>Your declined offer expires in two days</h1><p><strong>${escapeHtml(title)}</strong> expires on ${escapeHtml(deadline)} Eastern Time.</p><p>You can still revive this offer before its original deadline.</p><p><a href="${link}">Review declined offers</a></p><p>This is the two-day reminder you requested for this offer.</p></main>`;
+      const providerMessageId = await sendMessage(account.user.email, subject, html, plain,
+        `zero-loss-declined-two-day-${reminder.id}`);
+      const { error: finishError } = await db.rpc("finish_declined_offer_email_reminder", {
+        p_id: reminder.id, p_provider_message_id: providerMessageId, p_error: null, p_cancelled: false,
+      });
+      if (finishError) throw new Error("Email accepted, but declined-offer delivery state needs operator review");
+      sent++;
+    } catch (error) {
+      // An uncertain provider response is not retried automatically.
+      await db.rpc("finish_declined_offer_email_reminder", {
+        p_id: reminder.id, p_provider_message_id: null, p_error: safeError(error), p_cancelled: false,
+      });
+      failed++;
+    }
+  }
+  return { claimed: reminders?.length ?? 0, sent, skipped, failed };
+}
+
 async function sendPreviewTests(): Promise<Response> {
   // This temporary operator-only path is inert until an explicit Supabase
   // secret enables it. It never accepts a recipient or message from callers.
@@ -115,6 +165,14 @@ Deno.serve(async request => {
     if (!operator) return response(403, { error: "Operator-only test" });
     try { return await sendPreviewTests(); }
     catch (error) { return response(500, { error: safeError(error) }); }
+  }
+  if (search.get("mode") === "declined-reminders") {
+    if (Deno.env.get("DECLINED_REMINDER_DELIVERY_ENABLED") !== "true") return response(503, { error: "Declined-offer email delivery is disabled" });
+    if (!projectUrl || !resendKey || !configuredSiteOrigin) return response(503, { error: "Email service is not configured" });
+    try {
+      const origin = siteOrigin();
+      return response(200, await sendDeclinedOfferReminders(origin));
+    } catch (error) { return response(500, { error: safeError(error) }); }
   }
   if (Deno.env.get("OUTCOME_EMAIL_DELIVERY_ENABLED") !== "true") return response(503, { error: "Outcome email delivery is disabled" });
   if (!projectUrl || !resendKey || !configuredSiteOrigin) return response(503, { error: "Email service is not configured" });

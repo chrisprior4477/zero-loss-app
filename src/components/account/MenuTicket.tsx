@@ -7,7 +7,7 @@ type MenuTicketProps = {
   description: string;
   href: string;
   imageSrc: string;
-  artworkTreatment?: "zoom" | "full" | "fit-wallet" | "fill-panel";
+  artworkTreatment?: "zoom" | "full" | "fit-wallet" | "fill-panel" | "declined";
   onNavigate?: () => void;
   active?: boolean;
 };
