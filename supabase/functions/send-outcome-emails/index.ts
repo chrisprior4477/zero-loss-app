@@ -168,9 +168,11 @@ Deno.serve(async request => {
   }
   if (search.get("mode") === "declined-reminders") {
     if (Deno.env.get("DECLINED_REMINDER_DELIVERY_ENABLED") !== "true") return response(503, { error: "Declined-offer email delivery is disabled" });
-    if (!projectUrl || !resendKey || !configuredSiteOrigin) return response(503, { error: "Email service is not configured" });
+    if (!projectUrl || !resendKey) return response(503, { error: "Email service is not configured" });
     try {
-      const origin = siteOrigin();
+      // This opt-in exists only in the development-test preview. Keep its
+      // revive link on that exact branch alias, independent of general mail.
+      const origin = "https://zero-loss-app-git-openai-homepage-experiment-zero-loss.vercel.app";
       return response(200, await sendDeclinedOfferReminders(origin));
     } catch (error) { return response(500, { error: safeError(error) }); }
   }
