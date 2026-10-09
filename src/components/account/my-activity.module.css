@@ -300,7 +300,7 @@
   .gallery, .gallery[data-desktop-rows="1"], .gallery[data-desktop-rows="2"] { grid-template-rows: repeat(2, 145px); }
   .gallery[data-stacked-rows="1"] { grid-template-rows: 145px; }
   .gallery[data-stacked-overflowing="true"], .gallery[data-overflowing="true"][data-stacked-overflowing="true"] { --gallery-peek: 10px; }
-  .entrySwitcher { left: calc(24% + 8px); font-size: 8px; }
+  .entrySwitcher { left: calc(24% + 5px); font-size: 8px; }
   .entrySwitcher button { width: 15px; }
 }
 @media (max-width: 610px) {
