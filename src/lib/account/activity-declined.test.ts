@@ -5,9 +5,17 @@ const base = { slug: "walmart-100-gift-card", title: "Walmart", retailer: "Walma
   rewardKind: "digital" as const, priceCents: 10000, paidCents: 100, remainingCents: 9900, availability: "Declined" };
 const declined: ActivityItem = { ...base, entryId: "ent_one", status: "completed", completionOptionStatus: "declined" };
 const completed: ActivityItem = { ...base, entryId: "ent_two", status: "completed", completionOptionStatus: "purchased" };
+const revived: ActivityItem = { ...declined, status: "completion", completionOptionStatus: "available" };
 
-test("declined offers stay in All but not Completed, and open their own account page", () => {
-  expect(filterActivity([declined, completed], "all")).toHaveLength(2);
+test("declined offers leave every My Activity filter but keep their account destination", () => {
+  expect(filterActivity([declined, completed], "all")).toEqual([completed]);
   expect(filterActivity([declined, completed], "completed")).toEqual([completed]);
+  expect(filterActivity([declined], "all")).toEqual([]);
+  expect(filterActivity([declined], "completion")).toEqual([]);
   expect(activityHref(declined)).toBe("/account/declined-offers");
+});
+
+test("reviving an offer returns it to My Activity and Purchase Options", () => {
+  expect(filterActivity([revived], "all")).toEqual([revived]);
+  expect(filterActivity([revived], "completion")).toEqual([revived]);
 });

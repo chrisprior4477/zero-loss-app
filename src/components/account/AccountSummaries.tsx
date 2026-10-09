@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
+import { filterActivity, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
 
 export function PlayableBalanceCard({ balanceLabel, fundingEnabled = false, compact = false, onNavigate }: {
@@ -20,11 +20,12 @@ export function PlayableBalanceCard({ balanceLabel, fundingEnabled = false, comp
 
 export function MyZeroLossSummary({ state, compact = false, onNavigate }: { state: AccountActivity; compact?: boolean; onNavigate?: () => void }) {
   const available = state.source !== "unavailable";
+  const visibleActivity = filterActivity(state.activity, "all");
   const counts = available ? {
-    total: state.activity.length,
-    open: state.activity.filter(item => item.status === "active").length,
-    won: state.activity.filter(item => item.status === "prize").length,
-    options: state.activity.filter(item => item.status === "completion").length,
+    total: visibleActivity.length,
+    open: visibleActivity.filter(item => item.status === "active").length,
+    won: visibleActivity.filter(item => item.status === "prize").length,
+    options: visibleActivity.filter(item => item.status === "completion").length,
   } : null;
   return <Link href="/account/entries" onClick={onNavigate} aria-label="My Activity — See every entry and outcome" data-activity-source={state.source}
     className={`group h-full min-w-0 rounded-2xl border border-cyan-300/20 bg-[linear-gradient(135deg,#133e64,#232f63)] transition hover:border-cyan-300/60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300 ${compact ? "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 p-3" : "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 p-4 lg:flex lg:flex-col lg:items-stretch"}`}>

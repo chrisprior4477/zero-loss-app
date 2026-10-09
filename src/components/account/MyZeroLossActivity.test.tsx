@@ -59,6 +59,23 @@ test("same activity source yields matching still-open count and full-row links",
   expect(screen.queryByText("Baby's Essentials Bundle")).toBeNull();
   expect(activityFilter("demo=true")).toBe("all");
 });
+test("declined offers disappear from My Activity cards and counts", () => {
+  const state = storedActivityFixture();
+  state.activity[2] = { ...state.activity[2], status: "completed", completionOptionStatus: "declined" };
+  render(<MyZeroLossActivity state={state} filter="all" />);
+  expect(screen.getByRole("link", { name: "All3" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Completed0" })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: /Nike Men's Court Shot Shoes/ })).toBeNull();
+  expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/ })).toBeTruthy();
+});
+test("an account with only declined offers has no My Activity cards", () => {
+  const state = storedActivityFixture();
+  state.activity = [{ ...state.activity[2], status: "completed", completionOptionStatus: "declined" }];
+  render(<MyZeroLossActivity state={state} filter="all" />);
+  expect(screen.getByRole("link", { name: "All0" })).toBeTruthy();
+  expect(screen.getByText("Your next choice starts here")).toBeTruthy();
+  expect(screen.queryByRole("link", { name: /Nike Men's Court Shot Shoes/ })).toBeNull();
+});
 test("entry reset control appears only when explicitly enabled for a demo account", () => {
   const state = storedActivityFixture();
   const { rerender } = render(<MyZeroLossActivity state={state} filter="all" />);
@@ -162,6 +179,13 @@ test("Dashboard recent activity stays bounded with a full-list destination", () 
   render(<DashboardActivity state={state} />);
   expect(document.querySelectorAll("a[data-activity-slug]")).toHaveLength(4);
   expect(screen.queryByText("Fifth product")).toBeNull();
+});
+test("Dashboard recent activity skips declined offers", () => {
+  const state = storedActivityFixture();
+  state.activity[0] = { ...state.activity[0], status: "completed", completionOptionStatus: "declined" };
+  render(<DashboardActivity state={state} />);
+  expect(document.querySelectorAll("a[data-activity-slug]")).toHaveLength(3);
+  expect(screen.queryByRole("link", { name: /PlayStation 5 Slim Model/ })).toBeNull();
 });
 
 test("detail close and Escape preserve the originating route and filter", () => {

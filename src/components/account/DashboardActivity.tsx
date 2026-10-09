@@ -1,10 +1,10 @@
 import Link from "next/link";
-import type { AccountActivity } from "@/lib/account/activity";
+import { filterActivity, type AccountActivity } from "@/lib/account/activity";
 import { ActivityRows } from "./ActivityRows";
 import { ActivitySelection } from "./ActivitySelection";
 
 export function DashboardActivity({ state, selectedSlug }: { state: AccountActivity; selectedSlug?: string }) {
-  const recent = state.activity.slice(0, 4);
+  const recent = filterActivity(state.activity, "all").slice(0, 4);
   return <section className="mt-7" aria-labelledby="dashboard-activity-heading" data-activity-source={state.source}>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h2 id="dashboard-activity-heading" className="text-2xl font-black tracking-tight text-white">Your latest activity</h2><p className="mt-1 text-sm text-[#b5cce4]">What’s still open, what’s ready, and what you can complete.</p></div>

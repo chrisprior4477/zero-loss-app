@@ -26,6 +26,13 @@ test("summary shows only authorized activity counts and keeps money independent"
   expect(screen.queryByText("$100.00")).toBeNull();
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
 });
+test("My Activity summary excludes saved declined offers", () => {
+  const state = storedActivityFixture();
+  state.activity[2] = { ...state.activity[2], status: "completed", completionOptionStatus: "declined" };
+  render(<MyZeroLossSummary state={state} />);
+  expect(screen.getByText("3 items")).toBeTruthy();
+  expect(screen.getByText("1 open · 1 won · 1 purchase option")).toBeTruthy();
+});
 
 test("normal empty and unavailable summaries never substitute fixtures or invent zeros", () => {
   const { rerender } = render(<><PlayableBalanceCard balanceLabel="$0.00" /><MyZeroLossSummary state={drawerState(true)} /><WalletShortcut state={drawerState(true)} /></>);

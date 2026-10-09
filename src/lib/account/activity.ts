@@ -37,7 +37,8 @@ export function activityFilter(value: unknown): ActivityFilter {
   return activityFilters.find(([key]) => key === value)?.[0] ?? "all";
 }
 export function filterActivity(items: ActivityItem[], filter: ActivityFilter): ActivityItem[] {
-  return filter === "all" ? items : items.filter(item => item.status === filter && (filter !== "completed" || item.completionOptionStatus !== "declined"));
+  const visible = items.filter(item => item.completionOptionStatus !== "declined");
+  return filter === "all" ? visible : visible.filter(item => item.status === filter);
 }
 export type ActivityDestination = "/account" | "/account/entries";
 export const walletHistoryHref = "/account/wallet?view=history";
