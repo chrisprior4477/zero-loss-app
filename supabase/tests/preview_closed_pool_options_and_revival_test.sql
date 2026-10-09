@@ -9,8 +9,8 @@ where singleton;
 insert into demo_private.preview_entry_offerings(
   slug,title,retailer,category,image_path,value_cents,entry_price_cents,capacity,
   sample_entries,forced_outcome,repeatable_scenario
-) values ('closed-pool-option-test','Closed pool option','Test retailer','Test','/test.png',2500,100,11,
-  1,'active',false);
+) values ('closed-pool-option-test','Closed pool option','Test retailer','Test','/test.png',2500,100,12,
+  2,'active',false);
 
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
   ('99999999-9999-4999-8999-999999999991','closed-pool-owner@example.test',now(),
@@ -72,6 +72,13 @@ select is((select count(*)::integer from public.completion_option_events ce
   join public.customer_entries e on e.id=c.customer_entry_id
   where e.offering_slug='closed-pool-option-test' and ce.event_type='revived'),1,
   'one immutable revival event is recorded');
+select is(public.reset_demo_pool('closed-pool-option-test')->>'remaining','1',
+  'a full ordinary offer can be reopened with one ticket left');
+select is((select count(*)::integer from public.customer_entries where offering_slug='closed-pool-option-test'),
+  10,'reopening preserves every paid customer entry');
+select is((select count(*)::integer from public.completion_options c join public.customer_entries e
+  on e.id=c.customer_entry_id where e.offering_slug='closed-pool-option-test'),
+  10,'reopening preserves existing purchase options');
 
 select set_config('request.jwt.claim.sub','99999999-9999-4999-8999-999999999992',true);
 select set_config('request.jwt.claims',
@@ -82,6 +89,11 @@ select throws_ok($$ select public.revive_preview_purchase_option((select c.id fr
   '42501',null,'another customer cannot revive this option');
 
 reset role;
+select is((select sample_entries from demo_private.preview_entry_offerings
+  where slug='closed-pool-option-test'),1,'only fictional sample slots were adjusted');
+select is((select count(*)::integer from demo_private.preview_pool_reset_events
+  where offering_slug='closed-pool-option-test' and reset_source='manual'),1,
+  'the demo reset is auditable');
 select is((select count(*)::integer from demo_private.preview_closed_pool_demo_winners
   where offering_slug='closed-pool-option-test' and sample_entry_number=1),
   1,'the preview records exactly one winner in its seeded crowd');

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DemoParticipationPanel } from "@/components/product/DemoParticipationPanel";
+import { ResetDemoPoolButton } from "@/components/product/ResetDemoPoolButton";
 import { GiftCardFulfillmentNotice, SignedOutRewardSummary } from "@/components/product/GiftCardFulfillmentNotice";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
@@ -93,6 +94,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
             <GiftCardFulfillmentNotice productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
             {participationPanel}
             <div className="mt-4">{freeEntryDetails}</div>
+            {isPreviewDataEnvironment() && account.wallet?.scope === "demo" && current?.remaining === 0 && !current.repeatableScenario ? <ResetDemoPoolButton slug={product.slug} /> : null}
           </div>
         </div> : <div className="mt-3 grid min-w-0 gap-4 sm:mt-6 sm:gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)] lg:items-start lg:gap-8">
           <ProductGallery gallery={product.gallery} title={product.title} slug={product.slug} signedOutCompact />
