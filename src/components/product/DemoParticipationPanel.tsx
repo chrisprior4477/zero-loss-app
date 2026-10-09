@@ -79,6 +79,7 @@ export function DemoParticipationPanel({
   const uncertain = state.status === "error" && state.code === "outcome_unknown";
   const entryBusy = pending || state.status === "succeeded" || requestReceipt?.status === "pending";
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
+  const additionalEntryDetailsRef = useRef<HTMLDetailsElement>(null);
   const [additionalEntryTermsSeen, setAdditionalEntryTermsSeen] = useState(false);
   const [rememberExplanation, setRememberExplanation] = useState(false);
   const [skipFutureExplainer, setSkipFutureExplainer] = useState(extraEntryExplainerAcknowledged);
@@ -101,6 +102,17 @@ export function DemoParticipationPanel({
   const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity))}`;
   const addFundsHref = fundingHref(productSlug, undefined, quantity);
   const rememberEntry = (selected = quantity) => saveEntryIntent(productSlug, productTitle, selected);
+
+  useEffect(() => {
+    if (!additionalEntryNoticeOpen || typeof window.matchMedia !== "function") return;
+    const desktopOrTablet = window.matchMedia("(min-width: 768px)");
+    const syncExplanation = () => {
+      if (additionalEntryDetailsRef.current) additionalEntryDetailsRef.current.open = desktopOrTablet.matches;
+    };
+    syncExplanation();
+    desktopOrTablet.addEventListener("change", syncExplanation);
+    return () => desktopOrTablet.removeEventListener("change", syncExplanation);
+  }, [additionalEntryNoticeOpen]);
 
   const addNextEntry = () => {
     const next = Math.min(maxQuantity, quantity + 1);
@@ -375,28 +387,30 @@ export function DemoParticipationPanel({
         <div className="fixed inset-0 z-[200] grid place-items-end bg-[#000914]/75 p-2 backdrop-blur-sm sm:place-items-center sm:p-4" role="presentation" onMouseDown={(event) => {
           if (event.currentTarget === event.target) setAdditionalEntryNoticeOpen(false);
         }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className="max-h-[94dvh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border border-cyan-300/55 bg-[#001b3d] text-left shadow-[0_28px_90px_rgba(0,0,0,.68),0_0_30px_rgba(0,185,255,.24)] md:grid md:max-h-[90dvh] md:max-w-[820px] md:grid-cols-2 md:items-center">
+          <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className="max-h-[94dvh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border border-cyan-300/55 bg-[#001b3d] text-left shadow-[0_28px_90px_rgba(0,0,0,.68),0_0_30px_rgba(0,185,255,.24)] md:grid md:max-h-[90dvh] md:max-w-[1220px] md:grid-cols-[minmax(0,30%)_minmax(0,1fr)] md:items-center md:gap-6 md:p-6 lg:grid-cols-[minmax(0,35%)_minmax(0,1fr)]">
             <h2 id="additional-entry-title" className="sr-only">How Extra Chances Work</h2>
             <div className="relative md:self-stretch">
-              <Image src="/account/extra-entry-explainer-seamless-neon.jpg" alt="How extra chances work: each entry is a separate chance and never combines into one discount" width={2286} height={2922} className="h-auto w-full md:h-full md:object-contain" priority sizes="(max-width: 767px) calc(100vw - 16px), 410px" />
+              <Image src="/account/extra-entry-explainer-seamless-neon.jpg" alt="How extra chances work: each entry is a separate chance and never combines into one discount" width={2286} height={2922} className="h-auto w-full md:h-full md:object-contain" priority sizes="(max-width: 767px) calc(100vw - 16px), (max-width: 1023px) 280px, 425px" />
               <button type="button" onClick={() => setAdditionalEntryNoticeOpen(false)} className="absolute right-[.5%] top-0 h-9 w-9 rounded-full bg-transparent transition hover:bg-[#001b3d]/35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300" aria-label="Close extra entry explanation" />
             </div>
 
-            <div className="space-y-4 px-4 pb-5 pt-4 sm:px-6 sm:pb-6 md:py-5">
-            <details className="group rounded-xl border border-cyan-300/35 bg-[#001632] open:border-cyan-300/60">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-bold text-white marker:hidden">
+            <div className="space-y-4 px-4 pb-5 pt-4 sm:px-6 sm:pb-6 md:px-0 md:py-0">
+            <p className="hidden text-xs font-extrabold uppercase tracking-[.14em] text-cyan-300 md:block">How extra chances work</p>
+            <h3 className="hidden text-[clamp(20px,2.1vw,28px)] font-black leading-tight text-white md:block">Why does each entry stand alone?</h3>
+            <details ref={additionalEntryDetailsRef} className="group rounded-xl border border-cyan-300/35 bg-[#001632] open:border-cyan-300/60 md:border-0 md:bg-transparent">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-bold text-white marker:hidden md:hidden">
                 <span className="flex items-center gap-3"><span className="grid h-7 w-7 place-items-center rounded-full bg-[#00b9ff] text-[#00132e]">?</span>Why does each entry stand alone?</span>
                 <span aria-hidden="true" className="text-xl text-cyan-300 transition group-open:rotate-180">⌄</span>
               </summary>
-              <div className="border-t border-cyan-300/20 px-4 py-4">
-                <ol className="space-y-3 text-sm leading-6 text-white/78">
+              <div className="border-t border-cyan-300/20 px-4 py-4 md:border-0 md:px-0 md:py-0">
+                <ol className="space-y-3 text-sm leading-6 text-white/78 md:space-y-2 md:text-[13px] md:leading-[1.4] lg:text-sm lg:leading-[1.5]">
                   <li><strong className="text-white">1. Another entry means another independent chance.</strong> Each entry receives the same chance of selection, subject to the published pool rules.</li>
                   <li><strong className="text-white">2. Non-selected entries do not become wallet cash.</strong> Each non-selected paid entry has its own optional 30-day right to complete this exact offering.</li>
                   <li><strong className="text-white">3. The options cannot be stacked.</strong> Entry payments and completion options cannot be combined with one another or with Playable Balance.</li>
                   <li><strong className="text-white">4. Each option requires its own remaining payment.</strong> For this ${productValue.toLocaleString()} {retailer} offering, one ${entryPrice.toFixed(2)} entry would leave ${remainingBalance.toFixed(2)} to complete one purchase.</li>
                   <li><strong className="text-white">5. The option stays with this entry and retailer.</strong> It cannot move to a different product, retailer, account, entry, or cash withdrawal.</li>
                 </ol>
-                <div className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/8 p-3 text-sm leading-6">
+                <div className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/8 p-3 text-sm leading-6 md:mt-3 md:text-[13px] md:leading-[1.4] lg:text-sm lg:leading-[1.5]">
                   <strong className="text-[#67ff42]">Example with three entries:</strong> You receive three separate chances for {productTitle}. If none is selected, you have three separate optional 30-day completion rights—not a combined ${(entryPrice * 3).toFixed(2)} credit. Completing all three purchases would require three separate remaining payments of ${remainingBalance.toFixed(2)} each.
                 </div>
               </div>
@@ -404,12 +418,14 @@ export function DemoParticipationPanel({
 
             {isSignedIn ? (
               <>
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/5 p-3">
-                  <input type="checkbox" checked={rememberExplanation} onChange={(event) => setRememberExplanation(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#55ff3b]" />
-                  <span><strong className="block text-sm">I understand how extra entries work.</strong><span className="mt-0.5 block text-xs leading-5 text-white/60">Please stop showing this explanation again.</span></span>
-                </label>
-                {preferenceError ? <p role="alert" className="mt-3 rounded-xl border border-[#ff796c]/40 bg-[#4b1c25] p-3 text-sm">{preferenceError}</p> : null}
-                <button type="button" onClick={acknowledgeAndAddEntry} disabled={!rememberExplanation || preferenceSaving} className="w-full rounded-xl bg-[#00b9ff] px-4 py-3.5 font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-[#0b668b] disabled:text-white/55">{preferenceSaving ? "Saving your choice…" : "I understand — save my choice"}</button>
+                <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/15 bg-white/5 p-3 md:min-w-0 md:flex-1 md:items-center md:border-0 md:bg-transparent md:p-0">
+                    <input type="checkbox" checked={rememberExplanation} onChange={(event) => setRememberExplanation(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#55ff3b] md:mt-0" />
+                    <span><strong className="block text-sm md:text-[13px] lg:text-sm">I understand how extra entries work.</strong><span className="mt-0.5 block text-xs leading-5 text-white/60">Please stop showing this explanation again.</span></span>
+                  </label>
+                  {preferenceError ? <p role="alert" className="rounded-xl border border-[#ff796c]/40 bg-[#4b1c25] p-3 text-sm md:col-span-2 md:row-start-2">{preferenceError}</p> : null}
+                  <button type="button" onClick={acknowledgeAndAddEntry} disabled={!rememberExplanation || preferenceSaving} className="w-full rounded-xl bg-[#00b9ff] px-4 py-3.5 font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-[#0b668b] disabled:text-white/55 md:col-start-2 md:row-start-1 md:w-auto md:min-w-[190px] md:shrink-0 md:px-3 md:text-xs lg:min-w-[216px] lg:text-[13px]">{preferenceSaving ? "Saving your choice…" : "I understand — save my choice"}</button>
+                </div>
               </>
             ) : (
               <>
