@@ -125,4 +125,8 @@
   .entryRailHeader { gap: 2px; }
   .entryRailHeader strong { font-size: 17px; }
   .entryRailChoices { gap: 8px; margin-top: 12px; }
+  .crewPanel { padding-inline: 10px; }
+  .crewRailWrap { display: block; }
+  .railArrow { display: none; }
+  .crewRail { gap: 8px; padding-inline: 0; }
 }

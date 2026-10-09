@@ -194,7 +194,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
         </> : <p className={styles.unavailable}>No additional tickets are available right now.</p>}
         <div className={styles.preference}><EntryOutcomeEmailPreference initialEnabled={emailEnabled} placement="entry-page" /></div>
       </section>
-      <section className={styles.actionPanel} aria-labelledby="crew-title">
+      <section className={`${styles.actionPanel} ${styles.crewPanel}`} aria-labelledby="crew-title">
         <h3 id="crew-title">Invite your Crew to this prize</h3>
         <p>Choose who to notify about {itemTitle}. Sample people are a visual demo; no emails or messages are sent.</p>
         <div className={styles.crewRailWrap}>
