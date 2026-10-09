@@ -53,7 +53,8 @@ test("five authorized entries share a separate-entry rail and retain exact detai
   expect(within(rail).getByText("Your five separate entries")).toBeTruthy();
   const links = within(rail).getAllByRole("link");
   expect(links.map(link => link.getAttribute("href"))).toEqual(ids.map(id => `/account/entries/${id}`));
-  expect(links.map(link => link.textContent)).toEqual(ids.map((id, index) => `Entry ${index + 1}#${id.slice(-8)}`));
+  expect(links.map(link => link.textContent)).toEqual(ids.map((_, index) => `ENTRY${index + 1}`));
+  expect(within(rail).queryByText(`#${ids[2].slice(-8)}`)).toBeNull();
   expect(links[2].getAttribute("aria-current")).toBe("page");
   expect(rail.querySelector(`a[href="/account/entries/ent_${"a".repeat(32)}"]`)).toBeNull();
   expect(screen.getByRole("region", { name: "Saved entry and prize pool" }).compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

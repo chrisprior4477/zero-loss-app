@@ -93,12 +93,11 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
           {relatedEntries.map((entry, index) => <Link
             key={entry.entryId}
             href={`/account/entries/${encodeURIComponent(entry.entryId!)}`}
-            scroll={false}
             prefetch={false}
             aria-current={entry.entryId === entryId ? "page" : undefined}
             aria-label={`See entry ${index + 1} of ${entryCount}, entry number ${entry.entryId}${entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt)) ? `, entered ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.enteredAt))}` : ""}`}
             className={styles.entryRailLink}
-          ><span>Entry {index + 1}</span><small>#{entry.entryId!.slice(-8)}</small></Link>)}
+          ><small>ENTRY</small><span>{index + 1}</span><i aria-hidden="true" /></Link>)}
         </div>
       </nav>
       <section className={styles.playTicket} aria-labelledby="in-play-title">
