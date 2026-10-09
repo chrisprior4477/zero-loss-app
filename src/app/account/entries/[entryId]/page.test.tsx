@@ -53,8 +53,11 @@ test("five authorized entries share a separate-entry rail and retain exact detai
   expect(within(rail).getByText("Your five separate entries")).toBeTruthy();
   const links = within(rail).getAllByRole("link");
   expect(links.map(link => link.getAttribute("href"))).toEqual(ids.map(id => `/account/entries/${id}`));
+  expect(links.map(link => link.textContent)).toEqual(ids.map((id, index) => `Entry ${index + 1}#${id.slice(-8)}`));
   expect(links[2].getAttribute("aria-current")).toBe("page");
   expect(rail.querySelector(`a[href="/account/entries/ent_${"a".repeat(32)}"]`)).toBeNull();
+  expect(screen.getByRole("region", { name: "Saved entry and prize pool" }).compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(rail.compareDocumentPosition(screen.getByRole("heading", { name: /prize pool still has tickets available/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
   rerender(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }) }));
   expect(screen.getByText(ids[4])).toBeTruthy();
@@ -66,7 +69,7 @@ test("an entry outside the signed-in account cannot open through the rail", asyn
   expect(mocks.notFound).toHaveBeenCalledOnce();
 });
 
-test("a single entry does not show a redundant switcher", async () => {
+test("the ticket-style entry section remains visible even for a single saved entry", async () => {
   mocks.account.mockResolvedValueOnce({
     activity: { activity: [activity[0]], source: "stored" },
     wallet: { balanceCents: 10000, scope: "demo" },
@@ -74,5 +77,7 @@ test("a single entry does not show a redundant switcher", async () => {
     displayName: "Chris",
   });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
-  expect(screen.queryByRole("navigation", { name: /Your separate entries/ })).toBeNull();
+  const rail = screen.getByRole("navigation", { name: "Your separate entries for PlayStation 5 Slim Model" });
+  expect(within(rail).getByText("Your saved entry")).toBeTruthy();
+  expect(within(rail).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).getAttribute("aria-current")).toBe("page");
 });

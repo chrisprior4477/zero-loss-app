@@ -319,6 +319,7 @@ export function DemoParticipationPanel({
       {requestReceipt?.status === "pending" ? <div className="mt-3 rounded-xl border border-[#ff9a45] bg-[#ff6a00] p-3 text-sm text-[#00132e]" role="status">
         <p className="font-extrabold">{undoSeconds > 0 ? `Entry submitted · Undo available for ${undoSeconds}s` : "Checking your saved entry…"}</p>
         <p className="mt-1 text-xs text-[#00132e]/80">{requestReceipt.quantity} {requestReceipt.quantity === 1 ? "ticket" : "tickets"} · ${(requestReceipt.amountCents / 100).toFixed(2)} reserved from your Playable Wallet.</p>
+        <p className="mt-1 text-xs text-[#00132e]/80">The header counts active entries after confirmation. Undo releases this hold.</p>
         {undoError ? <p role="alert" className="mt-2 text-xs font-bold text-[#00132e]">{undoError}</p> : null}
         <div className={`mt-2 grid gap-2 ${undoSeconds > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
           {undoSeconds > 0 ? <button type="button" disabled={undoBusy} onClick={() => void undoEntry()} className="min-h-11 rounded-lg bg-[#bcecff] px-2 font-bold text-[#00132e] transition hover:bg-[#def6ff] disabled:opacity-60">Undo entry</button> : null}

@@ -70,6 +70,7 @@ test("30-second Undo appears inline by the entry controls, not in a floating toa
     serverNow: "2026-09-20T12:00:00Z", href: null };
   act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: receipt })));
   expect(screen.getByText(/Entry submitted · Undo available/).closest("aside")?.id).toBe("enter-entry");
+  expect(screen.getByText(/header counts active entries after confirmation/)).toBeTruthy();
   expect(screen.getByText(/Entry submitted · Undo available/).closest("[role=status]")?.className).toContain("bg-[#ff6a00]");
   expect(screen.getByRole("button", { name: "Undo entry" }).className).toContain("bg-[#bcecff]");
   expect(screen.getByRole("button", { name: "Confirm entry" }).className).toContain("bg-[#31e800]");

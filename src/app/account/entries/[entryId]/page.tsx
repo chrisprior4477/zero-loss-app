@@ -84,10 +84,10 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
           <strong>{metrics.remaining === 0 ? "Pool full" : `${metrics.remaining.toLocaleString("en-US")} tickets left`}</strong>
         </div> : <p className={styles.progressUnavailable}>Current pool count unavailable</p>}
       </section>
-      {entryCount > 1 ? <nav className={styles.entryRail} aria-label={`Your separate entries for ${item.title}`}>
+      <nav className={styles.entryRail} aria-label={`Your separate entries for ${item.title}`}>
         <div className={styles.entryRailHeader}>
-          <strong>Your {entryCountLabel} separate entries</strong>
-          <span>Each is its own chance at this prize.</span>
+          <strong>{entryCount === 1 ? "Your saved entry" : `Your ${entryCountLabel} separate entries`}</strong>
+          <span>{entryCount === 1 ? "This is your separate chance at this prize." : "Choose an entry to see its own details. Each is a separate chance."}</span>
         </div>
         <div className={styles.entryRailChoices}>
           {relatedEntries.map((entry, index) => <Link
@@ -96,11 +96,11 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
             scroll={false}
             prefetch={false}
             aria-current={entry.entryId === entryId ? "page" : undefined}
-            aria-label={`See entry ${index + 1} of ${entryCount}${entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt)) ? `, entered ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.enteredAt))}` : ""}`}
+            aria-label={`See entry ${index + 1} of ${entryCount}, entry number ${entry.entryId}${entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt)) ? `, entered ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.enteredAt))}` : ""}`}
             className={styles.entryRailLink}
-          >{index + 1}</Link>)}
+          ><span>Entry {index + 1}</span><small>#{entry.entryId!.slice(-8)}</small></Link>)}
         </div>
-      </nav> : null}
+      </nav>
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>

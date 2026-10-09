@@ -82,6 +82,7 @@ test("pending entry can be confirmed here without a checkout redirect", async ()
   fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Confirm entry" })).toBeTruthy());
+  expect(screen.getByText(/header counts active entries after confirmation/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry" }));
   await waitFor(() => expect(screen.getByText(/new entry is confirmed and saved in My Activity/)).toBeTruthy());
   expect(confirmPendingEntryRequest).toHaveBeenCalledWith(request.requestId);
