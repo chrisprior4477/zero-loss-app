@@ -15,6 +15,13 @@ import styles from "@/components/account/entry-page.module.css";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
 
+const entryCountWords = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+
+function enteredTime(value: string | null | undefined): number {
+  const time = value ? Date.parse(value) : NaN;
+  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
+}
+
 export default async function EntryPage({ params }: { params: Promise<{ entryId: string }> }) {
   const { entryId } = await params;
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
@@ -22,6 +29,12 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
   if (!account) redirect(authNavigationHref("/login", `/account/entries/${entryId}`));
   const item = account.activity.activity.find(entry => entry.entryId === entryId && entry.status === "active");
   if (!item || account.activity.source === "unavailable") notFound();
+  const relatedEntries = account.activity.activity
+    .filter(entry => entry.status === "active" && entry.slug === item.slug && entry.entryId)
+    .sort((left, right) => enteredTime(left.enteredAt) - enteredTime(right.enteredAt)
+      || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
+  const entryCount = relatedEntries.length;
+  const entryCountLabel = entryCountWords[entryCount] ?? entryCount.toLocaleString("en-US");
 
   const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
   const metrics = activityOfferMetrics([item], availability)[item.slug];
@@ -69,6 +82,23 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
           <strong>{metrics.remaining === 0 ? "Pool full" : `${metrics.remaining.toLocaleString("en-US")} tickets left`}</strong>
         </div> : <p className={styles.progressUnavailable}>Current pool count unavailable</p>}
       </section>
+      {entryCount > 1 ? <nav className={styles.entryRail} aria-label={`Your separate entries for ${item.title}`}>
+        <div className={styles.entryRailHeader}>
+          <strong>Your {entryCountLabel} separate entries</strong>
+          <span>Each is its own chance at this prize.</span>
+        </div>
+        <div className={styles.entryRailChoices}>
+          {relatedEntries.map((entry, index) => <Link
+            key={entry.entryId}
+            href={`/account/entries/${encodeURIComponent(entry.entryId!)}`}
+            scroll={false}
+            prefetch={false}
+            aria-current={entry.entryId === entryId ? "page" : undefined}
+            aria-label={`See entry ${index + 1} of ${entryCount}${entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt)) ? `, entered ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.enteredAt))}` : ""}`}
+            className={styles.entryRailLink}
+          >{index + 1}</Link>)}
+        </div>
+      </nav> : null}
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>

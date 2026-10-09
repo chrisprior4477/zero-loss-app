@@ -13,6 +13,26 @@ import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
 import { RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
+type GalleryGroup = { key: string; entries: ActivityItem[] };
+
+function groupGalleryEntries(items: ActivityItem[]): GalleryGroup[] {
+  const groups: GalleryGroup[] = [];
+  const openGroups = new Map<string, GalleryGroup>();
+  for (const item of items) {
+    // Only combine open entries for the same prize. Outcomes and purchase options
+    // can differ per entry and must keep their own tickets.
+    const key = item.status === "active" && item.entryId ? `active:${item.slug}` : `entry:${item.entryId ?? item.slug}:${groups.length}`;
+    const existing = item.status === "active" && item.entryId ? openGroups.get(key) : undefined;
+    if (existing) existing.entries.push(item);
+    else {
+      const group = { key, entries: [item] };
+      groups.push(group);
+      if (item.status === "active" && item.entryId) openGroups.set(key, group);
+    }
+  }
+  return groups;
+}
+
 function action(item: ActivityItem) {
   if (item.status === "prize") return item.rewardKind === "digital" ? "Open reward" : "Claim prize";
   if (item.completionOptionStatus === "declined") return "Review declined";
@@ -20,12 +40,14 @@ function action(item: ActivityItem) {
 }
 
 export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId }: { items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string }) {
+  const groups = groupGalleryEntries(items);
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
   const [dragging, setDragging] = useState(false);
-  const [view, setView] = useState({ start: 0, end: items.length - 1, previous: false, next: false });
+  const [view, setView] = useState({ start: 0, end: groups.length - 1, previous: false, next: false });
   const [recentEntry, setRecentEntry] = useState<{ slug: string; entryId: string | null } | null>(null);
   const [viewedEntry, setViewedEntry] = useState<string | null>(null);
+  const [selectedByGroup, setSelectedByGroup] = useState<Record<string, string>>({});
   const galleryId = useId();
 
   function move(direction: number) {
@@ -43,15 +65,15 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
     const cards = Array.from(element.children) as HTMLElement[];
     const bounds = element.getBoundingClientRect();
     const visible = cards.map((card, index) => ({ bounds: card.getBoundingClientRect(), index })).filter(({ bounds: card }) => Math.min(card.right, bounds.right) - Math.max(card.left, bounds.left) >= card.width * .5);
-    setView({ start: visible[0]?.index ?? 0, end: visible.at(-1)?.index ?? items.length - 1, previous: element.scrollLeft > 2, next: element.scrollWidth - element.clientWidth - element.scrollLeft > 2 });
-  }, [items.length]);
+    setView({ start: visible[0]?.index ?? 0, end: visible.at(-1)?.index ?? groups.length - 1, previous: element.scrollLeft > 2, next: element.scrollWidth - element.clientWidth - element.scrollLeft > 2 });
+  }, [groups.length]);
 
   useEffect(() => {
     if (!viewedEntryId || !items.some(item => item.entryId === viewedEntryId)) return;
     const frame = requestAnimationFrame(() => {
-      const card = Array.from(track.current?.querySelectorAll<HTMLElement>("[data-activity-entry-id]") ?? [])
-        .find(element => element.dataset.activityEntryId === viewedEntryId);
-      card?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      const card = Array.from(track.current?.querySelectorAll<HTMLElement>("[data-activity-entry-ids]") ?? [])
+        .find(element => element.dataset.activityEntryIds?.split(" ").includes(viewedEntryId));
+      card?.scrollIntoView?.({ block: "nearest", inline: "center", behavior: "smooth" });
       setViewedEntry(viewedEntryId);
     });
     const timer = window.setTimeout(() => setViewedEntry(null), 15000);
@@ -77,9 +99,9 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
       if (!match) return;
       sessionStorage.removeItem(RECENT_ENTRY_STORAGE_KEY);
       const frame = requestAnimationFrame(() => {
-        const card = Array.from(track.current?.querySelectorAll<HTMLElement>("[data-activity-entry-id]") ?? [])
-          .find(element => element.dataset.activityEntryId === match.entryId);
-        card?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+        const card = Array.from(track.current?.querySelectorAll<HTMLElement>("[data-activity-slug]") ?? [])
+          .find(element => element.dataset.activitySlug === match.slug);
+        card?.scrollIntoView?.({ block: "nearest", inline: "center", behavior: "smooth" });
         setRecentEntry({ slug: match.slug, entryId: match.entryId ?? null });
       });
       const timer = window.setTimeout(() => setRecentEntry(null), 15_000);
@@ -164,13 +186,19 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
       onScroll={syncSwipe}
       role="region"
       aria-label="Your products"
-      data-desktop-rows={Math.min(3, Math.ceil(items.length / 2))}
-      data-stacked-rows={Math.min(2, items.length)}
-      data-multiple={items.length > 1 ? "true" : undefined}
-      data-overflowing={items.length > 6 ? "true" : undefined}
-      data-stacked-overflowing={items.length > 2 ? "true" : undefined}
+      data-desktop-rows={Math.min(3, Math.ceil(groups.length / 2))}
+      data-stacked-rows={Math.min(2, groups.length)}
+      data-multiple={groups.length > 1 ? "true" : undefined}
+      data-overflowing={groups.length > 6 ? "true" : undefined}
+      data-stacked-overflowing={groups.length > 2 ? "true" : undefined}
     >
-      {items.map((item, index) => {
+      {groups.map((group, index) => {
+        const selectedId = selectedByGroup[group.key]
+          ?? (group.entries.some(entry => entry.entryId === viewedEntryId) ? viewedEntryId : undefined)
+          ?? (group.entries.some(entry => entry.entryId === recentEntry?.entryId) ? recentEntry?.entryId : undefined);
+        const selectedIndex = Math.max(0, group.entries.findIndex(entry => entry.entryId === selectedId));
+        const item = group.entries[selectedIndex];
+        const multipleEntries = group.entries.length > 1;
         const featured = item.status === "prize" && index === 0;
         const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
         const isRecent = recentEntry?.slug === item.slug && (!recentEntry.entryId || recentEntry.entryId === item.entryId);
@@ -185,38 +213,44 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
           "--stacked-column": stackedColumn,
           "--stacked-row": stackedRow,
         } as CSSProperties;
-        return <div key={item.entryId ?? item.slug} className={styles.galleryItem} style={placement}>
-          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} className={styles.productCard}>
+        return <div key={group.key} className={styles.galleryItem} style={placement}>
+          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
               <span className={styles.status}><AccountIcon name={item.completionOptionStatus === "declined" ? "completion" : item.status} />{item.completionOptionStatus === "declined" ? "Declined" : offerStatus?.remaining === 0 ? "Awaiting result" : labels[item.status]}</span>
               <div className={styles.productStage} data-activity-click>
                 <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 44vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
+                {multipleEntries ? <span className={styles.entryCountSeal}>{group.entries.length} entries<span className={styles.srOnly}> on this prize, each a separate chance</span></span> : null}
+                {viewedEntry === item.entryId || isRecent ? <span className={styles.newEntryLabel} aria-label={viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}><span className={styles.newEntryLong}>{viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}</span><span className={styles.newEntryShort}>{viewedEntry === item.entryId ? "Viewing" : "New"}</span></span> : null}
               </div>
               <div className={styles.cardFoot}>
                 <div className={styles.noteStack}><p className={styles.productNote}>{item.status === "completion"
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · ${offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : `${offerStatus.remaining.toLocaleString("en-US")} tickets left`) : "Still in play"}`
-                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p>
-                  {viewedEntry === item.entryId ? <span className={styles.newEntryLabel}>This is the entry you were viewing</span> : isRecent ? <span className={styles.newEntryLabel}>Your new entry</span> : null}</div>
+                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p></div>
                 <span className={styles.cardAction} data-activity-click>{action(item)}<AccountIcon name="arrow" /></span>
               </div>
             </div>
             <span className={styles.cardChevron} data-activity-click aria-hidden="true" />
             {offerMetrics ? <span className={styles.offerProgress} role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerMetrics.percentFilled} aria-valuemin={0} aria-valuemax={100} style={{ "--offer-progress": `${offerMetrics.percentFilled}%`, "--offer-progress-color": offerStatus?.color } as CSSProperties}><span>{offerMetrics.percentFilled}%</span></span> : null}
           </Link>
-          {featured && items.length > 1 ? <p className={styles.mobileRestLabel}>Everything else</p> : null}
+          {multipleEntries ? <div className={styles.entrySwitcher} role="group" aria-label={`Choose an entry for ${item.title}`} data-activity-click>
+            <button type="button" aria-label="Previous entry" disabled={selectedIndex === 0} onClick={() => setSelectedByGroup(current => ({ ...current, [group.key]: group.entries[selectedIndex - 1].entryId! }))}>‹</button>
+            <span aria-live="polite" aria-atomic="true">Entry {selectedIndex + 1} of {group.entries.length}</span>
+            <button type="button" aria-label="Next entry" disabled={selectedIndex === group.entries.length - 1} onClick={() => setSelectedByGroup(current => ({ ...current, [group.key]: group.entries[selectedIndex + 1].entryId! }))}>›</button>
+          </div> : null}
+          {featured && groups.length > 1 ? <p className={styles.mobileRestLabel}>Everything else</p> : null}
         </div>;
       })}
     </div>
-    {(items.length > 1 || canClearDemoEntries) && <div className={styles.galleryControls}>
+    {(groups.length > 1 || canClearDemoEntries) && <div className={styles.galleryControls}>
       <p className={styles.galleryHint}>{view.previous || view.next ? "Swipe or use the arrows to explore." : "Every choice. Your next step, all in one place."}</p>
       <div className={styles.galleryActions}>
       {canClearDemoEntries ? <ClearAllEntriesButton /> : null}
-      {items.length > 1 ? <div className={styles.carouselButtons}>
+      {groups.length > 1 ? <div className={styles.carouselButtons}>
         <button type="button" onClick={() => move(-1)} disabled={!view.previous} aria-controls={galleryId} aria-label="Previous product" className={styles.arrowButton}><AccountIcon name="chevron" className={styles.previousIcon} /></button>
-        <span className={styles.position} aria-live="polite" aria-atomic="true">{view.start === view.end ? view.start + 1 : `${view.start + 1}–${view.end + 1}`} / {items.length}</span>
+        <span className={styles.position} aria-live="polite" aria-atomic="true">{view.start === view.end ? view.start + 1 : `${view.start + 1}–${view.end + 1}`} / {groups.length}</span>
         <button type="button" onClick={() => move(1)} disabled={!view.next} aria-controls={galleryId} aria-label="Next product" className={styles.arrowButton}><AccountIcon name="chevron" /></button>
       </div> : null}
       </div>

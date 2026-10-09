@@ -28,7 +28,7 @@ test("newly confirmed card gets a brief Your new entry label without changing ot
   expect(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY)).toBeNull();
 });
 
-test("returning from an entry page highlights only the exact saved entry", async () => {
+test("same-prize open entries share one ticket and return to the exact saved entry", async () => {
   const state = storedActivityFixture();
   const base = state.activity[0];
   state.activity = [
@@ -40,7 +40,35 @@ test("returning from an entry page highlights only the exact saved entry", async
   await waitFor(() => expect(screen.getByText("This is the entry you were viewing")).toBeTruthy());
   const highlighted = screen.getByText("This is the entry you were viewing").closest("[data-activity-entry-id]");
   expect(highlighted?.getAttribute("data-activity-entry-id")).toBe("ent_22222222222222222222222222222222");
-  expect(screen.getAllByText("See My Entry")).toHaveLength(2);
+  expect(screen.getAllByText("See My Entry")).toHaveLength(1);
+  expect(screen.getByText("2 entries")).toBeTruthy();
+  expect(screen.getByText("Entry 2 of 2")).toBeTruthy();
+  expect(highlighted?.getAttribute("href")).toBe("/account/entries/ent_22222222222222222222222222222222");
+  fireEvent.click(screen.getByRole("button", { name: "Previous entry" }));
+  expect(screen.getByText("Entry 1 of 2")).toBeTruthy();
+  expect(screen.getByRole("link", { name: /PlayStation 5 Slim Model/ }).getAttribute("href")).toBe("/account/entries/ent_11111111111111111111111111111111");
+});
+
+test("five open chances keep one compact ticket while each entry remains reachable", () => {
+  const state = storedActivityFixture();
+  const base = state.activity[0];
+  state.activity = Array.from({ length: 5 }, (_, index) => ({
+    ...base,
+    entryId: `ent_${String(index + 1).repeat(32)}`,
+  }));
+  render(<MyZeroLossActivity state={state} filter="active" />);
+  const gallery = screen.getByRole("region", { name: "Your products" });
+  expect(within(gallery).getAllByRole("link", { name: /PlayStation 5 Slim Model/ })).toHaveLength(1);
+  expect(gallery.getAttribute("data-desktop-rows")).toBe("1");
+  expect(gallery.hasAttribute("data-multiple")).toBe(false);
+  expect(within(gallery).getByText("5 entries")).toBeTruthy();
+  for (let index = 1; index <= 5; index++) {
+    expect(within(gallery).getByText(`Entry ${index} of 5`)).toBeTruthy();
+    expect(within(gallery).getByRole("link", { name: /PlayStation 5 Slim Model/ }).getAttribute("href"))
+      .toBe(`/account/entries/ent_${String(index).repeat(32)}`);
+    if (index < 5) fireEvent.click(within(gallery).getByRole("button", { name: "Next entry" }));
+  }
+  expect((within(gallery).getByRole("button", { name: "Next entry" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
 test("normal empty state cannot expose a fixture by selected slug or filter", () => {
