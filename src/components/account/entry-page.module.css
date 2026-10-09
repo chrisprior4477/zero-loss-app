@@ -2,6 +2,7 @@
 .shell { max-width: 1120px; margin: 0 auto; }
 .topline { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
 .topline h1 { margin: 4px 0 0; font-size: clamp(30px, 3vw, 44px); line-height: 1.1; letter-spacing: -.035em; }
+.pageSubtitle { margin: 6px 0 0; color: #d4eaff; font-size: 14px; }
 .eyebrow { margin: 0; color: #55caff; font-size: 13px; font-weight: 900; letter-spacing: .16em; }
 .backLink { color: #bcecff; font-weight: 750; text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
 .heroTicket, .playTicket { --ticket-side-notch: 11px; --ticket-corner-notch: 16px; --ticket-cutouts: radial-gradient(circle at left center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at right center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at left top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at left bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)); -webkit-mask-image: var(--ticket-cutouts); mask-image: var(--ticket-cutouts); -webkit-mask-composite: source-in, source-in, source-in, source-in, source-in; mask-composite: intersect; background: #fffefa; color: #10234a; }
@@ -16,6 +17,7 @@
 .entryIdentity div { min-width: 0; }
 .entryIdentity dt { color: #57738f; font-size: 12px; font-weight: 700; }
 .entryIdentity dd { margin: 2px 0 0; font-size: 13px; font-weight: 800; }
+.averageNote { display: block; margin-top: 2px; color: #57738f; font-size: 10px; line-height: 1.3; }
 .entryNumber { overflow-wrap: anywhere; }
 .progressCorner { align-self: end; display: grid; justify-items: center; gap: 6px; text-align: center; color: #142753; font-size: 12px; }
 .progressCircle { display: grid; width: 86px; height: 86px; place-items: center; border-radius: 50%; box-shadow: 0 5px 12px #001a3e24; }
@@ -30,16 +32,17 @@
 .nextPanel { padding: 14px 18px; border: 1px solid #ffc18d; border-radius: 0 0 10px 10px; background: #fff3e8; line-height: 1.55; }
 .nextPanel p { margin: 0; }
 .actionGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-top: 18px; }
-.actionPanel { min-width: 0; border: 1px solid #c6dced; border-radius: 13px; background: #eaf6ff; padding: 20px; }
-.actionPanel h3 { margin: 0 0 6px; font-size: 19px; }
+.actionPanel { display: flex; min-width: 0; flex-direction: column; border: 1px solid #c6dced; border-radius: 13px; background: #eaf6ff; padding: 20px; }
+.actionPanel h3 { margin: 0 0 6px; font-size: 19px; font-weight: 900; }
 .actionPanel p { margin: 0 0 13px; color: #4c6a87; line-height: 1.45; }
-.quantityControls { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+.quantityControls { display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 4px; margin: 14px 0; }
+.quantityStepper { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .quantityControls button { width: 40px; height: 40px; border: 1px solid #64b4dd; border-radius: 50%; background: #fff; color: #092042; font-size: 24px; font-weight: 800; cursor: pointer; }
 .quantityControls button:disabled { opacity: .35; cursor: not-allowed; }
 .quantityControls output { min-width: 24px; text-align: center; font-weight: 900; }
 .quantityControls span { color: #536f89; font-size: 13px; }
 .primaryLink, .crewSend, .returnButton { display: inline-flex; min-height: 45px; align-items: center; justify-content: center; border: 0; border-radius: 9px; padding: 10px 16px; text-align: center; font-weight: 900; text-decoration: none; cursor: pointer; }
-.primaryLink { background: #31e800; color: #082514; }
+.primaryLink { width: 100%; background: #31e800; color: #082514; }
 .crewToggle { display: flex; width: 100%; min-height: 42px; align-items: center; justify-content: space-between; border: 1px solid #88b8d8; border-radius: 8px; background: #fff; padding: 8px 12px; color: #10234a; font-weight: 800; cursor: pointer; }
 .crewChoices { display: grid; max-height: 150px; overflow: auto; gap: 7px; margin-top: 8px; padding: 8px 2px; }
 .crewChoices label { display: flex; align-items: center; gap: 9px; font-weight: 700; }
@@ -49,15 +52,15 @@
 .actionPanel .demoNotice { margin: 9px 0 0; font-size: 12px; font-weight: 700; }
 .actionPanel .unavailable { margin-top: 16px; }
 .unavailable a { color: #006baf; text-decoration: underline; }
-.preference { margin-top: 18px; border-top: 1px solid #c6dced; padding-top: 18px; }
+.preference { margin-top: auto; border-top: 1px solid #c6dced; padding-top: 18px; }
 .emailPreference h3 { margin: 0 0 8px; font-size: 19px; }
 .emailPreference form { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-.emailPreference label { display: inline-flex; align-items: center; gap: 10px; font-weight: 750; }
-.emailPreference input { width: 20px; height: 20px; accent-color: #0077ff; }
-.emailPreference button { min-height: 40px; border: 0; border-radius: 8px; background: #00b9ff; padding: 8px 14px; color: #07183d; font-weight: 900; cursor: pointer; }
+.emailPreference label { display: flex; width: 100%; min-width: 0; align-items: flex-start; gap: 10px; line-height: 1.35; font-weight: 750; }
+.emailPreference input { width: 20px; height: 20px; flex: none; accent-color: #0077ff; }
+.emailPreference button { width: 100%; min-height: 40px; border: 0; border-radius: 8px; background: #00b9ff; padding: 8px 14px; color: #07183d; font-weight: 900; cursor: pointer; }
 .emailPreference button:disabled { opacity: .55; }
 .emailPreference p { margin: 8px 0 0; color: #58738d; font-size: 12px; line-height: 1.4; }
-.returnButton { margin-top: 20px; background: #0c3768; color: #fff; }
+.returnButton { width: 100%; margin-top: 20px; background: #0c3768; color: #fff; }
 .inlineCheckout { margin-top: 14px; border: 1px solid #84bce0; border-radius: 12px; background: #fffefa; padding: 16px; }
 .inlineCheckout h4 { margin: 0 0 9px; font-size: 18px; }
 .inlineCheckout p { margin: 4px 0 8px; }
@@ -79,7 +82,8 @@
 .receiptActions button:disabled { opacity: .5; cursor: not-allowed; }
 .crewRailWrap { display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px; align-items: center; gap: 3px; }
 .railArrow { border: 0; background: transparent; color: #087bc3; font-size: 31px; cursor: pointer; }
-.crewRail { display: flex; gap: 9px; min-width: 0; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; scrollbar-width: thin; padding: 6px 2px 12px; overscroll-behavior-inline: contain; }
+.crewRail { display: flex; gap: 9px; min-width: 0; overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x mandatory; scrollbar-width: thin; padding: 6px 2px 12px; overscroll-behavior-inline: contain; cursor: grab; }
+.crewRail[data-dragging="true"] { cursor: grabbing; scroll-behavior: auto; scroll-snap-type: none; user-select: none; }
 .crewCard, .addCrewCard { display: flex; flex: 0 0 104px; min-height: 178px; align-items: center; flex-direction: column; gap: 5px; scroll-snap-align: start; border: 1px solid #b9dcf0; border-radius: 11px; background: #fffefa; padding: 10px 6px; text-align: center; color: #10234a; text-decoration: none; }
 .crewAvatar { position: relative; display: grid; width: 75px; height: 75px; flex: none; place-items: center; overflow: hidden; border: 3px solid #138ded; border-radius: 50%; background: #ccecff; color: #1465a1; font-size: 27px; font-weight: 900; }
 .crewAvatar img { object-fit: cover; }

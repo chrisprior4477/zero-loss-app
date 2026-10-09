@@ -7,7 +7,7 @@ const confirmPendingEntryRequest = vi.hoisted(() => vi.fn());
 const refresh = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry, confirmPendingEntryRequest, resolvePendingEntryRequest: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
-vi.mock("./EntryOutcomeEmailPreference", () => ({ EntryOutcomeEmailPreference: () => null }));
+vi.mock("./EntryOutcomeEmailPreference", () => ({ EntryOutcomeEmailPreference: () => <div data-testid="outcome-email-preference" /> }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
 
 const props = {
@@ -28,9 +28,11 @@ test("additional entries are reviewed and confirmed on the same page", async () 
   createPreviewEntry.mockResolvedValue({ status: "succeeded", message: "2 entries confirmed.", href: "/account/entries", outcome: "active" });
   render(<EntryPageActions {...props} />);
   fireEvent.click(screen.getByRole("button", { name: "Add one extra entry" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add 2 more entries" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add 2 more entries to PlayStation 5" }));
   expect(screen.getByText(/2 separate entries × \$1 =/)).toBeTruthy();
   expect(screen.queryByRole("link", { name: /Review 2 more entries/ })).toBeNull();
+  expect(screen.getByTestId("outcome-email-preference").closest("section")?.getAttribute("aria-labelledby")).toBe("add-entries-title");
+  expect(screen.getByRole("link", { name: /Return to My Activity/ }).getAttribute("href")).toBe(props.returnHref);
   fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm 2 entries for $2" }));
   await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledOnce());
@@ -52,6 +54,18 @@ test("Crew tiles select blue-to-green and show an honest preview acknowledgement
     .toBe("/items/playstation-5-slim");
 });
 
+test("Crew rail can be dragged by mouse without disrupting member buttons", () => {
+  render(<EntryPageActions {...props} />);
+  const rail = screen.getByLabelText("Crew members");
+  rail.scrollLeft = 50;
+  fireEvent.pointerDown(rail, { pointerType: "mouse", button: 0, pointerId: 1, clientX: 100 });
+  fireEvent.pointerMove(rail, { pointerType: "mouse", pointerId: 1, clientX: 70 });
+  expect(rail.scrollLeft).toBe(80);
+  fireEvent.pointerUp(rail, { pointerType: "mouse", pointerId: 1 });
+  fireEvent.click(screen.getByRole("button", { name: "Notify Jordan" }));
+  expect(screen.getByRole("button", { name: "Remove Jordan" })).toBeTruthy();
+});
+
 test("pending entry can be confirmed here without a checkout redirect", async () => {
   const request = {
     requestId: "22222222-2222-4222-8222-222222222222",
@@ -62,7 +76,7 @@ test("pending entry can be confirmed here without a checkout redirect", async ()
   createPreviewEntry.mockResolvedValue({ status: "request", message: "Reserved", request });
   confirmPendingEntryRequest.mockResolvedValue({ request: { ...request, status: "accepted", href: "/account/entries" } });
   render(<EntryPageActions {...props} />);
-  fireEvent.click(screen.getByRole("button", { name: "Add one more entry" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add one more entry to PlayStation 5" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Confirm entry" })).toBeTruthy());

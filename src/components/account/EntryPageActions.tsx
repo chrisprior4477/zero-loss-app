@@ -13,6 +13,12 @@ import styles from "./entry-page.module.css";
 
 type CrewMember = { id: string; name: string; avatarUrl: string | null };
 
+function shortPrizeName(slug: string, title: string) {
+  if (slug === "playstation-5-slim") return "PlayStation 5";
+  if (slug === "samsung-m70h-tv") return "Samsung TV";
+  return title.length <= 26 ? title : "this prize";
+}
+
 export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, crew, senderName, emailEnabled, returnHref }: {
   itemTitle: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
   crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
@@ -31,6 +37,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   const attemptedForm = useRef<FormData | null>(null);
   const activeRequestId = useRef<string | null>(null);
   const crewRail = useRef<HTMLDivElement>(null);
+  const railDrag = useRef<{ pointerId: number; startX: number; scrollLeft: number } | null>(null);
   const sampleNames = useSampleCrewPreviews();
   const sampleNamesKey = sampleNames.join("|");
   const [selectedCrew, setSelectedCrew] = useState<string[]>([]);
@@ -123,6 +130,25 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
     setActionError("");
   }
 
+  function startRailDrag(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== "mouse" || event.button !== 0 || (event.target as HTMLElement).closest("button, a")) return;
+    railDrag.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: event.currentTarget.scrollLeft };
+    event.currentTarget.dataset.dragging = "true";
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function moveRailDrag(event: React.PointerEvent<HTMLDivElement>) {
+    if (railDrag.current?.pointerId !== event.pointerId) return;
+    event.currentTarget.scrollLeft = railDrag.current.scrollLeft - (event.clientX - railDrag.current.startX);
+  }
+
+  function endRailDrag(event: React.PointerEvent<HTMLDivElement>) {
+    if (railDrag.current?.pointerId !== event.pointerId) return;
+    railDrag.current = null;
+    delete event.currentTarget.dataset.dragging;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
   return <>
     <button type="button" className={styles.nextButton} aria-expanded={nextOpen} onClick={() => setNextOpen(open => !open)}>What happens next <span aria-hidden="true">{nextOpen ? "−" : "+"}</span></button>
     {nextOpen ? <div className={styles.nextPanel}><p>The pool stays open until its available tickets are filled. Once the result is posted, your outcome will appear in My Activity and Notifications. If your entry is not selected, any optional purchase offer and its deadline will be shown separately.</p></div> : null}
@@ -132,12 +158,14 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
         <p>Add more separate chances for {itemTitle}, right here on this page.</p>
         {maxQuantity > 0 ? <>
           <div className={styles.quantityControls} aria-label="Choose additional entries">
-            <button type="button" aria-label="Remove one extra entry" onClick={() => adjustQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1 || busy || uncertain}>−</button>
-            <output aria-live="polite">{quantity}</output>
-            <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity === maxQuantity || busy || uncertain}>+</button>
+            <div className={styles.quantityStepper}>
+              <button type="button" aria-label="Remove one extra entry" onClick={() => adjustQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1 || busy || uncertain}>−</button>
+              <output aria-live="polite">{quantity}</output>
+              <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity === maxQuantity || busy || uncertain}>+</button>
+            </div>
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
           </div>
-          {!checkoutOpen ? <button type="button" className={styles.primaryLink} onClick={() => setCheckoutOpen(true)}>Add {quantity === 1 ? "one more entry" : `${quantity} more entries`}</button> : null}
+          {!checkoutOpen ? <button type="button" className={styles.primaryLink} onClick={() => setCheckoutOpen(true)}>Add {quantity === 1 ? "one more entry" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}
           {checkoutOpen ? <div className={styles.inlineCheckout} aria-label="Additional entry checkout">
             <h4>Review additional entries</h4>
             <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>
@@ -157,13 +185,14 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
             {receipt?.status === "accepted" || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); setResult({ status: "idle" }); setApproved(false); setCheckoutOpen(false); }}>Add another entry</button> : null}
           </div> : null}
         </> : <p className={styles.unavailable}>No additional tickets are available right now.</p>}
+        <div className={styles.preference}><EntryOutcomeEmailPreference initialEnabled={emailEnabled} placement="entry-page" /></div>
       </section>
       <section className={styles.actionPanel} aria-labelledby="crew-title">
         <h3 id="crew-title">Invite your Crew to this prize</h3>
         <p>Choose who to notify about {itemTitle}. Sample people are a visual demo; no emails or messages are sent.</p>
         <div className={styles.crewRailWrap}>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew left" onClick={() => crewRail.current?.scrollBy({ left: -220, behavior: "smooth" })}>‹</button>
-          <div className={styles.crewRail} ref={crewRail} aria-label="Crew members">
+          <div className={styles.crewRail} ref={crewRail} aria-label="Crew members" onPointerDown={startRailDrag} onPointerMove={moveRailDrag} onPointerUp={endRailDrag} onPointerCancel={endRailDrag}>
             {displayCrew.map(member => {
               const selected = selectedCrew.includes(member.id);
               return <div className={styles.crewCard} key={member.id}>
@@ -181,7 +210,6 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
         {demoAlertPrepared ? <div role="status" className={styles.demoNotice}><p>Preview from {senderName} for {selectedCrew.length} selected {selectedCrew.length === 1 ? "person" : "people"}: <Link href={`/items/${slug}`}>View the {itemTitle} prize page</Link>.</p><p>No emails or messages were actually delivered.</p></div> : null}
       </section>
     </div>
-    <div className={styles.preference}><EntryOutcomeEmailPreference initialEnabled={emailEnabled} placement="entry-page" /></div>
     <Link href={returnHref} className={styles.returnButton}>Return to My Activity →</Link>
   </>;
 }

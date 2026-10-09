@@ -12,7 +12,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryPageActions } from "@/components/account/EntryPageActions";
 import styles from "@/components/account/entry-page.module.css";
 
-export const metadata: Metadata = { title: "See My Entry" };
+export const metadata: Metadata = { title: "Your Entry Details" };
 
 export default async function EntryPage({ params }: { params: Promise<{ entryId: string }> }) {
   const { entryId } = await params;
@@ -24,10 +24,17 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
 
   const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
   const metrics = activityOfferMetrics([item], availability)[item.slug];
-  const [emailResult, crewResult] = await Promise.all([
+  const [emailResult, crewResult, dailyPeopleResult] = await Promise.all([
     db.rpc("get_entry_outcome_email_enabled"),
     db.rpc("get_crew_member_profiles"),
+    db.rpc("get_preview_daily_people_average", { p_offering_slug: item.slug }),
   ]);
+  const dailyPeopleData: unknown = dailyPeopleResult.data;
+  const personDays = !dailyPeopleResult.error && dailyPeopleData && typeof dailyPeopleData === "object" && "personDays" in dailyPeopleData
+    ? dailyPeopleData.personDays : null;
+  const dailyAverage = typeof personDays === "number" && Number.isSafeInteger(personDays) && personDays >= 0
+    ? new Intl.NumberFormat("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(personDays / 7)
+    : null;
   const crew = crewResult.error || !Array.isArray(crewResult.data) ? [] : crewResult.data
     .filter((member: { member_id?: unknown; name?: unknown }) => typeof member.member_id === "string" && typeof member.name === "string")
     .map((member: { member_id: string; name: string; avatar_reference?: string | null }) => ({
@@ -40,7 +47,7 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
 
   return <main className={styles.page}>
     <div className={styles.shell}>
-      <div className={styles.topline}><div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>See My Entry</h1></div><Link href={returnHref} className={styles.backLink}>← My Activity</Link></div>
+      <div className={styles.topline}><div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>Your saved entry for the prize below.</p></div><Link href={returnHref} className={styles.backLink}>← My Activity</Link></div>
       <section className={styles.heroTicket} aria-label="Saved entry and prize pool">
         <div className={styles.productImage}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100px, (max-width: 900px) 150px, 190px" /></div>
         <div className={styles.heroCopy}>
@@ -51,6 +58,7 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
             <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd></div>
             <div><dt>Entry number</dt><dd className={styles.entryNumber}>{entryId}</dd></div>
             <div><dt>What you’ve entered on this prize</dt><dd>{formatUsdFromCents(item.paidCents)}</dd></div>
+            <div><dt>Average people entering per day</dt><dd>{dailyAverage === null ? "Unavailable" : `${dailyAverage} people/day`}</dd><small className={styles.averageNote}>Verified demo activity, past 7 days. Sample tickets excluded.</small></div>
           </dl>
         </div>
         {metrics ? <div className={styles.progressCorner}>
