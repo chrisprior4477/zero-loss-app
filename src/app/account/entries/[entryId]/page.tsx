@@ -1,0 +1,64 @@
+import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { getAccountContext } from "@/lib/account/context";
+import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { activityOfferMetrics } from "@/lib/account/activity-progress";
+import { createClient } from "@/lib/supabase/server";
+import { authNavigationHref } from "@/lib/auth/entry-return";
+import { formatUsdFromCents } from "@/lib/wallet/money";
+import { EntryPageActions } from "@/components/account/EntryPageActions";
+import styles from "@/components/account/entry-page.module.css";
+
+export const metadata: Metadata = { title: "See My Entry" };
+
+export default async function EntryPage({ params }: { params: Promise<{ entryId: string }> }) {
+  const { entryId } = await params;
+  if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
+  const account = await getAccountContext();
+  if (!account) redirect(authNavigationHref("/login", `/account/entries/${entryId}`));
+  const item = account.activity.activity.find(entry => entry.entryId === entryId && entry.status === "active");
+  if (!item || account.activity.source === "unavailable") notFound();
+
+  const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
+  const metrics = activityOfferMetrics([item], availability)[item.slug];
+  const [emailResult, crewResult] = await Promise.all([
+    db.rpc("get_entry_outcome_email_enabled"),
+    db.rpc("get_crew_member_profiles"),
+  ]);
+  const crew = crewResult.error || !Array.isArray(crewResult.data) ? [] : crewResult.data
+    .filter((member: { member_id?: unknown; name?: unknown }) => typeof member.member_id === "string" && typeof member.name === "string")
+    .map((member: { member_id: string; name: string }) => ({ id: member.member_id, name: member.name }));
+  const enteredAt = item.enteredAt && Number.isFinite(Date.parse(item.enteredAt)) ? item.enteredAt : null;
+  const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}`;
+
+  return <main className={styles.page}>
+    <div className={styles.shell}>
+      <div className={styles.topline}><div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>See My Entry</h1></div><Link href={returnHref} className={styles.backLink}>← My Activity</Link></div>
+      <section className={styles.heroTicket} aria-label="Saved entry and prize pool">
+        <div className={styles.productImage}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100px, (max-width: 900px) 150px, 190px" /></div>
+        <div className={styles.heroCopy}>
+          <p className={styles.retailer}>{item.retailer}</p>
+          <h2>{item.title}</h2>
+          <span className={styles.status}>◷ Still open</span>
+          <dl className={styles.entryIdentity}>
+            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd></div>
+            <div><dt>Entry number</dt><dd className={styles.entryNumber}>{entryId}</dd></div>
+            <div><dt>Entry amount</dt><dd>{formatUsdFromCents(item.paidCents)}</dd></div>
+          </dl>
+        </div>
+        {metrics ? <div className={styles.progressCorner}>
+          <div role="progressbar" aria-label={`${item.title} prize pool filled`} aria-valuenow={metrics.percentFilled} aria-valuemin={0} aria-valuemax={100} className={styles.progressCircle} style={{ background: `conic-gradient(#f83a5c ${metrics.percentFilled}%, #dbe9f3 0)` }}><span>{metrics.percentFilled}%</span></div>
+          <strong>{metrics.remaining === 0 ? "Pool full" : `${metrics.remaining.toLocaleString("en-US")} tickets left`}</strong>
+        </div> : <p className={styles.progressUnavailable}>Current pool count unavailable</p>}
+      </section>
+      <section className={styles.playTicket} aria-labelledby="in-play-title">
+        <p className={styles.eyebrow}>IN PLAY</p>
+        <h2 id="in-play-title">{item.title} prize pool is {metrics?.remaining === 0 ? "full and awaiting a result" : "still open"}.</h2>
+        <p>Your saved entry is one chance in this pool. {metrics ? `${metrics.sold.toLocaleString("en-US")} of ${metrics.capacity.toLocaleString("en-US")} places are filled.` : "Check back for verified pool progress."}</p>
+        <EntryPageActions itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
+      </section>
+    </div>
+  </main>;
+}

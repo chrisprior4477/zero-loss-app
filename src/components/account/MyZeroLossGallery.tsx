@@ -16,15 +16,16 @@ const labels = { active: "Still open", prize: "You won", completion: "Purchase o
 function action(item: ActivityItem) {
   if (item.status === "prize") return item.rewardKind === "digital" ? "Open reward" : "Claim prize";
   if (item.completionOptionStatus === "declined") return "Review declined";
-  return { active: "Track entry", completion: "Review option", completed: "View details" }[item.status];
+  return { active: "See My Entry", completion: "Review option", completed: "View details" }[item.status];
 }
 
-export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEntries = false }: { items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean }) {
+export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId }: { items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string }) {
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
   const [dragging, setDragging] = useState(false);
   const [view, setView] = useState({ start: 0, end: items.length - 1, previous: false, next: false });
   const [recentEntry, setRecentEntry] = useState<{ slug: string; entryId: string | null } | null>(null);
+  const [viewedEntry, setViewedEntry] = useState<string | null>(null);
   const galleryId = useId();
 
   function move(direction: number) {
@@ -44,6 +45,18 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
     const visible = cards.map((card, index) => ({ bounds: card.getBoundingClientRect(), index })).filter(({ bounds: card }) => Math.min(card.right, bounds.right) - Math.max(card.left, bounds.left) >= card.width * .5);
     setView({ start: visible[0]?.index ?? 0, end: visible.at(-1)?.index ?? items.length - 1, previous: element.scrollLeft > 2, next: element.scrollWidth - element.clientWidth - element.scrollLeft > 2 });
   }, [items.length]);
+
+  useEffect(() => {
+    if (!viewedEntryId || !items.some(item => item.entryId === viewedEntryId)) return;
+    const frame = requestAnimationFrame(() => {
+      const card = Array.from(track.current?.querySelectorAll<HTMLElement>("[data-activity-entry-id]") ?? [])
+        .find(element => element.dataset.activityEntryId === viewedEntryId);
+      card?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      setViewedEntry(viewedEntryId);
+    });
+    const timer = window.setTimeout(() => setViewedEntry(null), 15000);
+    return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
+  }, [items, viewedEntryId]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(syncSwipe);
@@ -186,7 +199,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? `${formatUsdFromCents(item.paidCents)} entered · ${offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : `${offerStatus.remaining.toLocaleString("en-US")} tickets left`) : "Still in play"}`
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p>
-                  {isRecent ? <span className={styles.newEntryLabel}>Your new entry</span> : null}</div>
+                  {viewedEntry === item.entryId ? <span className={styles.newEntryLabel}>This is the entry you were viewing</span> : isRecent ? <span className={styles.newEntryLabel}>Your new entry</span> : null}</div>
                 <span className={styles.cardAction} data-activity-click>{action(item)}<AccountIcon name="arrow" /></span>
               </div>
             </div>

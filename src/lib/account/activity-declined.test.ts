@@ -19,3 +19,10 @@ test("reviving an offer returns it to My Activity and Purchase Options", () => {
   expect(filterActivity([revived], "all")).toEqual([revived]);
   expect(filterActivity([revived], "completion")).toEqual([revived]);
 });
+
+test("each active saved entry opens its own page", () => {
+  const first: ActivityItem = { ...base, entryId: "ent_11111111111111111111111111111111", status: "active" };
+  const second: ActivityItem = { ...first, entryId: "ent_22222222222222222222222222222222" };
+  expect(activityHref(first)).toBe("/account/entries/ent_11111111111111111111111111111111");
+  expect(activityHref(second)).toBe("/account/entries/ent_22222222222222222222222222222222");
+});

@@ -1,0 +1,64 @@
+.page { min-height: calc(100svh - 130px); padding: clamp(18px, 3vw, 48px) clamp(12px, 3vw, 44px) 70px; background: radial-gradient(ellipse at 50% 15%, #10345b, #061b38 75%); color: #fff; }
+.shell { max-width: 1120px; margin: 0 auto; }
+.topline { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
+.topline h1 { margin: 4px 0 0; font-size: clamp(30px, 3vw, 44px); line-height: 1.1; letter-spacing: -.035em; }
+.eyebrow { margin: 0; color: #55caff; font-size: 13px; font-weight: 900; letter-spacing: .16em; }
+.backLink { color: #bcecff; font-weight: 750; text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
+.heroTicket, .playTicket { --ticket-side-notch: 11px; --ticket-corner-notch: 16px; --ticket-cutouts: radial-gradient(circle at left center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at right center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at left top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at left bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)); -webkit-mask-image: var(--ticket-cutouts); mask-image: var(--ticket-cutouts); -webkit-mask-composite: source-in, source-in, source-in, source-in, source-in; mask-composite: intersect; background: #fffefa; color: #10234a; }
+.heroTicket { position: relative; display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr) 112px; align-items: center; gap: clamp(16px, 3vw, 36px); min-height: 246px; padding: 30px 36px; }
+.productImage { position: relative; width: 100%; height: 185px; border-radius: 18px; background: #e9f6ff; overflow: hidden; }
+.productImage img { object-fit: contain; padding: 10px; }
+.heroCopy { min-width: 0; }
+.retailer { margin: 0 0 3px; color: #057fbe; font-size: 13px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.heroCopy h2 { margin: 0; font-size: clamp(24px, 2.7vw, 35px); line-height: 1.09; letter-spacing: -.035em; }
+.status { display: inline-flex; align-items: center; margin-top: 10px; border-radius: 100px; background: #c8effe; padding: 5px 11px; color: #006b91; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+.entryIdentity { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; margin: 17px 0 0; }
+.entryIdentity div { min-width: 0; }
+.entryIdentity dt { color: #57738f; font-size: 12px; font-weight: 700; }
+.entryIdentity dd { margin: 2px 0 0; font-size: 13px; font-weight: 800; }
+.entryNumber { overflow-wrap: anywhere; }
+.progressCorner { align-self: end; display: grid; justify-items: center; gap: 6px; text-align: center; color: #142753; font-size: 12px; }
+.progressCircle { display: grid; width: 86px; height: 86px; place-items: center; border-radius: 50%; box-shadow: 0 5px 12px #001a3e24; }
+.progressCircle span { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 20px; font-weight: 900; }
+.progressUnavailable { align-self: end; color: #57738f; font-size: 12px; }
+.playTicket { margin-top: 18px; padding: clamp(26px, 3vw, 40px); }
+.playTicket h2 { margin: 8px 0; font-size: clamp(23px, 2.5vw, 31px); line-height: 1.2; }
+.playTicket > p:not(.eyebrow) { margin: 0 0 16px; color: #526e8a; line-height: 1.5; }
+.nextButton { display: flex; width: 100%; min-height: 54px; align-items: center; justify-content: space-between; gap: 12px; border: 0; border-radius: 10px; background: #ff8124; padding: 12px 18px; color: #07183d; font-size: 17px; font-weight: 900; cursor: pointer; }
+.nextButton:hover { background: #ffa34f; }
+.nextButton span { font-size: 26px; line-height: 1; }
+.nextPanel { padding: 14px 18px; border: 1px solid #ffc18d; border-radius: 0 0 10px 10px; background: #fff3e8; line-height: 1.55; }
+.nextPanel p { margin: 0; }
+.actionGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-top: 18px; }
+.actionPanel { min-width: 0; border: 1px solid #c6dced; border-radius: 13px; background: #eaf6ff; padding: 20px; }
+.actionPanel h3 { margin: 0 0 6px; font-size: 19px; }
+.actionPanel p { margin: 0 0 13px; color: #4c6a87; line-height: 1.45; }
+.quantityControls { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+.quantityControls button { width: 40px; height: 40px; border: 1px solid #64b4dd; border-radius: 50%; background: #fff; color: #092042; font-size: 24px; font-weight: 800; cursor: pointer; }
+.quantityControls button:disabled { opacity: .35; cursor: not-allowed; }
+.quantityControls output { min-width: 24px; text-align: center; font-weight: 900; }
+.quantityControls span { color: #536f89; font-size: 13px; }
+.primaryLink, .crewSend, .returnButton { display: inline-flex; min-height: 45px; align-items: center; justify-content: center; border: 0; border-radius: 9px; padding: 10px 16px; text-align: center; font-weight: 900; text-decoration: none; cursor: pointer; }
+.primaryLink { background: #31e800; color: #082514; }
+.crewToggle { display: flex; width: 100%; min-height: 42px; align-items: center; justify-content: space-between; border: 1px solid #88b8d8; border-radius: 8px; background: #fff; padding: 8px 12px; color: #10234a; font-weight: 800; cursor: pointer; }
+.crewChoices { display: grid; max-height: 150px; overflow: auto; gap: 7px; margin-top: 8px; padding: 8px 2px; }
+.crewChoices label { display: flex; align-items: center; gap: 9px; font-weight: 700; }
+.crewChoices input { width: 19px; height: 19px; accent-color: #0077ff; }
+.crewSend { width: 100%; margin-top: 12px; background: #00b9ff; color: #001a3d; }
+.crewSend:disabled { opacity: .6; cursor: not-allowed; }
+.actionPanel .demoNotice { margin: 9px 0 0; font-size: 12px; font-weight: 700; }
+.actionPanel .unavailable { margin-top: 16px; }
+.unavailable a { color: #006baf; text-decoration: underline; }
+.preference { margin-top: 18px; border-top: 1px solid #c6dced; padding-top: 18px; }
+.emailPreference h3 { margin: 0 0 8px; font-size: 19px; }
+.emailPreference form { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.emailPreference label { display: inline-flex; align-items: center; gap: 10px; font-weight: 750; }
+.emailPreference input { width: 20px; height: 20px; accent-color: #0077ff; }
+.emailPreference button { min-height: 40px; border: 0; border-radius: 8px; background: #00b9ff; padding: 8px 14px; color: #07183d; font-weight: 900; cursor: pointer; }
+.emailPreference button:disabled { opacity: .55; }
+.emailPreference p { margin: 8px 0 0; color: #58738d; font-size: 12px; line-height: 1.4; }
+.returnButton { margin-top: 20px; background: #0c3768; color: #fff; }
+:is(.backLink, .nextButton, .primaryLink, .crewToggle, .crewSend, .returnButton, .quantityControls button, .emailPreference button):focus-visible { outline: 3px solid #00b9ff; outline-offset: 3px; }
+@media (max-width: 800px) { .heroTicket { grid-template-columns: 150px minmax(0, 1fr) 96px; gap: 18px; padding: 26px; } .productImage { height: 150px; } .progressCircle { width: 75px; height: 75px; } .progressCircle span { width: 59px; height: 59px; font-size: 18px; } .entryIdentity { grid-template-columns: 1fr; } .actionGrid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .topline { align-items: start; } .backLink { align-self: center; font-size: 13px; } .heroTicket { grid-template-columns: 100px minmax(0, 1fr); gap: 12px; padding: 23px 20px; } .productImage { height: 112px; } .heroCopy h2 { font-size: 23px; } .entryIdentity { grid-column: 1 / -1; } .progressCorner { grid-column: 2; justify-self: end; align-self: end; margin-top: -5px; } .heroCopy { display: contents; } .heroCopy > .retailer, .heroCopy > h2, .heroCopy > .status { grid-column: 2; } .heroCopy > .retailer { align-self: end; } .heroCopy > h2 { align-self: start; } .heroCopy > .status { justify-self: start; } .heroCopy > .entryIdentity { grid-row: 4; } .progressCorner { grid-row: 4; } .entryIdentity { padding-right: 104px; } .playTicket { padding: 25px 22px; } }
+@media (max-width: 390px) { .heroTicket { grid-template-columns: 82px minmax(0, 1fr); } .productImage { height: 100px; } .heroCopy h2 { font-size: 21px; } .entryIdentity { padding-right: 0; grid-column: 1 / -1; grid-row: 5; } .progressCorner { grid-row: 4; } }

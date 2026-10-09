@@ -28,6 +28,21 @@ test("newly confirmed card gets a brief Your new entry label without changing ot
   expect(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY)).toBeNull();
 });
 
+test("returning from an entry page highlights only the exact saved entry", async () => {
+  const state = storedActivityFixture();
+  const base = state.activity[0];
+  state.activity = [
+    { ...base, entryId: "ent_11111111111111111111111111111111" },
+    { ...base, entryId: "ent_22222222222222222222222222222222" },
+  ];
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+  render(<MyZeroLossActivity state={state} filter="all" viewedEntryId="ent_22222222222222222222222222222222" />);
+  await waitFor(() => expect(screen.getByText("This is the entry you were viewing")).toBeTruthy());
+  const highlighted = screen.getByText("This is the entry you were viewing").closest("[data-activity-entry-id]");
+  expect(highlighted?.getAttribute("data-activity-entry-id")).toBe("ent_22222222222222222222222222222222");
+  expect(screen.getAllByText("See My Entry")).toHaveLength(2);
+});
+
 test("normal empty state cannot expose a fixture by selected slug or filter", () => {
   render(<MyZeroLossActivity state={drawerState(true)} filter="all" selectedSlug="nike-court-shot-shoes" />);
   expect(screen.getByText("Your next choice starts here")).toBeTruthy();
@@ -298,7 +313,7 @@ test("white ticket space drags while the image, action and chevron remain click 
   }
   expect(wasPreventedBeforeTarget(within(card).getByText("PlayStation 5 Slim Model"))).toBe(true);
   expect(wasPreventedBeforeTarget(card.querySelector("[class*='productStage']")!)).toBe(false);
-  expect(wasPreventedBeforeTarget(within(card).getByText("Track entry"))).toBe(false);
+  expect(wasPreventedBeforeTarget(within(card).getByText("See My Entry"))).toBe(false);
   expect(wasPreventedBeforeTarget(card.querySelector("[class*='cardChevron']")!)).toBe(false);
 });
 

@@ -3,6 +3,7 @@ export type CompletionOptionStatus = "available" | "declined" | "purchased" | "e
 export type RewardStatus = "ready" | "redeemed" | "expired" | "cancelled" | "issuance_pending" | "issuance_failed";
 export type ActivityItem = {
   entryId?: string | null;
+  enteredAt?: string | null;
   slug: string;
   title: string;
   retailer: string;
@@ -60,6 +61,7 @@ export function readyWalletRewards(state: AccountActivity): ActivityItem[] {
 export function activityHref(item: ActivityItem, destination: ActivityDestination = "/account/entries", filter: ActivityFilter = "all"): string {
   if (isWalletReward(item)) return walletRewardHref(item);
   if (item.completionOptionStatus === "declined") return "/account/declined-offers";
+  if (item.status === "active" && item.entryId) return `/account/entries/${encodeURIComponent(item.entryId)}`;
   const params = new URLSearchParams({ item: item.slug });
   if (item.entryId) params.set("entry", item.entryId);
   if (destination === "/account/entries" && filter !== "all") params.set("filter", filter);
@@ -75,7 +77,7 @@ export function findActivityItem(items: ActivityItem[], selectedSlug?: string, s
 export const openEntriesHref = "/account/entries?filter=active";
 export function activityPresentation(item: ActivityItem) {
   switch (item.status) {
-    case "active": return { label: "Still Open", action: "View Entry", color: "text-cyan-300", background: "bg-[#154b74]" };
+    case "active": return { label: "Still Open", action: "See My Entry", color: "text-cyan-300", background: "bg-[#154b74]" };
     case "prize": return { label: "Prize Ready", action: item.rewardKind === "digital" ? "View Gift Card" : "Claim Prize", color: "text-[#31ff83]", background: "bg-[#16703f]" };
     case "completion": return { label: "Purchase Option", action: "Review Option", color: "text-[#ff8a45]", background: "bg-[#8c3d15]" };
     case "completed": return item.completionOptionStatus === "declined"

@@ -31,6 +31,7 @@ function parseItem(value: unknown): ActivityItem {
   }
   return {
     entryId: optionalString(row.entry_id),
+    enteredAt: optionalString(row.created_at),
     slug: row.slug,
     title: row.title,
     retailer: row.retailer,

@@ -95,7 +95,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     body: `Your ${formatUsdFromCents(item.paidCents)} entry is still active. We’ll keep the latest status here.`,
     meta: item.availability,
     href: activityHref(item),
-    action: "Track entry",
+    action: "See My Entry",
     image: item.image,
     visualLabel: item.retailer,
     tone: "active",
