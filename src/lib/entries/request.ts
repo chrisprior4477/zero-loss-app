@@ -5,6 +5,7 @@ export type EntryRequest = {
   quantity: number;
   amountCents: number;
   status: "pending" | "accepted" | "cancelled" | "rejected";
+  duplicate: boolean;
   undoUntil: string;
   serverNow: string;
   href: string | null;
@@ -33,11 +34,12 @@ export function parseEntryRequest(value: unknown): EntryRequest {
     !["pending", "accepted", "cancelled", "rejected"].includes(String(r.status)) ||
     typeof r.undoUntil !== "string" || !Number.isFinite(Date.parse(r.undoUntil)) ||
     typeof r.serverNow !== "string" || !Number.isFinite(Date.parse(r.serverNow))) throw new Error("Invalid entry request receipt");
+  if (r.duplicate !== undefined && typeof r.duplicate !== "boolean") throw new Error("Invalid entry request receipt");
   if (r.status === "accepted" && (!r.receipt || typeof r.receipt !== "object" ||
     !["active", "winner", "not_selected"].includes(String((r.receipt as Record<string, unknown>).status)))) throw new Error("Missing entry result");
   return {
     requestId: r.requestId, slug: r.slug, title: r.title, quantity: r.quantity, amountCents: r.amountCents,
-    status: r.status as EntryRequest["status"], undoUntil: r.undoUntil, serverNow: r.serverNow,
+    status: r.status as EntryRequest["status"], duplicate: r.duplicate === true, undoUntil: r.undoUntil, serverNow: r.serverNow,
     href: r.status === "accepted" ? entryReceiptHref(r.receipt as Record<string, unknown>, r.slug) : null,
   };
 }

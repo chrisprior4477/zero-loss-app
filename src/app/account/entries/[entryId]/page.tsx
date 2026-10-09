@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryPageActions } from "@/components/account/EntryPageActions";
+import { getEntryRequestHead } from "@/lib/entries/request-head";
 import styles from "@/components/account/entry-page.module.css";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
@@ -39,10 +40,11 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
   const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
   const metrics = activityOfferMetrics([item], availability)[item.slug];
   const progressColor = metrics ? availabilityStatus(metrics.capacity, metrics.sold).color : null;
-  const [emailResult, crewResult, dailyPeopleResult] = await Promise.all([
+  const [emailResult, crewResult, dailyPeopleResult, requestHead] = await Promise.all([
     db.rpc("get_entry_outcome_email_enabled"),
     db.rpc("get_crew_member_profiles"),
     db.rpc("get_preview_daily_people_average", { p_offering_slug: item.slug }),
+    getEntryRequestHead(db, item.slug),
   ]);
   const dailyPeopleData: unknown = dailyPeopleResult.data;
   const personDays = !dailyPeopleResult.error && dailyPeopleData && typeof dailyPeopleData === "object" && "personDays" in dailyPeopleData
@@ -103,7 +105,7 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
         <p>Your saved entry is one chance in this pool. {metrics ? `${metrics.sold.toLocaleString("en-US")} of ${metrics.capacity.toLocaleString("en-US")} places are filled.` : "Check back for verified pool progress."}</p>
-        <EntryPageActions itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
+        <EntryPageActions itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={requestHead} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
       </section>
     </div>
   </main>;

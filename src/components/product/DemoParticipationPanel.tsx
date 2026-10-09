@@ -11,12 +11,14 @@ import { InsufficientBalanceToast } from "@/components/product/InsufficientBalan
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, resetExtraEntryExplainer, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
+import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { clearEntryIntent, productEntryHref, saveEntryIntent } from "@/lib/entries/return-intent";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
 
 type Props = {
   productSlug: string;
   requestKey: string;
+  requestHead: EntryRequestHead;
   productTitle: string;
   retailer: string;
   productValue: number;
@@ -37,6 +39,7 @@ type Props = {
 export function DemoParticipationPanel({
   productSlug,
   requestKey,
+  requestHead,
   productTitle,
   retailer,
   productValue,
@@ -212,7 +215,7 @@ export function DemoParticipationPanel({
 
   useEffect(() => {
     if (state.status === "request") {
-      window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: state.request.requestId }));
+      if (!state.request.duplicate) window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: state.request.requestId }));
       window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: state.request }));
     }
   }, [state]);
@@ -323,10 +326,13 @@ export function DemoParticipationPanel({
         </div>
       </div> : null}
       {requestReceipt && requestReceipt.status !== "pending" ? <div className="mt-2 flex flex-wrap items-baseline gap-x-2 rounded-lg bg-[#062b4d] px-3 py-2 text-xs leading-4" role="status">
-        <p>{requestReceipt.status === "accepted" ? `Previous ${requestReceipt.quantity}-ticket submission saved. A new entry is separate.` : "Your previous submission was not entered. You can start a new submission below."}</p>
+        <p>{state.status === "request" && state.request.duplicate && state.request.requestId === requestReceipt.requestId
+          ? "This earlier submission was already saved. This attempt did not add entries or charge your balance."
+          : requestReceipt.status === "accepted" ? `Previous ${requestReceipt.quantity}-ticket submission saved. A new entry is separate.` : "Your previous submission was not entered. You can start a new submission below."}</p>
         {requestReceipt.href ? <Link href={requestReceipt.href} className="font-bold text-cyan-300 underline">View previous submission →</Link> : null}
       </div> : null}
 
+      {isSignedIn && !requestHead.ready ? <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm"><p>We couldn’t check your latest saved submission. Refresh before entering; your balance has not been charged.</p><button type="button" onClick={() => router.refresh()} className="mt-3 min-h-11 rounded-lg bg-[#00b9ff] px-4 py-2 font-bold text-[#00132e]">Refresh entry status</button></div> : null}
       {!availabilityConfirmed ? (
         <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm">
           <p>We couldn’t refresh availability. Your balance has not been charged.</p>
@@ -337,7 +343,7 @@ export function DemoParticipationPanel({
       ) : isSignedIn ? (
         <form ref={entryFormRef} action={action} onSubmit={(event) => {
           setSelectedTicketsToast(null);
-          if (entryBusy) { event.preventDefault(); return; }
+          if (entryBusy || !requestHead.ready) { event.preventDefault(); return; }
           // Retry the original intent, not new balance/quantity/sharing choices.
           if (uncertain) return;
           if (knownBalance !== null && knownBalance < totalCents) {
@@ -353,10 +359,10 @@ export function DemoParticipationPanel({
         }}>
           <input type="hidden" name="offeringSlug" value={productSlug} />
           <input type="hidden" name="idempotencyKey" value={submissionKey} />
-          <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? "" : ""} />
+          <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? requestHead.requestId ?? "" : requestHead.requestId ?? ""} />
           <input type="hidden" name="quantity" value={quantity} />
           <input ref={shareChoiceRef} type="hidden" name="shareWithCrew" value="no" />
-          <button type="submit" disabled={entryBusy} className="mt-3 min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">
+          <button type="submit" disabled={entryBusy || !requestHead.ready} className="mt-3 min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">
             {pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}
           </button>
         </form>

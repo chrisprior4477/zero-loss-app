@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest, type PreviewEntryActionState } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
+import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
@@ -19,9 +20,9 @@ function shortPrizeName(slug: string, title: string) {
   return title.length <= 26 ? title : "this prize";
 }
 
-export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, crew, senderName, emailEnabled, returnHref }: {
+export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref }: {
   itemTitle: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
-  crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
+  requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
 }) {
   const router = useRouter();
   const [nextOpen, setNextOpen] = useState(false);
@@ -34,6 +35,8 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   const [receipt, setReceipt] = useState<EntryRequest | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
+  const [latestRequestId, setLatestRequestId] = useState(requestHead.requestId);
+  const [createdHereRequestId, setCreatedHereRequestId] = useState<string | null>(null);
   const attemptedForm = useRef<FormData | null>(null);
   const activeRequestId = useRef<string | null>(null);
   const crewRail = useRef<HTMLDivElement>(null);
@@ -45,7 +48,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   const maxQuantity = Math.min(10, Math.max(0, remaining ?? 0));
   const totalCents = quantity * (entryPriceCents ?? 0);
   const insufficientBalance = balanceCents !== null && totalCents > balanceCents;
-  const canEnter = entryEnabled && entryPriceCents !== null && balanceCents !== null;
+  const canEnter = entryEnabled && requestHead.ready && entryPriceCents !== null && balanceCents !== null;
   const busy = working || receipt?.status === "pending";
   const uncertain = result.status === "error" && result.code === "outcome_unknown";
 
@@ -58,6 +61,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
       const updated = (event as CustomEvent<EntryRequest>).detail;
       if (updated.requestId !== activeRequestId.current) return;
       setReceipt(updated);
+      setLatestRequestId(updated.requestId);
       if (updated.status !== "pending") {
         setSubmissionKey(crypto.randomUUID());
         attemptedForm.current = null;
@@ -88,7 +92,8 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
       form.set("offeringSlug", slug);
       form.set("quantity", String(quantity));
       form.set("idempotencyKey", submissionKey);
-      if (receipt && receipt.status !== "pending") form.set("previousRequestId", receipt.requestId);
+      const previousRequestId = receipt?.status !== "pending" ? receipt?.requestId ?? latestRequestId ?? requestHead.requestId : latestRequestId ?? requestHead.requestId;
+      if (previousRequestId) form.set("previousRequestId", previousRequestId);
       attemptedForm.current = form;
     }
     setWorking(true);
@@ -98,6 +103,8 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
       setResult(response);
       if (response.status === "request") {
         activeRequestId.current = response.request.requestId;
+        setCreatedHereRequestId(response.request.duplicate ? null : response.request.requestId);
+        setLatestRequestId(response.request.requestId);
         setReceipt(response.request);
         // The global coordinator auto-finalizes, but only product-checkout-created requests navigate away.
         window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: response.request }));
@@ -171,9 +178,9 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
             <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>
             <p>Demo Playable Balance: <strong>{balanceCents === null ? "Unavailable" : formatUsdFromCents(balanceCents)}</strong></p>
             {insufficientBalance ? <p className={styles.checkoutError}>Not enough demo funds for this quantity. <Link href="/account/wallet">Add funds</Link></p> : null}
-            {!canEnter ? <p className={styles.checkoutError}>This demo checkout is unavailable for this account right now.</p> : null}
-            {receipt?.status === "pending" ? <div className={styles.receiptBox} role="status"><strong>Entry submitted · Undo available for {secondsLeft}s</strong><span>{receipt.quantity} {receipt.quantity === 1 ? "entry" : "entries"} · {formatUsdFromCents(receipt.amountCents)} reserved from your demo balance.</span><div className={styles.receiptActions}><button type="button" onClick={() => void resolveEntry(true)} disabled={working || secondsLeft === 0}>Undo entry</button><button type="button" onClick={() => void resolveEntry(false)} disabled={working}>Confirm entry</button></div></div> : null}
-            {receipt?.status === "accepted" ? <p role="status" className={styles.checkoutSuccess}>Your {receipt.quantity === 1 ? "new entry is" : `${receipt.quantity} new entries are`} confirmed and saved in My Activity. You can stay on this page.</p> : null}
+            {!requestHead.ready ? <p className={styles.checkoutError}>We couldn’t check your latest saved submission. Refresh before entering; your balance has not been charged.</p> : !canEnter ? <p className={styles.checkoutError}>This demo checkout is unavailable for this account right now.</p> : null}
+            {receipt?.status === "pending" ? <div className={styles.receiptBox} role="status"><strong>{createdHereRequestId === receipt.requestId ? `Entry submitted · Undo available for ${secondsLeft}s` : "An earlier submission is still pending"}</strong><span>{createdHereRequestId === receipt.requestId ? `${receipt.quantity} ${receipt.quantity === 1 ? "entry" : "entries"} · ${formatUsdFromCents(receipt.amountCents)} reserved from your demo balance.` : "No second reservation or charge was made."}</span><div className={styles.receiptActions}><button type="button" onClick={() => void resolveEntry(true)} disabled={working || secondsLeft === 0}>Undo entry</button><button type="button" onClick={() => void resolveEntry(false)} disabled={working}>Confirm entry</button></div></div> : null}
+            {receipt?.status === "accepted" ? <p role="status" className={styles.checkoutSuccess}>{createdHereRequestId === receipt.requestId ? `Your ${receipt.quantity === 1 ? "new entry is" : `${receipt.quantity} new entries are`} confirmed and saved in My Activity. You can stay on this page.` : "That earlier submission was already saved. No additional entries were added or charged by this attempt. Refresh to review your entries."}</p> : null}
             {receipt?.status === "cancelled" || receipt?.status === "rejected" ? <p role="status" className={styles.checkoutError}>This submission was not entered. Any reservation was released.</p> : null}
             {result.status === "succeeded" ? <p role="status" className={styles.checkoutSuccess}>{result.message} You can stay on this page.</p> : null}
             {result.status === "error" ? <p role="alert" className={styles.checkoutError}>{result.message}</p> : null}

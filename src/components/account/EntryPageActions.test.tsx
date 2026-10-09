@@ -18,6 +18,7 @@ const props = {
   balanceCents: 2400,
   entryEnabled: true,
   requestKey: "11111111-1111-4111-8111-111111111111",
+  requestHead: { ready: true as const, requestId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
   crew: [{ id: "member-1", name: "Jordan", avatarUrl: null }],
   senderName: "Chris",
   emailEnabled: true,
@@ -39,6 +40,7 @@ test("additional entries are reviewed and confirmed on the same page", async () 
   const form = createPreviewEntry.mock.calls[0][1] as FormData;
   expect(form.get("offeringSlug")).toBe("playstation-5-slim");
   expect(form.get("quantity")).toBe("2");
+  expect(form.get("previousRequestId")).toBe(props.requestHead.requestId);
   await waitFor(() => expect(screen.getByText(/You can stay on this page/)).toBeTruthy());
   expect(refresh).toHaveBeenCalled();
 });
@@ -84,4 +86,26 @@ test("pending entry can be confirmed here without a checkout redirect", async ()
   await waitFor(() => expect(screen.getByText(/new entry is confirmed and saved in My Activity/)).toBeTruthy());
   expect(confirmPendingEntryRequest).toHaveBeenCalledWith(request.requestId);
   expect(refresh).toHaveBeenCalled();
+});
+
+test("a stale checkout shows the recovered receipt honestly and uses it for the next attempt", async () => {
+  const recoveredId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  createPreviewEntry.mockResolvedValueOnce({
+    status: "request", message: "Earlier submission recovered",
+    request: { requestId: recoveredId, slug: props.slug, title: props.itemTitle, quantity: 1,
+      amountCents: 100, status: "accepted", duplicate: true,
+      undoUntil: new Date(Date.now() - 30000).toISOString(), serverNow: new Date().toISOString(),
+      href: "/account/entries" },
+  }).mockResolvedValueOnce({ status: "succeeded", message: "Entry confirmed.", href: "/account/entries", outcome: "active" });
+  render(<EntryPageActions {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one more entry to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
+  await waitFor(() => expect(screen.getByText(/No additional entries were added or charged/)).toBeTruthy());
+  fireEvent.click(screen.getByRole("button", { name: "Add another entry" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add one more entry to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
+  await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledTimes(2));
+  expect((createPreviewEntry.mock.calls[1][1] as FormData).get("previousRequestId")).toBe(recoveredId);
 });

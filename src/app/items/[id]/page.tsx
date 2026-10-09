@@ -12,6 +12,8 @@ import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { parseEntryQuantity } from "@/lib/entries/return-intent";
 import { productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { createClient } from "@/lib/supabase/server";
+import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ quantity?: string | string[]; from?: string | string[] }> };
 
@@ -35,11 +37,14 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const product = getDemoProduct(id);
   if (!product) notFound();
   const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
+  const requestHead: EntryRequestHead = account?.wallet?.scope === "demo" && isPreviewDataEnvironment()
+    ? await getEntryRequestHead(await createClient(), product.slug)
+    : { ready: true, requestId: null };
   const current = availability?.[product.slug];
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
   const participationPanel = (
-    <DemoParticipationPanel key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} requestKey={randomUUID()} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
+    <DemoParticipationPanel key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
   );
   const productDetails = (
     <section className="rounded-3xl border border-white/12 bg-white/5 p-5 sm:p-8">

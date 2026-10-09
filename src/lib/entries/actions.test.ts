@@ -124,6 +124,13 @@ test("pending submission has no premature result or redirect", async () => {
   expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({ status: "request", request: { status: "pending", href: null, quantity: 3 } });
 });
 
+test("a recovered earlier request never claims that more entries were charged", async () => {
+  mocks.rpc.mockResolvedValue({ data: { ...pendingReceipt, status: "accepted", duplicate: true, receipt: { status: "active", entryId: "ent_abcdef123" } } });
+  const result = await createPreviewEntry({ status: "idle" }, entryForm());
+  expect(result).toMatchObject({ status: "request", request: { duplicate: true, status: "accepted" } });
+  expect(result.status === "request" && result.message).toContain("No new entries were added or charged");
+});
+
 test("passes last displayed receipt for atomic server comparison, not a customer-supplied owner", async () => {
   const form = entryForm();
   form.set("previousRequestId", pendingReceipt.requestId);

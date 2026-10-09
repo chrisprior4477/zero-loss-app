@@ -79,7 +79,7 @@ test("normal empty state cannot expose a fixture by selected slug or filter", ()
 });
 test("a saved pending request is visible without counting it as a confirmed entry", () => {
   const pending = { requestId: "41414141-4141-4141-8141-414141414141", slug: "best-buy-100-gift-card", title: "$100 Best Buy Gift Card",
-    quantity: 1, amountCents: 100, status: "pending" as const, undoUntil: "2026-10-08T12:00:30Z", serverNow: "2026-10-08T12:00:00Z", href: null };
+    quantity: 1, amountCents: 100, status: "pending" as const, duplicate: false, undoUntil: "2026-10-08T12:00:30Z", serverNow: "2026-10-08T12:00:00Z", href: null };
   render(<MyZeroLossActivity state={drawerState(true)} filter="all" pendingEntries={[pending]} />);
   expect(screen.getByText("Your entry is being confirmed")).toBeTruthy();
   expect(screen.getByText(/Best Buy Gift Card is saved as a pending request/)).toBeTruthy();
@@ -88,7 +88,7 @@ test("a saved pending request is visible without counting it as a confirmed entr
 });
 test("a pending request is also visible when other confirmed activity exists", () => {
   const pending = { requestId: "41414141-4141-4141-8141-414141414141", slug: "best-buy-100-gift-card", title: "$100 Best Buy Gift Card",
-    quantity: 1, amountCents: 100, status: "pending" as const, undoUntil: "2026-10-08T12:00:30Z", serverNow: "2026-10-08T12:00:00Z", href: null };
+    quantity: 1, amountCents: 100, status: "pending" as const, duplicate: false, undoUntil: "2026-10-08T12:00:30Z", serverNow: "2026-10-08T12:00:00Z", href: null };
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" pendingEntries={[pending]} />);
   expect(screen.getByText("Entry request awaiting confirmation")).toBeTruthy();
   expect(screen.getByRole("link", { name: /Review pending entry/ })).toBeTruthy();

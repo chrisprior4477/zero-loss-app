@@ -6,7 +6,7 @@ const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), reset: vi.fn(), en
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: actionMocks.replace, refresh: vi.fn() }) }));
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resetExtraEntryExplainer: actionMocks.reset, resolvePendingEntryRequest: actionMocks.resolve, confirmPendingEntryRequest: actionMocks.confirm }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
-const props = { productSlug: "test-product", requestKey: "entry_request_key_01", productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
+const props = { productSlug: "test-product", requestKey: "entry_request_key_01", requestHead: { ready: true as const, requestId: null }, productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
   expect(screen.getByTestId("entry-quantity-ticket")).toBeTruthy();
@@ -19,6 +19,18 @@ test("product balance comes from server data and signed-in preview submits a qua
   expect(screen.getByRole("button", { name: "Remove one entry" }).hasAttribute("disabled")).toBe(true);
   expect(screen.getByText(/written atomically to the development\/test database/)).toBeTruthy();
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$26");
+});
+
+test("a return visit carries the last saved request into a new product entry", () => {
+  const requestId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  render(<DemoParticipationPanel {...props} requestHead={{ ready: true, requestId }} isSignedIn />);
+  expect(document.querySelector('input[name="previousRequestId"]')?.getAttribute("value")).toBe(requestId);
+});
+
+test("checkout fails closed when the previous request cannot be checked", () => {
+  render(<DemoParticipationPanel {...props} requestHead={{ ready: false, requestId: null }} isSignedIn />);
+  expect(screen.getByRole("button", { name: "Enter for $1.00" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByText(/couldn’t check your latest saved submission/)).toBeTruthy();
 });
 
 test("lost response retries the identical intent instead of throwing away the page", async () => {

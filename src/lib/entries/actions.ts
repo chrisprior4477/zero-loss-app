@@ -105,14 +105,21 @@ export async function createPreviewEntry(
     if (data?.requestId) {
       const request = parseEntryRequest(data);
       revalidatePath("/", "layout");
-      return { status: "request", request, message: request.status === "pending"
-        ? "Reserved for 30 seconds. You can undo this submission before it is confirmed."
-        : request.status === "accepted" ? "Your entries are confirmed."
-        : "This submission was not entered. Its reserved funds were returned to Playable Balance." };
+      return { status: "request", request, message: request.duplicate
+        ? request.status === "pending"
+          ? "An earlier submission for this prize is still pending. No second reservation was made."
+          : "This is an earlier submission. No new entries were added or charged by this attempt."
+        : request.status === "pending"
+          ? "Reserved for 30 seconds. You can undo this submission before it is confirmed."
+          : request.status === "accepted" ? "Your entries are confirmed."
+          : "This submission was not entered. Its reserved funds were returned to Playable Balance." };
     }
     const outcome = data?.status;
     if (outcome !== "active" && outcome !== "winner" && outcome !== "not_selected") {
       throw new Error("Invalid entry response");
+    }
+    if (data?.duplicate === true) {
+      return { status: "error", message: "This is an earlier saved submission. No new entries were added or charged by this attempt." };
     }
 
     revalidatePath("/", "layout");
