@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { availabilityStatus } from "@/lib/catalog/availability";
 import { activityOfferMetrics } from "@/lib/account/activity-progress";
 import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -24,6 +25,7 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
 
   const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
   const metrics = activityOfferMetrics([item], availability)[item.slug];
+  const progressColor = metrics ? availabilityStatus(metrics.capacity, metrics.sold).color : null;
   const [emailResult, crewResult, dailyPeopleResult] = await Promise.all([
     db.rpc("get_entry_outcome_email_enabled"),
     db.rpc("get_crew_member_profiles"),
@@ -49,6 +51,7 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
     <div className={styles.shell}>
       <div className={styles.topline}><div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>Your saved entry for the prize below.</p></div><Link href={returnHref} className={styles.backLink}>← My Activity</Link></div>
       <section className={styles.heroTicket} aria-label="Saved entry and prize pool">
+        <Link href={returnHref} className={`${styles.returnButton} ${styles.heroReturnButton}`}>Return to My Activity →</Link>
         <div className={styles.productImage}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100px, (max-width: 900px) 150px, 190px" /></div>
         <div className={styles.heroCopy}>
           <p className={styles.retailer}>{item.retailer}</p>
@@ -62,7 +65,7 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
           </dl>
         </div>
         {metrics ? <div className={styles.progressCorner}>
-          <div role="progressbar" aria-label={`${item.title} prize pool filled`} aria-valuenow={metrics.percentFilled} aria-valuemin={0} aria-valuemax={100} className={styles.progressCircle} style={{ background: `conic-gradient(#f83a5c ${metrics.percentFilled}%, #dbe9f3 0)` }}><span>{metrics.percentFilled}%</span></div>
+          <div role="progressbar" aria-label={`${item.title} prize pool filled`} aria-valuenow={metrics.percentFilled} aria-valuemin={0} aria-valuemax={100} className={styles.progressCircle} style={{ background: `conic-gradient(${progressColor} ${metrics.percentFilled}%, #dbe9f3 0)` }}><span>{metrics.percentFilled}%</span></div>
           <strong>{metrics.remaining === 0 ? "Pool full" : `${metrics.remaining.toLocaleString("en-US")} tickets left`}</strong>
         </div> : <p className={styles.progressUnavailable}>Current pool count unavailable</p>}
       </section>
