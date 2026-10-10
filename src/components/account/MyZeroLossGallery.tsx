@@ -232,7 +232,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
                   : <>{action(item)}<AccountIcon name="arrow" /></>}</span>
               </div>
             </div>
-            <span className={styles.cardChevron} data-activity-click aria-hidden="true" />
+            {item.status !== "active" ? <span className={styles.cardChevron} data-activity-click aria-hidden="true" /> : null}
             {offerMetrics ? <span className={styles.offerProgress} role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerMetrics.percentFilled} aria-valuemin={0} aria-valuemax={100} style={{ "--offer-progress": `${offerMetrics.percentFilled}%`, "--offer-progress-color": offerStatus?.color } as CSSProperties}><span>{offerMetrics.percentFilled}%</span></span> : null}
           </Link>
           {featured && groups.length > 1 ? <p className={styles.mobileRestLabel}>Everything else</p> : null}

@@ -53,8 +53,9 @@ test("five authorized entries expand into individual tickets and retain exact de
   expect(within(rail).getByText("Your five separate entries")).toBeTruthy();
   const compact = within(rail).getByRole("navigation", { name: "Choose an entry for PlayStation 5 Slim Model" });
   expect(within(compact).getAllByRole("link")).toHaveLength(5);
-  expect(rail.querySelector("[class*='entryRailChoices']")?.hasAttribute("hidden")).toBe(true);
+  expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("true");
   fireEvent.click(within(rail).getByRole("button", { name: "Show details for 5 entries" }));
+  expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("false");
   expect(within(compact).getAllByRole("link")).toHaveLength(5);
   const expanded = rail.querySelector("[class*='entryRailChoices']") as HTMLElement;
   const links = within(expanded).getAllByRole("link");
@@ -65,6 +66,11 @@ test("five authorized entries expand into individual tickets and retain exact de
   expect(rail.querySelector(`a[href="/account/entries/ent_${"a".repeat(32)}?entries=open"]`)).toBeNull();
   expect(screen.getByRole("region", { name: "Saved entry and prize pool" }).compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(rail.compareDocumentPosition(screen.getByRole("heading", { name: /prize pool still has tickets available/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Close entry details and return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
+
+  fireEvent.pointerDown(document.body);
+  expect(within(rail).getByRole("button", { name: "Show details for 5 entries" }).getAttribute("aria-expanded")).toBe("false");
+  expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("true");
 
   rerender(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }), searchParams: Promise.resolve({ entries: "open" }) }));
   expect(screen.getByText(ids[4])).toBeTruthy();
@@ -88,9 +94,13 @@ test("the ticket-style entry section remains visible even for a single saved ent
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
   expect(within(rail).getByText("Your saved entry")).toBeTruthy();
   expect(within(rail).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).getAttribute("aria-current")).toBe("page");
-  expect(rail.querySelector("[class*='entryRailChoices']")?.hasAttribute("hidden")).toBe(true);
+  expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("true");
   fireEvent.click(within(rail).getByRole("button", { name: "Show details for 1 entry" }));
   expect(within(rail.querySelector("[class*='entryRailChoices']") as HTMLElement).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) })).toBeTruthy();
+  const compact = within(rail).getByRole("navigation", { name: "Choose an entry for PlayStation 5 Slim Model" });
+  expect(within(compact).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).querySelector("i")).toBeNull();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(within(rail).getByRole("button", { name: "Show details for 1 entry" }).getAttribute("aria-expanded")).toBe("false");
 });
 
 test("the expanded saved-ticket count follows newly confirmed account records", async () => {

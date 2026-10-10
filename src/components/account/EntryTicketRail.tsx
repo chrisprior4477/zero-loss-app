@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import styles from "./entry-page.module.css";
 
@@ -20,9 +20,26 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
   heading: string;
 }) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
+  const railRef = useRef<HTMLElement>(null);
   const count = tickets.length;
 
-  return <section className={styles.entryRail} aria-label={`Your separate entries for ${title}`}>
+  useEffect(() => {
+    if (!expanded) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !railRef.current?.contains(event.target)) setExpanded(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [expanded]);
+
+  return <section ref={railRef} className={styles.entryRail} aria-label={`Your separate entries for ${title}`}>
     <div className={styles.entryRailTop}>
       <div className={styles.entryRailHeader}>
         <strong>{heading}</strong>
@@ -37,20 +54,26 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
         key={ticket.entryId}
         href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open`}
         prefetch={false}
+        scroll={false}
         aria-current={ticket.entryId === selectedEntryId ? "page" : undefined}
         aria-label={`See entry ${ticket.number} of ${count}, entry number ${ticket.entryId}`}
         className={styles.entryRailSmallTicket}
-      ><small>ENTRY</small><strong>{ticket.number}</strong><i aria-hidden="true" /></Link>)}
+      ><small>ENTRY</small><strong>{ticket.number}</strong></Link>)}
     </nav>
-    <div id="saved-entry-tickets" className={styles.entryRailChoices} data-count={count === 1 ? "single" : "multiple"} hidden={!expanded}>
-      {tickets.map(ticket => <Link
-        key={ticket.entryId}
-        href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open`}
-        prefetch={false}
-        aria-current={ticket.entryId === selectedEntryId ? "page" : undefined}
-        aria-label={`See full ticket for entry ${ticket.number} of ${count}, entry number ${ticket.entryId}`}
-        className={styles.entryRailLink}
-      ><span className={styles.entryTileHeading}><small>ENTRY</small><strong>{ticket.number}</strong></span><span className={styles.entryTileDate}>{ticket.enteredAt ? <time dateTime={ticket.enteredAt}>{ticket.enteredLabel}</time> : ticket.enteredLabel}</span><span className={styles.entryTileId}>#{ticket.entryId.slice(-8)}</span><span className={styles.entryTileAmount}>{ticket.amountLabel} entered</span></Link>)}
+    <div id="saved-entry-tickets" className={styles.entryRailExpansion} data-expanded={expanded} aria-hidden={!expanded} inert={!expanded}>
+      <div className={styles.entryRailExpansionInner}>
+        <div className={styles.entryRailChoices} data-count={count === 1 ? "single" : "multiple"}>
+          {tickets.map(ticket => <Link
+            key={ticket.entryId}
+            href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open`}
+            prefetch={false}
+            scroll={false}
+            aria-current={ticket.entryId === selectedEntryId ? "page" : undefined}
+            aria-label={`See full ticket for entry ${ticket.number} of ${count}, entry number ${ticket.entryId}`}
+            className={styles.entryRailLink}
+          ><span className={styles.entryTileHeading}><small>ENTRY</small><strong>{ticket.number}</strong></span><span className={styles.entryTileDate}>{ticket.enteredAt ? <time dateTime={ticket.enteredAt}>{ticket.enteredLabel}</time> : ticket.enteredLabel}</span><span className={styles.entryTileId}>#{ticket.entryId.slice(-8)}</span><span className={styles.entryTileAmount}>{ticket.amountLabel} entered</span></Link>)}
+        </div>
+      </div>
     </div>
   </section>;
 }

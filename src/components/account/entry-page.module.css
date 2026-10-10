@@ -4,7 +4,9 @@
 .topline h1 { margin: 4px 0 0; font-size: clamp(30px, 3vw, 44px); line-height: 1.1; letter-spacing: -.035em; }
 .pageSubtitle { margin: 6px 0 0; color: #d4eaff; font-size: 14px; }
 .eyebrow { margin: 0; color: #55caff; font-size: 13px; font-weight: 900; letter-spacing: .16em; }
-.backLink { color: #bcecff; font-weight: 750; text-decoration: underline; text-underline-offset: 4px; white-space: nowrap; }
+.closePage { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; align-self: start; border: 2px solid #a9ddf7; border-radius: 50%; color: #fff; font-size: 30px; font-weight: 400; line-height: 1; text-decoration: none; }
+.closePage:hover { background: #ffffff20; }
+.closePage span { transform: translateY(-2px); }
 .heroTicket, .playTicket, .entryRailLink, .entryRailSmallTicket { --ticket-side-notch: 11px; --ticket-corner-notch: 16px; --ticket-cutouts: radial-gradient(circle at left center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at right center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at left top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at left bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)); -webkit-mask-image: var(--ticket-cutouts); mask-image: var(--ticket-cutouts); -webkit-mask-composite: source-in, source-in, source-in, source-in, source-in; mask-composite: intersect; background: #fffefa; color: #10234a; }
 .heroTicket { position: relative; display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr) minmax(190px, 220px); align-items: center; gap: clamp(16px, 3vw, 36px); min-height: 246px; padding: 30px 36px; }
 .productImage { position: relative; grid-column: 1; grid-row: 1; width: 100%; height: 185px; border-radius: 18px; background: #e9f6ff; overflow: hidden; }
@@ -34,17 +36,16 @@
 .entryRailToggle[aria-expanded="true"] .entryRailChevron { transform: rotate(180deg); }
 .entryRailToggle:focus-visible { outline: 3px solid #0789ef; outline-offset: 4px; border-radius: 5px; }
 .entryRailCompact { display: flex; min-width: 0; min-height: 78px; flex-wrap: wrap; align-items: center; gap: 8px; border-radius: 14px; background: #e4f4ff; padding: 10px; }
-.entryRailSmallTicket { --ticket-side-notch: 5px; --ticket-corner-notch: 7px; display: flex; width: 46px; height: 38px; flex: 0 0 46px; align-items: center; flex-direction: column; justify-content: center; background: #0b376a; color: #fff; font-size: 16px; font-weight: 900; line-height: 1; text-decoration: none; }
+.entryRailSmallTicket { --ticket-side-notch: 5px; --ticket-corner-notch: 7px; display: flex; width: 46px; height: 38px; flex: 0 0 46px; align-items: center; flex-direction: column; justify-content: center; background: #0b376a; padding-top: 2px; color: #fff; font-size: 16px; font-weight: 900; line-height: 1; text-decoration: none; }
 .entryRailSmallTicket small { font-size: 9px; font-weight: 700; letter-spacing: .03em; }
-.entryRailSmallTicket i { width: 18px; height: 2px; margin-top: 2px; background: #79d7ff; }
 .entryRailSmallTicket[aria-current="page"] { background: #0789ef; }
-.entryRailSmallTicket[aria-current="page"] i { background: #fff; }
 .entryRailSmallTicket:hover:not([aria-current="page"]) { background: #15528f; }
 .entryRailSmallTicket:focus-visible { box-shadow: inset 0 0 0 3px #fff; }
-.entryRailChoices { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 6px; border-radius: 14px; background: #e4f4ff; padding: 13px; animation: entryRailReveal .22s ease-out; }
-.entryRailChoices[hidden] { display: none; }
+.entryRailExpansion { display: grid; grid-column: 1 / -1; grid-template-rows: 0fr; opacity: 0; pointer-events: none; transition: grid-template-rows .28s ease, opacity .2s ease, margin-top .28s ease; }
+.entryRailExpansion[data-expanded="true"] { grid-template-rows: 1fr; margin-top: 6px; opacity: 1; pointer-events: auto; }
+.entryRailExpansionInner { min-height: 0; overflow: hidden; }
+.entryRailChoices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; border-radius: 14px; background: #e4f4ff; padding: 13px; }
 .entryRailChoices[data-count="single"] { grid-template-columns: minmax(0, 500px); }
-@keyframes entryRailReveal { from { opacity: .55; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 .entryRailLink { --ticket-side-notch: 9px; --ticket-corner-notch: 12px; display: flex; min-width: 0; min-height: 116px; flex-direction: column; gap: 5px; background: #0b376a; padding: 17px 21px; color: #fff; text-decoration: none; }
 .entryTileHeading { display: flex; align-items: baseline; gap: 8px; line-height: 1; }
 .entryTileHeading small { font-size: 10px; font-weight: 800; letter-spacing: .07em; }
@@ -131,9 +132,9 @@
 .actionPanel .demoNotice { margin-top: 9px; border-radius: 9px; background: #ddf6df; padding: 10px; color: #174c2b; }
 .demoNotice p:last-child { margin-bottom: 0; }
 :is(.checkoutConfirm, .addAgain, .receiptActions button, .approval input, .railArrow, .notifyButton, .addCrewCard):focus-visible { outline: 3px solid #0077ff; outline-offset: 3px; }
-:is(.backLink, .nextButton, .primaryLink, .crewToggle, .crewSend, .returnButton, .quantityControls button, .emailPreference button):focus-visible { outline: 3px solid #00b9ff; outline-offset: 3px; }
+:is(.closePage, .nextButton, .primaryLink, .crewToggle, .crewSend, .returnButton, .quantityControls button, .emailPreference button):focus-visible { outline: 3px solid #00b9ff; outline-offset: 3px; }
 @media (max-width: 800px) { .heroTicket { grid-template-columns: 150px minmax(0, 1fr) 96px; gap: 18px; padding: 80px 26px 26px; } .heroReturnButton { position: absolute; top: 22px; right: 26px; width: auto; } .productImage { height: 150px; } .progressCircle { width: 75px; height: 75px; } .progressCircle span { width: 59px; height: 59px; font-size: 18px; } .entryIdentity { grid-template-columns: 1fr; } .entryRailChoices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actionGrid { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .topline { align-items: start; } .backLink { align-self: center; font-size: 13px; } .heroTicket { grid-template-columns: 100px minmax(0, 1fr); gap: 8px 12px; padding: 23px 20px; } .heroReturnButton { position: static; grid-column: 1 / -1; grid-row: 1; width: auto; margin: 0 0 4px; } .productImage { grid-column: 1; grid-row: 2 / 5; height: 112px; } .heroCopy { display: contents; } .heroCopy > .retailer, .heroCopy > h2, .heroCopy > .status { grid-column: 2; } .heroCopy > .retailer { grid-row: 2; align-self: end; } .heroCopy > h2 { grid-row: 3; align-self: center; font-size: 23px; } .heroCopy > .status { grid-row: 4; justify-self: start; align-self: start; margin-top: 0; } .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 5; margin-top: 14px; } .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 6; justify-self: end; align-self: end; margin-top: -5px; } .playTicket { padding: 25px 22px; } }
+@media (max-width: 600px) { .topline { align-items: start; } .closePage { width: 38px; height: 38px; flex-basis: 38px; font-size: 27px; } .heroTicket { grid-template-columns: 100px minmax(0, 1fr); gap: 8px 12px; padding: 23px 20px; } .heroReturnButton { position: static; grid-column: 1 / -1; grid-row: 1; width: auto; margin: 0 0 4px; } .productImage { grid-column: 1; grid-row: 2 / 5; height: 112px; } .heroCopy { display: contents; } .heroCopy > .retailer, .heroCopy > h2, .heroCopy > .status { grid-column: 2; } .heroCopy > .retailer { grid-row: 2; align-self: end; } .heroCopy > h2 { grid-row: 3; align-self: center; font-size: 23px; } .heroCopy > .status { grid-row: 4; justify-self: start; align-self: start; margin-top: 0; } .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 5; margin-top: 14px; } .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 6; justify-self: end; align-self: end; margin-top: -5px; } .playTicket { padding: 25px 22px; } }
 @media (max-width: 390px) { .heroTicket { grid-template-columns: 82px minmax(0, 1fr); } .productImage { height: 100px; } .heroCopy h2 { font-size: 21px; } }
 @media (max-width: 600px) {
   .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 5; grid-template-columns: minmax(0, 1fr) minmax(86px, .7fr); grid-template-rows: auto auto minmax(100px, auto); gap: 11px 12px; margin-top: 14px; }
@@ -149,7 +150,8 @@
   .entryRailToggle { gap: 4px; font-size: 11px; }
   .entryRailToggle b { min-width: 30px; height: 30px; font-size: 14px; }
   .entryRailCompact { min-height: 0; gap: 6px; margin-top: 12px; padding: 9px; }
-  .entryRailChoices { gap: 8px; margin-top: 12px; padding: 9px; }
+  .entryRailExpansion[data-expanded="true"] { margin-top: 12px; }
+  .entryRailChoices { gap: 8px; padding: 9px; }
   .entryRailLink { min-height: 111px; gap: 4px; padding: 15px 16px; }
   .entryTileHeading strong { font-size: 20px; }
   .entryTileDate, .entryTileId, .entryTileAmount { font-size: 10px; }
@@ -158,4 +160,4 @@
   .railArrow { display: none; }
   .crewRail { gap: 8px; padding-inline: 0; }
 }
-@media (prefers-reduced-motion: reduce) { .entryRailChoices { animation: none; } .entryRailChevron { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .entryRailExpansion, .entryRailChevron { transition: none; } }

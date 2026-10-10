@@ -74,7 +74,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
 
   return <main className={styles.page}>
     <div className={styles.shell}>
-      <div className={styles.topline}><div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>Your saved entry for the prize below.</p></div><Link href={returnHref} className={styles.backLink}>← My Activity</Link></div>
+      <div className={styles.topline}><div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>Your saved entry for the prize below.</p></div><Link href={returnHref} className={styles.closePage} aria-label="Close entry details and return to My Activity"><span aria-hidden="true">×</span></Link></div>
       <section className={styles.heroTicket} aria-label="Saved entry and prize pool">
         <Link href={returnHref} className={`${styles.returnButton} ${styles.heroReturnButton}`}>Return to My Activity →</Link>
         <div className={styles.productImage}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100px, (max-width: 900px) 150px, 190px" /></div>

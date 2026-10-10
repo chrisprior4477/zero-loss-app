@@ -341,7 +341,7 @@ test("mobile hybrid marks only the first winner as featured and keeps every prod
   ]);
 });
 
-test("white ticket space drags while the image, action and chevron remain click targets", () => {
+test("white ticket space drags while the image and action remain click targets without an extra chevron", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="active" />);
   const card = screen.getByRole("link", { name: /PlayStation 5 Slim Model/ });
   function wasPreventedBeforeTarget(target: Element) {
@@ -353,7 +353,7 @@ test("white ticket space drags while the image, action and chevron remain click 
   expect(wasPreventedBeforeTarget(within(card).getByText("PlayStation 5 Slim Model"))).toBe(true);
   expect(wasPreventedBeforeTarget(card.querySelector("[class*='productStage']")!)).toBe(false);
   expect(wasPreventedBeforeTarget(within(card).getByText("See My"))).toBe(false);
-  expect(wasPreventedBeforeTarget(card.querySelector("[class*='cardChevron']")!)).toBe(false);
+  expect(card.querySelector("[class*='cardChevron']")).toBeNull();
 });
 
 test("unavailable activity never displays a stale card or opens its detail", () => {
