@@ -39,14 +39,14 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
     };
   }, [expanded]);
 
-  return <section ref={railRef} className={styles.entryRail} aria-label={`Your separate entries for ${title}`}>
+  return <section id="saved-entry-rail" ref={railRef} className={styles.entryRail} aria-label={`Your separate entries for ${title}`}>
     <div className={styles.entryRailTop}>
       <div className={styles.entryRailHeader}>
         <strong>{heading}</strong>
         <span>{count === 1 ? "This is your separate chance at this prize." : "Choose an entry to see its own details. Each is a separate chance."}</span>
       </div>
-      <button type="button" className={styles.entryRailToggle} aria-label={`${expanded ? "Hide" : "Show"} details for ${count} ${count === 1 ? "entry" : "entries"}`} aria-expanded={expanded} aria-controls="saved-entry-tickets" onClick={() => setExpanded(open => !open)}>
-        <b>{count}</b><span>{count === 1 ? "entry" : "entries"}</span><span className={styles.entryRailChevron} aria-hidden="true">⌄</span>
+      <button type="button" className={styles.entryRailToggle} aria-expanded={expanded} aria-controls="saved-entry-tickets" onClick={() => setExpanded(open => !open)}>
+        {expanded ? "Hide" : "See"} {count} {count === 1 ? "entry" : "entries"}
       </button>
     </div>
     <nav className={styles.entryRailCompact} aria-label={`Choose an entry for ${title}`}>
@@ -73,6 +73,7 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
             className={styles.entryRailLink}
           ><span className={styles.entryTileHeading}><small>ENTRY</small><strong>{ticket.number}</strong></span><span className={styles.entryTileDate}>{ticket.enteredAt ? <time dateTime={ticket.enteredAt}>{ticket.enteredLabel}</time> : ticket.enteredLabel}</span><span className={styles.entryTileId}>#{ticket.entryId.slice(-8)}</span><span className={styles.entryTileAmount}>{ticket.amountLabel} entered</span></Link>)}
         </div>
+        <div className={styles.entryRailCloseRow}><button type="button" className={styles.entryRailClose} onClick={() => setExpanded(false)}>Close</button></div>
       </div>
     </div>
   </section>;

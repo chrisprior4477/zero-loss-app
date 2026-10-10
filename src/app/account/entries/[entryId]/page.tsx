@@ -81,7 +81,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <h2>{item.title}</h2>
           <span className={styles.status}>◷ No winners yet. We will notify you when the pool is complete.</span>
           <dl className={styles.entryIdentity}>
-            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd className={styles.entryCountBadge} aria-label={`${entryCount} ${entryCount === 1 ? "entry" : "entries"} saved for this prize`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{entryCount === 1 ? "Entry" : "Entries"}</span></dd></div>
+            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><a href="#saved-entry-rail" className={styles.entryCountBadge} aria-label={`Jump to your ${entryCount} ${entryCount === 1 ? "entry" : "entries"} for this prize`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{entryCount === 1 ? "Entry" : "Entries"}</span></a></dd></div>
             <div><dt>Entry number</dt><dd className={styles.entryNumber}>{entryId}</dd></div>
           </dl>
         </div>

@@ -51,17 +51,19 @@ test("five authorized entries expand into individual tickets and retain exact de
   const { rerender } = render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
   expect(within(hero).getByText("◷ No winners yet. We will notify you when the pool is complete.")).toBeTruthy();
-  expect(within(hero).getByLabelText("5 entries saved for this prize")).toBeTruthy();
+  expect(within(hero).getByRole("link", { name: "Jump to your 5 entries for this prize" }).getAttribute("href")).toBe("#saved-entry-rail");
   expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
   expect(within(hero).queryByText("Average people entering per day")).toBeNull();
   expect(screen.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
+  expect(rail.id).toBe("saved-entry-rail");
   expect(within(rail).getByText("Your five separate entries")).toBeTruthy();
   const compact = within(rail).getByRole("navigation", { name: "Choose an entry for PlayStation 5 Slim Model" });
   expect(within(compact).getAllByRole("link")).toHaveLength(5);
   expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("true");
-  fireEvent.click(within(rail).getByRole("button", { name: "Show details for 5 entries" }));
+  fireEvent.click(within(rail).getByRole("button", { name: "See 5 entries" }));
   expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("false");
+  expect(within(rail).getByRole("button", { name: "Hide 5 entries" }).getAttribute("aria-expanded")).toBe("true");
   expect(within(compact).getAllByRole("link")).toHaveLength(5);
   const expanded = rail.querySelector("[class*='entryRailChoices']") as HTMLElement;
   const links = within(expanded).getAllByRole("link");
@@ -75,8 +77,12 @@ test("five authorized entries expand into individual tickets and retain exact de
   expect(screen.getByRole("link", { name: "Close entry details and return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
 
   fireEvent.pointerDown(document.body);
-  expect(within(rail).getByRole("button", { name: "Show details for 5 entries" }).getAttribute("aria-expanded")).toBe("false");
+  expect(within(rail).getByRole("button", { name: "See 5 entries" }).getAttribute("aria-expanded")).toBe("false");
   expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("true");
+
+  fireEvent.click(within(rail).getByRole("button", { name: "See 5 entries" }));
+  fireEvent.click(within(rail).getByRole("button", { name: "Close" }));
+  expect(within(rail).getByRole("button", { name: "See 5 entries" }).getAttribute("aria-expanded")).toBe("false");
 
   rerender(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }), searchParams: Promise.resolve({ entries: "open" }) }));
   expect(screen.getByText(ids[4])).toBeTruthy();
@@ -98,18 +104,18 @@ test("the ticket-style entry section remains visible even for a single saved ent
   });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
-  expect(within(hero).getByLabelText("1 entry saved for this prize")).toBeTruthy();
+  expect(within(hero).getByRole("link", { name: "Jump to your 1 entry for this prize" }).getAttribute("href")).toBe("#saved-entry-rail");
   expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
   expect(within(rail).getByText("Your saved entry")).toBeTruthy();
   expect(within(rail).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).getAttribute("aria-current")).toBe("page");
   expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("true");
-  fireEvent.click(within(rail).getByRole("button", { name: "Show details for 1 entry" }));
+  fireEvent.click(within(rail).getByRole("button", { name: "See 1 entry" }));
   expect(within(rail.querySelector("[class*='entryRailChoices']") as HTMLElement).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) })).toBeTruthy();
   const compact = within(rail).getByRole("navigation", { name: "Choose an entry for PlayStation 5 Slim Model" });
   expect(within(compact).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).querySelector("i")).toBeNull();
   fireEvent.keyDown(document, { key: "Escape" });
-  expect(within(rail).getByRole("button", { name: "Show details for 1 entry" }).getAttribute("aria-expanded")).toBe("false");
+  expect(within(rail).getByRole("button", { name: "See 1 entry" }).getAttribute("aria-expanded")).toBe("false");
 });
 
 test("the expanded saved-ticket count follows newly confirmed account records", async () => {
@@ -130,8 +136,8 @@ test("the expanded saved-ticket count follows newly confirmed account records", 
   });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
   expect(screen.getByText("Your three separate entries")).toBeTruthy();
-  expect(screen.getByText("3", { selector: "[class*='entryRailToggle'] b" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "See 3 entries" })).toBeTruthy();
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
-  expect(within(hero).getByLabelText("3 entries saved for this prize")).toBeTruthy();
+  expect(within(hero).getByRole("link", { name: "Jump to your 3 entries for this prize" }).getAttribute("href")).toBe("#saved-entry-rail");
   expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
 });
