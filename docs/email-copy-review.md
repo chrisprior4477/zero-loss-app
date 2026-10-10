@@ -1,6 +1,6 @@
 # Zero Loss email copy — owner review
 
-These are proposed messages, not active emails. For each number, reply **yes**, **no**, or **change**. Words in `{braces}` are filled from the customer's account and the specific prize; buttons open the signed-in website. No gift-card number or code appears in email.
+The owner approved messages 1–11 on October 10, 2026. Messages 12–18 remain outside this approval. Words in `{braces}` are filled from the customer's account and the specific prize; buttons open the signed-in website. No gift-card number or code appears in email. The free-postcard result (#3) is a tested template only until staff validation creates a real free entry and outcome; it is not sent merely because the template exists.
 
 **Proposed sending rules:** combine a win and an immediately ready reward into one message; if issuance takes longer, send #1 and then #8. Send purchase-option reminders only when an option first opens, at 7 days left, and at 24 hours left—not every interval currently stored. Never email Crew members about a win unless the winner chooses to share it and the recipient allows that type of update. Do not send old queued messages when a new worker is first enabled.
 

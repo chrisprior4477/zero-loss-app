@@ -7,12 +7,13 @@ import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import { WalletShortcut } from "./WalletShortcut";
 import WalletPage from "@/app/account/wallet/page";
 
-const mocks = vi.hoisted(() => ({ account: vi.fn(), redirect: vi.fn((href: string) => { throw new Error(`redirect:${href}`); }) }));
+const mocks = vi.hoisted(() => ({ account: vi.fn(), rpc: vi.fn(), redirect: vi.fn((href: string) => { throw new Error(`redirect:${href}`); }) }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: mocks.rpc }) }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} /> }));
 const wallet: WalletSnapshot = { walletAccountId: null, scope: "production", currency: "USD", balanceCents: 0, transactionCount: 0, fundingAvailable: false, entries: [] };
-beforeEach(() => { vi.clearAllMocks(); mocks.account.mockResolvedValue({ activity: storedActivityFixture(), wallet }); });
+beforeEach(() => { vi.clearAllMocks(); mocks.account.mockResolvedValue({ activity: storedActivityFixture(), wallet }); mocks.rpc.mockResolvedValue({ data: [], error: null }); });
 afterEach(cleanup);
 
 test("wallet shortcut count comes only from digital prize activity, not entries or dollars", () => {

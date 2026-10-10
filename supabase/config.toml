@@ -429,3 +429,6 @@ verify_jwt = true
 
 [functions.send-crew-win-shares]
 verify_jwt = true
+
+[functions.send-reward-emails]
+verify_jwt = true
