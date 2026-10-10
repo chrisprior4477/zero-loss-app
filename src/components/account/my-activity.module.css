@@ -10,7 +10,7 @@
 .subtitle { margin-top: 12px; color: #d5dfed; font-size: clamp(17px, 2.2vw, 36px); line-height: 1.25; }
 
 .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 30px; }
-.filter, .productCard, .accountTool, .empty, .declinedRow {
+.filter, .productCard, .accountTool, .empty, .declinedRow, .entryActionTicket {
   --ticket-side-notch: 10px;
   --ticket-corner-notch: 12px;
   --ticket-cutouts:
@@ -136,13 +136,10 @@
 .newEntryLabel { position: absolute; z-index: 2; left: 7px; bottom: 7px; max-width: calc(100% - 14px); padding: 4px 6px; border-radius: 6px; background: #e7fff0; color: #027c2a; font-size: 10px; font-weight: 900; line-height: 1.1; animation: newEntryPulse 1.1s ease-in-out 3; }
 .newEntryShort { display: none; }
 @keyframes newEntryPulse { 50% { opacity: .45; transform: scale(1.04); } }
-.entrySwitcher { position: absolute; z-index: 2; left: calc(35% + 30px); bottom: 16px; display: inline-flex; height: 32px; align-items: center; gap: 3px; padding: 2px 4px; border-radius: 8px; background: #e4f5ff; color: #075391; font-size: 11px; font-weight: 850; white-space: nowrap; }
-.entrySwitcher button { display: grid; width: 25px; height: 26px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 6px; background: #c4eaff; color: #075391; font-size: 19px; line-height: 1; }
-.entrySwitcher button:disabled { opacity: .36; cursor: default; }
-.entrySwitcher button:not(:disabled):hover { background: #a6dfff; }
-.entrySwitcher button:focus-visible { outline: 2px solid #0077ff; outline-offset: 1px; }
 .cardAction { position: absolute; right: 0; bottom: 0; display: inline-flex; min-height: 32px; align-items: center; justify-content: center; gap: 7px; padding: 5px 10px; border-radius: 9px; background: #c9efff; color: #0a1b3e; font-size: clamp(10px, .83vw, 13px); font-weight: 800; white-space: nowrap; }
 .cardAction svg { width: 16px; height: 16px; }
+.productCard[data-status="active"] .cardAction { min-height: 46px; gap: 5px; padding: 3px 7px; }
+.entryActionTicket { --ticket-side-notch: 7px; --ticket-corner-notch: 10px; display: grid; width: 44px; height: 40px; flex: none; place-items: center; background: #0789ef; color: #fff; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
 [data-status="prize"] .cardAction { background: #41ea59; }
 [data-status="completion"] .cardAction { background: #ffba79; }
 [data-status="completed"] .cardAction { background: #e3edf5; }
@@ -234,7 +231,7 @@
 }
 @media (max-width: 600px) {
   .productCard[data-status="active"] .noteStack { top: -14px; }
-  .productCard[data-entry-group="true"] .noteStack { top: -5px; }
+  .productCard[data-entry-group="true"] .noteStack { top: -18px; }
   .productCard[data-status="active"] .productNote { display: flex; flex-direction: column; gap: 1px; }
   .metricSeparator { display: none; }
   .declinedRow { grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 14px 17px; }
@@ -271,8 +268,6 @@
   .newEntryLabel { left: 4px; bottom: 4px; padding: 3px 4px; font-size: 8px; }
   .newEntryLong { display: none; }
   .newEntryShort { display: inline; }
-  .entrySwitcher { left: calc(24% + 19px); bottom: 4px; height: 26px; gap: 1px; padding: 1px 2px; border-radius: 6px; font-size: 9px; }
-  .entrySwitcher button { width: 17px; height: 23px; font-size: 15px; }
   .retailer { font-size: 11px; }
   .status { gap: 4px; padding: 3px 6px; border-radius: 6px; font-size: 11px; }
   .status svg { width: 14px; height: 14px; }
@@ -280,6 +275,8 @@
   .productNote { min-width: 0; font-size: 11px; line-height: 1.12; }
   .cardAction { flex: 0 0 auto; min-height: 30px; gap: 4px; padding: 4px 5px; border-radius: 7px; font-size: 11px; }
   .cardAction svg { width: 12px; height: 12px; }
+  .productCard[data-status="active"] .cardAction { min-height: 38px; gap: 3px; padding: 2px 4px; font-size: 10px; }
+  .entryActionTicket { width: 38px; height: 34px; font-size: 16px; }
   .accountTool { min-height: 91px; grid-template-columns: 80px minmax(0, 1fr) 17px; gap: 10px; padding: 13px 16px; }
   .accountTool::before { left: 105px; }
   .profileTool { grid-template-columns: 56px minmax(0, 1fr) 17px; }
@@ -300,8 +297,6 @@
   .gallery, .gallery[data-desktop-rows="1"], .gallery[data-desktop-rows="2"] { grid-template-rows: repeat(2, 145px); }
   .gallery[data-stacked-rows="1"] { grid-template-rows: 145px; }
   .gallery[data-stacked-overflowing="true"], .gallery[data-overflowing="true"][data-stacked-overflowing="true"] { --gallery-peek: 10px; }
-  .entrySwitcher { left: calc(24% + 5px); font-size: 8px; }
-  .entrySwitcher button { width: 15px; }
 }
 @media (max-width: 610px) {
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }

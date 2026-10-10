@@ -47,7 +47,6 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
   const [view, setView] = useState({ start: 0, end: groups.length - 1, previous: false, next: false });
   const [recentEntry, setRecentEntry] = useState<{ slug: string; entryId: string | null } | null>(null);
   const [viewedEntry, setViewedEntry] = useState<string | null>(null);
-  const [selectedByGroup, setSelectedByGroup] = useState<Record<string, string>>({});
   const galleryId = useId();
 
   function move(direction: number) {
@@ -193,8 +192,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
       data-stacked-overflowing={groups.length > 2 ? "true" : undefined}
     >
       {groups.map((group, index) => {
-        const selectedId = selectedByGroup[group.key]
-          ?? (group.entries.some(entry => entry.entryId === viewedEntryId) ? viewedEntryId : undefined)
+        const selectedId = (group.entries.some(entry => entry.entryId === viewedEntryId) ? viewedEntryId : undefined)
           ?? (group.entries.some(entry => entry.entryId === recentEntry?.entryId) ? recentEntry?.entryId : undefined);
         const selectedIndex = Math.max(0, group.entries.findIndex(entry => entry.entryId === selectedId));
         const item = group.entries[selectedIndex];
@@ -214,7 +212,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={group.key} className={styles.galleryItem} style={placement}>
-          <Link href={activityHref(item, "/account/entries", filter)} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
+          <Link href={activityHref(item, "/account/entries", filter)} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : undefined} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
@@ -229,17 +227,14 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? <><span>{formatUsdFromCents(item.paidCents)} entered</span><span className={styles.metricSeparator} aria-hidden="true"> · </span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : `${offerStatus.remaining.toLocaleString("en-US")} tickets left`) : "Still in play"}</span></>
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p></div>
-                <span className={styles.cardAction} data-activity-click>{action(item)}<AccountIcon name="arrow" /></span>
+                <span className={styles.cardAction} data-activity-click>{item.status === "active"
+                  ? <><span>See My</span><span className={styles.entryActionTicket} aria-hidden="true">{group.entries.length}</span><span className={styles.srOnly}>{group.entries.length}</span><span>{group.entries.length === 1 ? "Entry" : "Entries"}</span></>
+                  : <>{action(item)}<AccountIcon name="arrow" /></>}</span>
               </div>
             </div>
             <span className={styles.cardChevron} data-activity-click aria-hidden="true" />
             {offerMetrics ? <span className={styles.offerProgress} role="progressbar" aria-label={`${item.title} offer filled`} aria-valuenow={offerMetrics.percentFilled} aria-valuemin={0} aria-valuemax={100} style={{ "--offer-progress": `${offerMetrics.percentFilled}%`, "--offer-progress-color": offerStatus?.color } as CSSProperties}><span>{offerMetrics.percentFilled}%</span></span> : null}
           </Link>
-          {multipleEntries ? <div className={styles.entrySwitcher} role="group" aria-label={`Choose an entry for ${item.title}`} data-activity-click>
-            <button type="button" aria-label="Previous entry" disabled={selectedIndex === 0} onClick={() => setSelectedByGroup(current => ({ ...current, [group.key]: group.entries[selectedIndex - 1].entryId! }))}>‹</button>
-            <span aria-live="polite" aria-atomic="true">Entry {selectedIndex + 1} of {group.entries.length}</span>
-            <button type="button" aria-label="Next entry" disabled={selectedIndex === group.entries.length - 1} onClick={() => setSelectedByGroup(current => ({ ...current, [group.key]: group.entries[selectedIndex + 1].entryId! }))}>›</button>
-          </div> : null}
           {featured && groups.length > 1 ? <p className={styles.mobileRestLabel}>Everything else</p> : null}
         </div>;
       })}

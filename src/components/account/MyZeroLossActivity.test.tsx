@@ -40,16 +40,14 @@ test("same-prize open entries share one ticket and return to the exact saved ent
   await waitFor(() => expect(screen.getByText("This is the entry you were viewing")).toBeTruthy());
   const highlighted = screen.getByText("This is the entry you were viewing").closest("[data-activity-entry-id]");
   expect(highlighted?.getAttribute("data-activity-entry-id")).toBe("ent_22222222222222222222222222222222");
-  expect(screen.getAllByText("See My Entry")).toHaveLength(1);
+  expect(within(highlighted as HTMLElement).getByText("See My")).toBeTruthy();
+  expect(within(highlighted as HTMLElement).getByText("Entries")).toBeTruthy();
   expect(screen.getByText("2 entries")).toBeTruthy();
-  expect(screen.getByText("Entry 2 of 2")).toBeTruthy();
+  expect(screen.queryByRole("group", { name: /Choose an entry/ })).toBeNull();
   expect(highlighted?.getAttribute("href")).toBe("/account/entries/ent_22222222222222222222222222222222");
-  fireEvent.click(screen.getByRole("button", { name: "Previous entry" }));
-  expect(screen.getByText("Entry 1 of 2")).toBeTruthy();
-  expect(screen.getByRole("link", { name: /PlayStation 5 Slim Model/ }).getAttribute("href")).toBe("/account/entries/ent_11111111111111111111111111111111");
 });
 
-test("five open chances keep one compact ticket while each entry remains reachable", () => {
+test("five open chances keep one compact ticket and show a current count in its action", () => {
   const state = storedActivityFixture();
   const base = state.activity[0];
   state.activity = Array.from({ length: 5 }, (_, index) => ({
@@ -62,13 +60,25 @@ test("five open chances keep one compact ticket while each entry remains reachab
   expect(gallery.getAttribute("data-desktop-rows")).toBe("1");
   expect(gallery.hasAttribute("data-multiple")).toBe(false);
   expect(within(gallery).getByText("5 entries")).toBeTruthy();
-  for (let index = 1; index <= 5; index++) {
-    expect(within(gallery).getByText(`Entry ${index} of 5`)).toBeTruthy();
-    expect(within(gallery).getByRole("link", { name: /PlayStation 5 Slim Model/ }).getAttribute("href"))
-      .toBe(`/account/entries/ent_${String(index).repeat(32)}`);
-    if (index < 5) fireEvent.click(within(gallery).getByRole("button", { name: "Next entry" }));
-  }
-  expect((within(gallery).getByRole("button", { name: "Next entry" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(within(gallery).getByText("5", { selector: "[class*='entryActionTicket']" })).toBeTruthy();
+  expect(within(gallery).getByRole("link", { name: /See My 5 Entries/ }).getAttribute("href"))
+    .toBe("/account/entries/ent_11111111111111111111111111111111");
+  expect(within(gallery).queryByRole("button", { name: "Next entry" })).toBeNull();
+});
+
+test("the saved-entry action count updates when confirmed entries are added", () => {
+  const state = storedActivityFixture();
+  const base = state.activity[0];
+  state.activity = [{ ...base, entryId: `ent_${"1".repeat(32)}` }];
+  const { rerender } = render(<MyZeroLossActivity state={state} filter="active" />);
+  expect(screen.getByRole("link", { name: /See My 1 Entry for PlayStation/ })).toBeTruthy();
+  state.activity = [
+    ...state.activity,
+    { ...base, entryId: `ent_${"2".repeat(32)}` },
+    { ...base, entryId: `ent_${"3".repeat(32)}` },
+  ];
+  rerender(<MyZeroLossActivity state={state} filter="active" />);
+  expect(screen.getByRole("link", { name: /See My 3 Entries for PlayStation/ })).toBeTruthy();
 });
 
 test("normal empty state cannot expose a fixture by selected slug or filter", () => {
@@ -342,7 +352,7 @@ test("white ticket space drags while the image, action and chevron remain click 
   }
   expect(wasPreventedBeforeTarget(within(card).getByText("PlayStation 5 Slim Model"))).toBe(true);
   expect(wasPreventedBeforeTarget(card.querySelector("[class*='productStage']")!)).toBe(false);
-  expect(wasPreventedBeforeTarget(within(card).getByText("See My Entry"))).toBe(false);
+  expect(wasPreventedBeforeTarget(within(card).getByText("See My"))).toBe(false);
   expect(wasPreventedBeforeTarget(card.querySelector("[class*='cardChevron']")!)).toBe(false);
 });
 

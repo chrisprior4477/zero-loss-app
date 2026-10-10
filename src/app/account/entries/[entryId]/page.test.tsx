@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import EntryPage from "./page";
 
 const mocks = vi.hoisted(() => ({
@@ -47,22 +47,25 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-test("five authorized entries share a separate-entry rail and retain exact detail links", async () => {
+test("five authorized entries expand into individual tickets and retain exact detail links", async () => {
   const { rerender } = render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
-  const rail = screen.getByRole("navigation", { name: "Your separate entries for PlayStation 5 Slim Model" });
+  const rail = document.querySelector("details[aria-label='Your separate entries for PlayStation 5 Slim Model']") as HTMLDetailsElement;
+  expect(rail.open).toBe(false);
   expect(within(rail).getByText("Your five separate entries")).toBeTruthy();
+  fireEvent.click(within(rail).getByText("Your five separate entries"));
+  expect(rail.open).toBe(true);
   const links = within(rail).getAllByRole("link");
-  expect(links.map(link => link.getAttribute("href"))).toEqual(ids.map(id => `/account/entries/${id}`));
-  expect(links.map(link => link.textContent)).toEqual(ids.map((_, index) => `ENTRY${index + 1}`));
-  expect(within(rail).queryByText(`#${ids[2].slice(-8)}`)).toBeNull();
+  expect(links.map(link => link.getAttribute("href"))).toEqual(ids.map(id => `/account/entries/${id}?entries=open`));
+  expect(links.map((link, index) => link.textContent?.startsWith(`ENTRY${index + 1}`))).toEqual([true, true, true, true, true]);
+  expect(within(rail).getByText("#33333333")).toBeTruthy();
   expect(links[2].getAttribute("aria-current")).toBe("page");
-  expect(rail.querySelector(`a[href="/account/entries/ent_${"a".repeat(32)}"]`)).toBeNull();
+  expect(rail.querySelector(`a[href="/account/entries/ent_${"a".repeat(32)}?entries=open"]`)).toBeNull();
   expect(screen.getByRole("region", { name: "Saved entry and prize pool" }).compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(rail.compareDocumentPosition(screen.getByRole("heading", { name: /prize pool still has tickets available/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-  rerender(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }) }));
+  rerender(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }), searchParams: Promise.resolve({ entries: "open" }) }));
   expect(screen.getByText(ids[4])).toBeTruthy();
-  expect(within(screen.getByRole("navigation", { name: "Your separate entries for PlayStation 5 Slim Model" })).getAllByRole("link")[4].getAttribute("aria-current")).toBe("page");
+  expect(within(screen.getByRole("navigation", { name: "Individual tickets for PlayStation 5 Slim Model" })).getAllByRole("link")[4].getAttribute("aria-current")).toBe("page");
 });
 
 test("an entry outside the signed-in account cannot open through the rail", async () => {
@@ -78,7 +81,29 @@ test("the ticket-style entry section remains visible even for a single saved ent
     displayName: "Chris",
   });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
-  const rail = screen.getByRole("navigation", { name: "Your separate entries for PlayStation 5 Slim Model" });
+  const rail = document.querySelector("details[aria-label='Your separate entries for PlayStation 5 Slim Model']") as HTMLDetailsElement;
+  expect(rail.open).toBe(true);
   expect(within(rail).getByText("Your saved entry")).toBeTruthy();
   expect(within(rail).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).getAttribute("aria-current")).toBe("page");
+});
+
+test("the expanded saved-ticket count follows newly confirmed account records", async () => {
+  mocks.account.mockResolvedValueOnce({
+    activity: { activity: [activity[0]], source: "stored" },
+    wallet: { balanceCents: 10000, scope: "demo" },
+    emailConfirmed: true,
+    displayName: "Chris",
+  });
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
+  expect(screen.getByText("Your saved entry")).toBeTruthy();
+  cleanup();
+  mocks.account.mockResolvedValueOnce({
+    activity: { activity: activity.slice(0, 3), source: "stored" },
+    wallet: { balanceCents: 9800, scope: "demo" },
+    emailConfirmed: true,
+    displayName: "Chris",
+  });
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
+  expect(screen.getByText("Your three separate entries")).toBeTruthy();
+  expect(screen.getByText("3", { selector: "[class*='entryRailToggle'] b" })).toBeTruthy();
 });

@@ -23,16 +23,28 @@
 .progressCircle { display: grid; width: 86px; height: 86px; place-items: center; border-radius: 50%; box-shadow: 0 5px 12px #001a3e24; }
 .progressCircle span { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 20px; font-weight: 900; }
 .progressUnavailable { grid-column: 3; grid-row: 1; align-self: end; color: #57738f; font-size: 12px; }
-.entryRail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); align-items: center; gap: 20px; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #fffefa; padding: 24px 36px; color: #10234a; }
+.entryRail { margin-top: 18px; border-radius: 20px; background: #fffefa; padding: 24px 36px; color: #10234a; }
+.entryRailSummary { display: flex; min-height: 54px; align-items: center; justify-content: space-between; gap: 18px; list-style: none; cursor: pointer; }
+.entryRailSummary::-webkit-details-marker { display: none; }
+.entryRailSummary:focus-visible { outline: 3px solid #0789ef; outline-offset: 5px; border-radius: 6px; }
 .entryRailHeader { display: grid; min-width: 0; gap: 5px; }
 .entryRailHeader strong { font-size: 18px; font-weight: 900; line-height: 1.2; }
 .entryRailHeader span { color: #526e8a; font-size: 13px; line-height: 1.35; }
-.entryRailChoices { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 10px; border-radius: 14px; background: #e4f4ff; padding: 10px; }
-.entryRailLink { --ticket-side-notch: 5px; --ticket-corner-notch: 7px; display: flex; width: 46px; height: 38px; flex: 0 0 46px; align-items: center; flex-direction: column; justify-content: center; gap: 0; background: #0b376a; color: #fff; font-size: 16px; font-weight: 900; line-height: 1; text-decoration: none; }
-.entryRailLink small { font-size: 9px; font-weight: 700; letter-spacing: .03em; line-height: 1; }
-.entryRailLink i { width: 18px; height: 2px; margin-top: 2px; background: #79d7ff; }
+.entryRailToggle { display: inline-flex; flex: none; align-items: center; gap: 8px; color: #0b376a; font-size: 13px; font-weight: 850; }
+.entryRailToggle b { display: grid; min-width: 35px; height: 35px; place-items: center; border-radius: 50%; background: #0b376a; padding-inline: 6px; color: #fff; font-size: 17px; font-variant-numeric: tabular-nums; }
+.entryRailChevron { display: inline-block; font-size: 26px; line-height: .8; transition: transform .2s ease; }
+.entryRail[open] .entryRailChevron { transform: rotate(180deg); }
+.entryRailChoices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; border-radius: 14px; background: #e4f4ff; padding: 13px; animation: entryRailReveal .22s ease-out; }
+@keyframes entryRailReveal { from { opacity: .55; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.entryRailLink { --ticket-side-notch: 9px; --ticket-corner-notch: 12px; display: flex; min-width: 0; min-height: 116px; flex-direction: column; gap: 5px; background: #0b376a; padding: 17px 21px; color: #fff; text-decoration: none; }
+.entryTileHeading { display: flex; align-items: baseline; gap: 8px; line-height: 1; }
+.entryTileHeading small { font-size: 10px; font-weight: 800; letter-spacing: .07em; }
+.entryTileHeading strong { font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.entryTileDate, .entryTileId, .entryTileAmount { font-size: 11px; line-height: 1.2; }
+.entryTileDate { font-weight: 750; }
+.entryTileId { color: #b5eaff; font-variant-numeric: tabular-nums; }
+.entryTileAmount { margin-top: auto; font-weight: 850; }
 .entryRailLink[aria-current="page"] { background: #0789ef; color: #fff; }
-.entryRailLink[aria-current="page"] i { background: #fff; }
 .entryRailLink:hover:not([aria-current="page"]) { background: #15528f; }
 .entryRailLink:focus-visible { box-shadow: inset 0 0 0 3px #fff; }
 .playTicket { margin-top: 18px; padding: clamp(26px, 3vw, 40px); }
@@ -111,7 +123,7 @@
 .demoNotice p:last-child { margin-bottom: 0; }
 :is(.checkoutConfirm, .addAgain, .receiptActions button, .approval input, .railArrow, .notifyButton, .addCrewCard):focus-visible { outline: 3px solid #0077ff; outline-offset: 3px; }
 :is(.backLink, .nextButton, .primaryLink, .crewToggle, .crewSend, .returnButton, .quantityControls button, .emailPreference button):focus-visible { outline: 3px solid #00b9ff; outline-offset: 3px; }
-@media (max-width: 800px) { .heroTicket { grid-template-columns: 150px minmax(0, 1fr) 96px; gap: 18px; padding: 80px 26px 26px; } .heroReturnButton { position: absolute; top: 22px; right: 26px; width: auto; } .productImage { height: 150px; } .progressCircle { width: 75px; height: 75px; } .progressCircle span { width: 59px; height: 59px; font-size: 18px; } .entryIdentity { grid-template-columns: 1fr; } .actionGrid { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .heroTicket { grid-template-columns: 150px minmax(0, 1fr) 96px; gap: 18px; padding: 80px 26px 26px; } .heroReturnButton { position: absolute; top: 22px; right: 26px; width: auto; } .productImage { height: 150px; } .progressCircle { width: 75px; height: 75px; } .progressCircle span { width: 59px; height: 59px; font-size: 18px; } .entryIdentity { grid-template-columns: 1fr; } .entryRailChoices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actionGrid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .topline { align-items: start; } .backLink { align-self: center; font-size: 13px; } .heroTicket { grid-template-columns: 100px minmax(0, 1fr); gap: 8px 12px; padding: 23px 20px; } .heroReturnButton { position: static; grid-column: 1 / -1; grid-row: 1; width: auto; margin: 0 0 4px; } .productImage { grid-column: 1; grid-row: 2 / 5; height: 112px; } .heroCopy { display: contents; } .heroCopy > .retailer, .heroCopy > h2, .heroCopy > .status { grid-column: 2; } .heroCopy > .retailer { grid-row: 2; align-self: end; } .heroCopy > h2 { grid-row: 3; align-self: center; font-size: 23px; } .heroCopy > .status { grid-row: 4; justify-self: start; align-self: start; margin-top: 0; } .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 5; margin-top: 14px; } .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 6; justify-self: end; align-self: end; margin-top: -5px; } .playTicket { padding: 25px 22px; } }
 @media (max-width: 390px) { .heroTicket { grid-template-columns: 82px minmax(0, 1fr); } .productImage { height: 100px; } .heroCopy h2 { font-size: 21px; } }
 @media (max-width: 600px) {
@@ -121,12 +133,18 @@
   .entryIdentity > div:nth-child(3) { grid-column: 2; grid-row: 1; }
   .entryIdentity > div:nth-child(4) { grid-column: 1; grid-row: 3; align-self: center; }
   .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 5; justify-self: end; align-self: end; margin: 0 0 3px; }
-  .entryRail { display: block; min-height: 0; margin-top: 12px; padding: 23px 20px; }
+  .entryRail { margin-top: 12px; padding: 20px; }
   .entryRailHeader { gap: 2px; }
   .entryRailHeader strong { font-size: 17px; }
-  .entryRailChoices { gap: 8px; margin-top: 12px; }
+  .entryRailToggle { gap: 4px; font-size: 11px; }
+  .entryRailToggle b { min-width: 30px; height: 30px; font-size: 14px; }
+  .entryRailChoices { gap: 8px; margin-top: 12px; padding: 9px; }
+  .entryRailLink { min-height: 111px; gap: 4px; padding: 15px 16px; }
+  .entryTileHeading strong { font-size: 20px; }
+  .entryTileDate, .entryTileId, .entryTileAmount { font-size: 10px; }
   .crewPanel { padding-inline: 10px; }
   .crewRailWrap { display: block; }
   .railArrow { display: none; }
   .crewRail { gap: 8px; padding-inline: 0; }
 }
+@media (prefers-reduced-motion: reduce) { .entryRailChoices { animation: none; } .entryRailChevron { transition: none; } }

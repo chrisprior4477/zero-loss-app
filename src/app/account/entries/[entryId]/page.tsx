@@ -23,7 +23,7 @@ function enteredTime(value: string | null | undefined): number {
   return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
 }
 
-export default async function EntryPage({ params }: { params: Promise<{ entryId: string }> }) {
+export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string }> }) {
   const { entryId } = await params;
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
   const account = await getAccountContext();
@@ -36,6 +36,7 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
       || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
   const entryCount = relatedEntries.length;
   const entryCountLabel = entryCountWords[entryCount] ?? entryCount.toLocaleString("en-US");
+  const expandEntries = entryCount === 1 || (await searchParams)?.entries === "open";
 
   const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
   const metrics = activityOfferMetrics([item], availability)[item.slug];
@@ -84,22 +85,29 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
           <strong>{metrics.remaining === 0 ? "Pool full" : `${metrics.remaining.toLocaleString("en-US")} tickets left`}</strong>
         </div> : <p className={styles.progressUnavailable}>Current pool count unavailable</p>}
       </section>
-      <nav className={styles.entryRail} aria-label={`Your separate entries for ${item.title}`}>
-        <div className={styles.entryRailHeader}>
-          <strong>{entryCount === 1 ? "Your saved entry" : `Your ${entryCountLabel} separate entries`}</strong>
-          <span>{entryCount === 1 ? "This is your separate chance at this prize." : "Choose an entry to see its own details. Each is a separate chance."}</span>
-        </div>
-        <div className={styles.entryRailChoices}>
-          {relatedEntries.map((entry, index) => <Link
-            key={entry.entryId}
-            href={`/account/entries/${encodeURIComponent(entry.entryId!)}`}
-            prefetch={false}
-            aria-current={entry.entryId === entryId ? "page" : undefined}
-            aria-label={`See entry ${index + 1} of ${entryCount}, entry number ${entry.entryId}${entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt)) ? `, entered ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.enteredAt))}` : ""}`}
-            className={styles.entryRailLink}
-          ><small>ENTRY</small><span>{index + 1}</span><i aria-hidden="true" /></Link>)}
-        </div>
-      </nav>
+      <details className={styles.entryRail} aria-label={`Your separate entries for ${item.title}`} open={expandEntries}>
+        <summary className={styles.entryRailSummary}>
+          <span className={styles.entryRailHeader}>
+            <strong>{entryCount === 1 ? "Your saved entry" : `Your ${entryCountLabel} separate entries`}</strong>
+            <span>{entryCount === 1 ? "This is your separate chance at this prize." : "Open to see each saved ticket and its own details."}</span>
+          </span>
+          <span className={styles.entryRailToggle}><b>{entryCount}</b><span>{entryCount === 1 ? "entry" : "entries"}</span><span className={styles.entryRailChevron} aria-hidden="true">⌄</span></span>
+        </summary>
+        <nav className={styles.entryRailChoices} aria-label={`Individual tickets for ${item.title}`}>
+          {relatedEntries.map((entry, index) => {
+            const date = entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt))
+              ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.enteredAt)) : null;
+            return <Link
+              key={entry.entryId}
+              href={`/account/entries/${encodeURIComponent(entry.entryId!)}?entries=open`}
+              prefetch={false}
+              aria-current={entry.entryId === entryId ? "page" : undefined}
+              aria-label={`See entry ${index + 1} of ${entryCount}, entry number ${entry.entryId}${date ? `, entered ${date}` : ""}`}
+              className={styles.entryRailLink}
+            ><span className={styles.entryTileHeading}><small>ENTRY</small><strong>{index + 1}</strong></span><span className={styles.entryTileDate}>{date ? <time dateTime={entry.enteredAt!}>{date}</time> : "Date unavailable"}</span><span className={styles.entryTileId}>#{entry.entryId!.slice(-8)}</span><span className={styles.entryTileAmount}>{formatUsdFromCents(entry.paidCents)} entered</span></Link>;
+          })}
+        </nav>
+      </details>
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
