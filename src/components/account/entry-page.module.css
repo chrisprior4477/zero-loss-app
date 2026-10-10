@@ -1,25 +1,30 @@
 .page { min-height: calc(100svh - 130px); padding: clamp(18px, 3vw, 48px) clamp(12px, 3vw, 44px) 70px; background: radial-gradient(ellipse at 50% 15%, #10345b, #061b38 75%); color: #fff; }
 .shell { max-width: 1120px; margin: 0 auto; }
-.topline { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 22px; }
+.topline { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 18px; margin-bottom: 22px; }
+.toplineHeading { min-width: 0; }
+.toplineActions { display: flex; align-items: center; gap: 12px; }
+.topReturnButton { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 8px; border-radius: 9px; background: #bfeeff; padding: 7px 14px; color: #08274b; font-size: 13px; font-weight: 900; line-height: 1.15; text-align: center; text-decoration: none; }
+.topReturnButton:hover { background: #e0f7ff; }
 .topline h1 { margin: 4px 0 0; font-size: clamp(30px, 3vw, 44px); line-height: 1.1; letter-spacing: -.035em; }
 .pageSubtitle { margin: 6px 0 0; color: #d4eaff; font-size: 14px; }
 .eyebrow { margin: 0; color: #55caff; font-size: 13px; font-weight: 900; letter-spacing: .16em; }
 .closePage { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; align-self: start; border: 2px solid #a9ddf7; border-radius: 50%; color: #fff; font-size: 30px; font-weight: 400; line-height: 1; text-decoration: none; }
 .closePage:hover { background: #ffffff20; }
 .closePage span { transform: translateY(-2px); }
-.heroTicket, .playTicket, .entryRailLink, .entryRailSmallTicket { --ticket-side-notch: 11px; --ticket-corner-notch: 16px; --ticket-cutouts: radial-gradient(circle at left center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at right center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at left top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at left bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)); -webkit-mask-image: var(--ticket-cutouts); mask-image: var(--ticket-cutouts); -webkit-mask-composite: source-in, source-in, source-in, source-in, source-in; mask-composite: intersect; background: #fffefa; color: #10234a; }
+.heroTicket, .playTicket, .entryRailLink, .entryRailSmallTicket, .entryCountTicket { --ticket-side-notch: 11px; --ticket-corner-notch: 16px; --ticket-cutouts: radial-gradient(circle at left center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at right center, transparent 0 var(--ticket-side-notch), #000 calc(var(--ticket-side-notch) + .8px)), radial-gradient(circle at left top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right top, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at left bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)), radial-gradient(circle at right bottom, transparent 0 var(--ticket-corner-notch), #000 calc(var(--ticket-corner-notch) + .8px)); -webkit-mask-image: var(--ticket-cutouts); mask-image: var(--ticket-cutouts); -webkit-mask-composite: source-in, source-in, source-in, source-in, source-in; mask-composite: intersect; background: #fffefa; color: #10234a; }
 .heroTicket { position: relative; display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr) minmax(190px, 220px); align-items: center; gap: clamp(16px, 3vw, 36px); min-height: 246px; padding: 30px 36px; }
 .productImage { position: relative; grid-column: 1; grid-row: 1; width: 100%; height: 185px; border-radius: 18px; background: #e9f6ff; overflow: hidden; }
 .productImage img { object-fit: contain; padding: 10px; }
 .heroCopy { grid-column: 2; grid-row: 1; min-width: 0; }
 .retailer { margin: 0 0 3px; color: #057fbe; font-size: 13px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .heroCopy h2 { margin: 0; font-size: clamp(24px, 2.7vw, 35px); line-height: 1.09; letter-spacing: -.035em; }
-.status { display: inline-flex; align-items: center; margin-top: 10px; border-radius: 100px; background: #c8effe; padding: 5px 11px; color: #006b91; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+.status { display: inline-flex; max-width: 100%; align-items: center; margin-top: 10px; border-radius: 100px; background: #c8effe; padding: 5px 11px; color: #006b91; font-size: 12px; font-weight: 900; line-height: 1.2; text-transform: uppercase; }
 .entryIdentity { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; margin: 17px 0 0; }
 .entryIdentity div { min-width: 0; }
 .entryIdentity dt { color: #57738f; font-size: 12px; font-weight: 700; }
 .entryIdentity dd { margin: 2px 0 0; font-size: 13px; font-weight: 800; }
-.averageNote { display: block; margin-top: 2px; color: #57738f; font-size: 10px; line-height: 1.3; }
+.entryIdentity .entryCountBadge { display: inline-flex; max-width: 100%; min-height: 36px; align-items: center; gap: 7px; margin-top: 7px; border-radius: 8px; background: #c8effe; padding: 3px 9px 3px 3px; color: #10234a; font-size: 12px; font-weight: 900; line-height: 1; white-space: nowrap; }
+.entryCountTicket { --ticket-side-notch: 4px; --ticket-corner-notch: 6px; display: grid; min-width: 39px; height: 30px; place-items: center; background: #0789ef; padding: 0 9px; color: #fff; font-size: 17px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .entryNumber { overflow-wrap: anywhere; }
 .progressCorner { grid-column: 3; grid-row: 1; align-self: end; display: grid; justify-items: center; gap: 6px; text-align: center; color: #142753; font-size: 12px; }
 .progressCircle { display: grid; width: 86px; height: 86px; place-items: center; border-radius: 50%; box-shadow: 0 5px 12px #001a3e24; }
@@ -95,7 +100,6 @@
 .emailPreference button:disabled { opacity: .55; }
 .emailPreference p { margin: 8px 0 0; color: #58738d; font-size: 12px; line-height: 1.4; }
 .returnButton { width: 100%; margin-top: 20px; background: #0c3768; color: #fff; }
-.heroReturnButton { grid-column: 3; grid-row: 1; align-self: start; justify-self: end; width: 100%; margin-top: 0; font-size: 14px; white-space: nowrap; }
 .inlineCheckout { margin-top: 14px; border: 1px solid #84bce0; border-radius: 12px; background: #fffefa; padding: 16px; }
 .inlineCheckout h4 { margin: 0 0 9px; font-size: 18px; }
 .inlineCheckout p { margin: 4px 0 8px; }
@@ -132,17 +136,16 @@
 .actionPanel .demoNotice { margin-top: 9px; border-radius: 9px; background: #ddf6df; padding: 10px; color: #174c2b; }
 .demoNotice p:last-child { margin-bottom: 0; }
 :is(.checkoutConfirm, .addAgain, .receiptActions button, .approval input, .railArrow, .notifyButton, .addCrewCard):focus-visible { outline: 3px solid #0077ff; outline-offset: 3px; }
-:is(.closePage, .nextButton, .primaryLink, .crewToggle, .crewSend, .returnButton, .quantityControls button, .emailPreference button):focus-visible { outline: 3px solid #00b9ff; outline-offset: 3px; }
-@media (max-width: 800px) { .heroTicket { grid-template-columns: 150px minmax(0, 1fr) 96px; gap: 18px; padding: 80px 26px 26px; } .heroReturnButton { position: absolute; top: 22px; right: 26px; width: auto; } .productImage { height: 150px; } .progressCircle { width: 75px; height: 75px; } .progressCircle span { width: 59px; height: 59px; font-size: 18px; } .entryIdentity { grid-template-columns: 1fr; } .entryRailChoices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actionGrid { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .topline { align-items: start; } .closePage { width: 38px; height: 38px; flex-basis: 38px; font-size: 27px; } .heroTicket { grid-template-columns: 100px minmax(0, 1fr); gap: 8px 12px; padding: 23px 20px; } .heroReturnButton { position: static; grid-column: 1 / -1; grid-row: 1; width: auto; margin: 0 0 4px; } .productImage { grid-column: 1; grid-row: 2 / 5; height: 112px; } .heroCopy { display: contents; } .heroCopy > .retailer, .heroCopy > h2, .heroCopy > .status { grid-column: 2; } .heroCopy > .retailer { grid-row: 2; align-self: end; } .heroCopy > h2 { grid-row: 3; align-self: center; font-size: 23px; } .heroCopy > .status { grid-row: 4; justify-self: start; align-self: start; margin-top: 0; } .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 5; margin-top: 14px; } .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 6; justify-self: end; align-self: end; margin-top: -5px; } .playTicket { padding: 25px 22px; } }
+:is(.closePage, .topReturnButton, .nextButton, .primaryLink, .crewToggle, .crewSend, .returnButton, .quantityControls button, .emailPreference button):focus-visible { outline: 3px solid #00b9ff; outline-offset: 3px; }
+@media (max-width: 800px) { .heroTicket { grid-template-columns: 150px minmax(0, 1fr) 96px; gap: 18px; padding: 26px; } .productImage { height: 150px; } .progressCircle { width: 75px; height: 75px; } .progressCircle span { width: 59px; height: 59px; font-size: 18px; } .entryIdentity { grid-template-columns: 1fr; } .entryRailChoices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actionGrid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .topline { align-items: start; } .toplineActions { display: contents; } .topReturnButton { grid-column: 1 / -1; grid-row: 2; justify-self: start; } .closePage { grid-column: 2; grid-row: 1; width: 38px; height: 38px; font-size: 27px; } .heroTicket { grid-template-columns: 100px minmax(0, 1fr); gap: 8px 12px; padding: 23px 20px; } .productImage { grid-column: 1; grid-row: 1 / 4; height: 112px; } .heroCopy { display: contents; } .heroCopy > .retailer, .heroCopy > h2, .heroCopy > .status { grid-column: 2; } .heroCopy > .retailer { grid-row: 1; align-self: end; } .heroCopy > h2 { grid-row: 2; align-self: center; font-size: 23px; } .heroCopy > .status { grid-row: 3; justify-self: start; align-self: start; margin-top: 0; } .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 4; margin-top: 14px; } .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 4; justify-self: end; align-self: end; margin-top: -5px; } .playTicket { padding: 25px 22px; } }
 @media (max-width: 390px) { .heroTicket { grid-template-columns: 82px minmax(0, 1fr); } .productImage { height: 100px; } .heroCopy h2 { font-size: 21px; } }
 @media (max-width: 600px) {
-  .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 5; grid-template-columns: minmax(0, 1fr) minmax(86px, .7fr); grid-template-rows: auto auto minmax(100px, auto); gap: 11px 12px; margin-top: 14px; }
+  .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 4; grid-template-columns: minmax(0, 1fr) minmax(86px, .7fr); grid-template-rows: auto auto minmax(100px, auto); gap: 11px 12px; margin-top: 14px; }
   .entryIdentity > div:nth-child(1) { grid-column: 1; grid-row: 1; }
   .entryIdentity > div:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
-  .entryIdentity > div:nth-child(3) { grid-column: 2; grid-row: 1; }
-  .entryIdentity > div:nth-child(4) { grid-column: 1; grid-row: 3; align-self: center; }
-  .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 5; justify-self: end; align-self: end; margin: 0 0 3px; }
+  .entryIdentity > div:nth-child(3) { grid-column: 1; grid-row: 3; align-self: center; }
+  .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 4; justify-self: end; align-self: end; margin: 0 0 3px; }
   .entryRail { display: block; margin-top: 12px; padding: 20px; }
   .entryRailTop { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .entryRailHeader { gap: 2px; }

@@ -49,6 +49,12 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 test("five authorized entries expand into individual tickets and retain exact detail links", async () => {
   const { rerender } = render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
+  const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
+  expect(within(hero).getByText("◷ No winner yet · Entries open")).toBeTruthy();
+  expect(within(hero).getByLabelText("5 entries saved for this prize")).toBeTruthy();
+  expect(within(hero).getByText("Total entered on this prize").nextElementSibling?.textContent).toBe("$5");
+  expect(within(hero).queryByText("Average people entering per day")).toBeNull();
+  expect(screen.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
   expect(within(rail).getByText("Your five separate entries")).toBeTruthy();
   const compact = within(rail).getByRole("navigation", { name: "Choose an entry for PlayStation 5 Slim Model" });
@@ -91,6 +97,9 @@ test("the ticket-style entry section remains visible even for a single saved ent
     displayName: "Chris",
   });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
+  const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
+  expect(within(hero).getByLabelText("1 entry saved for this prize")).toBeTruthy();
+  expect(within(hero).getByText("Total entered on this prize").nextElementSibling?.textContent).toBe("$1");
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
   expect(within(rail).getByText("Your saved entry")).toBeTruthy();
   expect(within(rail).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).getAttribute("aria-current")).toBe("page");
@@ -122,4 +131,7 @@ test("the expanded saved-ticket count follows newly confirmed account records", 
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
   expect(screen.getByText("Your three separate entries")).toBeTruthy();
   expect(screen.getByText("3", { selector: "[class*='entryRailToggle'] b" })).toBeTruthy();
+  const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
+  expect(within(hero).getByLabelText("3 entries saved for this prize")).toBeTruthy();
+  expect(within(hero).getByText("Total entered on this prize").nextElementSibling?.textContent).toBe("$3");
 });

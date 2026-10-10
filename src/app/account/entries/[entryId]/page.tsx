@@ -36,6 +36,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     .sort((left, right) => enteredTime(left.enteredAt) - enteredTime(right.enteredAt)
       || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
   const entryCount = relatedEntries.length;
+  const totalEnteredCents = relatedEntries.reduce((total, entry) => total + entry.paidCents, 0);
   const entryCountLabel = entryCountWords[entryCount] ?? entryCount.toLocaleString("en-US");
   const expandEntries = (await searchParams)?.entries === "open";
   const savedTickets = relatedEntries.map((entry, index) => ({
@@ -50,18 +51,11 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
   const metrics = activityOfferMetrics([item], availability)[item.slug];
   const progressColor = metrics ? availabilityStatus(metrics.capacity, metrics.sold).color : null;
-  const [emailResult, crewResult, dailyPeopleResult, requestHead] = await Promise.all([
+  const [emailResult, crewResult, requestHead] = await Promise.all([
     db.rpc("get_entry_outcome_email_enabled"),
     db.rpc("get_crew_member_profiles"),
-    db.rpc("get_preview_daily_people_average", { p_offering_slug: item.slug }),
     getEntryRequestHead(db, item.slug),
   ]);
-  const dailyPeopleData: unknown = dailyPeopleResult.data;
-  const personDays = !dailyPeopleResult.error && dailyPeopleData && typeof dailyPeopleData === "object" && "personDays" in dailyPeopleData
-    ? dailyPeopleData.personDays : null;
-  const dailyAverage = typeof personDays === "number" && Number.isSafeInteger(personDays) && personDays >= 0
-    ? new Intl.NumberFormat("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(personDays / 7)
-    : null;
   const crew = crewResult.error || !Array.isArray(crewResult.data) ? [] : crewResult.data
     .filter((member: { member_id?: unknown; name?: unknown }) => typeof member.member_id === "string" && typeof member.name === "string")
     .map((member: { member_id: string; name: string; avatar_reference?: string | null }) => ({
@@ -74,19 +68,23 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
 
   return <main className={styles.page}>
     <div className={styles.shell}>
-      <div className={styles.topline}><div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>Your saved entry for the prize below.</p></div><Link href={returnHref} className={styles.closePage} aria-label="Close entry details and return to My Activity"><span aria-hidden="true">×</span></Link></div>
+      <div className={styles.topline}>
+        <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>Your saved entry for the prize below.</p></div>
+        <div className={styles.toplineActions}>
+          <Link href={returnHref} className={styles.topReturnButton}>Return to My Activity <span aria-hidden="true">→</span></Link>
+          <Link href={returnHref} className={styles.closePage} aria-label="Close entry details and return to My Activity"><span aria-hidden="true">×</span></Link>
+        </div>
+      </div>
       <section className={styles.heroTicket} aria-label="Saved entry and prize pool">
-        <Link href={returnHref} className={`${styles.returnButton} ${styles.heroReturnButton}`}>Return to My Activity →</Link>
         <div className={styles.productImage}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100px, (max-width: 900px) 150px, 190px" /></div>
         <div className={styles.heroCopy}>
           <p className={styles.retailer}>{item.retailer}</p>
           <h2>{item.title}</h2>
-          <span className={styles.status}>◷ Still open</span>
+          <span className={styles.status}>◷ No winner yet · Entries open</span>
           <dl className={styles.entryIdentity}>
-            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd></div>
+            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd className={styles.entryCountBadge} aria-label={`${entryCount} ${entryCount === 1 ? "entry" : "entries"} saved for this prize`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{entryCount === 1 ? "Entry" : "Entries"}</span></dd></div>
             <div><dt>Entry number</dt><dd className={styles.entryNumber}>{entryId}</dd></div>
-            <div><dt>What you’ve entered on this prize</dt><dd>{formatUsdFromCents(item.paidCents)}</dd></div>
-            <div><dt>Average people entering per day</dt><dd>{dailyAverage === null ? "Unavailable" : `${dailyAverage} people/day`}</dd><small className={styles.averageNote}>Verified demo activity, past 7 days. Sample tickets excluded.</small></div>
+            <div><dt>Total entered on this prize</dt><dd>{formatUsdFromCents(totalEnteredCents)}</dd></div>
           </dl>
         </div>
         {metrics ? <div className={styles.progressCorner}>
