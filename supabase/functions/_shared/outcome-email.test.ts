@@ -19,6 +19,8 @@ describe("outcome emails", () => {
   });
   it("charges the full value for a free AMOE entry", () => {
     const result = renderOutcomeEmail({ ...base, kind: "amoe_not_selected", paidCents: 0, completionCents: 5000 });
+    expect(result.subject).toBe("Your free-entry result is ready: $50 Headphones");
+    expect(result.subject).not.toBe(renderOutcomeEmail(base).subject);
     expect(result.text).toContain("for $50");
     expect(result.text).toContain("no entry payment is applied");
   });

@@ -44,7 +44,11 @@ export function renderOutcomeEmail(input: OutcomeEmailInput): { subject: string;
     throw new Error("Completion amount or deadline does not match the entry");
   }
   if (win && !input.rewardHref) throw new Error("Winner reward link is required");
-  const subject = win ? `You won: ${title}` : `Your result is ready: ${title}`;
+  const subject = win
+    ? `You won: ${title}`
+    : amoe
+      ? `Your free-entry result is ready: ${title}`
+      : `Your result is ready: ${title}`;
   const eyebrow = win ? "YOU WON" : "YOUR ENTRY RESULT";
   const headline = win ? `You won ${title}.` : "This entry wasn't selected.";
   const paragraphs = win
