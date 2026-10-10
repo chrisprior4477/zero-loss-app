@@ -7,7 +7,7 @@ import { crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, type CrewVisibil
 type CrewActionResult = { ok: boolean; message: string };
 export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: string | null };
 type CrewSearchResult = CrewActionResult & { people: CrewSearchPerson[] };
-export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string };
+export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 
 export async function sharePrizeWithCrew(offeringSlug: string, recipientIds: string[]): Promise<CrewActionResult & { queued?: number; alreadyShared?: number }> {
   if (!/^[a-z0-9-]{2,100}$/.test(offeringSlug) || !Array.isArray(recipientIds) || recipientIds.length < 1 || recipientIds.length > 20
@@ -24,6 +24,33 @@ export async function sharePrizeWithCrew(offeringSlug: string, recipientIds: str
   }
   return { ok: true, queued: data.queued, alreadyShared: data.alreadyShared,
     message: data.queued ? `Saved for email delivery to ${data.queued} approved Crew ${data.queued === 1 ? "member" : "members"}.` : "This prize was already shared with the selected Crew members." };
+}
+
+export async function shareWinWithCrew(rewardId: string, recipientIds: string[]): Promise<CrewActionResult & { queued?: number; alreadyShared?: number }> {
+  if (!crewUuid.test(rewardId) || !Array.isArray(recipientIds) || recipientIds.length < 1 || recipientIds.length > 20
+    || new Set(recipientIds).size !== recipientIds.length || !recipientIds.every(id => crewUuid.test(id))) {
+    return { ok: false, message: "Choose approved Crew members before sharing this win." };
+  }
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in before sharing this win with your Crew." };
+  const { data, error } = await session.db.rpc("share_win_with_crew", {
+    p_reward_id: rewardId, p_recipient_ids: recipientIds,
+  });
+  if (error || !data || typeof data.queued !== "number" || typeof data.alreadyShared !== "number") {
+    return { ok: false, message: "We couldn’t save this win share. Check that everyone is still approved, then try again." };
+  }
+  return { ok: true, queued: data.queued, alreadyShared: data.alreadyShared,
+    message: data.queued ? `Win update shared with ${data.queued} approved Crew ${data.queued === 1 ? "member" : "members"}. Email goes only to members who allow win updates.` : "This win was already shared with the selected Crew members." };
+}
+
+export async function setCrewWinEmailPreference(enabled: boolean): Promise<CrewActionResult> {
+  if (typeof enabled !== "boolean") return { ok: false, message: "Choose whether to receive Crew win emails." };
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in before changing Crew email preferences." };
+  const { error } = await session.db.rpc("set_crew_win_email_enabled", { p_enabled: enabled });
+  if (error) return { ok: false, message: "We couldn’t save your Crew win email preference." };
+  revalidatePath("/account/notifications");
+  return { ok: true, message: enabled ? "Crew win emails are on." : "Crew win emails are off. Your Crew connections are unchanged." };
 }
 
 async function signedInClient() {

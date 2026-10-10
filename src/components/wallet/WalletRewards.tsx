@@ -10,6 +10,7 @@ import { RewardRedemptionActions } from "./RewardRedemptionActions";
 import { RewardClaimControl } from "./RewardClaimControl";
 import { DemoRewardRestartControl } from "./DemoRewardRestartControl";
 import { DemoIdentityPreviewButton } from "@/components/identity/DemoVerificationDialog";
+import { ShareWinWithCrew, type WinShareCrewMember } from "./ShareWinWithCrew";
 import styles from "./wallet-rewards.module.css";
 import overview from "./gift-rewards-overview.module.css";
 
@@ -142,7 +143,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, claimedCode = null, overview: accountOverview }: { item: ActivityItem; isPreview: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean } }) {
+export function WalletRewardDetail({ item, isPreview, claimedCode = null, overview: accountOverview, crewMembers = [] }: { item: ActivityItem; isPreview: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -235,6 +236,8 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
           {available ? <p className={styles.storewideMessage}><strong>Use it on anything {item.retailer} sells.</strong> Product availability and redemption methods are set by {item.retailer}.</p> : null}
         </aside>
       </div>
+
+      {item.status === "prize" && item.rewardId ? <ShareWinWithCrew rewardId={item.rewardId} members={crewMembers} /> : null}
 
       <p className={styles.rewardDisclosure}>This retailer gift card is not restricted to the featured product. Availability, pricing, and redemption methods are controlled by {item.retailer}.</p>
       {isPreview ? <div className="mx-auto mt-5 max-w-lg rounded-2xl border border-[#31e800]/40 bg-[#06223d] p-4 text-center text-white">

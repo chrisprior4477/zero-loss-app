@@ -54,13 +54,20 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   ]);
   if (requestedReward) {
     let claimedCode: string | null = null;
+    let crewMembers: { id: string; name: string }[] = [];
+    if (reward?.status === "prize" && reward.rewardId) {
+      const db = await createClient();
+      const { data, error } = await db.rpc("get_crew_member_profiles");
+      crewMembers = !error && Array.isArray(data) ? data.filter((member: { member_id?: unknown; name?: unknown }) => typeof member.member_id === "string" && typeof member.name === "string")
+        .map((member: { member_id: string; name: string }) => ({ id: member.member_id, name: member.name })) : [];
+    }
     if (reward?.rewardId && reward.rewardClaimedAt && reward.rewardStatus === "ready") {
       const db = await createClient();
       const { data, error } = await db.rpc("get_claimed_reward", { p_reward_id: reward.rewardId });
       claimedCode = !error && data && typeof data === "object" && "code" in data && typeof data.code === "string" ? data.code : null;
     }
     return reward
-      ? <WalletRewardDetail item={reward} isPreview={account.activity.isPreview} claimedCode={claimedCode} overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />
+      ? <WalletRewardDetail item={reward} isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />
       : <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href="/account/wallet" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
   }
   if (history) return <WalletOverview wallet={account.wallet} ledgerEntries={ledgerEntries} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;

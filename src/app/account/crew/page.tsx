@@ -18,7 +18,7 @@ export type CrewInvitation = {
   created_at: string;
 };
 export type OwnCrewEntry = { id: string; title: string; retailer: string; image: string | null; createdAt: string; shared: boolean };
-export type SharedCrewPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string };
+export type SharedCrewPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 export type CrewMember = { memberId: string; name: string; avatarUrl: string | null };
 
 export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; tab?: string; request?: string; invite?: string }> }) {
