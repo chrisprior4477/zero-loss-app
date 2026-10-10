@@ -197,6 +197,9 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
         const selectedIndex = Math.max(0, group.entries.findIndex(entry => entry.entryId === selectedId));
         const item = group.entries[selectedIndex];
         const multipleEntries = group.entries.length > 1;
+        const enteredCents = item.status === "active"
+          ? group.entries.reduce((total, entry) => total + entry.paidCents, 0)
+          : item.paidCents;
         const featured = item.status === "prize" && index === 0;
         const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
         const isRecent = recentEntry?.slug === item.slug && (!recentEntry.entryId || recentEntry.entryId === item.entryId);
@@ -225,7 +228,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
               <div className={styles.cardFoot}>
                 <div className={styles.noteStack}><p className={styles.productNote}>{item.status === "completion"
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
-                  : item.status === "active" ? <><span><strong>{formatUsdFromCents(item.paidCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left for prize</>) : "Still in play"}</span></>
+                  : item.status === "active" ? <><span><strong>{formatUsdFromCents(enteredCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left<span className={styles.forPrize}> for prize</span></>) : "Still in play"}</span></>
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p></div>
                 <span className={styles.cardAction} data-activity-click>{item.status === "active"
                   ? <><span>See My</span><span className={styles.entryActionTicket} aria-hidden="true">{group.entries.length}</span><span className={styles.srOnly}>{group.entries.length}</span><span>{group.entries.length === 1 ? "Entry" : "Entries"}</span></>

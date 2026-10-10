@@ -43,6 +43,7 @@ test("same-prize open entries share one ticket and return to the exact saved ent
   expect(within(highlighted as HTMLElement).getByText("See My")).toBeTruthy();
   expect(within(highlighted as HTMLElement).getByText("Entries")).toBeTruthy();
   expect(screen.getByText("2 entries")).toBeTruthy();
+  expect(highlighted?.querySelector("[class*='productNote']")?.firstElementChild?.textContent).toBe("$2 entered");
   expect(screen.queryByRole("group", { name: /Choose an entry/ })).toBeNull();
   expect(highlighted?.getAttribute("href")).toBe("/account/entries/ent_22222222222222222222222222222222");
 });
@@ -66,6 +67,25 @@ test("five open chances keep one compact ticket and show a current count in its 
   expect(within(gallery).queryByRole("button", { name: "Next entry" })).toBeNull();
 });
 
+test("the grouped dollar total, entry badge, header count, and pool availability stay in sync", () => {
+  const state = storedActivityFixture();
+  const base = state.activity[0];
+  state.activity = Array.from({ length: 10 }, (_, index) => ({
+    ...base,
+    entryId: `ent_${String(index + 1).repeat(32)}`,
+  }));
+  state.activeCount = 10;
+  render(<MyZeroLossActivity state={state} filter="active" metricsBySlug={{
+    "playstation-5-slim": { capacity: 300, sold: 139, remaining: 161, percentFilled: 46 },
+  }} />);
+  const card = screen.getByRole("link", { name: /See My 10 Entries for PlayStation/ });
+  const lines = card.querySelector("[class*='productNote']")!;
+  expect(Array.from(lines.children).map(line => line.textContent)).toEqual(["$10 entered", "161 tickets left for prize"]);
+  expect(within(card).getByText("10", { selector: "[class*='entryActionTicket']" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "See Open Entries10" })).toBeTruthy();
+  expect(within(card).getByRole("progressbar").getAttribute("aria-valuenow")).toBe("46");
+});
+
 test("the saved-entry action count updates when confirmed entries are added", () => {
   const state = storedActivityFixture();
   const base = state.activity[0];
@@ -79,6 +99,7 @@ test("the saved-entry action count updates when confirmed entries are added", ()
   ];
   rerender(<MyZeroLossActivity state={state} filter="active" />);
   expect(screen.getByRole("link", { name: /See My 3 Entries for PlayStation/ })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /See My 3 Entries for PlayStation/ }).querySelector("[class*='productNote']")?.firstElementChild?.textContent).toBe("$3 entered");
 });
 
 test("normal empty state cannot expose a fixture by selected slug or filter", () => {
