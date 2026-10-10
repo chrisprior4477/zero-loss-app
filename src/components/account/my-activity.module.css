@@ -47,6 +47,7 @@
 .filter[data-filter="active"] { --ticket-color: #0077ff; }
 .filter[data-filter="prize"] { --ticket-color: #4ee85d; color: #082528; }
 .filter[data-filter="completion"] { --ticket-color: #ff832b; color: #251c16; }
+.filter[data-filter="completed"] { --ticket-color: #3c6e9a; }
 .filter > svg { width: clamp(27px, 2.9vw, 47px); height: clamp(27px, 2.9vw, 47px); flex: 0 0 auto; }
 .filter > span:nth-child(2) { min-width: 0; }
 .filterCount { display: grid; flex: 0 0 auto; place-items: center; min-width: clamp(37px, 3.2vw, 52px); min-height: clamp(37px, 3.2vw, 52px); margin-left: auto; padding: 0 7px; border-radius: 13px; background: #062953af; color: #fff; font-size: clamp(17px, 1.65vw, 26px); font-variant-numeric: tabular-nums; }
