@@ -84,12 +84,15 @@
 .actionPanel { display: flex; min-width: 0; flex-direction: column; border: 1px solid #c6dced; border-radius: 13px; background: #eaf6ff; padding: 20px; }
 .actionPanel h3 { margin: 0 0 6px; font-size: 19px; font-weight: 900; }
 .actionPanel p { margin: 0 0 13px; color: #4c6a87; line-height: 1.45; }
+.entryActionPanel { border-color: #28608b; background: #062547; color: #fff; }
+.entryActionPanel > p { color: #d1e9f8; }
 .quantityControls { display: flex; align-items: center; flex-direction: column; justify-content: center; gap: 4px; margin: 14px 0; }
 .quantityStepper { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .quantityControls button { width: 40px; height: 40px; border: 1px solid #64b4dd; border-radius: 50%; background: #fff; color: #092042; font-size: 24px; font-weight: 800; cursor: pointer; }
 .quantityControls button:disabled { opacity: .35; cursor: not-allowed; }
 .quantityControls output { min-width: 24px; text-align: center; font-weight: 900; }
 .quantityControls span { color: #536f89; font-size: 13px; }
+.entryActionPanel .quantityControls span { color: #c5e4f7; }
 .primaryLink, .crewSend, .returnButton { display: inline-flex; min-height: 45px; align-items: center; justify-content: center; border: 0; border-radius: 9px; padding: 10px 16px; text-align: center; font-weight: 900; text-decoration: none; cursor: pointer; }
 .primaryLink { width: 100%; background: #31e800; color: #082514; }
 .crewToggle { display: flex; width: 100%; min-height: 42px; align-items: center; justify-content: space-between; border: 1px solid #88b8d8; border-radius: 8px; background: #fff; padding: 8px 12px; color: #10234a; font-weight: 800; cursor: pointer; }
@@ -101,7 +104,9 @@
 .actionPanel .demoNotice { margin: 9px 0 0; font-size: 12px; font-weight: 700; }
 .actionPanel .unavailable { margin-top: 16px; }
 .unavailable a { color: #006baf; text-decoration: underline; }
+.entryActionPanel .unavailable a { color: #bcecff; }
 .preference { margin-top: auto; border-top: 1px solid #c6dced; padding-top: 18px; }
+.entryActionPanel .preference { border-top-color: #28608b; }
 .emailPreference h3 { margin: 0 0 8px; font-size: 19px; }
 .emailPreference form { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .emailPreference label { display: flex; width: 100%; min-width: 0; align-items: flex-start; gap: 10px; line-height: 1.35; font-weight: 750; }
@@ -109,11 +114,12 @@
 .emailPreference button { width: 100%; min-height: 40px; border: 0; border-radius: 8px; background: #00b9ff; padding: 8px 14px; color: #07183d; font-weight: 900; cursor: pointer; }
 .emailPreference button:disabled { opacity: .55; }
 .emailPreference p { margin: 8px 0 0; color: #58738d; font-size: 12px; line-height: 1.4; }
+.entryActionPanel .emailPreference p { color: #c5e4f7; }
 .returnButton { width: 100%; margin-top: 20px; background: #0c3768; color: #fff; }
-.inlineCheckout { margin-top: 14px; border: 1px solid #84bce0; border-radius: 12px; background: #fffefa; padding: 16px; }
+.inlineCheckout { margin-top: 14px; border: 1px solid #4586af; border-radius: 12px; background: #0a3157; padding: 16px; color: #fff; }
 .inlineCheckout h4 { margin: 0 0 9px; font-size: 18px; }
-.inlineCheckout p { margin: 4px 0 8px; }
-.inlineCheckout strong { color: #10234a; }
+.entryActionPanel .inlineCheckout p { margin: 4px 0 8px; color: #d1e9f8; }
+.inlineCheckout strong { color: #fff; }
 .approval { display: flex; align-items: center; gap: 9px; margin: 14px 0; font-size: 13px; font-weight: 800; }
 .approval input { width: 20px; height: 20px; accent-color: #1384cf; flex: none; }
 .checkoutConfirm, .addAgain { width: 100%; min-height: 44px; border: 0; border-radius: 9px; padding: 10px; font-weight: 900; cursor: pointer; }
@@ -121,13 +127,15 @@
 .checkoutConfirm:disabled { opacity: .5; cursor: not-allowed; }
 .addAgain { margin-top: 10px; background: #d8efff; color: #073a70; }
 .checkoutError { color: #9b2626 !important; font-weight: 750; }
+.entryActionPanel .checkoutError { color: #ffd4cd !important; }
 .checkoutSuccess { border-radius: 9px; background: #d9ffd6; padding: 10px; color: #145c20 !important; font-weight: 750; }
-.receiptBox { display: grid; gap: 7px; border: 1px solid #f79645; border-radius: 10px; background: #fff0e2; padding: 13px; }
-.receiptBox span { font-size: 13px; color: #4c6a87; }
-.receiptBox small { color: #4c6a87; font-size: 12px; line-height: 1.35; }
-.receiptActions { display: flex; flex-wrap: wrap; gap: 8px; }
-.receiptActions button { min-height: 40px; flex: 1; border: 0; border-radius: 8px; padding: 7px 10px; color: #08213f; font-weight: 900; cursor: pointer; }
-.receiptActions button:first-child { background: #b9ebff; }
+.receiptBox { display: grid; gap: 7px; border: 1px solid #ff9a45; border-radius: 12px; background: #ff6a00; padding: 16px; color: #00132e; }
+.receiptBox strong { color: #00132e; font-size: 17px; font-weight: 900; }
+.receiptBox span { color: #00132e; font-size: 13px; }
+.receiptBox small { color: #00132e; font-size: 12px; line-height: 1.35; }
+.receiptActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 3px; }
+.receiptActions button { min-height: 48px; border: 0; border-radius: 9px; padding: 7px 10px; color: #00132e; font-size: 15px; font-weight: 900; cursor: pointer; }
+.receiptActions button:first-child { background: #bcecff; }
 .receiptActions button:last-child { background: #31e800; }
 .receiptActions button:disabled { opacity: .5; cursor: not-allowed; }
 .crewRailWrap { display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px; align-items: center; gap: 3px; }

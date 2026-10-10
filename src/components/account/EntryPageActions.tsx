@@ -186,7 +186,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
     <button type="button" className={styles.nextButton} aria-expanded={nextOpen} onClick={() => setNextOpen(open => !open)}>What happens next <span aria-hidden="true">{nextOpen ? "−" : "+"}</span></button>
     {nextOpen ? <div className={styles.nextPanel}><p>The pool stays open until its available tickets are filled. Once the result is posted, your outcome will appear in My Activity and Notifications. If your entry is not selected, any optional purchase offer and its deadline will be shown separately.</p></div> : null}
     <div className={styles.actionGrid}>
-      <section className={styles.actionPanel} aria-labelledby="add-entries-title">
+      <section className={`${styles.actionPanel} ${styles.entryActionPanel}`} aria-labelledby="add-entries-title">
         <h3 id="add-entries-title">Want to help this pool close faster?</h3>
         <p>Add more separate chances for {itemTitle}, right here on this page.</p>
         {maxQuantity > 0 ? <>

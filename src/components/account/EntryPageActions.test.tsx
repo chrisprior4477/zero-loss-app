@@ -33,6 +33,7 @@ test("additional entries are reviewed and confirmed on the same page", async () 
   fireEvent.click(screen.getByRole("button", { name: "Add one extra entry" }));
   fireEvent.click(screen.getByRole("button", { name: "Add 2 more entries to PlayStation 5" }));
   expect(screen.getByText(/2 separate entries × \$1 =/)).toBeTruthy();
+  expect(screen.getByText("Want to help this pool close faster?").closest("section")?.className).toContain("entryActionPanel");
   expect(screen.queryByRole("link", { name: /Review 2 more entries/ })).toBeNull();
   expect(screen.getByTestId("outcome-email-preference").closest("section")?.getAttribute("aria-labelledby")).toBe("add-entries-title");
   expect(screen.getByRole("link", { name: /Return to My Activity/ }).getAttribute("href")).toBe(props.returnHref);
@@ -87,6 +88,8 @@ test("pending entry can be confirmed here without a checkout redirect", async ()
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Confirm entry" })).toBeTruthy());
   expect(screen.getByText(/header counts active entries after confirmation/)).toBeTruthy();
+  expect(screen.getByText(/Entry submitted · Undo available/).closest("[role='status']")?.className).toContain("receiptBox");
+  expect(screen.getByRole("button", { name: "Undo entry" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry" }));
   await waitFor(() => expect(screen.getByText(/new entry is confirmed and saved in My Activity/)).toBeTruthy());
   expect(confirmPendingEntryRequest).toHaveBeenCalledWith(request.requestId);
