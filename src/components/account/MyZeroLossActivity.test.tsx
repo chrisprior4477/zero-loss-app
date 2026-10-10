@@ -42,7 +42,7 @@ test("same-prize open entries share one ticket and return to the exact saved ent
   expect(highlighted?.getAttribute("data-activity-entry-id")).toBe("ent_22222222222222222222222222222222");
   expect(within(highlighted as HTMLElement).getByText("See My")).toBeTruthy();
   expect(within(highlighted as HTMLElement).getByText("Entries")).toBeTruthy();
-  expect(screen.getByText("2 entries")).toBeTruthy();
+  expect(highlighted?.querySelector("[class*='productStage'] [class*='entryCountSeal']")).toBeNull();
   expect(highlighted?.querySelector("[class*='productNote']")?.firstElementChild?.textContent).toBe("$2 entered");
   expect(screen.queryByRole("group", { name: /Choose an entry/ })).toBeNull();
   expect(highlighted?.getAttribute("href")).toBe("/account/entries/ent_22222222222222222222222222222222");
@@ -60,14 +60,14 @@ test("five open chances keep one compact ticket and show a current count in its 
   expect(within(gallery).getAllByRole("link", { name: /PlayStation 5 Slim Model/ })).toHaveLength(1);
   expect(gallery.getAttribute("data-desktop-rows")).toBe("1");
   expect(gallery.hasAttribute("data-multiple")).toBe(false);
-  expect(within(gallery).getByText("5 entries")).toBeTruthy();
+  expect(within(gallery).queryByText("5 entries")).toBeNull();
   expect(within(gallery).getByText("5", { selector: "[class*='entryActionTicket']" })).toBeTruthy();
   expect(within(gallery).getByRole("link", { name: /See My 5 Entries/ }).getAttribute("href"))
     .toBe("/account/entries/ent_11111111111111111111111111111111");
   expect(within(gallery).queryByRole("button", { name: "Next entry" })).toBeNull();
 });
 
-test("the grouped dollar total, entry badge, header count, and pool availability stay in sync", () => {
+test("the grouped dollar total, action count, header count, and pool availability stay in sync", () => {
   const state = storedActivityFixture();
   const base = state.activity[0];
   state.activity = Array.from({ length: 10 }, (_, index) => ({
@@ -82,6 +82,7 @@ test("the grouped dollar total, entry badge, header count, and pool availability
   const lines = card.querySelector("[class*='productNote']")!;
   expect(Array.from(lines.children).map(line => line.textContent)).toEqual(["$10 entered", "161 tickets left for prize"]);
   expect(within(card).getByText("10", { selector: "[class*='entryActionTicket']" })).toBeTruthy();
+  expect(card.querySelector("[class*='productStage'] [class*='entryCountSeal']")).toBeNull();
   expect(screen.getByRole("link", { name: "See Open Entries10" })).toBeTruthy();
   expect(within(card).getByRole("progressbar").getAttribute("aria-valuenow")).toBe("46");
 });

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import EntryPage from "./page";
+import { prizeNumberForSlug } from "@/lib/catalog/prize-number";
 
 const mocks = vi.hoisted(() => ({
   account: vi.fn(),
@@ -35,6 +36,7 @@ const activity = ids.map((entryId, index) => ({
 }));
 
 beforeEach(() => {
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
   mocks.account.mockResolvedValue({
     activity: { activity: [...activity].reverse().concat({ ...activity[0], entryId: `ent_${"a".repeat(32)}`, slug: "another-prize" }), source: "stored" },
     wallet: { balanceCents: 10000, scope: "demo" },
@@ -47,13 +49,15 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-test("five authorized entries expand into individual tickets and retain exact detail links", async () => {
+test("five authorized entries expand into individual tickets, copy full IDs, and retain one prize number", async () => {
   const { rerender } = render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
   expect(within(hero).getByText("◷ No winners yet. We will notify you when the pool is complete.")).toBeTruthy();
   expect(within(hero).getByRole("link", { name: "Jump to your 5 entries for this prize" }).getAttribute("href")).toBe("#saved-entry-rail");
   expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
   expect(within(hero).queryByText("Average people entering per day")).toBeNull();
+  expect(within(hero).getByText("Prize number")).toBeTruthy();
+  expect(within(hero).getByText(prizeNumberForSlug("playstation-5-slim"))).toBeTruthy();
   expect(screen.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
   expect(rail.id).toBe("saved-entry-rail");
@@ -68,9 +72,13 @@ test("five authorized entries expand into individual tickets and retain exact de
   const expanded = rail.querySelector("[class*='entryRailChoices']") as HTMLElement;
   const links = within(expanded).getAllByRole("link");
   expect(links.map(link => link.getAttribute("href"))).toEqual(ids.map(id => `/account/entries/${id}?entries=open`));
-  expect(links.map((link, index) => link.textContent?.startsWith(`ENTRY${index + 1}`))).toEqual([true, true, true, true, true]);
+  expect(Array.from(expanded.querySelectorAll("[class*='entryRailLink']")).map((ticket, index) => ticket.textContent?.startsWith(`ENTRY${index + 1}`))).toEqual([true, true, true, true, true]);
   expect(within(rail).getByText("#33333333")).toBeTruthy();
   expect(links[2].getAttribute("aria-current")).toBe("page");
+  fireEvent.click(within(expanded).getByRole("button", { name: `Copy full entry number ${ids[2]}` }));
+  await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(ids[2]));
+  expect(within(expanded).getByRole("button", { name: `Copied full entry number ${ids[2]}` })).toBeTruthy();
+  expect(links[2].getAttribute("href")).toBe(`/account/entries/${ids[2]}?entries=open`);
   expect(rail.querySelector(`a[href="/account/entries/ent_${"a".repeat(32)}?entries=open"]`)).toBeNull();
   expect(screen.getByRole("region", { name: "Saved entry and prize pool" }).compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(rail.compareDocumentPosition(screen.getByRole("heading", { name: /prize pool still has tickets available/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -86,7 +94,7 @@ test("five authorized entries expand into individual tickets and retain exact de
   expect(document.activeElement).toBe(within(rail).getByRole("button", { name: "See 5 entries" }));
 
   rerender(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }), searchParams: Promise.resolve({ entries: "open" }) }));
-  expect(screen.getByText(ids[4])).toBeTruthy();
+  expect(within(screen.getByRole("region", { name: "Saved entry and prize pool" })).getByText(prizeNumberForSlug("playstation-5-slim"))).toBeTruthy();
   expect(within(screen.getByRole("navigation", { name: "Choose an entry for PlayStation 5 Slim Model" })).getAllByRole("link")[4].getAttribute("aria-current")).toBe("page");
   expect(within(document.querySelector("[class*='entryRailChoices']") as HTMLElement).getAllByRole("link")[4].getAttribute("aria-current")).toBe("page");
 });

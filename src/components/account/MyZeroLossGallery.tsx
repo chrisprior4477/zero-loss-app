@@ -222,7 +222,6 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
               <span className={styles.status}><AccountIcon name={item.completionOptionStatus === "declined" ? "completion" : item.status} />{item.completionOptionStatus === "declined" ? "Declined" : offerStatus?.remaining === 0 ? "Awaiting result" : labels[item.status]}</span>
               <div className={styles.productStage} data-activity-click>
                 <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 44vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
-                {multipleEntries ? <span className={styles.entryCountSeal}>{group.entries.length} entries<span className={styles.srOnly}> on this prize, each a separate chance</span></span> : null}
                 {viewedEntry === item.entryId || isRecent ? <span className={styles.newEntryLabel} aria-label={viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}><span className={styles.newEntryLong}>{viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}</span><span className={styles.newEntryShort}>{viewedEntry === item.entryId ? "Viewing" : "New"}</span></span> : null}
               </div>
               <div className={styles.cardFoot}>

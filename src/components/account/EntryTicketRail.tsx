@@ -20,9 +20,22 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
   heading: string;
 }) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
+  const [copiedEntryId, setCopiedEntryId] = useState<string | null>(null);
+  const [copyErrorEntryId, setCopyErrorEntryId] = useState<string | null>(null);
   const railRef = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const count = tickets.length;
+
+  const copyEntryId = async (entryId: string) => {
+    try {
+      await navigator.clipboard.writeText(entryId);
+      setCopiedEntryId(entryId);
+      setCopyErrorEntryId(null);
+    } catch {
+      setCopiedEntryId(null);
+      setCopyErrorEntryId(entryId);
+    }
+  };
 
   const closeFromBottom = () => {
     setExpanded(false);
@@ -73,15 +86,29 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
     <div id="saved-entry-tickets" className={styles.entryRailExpansion} data-expanded={expanded} aria-hidden={!expanded} inert={!expanded}>
       <div className={styles.entryRailExpansionInner}>
         <div className={styles.entryRailChoices} data-count={count === 1 ? "single" : "multiple"}>
-          {tickets.map(ticket => <Link
+          {tickets.map(ticket => <div
             key={ticket.entryId}
-            href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open`}
-            prefetch={false}
-            scroll={false}
-            aria-current={ticket.entryId === selectedEntryId ? "page" : undefined}
-            aria-label={`See full ticket for entry ${ticket.number} of ${count}, entry number ${ticket.entryId}`}
+            data-current={ticket.entryId === selectedEntryId ? "true" : undefined}
             className={styles.entryRailLink}
-          ><span className={styles.entryTileHeading}><small>ENTRY</small><strong>{ticket.number}</strong></span><span className={styles.entryTileDate}>{ticket.enteredAt ? <time dateTime={ticket.enteredAt}>{ticket.enteredLabel}</time> : ticket.enteredLabel}</span><span className={styles.entryTileId}>#{ticket.entryId.slice(-8)}</span><span className={styles.entryTileAmount}>{ticket.amountLabel} entered</span></Link>)}
+          >
+            <Link
+              href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open`}
+              prefetch={false}
+              scroll={false}
+              aria-current={ticket.entryId === selectedEntryId ? "page" : undefined}
+              aria-label={`See full ticket for entry ${ticket.number} of ${count}, entry number ${ticket.entryId}`}
+              className={styles.entryRailCardLink}
+            />
+            <span className={styles.entryTileHeading} aria-hidden="true"><small>ENTRY</small><strong>{ticket.number}</strong></span>
+            <span className={styles.entryTileDate} aria-hidden="true">{ticket.enteredAt ? <time dateTime={ticket.enteredAt}>{ticket.enteredLabel}</time> : ticket.enteredLabel}</span>
+            <span className={styles.entryTileIdRow}>
+              <span className={styles.entryTileId} aria-hidden="true">#{ticket.entryId.slice(-8)}</span>
+              <button type="button" className={styles.entryCopyButton} onClick={() => void copyEntryId(ticket.entryId)} aria-label={`${copiedEntryId === ticket.entryId ? "Copied" : copyErrorEntryId === ticket.entryId ? "Could not copy" : "Copy"} full entry number ${ticket.entryId}`} title={copyErrorEntryId === ticket.entryId ? "Could not copy. Please try again." : copiedEntryId === ticket.entryId ? "Copied" : "Copy full entry number"}>
+                {copiedEntryId === ticket.entryId ? <span aria-hidden="true">✓</span> : <svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><rect x="6" y="5" width="10" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><path d="M13 5V3.5A1.5 1.5 0 0 0 11.5 2h-8A1.5 1.5 0 0 0 2 3.5v10A1.5 1.5 0 0 0 3.5 15H6" stroke="currentColor" strokeWidth="1.7" /></svg>}
+              </button>
+            </span>
+            <span className={styles.entryTileAmount} aria-hidden="true">{ticket.amountLabel} entered</span>
+          </div>)}
         </div>
         <div className={styles.entryRailCloseRow}><button type="button" className={styles.entryRailClose} onClick={closeFromBottom}>Close</button></div>
       </div>
