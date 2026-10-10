@@ -123,6 +123,8 @@ async function sendPreviewTests(): Promise<Response> {
   if (Deno.env.get("OUTCOME_EMAIL_TESTS_ENABLED") !== "true") return response(503, { error: "Preview email tests are disabled" });
   const recipient = Deno.env.get("OUTCOME_EMAIL_TEST_RECIPIENT");
   if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) return response(503, { error: "Preview recipient is not configured" });
+  const batch = Deno.env.get("OUTCOME_EMAIL_TEST_BATCH") ?? "accounts-approved-20261010";
+  if (!/^[A-Za-z0-9_-]{8,48}$/.test(batch)) return response(503, { error: "Preview batch is not configured" });
   const previewOrigin = siteOrigin();
   const entryHref = `${previewOrigin}/account/entries`;
   const rewardHref = `${previewOrigin}/account/wallet?view=rewards`;
@@ -134,12 +136,12 @@ async function sendPreviewTests(): Promise<Response> {
     { kind: "paid_not_selected" as const, paidCents: 100, completionCents: 4900, completionDeadline },
     { kind: "amoe_not_selected" as const, paidCents: 0, completionCents: 5000, completionDeadline },
   ];
-  const sent: string[] = [];
+  const sent: { kind: string; providerMessageId: string }[] = [];
   for (const test of cases) {
     const message = renderOutcomeEmail({ ...sample, ...test });
-    await sendMessage(recipient, `[MVP preview] ${message.subject}`, message.html, message.text,
-      `zero-loss-outcome-preview-${test.kind}-accounts-approved-20261010`);
-    sent.push(test.kind);
+    const providerMessageId = await sendMessage(recipient, `[MVP preview] ${message.subject}`, message.html, message.text,
+      `zero-loss-outcome-preview-${test.kind}-${batch}`);
+    sent.push({ kind: test.kind, providerMessageId });
   }
   return response(200, { sent });
 }
