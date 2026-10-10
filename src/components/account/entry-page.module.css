@@ -28,6 +28,11 @@
 .entryCountBadge:focus-visible { outline: 3px solid #0789ef; outline-offset: 3px; }
 .entryCountTicket { --ticket-side-notch: 4px; --ticket-corner-notch: 6px; display: grid; min-width: 39px; height: 30px; place-items: center; background: #0789ef; padding: 0 9px; color: #fff; font-size: 17px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .entryNumber { overflow-wrap: anywhere; }
+.prizeNumberRow { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.prizeCopyButton { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 5px; border: 1px solid #8ec8eb; border-radius: 7px; background: #e4f6ff; padding: 5px 9px; color: #0b376a; font: inherit; font-size: 12px; font-weight: 850; line-height: 1; cursor: pointer; }
+.prizeCopyButton svg { width: 15px; height: 15px; }
+.prizeCopyButton:hover { background: #c8effe; }
+.prizeCopyButton:focus-visible { outline: 3px solid #0789ef; outline-offset: 2px; }
 .progressCorner { grid-column: 3; grid-row: 1; align-self: end; display: grid; justify-items: center; gap: 6px; text-align: center; color: #142753; font-size: 12px; }
 .progressCircle { display: grid; width: 86px; height: 86px; place-items: center; border-radius: 50%; box-shadow: 0 5px 12px #001a3e24; }
 .progressCircle span { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 20px; font-weight: 900; }

@@ -13,6 +13,7 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryPageActions } from "@/components/account/EntryPageActions";
 import { EntryTicketRail } from "@/components/account/EntryTicketRail";
+import { PrizeNumberCopy } from "@/components/account/PrizeNumberCopy";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
 import styles from "@/components/account/entry-page.module.css";
 
@@ -83,7 +84,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <span className={styles.status}>◷ No winners yet. We will notify you when the pool is complete.</span>
           <dl className={styles.entryIdentity}>
             <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><a href="#saved-entry-rail" className={styles.entryCountBadge} aria-label={`Jump to your ${entryCount} ${entryCount === 1 ? "entry" : "entries"} for this prize`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{entryCount === 1 ? "Entry" : "Entries"}</span></a></dd></div>
-            <div><dt>Prize number</dt><dd className={styles.entryNumber}>{prizeNumberForSlug(item.slug)}</dd></div>
+            <div><dt>Prize number</dt><PrizeNumberCopy number={prizeNumberForSlug(item.slug)} /></div>
           </dl>
         </div>
         {metrics ? <div className={styles.progressCorner}>

@@ -58,6 +58,9 @@ test("five authorized entries expand into individual tickets, copy full IDs, and
   expect(within(hero).queryByText("Average people entering per day")).toBeNull();
   expect(within(hero).getByText("Prize number")).toBeTruthy();
   expect(within(hero).getByText(prizeNumberForSlug("playstation-5-slim"))).toBeTruthy();
+  fireEvent.click(within(hero).getByRole("button", { name: `Copy prize number ${prizeNumberForSlug("playstation-5-slim")}` }));
+  await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prizeNumberForSlug("playstation-5-slim")));
+  expect(within(hero).getByRole("button", { name: `Copied prize number ${prizeNumberForSlug("playstation-5-slim")}` })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
   expect(rail.id).toBe("saved-entry-rail");
