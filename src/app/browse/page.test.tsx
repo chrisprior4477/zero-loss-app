@@ -54,6 +54,17 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i })).toBeTruthy();
   });
 
+  test("removes a won Walmart card from its gift-card listings until the demo reset", async () => {
+    const params = { category: "groceries", retailer: "Walmart", type: "gift-cards" };
+    account.get.mockResolvedValue({ activity: { source: "stored", activity: [{ slug: "walmart-100-gift-card", status: "prize" }] } });
+    render(await BrowsePage({ searchParams: Promise.resolve(params) }));
+    expect(screen.queryByRole("link", { name: /\$100 Walmart Gift Card/i })).toBeNull();
+    cleanup();
+    account.get.mockResolvedValue({ activity: { source: "customer-empty", activity: [] } });
+    render(await BrowsePage({ searchParams: Promise.resolve(params) }));
+    expect(screen.getByRole("link", { name: /\$100 Walmart Gift Card/i })).toBeTruthy();
+  });
+
   test("shows the product-request path when nothing matches", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "kayak" }) }));
 
