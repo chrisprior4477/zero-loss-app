@@ -1,6 +1,7 @@
 // @ts-expect-error Deno Edge resolves npm: specifiers; the Next.js tsconfig does not.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { renderFavoriteAlertEmail } from "../_shared/favorite-alert-email.ts";
+import { emailSender } from "../_shared/email-sender.ts";
 
 declare const Deno: {
   env: { get(name: string): string | undefined };
@@ -12,7 +13,6 @@ const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const resendKey = Deno.env.get("RESEND_OUTCOME_API_KEY");
 const workerToken = Deno.env.get("FAVORITE_ALERT_WORKER_TOKEN");
 const configuredOrigin = Deno.env.get("OUTCOME_EMAIL_SITE_ORIGIN");
-const sender = "Zero Loss Accounts <accounts@getzeroloss.com>";
 
 function respond(status: number, body: Record<string, unknown>): Response {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
@@ -74,7 +74,7 @@ Deno.serve(async request => {
       const result = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json", "Idempotency-Key": `zero-loss-favorite-alert-${delivery.id}` },
-        body: JSON.stringify({ from: sender, to: [account.user.email], subject: email.subject, html: email.html, text: email.text }),
+        body: JSON.stringify({ from: emailSender, to: [account.user.email], subject: email.subject, html: email.html, text: email.text }),
       });
       const message = await result.json();
       if (!result.ok || typeof message?.id !== "string") throw new Error(`Resend rejected email (${result.status})`);

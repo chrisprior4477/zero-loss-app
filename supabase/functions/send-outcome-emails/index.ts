@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { renderOutcomeEmail } from "../_shared/outcome-email.ts";
+import { emailSender } from "../_shared/email-sender.ts";
 
 declare const Deno: {
   env: { get(name: string): string | undefined };
@@ -11,7 +12,6 @@ const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const resendKey = Deno.env.get("RESEND_OUTCOME_API_KEY");
 const scheduledWorkerToken = Deno.env.get("OUTCOME_EMAIL_WORKER_TOKEN");
 const configuredSiteOrigin = Deno.env.get("OUTCOME_EMAIL_SITE_ORIGIN");
-const sender = "Zero Loss Accounts <accounts@getzeroloss.com>";
 
 function response(status: number, body: Record<string, unknown>): Response {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
@@ -60,7 +60,7 @@ async function sendMessage(to: string, subject: string, html: string, text: stri
       "Content-Type": "application/json",
       "Idempotency-Key": idempotencyKey,
     },
-    body: JSON.stringify({ from: sender, to: [to], subject, html, text }),
+    body: JSON.stringify({ from: emailSender, to: [to], subject, html, text }),
   });
   const result = await sent.json();
   if (!sent.ok || typeof result?.id !== "string") throw new Error(`Resend rejected email (${sent.status})`);
@@ -138,7 +138,7 @@ async function sendPreviewTests(): Promise<Response> {
   for (const test of cases) {
     const message = renderOutcomeEmail({ ...sample, ...test });
     await sendMessage(recipient, `[MVP preview] ${message.subject}`, message.html, message.text,
-      `zero-loss-outcome-preview-${test.kind}-branded-20261002`);
+      `zero-loss-outcome-preview-${test.kind}-support-approved-20261010`);
     sent.push(test.kind);
   }
   return response(200, { sent });

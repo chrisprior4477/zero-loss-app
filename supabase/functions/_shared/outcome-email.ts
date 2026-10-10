@@ -46,17 +46,19 @@ export function renderOutcomeEmail(input: OutcomeEmailInput): { subject: string;
   if (win && !input.rewardHref) throw new Error("Winner reward link is required");
   const subject = win ? `You won: ${title}` : `Your result is ready: ${title}`;
   const eyebrow = win ? "YOU WON" : "YOUR ENTRY RESULT";
-  const headline = win ? `Your ${value} ${retailer} digital gift card is ready.` : "This entry wasn't selected.";
+  const headline = win ? `You won ${title}.` : "This entry wasn't selected.";
   const paragraphs = win
-    ? [`Your prize for ${title} is a ${value} ${retailer} digital gift card. Use it for the pictured product or another eligible purchase at ${retailer}.`, "Open Gift Cards & Rewards to see your card details."]
+    ? [`Congratulations—your entry for ${title} was selected. Your prize is a ${value} ${retailer} digital gift card.`, "Sign in to view your reward. If it is still being prepared, we’ll let you know when it is ready. You never need to pay to receive a prize you won."]
     : [
         `${amoe ? "Your free entry" : `Your ${money(input.paidCents)} paid entry`} for ${title} was not selected.`,
-        `${amoe ? "Because this was a free entry, no paid entry amount is credited toward completion." : `Your ${money(input.paidCents)} entry amount is reflected in the completion price.`} If you choose to complete the purchase, the remaining amount is ${money(input.completionCents!)} for a ${value} ${retailer} digital gift card.`,
-        `This option is voluntary and ends ${new Date(input.completionDeadline!).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" })} Eastern. Each entry and completion option stands alone; amounts do not stack.`,
+        amoe
+          ? `You may choose to purchase a ${value} ${retailer} digital gift card for ${money(input.completionCents!)}. Because this entry was free, no entry payment is applied to that price.`
+          : `You have an optional purchase option: pay the remaining ${money(input.completionCents!)} to receive a ${value} ${retailer} digital gift card. Your ${money(input.paidCents)} entry amount is already reflected in that price.`,
+        `The option ends ${new Date(input.completionDeadline!).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" })} Eastern Time. ${amoe ? "Your free entry is complete whether or not you buy." : "Separate entries do not combine, and you do not have to buy anything else."}`,
       ];
   const href = validHttpsHref(win ? input.rewardHref! : input.entryHref);
   const preferencesHref = validHttpsHref(input.preferencesHref);
-  const button = win ? "View gift card" : "Review your option";
+  const button = win ? "View my reward" : amoe ? "Review my option" : "Review my purchase option";
   const previewNote = input.preview ? "This is a Zero Loss experimental MVP email. Demo entries, payments, and rewards are simulated." : "";
   const preferenceCopy = "Want to stop outcome emails? Turn them off in Email preferences. You can change this choice any time in your account.";
   const text = [`ZERO LOSS`, eyebrow, headline, ...paragraphs, `${button}: ${win ? input.rewardHref : input.entryHref}`, preferenceCopy, `Email preferences: ${input.preferencesHref}`, previewNote].filter(Boolean).join("\n\n");
