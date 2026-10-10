@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { renderOutcomeEmail } from "../_shared/outcome-email.ts";
+import { renderDeclinedReminderEmail } from "../_shared/declined-reminder-email.ts";
+import { renderFavoriteAlertEmail } from "../_shared/favorite-alert-email.ts";
 import { emailSender } from "../_shared/email-sender.ts";
 
 declare const Deno: {
@@ -67,10 +69,6 @@ async function sendMessage(to: string, subject: string, html: string, text: stri
   return result.id;
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-}
-
 async function sendDeclinedOfferReminders(origin: string) {
   if (!projectUrl || !serviceKey) throw new Error("Email database is not configured");
   const db = createClient(projectUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -93,13 +91,11 @@ async function sendDeclinedOfferReminders(origin: string) {
       }
       const { data: account, error: accountError } = await db.auth.admin.getUserById(payload.customerId);
       if (accountError || !account?.user?.email || !account.user.email_confirmed_at) throw new Error("Verified recipient unavailable");
-      const link = new URL("/account/declined-offers", origin).toString();
-      const title = String(payload.title);
-      const deadline = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short", timeZone: "America/New_York" }).format(new Date(payload.deadline));
-      const subject = `Your declined ${String(payload.retailer)} offer expires in two days`;
-      const plain = `${title} expires on ${deadline} Eastern Time. You can still revive this offer before its original deadline: ${link}\n\nThis is the two-day reminder you requested for this offer.`;
-      const html = `<main style="font:16px/1.5 Arial,sans-serif;color:#0b173b"><h1>Your declined offer expires in two days</h1><p><strong>${escapeHtml(title)}</strong> expires on ${escapeHtml(deadline)} Eastern Time.</p><p>You can still revive this offer before its original deadline.</p><p><a href="${link}">Review declined offers</a></p><p>This is the two-day reminder you requested for this offer.</p></main>`;
-      const providerMessageId = await sendMessage(account.user.email, subject, html, plain,
+      const message = renderDeclinedReminderEmail({
+        title: String(payload.title), retailer: String(payload.retailer), deadline: String(payload.deadline),
+        reviewHref: new URL("/account/declined-offers", origin).toString(),
+      });
+      const providerMessageId = await sendMessage(account.user.email, message.subject, message.html, message.text,
         `zero-loss-declined-two-day-${reminder.id}`);
       const { error: finishError } = await db.rpc("finish_declined_offer_email_reminder", {
         p_id: reminder.id, p_provider_message_id: providerMessageId, p_error: null, p_cancelled: false,
@@ -117,7 +113,7 @@ async function sendDeclinedOfferReminders(origin: string) {
   return { claimed: reminders?.length ?? 0, sent, skipped, failed };
 }
 
-async function sendPreviewTests(): Promise<Response> {
+async function sendPreviewTests(selectedKind: string): Promise<Response> {
   // This temporary operator-only path is inert until an explicit Supabase
   // secret enables it. It never accepts a recipient or message from callers.
   if (Deno.env.get("OUTCOME_EMAIL_TESTS_ENABLED") !== "true") return response(503, { error: "Preview email tests are disabled" });
@@ -131,11 +127,32 @@ async function sendPreviewTests(): Promise<Response> {
   const preferencesHref = `${previewOrigin}/account/notifications#email-preferences`;
   const completionDeadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   const sample = { title: "$50 Best Buy Gift Card", retailer: "Best Buy", giftCardValueCents: 5000, entryHref, rewardHref, preferencesHref, preview: true };
+  if (selectedKind === "declined") {
+    const message = renderDeclinedReminderEmail({
+      title: sample.title, retailer: sample.retailer,
+      deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      reviewHref: `${previewOrigin}/account/declined-offers`, preview: true,
+    });
+    const providerMessageId = await sendMessage(recipient, `[MVP preview] ${message.subject}`, message.html, message.text,
+      `zero-loss-declined-preview-${batch}`);
+    return response(200, { sent: [{ kind: "declined", providerMessageId }] });
+  }
+  if (selectedKind === "favorite") {
+    const message = renderFavoriteAlertEmail({
+      title: "$100 Walmart Gift Card", sold: 272, capacity: 300,
+      offerHref: `${previewOrigin}/items/walmart-100-gift-card`,
+      preferencesHref: `${previewOrigin}/account/notifications#favorite-alert-preference`,
+    });
+    const providerMessageId = await sendMessage(recipient, `[MVP preview] ${message.subject}`, message.html, message.text,
+      `zero-loss-favorite-preview-${batch}`);
+    return response(200, { sent: [{ kind: "favorite", providerMessageId }] });
+  }
   const cases = [
     { kind: "winner" as const, paidCents: 100, completionCents: null, completionDeadline: null },
     { kind: "paid_not_selected" as const, paidCents: 100, completionCents: 4900, completionDeadline },
     { kind: "amoe_not_selected" as const, paidCents: 0, completionCents: 5000, completionDeadline },
-  ];
+  ].filter(test => selectedKind === "three" || test.kind === selectedKind);
+  if (cases.length === 0) return response(400, { error: "Unknown preview type" });
   const sent: { kind: string; providerMessageId: string }[] = [];
   for (const test of cases) {
     const message = renderOutcomeEmail({ ...sample, ...test });
@@ -163,9 +180,9 @@ Deno.serve(async request => {
     const { error } = await db.from("entry_outcome_email_deliveries").select("id", { head: true, count: "exact" });
     return response(error ? 503 : 200, { databaseAccessible: !error });
   }
-  if (search.get("test") === "three") {
+  if (search.has("test")) {
     if (!operator) return response(403, { error: "Operator-only test" });
-    try { return await sendPreviewTests(); }
+    try { return await sendPreviewTests(search.get("test") ?? ""); }
     catch (error) { return response(500, { error: safeError(error) }); }
   }
   if (search.get("mode") === "declined-reminders") {
