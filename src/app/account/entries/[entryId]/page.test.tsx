@@ -83,6 +83,7 @@ test("five authorized entries expand into individual tickets and retain exact de
   fireEvent.click(within(rail).getByRole("button", { name: "See 5 entries" }));
   fireEvent.click(within(rail).getByRole("button", { name: "Close" }));
   expect(within(rail).getByRole("button", { name: "See 5 entries" }).getAttribute("aria-expanded")).toBe("false");
+  expect(document.activeElement).toBe(within(rail).getByRole("button", { name: "See 5 entries" }));
 
   rerender(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }), searchParams: Promise.resolve({ entries: "open" }) }));
   expect(screen.getByText(ids[4])).toBeTruthy();

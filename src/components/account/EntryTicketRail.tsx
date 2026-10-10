@@ -21,7 +21,17 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
 }) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
   const railRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
   const count = tickets.length;
+
+  const closeFromBottom = () => {
+    setExpanded(false);
+    toggleRef.current?.focus({ preventScroll: true });
+    railRef.current?.scrollIntoView?.({
+      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    });
+  };
 
   useEffect(() => {
     if (!expanded) return;
@@ -45,7 +55,7 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
         <strong>{heading}</strong>
         <span>{count === 1 ? "This is your separate chance at this prize." : "Choose an entry to see its own details. Each is a separate chance."}</span>
       </div>
-      <button type="button" className={styles.entryRailToggle} aria-expanded={expanded} aria-controls="saved-entry-tickets" onClick={() => setExpanded(open => !open)}>
+      <button ref={toggleRef} type="button" className={styles.entryRailToggle} aria-expanded={expanded} aria-controls="saved-entry-tickets" onClick={() => setExpanded(open => !open)}>
         {expanded ? "Hide" : "See"} {count} {count === 1 ? "entry" : "entries"}
       </button>
     </div>
@@ -73,7 +83,7 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
             className={styles.entryRailLink}
           ><span className={styles.entryTileHeading}><small>ENTRY</small><strong>{ticket.number}</strong></span><span className={styles.entryTileDate}>{ticket.enteredAt ? <time dateTime={ticket.enteredAt}>{ticket.enteredLabel}</time> : ticket.enteredLabel}</span><span className={styles.entryTileId}>#{ticket.entryId.slice(-8)}</span><span className={styles.entryTileAmount}>{ticket.amountLabel} entered</span></Link>)}
         </div>
-        <div className={styles.entryRailCloseRow}><button type="button" className={styles.entryRailClose} onClick={() => setExpanded(false)}>Close</button></div>
+        <div className={styles.entryRailCloseRow}><button type="button" className={styles.entryRailClose} onClick={closeFromBottom}>Close</button></div>
       </div>
     </div>
   </section>;
