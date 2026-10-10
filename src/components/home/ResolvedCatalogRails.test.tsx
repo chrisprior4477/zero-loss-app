@@ -32,4 +32,15 @@ test("empty outcome state restores the repeatable prizes to Ending Soon", () => 
   expect(ending.querySelector('a[href*="/items/samsung-m70h-tv"]')).toBeTruthy();
   expect(ending.querySelector('a[href*="/items/nike-court-shot-shoes"]')).toBeTruthy();
   expect(ending.querySelector('a[href*="/items/babys-essentials-bundle"]')).toBeTruthy();
+  const cardHrefs = [...ending.querySelectorAll('article > a')].map(link => link.getAttribute("href"));
+  const dunkinIndex = cardHrefs.findIndex(href => href?.includes("/items/dunkin-25-gift-card"));
+  expect(cardHrefs.slice(dunkinIndex, dunkinIndex + 3).map(href => href?.match(/\/items\/([^?]+)/)?.[1]))
+    .toEqual(["dunkin-25-gift-card", "walmart-100-gift-card", "best-buy-100-gift-card"]);
+  expect(within(ending).getByRole("link", { name: /100 Walmart Gift Card.*1 left/i })).toBeTruthy();
+});
+
+test("a won Walmart card remains hidden from the account's Ending Soon rail", () => {
+  render(<OfferingAvailabilityProvider snapshot={null} resolvedSlugs={["walmart-100-gift-card"]}><DesktopMarketplaceRails /></OfferingAvailabilityProvider>);
+  const ending = document.getElementById("ending-soon")!;
+  expect(ending.querySelector('a[href*="/items/walmart-100-gift-card"]')).toBeNull();
 });
