@@ -225,7 +225,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
               <div className={styles.cardFoot}>
                 <div className={styles.noteStack}><p className={styles.productNote}>{item.status === "completion"
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
-                  : item.status === "active" ? <><span>{formatUsdFromCents(item.paidCents)} entered</span><span className={styles.metricSeparator} aria-hidden="true"> · </span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : `${offerStatus.remaining.toLocaleString("en-US")} tickets left`) : "Still in play"}</span></>
+                  : item.status === "active" ? <><span><strong>{formatUsdFromCents(item.paidCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left for prize</>) : "Still in play"}</span></>
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p></div>
                 <span className={styles.cardAction} data-activity-click>{item.status === "active"
                   ? <><span>See My</span><span className={styles.entryActionTicket} aria-hidden="true">{group.entries.length}</span><span className={styles.srOnly}>{group.entries.length}</span><span>{group.entries.length === 1 ? "Entry" : "Entries"}</span></>

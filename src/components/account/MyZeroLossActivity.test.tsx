@@ -143,9 +143,11 @@ test("only still-open tickets show their own offer-fill progress", () => {
   const indicators = screen.getAllByRole("progressbar");
   expect(indicators.map(indicator => indicator.getAttribute("aria-valuenow"))).toEqual(["36", "75"]);
   expect(indicators.map(indicator => indicator.textContent)).toEqual(["36%", "75%"]);
-  expect(screen.getAllByText("$1 entered")).toHaveLength(2);
-  expect(screen.getByText("127 tickets left")).toBeTruthy();
-  expect(screen.getByText("20 tickets left")).toBeTruthy();
+  const notes = Array.from(document.querySelectorAll("a[data-status='active'] [class*='productNote']"));
+  expect(notes.map(note => Array.from(note.children).map(line => line.textContent))).toEqual([
+    ["$1 entered", "127 tickets left for prize"],
+    ["$1 entered", "20 tickets left for prize"],
+  ]);
   expect(within(screen.getByRole("link", { name: /Samsung 50" M70H Mini LED 4K Smart TV/ })).queryByRole("progressbar")).toBeNull();
 });
 test("open entry details reuse the same live count and explain outcomes", () => {
