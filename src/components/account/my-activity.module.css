@@ -139,7 +139,7 @@
 .cardAction { position: absolute; right: 0; bottom: 0; display: inline-flex; min-height: 32px; align-items: center; justify-content: center; gap: 7px; padding: 5px 10px; border-radius: 9px; background: #c9efff; color: #0a1b3e; font-size: clamp(10px, .83vw, 13px); font-weight: 800; white-space: nowrap; }
 .cardAction svg { width: 16px; height: 16px; }
 .productCard[data-status="active"] .cardAction { min-height: 46px; gap: 5px; padding: 3px 7px; }
-.entryActionTicket { --ticket-side-notch: 7px; --ticket-corner-notch: 10px; display: grid; width: 44px; height: 40px; flex: none; place-items: center; background: #0789ef; color: #fff; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+.entryActionTicket { --ticket-side-notch: 7px; --ticket-corner-notch: 7px; display: grid; width: 68px; height: 40px; flex: none; place-items: center; background: #0789ef; color: #fff; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
 [data-status="prize"] .cardAction { background: #41ea59; }
 [data-status="completion"] .cardAction { background: #ffba79; }
 [data-status="completed"] .cardAction { background: #e3edf5; }
@@ -276,7 +276,7 @@
   .cardAction { flex: 0 0 auto; min-height: 30px; gap: 4px; padding: 4px 5px; border-radius: 7px; font-size: 11px; }
   .cardAction svg { width: 12px; height: 12px; }
   .productCard[data-status="active"] .cardAction { min-height: 38px; gap: 3px; padding: 2px 4px; font-size: 10px; }
-  .entryActionTicket { width: 38px; height: 34px; font-size: 16px; }
+  .entryActionTicket { --ticket-side-notch: 6px; --ticket-corner-notch: 6px; width: 58px; height: 34px; font-size: 16px; }
   .accountTool { min-height: 91px; grid-template-columns: 80px minmax(0, 1fr) 17px; gap: 10px; padding: 13px 16px; }
   .accountTool::before { left: 105px; }
   .profileTool { grid-template-columns: 56px minmax(0, 1fr) 17px; }

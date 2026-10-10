@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryPageActions } from "@/components/account/EntryPageActions";
+import { EntryTicketRail } from "@/components/account/EntryTicketRail";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
 import styles from "@/components/account/entry-page.module.css";
 
@@ -36,7 +37,15 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
       || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
   const entryCount = relatedEntries.length;
   const entryCountLabel = entryCountWords[entryCount] ?? entryCount.toLocaleString("en-US");
-  const expandEntries = entryCount === 1 || (await searchParams)?.entries === "open";
+  const expandEntries = (await searchParams)?.entries === "open";
+  const savedTickets = relatedEntries.map((entry, index) => ({
+    entryId: entry.entryId!,
+    number: index + 1,
+    enteredAt: entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt)) ? entry.enteredAt : null,
+    enteredLabel: entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt))
+      ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.enteredAt)) : "Date unavailable",
+    amountLabel: formatUsdFromCents(entry.paidCents),
+  }));
 
   const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
   const metrics = activityOfferMetrics([item], availability)[item.slug];
@@ -85,29 +94,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <strong>{metrics.remaining === 0 ? "Pool full" : `${metrics.remaining.toLocaleString("en-US")} tickets left`}</strong>
         </div> : <p className={styles.progressUnavailable}>Current pool count unavailable</p>}
       </section>
-      <details className={styles.entryRail} aria-label={`Your separate entries for ${item.title}`} open={expandEntries}>
-        <summary className={styles.entryRailSummary}>
-          <span className={styles.entryRailHeader}>
-            <strong>{entryCount === 1 ? "Your saved entry" : `Your ${entryCountLabel} separate entries`}</strong>
-            <span>{entryCount === 1 ? "This is your separate chance at this prize." : "Open to see each saved ticket and its own details."}</span>
-          </span>
-          <span className={styles.entryRailToggle}><b>{entryCount}</b><span>{entryCount === 1 ? "entry" : "entries"}</span><span className={styles.entryRailChevron} aria-hidden="true">⌄</span></span>
-        </summary>
-        <nav className={styles.entryRailChoices} aria-label={`Individual tickets for ${item.title}`}>
-          {relatedEntries.map((entry, index) => {
-            const date = entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt))
-              ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.enteredAt)) : null;
-            return <Link
-              key={entry.entryId}
-              href={`/account/entries/${encodeURIComponent(entry.entryId!)}?entries=open`}
-              prefetch={false}
-              aria-current={entry.entryId === entryId ? "page" : undefined}
-              aria-label={`See entry ${index + 1} of ${entryCount}, entry number ${entry.entryId}${date ? `, entered ${date}` : ""}`}
-              className={styles.entryRailLink}
-            ><span className={styles.entryTileHeading}><small>ENTRY</small><strong>{index + 1}</strong></span><span className={styles.entryTileDate}>{date ? <time dateTime={entry.enteredAt!}>{date}</time> : "Date unavailable"}</span><span className={styles.entryTileId}>#{entry.entryId!.slice(-8)}</span><span className={styles.entryTileAmount}>{formatUsdFromCents(entry.paidCents)} entered</span></Link>;
-          })}
-        </nav>
-      </details>
+      <EntryTicketRail key={`${entryId}:${expandEntries}`} title={item.title} tickets={savedTickets} selectedEntryId={entryId} initiallyExpanded={expandEntries} heading={entryCount === 1 ? "Your saved entry" : `Your ${entryCountLabel} separate entries`} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
