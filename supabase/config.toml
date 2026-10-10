@@ -423,3 +423,6 @@ verify_jwt = true
 
 [functions.send-purchase-option-emails]
 verify_jwt = true
+
+[functions.send-crew-prize-shares]
+verify_jwt = true

@@ -10,6 +10,7 @@ import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
+import { sharePrizeWithCrew } from "@/lib/crew/actions";
 import styles from "./entry-page.module.css";
 
 type CrewMember = { id: string; name: string; avatarUrl: string | null };
@@ -45,6 +46,9 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   const sampleNamesKey = sampleNames.join("|");
   const [selectedCrew, setSelectedCrew] = useState<string[]>([]);
   const [demoAlertPrepared, setDemoAlertPrepared] = useState(false);
+  const [crewSharePending, setCrewSharePending] = useState(false);
+  const [crewShareMessage, setCrewShareMessage] = useState("");
+  const [crewShareError, setCrewShareError] = useState(false);
   const maxQuantity = Math.min(10, Math.max(0, remaining ?? 0));
   const totalCents = quantity * (entryPriceCents ?? 0);
   const insufficientBalance = balanceCents !== null && totalCents > balanceCents;
@@ -84,6 +88,28 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
     ...crew.map(member => ({ ...member, sample: false })),
     ...sampleCrewPeople.filter(person => sampleNames.includes(person.name)).map(person => ({ id: `sample:${person.name}`, name: person.name, avatarUrl: person.photo as string, sample: true })),
   ];
+
+  async function sendCrewShare() {
+    const realRecipientIds = selectedCrew.filter(id => !id.startsWith("sample:"));
+    if (!realRecipientIds.length) {
+      setDemoAlertPrepared(true);
+      setCrewShareMessage("No emails or messages were actually delivered.");
+      return;
+    }
+    setCrewSharePending(true);
+    setCrewShareError(false);
+    try {
+      const result = await sharePrizeWithCrew(slug, realRecipientIds);
+      setCrewShareMessage(result.message + (selectedCrew.length > realRecipientIds.length ? " Sample profiles were not emailed." : ""));
+      setCrewShareError(!result.ok);
+      setDemoAlertPrepared(result.ok);
+    } catch {
+      setCrewShareError(true);
+      setCrewShareMessage("We couldn’t confirm the Crew share. Refresh and check before trying again.");
+    } finally {
+      setCrewSharePending(false);
+    }
+  }
 
   async function submitInlineEntry() {
     if (!canEnter || !approved || insufficientBalance || busy || maxQuantity === 0) return;
@@ -196,7 +222,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
       </section>
       <section className={`${styles.actionPanel} ${styles.crewPanel}`} aria-labelledby="crew-title">
         <h3 id="crew-title">Invite your Crew to this prize</h3>
-        <p>Choose who to notify about {itemTitle}. Sample people are a visual demo; no emails or messages are sent.</p>
+        <p>Choose who to notify about {itemTitle}. Only selected, approved Crew members can receive email; sample people remain a visual demo.</p>
         <div className={styles.crewRailWrap}>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew left" onClick={() => crewRail.current?.scrollBy({ left: -220, behavior: "smooth" })}>‹</button>
           <div className={styles.crewRail} ref={crewRail} aria-label="Crew members" onPointerDown={startRailDrag} onPointerMove={moveRailDrag} onPointerUp={endRailDrag} onPointerCancel={endRailDrag}>
@@ -205,7 +231,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
               return <div className={styles.crewCard} key={member.id}>
                 <div className={styles.crewAvatar}>{member.avatarUrl ? <Image src={member.avatarUrl} alt="" fill sizes="72px" unoptimized={member.avatarUrl.startsWith("http")} /> : <span aria-hidden="true">{member.name.charAt(0).toUpperCase()}</span>}</div>
                 <strong>{member.name}</strong>
-                <button type="button" className={`${styles.notifyButton} ${selected ? styles.notifySelected : ""}`} aria-pressed={selected} aria-label={`${selected ? "Remove" : "Notify"} ${member.name}`} onClick={() => { setSelectedCrew(current => selected ? current.filter(id => id !== member.id) : [...current, member.id]); setDemoAlertPrepared(false); }}>{selected ? "Selected ✓" : "Notify"}</button>
+                <button type="button" className={`${styles.notifyButton} ${selected ? styles.notifySelected : ""}`} aria-pressed={selected} aria-label={`${selected ? "Remove" : "Notify"} ${member.name}`} onClick={() => { setSelectedCrew(current => selected ? current.filter(id => id !== member.id) : [...current, member.id]); setDemoAlertPrepared(false); setCrewShareMessage(""); }}>{selected ? "Selected ✓" : "Notify"}</button>
                 <small>{member.sample ? "Sample preview" : "Approved Crew"}</small>
               </div>;
             })}
@@ -213,8 +239,8 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
           </div>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: "smooth" })}>›</button>
         </div>
-        <button type="button" className={styles.crewSend} disabled={!selectedCrew.length || demoAlertPrepared} onClick={() => setDemoAlertPrepared(true)}>{demoAlertPrepared ? "Crew preview prepared" : "Send to My Crew"}</button>
-        {demoAlertPrepared ? <div role="status" className={styles.demoNotice}><p>Preview from {senderName} for {selectedCrew.length} selected {selectedCrew.length === 1 ? "person" : "people"}: <Link href={`/items/${slug}`}>View the {itemTitle} prize page</Link>.</p><p>No emails or messages were actually delivered.</p></div> : null}
+        <button type="button" className={styles.crewSend} disabled={!selectedCrew.length || demoAlertPrepared || crewSharePending} onClick={() => void sendCrewShare()}>{crewSharePending ? "Saving…" : demoAlertPrepared ? selectedCrew.every(id => id.startsWith("sample:")) ? "Crew preview prepared" : "Share request saved" : "Send to My Crew"}</button>
+        {crewShareMessage ? <div role={crewShareError ? "alert" : "status"} className={styles.demoNotice}><p>Preview from {senderName} for {selectedCrew.length} selected {selectedCrew.length === 1 ? "person" : "people"}: <Link href={`/items/${slug}`}>View the {itemTitle} prize page</Link>.</p><p>{crewShareMessage}</p></div> : null}
       </section>
     </div>
     <Link href={returnHref} className={styles.returnButton}>Return to My Activity →</Link>

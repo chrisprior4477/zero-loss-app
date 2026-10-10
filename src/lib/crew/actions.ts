@@ -9,6 +9,23 @@ export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: stri
 type CrewSearchResult = CrewActionResult & { people: CrewSearchPerson[] };
 export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string };
 
+export async function sharePrizeWithCrew(offeringSlug: string, recipientIds: string[]): Promise<CrewActionResult & { queued?: number; alreadyShared?: number }> {
+  if (!/^[a-z0-9-]{2,100}$/.test(offeringSlug) || !Array.isArray(recipientIds) || recipientIds.length < 1 || recipientIds.length > 20
+    || new Set(recipientIds).size !== recipientIds.length || !recipientIds.every(id => crewUuid.test(id))) {
+    return { ok: false, message: "Choose approved Crew members before sharing this prize." };
+  }
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in before sharing this prize with your Crew." };
+  const { data, error } = await session.db.rpc("share_prize_with_crew", {
+    p_offering_slug: offeringSlug, p_recipient_ids: recipientIds,
+  });
+  if (error || !data || typeof data.queued !== "number" || typeof data.alreadyShared !== "number") {
+    return { ok: false, message: "We couldn’t save this Crew share. Check that everyone is still approved, then try again." };
+  }
+  return { ok: true, queued: data.queued, alreadyShared: data.alreadyShared,
+    message: data.queued ? `Saved for email delivery to ${data.queued} approved Crew ${data.queued === 1 ? "member" : "members"}.` : "This prize was already shared with the selected Crew members." };
+}
+
 async function signedInClient() {
   const db = await createClient();
   const { data: { user }, error } = await db.auth.getUser();
