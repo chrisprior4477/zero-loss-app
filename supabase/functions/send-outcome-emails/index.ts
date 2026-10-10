@@ -138,7 +138,7 @@ async function sendPreviewTests(): Promise<Response> {
   for (const test of cases) {
     const message = renderOutcomeEmail({ ...sample, ...test });
     await sendMessage(recipient, `[MVP preview] ${message.subject}`, message.html, message.text,
-      `zero-loss-outcome-preview-${test.kind}-support-approved-20261010`);
+      `zero-loss-outcome-preview-${test.kind}-accounts-approved-20261010`);
     sent.push(test.kind);
   }
   return response(200, { sent });
