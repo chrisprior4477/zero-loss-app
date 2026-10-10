@@ -52,7 +52,7 @@ test("five authorized entries expand into individual tickets and retain exact de
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
   expect(within(hero).getByText("◷ No winner yet · Entries open")).toBeTruthy();
   expect(within(hero).getByLabelText("5 entries saved for this prize")).toBeTruthy();
-  expect(within(hero).getByText("Total entered on this prize").nextElementSibling?.textContent).toBe("$5");
+  expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
   expect(within(hero).queryByText("Average people entering per day")).toBeNull();
   expect(screen.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
@@ -99,7 +99,7 @@ test("the ticket-style entry section remains visible even for a single saved ent
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
   expect(within(hero).getByLabelText("1 entry saved for this prize")).toBeTruthy();
-  expect(within(hero).getByText("Total entered on this prize").nextElementSibling?.textContent).toBe("$1");
+  expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
   expect(within(rail).getByText("Your saved entry")).toBeTruthy();
   expect(within(rail).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).getAttribute("aria-current")).toBe("page");
@@ -133,5 +133,5 @@ test("the expanded saved-ticket count follows newly confirmed account records", 
   expect(screen.getByText("3", { selector: "[class*='entryRailToggle'] b" })).toBeTruthy();
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
   expect(within(hero).getByLabelText("3 entries saved for this prize")).toBeTruthy();
-  expect(within(hero).getByText("Total entered on this prize").nextElementSibling?.textContent).toBe("$3");
+  expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
 });

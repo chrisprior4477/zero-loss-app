@@ -36,7 +36,6 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     .sort((left, right) => enteredTime(left.enteredAt) - enteredTime(right.enteredAt)
       || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
   const entryCount = relatedEntries.length;
-  const totalEnteredCents = relatedEntries.reduce((total, entry) => total + entry.paidCents, 0);
   const entryCountLabel = entryCountWords[entryCount] ?? entryCount.toLocaleString("en-US");
   const expandEntries = (await searchParams)?.entries === "open";
   const savedTickets = relatedEntries.map((entry, index) => ({
@@ -84,7 +83,6 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <dl className={styles.entryIdentity}>
             <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd className={styles.entryCountBadge} aria-label={`${entryCount} ${entryCount === 1 ? "entry" : "entries"} saved for this prize`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{entryCount === 1 ? "Entry" : "Entries"}</span></dd></div>
             <div><dt>Entry number</dt><dd className={styles.entryNumber}>{entryId}</dd></div>
-            <div><dt>Total entered on this prize</dt><dd>{formatUsdFromCents(totalEnteredCents)}</dd></div>
           </dl>
         </div>
         {metrics ? <div className={styles.progressCorner}>
