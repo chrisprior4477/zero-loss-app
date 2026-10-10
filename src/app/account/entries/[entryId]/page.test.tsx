@@ -50,7 +50,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 test("five authorized entries expand into individual tickets and retain exact detail links", async () => {
   const { rerender } = render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
-  expect(within(hero).getByText("◷ No winner yet · Entries open")).toBeTruthy();
+  expect(within(hero).getByText("◷ No winners yet. We will notify you when the pool is complete.")).toBeTruthy();
   expect(within(hero).getByLabelText("5 entries saved for this prize")).toBeTruthy();
   expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
   expect(within(hero).queryByText("Average people entering per day")).toBeNull();
