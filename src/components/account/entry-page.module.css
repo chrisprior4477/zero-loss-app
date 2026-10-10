@@ -30,11 +30,11 @@
 .progressCircle { display: grid; width: 86px; height: 86px; place-items: center; border-radius: 50%; box-shadow: 0 5px 12px #001a3e24; }
 .progressCircle span { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 20px; font-weight: 900; }
 .progressUnavailable { grid-column: 3; grid-row: 1; align-self: end; color: #57738f; font-size: 12px; }
-.entryRail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); align-items: center; gap: 12px 20px; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #fffefa; padding: 24px 36px; color: #10234a; }
+.entryRail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); align-items: center; gap: 12px 20px; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #55caff; padding: 24px 36px; color: #10234a; }
 .entryRailTop { display: grid; gap: 12px; min-width: 0; }
 .entryRailHeader { display: grid; min-width: 0; gap: 5px; }
 .entryRailHeader strong { font-size: 18px; font-weight: 900; line-height: 1.2; }
-.entryRailHeader span { color: #526e8a; font-size: 13px; line-height: 1.35; }
+.entryRailHeader span { color: #173c63; font-size: 13px; line-height: 1.35; }
 .entryRailToggle { display: inline-flex; width: max-content; align-items: center; gap: 8px; border: 0; background: none; padding: 0; color: #0b376a; font-size: 13px; font-weight: 850; cursor: pointer; }
 .entryRailToggle b { display: grid; min-width: 35px; height: 35px; place-items: center; border-radius: 50%; background: #0b376a; padding-inline: 6px; color: #fff; font-size: 17px; font-variant-numeric: tabular-nums; }
 .entryRailChevron { display: inline-block; font-size: 26px; line-height: .8; transition: transform .2s ease; }
