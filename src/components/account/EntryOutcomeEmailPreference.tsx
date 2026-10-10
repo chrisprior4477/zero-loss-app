@@ -16,7 +16,7 @@ export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry
       <label><input type="checkbox" name="enabled" value="true" checked={enabled} onChange={event => setEnabled(event.target.checked)} disabled={initialEnabled === null || pending} /> Email me when any of my entry outcomes posts</label>
       <button type="submit" disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
     </form>
-    <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "Email preference is unavailable right now. Your in-app updates remain available." : "Email delivery for entry outcomes is not active in this preview yet. Saving this choice records your preference; check Notifications for the result."}</p>
+    <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "Email preference is unavailable right now. Your in-app updates remain available." : "If this is on, we'll email you when an entered prize pool closes and its result is ready. You'll also find the result in Notifications."}</p>
     {state.status !== "idle" ? <p role="status" className={styles.outcomeEmailStatus} data-status={state.status}>{state.message}</p> : null}
   </section>;
 }

@@ -417,3 +417,6 @@ verify_jwt = true
 
 [functions.send-favorite-alerts]
 verify_jwt = true
+
+[functions.send-crew-invitations]
+verify_jwt = true
