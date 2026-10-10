@@ -198,7 +198,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
             </div>
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
           </div>
-          {!checkoutOpen ? <button type="button" className={styles.primaryLink} onClick={() => setCheckoutOpen(true)}>Add {quantity === 1 ? "one more entry" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}
+          {!checkoutOpen ? <button type="button" className={styles.primaryLink} onClick={() => setCheckoutOpen(true)}>Add {quantity === 1 ? "more entries" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}
           {checkoutOpen ? <div className={styles.inlineCheckout} aria-label="Additional entry checkout">
             <h4>Review additional entries</h4>
             <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>

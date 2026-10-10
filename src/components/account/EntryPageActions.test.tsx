@@ -83,7 +83,7 @@ test("pending entry can be confirmed here without a checkout redirect", async ()
   createPreviewEntry.mockResolvedValue({ status: "request", message: "Reserved", request });
   confirmPendingEntryRequest.mockResolvedValue({ request: { ...request, status: "accepted", href: "/account/entries" } });
   render(<EntryPageActions {...props} />);
-  fireEvent.click(screen.getByRole("button", { name: "Add one more entry to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add more entries to PlayStation 5" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Confirm entry" })).toBeTruthy());
@@ -106,12 +106,12 @@ test("a stale checkout shows the recovered receipt honestly and uses it for the 
       href: "/account/entries" },
   }).mockResolvedValueOnce({ status: "succeeded", message: "Entry confirmed.", href: "/account/entries", outcome: "active" });
   render(<EntryPageActions {...props} />);
-  fireEvent.click(screen.getByRole("button", { name: "Add one more entry to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add more entries to PlayStation 5" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
   await waitFor(() => expect(screen.getByText(/No additional entries were added or charged/)).toBeTruthy());
   fireEvent.click(screen.getByRole("button", { name: "Add another entry" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add one more entry to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add more entries to PlayStation 5" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
   await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledTimes(2));
