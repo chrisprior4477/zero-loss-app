@@ -39,6 +39,7 @@ export default async function NotificationsPage() {
     .in("notification_id", notifications.map((notification) => notification.id));
   const { data: outcomeEmailEnabled, error: outcomeEmailError } = await db.rpc("get_entry_outcome_email_enabled");
   const { data: favoriteAlertEmailEnabled, error: favoriteAlertEmailError } = await db.rpc("get_favorite_alert_email_enabled");
+  const { data: purchaseOptionEmailEnabled, error: purchaseOptionEmailError } = await db.rpc("get_purchase_option_email_enabled");
   return <>{support.error ? <p role="status" className="mx-auto max-w-6xl rounded-xl border border-cyan-300/30 bg-[#001b3d] p-4 text-sm">Support updates couldn’t be loaded. Your other notifications are still available.</p> : null}<NotificationsCenter
     notifications={notifications}
     initialReadIds={(readRows ?? []).map((row) => row.notification_id)}
@@ -48,6 +49,7 @@ export default async function NotificationsPage() {
     readAvailable={!readError}
     outcomeEmailEnabled={outcomeEmailError || typeof outcomeEmailEnabled !== "boolean" ? null : outcomeEmailEnabled}
     favoriteAlertEmailEnabled={favoriteAlertEmailError || typeof favoriteAlertEmailEnabled !== "boolean" ? null : favoriteAlertEmailEnabled}
+    purchaseOptionEmailEnabled={purchaseOptionEmailError || typeof purchaseOptionEmailEnabled !== "boolean" ? null : purchaseOptionEmailEnabled}
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
   /></>;
 }

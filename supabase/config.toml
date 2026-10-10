@@ -420,3 +420,6 @@ verify_jwt = true
 
 [functions.send-crew-invitations]
 verify_jwt = true
+
+[functions.send-purchase-option-emails]
+verify_jwt = true

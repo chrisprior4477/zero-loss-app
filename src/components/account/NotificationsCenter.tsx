@@ -12,6 +12,7 @@ import { AccountIcon, type AccountIconName } from "./AccountIcon";
 import { StatusTicket } from "./StatusTicket";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { FavoriteAlertEmailPreference } from "./FavoriteAlertEmailPreference";
+import { PurchaseOptionEmailPreference } from "./PurchaseOptionEmailPreference";
 import stripStyles from "./account-status-strip.module.css";
 import type { AccountNotification, NotificationCategory } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
@@ -29,7 +30,7 @@ const filters = [
 
 type NotificationOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function NotificationsCenter({ notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, readAvailable, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled }: { notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; readAvailable: boolean; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, readAvailable, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled }: { notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; readAvailable: boolean; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const router = useRouter();
   const [responding, startTransition] = useTransition();
@@ -107,6 +108,7 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
 
       {outcomeEmailEnabled !== undefined ? <EntryOutcomeEmailPreference initialEnabled={outcomeEmailEnabled} placement="account" /> : null}
       {favoriteAlertEmailEnabled !== undefined ? <FavoriteAlertEmailPreference initialEnabled={favoriteAlertEmailEnabled} /> : null}
+      {purchaseOptionEmailEnabled !== undefined ? <PurchaseOptionEmailPreference initialEnabled={purchaseOptionEmailEnabled} /> : null}
 
       {!activityAvailable || !walletAvailable || !crewAvailable || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
       {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}

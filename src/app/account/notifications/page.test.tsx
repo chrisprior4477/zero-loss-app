@@ -31,12 +31,14 @@ test("Crew, support and persisted read receipts are scoped to the signed-in owne
   const reads = query([{ notification_id: `crew-${id}` }]);
   mocks.from.mockImplementation(table => ({ crew_invitations: crew, support_cases: support, customer_notification_reads: reads })[table as string]);
   const page = await NotificationsPage();
-  const center = page.props.children[1] as ReactElement<{ notifications: AccountNotification[]; initialReadIds: string[]; readAvailable: boolean; outcomeEmailEnabled: boolean | null }>;
+  const center = page.props.children[1] as ReactElement<{ notifications: AccountNotification[]; initialReadIds: string[]; readAvailable: boolean; outcomeEmailEnabled: boolean | null; purchaseOptionEmailEnabled: boolean | null }>;
   expect(center.props.notifications.find(item => item.crewRequestId === id)?.href).toBe(`/account/crew?tab=requests&request=${id}#crew-request-${id}`);
   expect(center.props.notifications.find(item => item.id.startsWith("support-"))?.href).toBe(`/support?case=${id}#conversation`);
   expect(center.props.initialReadIds).toEqual([`crew-${id}`]);
   expect(center.props.outcomeEmailEnabled).toBe(true);
+  expect(center.props.purchaseOptionEmailEnabled).toBe(true);
   expect(mocks.rpc).toHaveBeenCalledWith("get_entry_outcome_email_enabled");
+  expect(mocks.rpc).toHaveBeenCalledWith("get_purchase_option_email_enabled");
   expect(crew.eq).toHaveBeenCalledWith("recipient_id", "owner");
   expect(crew.eq).toHaveBeenCalledWith("status", "pending");
   expect(support.eq).toHaveBeenCalledWith("customer_id", "owner");
