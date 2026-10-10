@@ -7,9 +7,17 @@ import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { CircularProgress } from "@/components/home/DollarChoiceCarouselLight";
 import { dollarChoiceDemoItems, entryCapacityForValue, marketplaceMovementDemoItems } from "@/lib/home/demo-data";
 import { availabilityForHref, availabilityStatus, progressAppearance } from "@/lib/catalog/availability";
-import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
+import { useOfferingAvailability, useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
+import { isResolvedCatalogHref } from "@/lib/catalog/demo-visibility";
 
 const products = dollarChoiceDemoItems;
+const mosaicLayout = [
+  { kind: "feature", indices: [1] }, { kind: "compact", indices: [0, 2] },
+  { kind: "feature", indices: [5] }, { kind: "compact", indices: [4, 3] },
+  { kind: "feature", indices: [6] }, { kind: "compact", indices: [3, 0] },
+  { kind: "feature", indices: [3] }, { kind: "compact", indices: [2, 5] },
+  { kind: "feature", indices: [0] }, { kind: "compact", indices: [6, 1] },
+] as const;
 
 function EntryButton({ compact = false }: { compact?: boolean }) {
   return <span className={compact
@@ -92,6 +100,7 @@ function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
 }
 
 export function MarketplaceMosaicRail() {
+  const resolved = useResolvedCatalogSlugs();
   const trackRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
@@ -154,16 +163,13 @@ export function MarketplaceMosaicRail() {
           }}
           onDragStart={(event) => event.preventDefault()}
         >
-          <FeatureCard item={products[1]} />
-          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[0]} /><CompactCard item={products[2]} /></div>
-          <FeatureCard item={products[5]} />
-          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[4]} /><CompactCard item={products[3]} /></div>
-          <FeatureCard item={products[6]} />
-          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[3]} /><CompactCard item={products[0]} /></div>
-          <FeatureCard item={products[3]} />
-          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[2]} /><CompactCard item={products[5]} /></div>
-          <FeatureCard item={products[0]} />
-          <div className="flex shrink-0 flex-col gap-[7px] self-stretch"><CompactCard item={products[6]} /><CompactCard item={products[1]} /></div>
+          {mosaicLayout.map((group, groupIndex) => {
+            const visible = group.indices.filter(index => !isResolvedCatalogHref(products[index].href, resolved));
+            if (!visible.length) return null;
+            return group.kind === "feature"
+              ? <FeatureCard key={groupIndex} item={products[visible[0]]} />
+              : <div key={groupIndex} className="flex shrink-0 flex-col gap-[7px] self-stretch">{visible.map(index => <CompactCard key={index} item={products[index]} />)}</div>;
+          })}
         </div>
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[8vw] bg-gradient-to-r from-[#031b44] to-transparent" />
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[8vw] bg-gradient-to-l from-[#031b44] to-transparent" />

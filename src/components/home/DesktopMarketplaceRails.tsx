@@ -16,8 +16,9 @@ import {
 import { popularRewardBrands } from "@/lib/catalog/popular-rewards";
 import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
-import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
+import { useOfferingAvailability, useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
 import { availabilityForHref, availabilityStatus } from "@/lib/catalog/availability";
+import { isResolvedCatalogHref } from "@/lib/catalog/demo-visibility";
 
 const desktopCategories = [
   { id: "groceries", label: "Groceries", image: "/category-groceries-v2.png" },
@@ -196,7 +197,8 @@ function useDragRail(ref: React.RefObject<HTMLDivElement | null>) {
 
 export function DesktopMarketplaceRails() {
   const availability = useOfferingAvailability();
-  const endingSoon = sampleEndingSoon.map(sample => {
+  const resolved = useResolvedCatalogSlugs();
+  const endingSoon = sampleEndingSoon.filter(sample => !isResolvedCatalogHref(sample.item.href, resolved)).map(sample => {
     const current = availabilityForHref(availability, sample.item.href);
     return current ? { item: { ...sample.item, ticketCapacity: current.capacity, ticketsSold: current.sold }, remaining: current.remaining } : sample;
   }).sort((a,b) => Number(a.remaining === 0) - Number(b.remaining === 0) || a.remaining - b.remaining);

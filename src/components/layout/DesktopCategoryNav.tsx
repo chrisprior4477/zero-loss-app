@@ -7,6 +7,7 @@ import {
   endingSoonItemHrefs,
 } from "@/lib/home/placeholder-data";
 import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
+import { isResolvedCatalogHref } from "@/lib/catalog/demo-visibility";
 import { HomeIcon } from "./HomeIcon";
 
 const desktopCategories = [
@@ -45,8 +46,9 @@ const desktopCategoryItems: Record<string, readonly string[]> = {
 
 type EndingSoonMenuItem = { title: string; href: string; remaining: number };
 
-export function DesktopCategoryNav({ endingSoonItems }: { endingSoonItems: EndingSoonMenuItem[] }) {
+export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [] }: { endingSoonItems: EndingSoonMenuItem[]; resolvedSlugs?: string[] }) {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const resolved = new Set(resolvedSlugs);
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -108,7 +110,7 @@ export function DesktopCategoryNav({ endingSoonItems }: { endingSoonItems: Endin
           const isMerchandising = index === 0;
           const items = category === "Ending Soon"
             ? endingSoonItems.map((item) => ({ label: item.title, href: item.href, remaining: item.remaining }))
-            : (desktopCategoryItems[category] ?? []).map((item) => ({
+            : (desktopCategoryItems[category] ?? []).filter(item => category !== "All" || !isResolvedCatalogHref(endingSoonItemHrefs[item], resolved)).map((item) => ({
                 label: item,
                 href: category === "All" && endingSoonItemHrefs[item]
                   ? `${endingSoonItemHrefs[item]}?from=${encodeURIComponent("/browse")}`

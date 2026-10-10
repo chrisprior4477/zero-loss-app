@@ -10,11 +10,14 @@ import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { demoProducts } from "@/lib/catalog/demo-products";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
+import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 
 export async function SiteHeader() {
   const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
   const activityState = account?.activity ?? { isPreview: false, activity: [], activeCount: null, source: "unavailable" as const };
-  const endingSoonItems = demoProducts.map((product) => {
+  const hiddenSlugs = resolvedCatalogSlugs(account?.activity);
+  const resolved = new Set(hiddenSlugs);
+  const endingSoonItems = demoProducts.filter(product => !resolved.has(product.slug)).map((product) => {
     const current = availability?.[product.slug];
     const status = availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold);
     return { product, status };
@@ -76,7 +79,7 @@ export async function SiteHeader() {
       </div>
 
       <div className="relative z-10 flex h-12 w-full items-center overflow-visible border-t border-white/8 bg-[var(--header)] px-0 sm:px-2 lg:px-4 xl:px-6">
-        <DesktopCategoryNav endingSoonItems={endingSoonItems} />
+        <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} />
       </div>
 
       <div

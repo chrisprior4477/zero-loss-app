@@ -14,6 +14,7 @@ import { productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
+import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ quantity?: string | string[]; from?: string | string[] }> };
 
@@ -37,13 +38,21 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const product = getDemoProduct(id);
   if (!product) notFound();
   const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
-  const requestHead: EntryRequestHead = account?.wallet?.scope === "demo" && isPreviewDataEnvironment()
+  const alreadyResolved = resolvedCatalogSlugs(account?.activity).includes(product.slug);
+  const declinedOutcome = account?.activity.activity.some(item => item.slug === product.slug && item.completionOptionStatus === "declined");
+  const requestHead: EntryRequestHead = !alreadyResolved && account?.wallet?.scope === "demo" && isPreviewDataEnvironment()
     ? await getEntryRequestHead(await createClient(), product.slug)
     : { ready: true, requestId: null };
   const current = availability?.[product.slug];
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
-  const participationPanel = (
+  const participationPanel = alreadyResolved ? (
+    <section className="mt-5 rounded-2xl border border-cyan-300/40 bg-[#073665] p-5" role="status">
+      <h2 className="text-lg font-extrabold">You already took part in this prize</h2>
+      <p className="mt-2 text-sm leading-6 text-white/75">Your demo outcome is saved. To run this prize again, use Clear All Entries in My Activity.</p>
+      <Link href={declinedOutcome ? "/account/declined-offers" : "/account/entries"} className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-cyan-300 px-4 text-sm font-extrabold text-[#00132e]">View saved outcome →</Link>
+    </section>
+  ) : (
     <DemoParticipationPanel key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
   );
   const productDetails = (
@@ -98,7 +107,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
             <h1 className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">{product.title}</h1>
             <GiftCardFulfillmentNotice productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
             {participationPanel}
-            <div className="mt-4">{freeEntryDetails}</div>
+            {!alreadyResolved ? <div className="mt-4">{freeEntryDetails}</div> : null}
             {isPreviewDataEnvironment() && account.wallet?.scope === "demo" && current?.remaining === 0 && !current.repeatableScenario ? <ResetDemoPoolButton slug={product.slug} /> : null}
           </div>
         </div> : <div className="mt-3 grid min-w-0 gap-4 sm:mt-6 sm:gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)] lg:items-start lg:gap-8">

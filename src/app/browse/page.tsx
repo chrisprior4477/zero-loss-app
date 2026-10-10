@@ -17,6 +17,8 @@ import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reade
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
+import { getAccountContext } from "@/lib/account/context";
+import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 
 export const metadata: Metadata = {
   title: "Browse",
@@ -28,8 +30,9 @@ type BrowsePageProps = {
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const query = await searchParams;
-  const [availability, partnerGroups] = await Promise.all([getOfferingAvailability(), getGiftCardPartnerGroups()]);
-  const availableProducts = demoProducts.map(product => {
+  const [availability, partnerGroups, account] = await Promise.all([getOfferingAvailability(), getGiftCardPartnerGroups(), getAccountContext()]);
+  const resolved = new Set(resolvedCatalogSlugs(account?.activity));
+  const availableProducts = demoProducts.filter(product => !resolved.has(product.slug)).map(product => {
     const current = availability?.[product.slug];
     return current ? { ...product, capacity: current.capacity, sold: current.sold, entryPrice: current.entryPriceCents / 100 } : product;
   });

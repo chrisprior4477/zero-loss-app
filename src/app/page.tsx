@@ -10,6 +10,8 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { OfferingAvailabilityProvider } from "@/components/home/OfferingAvailabilityProvider";
 import { ContinueEntryBanner } from "@/components/home/ContinueEntryBanner";
+import { getAccountContext } from "@/lib/account/context";
+import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 
 /**
  * Homepage composition (spec §4), following the Checkpoint 2 artboards with
@@ -23,7 +25,7 @@ import { ContinueEntryBanner } from "@/components/home/ContinueEntryBanner";
  * comes from the database. No customer or ledger records enter the rail props.
  */
 export default async function HomePage() {
-  const availability = await getOfferingAvailability();
+  const [availability, account] = await Promise.all([getOfferingAvailability(), getAccountContext()]);
   return (
     <>
       <LivePulseTicker />
@@ -31,7 +33,7 @@ export default async function HomePage() {
       <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0 md:pb-4">
         <ContinueEntryBanner />
         <HeroSection />
-        <OfferingAvailabilityProvider snapshot={availability}>
+        <OfferingAvailabilityProvider snapshot={availability} resolvedSlugs={resolvedCatalogSlugs(account?.activity)}>
           <DesktopMarketplaceRails />
         </OfferingAvailabilityProvider>
       </PageContainer>

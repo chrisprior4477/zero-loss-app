@@ -6,10 +6,12 @@ import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { dollarChoiceDemoItems, entryCapacityForValue } from "@/lib/home/demo-data";
 import { availabilityForHref, availabilityStatus, progressAppearance } from "@/lib/catalog/availability";
-import { useOfferingAvailability } from "./OfferingAvailabilityProvider";
+import { useOfferingAvailability, useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
+import { isResolvedCatalogHref } from "@/lib/catalog/demo-visibility";
 
 export function DollarChoiceCarousel() {
   const availability = useOfferingAvailability();
+  const resolved = useResolvedCatalogSlugs();
   const trackRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
@@ -97,7 +99,7 @@ export function DollarChoiceCarousel() {
           }}
           onDragStart={(event) => event.preventDefault()}
         >
-          {dollarChoiceDemoItems.map((sample) => {
+          {dollarChoiceDemoItems.filter(sample => !isResolvedCatalogHref(sample.href, resolved)).map((sample) => {
             const current = availabilityForHref(availability, sample.href);
             const status = current ? availabilityStatus(current.capacity, current.sold) : { percentFilled: sample.percentFilled, ...progressAppearance(sample.percentFilled) };
             const item = { ...sample, percentFilled: status.percentFilled };

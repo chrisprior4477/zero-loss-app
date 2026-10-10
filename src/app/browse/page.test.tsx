@@ -2,10 +2,13 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, describe, expect, test, vi } from "vitest";
 import BrowsePage from "./page";
 
+const account = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue(null) }));
+vi.mock("@/lib/account/context", () => ({ getAccountContext: account.get }));
+
 vi.mock("@/components/ui/FavoriteButton", () => ({ FavoriteButton: () => null }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); account.get.mockResolvedValue(null); });
 
 describe("Browse search results", () => {
   test("keeps the full retailer layout on All but collapses both controls on category pages", async () => {
@@ -29,6 +32,26 @@ describe("Browse search results", () => {
     expect(screen.getByRole("heading", { name: "Search results" })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Samsung 50.*M70H Mini LED 4K Smart TV/i })).toBeTruthy();
     expect(screen.getByRole("link", { name: /65-inch LG OLED evo AI C6 4K Smart TV/i })).toBeTruthy();
+  });
+
+  test("hides this account's closed demo prizes in browsing and restores them after reset", async () => {
+    const base = { title: "", retailer: "", image: "", rewardKind: "digital", priceCents: 100, paidCents: 100, remainingCents: 0, availability: "open" };
+    account.get.mockResolvedValue({ activity: { source: "stored", activity: [
+      { ...base, slug: "samsung-m70h-tv", status: "prize" },
+      { ...base, slug: "nike-court-shot-shoes", status: "completion" },
+      { ...base, slug: "babys-essentials-bundle", status: "completed" },
+      { ...base, slug: "publix-100-gift-card", status: "active" },
+    ] } });
+    render(await BrowsePage({ searchParams: Promise.resolve({ sort: "ending-soon" }) }));
+    expect(screen.queryByRole("link", { name: /Samsung 50.*M70H/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Nike.*Court Shot/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Baby's Essentials Bundle/i })).toBeNull();
+    cleanup();
+    account.get.mockResolvedValue({ activity: { source: "customer-empty", activity: [] } });
+    render(await BrowsePage({ searchParams: Promise.resolve({ sort: "ending-soon" }) }));
+    expect(screen.getByRole("link", { name: /Samsung 50.*M70H/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Nike.*Court Shot/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i })).toBeTruthy();
   });
 
   test("shows the product-request path when nothing matches", async () => {
