@@ -13,7 +13,7 @@ test("first-win explanation stays open until the customer chooses what to do", (
   const onClose = vi.fn();
   render(<ClaimIdentityIntro onContinue={onContinue} onClose={onClose} />);
 
-  expect(screen.getByRole("dialog", { name: "Before you claim your first win" }).hasAttribute("open")).toBe(true);
+  expect(screen.getByRole("dialog", { name: "Before you claim your reward" }).hasAttribute("open")).toBe(true);
   expect(screen.getByText(/fictional sample details/)).toBeTruthy();
   expect(screen.getByText(/Return here to claim your reward/)).toBeTruthy();
 

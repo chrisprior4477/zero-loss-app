@@ -21,11 +21,11 @@ test("a first-time claim shows the explanation before the identity walkthrough",
   render(<RewardClaimControl rewardId="reward-1" />);
   fireEvent.submit(screen.getByRole("button", { name: "Claim reward" }).closest("form")!);
 
-  expect(await screen.findByRole("dialog", { name: "Before you claim your first win" })).toBeTruthy();
+  expect(await screen.findByRole("dialog", { name: "Before you claim your reward" })).toBeTruthy();
   expect(screen.queryByRole("dialog", { name: "Sample identity check" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Continue to identity check" }));
   expect(await screen.findByRole("dialog", { name: "Sample identity check" })).toBeTruthy();
-  expect(screen.queryByRole("dialog", { name: "Before you claim your first win" })).toBeNull();
+  expect(screen.queryByRole("dialog", { name: "Before you claim your reward" })).toBeNull();
 });
 
 test("Not now leaves the existing claim available without starting the check", async () => {
@@ -36,5 +36,5 @@ test("Not now leaves the existing claim available without starting the check", a
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("button", { name: "Claim reward" })).toBeTruthy();
   fireEvent.submit(screen.getByRole("button", { name: "Claim reward" }).closest("form")!);
-  expect(await screen.findByRole("dialog", { name: "Before you claim your first win" })).toBeTruthy();
+  expect(await screen.findByRole("dialog", { name: "Before you claim your reward" })).toBeTruthy();
 });

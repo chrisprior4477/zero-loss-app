@@ -16,8 +16,8 @@ export function ClaimIdentityIntro({ onContinue, onClose }: { onContinue: () => 
     <div className={styles.handle} aria-hidden="true" />
     <div className={styles.content}>
       <span className={styles.eyebrow}>BEFORE YOU CLAIM</span>
-      <h2 id="claim-identity-intro-title">Before you claim your first win</h2>
-      <p className={styles.copy}>Congratulations! As a first-time winner, we ask you to complete an identity check before claiming your reward. This helps protect your account and keeps prize records accurate. You never need to pay to claim a prize you won.</p>
+      <h2 id="claim-identity-intro-title">Before you claim your reward</h2>
+      <p className={styles.copy}>Congratulations! Before claiming this reward, we ask you to complete an identity check. This helps protect your account and keeps prize records accurate. You never need to pay to claim a prize you won.</p>
       <div className={styles.steps} aria-label="What happens next">
         <strong>What happens next</strong>
         <ol>

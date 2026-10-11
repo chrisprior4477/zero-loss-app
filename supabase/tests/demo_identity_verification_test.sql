@@ -2,7 +2,8 @@ begin;
 create extension if not exists pgtap;
 select no_plan();
 update demo_private.funding_config set enabled=true,preview_provisioning_enabled=true,preview_entries_enabled=true,
-  winner_verification_required=false,preview_issuer='https://ocgdfnvvjvutevgqzzgj.supabase.co/auth/v1' where singleton;
+  winner_verification_required=false,entry_undo_required=false,
+  preview_issuer='https://ocgdfnvvjvutevgqzzgj.supabase.co/auth/v1' where singleton;
 insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
   ('97999999-9999-4999-8999-999999999971','identity-owner@example.test',now(),'{"legal_first_name":"Identity","legal_last_name":"Owner","date_of_birth":"1990-01-01"}'),
   ('97999999-9999-4999-8999-999999999972','identity-other@example.test',now(),'{"legal_first_name":"Identity","legal_last_name":"Other","date_of_birth":"1990-01-01"}');
@@ -61,6 +62,29 @@ select is(public.get_claimed_reward(current_setting('test.reward')::uuid)->>'red
 select set_config('test.second_reward',public.create_preview_entry('identity-winner-test','identity_next_entry_001')->>'rewardId',true);
 select is(public.claim_preview_reward(current_setting('test.second_reward')::uuid,'identity_next_claim_001')->>'status','claimed','next win uses same successful demo policy');
 select is((select verification_status from public.customers where id=auth.uid()),'email_verified','demo does not change real account verification status');
+
+-- A repeatable sample winner can be removed from the current presentation,
+-- but prior claims and verification events are never deleted or rewritten.
+select set_config('test.repeatable_reward',public.create_preview_entry('samsung-m70h-tv','identity_repeatable_entry_001')->>'rewardId',true);
+select is(public.claim_preview_reward(current_setting('test.repeatable_reward')::uuid,'identity_repeatable_claim_001')->>'status','claimed','passed check permits the first repeatable sample claim');
+select is(public.restart_preview_reward(current_setting('test.repeatable_reward')::uuid,'identity_repeatable_restart_001')->>'status','restarted','winner reward restart starts a new presentation cycle');
+select is(public.claim_preview_reward(current_setting('test.repeatable_reward')::uuid,'identity_repeatable_claim_001')->>'duplicate','true','already claimed reward remains claimed after the presentation restart');
+select set_config('test.after_restart_reward',public.create_preview_entry('samsung-m70h-tv','identity_repeatable_entry_002')->>'rewardId',true);
+select throws_ok($$select public.claim_preview_reward(current_setting('test.after_restart_reward')::uuid,'identity_repeatable_claim_002')$$,'P0001',null,'new winner claim requires a fresh sample pass after reward restart');
+select set_config('test.after_restart_verification',public.begin_demo_identity_verification(current_setting('test.after_restart_reward')::uuid)->>'id',true);
+select isnt(current_setting('test.after_restart_verification'),current_setting('test.verification'),'new presentation starts a new immutable verification session');
+select is(public.begin_demo_identity_verification(current_setting('test.after_restart_reward')::uuid)->>'id',current_setting('test.after_restart_verification'),'opening again resumes the new session');
+select is(public.begin_demo_identity_verification(current_setting('test.after_restart_reward')::uuid)->>'step','start','previous passed session does not skip the walkthrough');
+select public.advance_demo_identity_verification(current_setting('test.after_restart_verification')::uuid,'consent','sample-adult-v1');
+select public.advance_demo_identity_verification(current_setting('test.after_restart_verification')::uuid,'details','sample-adult-v1');
+select public.advance_demo_identity_verification(current_setting('test.after_restart_verification')::uuid,'document_front','sample-adult-v1');
+select public.advance_demo_identity_verification(current_setting('test.after_restart_verification')::uuid,'document_back','sample-adult-v1');
+select public.advance_demo_identity_verification(current_setting('test.after_restart_verification')::uuid,'selfie','sample-adult-v1');
+select public.advance_demo_identity_verification(current_setting('test.after_restart_verification')::uuid,'submitted','sample-adult-v1');
+select is(public.advance_demo_identity_verification(current_setting('test.after_restart_verification')::uuid,'demo_passed','sample-adult-v1')->>'step','demo_passed','fresh demo pass is saved without changing the earlier pass');
+select is(public.claim_preview_reward(current_setting('test.after_restart_reward')::uuid,'identity_repeatable_claim_002')->>'status','claimed','new reward is claimable after the fresh pass');
+select is((select count(*)::integer from public.customer_verification_events where customer_id=auth.uid() and step='demo_passed'),2,'both passed results remain in immutable history');
+
 select set_config('test.replay',public.restart_demo_identity_verification(current_setting('test.reward')::uuid)->>'id',true);
 select isnt(current_setting('test.replay'),current_setting('test.verification'),'replay starts a new sample session, preserving the successful one');
 select is(public.restart_demo_identity_verification(current_setting('test.reward')::uuid)->>'id',current_setting('test.replay'),'double-clicking replay resumes the same new session');

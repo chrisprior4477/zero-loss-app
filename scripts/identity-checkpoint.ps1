@@ -25,7 +25,10 @@ try {
   $identityTest = $identityTest.Replace('select * from finish();',@'
 insert into identity_tap select * from finish();
 do $tap$ begin
-  if exists(select 1 from identity_tap where line like 'not ok %') then raise exception 'Identity regression test failed'; end if;
+  if exists(select 1 from identity_tap where line like 'not ok %') then
+    raise exception 'Identity regression test failed: %',
+      (select string_agg(line, ' | ') from identity_tap where line like 'not ok %');
+  end if;
 end $tap$;
 select count(*) filter(where line like 'ok %') as passed,
   count(*) filter(where line like 'not ok %') as failed, jsonb_agg(line) as assertions from identity_tap;

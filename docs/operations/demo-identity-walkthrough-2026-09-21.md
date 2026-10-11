@@ -4,7 +4,7 @@ Owner-approved scope: full sample-data walkthrough before a new first winner cla
 
 ## Experience
 
-- Same-page native dialog opened when the database requires verification for a new winner claim.
+- A same-page bottom-sheet handoff on phones (centered dialog on desktop) appears when the database requires verification for a new winner claim. Continuing opens the sample identity walkthrough; choosing Not now leaves the reward unclaimed.
 - Consent to the fictional demo; read-only sample details; fictional ID front and back capture steps; illustrated head-turn playback; review; explicit simulated success or photo-retake result.
 - Supabase stores sessions and append-only step events. Close/reopen resumes the saved step. Retrying a failed check creates a new attempt without rewriting the failure.
 - A passed result is named `demo_passed`, bound to provider `demo`, environment `development-test`, and policy `winner-identity-demo-v1`. It never changes the actual customer email/identity status to “verified.”
@@ -12,6 +12,7 @@ Owner-approved scope: full sample-data walkthrough before a new first winner cla
 - Tax collection remains separate. A read-only masked format example is explanatory only; no tax number is accepted or submitted.
 - No camera, microphone, upload, external verification provider, biometric analysis, real reward issuance or outbound email is involved.
 - Claimed demo winner rewards expose **Preview identity check**. The successful-result screen can replay the full walkthrough using `restart_demo_identity_verification`, retaining previous results and never reissuing a reward. Additive migration `20260921190000` installs that owner-scoped demo control.
+- Removing a repeatable sample winner reward starts a new presentation cycle. Its next winner claim asks for a fresh demo check, while previous `demo_passed` events and claimed rewards remain immutable. Purchase-option rewards do not restart winner verification. Additive migrations `20261011153637` and `20261011153849` use the existing `demo_reward_restarts` record as an accurately timestamped cutoff; they do not reset real identity status.
 
 ## Persistence and boundaries
 
