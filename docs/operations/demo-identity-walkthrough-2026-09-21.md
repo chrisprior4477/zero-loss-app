@@ -5,6 +5,7 @@ Owner-approved scope: full sample-data walkthrough before a new first winner cla
 ## Experience
 
 - A same-page bottom-sheet handoff on phones (centered dialog on desktop) appears when the database requires verification for a new winner claim. Continuing opens the sample identity walkthrough; choosing Not now leaves the reward unclaimed.
+- An unclaimed, ready reward in the preview wallet shows an explicitly illustrative, non-redeemable barcode and number before the claim button so the presentation can tour the reward first. This does not unlock the saved reward credential, change claim state, or skip the identity handoff. The claim still reveals the saved number after the demo check; non-preview unclaimed rewards show no barcode.
 - Consent to the fictional demo; read-only sample details; fictional ID front and back capture steps; illustrated head-turn playback; review; explicit simulated success or photo-retake result.
 - Supabase stores sessions and append-only step events. Close/reopen resumes the saved step. Retrying a failed check creates a new attempt without rewriting the failure.
 - A passed result is named `demo_passed`, bound to provider `demo`, environment `development-test`, and policy `winner-identity-demo-v1`. It never changes the actual customer email/identity status to “verified.”

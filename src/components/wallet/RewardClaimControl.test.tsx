@@ -38,3 +38,9 @@ test("Not now leaves the existing claim available without starting the check", a
   fireEvent.submit(screen.getByRole("button", { name: "Claim reward" }).closest("form")!);
   expect(await screen.findByRole("dialog", { name: "Before you claim your reward" })).toBeTruthy();
 });
+
+test("a visible demo preview does not imply the saved gift-card number is unlocked", () => {
+  render(<RewardClaimControl rewardId="reward-1" previewShown />);
+  expect(screen.getByText(/The sample above is for demonstration only/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Claim reward" })).toBeTruthy();
+});

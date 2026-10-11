@@ -155,6 +155,9 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
   const displayCode = rawCode?.replaceAll(/\s/g, "").match(/.{1,4}/g)?.join(" ") ?? rawCode;
   const rewardReady = available && claimed && Boolean(rawCode);
   const canClaim = available && !claimed && Boolean(item.rewardId);
+  const unclaimedDemoPreview = isPreview && canClaim;
+  const previewCode = unclaimedDemoPreview ? sampleRewardNumber(item.slug) : null;
+  const visibleCode = previewCode?.raw ?? rawCode;
   const notice = status === "expired"
     ? { title: "Reward expired", message: "This reward has expired. Its record remains in your reward history." }
     : status === "cancelled"
@@ -207,15 +210,16 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
             </div>
             <div className={styles.rewardPass}>
               <h2>{formatUsdFromCents(item.priceCents)} {item.retailer} gift card</h2>
-              <p className={styles.rewardIntro}>Your digital reward {rewardReady ? "is ready to use." : canClaim ? "is ready to claim." : "is shown below."}</p>
-              {rewardReady ? <div id="reward-barcode" className={styles.codePanel}>
-                {/^[0-9]+$/.test(rawCode!.replaceAll(/\s/g, "")) ? <SampleRewardBarcode value={rawCode!.replaceAll(/\s/g, "")} /> : null}
-                <p className={styles.rewardCode}>{displayCode}</p>
-                <p className={styles.codeCaption}>{isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
+              <p className={styles.rewardIntro}>Your digital reward {rewardReady ? "is ready to use." : unclaimedDemoPreview ? "is shown in this sample preview. Claim it to open your saved reward." : canClaim ? "is ready to claim." : "is shown below."}</p>
+              {rewardReady || previewCode ? <div id="reward-barcode" className={styles.codePanel}>
+                {previewCode ? <p className={styles.previewCodeNotice}>Demo preview · Not claimed</p> : null}
+                {/^[0-9]+$/.test((visibleCode ?? "").replaceAll(/\s/g, "")) ? <SampleRewardBarcode value={visibleCode!.replaceAll(/\s/g, "")} /> : null}
+                <p className={styles.rewardCode}>{previewCode?.display ?? displayCode}</p>
+                <p className={styles.codeCaption}>{previewCode ? "Illustrative number only · Not redeemable" : isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
               </div> : !canClaim ? <div className={styles.codePanel}><div role="status" className={styles.notIssued}>
                 <div><p>{notice.title}</p><span>{notice.message}</span><Link href="/support" className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
               </div></div> : null}
-              {canClaim ? <RewardClaimControl rewardId={item.rewardId!} /> : <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview} />}
+              {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} /> : <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview} />}
               {isPreview && available && repeatableDemoOutcome && item.rewardId && (item.status === "prize" || item.status === "completed") ? <DemoRewardRestartControl rewardId={item.rewardId} /> : null}
               {isPreview && rewardReady && item.status === "prize" && item.rewardId ? <DemoIdentityPreviewButton rewardId={item.rewardId} /> : null}
             </div>

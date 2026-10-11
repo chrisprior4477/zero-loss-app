@@ -104,6 +104,7 @@
 .sampleBarcode { display: flex; width: 100%; height: 62px; align-items: stretch; justify-content: center; overflow: hidden; background: #fff; padding: 4px 8px; }
 .rewardCode { margin-top: 5px; color: #061630; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 16px; font-weight: 800; letter-spacing: .09em; text-align: center; }
 .codeCaption { margin-top: 2px; color: #244da2; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-align: center; text-transform: uppercase; }
+.previewCodeNotice { margin: 0 0 7px; color: #075b8c; font-size: 11px; font-weight: 900; letter-spacing: .11em; text-align: center; text-transform: uppercase; }
 .notIssued { display: grid; min-height: 92px; place-items: center; text-align: center; }
 .notIssued p { font-size: 17px; font-weight: 900; }
 .notIssued span { display: block; margin-top: 5px; color: #4a667c; font-size: 12px; }

@@ -48,8 +48,19 @@ test.each<RewardStatus>(["expired", "cancelled", "redeemed", "issuance_pending",
   }
 });
 
-test("a ready unclaimed reward still offers the original claim flow without a barcode", () => {
+test("a ready unclaimed demo reward shows an illustrative barcode above the unchanged claim step", () => {
   render(<WalletRewardDetail item={{ ...item, rewardClaimedAt: null }} isPreview />);
+  expect(screen.getByRole("button", { name: "Claim reward" })).toBeTruthy();
+  expect(screen.getByLabelText("Sample reward barcode")).toBeTruthy();
+  expect(screen.getByText("Demo preview · Not claimed")).toBeTruthy();
+  expect(screen.getByText("Illustrative number only · Not redeemable")).toBeTruthy();
+  expect(screen.getAllByText("Ready to claim")).toHaveLength(2);
+  expect(screen.queryByText("Claimed — ready to use")).toBeNull();
+  expect(screen.queryByRole("button", { name: /Copy number/ })).toBeNull();
+});
+
+test("an unclaimed non-preview reward still withholds its barcode", () => {
+  render(<WalletRewardDetail item={{ ...item, rewardClaimedAt: null }} isPreview={false} />);
   expect(screen.getByRole("button", { name: "Claim reward" })).toBeTruthy();
   expect(screen.queryByLabelText("Sample reward barcode")).toBeNull();
 });
