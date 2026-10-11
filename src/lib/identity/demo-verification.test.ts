@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { parseDemoVerification } from "./demo-verification";
 const mocks = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
-import { beginDemoVerification, advanceDemoVerification } from "./demo-verification-actions";
+import { beginDemoVerification, advanceDemoVerification, skipDemoVerificationForPresentation } from "./demo-verification-actions";
 const id = "97999999-9999-4999-8999-999999999971";
 const sample = { id, reference: "ver_abcdef", provider: "demo", step: "start" };
 beforeEach(() => {
@@ -17,6 +17,7 @@ test("session reader only returns the permitted metadata", () => {
   expect(parseDemoVerification({ ...sample, ssn: "must-not-cross-boundary" })).toEqual(sample);
   expect(parseDemoVerification({ ...sample, provider: "live" })).toBeNull();
   expect(parseDemoVerification({ ...sample, step: "verified" })).toBeNull();
+  expect(parseDemoVerification({ ...sample, step: "demo_skipped" })?.step).toBe("demo_skipped");
 });
 test("begin validates the authenticated account, uses reward id and no customer-supplied identity", async () => {
   expect(await beginDemoVerification(id)).toEqual({ verification: sample });
@@ -26,6 +27,13 @@ test("begin validates the authenticated account, uses reward id and no customer-
 test("steps only submit a fixed fixture reference", async () => {
   await advanceDemoVerification(id, "consent");
   expect(mocks.rpc).toHaveBeenCalledWith("advance_demo_identity_verification", { p_verification_id: id, p_step: "consent", p_fixture: "sample-adult-v1" });
+});
+test("presentation skip has a dedicated authenticated preview action, not a generic verification step", async () => {
+  expect((await advanceDemoVerification(id, "demo_skipped")).error).toContain("invalid");
+  mocks.rpc.mockResolvedValue({ data: { ...sample, step: "demo_skipped" } });
+  expect((await skipDemoVerificationForPresentation(id, id)).verification?.step).toBe("demo_skipped");
+  expect(mocks.rpc).toHaveBeenCalledOnce();
+  expect(mocks.rpc).toHaveBeenCalledWith("skip_demo_identity_for_presentation", { p_reward_id: id, p_verification_id: id });
 });
 test("malformed requests stop before auth and database access", async () => {
   expect((await beginDemoVerification("not-a-reward")).error).toBeTruthy();
@@ -40,6 +48,7 @@ test("unconfirmed and signed-out sessions cannot use the demo", async () => {
 test("production remains blocked even if the same database URL is configured", async () => {
   vi.stubEnv("VERCEL_ENV", "production");
   expect((await beginDemoVerification(id)).error).toContain("not enabled");
+  expect((await skipDemoVerificationForPresentation(id, id)).error).toContain("not enabled");
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
 test("unsafe errors are not exposed and interrupted steps remain retryable", async () => {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-const mocks = vi.hoisted(() => ({ beginDemoVerification: vi.fn(), advanceDemoVerification: vi.fn(), restartDemoVerification: vi.fn() }));
+const mocks = vi.hoisted(() => ({ beginDemoVerification: vi.fn(), advanceDemoVerification: vi.fn(), restartDemoVerification: vi.fn(), skipDemoVerificationForPresentation: vi.fn() }));
 vi.mock("@/lib/identity/demo-verification-actions", () => mocks);
 import { DemoVerificationDialog } from "./DemoVerificationDialog";
 const id = "97999999-9999-4999-8999-999999999971";
@@ -11,6 +11,7 @@ beforeEach(() => {
   mocks.beginDemoVerification.mockResolvedValue({ verification: sample });
   mocks.restartDemoVerification.mockResolvedValue({ verification: sample });
   mocks.advanceDemoVerification.mockImplementation(async (_id, step) => ({ verification: { ...sample, step } }));
+  mocks.skipDemoVerificationForPresentation.mockResolvedValue({ verification: { ...sample, step: "demo_skipped" } });
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 test("consent, details, sample front/back and review are saved step by step without personal inputs", async () => {
@@ -53,6 +54,26 @@ test("resuming a submitted check offers both explicit simulated outcomes", async
   expect(onComplete).toHaveBeenCalledOnce();
   expect(screen.getByText(/This is not real KYC approval/)).toBeTruthy();
 });
+test("presentation shortcut saves an explicit skip and continues the claim without fabricating completed steps", async () => {
+  mocks.beginDemoVerification.mockResolvedValue({ verification: { ...sample, step: "consent" } });
+  const onComplete = vi.fn();
+  render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={onComplete} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Continue with Demo as if completed" }));
+  await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
+  expect(mocks.skipDemoVerificationForPresentation).toHaveBeenCalledWith(id, id);
+  expect(mocks.advanceDemoVerification).not.toHaveBeenCalled();
+});
+test("a failed shortcut stays open and can be retried; Finish later still only pauses", async () => {
+  mocks.skipDemoVerificationForPresentation.mockResolvedValueOnce({ error: "Could not save demo shortcut." });
+  const onComplete = vi.fn();
+  const onClose = vi.fn();
+  render(<DemoVerificationDialog rewardId={id} onClose={onClose} onComplete={onComplete} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Continue with Demo as if completed" }));
+  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Could not save demo shortcut.");
+  expect(onComplete).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Finish later" }));
+  expect(onClose).toHaveBeenCalledOnce();
+});
 test("failed sample can start a new durable attempt", async () => {
   mocks.beginDemoVerification.mockResolvedValueOnce({ verification: { ...sample, step: "submitted" } }).mockResolvedValue({ verification: sample });
   render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={vi.fn()} />);
@@ -67,6 +88,18 @@ test("completed walkthrough can be replayed without claiming again", async () =>
   render(<DemoVerificationDialog rewardId={id} previewOnly onClose={vi.fn()} onComplete={onComplete} />);
   await screen.findByRole("button", { name: "Back to reward" });
   fireEvent.click(screen.getByRole("button", { name: "Replay the demo walkthrough" }));
+  await screen.findByRole("button", { name: "Start demo check" });
+  expect(mocks.restartDemoVerification).toHaveBeenCalledWith(id);
+  expect(onComplete).not.toHaveBeenCalled();
+  expect(screen.queryByRole("button", { name: "Continue with Demo as if completed" })).toBeNull();
+});
+test("a saved presentation shortcut can resume or open a fresh full walkthrough", async () => {
+  mocks.beginDemoVerification.mockResolvedValue({ verification: { ...sample, step: "demo_skipped" } });
+  const onComplete = vi.fn();
+  render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={onComplete} />);
+  expect(await screen.findByText("Walkthrough skipped for this demo")).toBeTruthy();
+  expect(screen.getByText(/No identity check was performed or approved/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Show the full walkthrough" }));
   await screen.findByRole("button", { name: "Start demo check" });
   expect(mocks.restartDemoVerification).toHaveBeenCalledWith(id);
   expect(onComplete).not.toHaveBeenCalled();

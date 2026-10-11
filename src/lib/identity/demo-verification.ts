@@ -1,7 +1,7 @@
-export type DemoVerificationStep = "start" | "consent" | "details" | "document_front" | "document_back" | "selfie" | "submitted" | "demo_passed" | "requires_input";
+export type DemoVerificationStep = "start" | "consent" | "details" | "document_front" | "document_back" | "selfie" | "submitted" | "demo_passed" | "demo_skipped" | "requires_input";
 export type DemoVerification = { id: string; reference: string; provider: "demo"; step: DemoVerificationStep };
 export type DemoVerificationResult = { verification: DemoVerification; error?: never } | { error: string; verification?: never };
-export const demoVerificationSteps: DemoVerificationStep[] = ["start", "consent", "details", "document_front", "document_back", "selfie", "submitted", "demo_passed", "requires_input"];
+export const demoVerificationSteps: DemoVerificationStep[] = ["start", "consent", "details", "document_front", "document_back", "selfie", "submitted", "demo_passed", "demo_skipped", "requires_input"];
 export function parseDemoVerification(value: unknown): DemoVerification | null {
   if (!value || typeof value !== "object") return null;
   const v = value as DemoVerification;

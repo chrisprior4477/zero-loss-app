@@ -114,6 +114,9 @@
 .footer strong { color: #0075bd; font-size: 10px; font-weight: 850; letter-spacing: .08em; }
 .footer small { font-size: 11px; }
 .footer button { min-height: 44px; color: #0874ad; font-size: 12px; font-weight: 800; cursor: pointer; }
+.footerActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; }
+.footer .skipDemo { padding: 9px 12px; border: 1px solid #9bd7ea; border-radius: 9px; color: #063f65; background: #dff3ff; text-align: center; }
+.footer .skipDemo:hover { background: #c9ecff; }
 @media (max-width: 480px) {
   .dialog { --corner-scoop: 12px; --side-scoop: 12px; width: calc(100% - 16px); }
   .header { gap: 9px; padding: 22px 18px 0; }
@@ -137,5 +140,8 @@
   .actions > .primary { flex: 1 1 auto; }
   .footer { margin: 0 18px; }
   .footer strong { font-size: 9px; }
+  .footer { flex-wrap: wrap; }
+  .footerActions { width: 100%; justify-content: space-between; }
+  .footer .skipDemo { flex: 1 1 190px; }
 }
 @media (prefers-reduced-motion: reduce) { .face g { transition: none !important; } }

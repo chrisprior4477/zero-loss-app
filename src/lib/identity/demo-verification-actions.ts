@@ -20,11 +20,15 @@ export async function beginDemoVerification(rewardId: string): Promise<DemoVerif
   return runVerification("begin_demo_identity_verification", { p_reward_id: rewardId });
 }
 export async function advanceDemoVerification(id: string, step: DemoVerificationStep): Promise<DemoVerificationResult> {
-  if (!/^[0-9a-f-]{36}$/i.test(id) || !demoVerificationSteps.includes(step) || step === "start") return { error: "This verification step is invalid." };
+  if (!/^[0-9a-f-]{36}$/i.test(id) || !demoVerificationSteps.includes(step) || step === "start" || step === "demo_skipped") return { error: "This verification step is invalid." };
   // Only fixture identifiers cross this boundary, never user-supplied identity data.
   return runVerification("advance_demo_identity_verification", { p_verification_id: id, p_step: step, p_fixture: "sample-adult-v1" });
 }
 export async function restartDemoVerification(rewardId: string): Promise<DemoVerificationResult> {
   if (!/^[0-9a-f-]{36}$/i.test(rewardId)) return { error: "This prize reference is invalid." };
   return runVerification("restart_demo_identity_verification", { p_reward_id: rewardId });
+}
+export async function skipDemoVerificationForPresentation(rewardId: string, verificationId: string): Promise<DemoVerificationResult> {
+  if (!/^[0-9a-f-]{36}$/i.test(rewardId) || !/^[0-9a-f-]{36}$/i.test(verificationId)) return { error: "This demo reference is invalid." };
+  return runVerification("skip_demo_identity_for_presentation", { p_reward_id: rewardId, p_verification_id: verificationId });
 }

@@ -85,6 +85,23 @@ select is(public.advance_demo_identity_verification(current_setting('test.after_
 select is(public.claim_preview_reward(current_setting('test.after_restart_reward')::uuid,'identity_repeatable_claim_002')->>'status','claimed','new reward is claimable after the fresh pass');
 select is((select count(*)::integer from public.customer_verification_events where customer_id=auth.uid() and step='demo_passed'),2,'both passed results remain in immutable history');
 
+-- Presentation shortcut is recorded distinctly from completing sample steps.
+select is(public.restart_preview_reward(current_setting('test.after_restart_reward')::uuid,'identity_repeatable_restart_002')->>'status','restarted','second restart begins a fresh presentation cycle');
+select set_config('test.skip_reward',public.create_preview_entry('samsung-m70h-tv','identity_repeatable_entry_003')->>'rewardId',true);
+select throws_ok($$select public.claim_preview_reward(current_setting('test.skip_reward')::uuid,'identity_repeatable_claim_003')$$,'P0001',null,'new winner still requires a demo result before shortcut');
+select set_config('test.skip_verification',public.begin_demo_identity_verification(current_setting('test.skip_reward')::uuid)->>'id',true);
+select is(public.advance_demo_identity_verification(current_setting('test.skip_verification')::uuid,'consent','sample-adult-v1')->>'step','consent','presentation can stop after the sample consent screen');
+select throws_ok($$select public.skip_demo_identity_for_presentation(current_setting('test.skip_reward')::uuid,current_setting('test.verification')::uuid)$$,'42501',null,'shortcut rejects an old presentation session');
+select is(public.skip_demo_identity_for_presentation(current_setting('test.skip_reward')::uuid,current_setting('test.skip_verification')::uuid)->>'step','demo_skipped','shortcut records an honest terminal demo-skipped result');
+select is(public.skip_demo_identity_for_presentation(current_setting('test.skip_reward')::uuid,current_setting('test.skip_verification')::uuid)->>'step','demo_skipped','shortcut retry is idempotent');
+select is((select count(*)::integer from public.customer_verification_events where verification_id=current_setting('test.skip_verification')::uuid and step='demo_skipped'),1,'only one skip audit event exists');
+select is((select count(*)::integer from public.customer_verification_events where verification_id=current_setting('test.skip_verification')::uuid and step='demo_passed'),0,'skip never masquerades as a passed check');
+select is(public.claim_preview_reward(current_setting('test.skip_reward')::uuid,'identity_repeatable_claim_003')->>'status','claimed','demo winner can be claimed after explicit presentation shortcut');
+select is(public.get_claimed_reward(current_setting('test.skip_reward')::uuid)->>'redeemable','false','shortcut never issues a redeemable reward');
+select is((select verification_status from public.customers where id=auth.uid()),'email_verified','shortcut never upgrades real identity status');
+select set_config('test.after_skip_replay',public.restart_demo_identity_verification(current_setting('test.skip_reward')::uuid)->>'id',true);
+select isnt(current_setting('test.after_skip_replay'),current_setting('test.skip_verification'),'full walkthrough replay starts a fresh session after shortcut');
+
 select set_config('test.replay',public.restart_demo_identity_verification(current_setting('test.reward')::uuid)->>'id',true);
 select isnt(current_setting('test.replay'),current_setting('test.verification'),'replay starts a new sample session, preserving the successful one');
 select is(public.restart_demo_identity_verification(current_setting('test.reward')::uuid)->>'id',current_setting('test.replay'),'double-clicking replay resumes the same new session');
@@ -98,8 +115,10 @@ select is((select count(*)::integer from public.customer_verification_events),0,
 select throws_ok($$select public.begin_demo_identity_verification(current_setting('test.reward')::uuid)$$,'42501',null,'cannot start another customer winner check');
 select throws_ok($$select public.restart_demo_identity_verification(current_setting('test.reward')::uuid)$$,'42501',null,'cannot replay another customer winner check');
 select throws_ok($$select public.advance_demo_identity_verification(current_setting('test.verification')::uuid,'consent','sample-adult-v1')$$,'42501',null,'cannot advance another customer check');
+select throws_ok($$select public.skip_demo_identity_for_presentation(current_setting('test.skip_reward')::uuid,current_setting('test.skip_verification')::uuid)$$,'42501',null,'cannot use another customer presentation shortcut');
 select set_config('request.jwt.claims','{"sub":"97999999-9999-4999-8999-999999999972","iss":"https://other.supabase.co/auth/v1"}',true);
 select throws_ok($$select public.begin_demo_identity_verification(current_setting('test.reward')::uuid)$$,'42501',null,'wrong environment blocked');
+select throws_ok($$select public.skip_demo_identity_for_presentation(current_setting('test.skip_reward')::uuid,current_setting('test.skip_verification')::uuid)$$,'42501',null,'presentation shortcut is blocked outside the demo environment');
 reset role;
 select throws_ok($$delete from public.customer_verifications where id=current_setting('test.verification')::uuid$$,'55000',null,'session history cannot be deleted by ordinary owner SQL');
 select throws_ok($$update public.customer_verification_events set step='cancelled' where verification_id=current_setting('test.verification')::uuid$$,'55000',null,'event history is immutable');
