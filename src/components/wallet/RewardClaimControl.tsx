@@ -4,12 +4,14 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { claimReward, type RewardClaimActionState } from "@/lib/account/lifecycle-actions";
 import { DemoVerificationDialog } from "@/components/identity/DemoVerificationDialog";
+import { ClaimIdentityIntro } from "./ClaimIdentityIntro";
 
 const initialState: RewardClaimActionState = { status: "idle" };
 
 export function RewardClaimControl({ rewardId }: { rewardId: string }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(claimReward, initialState);
+  const [introOpen, setIntroOpen] = useState(false);
   const [verificationOpen, setVerificationOpen] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const claimButton = useRef<HTMLButtonElement>(null);
@@ -17,7 +19,7 @@ export function RewardClaimControl({ rewardId }: { rewardId: string }) {
   useEffect(() => {
     // The server, not the client, decides whether this claim needs verification.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (state.status === "verification_required") setVerificationOpen(true);
+    if (state.status === "verification_required") setIntroOpen(true);
   }, [state]);
   return <><form ref={form} action={action} className="mt-5 rounded-xl border border-[#00a31d]/25 bg-white/70 p-4 text-center">
     <input type="hidden" name="rewardId" value={rewardId} />
@@ -26,7 +28,8 @@ export function RewardClaimControl({ rewardId }: { rewardId: string }) {
       {pending ? "Claiming…" : state.status === "succeeded" ? "Reward claimed" : "Claim reward"}
     </button>
     {state.status !== "idle" ? <p role="status" className={`mt-3 text-xs font-bold ${state.status === "error" ? "text-[#a32900]" : "text-[#08721c]"}`}>{state.message}</p> : null}
-  </form>{verificationOpen ? <DemoVerificationDialog rewardId={rewardId} onClose={() => { setVerificationOpen(false); claimButton.current?.focus(); }} onComplete={() => {
+  </form>{introOpen ? <ClaimIdentityIntro onClose={() => { setIntroOpen(false); claimButton.current?.focus(); }} onContinue={() => { setIntroOpen(false); setVerificationOpen(true); }} /> : null}
+  {verificationOpen ? <DemoVerificationDialog rewardId={rewardId} onClose={() => { setVerificationOpen(false); claimButton.current?.focus(); }} onComplete={() => {
     setVerificationOpen(false);
     form.current?.requestSubmit();
   }} /> : null}</>;

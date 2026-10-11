@@ -1,0 +1,37 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import styles from "./claim-identity-intro.module.css";
+
+export function ClaimIdentityIntro({ onContinue, onClose }: { onContinue: () => void; onClose: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const modal = dialog.current;
+    if (modal && !modal.open) modal.showModal();
+    return () => { if (modal?.open) modal.close(); };
+  }, []);
+
+  return <dialog ref={dialog} className={styles.dialog} aria-labelledby="claim-identity-intro-title" onCancel={event => { event.preventDefault(); onClose(); }}>
+    <div className={styles.handle} aria-hidden="true" />
+    <div className={styles.content}>
+      <span className={styles.eyebrow}>BEFORE YOU CLAIM</span>
+      <h2 id="claim-identity-intro-title">Before you claim your first win</h2>
+      <p className={styles.copy}>Congratulations! As a first-time winner, we ask you to complete an identity check before claiming your reward. This helps protect your account and keeps prize records accurate. You never need to pay to claim a prize you won.</p>
+      <div className={styles.steps} aria-label="What happens next">
+        <strong>What happens next</strong>
+        <ol>
+          <li>Review the sample identity details.</li>
+          <li>Walk through the sample ID and headshot steps.</li>
+          <li>Return here to claim your reward.</li>
+        </ol>
+      </div>
+      <p className={styles.demoNote}>In this MVP preview, the check uses only fictional sample details. Do not provide a real ID or turn on your camera. No actual identity verification takes place.</p>
+      <div className={styles.actions}>
+        <button type="button" className={styles.primary} onClick={onContinue}>Continue to identity check</button>
+        <button type="button" className={styles.secondary} onClick={onClose}>Not now</button>
+      </div>
+      <p className={styles.footnote}>Follow the next steps to claim your reward. You can come back later if you need to.</p>
+    </div>
+  </dialog>;
+}

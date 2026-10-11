@@ -1,0 +1,40 @@
+.dialog {
+  width: min(520px, calc(100% - 32px));
+  max-height: min(90dvh, 800px);
+  margin: auto;
+  padding: 0;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 24px;
+  color: #0b1b46;
+  background: #fffdfa;
+  box-shadow: 0 24px 80px #0014298c;
+  text-align: left;
+}
+
+.dialog::backdrop { background: #00142ba8; backdrop-filter: blur(3px); }
+.handle { display: none; }
+.content { padding: 32px; }
+.eyebrow { color: #0074b8; font-size: 12px; font-weight: 850; letter-spacing: .14em; }
+.content h2 { margin: 9px 0 13px; font-size: clamp(25px, 4vw, 32px); line-height: 1.08; letter-spacing: -.035em; }
+.copy { margin: 0 0 19px; color: #36597b; font-size: 16px; line-height: 1.5; }
+.steps { padding: 17px 20px; border-radius: 15px; background: #e4f5ff; }
+.steps strong { color: #075888; font-size: 14px; }
+.steps ol { display: grid; gap: 9px; margin: 12px 0 0; padding-left: 21px; font-size: 14px; font-weight: 700; }
+.steps li::marker { color: #0075e8; font-weight: 900; }
+.demoNote { margin: 17px 0 20px; color: #48698a; font-size: 13px; line-height: 1.45; }
+.actions { display: grid; gap: 10px; }
+.actions button { min-height: 49px; padding: 11px 16px; border-radius: 11px; font-weight: 850; cursor: pointer; }
+.primary { color: #062218; background: #36eb47; }
+.primary:hover { background: #6bf474; }
+.secondary { color: #12375b; background: #e8f4fc; }
+.secondary:hover { background: #d7edfa; }
+.actions button:focus-visible { outline: 3px solid #0876ff; outline-offset: 3px; }
+.footnote { margin: 15px 0 0; color: #587492; font-size: 12px; line-height: 1.4; }
+
+@media (max-width: 600px) {
+  .dialog { width: 100%; max-width: none; max-height: 88dvh; margin: auto 0 0; border-radius: 24px 24px 0 0; }
+  .handle { display: block; width: 45px; height: 5px; margin: 11px auto 0; border-radius: 999px; background: #aecbdd; }
+  .content { padding: 16px 22px max(24px, env(safe-area-inset-bottom)); }
+  .content h2 { font-size: 27px; }
+}
