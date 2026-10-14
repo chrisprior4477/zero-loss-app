@@ -160,7 +160,10 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     // after a redirect or after the customer has cleared their playable balance.
     const savedKey = saved?.key;
     const matching = savedKey ? requests?.find(request => request.idempotencyKey === savedKey) : undefined;
-    if (matching?.reconciliation === "reconciled") {
+    // The owner-scoped request list is authoritative. A browser marker with no
+    // matching request was never accepted; a reconciled one is already done.
+    const staleMarker = Boolean(saved && requests !== null && (!matching || matching.reconciliation === "reconciled"));
+    if (staleMarker) {
       try { sessionStorage.removeItem(storageKey); } catch { /* A later visit will check again. */ }
       saved = null;
     }
@@ -168,7 +171,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     // history to distinguish a real interrupted request from a completed one.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAttempt(current => saved ? { ...saved, recovered: true, canRetry: matching !== undefined && matching.reconciliation !== "discrepancy", ready: true }
-      : matching ? { key: requestKey, amount: "2500", recovered: false, canRetry: false, ready: true } : { ...current, ready: true });
+      : staleMarker ? { key: requestKey, amount: "2500", recovered: false, canRetry: false, ready: true } : { ...current, ready: true });
   }, [storageKey, requests, requestKey]);
   return <>
     {successMessage ? <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-green-400/40 bg-green-50 px-4 py-3 text-sm font-bold text-green-800"><p role="status" className="flex-1">{successMessage}</p>{continueTo ? <Link href={continueTo.href} className="flex min-h-11 items-center rounded-lg bg-[#31e800] px-4 font-extrabold text-[#062218]">{continueTo.label ?? "Continue your entry"} →</Link> : null}<button type="button" onClick={() => document.getElementById("demo-funding-amount")?.focus()} className="min-h-11 rounded-lg border border-green-600 px-3 text-green-800">Add more funds</button></div> : null}

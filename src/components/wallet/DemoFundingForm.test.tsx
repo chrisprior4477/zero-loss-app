@@ -105,13 +105,25 @@ test("failed request list is unavailable, not empty", () => {
   expect(screen.getByRole("alert").textContent).toContain("unavailable");
   expect(screen.queryByText("No payment deposits yet.")).toBeNull();
 });
-test("reload restores the original payment key and amount, never a fresh payment", () => {
+test("unavailable payment history keeps the original request and amount locked for safety", () => {
   sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount: "1000" }));
-  const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" blocked={false} />);
+  const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" requests={null} blocked={false} />);
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("original_request_key_01");
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("1000");
   expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy();
+  expect((screen.getByLabelText("Amount (USD)") as HTMLSelectElement).disabled).toBe(true);
   expect(container.querySelector<HTMLInputElement>('[name="recoveryOnly"]')?.value).toBe("true");
+});
+test("a browser marker absent from verified payment history cannot freeze a new deposit", async () => {
+  sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "old_unaccepted_request_01", amount: "2500" }));
+  const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" requests={[]} blocked={false} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
+  expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull();
+  expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("new_server_render_key_02");
+  const amount = screen.getByLabelText("Amount (USD)") as HTMLSelectElement;
+  expect(amount.disabled).toBe(false);
+  fireEvent.change(amount, { target: { value: "10000" } });
+  expect(amount.value).toBe("10000");
 });
 
 test("a completed deposit marker becomes a new Add funds form after demo funds are cleared", async () => {
@@ -206,7 +218,9 @@ test("additional sample cards form a two-card selection and can be saved", async
 
 test("retry restores and locks the original default preference, not the current preference", () => {
   sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount: "1000", paymentMethod: "demo_card_4242", makeDefault: true }));
-  const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" blocked={false} />);
+  const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" blocked={false} requests={[
+    { id: "pending-session", amount: 1000, currency: "USD", status: "processing", created_at: "2026-10-14", idempotencyKey: "original_request_key_01", reconciliation: "credit_pending" },
+  ]} />);
   const checkbox = screen.getByRole("checkbox") as HTMLInputElement;
   expect(checkbox.checked).toBe(true);
   expect(checkbox.disabled).toBe(true);
