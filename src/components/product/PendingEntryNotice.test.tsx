@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), acknowledge: 
 vi.mock("next/navigation", () => ({ usePathname: () => mocks.path, useRouter: () => ({ refresh: mocks.refresh, replace: mocks.replace }) }));
 vi.mock("@/lib/entries/actions", () => ({ listPendingEntryRequests: mocks.list, resolvePendingEntryRequest: mocks.resolve, acknowledgeEntryReceipt: mocks.acknowledge }));
 import { PendingEntryNotice } from "./PendingEntryNotice";
-import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
+import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 const request: EntryRequest = { requestId: "41414141-4141-4141-8141-414141414141", slug: "test-prize", title: "Test prize", quantity: 3, amountCents: 300, status: "pending", duplicate: false, undoUntil: "2026-09-21T12:00:30Z", serverNow: "2026-09-21T12:00:00Z", href: null };
 beforeEach(() => { vi.resetAllMocks(); mocks.path = "/items/test-prize"; sessionStorage.clear(); mocks.list.mockResolvedValue({ requests: [] }); mocks.acknowledge.mockResolvedValue({}); });
 afterEach(() => { cleanup(); vi.useRealTimers(); });
@@ -79,4 +79,25 @@ test("automatic confirmation navigates before a refresh can hide the result", as
     window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, serverNow: request.undoUntil } }));
   });
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd"));
+});
+
+test("automatic confirmation does not refresh over an Activity-detail redirect", async () => {
+  mocks.resolve.mockResolvedValue({ request: { ...request, status: "accepted",
+    href: "/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd" } });
+  const onReceipt = (event: Event) => {
+    const updated = (event as CustomEvent<EntryRequest>).detail;
+    if (updated.status === "accepted") window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_ROUTED_EVENT, { detail: updated.requestId }));
+  };
+  window.addEventListener(ENTRY_REQUEST_EVENT, onReceipt);
+  try {
+    render(<PendingEntryNotice />);
+    await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+    act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, serverNow: request.undoUntil } })));
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledWith(request.requestId, false));
+    await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId));
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    expect(mocks.replace).not.toHaveBeenCalled();
+  } finally {
+    window.removeEventListener(ENTRY_REQUEST_EVENT, onReceipt);
+  }
 });

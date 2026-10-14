@@ -117,6 +117,55 @@ test("an additional entry that closes the pool opens its purchase option", async
   await waitFor(() => expect(replace).toHaveBeenCalledWith(destination));
 });
 
+test("an additional winning entry goes to the highlighted win in My Activity", async () => {
+  const request = {
+    requestId: "22222222-2222-4222-8222-222222222222",
+    slug: props.slug, title: props.itemTitle, quantity: 1, amountCents: 100,
+    status: "pending" as const, undoUntil: new Date(Date.now() + 30000).toISOString(),
+    serverNow: new Date().toISOString(), href: null,
+  };
+  createPreviewEntry.mockResolvedValue({ status: "request", message: "Reserved", request });
+  confirmPendingEntryRequest.mockResolvedValue({ request: { ...request, status: "accepted", entryId: "ent_1234",
+    href: "/account/wallet?reward=playstation-5-slim&rewardId=11111111-1111-4111-8111-111111111111" } });
+  render(<EntryPageActions {...props} remaining={1} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add more entries to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Confirm entry" })).toBeTruthy());
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry" }));
+  await waitFor(() => expect(replace).toHaveBeenCalledWith("/account/entries?filter=prize&viewed=ent_1234"));
+});
+
+test("an extra-ticket purchase that fills the pool returns to My Activity even if its receipt is still open", async () => {
+  createPreviewEntry.mockResolvedValue({ status: "succeeded", message: "Entry confirmed.",
+    href: "/account/entries?filter=active&item=playstation-5-slim&entry=ent_1234", outcome: "active" });
+  render(<EntryPageActions {...props} remaining={2} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one extra entry" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add 2 more entries to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm 2 entries for $2" }));
+  await waitFor(() => expect(replace).toHaveBeenCalledWith("/account/entries?viewed=ent_1234"));
+});
+
+test("a pending last-ticket purchase returns to My Activity after confirmation", async () => {
+  const request = {
+    requestId: "22222222-2222-4222-8222-222222222222",
+    slug: props.slug, title: props.itemTitle, quantity: 1, amountCents: 100,
+    status: "pending" as const, undoUntil: new Date(Date.now() + 30000).toISOString(),
+    serverNow: new Date().toISOString(), href: null,
+  };
+  createPreviewEntry.mockResolvedValue({ status: "request", message: "Reserved", request });
+  confirmPendingEntryRequest.mockResolvedValue({ request: { ...request, status: "accepted", entryId: "ent_1234",
+    href: "/account/entries?filter=active&item=playstation-5-slim&entry=ent_1234" } });
+  render(<EntryPageActions {...props} remaining={1} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add more entries to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Confirm entry" })).toBeTruthy());
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry" }));
+  await waitFor(() => expect(replace).toHaveBeenCalledWith("/account/entries?viewed=ent_1234"));
+});
+
 test("a stale checkout shows the recovered receipt honestly and uses it for the next attempt", async () => {
   const recoveredId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
   createPreviewEntry.mockResolvedValueOnce({

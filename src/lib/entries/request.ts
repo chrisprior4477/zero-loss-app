@@ -9,10 +9,12 @@ export type EntryRequest = {
   undoUntil: string;
   serverNow: string;
   href: string | null;
+  entryId?: string | null;
 };
 
 export const ENTRY_REQUEST_EVENT = "zero-loss-entry-request";
 export const ENTRY_REQUEST_CREATED_EVENT = "zero-loss-entry-request-created-here";
+export const ENTRY_REQUEST_ROUTED_EVENT = "zero-loss-entry-request-routed-in-activity";
 export const RECENT_ENTRY_STORAGE_KEY = "zero-loss:recent-entry";
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
@@ -43,5 +45,8 @@ export function parseEntryRequest(value: unknown): EntryRequest {
     requestId: r.requestId, slug: r.slug, title: r.title, quantity: r.quantity, amountCents: r.amountCents,
     status: r.status as EntryRequest["status"], duplicate: r.duplicate === true, undoUntil: r.undoUntil, serverNow: r.serverNow,
     href: r.status === "accepted" ? entryReceiptHref(r.receipt as Record<string, unknown>, r.slug) : null,
+    entryId: r.status === "accepted" && typeof (r.receipt as Record<string, unknown>).entryId === "string"
+      && /^ent_[0-9a-f]+$/.test((r.receipt as Record<string, unknown>).entryId as string)
+      ? (r.receipt as Record<string, unknown>).entryId as string : null,
   };
 }

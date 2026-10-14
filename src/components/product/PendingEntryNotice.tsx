@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { acknowledgeEntryReceipt, listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
-import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
+import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 
 type TimedRequest = EntryRequest & { receivedAt: number };
 
@@ -18,6 +18,7 @@ export function PendingEntryNotice() {
   const inFlight = useRef(new Set<string>());
   const acknowledged = useRef(new Set<string>());
   const routed = useRef(new Set<string>());
+  const routedInActivity = useRef(new Set<string>());
   const refreshing = useRef(false);
   const generation = useRef(0);
   const revision = useRef(0);
@@ -29,6 +30,7 @@ export function PendingEntryNotice() {
   }, []);
 
   const routeAccepted = useCallback((request: EntryRequest) => {
+    if (routedInActivity.current.has(request.requestId)) return true;
     if (request.status !== "accepted" || routed.current.has(request.requestId)
       || !createdHere.current.delete(request.requestId)) return false;
     routed.current.add(request.requestId);
@@ -61,15 +63,18 @@ export function PendingEntryNotice() {
 
   useEffect(() => {
     const onCreated = (event: Event) => createdHere.current.add((event as CustomEvent<string>).detail);
+    const onRoutedInActivity = (event: Event) => routedInActivity.current.add((event as CustomEvent<string>).detail);
     const onReceipt = (event: Event) => storeReceipt((event as CustomEvent<EntryRequest>).detail);
     const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
     window.addEventListener(ENTRY_REQUEST_CREATED_EVENT, onCreated);
+    window.addEventListener(ENTRY_REQUEST_ROUTED_EVENT, onRoutedInActivity);
     window.addEventListener(ENTRY_REQUEST_EVENT, onReceipt);
     window.addEventListener("focus", onVisible);
     window.addEventListener("online", onVisible);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.removeEventListener(ENTRY_REQUEST_CREATED_EVENT, onCreated);
+      window.removeEventListener(ENTRY_REQUEST_ROUTED_EVENT, onRoutedInActivity);
       window.removeEventListener(ENTRY_REQUEST_EVENT, onReceipt);
       window.removeEventListener("focus", onVisible);
       window.removeEventListener("online", onVisible);

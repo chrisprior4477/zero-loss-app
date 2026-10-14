@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest, type PreviewEntryActionState } from "@/lib/entries/actions";
-import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
+import { ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -20,6 +20,19 @@ function shortPrizeName(slug: string, title: string) {
   if (slug === "playstation-5-slim") return "PlayStation 5";
   if (slug === "samsung-m70h-tv") return "Samsung TV";
   return title.length <= 26 ? title : "this prize";
+}
+
+function resultInActivity(href: string | null, fillsPool: boolean, entryId?: string | null): string | null {
+  if (!href) return null;
+  if (href.startsWith("/account/entries?filter=completion")) return href;
+  if (href.startsWith("/account/wallet?reward=")) {
+    const params = new URLSearchParams({ filter: "prize" });
+    if (entryId) params.set("viewed", entryId);
+    return `/account/entries?${params}`;
+  }
+  if (!fillsPool || !href.startsWith("/account/entries")) return null;
+  const exactEntry = entryId ?? new URL(href, "https://example.invalid").searchParams.get("entry");
+  return exactEntry ? `/account/entries?${new URLSearchParams({ viewed: exactEntry })}` : "/account/entries";
 }
 
 export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref }: {
@@ -41,6 +54,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   const [createdHereRequestId, setCreatedHereRequestId] = useState<string | null>(null);
   const attemptedForm = useRef<FormData | null>(null);
   const activeRequestId = useRef<string | null>(null);
+  const closingRequest = useRef(false);
   const crewRail = useRef<HTMLDivElement>(null);
   const railDrag = useRef<{ pointerId: number; startX: number; scrollLeft: number } | null>(null);
   const sampleNames = useSampleCrewPreviews();
@@ -70,8 +84,12 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
       if (updated.status !== "pending") {
         setSubmissionKey(crypto.randomUUID());
         attemptedForm.current = null;
-        if (updated.status === "accepted" && (updated.href?.startsWith("/account/entries?filter=completion") || updated.href?.startsWith("/account/wallet?reward=")))
-          router.replace(updated.href);
+        const destination = updated.status === "accepted"
+          ? resultInActivity(updated.href, closingRequest.current, updated.entryId) : null;
+        if (destination) {
+          window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_ROUTED_EVENT, { detail: updated.requestId }));
+          router.replace(destination);
+        }
         else router.refresh();
       }
     };
@@ -127,6 +145,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
     }
     setWorking(true);
     setActionError("");
+    closingRequest.current = remaining !== null && quantity >= remaining;
     try {
       const response = await createPreviewEntry({ status: "idle" }, form);
       setResult(response);
@@ -135,12 +154,13 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
         setCreatedHereRequestId(response.request.duplicate ? null : response.request.requestId);
         setLatestRequestId(response.request.requestId);
         setReceipt(response.request);
-        // The global coordinator auto-finalizes, but only product-checkout-created requests navigate away.
+        // The global coordinator auto-finalizes; this page routes its own confirmed result.
         window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: response.request }));
       } else if (response.status === "succeeded") {
         attemptedForm.current = null;
         setSubmissionKey(crypto.randomUUID());
-        if (response.outcome === "winner" || response.outcome === "not_selected") router.replace(response.href);
+        const destination = resultInActivity(response.href, closingRequest.current);
+        if (destination) router.replace(destination);
         else router.refresh();
       }
     } catch {
