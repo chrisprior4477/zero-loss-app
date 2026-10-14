@@ -136,6 +136,15 @@
   cursor: pointer;
 }
 
+.option .action {
+  line-height: 1.15;
+  white-space: normal;
+}
+
+.option .action > span {
+  min-width: 0;
+}
+
 .disabledAction {
   cursor: not-allowed;
   opacity: .65;
