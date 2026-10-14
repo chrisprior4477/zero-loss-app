@@ -38,7 +38,7 @@ export function MyZeroLossSummary({ state, compact = false, onNavigate }: { stat
 
 export function PurchaseOptionsSummary({ state, compact = false, onNavigate }: { state: AccountActivity; compact?: boolean; onNavigate?: () => void }) {
   const count = state.source === "unavailable" ? null : state.activity.filter(item => item.status === "completion").length;
-  return <Link href={accountRoutes.purchaseOptions} onClick={onNavigate} aria-label="Purchase Options — Complete Purchase" data-activity-source={state.source}
+  return <Link href={accountRoutes.purchaseOptions} onClick={onNavigate} aria-label="Purchase Options — Continue with Purchase" data-activity-source={state.source}
     className={`group h-full min-w-0 rounded-2xl border border-[#ff6a18]/55 bg-[linear-gradient(135deg,#5d280d,#281b19)] shadow-[inset_0_0_22px_rgba(255,94,24,.12)] transition hover:border-[#ff9a57] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ff7a2d] ${compact ? "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 p-3" : "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 p-4 lg:flex lg:flex-col lg:items-stretch"}`}>
     <h2 className={`text-xs font-black uppercase tracking-[0.14em] text-[#ff9a57] ${compact ? "col-start-1 row-start-1" : ""}`}>Purchase Options</h2>
     <p className={`font-black tracking-tight text-white ${compact ? "col-start-1 row-start-2 text-base" : "mt-1 text-3xl"}`}>{count === null ? "Unavailable" : count}</p>

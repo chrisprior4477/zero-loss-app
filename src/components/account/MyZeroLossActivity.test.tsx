@@ -182,16 +182,16 @@ test("open entry details reuse the same live count and explain outcomes", () => 
   expect(within(dialog).getByText(/win or no win/)).toBeTruthy();
   expect(within(dialog).getByRole("checkbox", { name: /Email me when any of my entry outcomes posts/ })).toBeTruthy();
 });
-test("available and revived non-winner options say Complete Purchase without changing their destination", () => {
+test("available and revived non-winner options say Continue with Purchase without changing their destination", () => {
   const state = storedActivityFixture();
   const item = { ...state.activity[3], entryId: "entry-revived", completionOptionStatus: "available" as const };
   state.activity = [item];
   render(<MyZeroLossActivity state={state} filter="completion" />);
   const card = within(screen.getByRole("region", { name: "Your products" })).getByRole("link", { name: /Baby's Essentials Bundle/ });
-  expect(within(card).getByText("Complete Purchase")).toBeTruthy();
+  expect(within(card).getByText("Continue with Purchase")).toBeTruthy();
   expect(card.getAttribute("href")).toBe("/account/entries?item=babys-essentials-bundle&entry=entry-revived&filter=completion");
-  expect(activityPresentation(item).action).toBe("Complete Purchase");
-  expect(buildAccountNotifications(state, null, true).find(notification => notification.category === "action")?.action).toBe("Complete Purchase");
+  expect(activityPresentation(item).action).toBe("Continue with Purchase");
+  expect(buildAccountNotifications(state, null, true).find(notification => notification.category === "action")?.action).toBe("Continue with Purchase");
 });
 
 test("completion displays exact product math and stays unavailable without a stored option id", () => {

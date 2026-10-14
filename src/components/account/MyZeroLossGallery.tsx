@@ -36,7 +36,7 @@ function groupGalleryEntries(items: ActivityItem[]): GalleryGroup[] {
 function action(item: ActivityItem) {
   if (item.status === "prize") return item.rewardKind === "digital" ? "Open reward" : "Claim prize";
   if (item.completionOptionStatus === "declined") return "Review declined";
-  return { active: "See My Entry", completion: "Complete Purchase", completed: "View details" }[item.status];
+  return { active: "See My Entry", completion: "Continue with Purchase", completed: "View details" }[item.status];
 }
 
 export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId }: { items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string }) {

@@ -59,7 +59,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       <section aria-label="Your account overview" className={`${stripStyles.row} ${overview.statusTickets}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!fundingEnabled} />
         <StatusTicket size="top" variant="reward" label="Prize Ready" value={readyCount === null ? "Unavailable" : String(readyCount)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : accountRoutes.rewards} />
-        <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Complete Purchase" href={accountRoutes.purchaseOptions} />
+        <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </section>
       <div className={overview.mainGrid}>
         <section className={`${overview.ticketPanel} ${overview.readySection}`} aria-labelledby="ready-heading">
@@ -188,7 +188,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
       {accountOverview ? <section aria-label="Your account overview" className={`${stripStyles.row} ${styles.detailStatusStrip}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={accountOverview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={accountOverview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!accountOverview.fundingEnabled} />
         <StatusTicket size="top" variant="reward" label="Prize Ready" value={accountOverview.activity.source === "unavailable" ? "Unavailable" : String(ready.length)} action={singleReady ? "View reward" : "View rewards"} href={singleReady ? walletRewardHref(singleReady) : accountRoutes.rewards} />
-        <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null || optionCount === undefined ? "Unavailable" : String(optionCount)} action="Complete Purchase" href={accountRoutes.purchaseOptions} />
+        <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null || optionCount === undefined ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </section> : null}
       <header className={styles.detailHeading}>
         <div>
