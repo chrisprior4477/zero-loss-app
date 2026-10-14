@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import DeclinedOffersPage from "./page";
 
@@ -33,6 +33,9 @@ test("declined entries retain their own credit, original deadline and free reviv
   }] } });
   render(await DeclinedOffersPage());
   expect(screen.getByRole("heading", { name: "Changed your mind?" })).toBeTruthy();
+  const exits = within(screen.getByRole("navigation", { name: "Declined offers navigation" }));
+  expect(exits.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe("/account/entries");
+  expect(exits.getByRole("link", { name: "Return to Marketplace" }).getAttribute("href")).toBe("/browse");
   expect(screen.getByText("$100 Walmart Gift Card")).toBeTruthy();
   expect(screen.queryByText("Unrelated purchase option")).toBeNull();
   expect(screen.getByText("$0.00")).toBeTruthy();

@@ -35,10 +35,18 @@ export default async function DeclinedOffersPage() {
     } catch { /* Show an unavailable control, not an unsaved opt-in. */ }
   }
   return <main className={styles.page}><div className={styles.pageContent}>
-    <Link href="/account/entries" className={styles.declinedBack}>← My Activity</Link>
-    <p className={styles.eyebrow}>DECLINED OFFERS</p>
-    <h1 className={styles.heading}>Changed your mind?</h1>
-    <p className={styles.subtitle}>Revive a declined offer before its original deadline.</p>
+    <div className={styles.declinedHeader}>
+      <div className={styles.declinedIntro}>
+        <Link href="/account/entries" className={styles.declinedBack}>← My Activity</Link>
+        <p className={styles.eyebrow}>DECLINED OFFERS</p>
+        <h1 className={styles.heading}>Changed your mind?</h1>
+        <p className={styles.subtitle}>Revive a declined offer before its original deadline.</p>
+      </div>
+      <nav className={styles.declinedActions} aria-label="Declined offers navigation">
+        <Link href="/account/entries">Return to My Activity</Link>
+        <Link href="/browse">Return to Marketplace</Link>
+      </nav>
+    </div>
     {account.activity.source === "unavailable" ? <div className={styles.empty}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p></div>
       : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href="/account/entries">Back to My Activity →</Link></div>
       : <div className={styles.declinedList}>{declined.map(item => {
