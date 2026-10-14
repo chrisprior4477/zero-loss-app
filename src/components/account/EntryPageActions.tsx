@@ -69,7 +69,9 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
       if (updated.status !== "pending") {
         setSubmissionKey(crypto.randomUUID());
         attemptedForm.current = null;
-        router.refresh();
+        if (updated.status === "accepted" && (updated.href?.startsWith("/account/entries?filter=completion") || updated.href?.startsWith("/account/wallet?reward=")))
+          router.replace(updated.href);
+        else router.refresh();
       }
     };
     window.addEventListener(ENTRY_REQUEST_EVENT, onReceipt);
@@ -137,7 +139,8 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
       } else if (response.status === "succeeded") {
         attemptedForm.current = null;
         setSubmissionKey(crypto.randomUUID());
-        router.refresh();
+        if (response.outcome === "winner" || response.outcome === "not_selected") router.replace(response.href);
+        else router.refresh();
       }
     } catch {
       setResult({ status: "error", code: "outcome_unknown", message: "The connection was interrupted. Check this saved submission before starting another entry." });

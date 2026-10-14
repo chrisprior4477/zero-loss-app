@@ -5,10 +5,11 @@ import { EntryPageActions } from "./EntryPageActions";
 const createPreviewEntry = vi.hoisted(() => vi.fn());
 const confirmPendingEntryRequest = vi.hoisted(() => vi.fn());
 const refresh = vi.hoisted(() => vi.fn());
+const replace = vi.hoisted(() => vi.fn());
 const sharePrizeWithCrew = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry, confirmPendingEntryRequest, resolvePendingEntryRequest: vi.fn() }));
 vi.mock("@/lib/crew/actions", () => ({ sharePrizeWithCrew }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh, replace }) }));
 vi.mock("./EntryOutcomeEmailPreference", () => ({ EntryOutcomeEmailPreference: () => <div data-testid="outcome-email-preference" /> }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
 
@@ -94,6 +95,25 @@ test("pending entry can be confirmed here without a checkout redirect", async ()
   await waitFor(() => expect(screen.getByText(/new entry is confirmed and saved in My Activity/)).toBeTruthy());
   expect(confirmPendingEntryRequest).toHaveBeenCalledWith(request.requestId);
   expect(refresh).toHaveBeenCalled();
+});
+
+test("an additional entry that closes the pool opens its purchase option", async () => {
+  const request = {
+    requestId: "22222222-2222-4222-8222-222222222222",
+    slug: props.slug, title: props.itemTitle, quantity: 1, amountCents: 100,
+    status: "pending" as const, undoUntil: new Date(Date.now() + 30000).toISOString(),
+    serverNow: new Date().toISOString(), href: null,
+  };
+  createPreviewEntry.mockResolvedValue({ status: "request", message: "Reserved", request });
+  const destination = "/account/entries?filter=completion&item=playstation-5-slim&entry=ent_1234";
+  confirmPendingEntryRequest.mockResolvedValue({ request: { ...request, status: "accepted", href: destination } });
+  render(<EntryPageActions {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add more entries to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry for $1" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Confirm entry" })).toBeTruthy());
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry" }));
+  await waitFor(() => expect(replace).toHaveBeenCalledWith(destination));
 });
 
 test("a stale checkout shows the recovered receipt honestly and uses it for the next attempt", async () => {

@@ -87,7 +87,7 @@ test("Confirm entry accepts the saved request and opens My Activity with its exa
   actionMocks.confirm.mockResolvedValue({ request: { ...receipt, status: "accepted", href: "/account/entries?item=test-product&entry=ent_1234" } });
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry" }));
   await waitFor(() => expect(actionMocks.confirm).toHaveBeenCalledWith(receipt.requestId));
-  await waitFor(() => expect(actionMocks.replace).toHaveBeenCalledWith("/account/entries"));
+  await waitFor(() => expect(actionMocks.replace).toHaveBeenCalledWith("/account/entries?item=test-product&entry=ent_1234"));
   expect(JSON.parse(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY) ?? "null")).toMatchObject({ slug: "test-product", entryId: "ent_1234" });
 });
 

@@ -259,7 +259,7 @@ export function DemoParticipationPanel({
           const entryId = result.request.href ? new URL(result.request.href, window.location.origin).searchParams.get("entry") : null;
           sessionStorage.setItem(RECENT_ENTRY_STORAGE_KEY, JSON.stringify({ slug: result.request.slug, entryId, at: Date.now() }));
         } catch { /* The accepted entry is still saved in the database. */ }
-        router.replace("/account/entries");
+        router.replace(result.request.href ?? "/account/entries");
       } else if (result.request.status === "pending") {
         setUndoError("Still checking this saved request. Confirm again or wait for the automatic result.");
       } else {

@@ -29,7 +29,7 @@ test("sends the selected quantity to the atomic database batch function", async 
   expect(await createPreviewEntry({ status: "idle" }, entryForm())).toEqual({
     status: "succeeded",
     message: "3 entries confirmed. They are now in My Activity.",
-    href: "/account/entries?item=samsung-m70h-tv&entry=ent_abcdef123",
+    href: "/account/entries?filter=active&item=samsung-m70h-tv&entry=ent_abcdef123",
     outcome: "active",
   });
   expect(mocks.rpc).toHaveBeenCalledWith("submit_preview_entries", {
@@ -107,14 +107,14 @@ test("winning batches link to the exact stored reward", async () => {
 test("non-selected batches open the exact completion entry", async () => {
   mocks.rpc.mockResolvedValue({ data: { status: "not_selected", entryId: "ent_abcdef124" } });
   expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({
-    status: "succeeded", href: "/account/entries?item=samsung-m70h-tv&entry=ent_abcdef124",
+    status: "succeeded", href: "/account/entries?filter=completion&item=samsung-m70h-tv&entry=ent_abcdef124",
   });
 });
 
 test.each(["active", "not_selected", "winner"])("old %s responses go to an unambiguous list", async status => {
   mocks.rpc.mockResolvedValue({ data: { status, entryId: "invalid?url", rewardId: "invalid?url" } });
   expect(await createPreviewEntry({ status: "idle" }, entryForm())).toMatchObject({
-    status: "succeeded", href: status === "winner" ? "/account/wallet" : "/account/entries",
+    status: "succeeded", href: status === "winner" ? "/account/wallet" : status === "not_selected" ? "/account/entries?filter=completion" : "/account/entries?filter=active",
   });
 });
 
@@ -152,7 +152,7 @@ test("Undo is server-authenticated and targets a request rather than an arbitrar
 });
 test("Confirm entry finalizes only the authenticated request and returns its saved receipt", async () => {
   mocks.rpc.mockResolvedValue({ data: { ...pendingReceipt, status: "accepted", receipt: { status: "active", entryId: "ent_abcdef123" } } });
-  expect(await confirmPendingEntryRequest(pendingReceipt.requestId)).toMatchObject({ request: { status: "accepted", href: "/account/entries?item=samsung-m70h-tv&entry=ent_abcdef123" } });
+  expect(await confirmPendingEntryRequest(pendingReceipt.requestId)).toMatchObject({ request: { status: "accepted", href: "/account/entries?filter=active&item=samsung-m70h-tv&entry=ent_abcdef123" } });
   expect(mocks.getUser).toHaveBeenCalled();
   expect(mocks.rpc).toHaveBeenCalledWith("confirm_preview_entry_request", { p_request_id: pendingReceipt.requestId });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");

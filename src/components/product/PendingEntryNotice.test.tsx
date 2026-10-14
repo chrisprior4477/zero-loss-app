@@ -24,9 +24,33 @@ test("local accepted entry returns to My Activity and leaves a transient exact-e
     window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request }));
     window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted", href: "/account/entries?item=test-prize&entry=ent_abcd" } }));
   });
-  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries"));
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries?item=test-prize&entry=ent_abcd"));
   expect(JSON.parse(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY) ?? "null")).toMatchObject({ slug: "test-prize", entryId: "ent_abcd" });
   expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId);
+});
+
+test("an accepted close-out goes straight to its purchase option", async () => {
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => {
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted",
+      href: "/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd" } }));
+  });
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd"));
+});
+
+test("an accepted scripted winner goes straight to its wallet reward", async () => {
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => {
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted",
+      href: "/account/wallet?reward=dunkin-25-gift-card&rewardId=11111111-1111-4111-8111-111111111111" } }));
+  });
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/wallet?reward=dunkin-25-gift-card&rewardId=11111111-1111-4111-8111-111111111111"));
 });
 
 test("restored older receipt is acknowledged without redirecting", async () => {

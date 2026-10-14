@@ -102,8 +102,7 @@ export function PendingEntryNotice() {
           const entryId = request.href ? new URL(request.href, window.location.origin).searchParams.get("entry") : null;
           sessionStorage.setItem(RECENT_ENTRY_STORAGE_KEY, JSON.stringify({ slug: request.slug, entryId, at: Date.now() }));
         } catch { /* The confirmed entry remains in the account database. */ }
-        if (pathname !== "/account/entries") router.replace("/account/entries");
-        else router.refresh();
+        router.replace(request.href ?? "/account/entries");
       }
       void acknowledgeEntryReceipt(request.requestId).then(result => {
         if (result.error) acknowledged.current.delete(request.requestId);

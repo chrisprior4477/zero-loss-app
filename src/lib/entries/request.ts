@@ -21,7 +21,9 @@ export function entryReceiptHref(data: Record<string, unknown>, slug: string): s
   const rewardId = typeof data.rewardId === "string" && uuid.test(data.rewardId) ? data.rewardId : null;
   return data.status === "winner"
     ? rewardId ? `/account/wallet?${new URLSearchParams({ reward: slug, rewardId })}` : "/account/wallet"
-    : entryId ? `/account/entries?${new URLSearchParams({ item: slug, entry: entryId })}` : "/account/entries";
+    : data.status === "not_selected"
+      ? `/account/entries?${new URLSearchParams({ filter: "completion", ...(entryId ? { item: slug, entry: entryId } : {}) })}`
+      : entryId ? `/account/entries?${new URLSearchParams({ filter: "active", item: slug, entry: entryId })}` : "/account/entries?filter=active";
 }
 
 export function parseEntryRequest(value: unknown): EntryRequest {

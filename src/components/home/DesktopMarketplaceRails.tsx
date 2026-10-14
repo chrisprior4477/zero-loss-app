@@ -19,6 +19,7 @@ import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useOfferingAvailability, useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
 import { availabilityForHref, availabilityStatus } from "@/lib/catalog/availability";
 import { isResolvedCatalogHref } from "@/lib/catalog/demo-visibility";
+import { placeEndingSoonShowcases } from "@/lib/catalog/ending-soon-order";
 
 const desktopCategories = [
   { id: "groceries", label: "Groceries", image: "/category-groceries-v2.png" },
@@ -39,17 +40,6 @@ const sampleEndingSoon = [
     remaining: Math.max(0, item.ticketCapacity - item.ticketsSold),
   }))
   .sort((a, b) => a.remaining - b.remaining);
-
-function placeWalmartBetweenGiftCards<T extends { item: { href?: string }; remaining: number }>(cards: T[]): T[] {
-  const dunkin = cards.find(({ item }) => item.href === "/items/dunkin-25-gift-card");
-  const walmart = cards.find(({ item }) => item.href === "/items/walmart-100-gift-card");
-  const bestBuy = cards.find(({ item }) => item.href === "/items/best-buy-100-gift-card");
-  if (!dunkin || !walmart || !bestBuy || [dunkin, walmart, bestBuy].some(card => card.remaining === 0)) return cards;
-
-  const ordered = cards.filter(card => card !== walmart && card !== bestBuy);
-  ordered.splice(ordered.indexOf(dunkin) + 1, 0, walmart, bestBuy);
-  return ordered;
-}
 
 function SideRailButtons({ onScroll }: { onScroll: (direction: -1 | 1) => void }) {
   return (
@@ -209,7 +199,7 @@ function useDragRail(ref: React.RefObject<HTMLDivElement | null>) {
 export function DesktopMarketplaceRails() {
   const availability = useOfferingAvailability();
   const resolved = useResolvedCatalogSlugs();
-  const endingSoon = placeWalmartBetweenGiftCards(sampleEndingSoon.filter(sample => !isResolvedCatalogHref(sample.item.href, resolved)).map(sample => {
+  const endingSoon = placeEndingSoonShowcases(sampleEndingSoon.filter(sample => !isResolvedCatalogHref(sample.item.href, resolved)).map(sample => {
     const current = availabilityForHref(availability, sample.item.href);
     return current ? { item: { ...sample.item, ticketCapacity: current.capacity, ticketsSold: current.sold }, remaining: current.remaining } : sample;
   }).sort((a,b) => Number(a.remaining === 0) - Number(b.remaining === 0) || a.remaining - b.remaining));
