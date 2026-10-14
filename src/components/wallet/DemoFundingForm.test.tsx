@@ -72,7 +72,7 @@ test("an uncertain payment keeps its recovery marker and request key", async () 
 test("a reconciled deposit also returns to the selected product", async () => {
   vi.mocked(reconcileDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Credit confirmed." });
   render(<DemoFundingRequests fundingEnabled continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv#enter-entry" }} requests={[
-    { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", reconciliation: "credit_pending" },
+    { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", idempotencyKey: "pending_request_key_01", reconciliation: "credit_pending" },
   ]} />);
   fireEvent.click(screen.getByRole("button", { name: "Finish / check" }));
   await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv#enter-entry"));
@@ -101,6 +101,53 @@ test("reload restores the original payment key and amount, never a fresh payment
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("1000");
   expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy();
   expect(container.querySelector<HTMLInputElement>('[name="recoveryOnly"]')?.value).toBe("true");
+});
+
+test("a completed deposit marker becomes a new Add funds form after demo funds are cleared", async () => {
+  sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount: "2500", paymentMethod: "demo_card_4242", makeDefault: true }));
+  const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" requests={[
+    { id: "paid-session", amount: 2500, currency: "USD", status: "succeeded", created_at: "2026-10-14", idempotencyKey: "original_request_key_01", reconciliation: "reconciled" },
+  ]} />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
+  expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("new_server_render_key_02");
+  expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull();
+  expect(screen.getByRole("region", { name: "Add Credit Card" })).toBeTruthy();
+});
+
+test("an interrupted matching deposit can be retried while new deposits are blocked", async () => {
+  sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount: "2500", paymentMethod: "demo_card_4242", makeDefault: true }));
+  const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" requests={[
+    { id: "pending-session", amount: 2500, currency: "USD", status: "processing", created_at: "2026-10-14", idempotencyKey: "original_request_key_01", reconciliation: "credit_pending" },
+  ]} />);
+  const retry = screen.getByRole("button", { name: "Retry same request" }) as HTMLButtonElement;
+  expect(retry.disabled).toBe(false);
+  expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("original_request_key_01");
+});
+
+test("a completed generic deposit keeps a fresh card-and-amount form visible", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
+  expect(screen.getByRole("status").textContent).toContain("Demo funds added.");
+  expect(screen.getByRole("region", { name: "Add Credit Card" })).toBeTruthy();
+  expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).not.toBe("stable_demo_request_001");
+  expect(screen.getByRole("button", { name: "Add more funds" })).toBeTruthy();
+});
+
+test("a duplicate deposit cannot appear as new funding or redirect to a prize", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "already_credited", message: "This deposit was already credited. No new funds were added." });
+  render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv#enter-entry" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
+  expect(screen.getByRole("status").textContent).toContain("No new funds were added");
+  expect(navigation.replace).not.toHaveBeenCalled();
 });
 
 test("supplied test-card details are display-only and never submitted", () => {
@@ -150,15 +197,15 @@ test("failed saved-card lookup blocks a fresh payment rather than overwriting th
 });
 test("pending request offers recovery but discrepancy requires review", () => {
   render(<DemoFundingRequests fundingEnabled requests={[
-    { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", reconciliation: "credit_pending" },
-    { id: "bad", amount: 2500, currency: "USD", status: "succeeded", created_at: "2026-09-14", reconciliation: "discrepancy" },
+    { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", idempotencyKey: "pending_request_key_01", reconciliation: "credit_pending" },
+    { id: "bad", amount: 2500, currency: "USD", status: "succeeded", created_at: "2026-09-14", idempotencyKey: "aaaaaaaaaaaaaaaa", reconciliation: "discrepancy" },
   ]} />);
   expect(screen.getAllByRole("button", { name: "Finish / check" })).toHaveLength(1);
   expect(screen.getByRole("alert").textContent).toContain("operator review");
 });
 
 test("payment deposits initially show five and expand on demand", () => {
-  const requests = Array.from({ length: 7 }, (_, index) => ({ id: `request-${index}`, amount: 100, currency: "USD" as const, status: "succeeded", created_at: "2026-09-14", reconciliation: "reconciled" as const }));
+  const requests = Array.from({ length: 7 }, (_, index) => ({ id: `request-${index}`, amount: 100, currency: "USD" as const, status: "succeeded", created_at: "2026-09-14", idempotencyKey: `payment_request_key_${index}`, reconciliation: "reconciled" as const }));
   render(<DemoFundingRequests fundingEnabled requests={requests} />);
   expect(screen.getByRole("region", { name: "Payment deposits" })).toBeTruthy();
   expect(screen.getAllByText("Payment & credit matched")).toHaveLength(5);

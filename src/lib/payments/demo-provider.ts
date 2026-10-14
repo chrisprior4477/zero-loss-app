@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEMO_CARD_TOKEN, demoCardFixture, parseDemoCard, parseDemoCards, type DemoCard, type DemoCardToken } from "./demo-card";
 
 export type DemoFundingRequest = {
-  id: string; amount: number; currency: "USD"; status: string; created_at: string;
+  id: string; amount: number; currency: "USD"; status: string; created_at: string; idempotencyKey: string;
   reconciliation: "not_processed" | "credit_pending" | "reconciled" | "discrepancy";
 };
 
@@ -52,14 +52,15 @@ export class DemoPaymentProvider {
     return card;
   }
 
-  async finishFunding(sessionId: string): Promise<void> {
+  async finishFunding(sessionId: string): Promise<{ alreadyCredited: boolean }> {
     // Owner-scoped RPC reuses the one durable receipt, even after a timeout.
     const { data: receipt, error: providerError } = await this.db.rpc("simulate_demo_payment", { p_session_id: sessionId });
     if (providerError) throw new FundingFailure(providerError.code, providerError.message);
     if (typeof receipt?.body !== "string" || typeof receipt?.signature !== "string") throw new Error("Unconfirmed provider response");
     const { data, error } = await this.db.rpc("accept_demo_payment_event", { p_body: receipt.body, p_signature: receipt.signature });
     if (error) throw new FundingFailure(error.code, error.message);
-    if (data?.status !== "succeeded" || data?.sessionId !== sessionId) throw new Error("Unconfirmed ledger posting");
+    if (data?.status !== "succeeded" || data?.sessionId !== sessionId || typeof data?.duplicate !== "boolean") throw new Error("Unconfirmed ledger posting");
+    return { alreadyCredited: data.duplicate };
   }
 
   async getRequests(): Promise<DemoFundingRequest[]> {
@@ -67,6 +68,7 @@ export class DemoPaymentProvider {
     if (error) throw new FundingFailure(error.code, error.message);
     if (!Array.isArray(data) || data.some(row => !row || typeof row.id !== "string" || !Number.isSafeInteger(row.amount)
       || row.amount < 100 || row.amount > 50000 || row.currency !== "USD" || typeof row.created_at !== "string"
+      || typeof row.idempotencyKey !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(row.idempotencyKey)
       || !["not_processed", "credit_pending", "reconciled", "discrepancy"].includes(row.reconciliation))) {
       throw new Error("Invalid funding request list");
     }

@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { completeDemoFunding, reconcileDemoFunding } from "@/lib/payments/actions";
@@ -10,8 +10,9 @@ import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, ty
 import styles from "./wallet-overview.module.css";
 
 type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" };
+const noRequests: DemoFundingRequest[] = [];
 
-function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; onNew: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
+function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(completeDemoFunding, { status: "idle" });
   const [amount, setAmount] = useState(initialAmount);
@@ -59,16 +60,20 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
     if (pending) clearConfirmation();
   }, [pending]);
   useEffect(() => {
-    if (state.status === "succeeded" || (state.status === "error" && state.beforePayment)) {
+    if (state.status === "succeeded" || state.status === "already_credited" || (state.status === "error" && state.beforePayment)) {
       try { sessionStorage.removeItem(storageKey); } catch { /* DB recovery remains available. */ }
     }
   }, [state, storageKey]);
   useEffect(() => {
     if (state.status === "succeeded" && continueTo?.href) router.replace(continueTo.href);
   }, [state.status, continueTo?.href, router]);
-  if (state.status === "succeeded") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo ? <Link href={continueTo.href} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
+  useEffect(() => {
+    if (state.status === "already_credited" || (state.status === "succeeded" && !continueTo?.href)) onSuccess(state.message);
+  }, [state, continueTo?.href, onSuccess]);
+  if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo && state.status === "succeeded" ? <Link href={continueTo.href} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
   return <form action={action} onSubmit={() => {
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
+    onStart();
     try { sessionStorage.setItem(storageKey, JSON.stringify({ key: requestKey, amount,
       ...(recoveryOnly ? {} : { paymentMethod: selectedToken, makeDefault }) })); } catch { /* Owner-scoped pending requests remain in the database. */ }
   }} className={styles.fundingForm} aria-label="Add funds">
@@ -105,7 +110,7 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
       <p className={styles.cardMessage}>Only safe sample-card references are saved. You’ll confirm each deposit separately.</p>
     </section> : null}
     <label className="block text-sm font-bold text-white">Amount (USD)
-      <select aria-label="Amount (USD)" value={amount} onChange={event => setAmount(event.target.value)} disabled={locked} className="mt-2 block min-h-11 w-full rounded-xl border border-cyan-300/30 bg-[#06223d] px-3 text-white">
+      <select id="demo-funding-amount" aria-label="Amount (USD)" value={amount} onChange={event => setAmount(event.target.value)} disabled={locked} className="mt-2 block min-h-11 w-full rounded-xl border border-cyan-300/30 bg-[#06223d] px-3 text-white">
         <option value="100">$1.00</option><option value="1000">$10.00</option><option value="2500">$25.00</option><option value="10000">$100.00</option>
       </select>
     </label>
@@ -127,9 +132,16 @@ function FundingAttempt({ requestKey, blocked, onNew, storageKey, initialAmount 
   </form>;
 }
 
-export function DemoFundingForm({ requestKey, blocked, walletId = "test", savedCard = null, savedCards, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; walletId?: string; savedCard?: DemoCard | null; savedCards?: DemoCard[]; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
+export function DemoFundingForm({ requestKey, blocked = false, requests = noRequests, walletId = "test", savedCard = null, savedCards, cardUnavailable = false, continueTo }: { requestKey: string; blocked?: boolean; requests?: DemoFundingRequest[] | null; walletId?: string; savedCard?: DemoCard | null; savedCards?: DemoCard[]; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
   const storageKey = `zero-loss-demo-request:${walletId}`;
-  const [attempt, setAttempt] = useState<{ key: string; amount: string; recovered: boolean; ready: boolean; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean }>({ key: requestKey, amount: "2500", recovered: false, ready: false });
+  const [successMessage, setSuccessMessage] = useState("");
+  const [attempt, setAttempt] = useState<{ key: string; amount: string; recovered: boolean; canRetry: boolean; ready: boolean; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean }>({ key: requestKey, amount: "2500", recovered: false, canRetry: false, ready: false });
+  const newAttempt = useCallback(() => setAttempt({ key: crypto.randomUUID(), amount: "2500", recovered: false, canRetry: false, ready: true }), []);
+  const onSuccess = useCallback((message: string) => {
+    try { sessionStorage.removeItem(storageKey); } catch { /* Server history still identifies completed requests. */ }
+    setSuccessMessage(message);
+    newAttempt();
+  }, [newAttempt, storageKey]);
   useEffect(() => {
     let saved: { key: string; amount: string; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly: boolean } | null = null;
     try {
@@ -142,13 +154,27 @@ export function DemoFundingForm({ requestKey, blocked, walletId = "test", savedC
           recoveryOnly: !demoCardFixture(value.paymentMethod) || typeof value.makeDefault !== "boolean",
         };
     } catch { /* Storage unavailable: database request recovery is still supported. */ }
-    // Hydrate a browser-only retry record after SSR, without exposing wallet authority to storage.
+    // A completed request is historical, not a new deposit. Never reuse its key
+    // after a redirect or after the customer has cleared their playable balance.
+    const savedKey = saved?.key;
+    const matching = savedKey ? requests?.find(request => request.idempotencyKey === savedKey) : undefined;
+    if (matching?.reconciliation === "reconciled") {
+      try { sessionStorage.removeItem(storageKey); } catch { /* A later visit will check again. */ }
+      saved = null;
+    }
+    // Hydrate a browser-only retry record after SSR, using owner-scoped database
+    // history to distinguish a real interrupted request from a completed one.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAttempt(current => saved ? { ...saved, recovered: true, ready: true } : { ...current, ready: true });
-  }, [storageKey]);
-  return <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
+    setAttempt(current => saved ? { ...saved, recovered: true, canRetry: matching !== undefined && matching.reconciliation !== "discrepancy", ready: true }
+      : matching ? { key: requestKey, amount: "2500", recovered: false, canRetry: false, ready: true } : { ...current, ready: true });
+  }, [storageKey, requests, requestKey]);
+  return <>
+    {successMessage ? <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-green-400/40 bg-green-50 px-4 py-3 text-sm font-bold text-green-800"><p role="status" className="flex-1">{successMessage}</p><button type="button" onClick={() => document.getElementById("demo-funding-amount")?.focus()} className="min-h-11 rounded-lg border border-green-600 px-3 text-green-800">Add more funds</button></div> : null}
+    <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
     savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly} cardUnavailable={cardUnavailable}
-    blocked={!attempt.ready || blocked} continueTo={continueTo} onNew={() => setAttempt({ key: crypto.randomUUID(), amount: "2500", recovered: false, ready: true })} />;
+    blocked={!attempt.ready || ((blocked || requests === null || requests.some(request => request.reconciliation !== "reconciled")) && !attempt.canRetry)} continueTo={continueTo}
+    onNew={newAttempt} onSuccess={onSuccess} onStart={() => setSuccessMessage("")} />
+  </>;
 }
 
 function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: ContinueDestination }) {

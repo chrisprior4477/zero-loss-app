@@ -17,6 +17,7 @@ import { redirect } from "next/navigation";
 export type DemoFundingActionState =
   | { status: "idle" }
   | { status: "succeeded"; message: string }
+  | { status: "already_credited"; message: string }
   | { status: "pending"; message: string }
   | { status: "error"; message: string; beforePayment?: boolean };
 
@@ -86,8 +87,10 @@ export async function completeDemoFunding(
     const sessionId = await provider.createFundingSession(amountCents, idempotencyKey,
       recoveryOnly ? null : formData.get("makeDefault") === "true",
       (demoCardFixture(formData.get("paymentMethod"))?.token ?? "demo_card_4242"));
-    await provider.finishFunding(sessionId);
-    result = { status: "succeeded", message: "Demo funds added. Your updated balance comes from the database ledger. No real money was charged." };
+    const receipt = await provider.finishFunding(sessionId);
+    result = receipt.alreadyCredited
+      ? { status: "already_credited", message: "This deposit was already credited. No new funds were added. Your balance reflects the database ledger." }
+      : { status: "succeeded", message: "Demo funds added. Your updated balance comes from the database ledger. No real money was charged." };
   } catch (error) { result = failure(error); }
   updateWalletViews();
   if (result.status === "succeeded" && returnTo) redirect(returnTo);
@@ -125,8 +128,10 @@ export async function reconcileDemoFunding(_previous: DemoFundingActionState, fo
   }
   let result: DemoFundingActionState;
   try {
-    await (await fundingProvider()).finishFunding(sessionId);
-    result = { status: "succeeded", message: "Payment checked and ledger credit confirmed. Rechecking cannot add another credit." };
+    const receipt = await (await fundingProvider()).finishFunding(sessionId);
+    result = receipt.alreadyCredited
+      ? { status: "already_credited", message: "This deposit was already credited. No new funds were added." }
+      : { status: "succeeded", message: "Payment checked and ledger credit confirmed. Rechecking cannot add another credit." };
   } catch (error) { result = failure(error); }
   updateWalletViews();
   if (result.status === "succeeded" && returnTo) redirect(returnTo);

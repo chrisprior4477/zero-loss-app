@@ -23,7 +23,7 @@ beforeEach(() => {
     : name === "save_demo_payment_method" ? { token: "demo_card_4242", lastFour: "4242", isDefault: true }
     : ["create_demo_card_funding_session", "resume_demo_funding_session"].includes(name) ? { id: sid }
     : name === "simulate_demo_payment" ? { body: "signed-by-demo-provider", signature: "provider-signature" }
-    : { status: "succeeded", sessionId: sid } }));
+    : { status: "succeeded", sessionId: sid, duplicate: false } }));
 });
 afterEach(() => vi.unstubAllEnvs());
 test("request, durable provider and verified consumer run in order and refresh shared views", async () => {
@@ -33,6 +33,16 @@ test("request, durable provider and verified consumer run in order and refresh s
   expect(mocks.rpc).toHaveBeenCalledWith("create_demo_card_funding_session", { p_amount: 2500, p_idempotency_key: "funding_review_check_001", p_payment_method: "demo_card_4242", p_make_default: true });
   expect(mocks.rpc).toHaveBeenCalledWith("accept_demo_payment_event", { p_body: "signed-by-demo-provider", p_signature: "provider-signature" });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+});
+test("replaying a credited request never claims a second deposit", async () => {
+  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "ensure_preview_customer" ? { walletAccountId: sid, scope: "demo", fundingAvailable: true }
+    : name === "get_wallet_snapshot" ? snapshot
+    : name === "create_demo_card_funding_session" ? { id: sid }
+    : name === "simulate_demo_payment" ? { body: "signed-by-demo-provider", signature: "provider-signature" }
+    : { status: "succeeded", sessionId: sid, duplicate: true } }));
+  expect(await completeDemoFunding({ status: "idle" }, form())).toEqual({ status: "already_credited", message: "This deposit was already credited. No new funds were added. Your balance reflects the database ledger." });
+  const check = new FormData(); check.set("sessionId", sid);
+  expect(await reconcileDemoFunding({ status: "idle" }, check)).toEqual({ status: "already_credited", message: "This deposit was already credited. No new funds were added." });
 });
 test("confirmed credit redirects on the server to the same product and quantity", async () => {
   const f = form(); f.set("returnTo", "/items/samsung-m70h-tv?quantity=4#enter-entry");
