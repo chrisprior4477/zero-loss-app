@@ -14,7 +14,12 @@ const noRequests: DemoFundingRequest[] = [];
 
 function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
   const router = useRouter();
-  const [state, action, pending] = useActionState(completeDemoFunding, { status: "idle" });
+  const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof completeDemoFunding>>, form: FormData) => {
+    const result = await completeDemoFunding(previous, form);
+    // Navigate before revalidation can replace this funding form with fresh wallet data.
+    if (result.status === "succeeded" && continueTo?.href) router.replace(continueTo.href);
+    return result;
+  }, { status: "idle" });
   const [amount, setAmount] = useState(initialAmount);
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
   const [visibleTokens, setVisibleTokens] = useState<DemoCardToken[]>(() => cards.length ? cards.map(card => card.token) : [DEMO_CARD_TOKEN]);
@@ -64,9 +69,6 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
       try { sessionStorage.removeItem(storageKey); } catch { /* DB recovery remains available. */ }
     }
   }, [state, storageKey]);
-  useEffect(() => {
-    if (state.status === "succeeded" && continueTo?.href) router.replace(continueTo.href);
-  }, [state.status, continueTo?.href, router]);
   useEffect(() => {
     if (state.status === "already_credited" || (state.status === "succeeded" && !continueTo?.href)) onSuccess(state.message);
   }, [state, continueTo?.href, onSuccess]);
@@ -169,7 +171,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
       : matching ? { key: requestKey, amount: "2500", recovered: false, canRetry: false, ready: true } : { ...current, ready: true });
   }, [storageKey, requests, requestKey]);
   return <>
-    {successMessage ? <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-green-400/40 bg-green-50 px-4 py-3 text-sm font-bold text-green-800"><p role="status" className="flex-1">{successMessage}</p><button type="button" onClick={() => document.getElementById("demo-funding-amount")?.focus()} className="min-h-11 rounded-lg border border-green-600 px-3 text-green-800">Add more funds</button></div> : null}
+    {successMessage ? <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-green-400/40 bg-green-50 px-4 py-3 text-sm font-bold text-green-800"><p role="status" className="flex-1">{successMessage}</p>{continueTo ? <Link href={continueTo.href} className="flex min-h-11 items-center rounded-lg bg-[#31e800] px-4 font-extrabold text-[#062218]">{continueTo.label ?? "Continue your entry"} →</Link> : null}<button type="button" onClick={() => document.getElementById("demo-funding-amount")?.focus()} className="min-h-11 rounded-lg border border-green-600 px-3 text-green-800">Add more funds</button></div> : null}
     <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
     savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly} cardUnavailable={cardUnavailable}
     blocked={!attempt.ready || ((blocked || requests === null || requests.some(request => request.reconciliation !== "reconciled")) && !attempt.canRetry)} continueTo={continueTo}
@@ -179,10 +181,11 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
 
 function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: ContinueDestination }) {
   const router = useRouter();
-  const [state, action, pending] = useActionState(reconcileDemoFunding, { status: "idle" });
-  useEffect(() => {
-    if (state.status === "succeeded" && continueTo?.href) router.replace(continueTo.href);
-  }, [state.status, continueTo?.href, router]);
+  const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof reconcileDemoFunding>>, form: FormData) => {
+    const result = await reconcileDemoFunding(previous, form);
+    if (result.status === "succeeded" && continueTo?.href) router.replace(continueTo.href);
+    return result;
+  }, { status: "idle" });
   return <form action={action} className="mt-2">
     <input type="hidden" name="sessionId" value={id} />
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}

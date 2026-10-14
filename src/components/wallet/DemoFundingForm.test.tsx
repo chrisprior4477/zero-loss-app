@@ -56,6 +56,17 @@ test("successful funding automatically returns to the selected product and quant
   expect(screen.getByRole("link", { name: "Continue your entry" }).getAttribute("href")).toBe("/items/samsung-m70h-tv?quantity=4#enter-entry");
   expect(screen.getByRole("button", { name: "Add more funds" })).toBeTruthy();
 });
+test("successful funding returns to the exact purchase option that needed more balance", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  const purchaseHref = "/account/entries?item=babys-essentials-bundle&entry=ent_11111111111111111111111111111111";
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" continueTo={{ title: "Baby's Essentials Bundle", href: purchaseHref, label: "Back to purchase option" }} />);
+  expect(container.querySelector<HTMLInputElement>('[name="returnTo"]')?.value).toBe(purchaseHref);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
+  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith(purchaseHref));
+});
 test("an uncertain payment keeps its recovery marker and request key", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "pending", message: "Check this request." });
@@ -146,6 +157,18 @@ test("a duplicate deposit cannot appear as new funding or redirect to a prize", 
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
+  expect(screen.getByRole("status").textContent).toContain("No new funds were added");
+  expect(navigation.replace).not.toHaveBeenCalled();
+});
+test("an already credited purchase-option deposit offers a safe return without claiming new funds", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  const purchaseHref = "/account/entries?item=babys-essentials-bundle&entry=ent_11111111111111111111111111111111";
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "already_credited", message: "This deposit was already credited. No new funds were added." });
+  render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" continueTo={{ title: "Baby's Essentials Bundle", href: purchaseHref, label: "Back to purchase option" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
+  await waitFor(() => expect(screen.getByRole("link", { name: "Back to purchase option →" }).getAttribute("href")).toBe(purchaseHref));
   expect(screen.getByRole("status").textContent).toContain("No new funds were added");
   expect(navigation.replace).not.toHaveBeenCalled();
 });

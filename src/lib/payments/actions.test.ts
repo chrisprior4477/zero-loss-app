@@ -50,6 +50,12 @@ test("confirmed credit redirects on the server to the same product and quantity"
   expect(mocks.rpc.mock.calls.at(-1)?.[0]).toBe("accept_demo_payment_event");
   expect(mocks.redirect).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=4#enter-entry");
 });
+test("confirmed credit redirects to the exact saved purchase option", async () => {
+  const destination = "/account/entries?item=babys-essentials-bundle&entry=ent_11111111111111111111111111111111";
+  const f = form(); f.set("returnTo", destination);
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.redirect).toHaveBeenCalledWith(destination);
+});
 test("return destination cannot be replaced with an external or unrelated URL", async () => {
   const f = form(); f.set("returnTo", "https://example.test/steal");
   await completeDemoFunding({ status: "idle" }, f);
