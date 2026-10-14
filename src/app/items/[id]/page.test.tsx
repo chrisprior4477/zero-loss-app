@@ -18,7 +18,7 @@ test("a saved win keeps its details accessible but does not offer another demo e
   mocks.account.mockResolvedValue({ activity: { source: "stored", activity: [{ slug: "samsung-m70h-tv", status: "prize" }] }, wallet: { scope: "demo" } });
   render(await ItemPage({ params: Promise.resolve({ id: "samsung-m70h-tv" }), searchParams: Promise.resolve({}) }));
   expect(screen.getByRole("heading", { name: "You already took part in this prize" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: /View saved outcome/ }).getAttribute("href")).toBe("/account/entries");
+  expect(screen.getByRole("link", { name: "See if you won or if you have a purchase option" }).getAttribute("href")).toBe("/account/entries");
   expect(screen.queryByText("Entry form")).toBeNull();
   expect(screen.queryByRole("link", { name: /Prefer to enter without a purchase/ })).toBeNull();
   expect(mocks.requestHead).not.toHaveBeenCalled();
