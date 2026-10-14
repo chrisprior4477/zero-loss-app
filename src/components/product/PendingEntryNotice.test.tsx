@@ -67,3 +67,16 @@ test("expired pending request is checked with the server, not accepted by the br
   await waitFor(() => expect(mocks.resolve).toHaveBeenCalledWith(request.requestId, false));
   expect(mocks.replace).not.toHaveBeenCalled();
 });
+
+test("automatic confirmation navigates before a refresh can hide the result", async () => {
+  mocks.list.mockResolvedValue({ requests: [] });
+  mocks.resolve.mockResolvedValue({ request: { ...request, status: "accepted",
+    href: "/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd" } });
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => {
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, serverNow: request.undoUntil } }));
+  });
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd"));
+});

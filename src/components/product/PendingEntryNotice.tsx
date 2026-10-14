@@ -17,6 +17,7 @@ export function PendingEntryNotice() {
   const createdHere = useRef(new Set<string>());
   const inFlight = useRef(new Set<string>());
   const acknowledged = useRef(new Set<string>());
+  const routed = useRef(new Set<string>());
   const refreshing = useRef(false);
   const generation = useRef(0);
   const revision = useRef(0);
@@ -26,6 +27,18 @@ export function PendingEntryNotice() {
     setRequests(previous => [...previous.filter(r => r.requestId !== request.requestId), { ...request, receivedAt: performance.now() }]);
     setNow(performance.now());
   }, []);
+
+  const routeAccepted = useCallback((request: EntryRequest) => {
+    if (request.status !== "accepted" || routed.current.has(request.requestId)
+      || !createdHere.current.delete(request.requestId)) return false;
+    routed.current.add(request.requestId);
+    try {
+      const entryId = request.href ? new URL(request.href, window.location.origin).searchParams.get("entry") : null;
+      sessionStorage.setItem(RECENT_ENTRY_STORAGE_KEY, JSON.stringify({ slug: request.slug, entryId, at: Date.now() }));
+    } catch { /* The confirmed entry remains in the account database. */ }
+    router.replace(request.href ?? "/account/entries");
+    return true;
+  }, [router]);
 
   const refresh = useCallback(async function refreshEntries() {
     if (refreshing.current) return;
@@ -87,28 +100,22 @@ export function PendingEntryNotice() {
       void resolvePendingEntryRequest(request.requestId, false).then(result => {
         if (result.request) {
           window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: result.request }));
-          router.refresh();
+          if (!routeAccepted(result.request)) router.refresh();
         } else void refresh();
       }).catch(() => { void refresh(); }).finally(() => inFlight.current.delete(request.requestId));
     }
-  }, [requests, now, refresh, router]);
+  }, [requests, now, refresh, routeAccepted, router]);
 
   useEffect(() => {
     for (const request of requests) {
       if (request.status === "pending" || acknowledged.current.has(request.requestId)) continue;
       acknowledged.current.add(request.requestId);
-      if (request.status === "accepted" && createdHere.current.delete(request.requestId)) {
-        try {
-          const entryId = request.href ? new URL(request.href, window.location.origin).searchParams.get("entry") : null;
-          sessionStorage.setItem(RECENT_ENTRY_STORAGE_KEY, JSON.stringify({ slug: request.slug, entryId, at: Date.now() }));
-        } catch { /* The confirmed entry remains in the account database. */ }
-        router.replace(request.href ?? "/account/entries");
-      }
+      routeAccepted(request);
       void acknowledgeEntryReceipt(request.requestId).then(result => {
         if (result.error) acknowledged.current.delete(request.requestId);
       }).catch(() => { acknowledged.current.delete(request.requestId); });
     }
-  }, [requests, pathname, router]);
+  }, [requests, routeAccepted]);
 
   return null;
 }
