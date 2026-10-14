@@ -14,6 +14,6 @@ export function DrawerOverview({ state, balanceLabel, fundingEnabled, onNavigate
   return <div aria-label="Your Zero Loss overview" className={styles.overview}>
     <StatusTicket variant="wallet" label="Playable Wallet" value={balanceLabel ?? "Unavailable"} valueTestId="drawer-balance" action="Add funds" href={walletHistoryHref} actionHref={fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!fundingEnabled} onNavigate={onNavigate} />
     <StatusTicket variant="reward" label="Prize Ready" value={count === null ? "Unavailable" : String(count)} action={single ? "Show barcode" : "View rewards"} href={single ? walletRewardHref(single) : accountRoutes.rewards} ariaLabel={`Prize Ready — ${count === null ? "Reward count unavailable" : `${count} ${count === 1 ? "reward" : "rewards"}`}`} onNavigate={onNavigate} />
-    <StatusTicket variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Review options" href={accountRoutes.purchaseOptions} ariaLabel={`Purchase Options — ${optionCount === null ? "Count unavailable" : `${optionCount} available`}`} tooltip="Time-limited choices" onNavigate={onNavigate} />
+    <StatusTicket variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Complete Purchase" href={accountRoutes.purchaseOptions} ariaLabel={`Purchase Options — ${optionCount === null ? "Count unavailable" : `${optionCount} available`}`} tooltip="Time-limited choices" onNavigate={onNavigate} />
   </div>;
 }

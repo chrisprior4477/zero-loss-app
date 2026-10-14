@@ -39,7 +39,7 @@ export function OrdersFulfillment({ state, overview }: { state: AccountOrders; o
       {overview ? <div className={stripStyles.row} aria-label="Your account overview">
         <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
         <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
-        <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Review options" href={accountRoutes.purchaseOptions} />
+        <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Complete Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
       <header className={styles.heading}>
         <div><p>YOUR ACCOUNT</p><h1>Orders &amp; Fulfillment</h1><span>Operational status for retailer gift cards purchased through Zero Loss.</span></div>
@@ -94,7 +94,7 @@ export function OrdersFulfillment({ state, overview }: { state: AccountOrders; o
             <span><AccountIcon name="orders" /></span>
             <h3>{state.source === "unavailable" ? "Orders unavailable" : "No retailer gift-card orders yet"}</h3>
             <p>{state.source === "unavailable" ? "Please refresh shortly to try again." : "When you use a Purchase Option, its payment and gift-card issuance will appear here."}</p>
-            <Link href="/account/entries?filter=completion">Review purchase options<AccountIcon name="arrow" /></Link>
+            <Link href="/account/entries?filter=completion">Complete Purchase<AccountIcon name="arrow" /></Link>
           </div>}
         </section>
 

@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { drawerState } from "@/lib/account/drawer-state";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { activityFilter, activityHref, activityPresentation, filterActivity } from "@/lib/account/activity";
+import { buildAccountNotifications } from "@/lib/account/notifications";
 import { MyZeroLossActivity } from "./MyZeroLossActivity";
 import { DashboardActivity } from "./DashboardActivity";
 import { ActivitySelection } from "./ActivitySelection";
@@ -181,6 +182,18 @@ test("open entry details reuse the same live count and explain outcomes", () => 
   expect(within(dialog).getByText(/win or no win/)).toBeTruthy();
   expect(within(dialog).getByRole("checkbox", { name: /Email me when any of my entry outcomes posts/ })).toBeTruthy();
 });
+test("available and revived non-winner options say Complete Purchase without changing their destination", () => {
+  const state = storedActivityFixture();
+  const item = { ...state.activity[3], entryId: "entry-revived", completionOptionStatus: "available" as const };
+  state.activity = [item];
+  render(<MyZeroLossActivity state={state} filter="completion" />);
+  const card = within(screen.getByRole("region", { name: "Your products" })).getByRole("link", { name: /Baby's Essentials Bundle/ });
+  expect(within(card).getByText("Complete Purchase")).toBeTruthy();
+  expect(card.getAttribute("href")).toBe("/account/entries?item=babys-essentials-bundle&entry=entry-revived&filter=completion");
+  expect(activityPresentation(item).action).toBe("Complete Purchase");
+  expect(buildAccountNotifications(state, null, true).find(notification => notification.category === "action")?.action).toBe("Complete Purchase");
+});
+
 test("completion displays exact product math and stays unavailable without a stored option id", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="completion" selectedSlug="babys-essentials-bundle" />);
   expect(screen.getByText("$100")).toBeTruthy();

@@ -79,7 +79,7 @@ export function activityPresentation(item: ActivityItem) {
   switch (item.status) {
     case "active": return { label: "Still Open", action: "See My Entry", color: "text-cyan-300", background: "bg-[#154b74]" };
     case "prize": return { label: "Prize Ready", action: item.rewardKind === "digital" ? "View Gift Card" : "Claim Prize", color: "text-[#31ff83]", background: "bg-[#16703f]" };
-    case "completion": return { label: "Purchase Option", action: "Review Option", color: "text-[#ff8a45]", background: "bg-[#8c3d15]" };
+    case "completion": return { label: "Purchase Option", action: "Complete Purchase", color: "text-[#ff8a45]", background: "bg-[#8c3d15]" };
     case "completed": return item.completionOptionStatus === "declined"
       ? { label: "Declined", action: "Review declined offer", color: "text-[#ff8a45]", background: "bg-[#8c3d15]" }
       : { label: "Completed", action: "View Details", color: "text-[#b5cce4]", background: "bg-[#154b74]" };

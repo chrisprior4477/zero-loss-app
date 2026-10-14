@@ -21,6 +21,7 @@ test("same-page confirmation shows the exact amount and requires a second explic
   openPurchase();
   expect(screen.getByText("$100 Walmart gift card")).toBeTruthy();
   expect(screen.getByText("$99 from your playable wallet")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Confirm $99 purchase" }).getAttribute("data-confirm-purchase")).toBe("true");
   expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Confirm your purchase" }));
   expect(mocks.purchase).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -53,9 +54,13 @@ test("lost server response blocks new attempts until a full authoritative status
   expect(screen.getByRole("status").textContent).toContain("may already be saved");
 });
 test("insufficient balance carries this exact entry into Add funds", async () => {
-  mocks.purchase.mockResolvedValue({ status: "error", recovery: "balance", message: "Add funds" });
+  mocks.purchase.mockResolvedValue({ status: "error", recovery: "balance", message: "You do not have enough funds in your wallet. Please add more funds to complete the purchase. No purchase was made." });
   openPurchase(); fireEvent.click(screen.getByRole("button", { name: "Confirm $99 purchase" }));
-  expect((await screen.findByRole("link", { name: "Add funds →" })).getAttribute("href")).toBe(`/account/wallet?view=history&from=${item.slug}&entry=${item.entryId}#add-funds`);
+  const link = await screen.findByRole("link", { name: "Add funds →" });
+  expect(link.getAttribute("href")).toBe(`/account/wallet?view=history&from=${item.slug}&entry=${item.entryId}#add-funds`);
+  expect(link.getAttribute("data-funding-action")).toBe("true");
+  expect(screen.getByRole("status").textContent).toContain("You do not have enough funds in your wallet. Please add more funds to complete the purchase.");
+  expect(mocks.replace).not.toHaveBeenCalled();
 });
 test("declining still requires confirmation and preserves its no-refund explanation", async () => {
   mocks.decline.mockResolvedValue({ status: "succeeded", message: "Declined", href: "/account/entries" });

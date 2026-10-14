@@ -70,7 +70,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     body: `Pay ${formatUsdFromCents(item.remainingCents)} to receive a ${formatUsdFromCents(item.priceCents)} retailer gift card. This choice is optional.`,
     meta: item.availability,
     href: activityHref(item),
-    action: "Review option",
+    action: "Complete Purchase",
     image: item.image,
     visualLabel: item.retailer,
     visualValue: `${formatUsdFromCents(item.remainingCents)} left`,

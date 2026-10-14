@@ -135,7 +135,9 @@ export async function purchaseGiftCard(
   const optionId = String(formData.get("completionOptionId") ?? "");
   if (!uuidPattern.test(optionId)) return { status: "error", message: "This purchase option is invalid." };
 
-  let href = "/account/orders";
+  // A confirmed purchase always returns to Gift Cards & Rewards. If an older
+  // receipt cannot identify the exact reward, show the customer's wallet list.
+  let href = "/account/wallet";
   try {
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();
@@ -147,7 +149,7 @@ export async function purchaseGiftCard(
       p_idempotency_key: `checkout_${optionId.replaceAll("-", "")}`,
     });
     if (error?.code === "P0001" && error.message === "Add demo funds before completing this option.") {
-      return { status: "error", recovery: "balance", message: "Your playable balance is too low for this purchase. Add funds, then return to this same option. No purchase was made." };
+      return { status: "error", recovery: "balance", message: "You do not have enough funds in your wallet. Please add more funds to complete the purchase. No purchase was made." };
     }
     if (error && ["P0001", "42501", "22023"].includes(error.code)) {
       return { status: "error", message: "This purchase option is no longer available. Check its current status before continuing.", recovery: "check" };
@@ -164,7 +166,7 @@ export async function purchaseGiftCard(
         const { data: activity, error: readError } = await db.rpc("get_account_activity");
         const saved = !readError && Array.isArray(activity) ? activity.find(row => row.completion_option_id === optionId) : null;
         if (saved && typeof saved.reward_id === "string" && uuidPattern.test(saved.reward_id)) href = `/account/wallet?rewardId=${saved.reward_id}`;
-      } catch { /* Confirmed purchase; Orders remains the safe receipt fallback. */ }
+      } catch { /* Confirmed purchase; the wallet list remains the safe fallback. */ }
     }
   } catch {
     return { status: "error", recovery: "check", message: "The connection was interrupted. Check purchase status before trying again; the purchase may already be complete." };

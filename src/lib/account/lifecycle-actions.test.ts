@@ -53,7 +53,7 @@ test("an older duplicate receipt resolves the same exact reward by option, not b
     .mockResolvedValueOnce({ data: [{ completion_option_id: "other", reward_id: "33333333-3333-4333-8333-333333333333" }, { completion_option_id: optionId, reward_id: rewardId }] });
   expect(await purchaseGiftCard({ status: "idle" }, form())).toMatchObject({ status: "succeeded", href: `/account/wallet?rewardId=${rewardId}` });
 });
-test("confirmed purchase with an unavailable receipt lookup goes to Orders, not another charge", async () => {
+test("confirmed purchase with an unavailable receipt lookup goes to the wallet, not another charge", async () => {
   mocks.rpc.mockResolvedValueOnce({ data: { status: "purchased", duplicate: true } }).mockRejectedValueOnce(new Error("read unavailable"));
-  expect(await purchaseGiftCard({ status: "idle" }, form())).toMatchObject({ status: "succeeded", href: "/account/orders" });
+  expect(await purchaseGiftCard({ status: "idle" }, form())).toMatchObject({ status: "succeeded", href: "/account/wallet" });
 });

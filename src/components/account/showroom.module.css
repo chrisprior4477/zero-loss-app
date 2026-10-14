@@ -334,9 +334,13 @@
 .purchaseSummary .optionControls button[data-primary="true"] { border-color: #ff7816; background: #ff7816; color: #17111a; }
 .purchaseSummary .optionControls button[data-primary="true"]:hover:not(:disabled) { background: #ff9a40; }
 .purchaseSummary .optionControls button:hover:not(:disabled) { background: #fff0e2; }
+.purchaseSummary .optionControls button[data-confirm-purchase="true"] { border-color: #31e800; background: #31e800; color: #062218; }
+.purchaseSummary .optionControls button[data-confirm-purchase="true"]:hover:not(:disabled) { background: #65f33d; }
 .purchaseSummary .optionControls section { padding: 14px; border: 1px solid #f5c39c; border-radius: 10px; background: #fff6ed; }
 .purchaseSummary .optionControls h3, .purchaseSummary .optionControls p { color: #101b4e; }
 .purchaseSummary .optionControls a { color: #006bd6; }
+.purchaseSummary .optionControls a[data-funding-action="true"] { min-height: 54px; border-radius: 10px; background: #31e800; color: #062218; font-size: 18px; }
+.purchaseSummary .optionControls a[data-funding-action="true"]:hover { background: #65f33d; }
 .purchaseNotice, .purchaseUnavailable { margin-top: 12px; color: #526b8b; font-size: 12px; line-height: 1.45; }
 .purchaseUnavailable { color: #9c3e12; }
 .purchaseSteps h3 { font-size: clamp(25px, 2.25vw, 32px); font-weight: 900; line-height: 1.12; letter-spacing: -.04em; }

@@ -27,7 +27,7 @@ export function ActivityRows({ items, destination = "/account/entries", filter =
           <span className={`block text-xs font-black uppercase tracking-wide lg:contents ${style.color}`}><span className="block lg:text-[11px] lg:leading-5 lg:tracking-normal">{style.label}</span>
             {item.status === "completion" ? <span className="mt-1 block font-medium normal-case tracking-normal text-[#b5cce4] lg:col-span-2 lg:row-start-2 lg:mt-0 lg:leading-5">{formatUsdFromCents(item.remainingCents)} remaining · {formatUsdFromCents(item.paidCents)} applied</span> : null}
           </span>
-          <strong className="block shrink-0 text-sm text-white sm:mt-2 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:text-xs lg:leading-5">{item.status === "completion" ? <>Review<span className="lg:hidden"> Purchase</span></> : item.status === "active" ? <>View<span className="lg:hidden"> Entry</span></> : style.action} <span aria-hidden="true" className="ml-1 text-cyan-300">›</span></strong>
+          <strong className="block shrink-0 text-sm text-white sm:mt-2 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:text-xs lg:leading-5">{item.status === "active" ? <>View<span className="lg:hidden"> Entry</span></> : style.action} <span aria-hidden="true" className="ml-1 text-cyan-300">›</span></strong>
         </span>
       </Link>;
     })}

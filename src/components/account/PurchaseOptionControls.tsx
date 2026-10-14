@@ -22,7 +22,11 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
   const titleId = useId();
   const [state, action, pending] = useActionState(async (_previous: PurchaseOptionActionState, form: FormData): Promise<PurchaseOptionActionState> => {
     try {
-      return await (form.get("intent") === "decline" ? declinePurchaseOption : purchaseGiftCard)(initialState, form);
+      const intent = form.get("intent");
+      const result = await (intent === "decline" ? declinePurchaseOption : purchaseGiftCard)(initialState, form);
+      // Navigate before the refreshed activity can unmount this completed option.
+      if (result.status === "succeeded") router.replace(result.href ?? (intent === "purchase" ? "/account/wallet" : "/account/entries"));
+      return result;
     } catch {
       // Also catches a dropped browser-to-server response, not just RPC errors.
       return { status: "error", recovery: "check", message: "The connection was interrupted. Check purchase status before trying again; your last action may already be saved." };
@@ -32,13 +36,10 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
   const needsCheck = state.status === "error" && state.recovery === "check";
 
   useEffect(() => {
-    if (state.status === "succeeded") {
-      if (state.href) router.replace(state.href);
-      else router.refresh();
-    } else if (state.status === "error") {
+    if (state.status === "error") {
       resultRef.current?.scrollIntoView?.({ block: "nearest" });
     }
-  }, [state, router]);
+  }, [state]);
   useEffect(() => {
     if (!confirmation) return;
     headingRef.current?.focus({ preventScroll: true });
@@ -73,7 +74,7 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
       }}>
         <input type="hidden" name="completionOptionId" value={item.completionOptionId} />
         <input type="hidden" name="intent" value={confirmation} />
-        <button type="submit" data-primary={confirmation === "purchase"} disabled={pending || finished || needsCheck}>
+        <button type="submit" data-primary={confirmation === "purchase"} data-confirm-purchase={confirmation === "purchase"} disabled={pending || finished || needsCheck}>
           {pending ? "Saving…" : finished ? "Saved" : confirmation === "purchase" ? `Confirm ${formatUsdFromCents(item.remainingCents)} purchase` : "Confirm decline"}
         </button>
       </form>
@@ -82,7 +83,7 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
     {state.status !== "idle" ? <div ref={resultRef}>
       <p role="status" data-status={state.status}>{state.message}</p>
       {needsCheck ? <a href={activityHref(item)}>Check purchase status →</a> : null}
-      {state.status === "error" && state.recovery === "balance" ? <Link href={fundingHref(item.slug, item.entryId ?? undefined)}>Add funds →</Link> : null}
+      {state.status === "error" && state.recovery === "balance" ? <Link data-funding-action="true" href={fundingHref(item.slug, item.entryId ?? undefined)}>Add funds →</Link> : null}
       {state.status === "succeeded" && state.href ? <Link href={state.href}>Open your gift card or receipt →</Link> : null}
     </div> : null}
   </div>;

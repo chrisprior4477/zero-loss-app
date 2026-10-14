@@ -38,7 +38,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "purchase-options", category: "entries", question: "Where do I find what I can still purchase?",
     answer: "Open Purchase Options in My Activity. Select an available option to see the amount already applied, the remaining amount, and its decision deadline. Completing the purchase is a separate choice; entering does not automatically purchase the gift card. Completed activity remains in your history.",
-    keywords: "completion non selected buy remaining paid difference deadline", action: { label: "Review purchase options", href: "/account/entries?filter=completion" },
+    keywords: "completion non selected buy remaining paid difference deadline", action: { label: "Complete Purchase", href: "/account/entries?filter=completion" },
   },
   {
     id: "purchase-meaning", category: "entries", question: "Does completing a purchase order the pictured product?",
