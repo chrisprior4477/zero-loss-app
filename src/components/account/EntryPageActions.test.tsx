@@ -90,6 +90,7 @@ test("pending entry can be confirmed here without a checkout redirect", async ()
   await waitFor(() => expect(screen.getByRole("button", { name: "Confirm entry" })).toBeTruthy());
   expect(screen.getByText(/header counts active entries after confirmation/)).toBeTruthy();
   expect(screen.getByText(/Entry submitted · Undo available/).closest("[role='status']")?.className).toContain("receiptBox");
+  expect(screen.getByRole("timer", { name: /seconds left to undo/ })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Undo entry" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Confirm entry" }));
   await waitFor(() => expect(screen.getByText(/new entry is confirmed and saved in My Activity/)).toBeTruthy());

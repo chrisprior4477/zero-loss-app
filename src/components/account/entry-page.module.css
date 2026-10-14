@@ -135,6 +135,8 @@
 .entryActionPanel .checkoutError { color: #ffd4cd !important; }
 .checkoutSuccess { border-radius: 9px; background: #d9ffd6; padding: 10px; color: #145c20 !important; font-weight: 750; }
 .receiptBox { display: grid; gap: 7px; border: 1px solid #ff9a45; border-radius: 12px; background: #ff6a00; padding: 16px; color: #00132e; }
+.receiptHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.receiptCopy { display: grid; min-width: 0; gap: 7px; }
 .receiptBox strong { color: #00132e; font-size: 17px; font-weight: 900; }
 .receiptBox span { color: #00132e; font-size: 13px; }
 .receiptBox small { color: #00132e; font-size: 12px; line-height: 1.35; }

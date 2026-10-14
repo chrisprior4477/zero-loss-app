@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { PoolProgress } from "@/components/product/PoolProgress";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
+import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, resetExtraEntryExplainer, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
@@ -317,9 +318,14 @@ export function DemoParticipationPanel({
       {isPreviewExperience && isDemoWallet && isSignedIn && skipFutureExplainer ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceResetting} className="mt-1 inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60">{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null}
       {preferenceResetMessage ? <p role="status" className="mt-1 text-xs text-cyan-200">{preferenceResetMessage}</p> : null}
       {requestReceipt?.status === "pending" ? <div className="mt-3 rounded-xl border border-[#ff9a45] bg-[#ff6a00] p-3 text-sm text-[#00132e]" role="status">
-        <p className="font-extrabold">{undoSeconds > 0 ? `Entry submitted · Undo available for ${undoSeconds}s` : "Checking your saved entry…"}</p>
-        <p className="mt-1 text-xs text-[#00132e]/80">{requestReceipt.quantity} {requestReceipt.quantity === 1 ? "ticket" : "tickets"} · ${(requestReceipt.amountCents / 100).toFixed(2)} reserved from your Playable Wallet.</p>
-        <p className="mt-1 text-xs text-[#00132e]/80">The header counts active entries after confirmation. Undo releases this hold.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="font-extrabold">{undoSeconds > 0 ? "Entry submitted · Undo available" : "Checking your saved entry…"}</p>
+            <p className="mt-1 text-xs text-[#00132e]/80">{requestReceipt.quantity} {requestReceipt.quantity === 1 ? "ticket" : "tickets"} · ${(requestReceipt.amountCents / 100).toFixed(2)} reserved from your Playable Wallet.</p>
+            <p className="mt-1 text-xs text-[#00132e]/80">The header counts active entries after confirmation. Undo releases this hold.</p>
+          </div>
+          <EntryUndoCountdown seconds={undoSeconds} />
+        </div>
         {undoError ? <p role="alert" className="mt-2 text-xs font-bold text-[#00132e]">{undoError}</p> : null}
         <div className={`mt-2 grid gap-2 ${undoSeconds > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
           {undoSeconds > 0 ? <button type="button" disabled={undoBusy} onClick={() => void undoEntry()} className="min-h-11 rounded-lg bg-[#bcecff] px-2 font-bold text-[#00132e] transition hover:bg-[#def6ff] disabled:opacity-60">Undo entry</button> : null}
