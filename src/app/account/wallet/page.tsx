@@ -16,6 +16,7 @@ import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { selectedTransaction } from "@/lib/wallet/selected-transaction";
 import { getCompleteLedgerHistory } from "@/lib/wallet/history";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
+import { parseDemoWalletHistoryVisibility, type DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 
 export const metadata: Metadata = { title: "Gift Cards & Rewards" };
 
@@ -45,13 +46,23 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     : typeof query.reward === "string" && matchingRewards.length === 1 ? matchingRewards[0] : undefined;
   const rewardView = ["ready", "used", "expired", "history"].includes(String(query.rewards))
     ? query.rewards as "ready" | "used" | "expired" | "history" : "all";
-  const provider = history && account.wallet?.scope === "demo" ? new DemoPaymentProvider(await createClient()) : null;
-  const [requests, savedCards, transaction, ledgerEntries] = await Promise.all([
+  const demoDb = history && account.wallet?.scope === "demo" ? await createClient() : null;
+  const provider = demoDb ? new DemoPaymentProvider(demoDb) : null;
+  const [requests, savedCards, transaction, ledgerEntries, visibilityResult] = await Promise.all([
     history && provider ? provider.getRequests().catch(() => null) : null,
     provider && account.fundingEnabled ? provider.getPaymentMethods().catch(() => undefined) : [],
     history ? selectedTransaction(query.transaction, account.userId, account.wallet).catch(() => ({ requested: true, entry: null })) : undefined,
     history ? getCompleteLedgerHistory(account.userId, account.wallet).catch(() => null) : null,
+    demoDb ? Promise.resolve(demoDb.rpc("get_demo_wallet_history_visibility")).catch(() => null) : undefined,
   ]);
+  let demoHistoryVisibility: DemoWalletHistoryVisibility | null | undefined = undefined;
+  if (demoDb) {
+    demoHistoryVisibility = null;
+    if (visibilityResult && !visibilityResult.error) {
+      try { demoHistoryVisibility = parseDemoWalletHistoryVisibility(visibilityResult.data); }
+      catch { /* Never hide records or offer resets on an unverified response. */ }
+    }
+  }
   if (requestedReward) {
     let claimedCode: string | null = null;
     let crewMembers: { id: string; name: string }[] = [];
@@ -70,6 +81,6 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       ? <WalletRewardDetail item={reward} isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />
       : <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href="/account/wallet" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
   }
-  if (history) return <WalletOverview wallet={account.wallet} ledgerEntries={ledgerEntries} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
+  if (history) return <WalletOverview wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
   return <WalletRewards state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} />;
 }

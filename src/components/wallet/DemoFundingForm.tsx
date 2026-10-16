@@ -8,6 +8,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken } from "@/lib/payments/demo-card";
 import styles from "./wallet-overview.module.css";
+import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
 
 type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" };
 const noRequests: DemoFundingRequest[] = [];
@@ -216,16 +217,22 @@ function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: Cont
   </form>;
 }
 
-export function DemoFundingRequests({ requests, fundingEnabled, continueTo }: { requests: DemoFundingRequest[] | null; fundingEnabled: boolean; continueTo?: ContinueDestination }) {
+export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hiddenIds = [], canResetDemoHistory = false }: { requests: DemoFundingRequest[] | null; fundingEnabled: boolean; continueTo?: ContinueDestination; hiddenIds?: string[]; canResetDemoHistory?: boolean }) {
   const [showAll, setShowAll] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const hidden = new Set(hiddenIds);
+  const displayRequests = showArchived ? requests : requests?.filter(request => !hidden.has(request.id));
   return <section className={styles.fundingRequests} aria-label="Payment deposits"><h2 className="text-xl font-bold text-white">Payment deposits</h2>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
-      : requests.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">No payment deposits yet.</p>
-      : <><ul className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]">{(showAll ? requests : requests.slice(0, 5)).map(request => <li key={request.id} className="p-4">
+      : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>
+      : <ul className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]">{(showAll ? displayRequests : displayRequests?.slice(0, 5))?.map(request => <li key={request.id} className="p-4">
         <p className="flex flex-wrap justify-between gap-2 text-sm font-bold text-white"><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         <p className="mt-2 break-all text-[10px] text-[#b5cce4]">Request {request.id}</p>
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it.</p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} continueTo={continueTo} /> : null}
-      </li>)}</ul>{requests.length > 5 ? <button type="button" className={styles.showAllTicket} onClick={() => setShowAll(value => !value)} aria-expanded={showAll}>{showAll ? "Show just the first five payment deposits" : `See all ${requests.length} payment deposits`}<span aria-hidden="true">→</span></button> : null}</>}
+      </li>)}</ul>}
+    {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}
+    {displayRequests && displayRequests.length > 5 ? <button type="button" className={styles.showAllTicket} onClick={() => setShowAll(value => !value)} aria-expanded={showAll}>{showAll ? "Show just the first five payment deposits" : `See all ${displayRequests.length} payment deposits`}<span aria-hidden="true">→</span></button> : null}
+    {hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setShowArchived(value => !value); setShowAll(false); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
   </section>;
 }

@@ -103,6 +103,8 @@
 .showAllTicket:hover { background: #0869e6; }
 .showAllTicket:focus-visible { outline: 3px solid #b4edff; outline-offset: 2px; filter: drop-shadow(0 0 6px #b4edff); }
 .showAllTicket svg { width: 22px; height: 22px; }
+.archiveToggle { display: block; min-height: 44px; margin: 12px 0 0 auto; border: 0; background: transparent; padding: 8px 2px; color: #8fe9ff; font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.archiveToggle:focus-visible { outline: 3px solid #4fdfff; outline-offset: 2px; }
 .finePrint { grid-column: 1 / -1; margin-top: 10px; color: #c5d8ee; font-size: 12px; }
 .empty, .alert, .unavailable { margin-top: 10px; padding: 22px; border: 1px solid #9cc9e4; border-radius: 10px; background: #fffefa; color: #102646; font-size: 14px; line-height: 1.45; }
 .empty h3 { font-size: 18px; font-weight: 850; }
@@ -197,6 +199,7 @@
 .fundingRequests li :global([data-reconciliation="reconciled"]) { color: #087238; }
 .fundingRequests li :global([data-reconciliation]:not([data-reconciliation="reconciled"])) { color: #9b5409; }
 .fundingRequests li :global(form button) { border-color: #78b0d6; color: #075eb4; }
+.fundingRequests .archiveToggle { color: #075eb4; }
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #93dcff; outline-offset: 3px; }
 @media (max-width: 1380px) {
   .summaryGrid { grid-template-columns: minmax(0, 1.45fr) minmax(290px, 1fr); }

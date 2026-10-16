@@ -1,5 +1,6 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { WalletLedger } from "./WalletLedger";
 afterEach(cleanup);
 test("each transaction's support shortcut preserves its identity through filtering", () => {
@@ -51,5 +52,17 @@ test("shows the saved prize thumbnail and title beside the existing transaction 
   expect(image.getAttribute("src")).toContain("best-buy-100-gift-card.svg");
   expect(screen.getByText("$100 Best Buy Gift Card")).toBeTruthy();
   expect(screen.getAllByRole("img")).toHaveLength(1);
+  expect(screen.getByText("Funds added")).toBeTruthy();
+});
+
+test("demo transaction clear sits below the list and archived rows remain inspectable", () => {
+  const hiddenId = "11111111-1111-4111-8111-111111111111";
+  render(<WalletLedger canResetDemoHistory hiddenIds={[hiddenId]} entries={[
+    { id: hiddenId, entry_type: "DEPOSIT", amount: 2500, created_at: "2026-09-21T12:00:00Z" },
+    { id: "22222222-2222-4222-8222-222222222222", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-09-21T12:01:00Z" },
+  ]} />);
+  expect(screen.queryByText("Funds added")).toBeNull();
+  expect(screen.getByRole("button", { name: "Clear All Demo Transactions" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /View archived demo transactions/ }));
   expect(screen.getByText("Funds added")).toBeTruthy();
 });

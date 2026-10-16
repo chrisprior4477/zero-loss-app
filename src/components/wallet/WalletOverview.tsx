@@ -14,10 +14,12 @@ import { WalletLedger } from "./WalletLedger";
 import { DeleteAllFundsButton } from "./DeleteAllFundsButton";
 import styles from "./wallet-overview.module.css";
 import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
+import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 
-export function WalletOverview({ wallet, ledgerEntries, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false }: {
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false }: {
   wallet: WalletSnapshot | null;
   ledgerEntries?: LedgerEntryRow[] | null;
+  demoHistoryVisibility?: DemoWalletHistoryVisibility | null;
   activity?: AccountActivity;
   selectedTransaction?: SelectedTransaction;
   fundingEnabled?: boolean;
@@ -32,8 +34,9 @@ export function WalletOverview({ wallet, ledgerEntries, activity, selectedTransa
   const demo = wallet?.scope === "demo";
   const balance = wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable";
   const pendingCents = requests?.filter(request => request.reconciliation === "credit_pending").reduce((sum, request) => sum + request.amount, 0);
-  const recentCount = wallet?.entries.length;
+  const recentCount = wallet ? wallet.entries.filter(entry => !demoHistoryVisibility?.ledgerEntryIds.includes(entry.id)).length : undefined;
   const canFund = Boolean(fundingEnabled && demo && wallet?.fundingAvailable);
+  const canResetHistory = canFund && demoHistoryVisibility != null;
   const ready = activity && activity.source !== "unavailable" ? readyWalletRewards(activity) : null;
   const optionCount = activity && activity.source !== "unavailable" ? activity.activity.filter(item => item.status === "completion").length : null;
   const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : accountRoutes.rewards;
@@ -81,9 +84,10 @@ export function WalletOverview({ wallet, ledgerEntries, activity, selectedTransa
 
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading">Transaction history</h2><p>Posted activity from this account’s ledger.</p></div></div>
+        {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}
         {selectedTransaction?.requested && !selectedTransaction.entry ? <p role="status" className={styles.alert}>That transaction could not be opened for this account. Your available history is shown below.</p> : null}
         {selectedTransaction?.entry && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selectedTransaction.entry?.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger compact entries={[selectedTransaction.entry]} selectedId={selectedTransaction.entry.id} /></section> : null}
-        {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger entries={ledgerEntries ?? wallet.entries} totalCount={wallet.transactionCount} selectedId={selectedTransaction?.entry?.id} />}
+        {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger entries={ledgerEntries ?? wallet.entries} totalCount={wallet.transactionCount} selectedId={selectedTransaction?.entry?.id} hiddenIds={demoHistoryVisibility?.ledgerEntryIds} canResetDemoHistory={canResetHistory} />}
         {wallet && !ledgerEntries && wallet.transactionCount > wallet.entries.length ? <p className={styles.finePrint}>Only the latest {wallet.entries.length} transactions could be loaded. Refresh to try the full history again. Balance includes all posted transactions.</p> : null}
       </section>
 
@@ -92,7 +96,7 @@ export function WalletOverview({ wallet, ledgerEntries, activity, selectedTransa
         {returnToProduct ? <div className={styles.fundingReturn}><p>{returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}
         {returnUnavailable ? <p role="status" className={styles.fundingReturn}>We couldn’t find that purchase option in your account. <Link href="/account/entries?filter=completion">View your purchase options →</Link></p> : null}
         {canFund ? <DemoFundingForm requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
-        {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} continueTo={returnToProduct} /> : null}
+        {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} continueTo={returnToProduct} hiddenIds={demoHistoryVisibility?.fundingSessionIds} canResetDemoHistory={canResetHistory} /> : null}
       </section>
     </div>
   </main>;

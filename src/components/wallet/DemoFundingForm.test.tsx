@@ -88,6 +88,17 @@ test("a reconciled deposit also returns to the selected product", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Finish / check" }));
   await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv#enter-entry"));
 });
+
+test("archived demo deposits are hidden by default but can still be reviewed", () => {
+  render(<DemoFundingRequests fundingEnabled canResetDemoHistory hiddenIds={["archived"]} requests={[
+    { id: "archived", amount: 2500, currency: "USD", status: "succeeded", created_at: "2026-09-14", idempotencyKey: "archived_request_key_01", reconciliation: "reconciled" },
+    { id: "current", amount: 10000, currency: "USD", status: "succeeded", created_at: "2026-09-15", idempotencyKey: "current_request_key_01", reconciliation: "reconciled" },
+  ]} />);
+  expect(screen.queryByText("Request archived")).toBeNull();
+  expect(screen.getByRole("button", { name: "Delete All Demo Deposits" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /View archived demo deposits/ }));
+  expect(screen.getByText("Request archived")).toBeTruthy();
+});
 test("form submits cents, USD and a stable request key", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("2500");
