@@ -44,3 +44,22 @@ test("a won Walmart card remains hidden from the account's Ending Soon rail", ()
   const ending = document.getElementById("ending-soon")!;
   expect(ending.querySelector('a[href*="/items/walmart-100-gift-card"]')).toBeNull();
 });
+
+test("Ending Soon uses the requested near-full counts and excludes a full Best Buy pool", () => {
+  const offers = [
+    ["netflix-25-gift-card", 75, 4],
+    ["homegoods-75-gift-card", 225, 6],
+    ["home-style-50-gift-card-bundle", 150, 6],
+    ["lowes-150-gift-card", 450, 10],
+    ["best-buy-100-gift-card", 300, 0],
+  ] as const;
+  const snapshot = Object.fromEntries(offers.map(([slug, capacity, remaining]) => [slug, {
+    slug, capacity, sold: capacity - remaining, remaining, entryPriceCents: 100, repeatableScenario: false,
+  }]));
+  render(<OfferingAvailabilityProvider snapshot={snapshot} resolvedSlugs={[]}><DesktopMarketplaceRails /></OfferingAvailabilityProvider>);
+  const ending = document.getElementById("ending-soon")!;
+  for (const [slug, , remaining] of offers.filter(([, , remaining]) => remaining > 0)) {
+    expect(ending.querySelector(`a[href*="/items/${slug}"]`)?.textContent).toContain(`${remaining} left`);
+  }
+  expect(ending.querySelector('a[href*="/items/best-buy-100-gift-card"]')).toBeNull();
+});

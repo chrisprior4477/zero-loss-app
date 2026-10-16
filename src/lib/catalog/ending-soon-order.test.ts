@@ -17,5 +17,7 @@ test("does not resurrect a resolved or full showcase card", () => {
   const withoutDunkin = [card("babys-essentials-bundle"), card("walmart-100-gift-card")];
   expect(placeEndingSoonShowcases(withoutDunkin)).toEqual(withoutDunkin);
   const fullDunkin = [card("babys-essentials-bundle"), card("walmart-100-gift-card"), card("dunkin-25-gift-card", 0)];
-  expect(placeEndingSoonShowcases(fullDunkin)).toEqual(fullDunkin);
+  expect(placeEndingSoonShowcases(fullDunkin)).toEqual(withoutDunkin);
+  const fullBestBuy = [...withoutDunkin, card("dunkin-25-gift-card"), card("best-buy-100-gift-card", 0)];
+  expect(placeEndingSoonShowcases(fullBestBuy)).not.toContainEqual(card("best-buy-100-gift-card", 0));
 });
