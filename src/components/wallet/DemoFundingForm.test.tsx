@@ -96,6 +96,33 @@ test("form submits cents, USD and a stable request key", () => {
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
   expect(screen.getByText("Simulation only — no payment will be processed.")).toBeTruthy();
 });
+test("custom whole-dollar amounts replace the preset and use the same confirmation", () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
+  const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
+  expect(custom.inputMode).toBe("numeric");
+  fireEvent.change(custom, { target: { value: "500" } });
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("50000");
+  expect((screen.getByLabelText("Amount (USD)") as HTMLSelectElement).value).toBe("");
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  expect(screen.getByRole("dialog", { name: "Add $500 to your balance?" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.change(custom, { target: { value: "275" } });
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("27500");
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  expect(screen.getByRole("dialog", { name: "Add $275 to your balance?" })).toBeTruthy();
+});
+test("choosing a preset clears the custom amount and invalid custom amounts cannot advance", () => {
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
+  const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
+  fireEvent.change(custom, { target: { value: "1000" } });
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("alert").textContent).toContain("$500");
+  fireEvent.change(screen.getByLabelText("Amount (USD)"), { target: { value: "10000" } });
+  expect(custom.value).toBe("");
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("10000");
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
+});
 test("unknown or outstanding requests block a new form submission", () => {
   render(<DemoFundingForm requestKey="stable_demo_request_001" blocked />);
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);

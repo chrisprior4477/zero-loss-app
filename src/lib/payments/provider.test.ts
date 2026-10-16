@@ -4,6 +4,7 @@ import { assertFundingAmount, assertIdempotencyKey } from "@/lib/payments/provid
 describe("payment provider boundary", () => {
   test("accepts integer-cent demo funding within the configured limits", () => {
     expect(() => assertFundingAmount(2_500)).not.toThrow();
+    expect(() => assertFundingAmount(50_000)).not.toThrow();
   });
 
   test.each([0, 99, 50_001, 10.5, Number.NaN])(

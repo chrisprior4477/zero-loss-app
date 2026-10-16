@@ -146,7 +146,13 @@
 .fundingForm :global(section[aria-label="Add Credit Card"]) :global(p), .fundingForm > :global(p) { color: #506989; }
 .fundingForm :global(input:not([type="hidden"]):not([type="checkbox"])), .fundingForm :global(select) { border-color: #b7ccdc; background: #fff; color: #0b1940; }
 .fundingForm :global(select) { border-radius: 9px; }
+.fundingAmounts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.fundingAmountLabel { display: block; min-width: 0; color: #0b1940; font-size: 14px; font-weight: 800; }
+.fundingAmountControl { display: block; width: 100%; min-height: 52px; margin-top: 9px; padding: 10px 14px; border: 1px solid #b7ccdc; border-radius: 9px; background: #fff; color: #0b1940; font: inherit; font-size: 17px; }
+.fundingAmountControl:focus-visible { outline: 3px solid #63caff; outline-offset: 2px; }
+.fundingAmountError { color: #a12424; font-size: 13px; font-weight: 750; }
 .fundingSubmit { min-height: 52px; width: 100%; border: 0; border-radius: 9px; background: #0872fb; color: #fff; font-size: 17px; font-weight: 850; cursor: pointer; }
+.fundingSubmitAdd { background: #31e800; color: #002719; }
 .fundingSubmit:hover:not(:disabled) { filter: brightness(1.07); }
 .fundingSubmit:disabled { cursor: not-allowed; opacity: .5; }
 .fundingForm .confirmationTicket {
@@ -209,6 +215,7 @@
   .ledger { margin-top: 0; }
 }
 @media (max-width: 700px) {
+  .fundingAmounts { grid-template-columns: 1fr; gap: 14px; }
   .showAllTicket { --corner-scoop: 15px; --side-scoop: 10px; min-height: 62px; padding-inline: 25px; font-size: 14px; }
   .fundingForm .confirmationTicket { --corner-scoop: 15px; --side-scoop: 10px; }
   .page { padding: 14px 12px 42px; }
