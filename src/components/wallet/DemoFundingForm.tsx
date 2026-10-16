@@ -124,7 +124,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
         </select>
       </label>
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-custom-amount">Add specific amount (USD)
-        <input id="demo-funding-custom-amount" type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off" placeholder="Enter dollars, e.g. 500" value={customAmount} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
+        <input id="demo-funding-custom-amount" type="text" inputMode="numeric" autoComplete="off" placeholder="Enter up to $500" value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
           const dollars = event.target.value.replace(/\D/g, "");
           setCustomAmount(dollars);
           setAmount(dollars ? String(Number(dollars) * 100) : "");
@@ -146,11 +146,12 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
-    <p className="text-xs leading-5 text-[#b5cce4]">Only a test-card reference and your preference are saved—not a card number or security code. Limits: 3 requests/minute, 20/day and $1,000 total per account.</p>
+    <p className="text-xs leading-5 text-[#b5cce4]">Only a test-card reference and your preference are saved—not a card number or security code. Limits: $500 per deposit, 3 requests/minute, 20/day and $1,000 total per account, including earlier deposits.</p>
   </form>;
 }
 
 export function DemoFundingForm({ requestKey, blocked = false, requests = noRequests, walletId = "test", savedCard = null, savedCards, cardUnavailable = false, continueTo }: { requestKey: string; blocked?: boolean; requests?: DemoFundingRequest[] | null; walletId?: string; savedCard?: DemoCard | null; savedCards?: DemoCard[]; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
+  const router = useRouter();
   const storageKey = `zero-loss-demo-request:${walletId}`;
   const [successMessage, setSuccessMessage] = useState("");
   const [attempt, setAttempt] = useState<{ key: string; amount: string; recovered: boolean; canRetry: boolean; ready: boolean; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean }>({ key: requestKey, amount: "2500", recovered: false, canRetry: false, ready: false });
@@ -159,7 +160,9 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     try { sessionStorage.removeItem(storageKey); } catch { /* Server history still identifies completed requests. */ }
     setSuccessMessage(message);
     newAttempt();
-  }, [newAttempt, storageKey]);
+    // Re-read the ledger-backed wallet snapshot for the header, summary and history.
+    router.refresh();
+  }, [newAttempt, router, storageKey]);
   useEffect(() => {
     let saved: { key: string; amount: string; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly: boolean } | null = null;
     try {

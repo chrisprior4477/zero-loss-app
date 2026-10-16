@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
+const navigation = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn() }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
@@ -23,7 +23,7 @@ test("deposit confirmation stays on the page and requires an unchecked acknowled
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
   expect(sessionStorage.length).toBe(0);
 });
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); navigation.refresh.mockReset(); });
 test("a rejected confirmation clears the recovery marker and can be retried", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
@@ -101,16 +101,35 @@ test("custom whole-dollar amounts replace the preset and use the same confirmati
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
   expect(custom.inputMode).toBe("numeric");
+  expect(custom.placeholder).toBe("Enter up to $500");
   fireEvent.change(custom, { target: { value: "500" } });
+  expect(custom.value).toBe("$500");
+  expect(custom.checkValidity()).toBe(true);
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("50000");
   expect((screen.getByLabelText("Amount (USD)") as HTMLSelectElement).value).toBe("");
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   expect(screen.getByRole("dialog", { name: "Add $500 to your balance?" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.change(custom, { target: { value: "275" } });
+  expect(custom.value).toBe("$275");
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("27500");
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   expect(screen.getByRole("dialog", { name: "Add $275 to your balance?" })).toBeTruthy();
+});
+test("manual amount opens confirmation, posts the chosen cents and refreshes the ledger balance", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
+  render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" />);
+  const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
+  fireEvent.change(custom, { target: { value: "$37" } });
+  expect(custom.value).toBe("$37");
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  expect(screen.getByRole("dialog", { name: "Add $37 to your balance?" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $37 deposit" }));
+  await waitFor(() => expect(completeDemoFunding).toHaveBeenCalled());
+  expect(vi.mocked(completeDemoFunding).mock.calls[0]?.[1].get("amountCents")).toBe("3700");
+  await waitFor(() => expect(navigation.refresh).toHaveBeenCalled());
 });
 test("choosing a preset clears the custom amount and invalid custom amounts cannot advance", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
