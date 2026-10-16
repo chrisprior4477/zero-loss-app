@@ -3,6 +3,7 @@ import { activityFilters, filterActivity, type AccountActivity, type ActivityFil
 import { MyZeroLossGallery } from "./MyZeroLossGallery";
 import { ActivitySelection } from "./ActivitySelection";
 import { AccountIcon } from "./AccountIcon";
+import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
 import styles from "./my-activity.module.css";
 import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 import type { EntryRequest } from "@/lib/entries/request";
@@ -26,11 +27,11 @@ export function MyZeroLossActivity({ state, filter, metricsBySlug = {}, pendingE
       <p className="mt-1 text-sm text-[#b5cce4]">{pendingEntries[0].title} is saved as a pending request. It will appear in your activity after confirmation; it is not a completed entry yet.</p>
       <Link href={`/items/${pendingEntries[0].slug}#enter-entry`} className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">Review pending entry <span aria-hidden="true" className="ml-2">›</span></Link>
     </div> : null}
-    {items.length ? <MyZeroLossGallery key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} canClearDemoEntries={canClearDemoEntries} /> : <div className={styles.empty}>
+    {items.length ? <MyZeroLossGallery key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
       <h2 className="text-xl font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : pendingEntries.length && allItems.length === 0 ? "Your entry is being confirmed" : allItems.length === 0 ? "Your next choice starts here" : "Nothing in this category yet"}</h2>
       <p className="mt-2 max-w-xl text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "We can’t verify your activity right now. No entries or outcomes have been assumed. Please try again shortly." : pendingEntries.length && allItems.length === 0 ? "Confirm your pending request above, or wait for the automatic result. Your activity will update when the entry is accepted." : allItems.length === 0 ? "No activity yet. Your entries, prizes and purchase options will appear here after you participate." : "Choose another filter to see the rest of your activity."}</p>
       {state.source !== "unavailable" && !(pendingEntries.length && allItems.length === 0) ? <Link href={allItems.length === 0 ? "/" : "/account/entries"} className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-black text-[#002719]">{allItems.length === 0 ? "Explore products" : "View all activity"} <span aria-hidden="true" className="ml-3">›</span></Link> : null}
-    </div>}
+    </div>{canClearDemoEntries && state.source !== "unavailable" ? <div className={styles.emptyControls}><ClearAllEntriesButton /></div> : null}</>}
     <ActivitySelection state={verifiedState} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} destination="/account/entries" filter={filter} metricsBySlug={metricsBySlug} outcomeEmailPreference={outcomeEmailPreference} />
   </section>;
 }

@@ -159,6 +159,7 @@
 .empty h2 { color: #112044; }
 .empty p { color: #536d87; }
 .empty a { display: inline-flex; min-height: 44px; align-items: center; margin-top: 20px; padding: 9px 17px; border-radius: 10px; background: #44ec62; color: #08251d; font-weight: 800; }
+.emptyControls { display: flex; min-height: 56px; align-items: center; justify-content: flex-end; margin-top: 6px; }
 
 .accountTools { margin-top: 44px; padding-top: 26px; border-top: 1px solid #92bde64f; }
 .accountToolsHeading { margin-bottom: 18px; }

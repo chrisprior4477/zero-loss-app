@@ -159,6 +159,16 @@ test("entry reset control appears only when explicitly enabled for a demo accoun
   rerender(<MyZeroLossActivity state={state} filter="all" canClearDemoEntries />);
   expect(screen.getByRole("button", { name: "Clear All Entries" })).toBeTruthy();
 });
+test("demo entry reset stays available once in every activity filter, including empty ones", () => {
+  const state = storedActivityFixture();
+  for (const filter of ["all", "active", "prize", "completion", "completed"] as const) {
+    const { unmount } = render(<MyZeroLossActivity state={state} filter={filter} canClearDemoEntries />);
+    expect(screen.getAllByRole("button", { name: "Clear All Entries" })).toHaveLength(1);
+    unmount();
+  }
+  render(<MyZeroLossActivity state={drawerState(true)} filter="completed" canClearDemoEntries />);
+  expect(screen.getByRole("button", { name: "Clear All Entries" })).toBeTruthy();
+});
 test("only still-open tickets show their own offer-fill progress", () => {
   const state = storedActivityFixture();
   state.activity.push({ ...state.activity[0], slug: "another-open-offer", title: "Another open offer" });
