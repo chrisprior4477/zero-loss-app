@@ -74,6 +74,11 @@ Reference for the underlying signature primitive:
   24 hours; 3 unresolved requests; $1,000 total requested over the account's
   lifetime, including old runs and failed requests. Each request is $1–$500;
   the UI offers $1, $10, $25 and $100. No allowance is reset by starting a run.
+- October 16, 2026 superseding MVP decision: migration
+  `20261016215500_remove_demo_lifetime_funding_cap` removes the $1,000 lifetime
+  total. The $1–$500 limit remains per deposit, as do the request-rate,
+  unresolved-request, authentication, idempotency and ledger controls. A demo
+  wallet may therefore accumulate more than $500 or $1,000 over time.
 - Exact idempotent retries consume no new quota. Reusing a key with altered
   amount or run is rejected. Six simultaneous deliveries created one credit.
 - This bounds financial/record creation, not all HTTP or database traffic.

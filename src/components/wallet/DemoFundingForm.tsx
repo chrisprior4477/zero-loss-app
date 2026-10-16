@@ -13,7 +13,7 @@ type ContinueDestination = { title: string; href: string; label?: "Back to purch
 const noRequests: DemoFundingRequest[] = [];
 const presetAmounts = ["100", "1000", "2500", "10000"];
 
-function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, knownRequestedCents = 0 }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination; knownRequestedCents?: number }) {
+function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof completeDemoFunding>>, form: FormData) => {
     const result = await completeDemoFunding(previous, form);
@@ -25,9 +25,6 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   const [customAmount, setCustomAmount] = useState(() => presetAmounts.includes(initialAmount) ? "" : String(Number(initialAmount) / 100));
   const selectedPreset = customAmount ? "" : presetAmounts.includes(amount) ? amount : "";
   const amountIsValid = Number.isSafeInteger(Number(amount)) && Number(amount) >= 100 && Number(amount) <= 50_000;
-  // The owner-scoped request list is a lower bound: it may omit older runs or rows.
-  // Reject only amounts this known history proves exceed the DB's lifetime cap.
-  const exceedsKnownAccountLimit = !recovered && amountIsValid && knownRequestedCents + Number(amount) > 100_000;
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
   const [visibleTokens, setVisibleTokens] = useState<DemoCardToken[]>(() => cards.length ? cards.map(card => card.token) : [DEMO_CARD_TOKEN]);
   const [selectedToken, setSelectedToken] = useState<DemoCardToken>(initialToken ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
@@ -41,7 +38,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     if (policyInput.current) policyInput.current.checked = false;
   }
   function openConfirmation() {
-    if (!amountIsValid || exceedsKnownAccountLimit || locked || (cardUnavailable && !recovered) || (blocked && state.status === "idle")) return;
+    if (!amountIsValid || locked || (cardUnavailable && !recovered) || (blocked && state.status === "idle")) return;
     clearConfirmation();
     confirmation.current?.showModal();
     policyInput.current?.focus();
@@ -135,8 +132,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
       </label>
     </div>
     {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter a whole-dollar amount from $1 to $500.</p> : null}
-    {!locked && exceedsKnownAccountLimit ? <p role="alert" className={styles.fundingAmountError}>This amount exceeds the $1,000 lifetime demo limit for your account. Try a smaller amount.</p> : null}
-    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || exceedsKnownAccountLimit || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
+    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
@@ -150,7 +146,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
-    <p className="text-xs leading-5 text-[#b5cce4]">Only a test-card reference and your preference are saved—not a card number or security code. Limits: $500 per deposit, 3 requests/minute, 20/day and $1,000 total per account, including earlier deposits.</p>
+    <p className="text-xs leading-5 text-[#b5cce4]">Only a test-card reference and your preference are saved—not a card number or security code. You can add up to $500 per deposit; there is no wallet-balance cap. Demo requests are limited to 3/minute and 20/day.</p>
   </form>;
 }
 
@@ -201,7 +197,6 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
     savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly} cardUnavailable={cardUnavailable}
     blocked={!attempt.ready || ((blocked || requests === null || requests.some(request => request.reconciliation !== "reconciled")) && !attempt.canRetry)} continueTo={continueTo}
-    knownRequestedCents={requests?.reduce((total, request) => total + request.amount, 0) ?? 0}
     onNew={newAttempt} onSuccess={onSuccess} onStart={() => setSuccessMessage("")} />
   </>;
 }

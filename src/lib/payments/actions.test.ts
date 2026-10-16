@@ -34,6 +34,17 @@ test("request, durable provider and verified consumer run in order and refresh s
   expect(mocks.rpc).toHaveBeenCalledWith("accept_demo_payment_event", { p_body: "signed-by-demo-provider", p_signature: "provider-signature" });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
 });
+test("$500 remains the per-deposit maximum without a cumulative wallet cap", async () => {
+  const maximum = form();
+  maximum.set("amountCents", "50000");
+  expect((await completeDemoFunding({ status: "idle" }, maximum)).status).toBe("succeeded");
+  expect(mocks.rpc).toHaveBeenCalledWith("create_demo_card_funding_session", {
+    p_amount: 50000, p_idempotency_key: "funding_review_check_001", p_payment_method: "demo_card_4242", p_make_default: true,
+  });
+  const overMaximum = form();
+  overMaximum.set("amountCents", "50100");
+  expect((await completeDemoFunding({ status: "idle" }, overMaximum)).status).toBe("error");
+});
 test("replaying a credited request never claims a second deposit", async () => {
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "ensure_preview_customer" ? { walletAccountId: sid, scope: "demo", fundingAvailable: true }
     : name === "get_wallet_snapshot" ? snapshot
