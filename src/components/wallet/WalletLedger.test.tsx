@@ -66,3 +66,11 @@ test("demo transaction clear sits below the list and archived rows remain inspec
   fireEvent.click(screen.getByRole("button", { name: /View archived demo transactions/ }));
   expect(screen.getByText("Funds added")).toBeTruthy();
 });
+
+test("full demo reset leaves no transactions or archive shortcut in the normal view", () => {
+  const hiddenId = "11111111-1111-4111-8111-111111111111";
+  render(<WalletLedger entries={[{ id: hiddenId, entry_type: "DEPOSIT", amount: 2500, created_at: "2026-09-21T12:00:00Z" }]} hiddenIds={[hiddenId]} hideArchived />);
+  expect(screen.queryByText("Funds added")).toBeNull();
+  expect(screen.queryByRole("button", { name: /View archived demo transactions/ })).toBeNull();
+  expect(screen.getByText("Your demo transaction history has been reset.")).toBeTruthy();
+});

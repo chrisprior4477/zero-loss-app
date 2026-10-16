@@ -1,6 +1,7 @@
 export type DemoWalletHistoryVisibility = {
   ledgerEntryIds: string[];
   fundingSessionIds: string[];
+  fullReset: boolean;
 };
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12,5 +13,6 @@ export function parseDemoWalletHistoryVisibility(value: unknown): DemoWalletHist
     || !Array.isArray(row.fundingSessionIds) || !row.fundingSessionIds.every(id => typeof id === "string" && uuid.test(id))) {
     throw new Error("Invalid demo history state");
   }
-  return { ledgerEntryIds: row.ledgerEntryIds, fundingSessionIds: row.fundingSessionIds };
+  if (row.fullReset !== undefined && typeof row.fullReset !== "boolean") throw new Error("Invalid demo reset state");
+  return { ledgerEntryIds: row.ledgerEntryIds, fundingSessionIds: row.fundingSessionIds, fullReset: row.fullReset === true };
 }

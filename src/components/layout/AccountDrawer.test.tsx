@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 
 const { path } = vi.hoisted(() => ({ path: { value: "/account" } }));
-vi.mock("next/navigation", () => ({ usePathname: () => path.value }));
+vi.mock("next/navigation", () => ({ usePathname: () => path.value, useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: (props: Record<string, unknown>) => {
   const imageProps = { ...props };
   delete imageProps.fill;
@@ -51,6 +51,7 @@ test("signed-in drawer follows the compact account-menu hierarchy", () => {
   expect(dialog.queryByText("Help, Rules & Policies")).toBeNull();
   expect(dialog.getByRole("button", { name: "Add to Home Screen" })).toBeTruthy();
   expect(dialog.getByRole("button", { name: "Sign out" })).toBeTruthy();
+  expect(dialog.queryByRole("button", { name: "Reset All Demo Activity" })).toBeNull();
 });
 
 test("balance failure displays Unavailable, never an invented zero", () => {
@@ -118,6 +119,9 @@ test("approved drawer controls keep their real routes and one mounted dialog", (
   expect(dialog.getByRole("navigation", { name: "Account navigation" }).querySelectorAll("img")).toHaveLength(9);
   expect(dialog.getByRole("link", { name: "Declined Offers" }).getAttribute("href")).toBe("/account/declined-offers");
   expect(dialog.getByRole("link", { name: "Favorites" }).getAttribute("href")).toBe("/account/favorites");
+  const controls = dialog.getAllByRole("button").map(button => button.textContent?.trim());
+  expect(controls.indexOf("Add to Home Screen")).toBeLessThan(controls.indexOf("Reset All Demo Activity"));
+  expect(controls.indexOf("Reset All Demo Activity")).toBeLessThan(controls.indexOf("Sign out"));
 });
 
 test("Add to Home Screen closes the drawer and requests the device install flow", () => {

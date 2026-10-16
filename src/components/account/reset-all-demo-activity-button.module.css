@@ -1,0 +1,15 @@
+.trigger, .confirm { width: 100%; min-height: 46px; border: 1px solid #e75700; border-radius: 9px; background: #ff6508; padding: 9px 14px; color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; }
+.trigger:hover, .confirm:hover { background: #e95a00; }
+.trigger:disabled, .actions button:disabled { cursor: not-allowed; opacity: .65; }
+.trigger:focus-visible, .actions button:focus-visible { outline: 3px solid #52e4fb; outline-offset: 3px; }
+.notice { margin: 5px 0; color: #17365a; font-size: 12px; line-height: 1.35; }
+.dialog { width: min(520px, calc(100vw - 30px)); max-height: calc(100dvh - 30px); overflow-y: auto; border: 1px solid #4fe1f5; border-radius: 16px; background: #061d3d; padding: 24px; color: #fff; box-shadow: 0 20px 70px #0009; }
+.dialog::backdrop { background: rgba(0, 9, 25, .78); }
+.dialog h2 { margin: 0 0 12px; font-size: 23px; font-weight: 850; }
+.dialog p { margin: 0 0 12px; line-height: 1.5; }
+.caution { color: #b9d3eb; font-size: 14px; }
+.error { color: #ffbc9b; font-weight: 750; }
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.actions button { min-height: 44px; border-radius: 9px; padding: 9px 16px; font-weight: 850; cursor: pointer; }
+.actions .confirm { width: auto; }
+.cancel { border: 1px solid #8bb7d8; background: transparent; color: #fff; }

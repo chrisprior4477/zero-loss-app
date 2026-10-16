@@ -69,3 +69,13 @@ test("wallet updates target the exact posted transaction", () => {
   }, true);
   expect(notifications.find(item => item.id === `wallet-${id}`)?.href).toBe(`/account/wallet?view=history&transaction=${id}#transaction-${id}`);
 });
+
+test("archived demo ledger rows do not create visible notifications", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const wallet = {
+    walletAccountId: id, scope: "demo" as const, currency: "USD" as const, fundingAvailable: true,
+    balanceCents: 0, transactionCount: 1,
+    entries: [{ id, entry_type: "DEPOSIT", amount: 100, created_at: "2026-09-21T12:00:00Z" }],
+  };
+  expect(buildAccountNotifications(storedActivityFixture(), wallet, true, [id]).some(item => item.id === `wallet-${id}`)).toBe(false);
+});

@@ -6,6 +6,7 @@ import { buildAccountNotifications } from "@/lib/account/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { supportNotifications } from "@/lib/support/notifications";
 import { authNavigationHref } from "@/lib/auth/entry-return";
+import { parseDemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -33,7 +34,15 @@ export default async function NotificationsPage() {
   // allowed to review other customers' cases in the private support inbox.
   const support = await db.from("support_cases").select("id,subject,status,updated_at")
     .eq("customer_id", account.userId).order("updated_at", { ascending: false }).limit(50);
-  const notifications = [...supportNotifications(support.data), ...crewNotifications, ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed)];
+  let hiddenWalletIds: string[] = [];
+  if (account.wallet?.scope === "demo") {
+    const visibility = await db.rpc("get_demo_wallet_history_visibility");
+    if (!visibility.error) {
+      try { hiddenWalletIds = parseDemoWalletHistoryVisibility(visibility.data).ledgerEntryIds; }
+      catch { /* Keep the original history visible if its archive state is invalid. */ }
+    }
+  }
+  const notifications = [...supportNotifications(support.data), ...crewNotifications, ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed, hiddenWalletIds)];
   const { data: readRows, error: readError } = await db.from("customer_notification_reads")
     .select("notification_id").eq("customer_id", account.userId)
     .in("notification_id", notifications.map((notification) => notification.id));

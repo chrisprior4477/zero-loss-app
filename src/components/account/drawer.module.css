@@ -251,6 +251,8 @@
   margin-top: auto;
   padding: 10px 13px max(11px, env(safe-area-inset-bottom));
   border-top: 1px solid #e3ddd8;
+  display: grid;
+  gap: 9px;
 }
 
 .signOutButton {

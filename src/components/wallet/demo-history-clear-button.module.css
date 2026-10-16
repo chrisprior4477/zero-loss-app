@@ -1,4 +1,4 @@
-.control { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; }
+.control { display: flex; grid-column: 1 / -1; width: 100%; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; }
 .trigger, .confirm { min-height: 44px; border: 1px solid #e75700; border-radius: 10px; background: #ff6508; padding: 9px 18px; color: #fff; font-size: 13px; font-weight: 850; cursor: pointer; }
 .trigger:hover, .confirm:hover { background: #e95a00; }
 .trigger:disabled, .actions button:disabled { opacity: .65; cursor: not-allowed; }

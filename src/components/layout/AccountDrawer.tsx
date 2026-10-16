@@ -15,6 +15,7 @@ import { accountNavigation, accountRoutes } from "@/lib/account/navigation";
 import { MenuTicket } from "@/components/account/MenuTicket";
 import { SignOutForm } from "@/components/auth/SignOutForm";
 import { INSTALL_APP_REQUEST_EVENT } from "@/components/layout/InstallAppPrompt";
+import { ResetAllDemoActivityButton } from "@/components/account/ResetAllDemoActivityButton";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -236,9 +237,12 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
               </div> : null}
             </div>
             {showAccountContent ? (
-              <SignOutForm className={styles.accountFooter}>
-                <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
-              </SignOutForm>
+              <div className={styles.accountFooter}>
+                {fundingEnabled ? <ResetAllDemoActivityButton /> : null}
+                <SignOutForm>
+                  <button type="submit" className={styles.signOutButton}><AccountIcon name="signout" /><span>Sign out</span></button>
+                </SignOutForm>
+              </div>
             ) : null}
           </aside>
         </div>,
