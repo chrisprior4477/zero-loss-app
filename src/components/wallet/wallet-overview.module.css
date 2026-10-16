@@ -188,7 +188,10 @@
 .fundingForm :global(dialog) :global(input[type="password"]) { border-color: #b7ccdc; background: #fff; color: #0b1940; }
 .fundingForm :global(dialog) :global(button[type="button"]) { border-color: #9cb9d0; color: #0b1940; }
 .fundingForm :global(dialog) :global(a) { color: #075eb4; }
-.fundingRequests { margin-top: 26px; padding-top: 21px; border-top: 2px dotted #bed0e1; color: #0b1940; }
+.fundingRequests { margin-top: 26px; padding-top: 21px; border-top: 2px dotted #bed0e1; color: #0b1940; scroll-margin-top: 140px; }
+.depositHeading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.depositShoppingButton { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border-radius: 10px; background: #31e800; padding: 9px 17px; color: #08251d; font-size: 13px; font-weight: 900; text-align: center; white-space: nowrap; }
+.depositShoppingButton:hover { background: #67f33f; }
 .fundingRequests h2 { color: #0b1940; font-size: 25px; font-weight: 850; }
 .fundingRequests > p { color: #506989; font-size: 14px; }
 .fundingRequests ul { display: grid; gap: 8px; margin-top: 16px; border: 0; border-radius: 0; background: transparent; }

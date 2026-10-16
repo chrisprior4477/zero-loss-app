@@ -311,11 +311,27 @@ test("pending request offers recovery but discrepancy requires review", () => {
   expect(screen.getByRole("alert").textContent).toContain("operator review");
 });
 
-test("payment deposits initially show five and expand on demand", () => {
+test("payment deposits return to their heading when the full list is collapsed", () => {
   const requests = Array.from({ length: 7 }, (_, index) => ({ id: `request-${index}`, amount: 100, currency: "USD" as const, status: "succeeded", created_at: "2026-09-14", idempotencyKey: `payment_request_key_${index}`, reconciliation: "reconciled" as const }));
-  render(<DemoFundingRequests fundingEnabled requests={requests} />);
-  expect(screen.getByRole("region", { name: "Payment deposits" })).toBeTruthy();
-  expect(screen.getAllByText("Payment & credit matched")).toHaveLength(5);
-  fireEvent.click(screen.getByRole("button", { name: /See all 7 payment deposits/ }));
-  expect(screen.getAllByText("Payment & credit matched")).toHaveLength(7);
+  const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+  const scrollIntoView = vi.fn();
+  HTMLElement.prototype.scrollIntoView = scrollIntoView;
+  try {
+    render(<DemoFundingRequests fundingEnabled requests={requests} />);
+    const section = screen.getByRole("region", { name: "Payment deposits" });
+    const heading = screen.getByRole("heading", { name: "Payment deposits" });
+    expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
+    expect(screen.getAllByText("Payment & credit matched")).toHaveLength(5);
+    fireEvent.click(screen.getByRole("button", { name: /See all 7 payment deposits/ }));
+    expect(screen.getAllByText("Payment & credit matched")).toHaveLength(7);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Show just the first five payment deposits" }));
+    expect(screen.getAllByText("Payment & credit matched")).toHaveLength(5);
+    expect(document.activeElement).toBe(heading);
+    expect(scrollIntoView).toHaveBeenCalledOnce();
+    expect(scrollIntoView.mock.contexts[0]).toBe(section);
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
+  } finally {
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  }
 });

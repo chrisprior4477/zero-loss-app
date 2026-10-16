@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { completeDemoFunding, reconcileDemoFunding } from "@/lib/payments/actions";
@@ -220,9 +220,16 @@ function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: Cont
 export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hiddenIds = [], hideArchived = false, canResetDemoHistory = false }: { requests: DemoFundingRequest[] | null; fundingEnabled: boolean; continueTo?: ContinueDestination; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const returnToDepositsOnCollapse = useRef(false);
+  useLayoutEffect(() => {
+    if (showAll || !returnToDepositsOnCollapse.current) return;
+    returnToDepositsOnCollapse.current = false;
+    document.getElementById("payment-deposits-heading")?.focus({ preventScroll: true });
+    document.getElementById("payment-deposits")?.scrollIntoView({ block: "start", behavior: "auto" });
+  }, [showAll]);
   const hidden = new Set(hiddenIds);
   const displayRequests = showArchived && !hideArchived ? requests : requests?.filter(request => !hidden.has(request.id));
-  return <section className={styles.fundingRequests} aria-label="Payment deposits"><h2 className="text-xl font-bold text-white">Payment deposits</h2>
+  return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
       : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>
@@ -232,7 +239,7 @@ export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hidd
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it.</p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} continueTo={continueTo} /> : null}
       </li>)}</ul>}
     {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}
-    {displayRequests && displayRequests.length > 5 ? <button type="button" className={styles.showAllTicket} onClick={() => setShowAll(value => !value)} aria-expanded={showAll}>{showAll ? "Show just the first five payment deposits" : `See all ${displayRequests.length} payment deposits`}<span aria-hidden="true">→</span></button> : null}
+    {displayRequests && displayRequests.length > 5 ? <button type="button" className={styles.showAllTicket} onClick={() => { returnToDepositsOnCollapse.current = showAll; setShowAll(!showAll); }} aria-expanded={showAll}>{showAll ? "Show just the first five payment deposits" : `See all ${displayRequests.length} payment deposits`}<span aria-hidden="true">→</span></button> : null}
     {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setShowArchived(value => !value); setShowAll(false); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
   </section>;
 }

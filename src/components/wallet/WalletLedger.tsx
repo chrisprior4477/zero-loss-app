@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
@@ -44,6 +44,13 @@ export function WalletLedger({ entries, selectedId, compact = false, totalCount,
   const [through, setThrough] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const returnToHistoryOnCollapse = useRef(false);
+  useLayoutEffect(() => {
+    if (showAll || !returnToHistoryOnCollapse.current) return;
+    returnToHistoryOnCollapse.current = false;
+    document.getElementById("transactions-heading")?.focus({ preventScroll: true });
+    document.getElementById("transactions")?.scrollIntoView({ block: "start", behavior: "auto" });
+  }, [showAll]);
   const archived = useMemo(() => new Set(hiddenIds), [hiddenIds]);
   const displayEntries = useMemo(() => compact || (showArchived && !hideArchived) ? entries : entries.filter(entry => !archived.has(entry.id)), [compact, showArchived, hideArchived, entries, archived]);
   const dated = useMemo(() => compact ? displayEntries : displayEntries.filter(entry => {
@@ -80,7 +87,7 @@ export function WalletLedger({ entries, selectedId, compact = false, totalCount,
       </li>; })}</ul>
     </div>}
     {!compact && canResetDemoHistory && entries.some(entry => !archived.has(entry.id)) ? <DemoHistoryClearButton kind="transactions" /> : null}
-    {!compact && matching.length > 5 ? <button type="button" className={styles.showAllTicket} onClick={() => setShowAll(value => !value)} aria-expanded={showAll}>{showAll ? "Show just the first five transactions" : `See all ${matching.length} transactions in your history`}<AccountIcon name="arrow" /></button> : null}
+    {!compact && matching.length > 5 ? <button type="button" className={styles.showAllTicket} onClick={() => { returnToHistoryOnCollapse.current = showAll; setShowAll(!showAll); }} aria-expanded={showAll}>{showAll ? "Show just the first five transactions" : `See all ${matching.length} transactions in your history`}<AccountIcon name="arrow" /></button> : null}
     {!compact && !hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setShowArchived(value => !value); setShowAll(false); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo transactions" : `View archived demo transactions (${hiddenIds.length})`}</button> : null}
   </>;
 }

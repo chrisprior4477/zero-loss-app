@@ -83,7 +83,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
       </section>
 
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
-        <div className={styles.sectionHeading}><div><h2 id="transactions-heading">Transaction history</h2><p>Posted activity from this account’s ledger.</p></div></div>
+        <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div></div>
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}
         {selectedTransaction?.requested && !selectedTransaction.entry ? <p role="status" className={styles.alert}>That transaction could not be opened for this account. Your available history is shown below.</p> : null}
         {selectedTransaction?.entry && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selectedTransaction.entry?.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger compact entries={[selectedTransaction.entry]} selectedId={selectedTransaction.entry.id} /></section> : null}
