@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -18,9 +19,11 @@ function category(entry: LedgerEntryRow): LedgerFilter {
 }
 
 function description(entry: LedgerEntryRow) {
-  if (entry.entry_type === "ENTRY_HOLD") return ["Entry reservation", "Held during the 30-second Undo window"];
-  if (entry.entry_type === "ENTRY_HOLD_RELEASE") return ["Entry reservation released", "Hold released on Undo or replaced by the confirmed entry purchase"];
-  return ({ DEPOSIT: ["Funds added", "Playable wallet funding"], ENTRY_DEBIT: ["Entry purchase", "Product entry"], REFUND: ["Refund", "Returned to playable wallet"], CORRECTION: ["Adjustment", "Wallet correction"] } as Record<string, [string, string]>)[entry.entry_type] ?? ["Wallet transaction", "Posted ledger activity"];
+  if (entry.entry_type === "ENTRY_HOLD") return ["Entry reservation", entry.product?.title ?? "Held during the 30-second Undo window"];
+  if (entry.entry_type === "ENTRY_HOLD_RELEASE") return ["Entry reservation released", entry.product?.title ?? "Hold released on Undo or replaced by the confirmed entry purchase"];
+  if (entry.entry_type === "ENTRY_DEBIT") return ["Entry purchase", entry.product?.title ?? "Product entry"];
+  if (entry.entry_type === "PURCHASE_DEBIT" && entry.product) return ["Wallet transaction", entry.product.title];
+  return ({ DEPOSIT: ["Funds added", "Playable wallet funding"], REFUND: ["Refund", "Returned to playable wallet"], CORRECTION: ["Adjustment", "Wallet correction"] } as Record<string, [string, string]>)[entry.entry_type] ?? ["Wallet transaction", "Posted ledger activity"];
 }
 
 function dateLabel(value: string) {
@@ -58,7 +61,10 @@ export function WalletLedger({ entries, selectedId, compact = false, totalCount 
     {visible.length === 0 ? <div className={styles.empty}><h3>{entries.length === 0 ? "No transactions yet" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{entries.length === 0 ? "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       <div className={styles.ledgerHeader} aria-hidden="true"><span>Date</span><span>Description</span><span>Status</span><span>Amount</span></div>
       <ul>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry); return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={entry.id === selectedId}>
-        <span className={styles.ledgerIcon} data-tone={artwork.tone}><AccountIcon name={artwork.name} /></span>
+        <span className={styles.ledgerVisuals}>
+          {entry.product ? <span className={styles.ledgerProduct}><Image src={entry.product.image} alt={entry.product.title} width={43} height={43} sizes="43px" /></span> : null}
+          <span className={styles.ledgerIcon} data-tone={artwork.tone}><AccountIcon name={artwork.name} /></span>
+        </span>
         <span className={styles.ledgerDivider} aria-hidden="true" />
         <div className={styles.ledgerDescription}><strong>{title}</strong><span>{detail}</span></div>
         <span className={styles.ledgerDivider} aria-hidden="true" />

@@ -67,4 +67,5 @@ export type LedgerEntryRow = {
   entry_type: string;
   amount: number;
   created_at: string;
+  product?: { title: string; image: string };
 };

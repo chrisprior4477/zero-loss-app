@@ -41,3 +41,15 @@ test("history starts with five rows, expands, and filters an inclusive date rang
   expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(2);
   expect(screen.getByText(/Showing 2 of 2 transactions/)).toBeTruthy();
 });
+
+test("shows the saved prize thumbnail and title beside the existing transaction icon", () => {
+  render(<WalletLedger entries={[
+    { id: "11111111-1111-4111-8111-111111111111", entry_type: "ENTRY_HOLD_RELEASE", amount: 100, created_at: "2026-09-21T12:00:00Z", product: { title: "$100 Best Buy Gift Card", image: "/catalog/best-buy-100-gift-card.svg" } },
+    { id: "22222222-2222-4222-8222-222222222222", entry_type: "DEPOSIT", amount: 2500, created_at: "2026-09-21T12:01:00Z" },
+  ]} />);
+  const image = screen.getByRole("img", { name: "$100 Best Buy Gift Card" });
+  expect(image.getAttribute("src")).toContain("best-buy-100-gift-card.svg");
+  expect(screen.getByText("$100 Best Buy Gift Card")).toBeTruthy();
+  expect(screen.getAllByRole("img")).toHaveLength(1);
+  expect(screen.getByText("Funds added")).toBeTruthy();
+});
