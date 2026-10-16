@@ -5,6 +5,8 @@
 .toplineActions { display: flex; align-items: center; gap: 12px; }
 .topReturnButton { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 8px; border-radius: 9px; background: #bfeeff; padding: 7px 14px; color: #08274b; font-size: 13px; font-weight: 900; line-height: 1.15; text-align: center; text-decoration: none; }
 .topReturnButton:hover { background: #e0f7ff; }
+.topShoppingButton { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; border-radius: 9px; background: #31e800; padding: 7px 14px; color: #082514; font-size: 13px; font-weight: 900; text-align: center; }
+.topShoppingButton:hover { background: #67f33f; }
 .topline h1 { margin: 4px 0 0; font-size: clamp(30px, 3vw, 44px); line-height: 1.1; letter-spacing: -.035em; }
 .pageSubtitle { margin: 6px 0 0; color: #d4eaff; font-size: 14px; }
 .eyebrow { margin: 0; color: #55caff; font-size: 13px; font-weight: 900; letter-spacing: .16em; }
@@ -121,6 +123,10 @@
 .emailPreference p { margin: 8px 0 0; color: #58738d; font-size: 12px; line-height: 1.4; }
 .entryActionPanel .emailPreference p { color: #c5e4f7; }
 .returnButton { width: 100%; margin-top: 20px; background: #0c3768; color: #fff; }
+.bottomActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.bottomActions .returnButton { margin-top: 0; }
+.shoppingButton { display: inline-flex; min-height: 45px; align-items: center; justify-content: center; border-radius: 9px; background: #31e800; padding: 10px 16px; color: #082514; font-weight: 900; text-align: center; }
+.shoppingButton:hover { background: #67f33f; }
 .inlineCheckout { margin-top: 14px; border: 1px solid #4586af; border-radius: 12px; background: #0a3157; padding: 16px; color: #fff; }
 .inlineCheckout h4 { margin: 0 0 9px; font-size: 18px; }
 .entryActionPanel .inlineCheckout p { margin: 4px 0 8px; color: #d1e9f8; }
@@ -161,10 +167,15 @@
 .actionPanel .demoNotice { margin-top: 9px; border-radius: 9px; background: #ddf6df; padding: 10px; color: #174c2b; }
 .demoNotice p:last-child { margin-bottom: 0; }
 :is(.checkoutConfirm, .addAgain, .receiptActions button, .approval input, .railArrow, .notifyButton, .addCrewCard):focus-visible { outline: 3px solid #0077ff; outline-offset: 3px; }
-:is(.closePage, .topReturnButton, .nextButton, .primaryLink, .crewToggle, .crewSend, .returnButton, .quantityControls button, .emailPreference button):focus-visible { outline: 3px solid #00b9ff; outline-offset: 3px; }
+:is(.closePage, .topReturnButton, .topShoppingButton, .shoppingButton, .nextButton, .primaryLink, .crewToggle, .crewSend, .returnButton, .quantityControls button, .emailPreference button):focus-visible { outline: 3px solid #00b9ff; outline-offset: 3px; }
 @media (max-width: 800px) { .heroTicket { grid-template-columns: 150px minmax(0, 1fr) 96px; gap: 18px; padding: 26px; } .productImage { height: 150px; } .progressCircle { width: 75px; height: 75px; } .progressCircle span { width: 59px; height: 59px; font-size: 18px; } .entryIdentity { grid-template-columns: 1fr; } .entryRailChoices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actionGrid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .topline { align-items: start; } .toplineActions { display: contents; } .topReturnButton { grid-column: 1 / -1; grid-row: 2; justify-self: start; } .closePage { grid-column: 2; grid-row: 1; width: 38px; height: 38px; font-size: 27px; } .heroTicket { grid-template-columns: 100px minmax(0, 1fr); gap: 8px 12px; padding: 23px 20px; } .productImage { grid-column: 1; grid-row: 1 / 4; height: 112px; } .heroCopy { display: contents; } .heroCopy > .retailer, .heroCopy > h2, .heroCopy > .status { grid-column: 2; } .heroCopy > .retailer { grid-row: 1; align-self: end; } .heroCopy > h2 { grid-row: 2; align-self: center; font-size: 23px; } .heroCopy > .status { grid-row: 3; justify-self: start; align-self: start; margin-top: 0; } .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 4; margin-top: 14px; } .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 4; justify-self: end; align-self: end; margin-top: -5px; } .playTicket { padding: 25px 22px; } }
 @media (max-width: 390px) { .heroTicket { grid-template-columns: 82px minmax(0, 1fr); } .productImage { height: 100px; } .heroCopy h2 { font-size: 21px; } }
+@media (max-width: 600px) {
+  .topShoppingButton { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+  .topReturnButton { grid-row: 3; }
+  .bottomActions { grid-template-columns: 1fr; }
+}
 @media (max-width: 600px) {
   .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 4; grid-template-columns: minmax(0, 1fr) minmax(96px, .7fr); grid-template-rows: minmax(88px, auto) auto; gap: 6px 12px; margin-top: 14px; }
   .entryIdentity > div:nth-child(1) { grid-column: 1; grid-row: 1; }

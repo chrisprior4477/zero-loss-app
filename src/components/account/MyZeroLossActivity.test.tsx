@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { drawerState } from "@/lib/account/drawer-state";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
-import { activityFilter, activityHref, activityPresentation, filterActivity } from "@/lib/account/activity";
+import { activityFilter, activityHref, activityPresentation, filterActivity, findActivityItem } from "@/lib/account/activity";
 import { buildAccountNotifications } from "@/lib/account/notifications";
 import { MyZeroLossActivity } from "./MyZeroLossActivity";
 import { DashboardActivity } from "./DashboardActivity";
@@ -140,7 +140,7 @@ test("declined offers disappear from My Activity cards and counts", () => {
   state.activity[2] = { ...state.activity[2], status: "completed", completionOptionStatus: "declined" };
   render(<MyZeroLossActivity state={state} filter="all" />);
   expect(screen.getByRole("link", { name: "All3" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Completed0" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Completed1" })).toBeTruthy();
   expect(screen.queryByRole("link", { name: /Nike Men's Court Shot Shoes/ })).toBeNull();
   expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/ })).toBeTruthy();
 });
@@ -164,10 +164,39 @@ test("demo entry reset stays available once in every activity filter, including 
   for (const filter of ["all", "active", "prize", "completion", "completed"] as const) {
     const { unmount } = render(<MyZeroLossActivity state={state} filter={filter} canClearDemoEntries />);
     expect(screen.getAllByRole("button", { name: "Clear All Entries" })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
     unmount();
   }
   render(<MyZeroLossActivity state={drawerState(true)} filter="completed" canClearDemoEntries />);
   expect(screen.getByRole("button", { name: "Clear All Entries" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
+});
+
+test("Completed contains purchased options and wins, with an orange purchase label and green reward action", () => {
+  const state = storedActivityFixture();
+  const purchase = {
+    ...state.activity[2], status: "completed" as const, rewardSource: "purchase" as const,
+    completionOptionStatus: "purchased" as const, rewardStatus: "ready" as const,
+    rewardId: "11111111-1111-4111-8111-111111111111",
+  };
+  state.activity[2] = purchase;
+  expect(filterActivity(state.activity, "completed")).toHaveLength(2);
+  expect(filterActivity(state.activity, "prize")).toHaveLength(1);
+  expect(findActivityItem(state.activity, state.activity[1].slug, undefined, "completed")).toBe(state.activity[1]);
+  expect(activityPresentation(purchase)).toMatchObject({ label: "Purchase completed", action: "Open reward" });
+  const { rerender } = render(<MyZeroLossActivity state={state} filter="all" />);
+  const purchaseCard = screen.getByRole("link", { name: /Nike Men's Court Shot Shoes/ });
+  expect(purchaseCard.getAttribute("data-purchase-completed")).toBe("true");
+  expect(within(purchaseCard).getByText("Purchase completed")).toBeTruthy();
+  expect(within(purchaseCard).getByText("Open reward")).toBeTruthy();
+  expect(purchaseCard.getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes&rewardId=11111111-1111-4111-8111-111111111111");
+  expect(screen.getByRole("link", { name: "Completed2" })).toBeTruthy();
+  rerender(<MyZeroLossActivity state={state} filter="completed" />);
+  expect(screen.getByRole("link", { name: /Nike Men's Court Shot Shoes/ })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Samsung 50\" M70H Mini LED 4K Smart TV/ })).toBeTruthy();
+  rerender(<MyZeroLossActivity state={state} filter="prize" />);
+  expect(screen.queryByRole("link", { name: /Nike Men's Court Shot Shoes/ })).toBeNull();
+  expect(screen.getByRole("link", { name: /Samsung 50\" M70H Mini LED 4K Smart TV/ })).toBeTruthy();
 });
 test("only still-open tickets show their own offer-fill progress", () => {
   const state = storedActivityFixture();
@@ -317,21 +346,22 @@ test("closing details restores scroll and focuses the originating product row", 
   expect(document.activeElement).toBe(opener);
 });
 
-test("Tab and Shift+Tab wrap through the new notification link in entry details", () => {
+test("Tab and Shift+Tab wrap through the last activity exit in entry details", () => {
   render(<DashboardActivity state={storedActivityFixture()} selectedSlug="playstation-5-slim" />);
   const close = screen.getByRole("button", { name: "Close activity details" });
-  const notificationLink = screen.getByRole("link", { name: "Notifications" });
+  const returnLink = screen.getByRole("link", { name: "Return to My Activity" });
   close.focus();
   fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
-  expect(document.activeElement).toBe(notificationLink);
-  fireEvent.keyDown(notificationLink, { key: "Tab" });
+  expect(document.activeElement).toBe(returnLink);
+  fireEvent.keyDown(returnLink, { key: "Tab" });
   expect(document.activeElement).toBe(close);
+  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
 });
 
 test("desktop gallery retains complete catalog names, purchase math and existing filter counts", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);
   const filters = within(screen.getByRole("navigation", { name: "Filter My Activity" }));
-  for (const name of ["All4", "See Open Entries1", "You Won1", "Purchase Options2", "Completed0"]) {
+  for (const name of ["All4", "See Open Entries1", "You Won1", "Purchase Options2", "Completed1"]) {
     expect(filters.getByRole("link", { name })).toBeTruthy();
   }
   const gallery = document.querySelector("[data-activity-gallery]");

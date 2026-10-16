@@ -267,6 +267,9 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
         {crewShareMessage ? <div role={crewShareError ? "alert" : "status"} className={styles.demoNotice}><p>Preview from {senderName} for {selectedCrew.length} selected {selectedCrew.length === 1 ? "person" : "people"}: <Link href={`/items/${slug}`}>View the {itemTitle} prize page</Link>.</p><p>{crewShareMessage}</p></div> : null}
       </section>
     </div>
-    <Link href={returnHref} className={styles.returnButton}>Return to My Activity →</Link>
+    <nav aria-label="Entry detail exits" className={styles.bottomActions}>
+      <Link href="/" className={styles.shoppingButton}>Continue shopping</Link>
+      <Link href={returnHref} className={styles.returnButton}>Return to My Activity →</Link>
+    </nav>
   </>;
 }

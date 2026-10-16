@@ -1,10 +1,11 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AccountActivity, ActivityItem, ActivityStatus, CompletionOptionStatus, RewardStatus } from "./activity";
+import type { AccountActivity, ActivityItem, ActivityStatus, CompletionOptionStatus, RewardSource, RewardStatus } from "./activity";
 
 const statuses = new Set<ActivityStatus>(["active", "prize", "completion", "completed"]);
 const optionStatuses = new Set<CompletionOptionStatus>(["available", "declined", "purchased", "expired", "cancelled"]);
 const rewardStatuses = new Set<RewardStatus>(["ready", "redeemed", "expired", "cancelled", "issuance_pending", "issuance_failed"]);
+const rewardSources = new Set<RewardSource>(["winner", "purchase"]);
 
 function cents(value: unknown): number {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -26,7 +27,8 @@ function parseItem(value: unknown): ActivityItem {
     || typeof row.status !== "string" || !statuses.has(row.status as ActivityStatus)
     || row.reward_kind !== "digital" || typeof row.availability !== "string"
     || (row.completion_option_status != null && (typeof row.completion_option_status !== "string" || !optionStatuses.has(row.completion_option_status as CompletionOptionStatus)))
-    || (row.reward_status != null && (typeof row.reward_status !== "string" || !rewardStatuses.has(row.reward_status as RewardStatus)))) {
+    || (row.reward_status != null && (typeof row.reward_status !== "string" || !rewardStatuses.has(row.reward_status as RewardStatus)))
+    || (row.reward_source != null && (typeof row.reward_source !== "string" || !rewardSources.has(row.reward_source as RewardSource)))) {
     throw new Error("Invalid activity record");
   }
   return {
@@ -46,6 +48,7 @@ function parseItem(value: unknown): ActivityItem {
     completionOptionStatus: row.completion_option_status as CompletionOptionStatus | null | undefined,
     completionExpiresAt: optionalString(row.completion_expires_at),
     rewardStatus: row.reward_status as RewardStatus | null | undefined,
+    rewardSource: row.reward_source as RewardSource | null | undefined,
     rewardId: optionalString(row.reward_id),
     rewardClaimExpiresAt: optionalString(row.reward_claim_expires_at),
     rewardClaimedAt: optionalString(row.reward_claimed_at),

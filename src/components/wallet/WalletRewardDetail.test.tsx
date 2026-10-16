@@ -24,6 +24,7 @@ test("a valid claimed reward uses its saved number and keeps the demo disclosure
   expect(screen.getByText("Claimed — ready to use")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Preview identity check" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Remove sample reward & restart demo" })).toBeTruthy();
+  expect(screen.getAllByRole("link", { name: "Continue shopping" }).map(link => link.getAttribute("href"))).toEqual(["/", "/"]);
 });
 
 test.each([null, "", "   "])("a missing saved credential never generates a replacement sample: %s", code => {

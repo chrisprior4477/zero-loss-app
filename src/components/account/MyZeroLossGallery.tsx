@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useRef, useState } from "react";
-import { activityHref, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
+import { activityHref, isPurchasedReward, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./my-activity.module.css";
@@ -35,6 +35,7 @@ function groupGalleryEntries(items: ActivityItem[]): GalleryGroup[] {
 
 function action(item: ActivityItem) {
   if (item.status === "prize") return item.rewardKind === "digital" ? "Open reward" : "Claim prize";
+  if (isPurchasedReward(item)) return "Open reward";
   if (item.completionOptionStatus === "declined") return "Review declined";
   return { active: "See My Entry", completion: "Continue with Purchase", completed: "View details" }[item.status];
 }
@@ -196,6 +197,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
           ?? (group.entries.some(entry => entry.entryId === recentEntry?.entryId) ? recentEntry?.entryId : undefined);
         const selectedIndex = Math.max(0, group.entries.findIndex(entry => entry.entryId === selectedId));
         const item = group.entries[selectedIndex];
+        const purchasedReward = isPurchasedReward(item);
         const multipleEntries = group.entries.length > 1;
         const enteredCents = item.status === "active"
           ? group.entries.reduce((total, entry) => total + entry.paidCents, 0)
@@ -215,11 +217,11 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={group.key} className={styles.galleryItem} style={placement}>
-          <Link href={activityHref(item, "/account/entries", filter)} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : undefined} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
+          <Link href={activityHref(item, "/account/entries", filter)} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : undefined} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-purchase-completed={purchasedReward ? "true" : undefined} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
-              <span className={styles.status}><AccountIcon name={item.completionOptionStatus === "declined" ? "completion" : item.status} />{item.completionOptionStatus === "declined" ? "Declined" : offerStatus?.remaining === 0 ? "Awaiting result" : labels[item.status]}</span>
+              <span className={styles.status}><AccountIcon name={item.completionOptionStatus === "declined" ? "completion" : item.status} />{item.completionOptionStatus === "declined" ? "Declined" : purchasedReward ? "Purchase completed" : item.status === "active" && offerStatus?.remaining === 0 ? "Awaiting result" : labels[item.status]}</span>
               <div className={styles.productStage} data-activity-click>
                 <Image src={item.image} alt="" fill draggable={false} sizes="(max-width: 639px) 44vw, (max-width: 1099px) 40vw, 310px" className={styles.productImage} />
                 {viewedEntry === item.entryId || isRecent ? <span className={styles.newEntryLabel} aria-label={viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}><span className={styles.newEntryLong}>{viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}</span><span className={styles.newEntryShort}>{viewedEntry === item.entryId ? "Viewing" : "New"}</span></span> : null}
@@ -228,7 +230,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
                 <div className={styles.noteStack}><p className={styles.productNote}>{item.status === "completion"
                   ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? <><span><strong>{formatUsdFromCents(enteredCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left<span className={styles.forPrize}> for prize</span></>) : "Still in play"}</span></>
-                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p></div>
+                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? "Your purchased reward is ready." : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p></div>
                 <span className={styles.cardAction} data-activity-click>{item.status === "active"
                   ? <><span>See My</span><span className={styles.entryActionTicket} aria-hidden="true">{group.entries.length}</span><span className={styles.srOnly}>{group.entries.length}</span><span>{group.entries.length === 1 ? "Entry" : "Entries"}</span></>
                   : <>{action(item)}<AccountIcon name="arrow" /></>}</span>
@@ -241,9 +243,10 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
         </div>;
       })}
     </div>
-    {(groups.length > 1 || canClearDemoEntries) && <div className={styles.galleryControls}>
+    <div className={styles.galleryControls}>
       <p className={styles.galleryHint}>{view.previous || view.next ? "Swipe or use the arrows to explore." : "Every choice. Your next step, all in one place."}</p>
       <div className={styles.galleryActions}>
+      <Link href="/" className={styles.continueShopping}>Continue shopping</Link>
       {canClearDemoEntries ? <ClearAllEntriesButton /> : null}
       {groups.length > 1 ? <div className={styles.carouselButtons}>
         <button type="button" onClick={() => move(-1)} disabled={!view.previous} aria-controls={galleryId} aria-label="Previous product" className={styles.arrowButton}><AccountIcon name="chevron" className={styles.previousIcon} /></button>
@@ -251,6 +254,6 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
         <button type="button" onClick={() => move(1)} disabled={!view.next} aria-controls={galleryId} aria-label="Next product" className={styles.arrowButton}><AccountIcon name="chevron" /></button>
       </div> : null}
       </div>
-    </div>}
+    </div>
   </div>;
 }

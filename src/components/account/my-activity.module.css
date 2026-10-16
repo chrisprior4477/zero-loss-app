@@ -122,6 +122,7 @@
 [data-status="prize"] .status { background: #42ec5f; color: #092d20; }
 [data-status="completion"] .status { background: #ffac57; color: #34200c; }
 [data-status="completed"] .status { background: #e0eaf2; color: #173151; }
+.productCard[data-purchase-completed="true"] .status { background: #ffac57; color: #34200c; }
 .productTitle { grid-column: 2; grid-row: 3; align-self: start; max-width: calc(100% - 16px); margin: 0; color: #0a1439; font-size: clamp(15px, 1.2vw, 19px); font-weight: 850; line-height: 1.1; letter-spacing: -.025em; overflow-wrap: anywhere; }
 .productCard[data-has-progress="true"] .retailer, .productCard[data-has-progress="true"] .productTitle { max-width: calc(100% - 54px); }
 .productStage { position: relative; grid-column: 1; grid-row: 1 / 5; width: 100%; height: 100%; min-height: 0; overflow: hidden; border-radius: 15px; background: linear-gradient(140deg, #d9efff, #acdcff); }
@@ -145,10 +146,13 @@
 [data-status="prize"] .cardAction { background: #41ea59; }
 [data-status="completion"] .cardAction { background: #ffba79; }
 [data-status="completed"] .cardAction { background: #e3edf5; }
+.productCard[data-purchase-completed="true"] .cardAction { background: #41ea59; color: #092d20; }
 .mobileRestLabel { display: none; }
 .galleryControls { display: flex; min-height: 56px; align-items: center; justify-content: space-between; gap: 16px; margin-top: 6px; }
 .galleryHint { color: #b9cde2; font-size: 13px; }
 .galleryActions { display: flex; min-width: 0; align-items: center; gap: 24px; margin-left: auto; }
+.continueShopping { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border-radius: 10px; background: #31e800; padding: 9px 17px; color: #08251d; font-size: 13px; font-weight: 900; text-align: center; white-space: nowrap; }
+.continueShopping:hover { background: #67f33f; }
 .carouselButtons { display: flex; align-items: center; gap: 12px; }
 .arrowButton { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #77c9ff; border-radius: 50%; background: #113a66; color: #fff; }
 .arrowButton:disabled { opacity: .38; cursor: default; }
@@ -159,7 +163,7 @@
 .empty h2 { color: #112044; }
 .empty p { color: #536d87; }
 .empty a { display: inline-flex; min-height: 44px; align-items: center; margin-top: 20px; padding: 9px 17px; border-radius: 10px; background: #44ec62; color: #08251d; font-weight: 800; }
-.emptyControls { display: flex; min-height: 56px; align-items: center; justify-content: flex-end; margin-top: 6px; }
+.emptyControls { display: flex; min-height: 56px; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 6px; }
 
 .accountTools { margin-top: 44px; padding-top: 26px; border-top: 1px solid #92bde64f; }
 .accountToolsHeading { margin-bottom: 18px; }
@@ -268,7 +272,7 @@
   .gallery[data-stacked-overflowing="true"], .gallery[data-overflowing="true"][data-stacked-overflowing="true"] { --gallery-peek: clamp(30px, 9vw, 42px); }
   .galleryControls { flex-wrap: wrap; gap: 8px; }
   .galleryHint { flex-basis: 100%; max-width: none; font-size: 11px; line-height: 1.3; }
-  .galleryActions { width: 100%; justify-content: flex-end; gap: 12px; }
+  .galleryActions { width: 100%; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
   .carouselButtons { gap: 7px; }
   .arrowButton { width: 36px; height: 36px; }
   .empty { --ticket-side-notch: 10px; --ticket-corner-notch: 13px; padding: 28px 26px; }

@@ -62,6 +62,7 @@ test("five authorized entries expand into individual tickets, copy full IDs, and
   await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prizeNumberForSlug("playstation-5-slim")));
   expect(within(hero).getByRole("button", { name: `Copied prize number ${prizeNumberForSlug("playstation-5-slim")}` })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
+  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
   expect(rail.id).toBe("saved-entry-rail");
   expect(within(rail).getByText("Your five separate entries")).toBeTruthy();

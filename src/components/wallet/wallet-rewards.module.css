@@ -83,6 +83,10 @@
 .readyLabel[data-unavailable="true"] span { background: #174666; color: #eaffff; box-shadow: none; }
 .rewardReference { max-width: 330px; color: #99b9d1; font-size: 11px; line-height: 1.45; text-align: right; }
 .rewardReference strong { color: #fff; }
+.detailShoppingButton { display: inline-flex; min-height: 44px; width: fit-content; align-items: center; justify-content: center; border-radius: 10px; background: #31e800; padding: 9px 18px; color: #082514; font-size: 13px; font-weight: 900; text-align: center; }
+.detailShoppingButton:hover { background: #67f33f; }
+.detailExitActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: 18px; }
+.detailExitActions .backToRewards { margin: 0; }
 .rewardSplit { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 15px; }
 .featuredProduct, .rewardPass { min-width: 0; border: 1px solid #16b9e7; border-radius: 16px; background: linear-gradient(145deg, #00304be8, #00182df5); box-shadow: inset 0 0 24px #00c9f321, 0 14px 34px #0007; }
 .featuredProduct { display: grid; grid-template-rows: minmax(210px, 1fr) auto; min-height: 420px; overflow: hidden; }

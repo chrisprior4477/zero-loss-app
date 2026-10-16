@@ -140,6 +140,10 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
 
       <div className={styles.detailFooter}><button disabled type="button">{disabledAction} — not enabled</button><p>This action is not available yet.</p></div>
       </>}
+      <nav aria-label="Activity detail exits" className={styles.detailExits}>
+        <Link href="/">Continue shopping</Link>
+        <Link href={returnHref}>Return to My Activity</Link>
+      </nav>
     </div>
   </dialog>;
 }

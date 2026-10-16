@@ -1,6 +1,7 @@
 export type ActivityStatus = "active" | "prize" | "completion" | "completed";
 export type CompletionOptionStatus = "available" | "declined" | "purchased" | "expired" | "cancelled";
 export type RewardStatus = "ready" | "redeemed" | "expired" | "cancelled" | "issuance_pending" | "issuance_failed";
+export type RewardSource = "winner" | "purchase";
 export type ActivityItem = {
   entryId?: string | null;
   enteredAt?: string | null;
@@ -18,6 +19,7 @@ export type ActivityItem = {
   completionOptionStatus?: CompletionOptionStatus | null;
   completionExpiresAt?: string | null;
   rewardStatus?: RewardStatus | null;
+  rewardSource?: RewardSource | null;
   rewardId?: string | null;
   rewardClaimExpiresAt?: string | null;
   rewardClaimedAt?: string | null;
@@ -39,12 +41,17 @@ export function activityFilter(value: unknown): ActivityFilter {
 }
 export function filterActivity(items: ActivityItem[], filter: ActivityFilter): ActivityItem[] {
   const visible = items.filter(item => item.completionOptionStatus !== "declined");
-  return filter === "all" ? visible : visible.filter(item => item.status === filter);
+  if (filter === "all") return visible;
+  if (filter === "completed") return visible.filter(item => item.status === "completed" || item.status === "prize");
+  return visible.filter(item => item.status === filter);
 }
 export type ActivityDestination = "/account" | "/account/entries";
 export const walletHistoryHref = "/account/wallet?view=history";
 export function isWalletReward(item: ActivityItem): boolean {
-  return item.rewardKind === "digital" && (item.status === "prize" || Boolean(item.rewardStatus));
+  return item.rewardKind === "digital" && (item.status === "prize" || Boolean(item.rewardStatus) || Boolean(item.rewardId));
+}
+export function isPurchasedReward(item: ActivityItem): boolean {
+  return item.status === "completed" && (item.rewardSource === "purchase" || item.completionOptionStatus === "purchased");
 }
 export function walletRewardHref(item: Pick<ActivityItem, "slug" | "rewardId">): string {
   const params = new URLSearchParams({ reward: item.slug });
@@ -71,7 +78,7 @@ export function activityHref(item: ActivityItem, destination: ActivityDestinatio
 export function findActivityItem(items: ActivityItem[], selectedSlug?: string, selectedEntryId?: string, filter: ActivityFilter = "all"): ActivityItem | undefined {
   if (selectedEntryId) return items.find(item => item.entryId === selectedEntryId && (!selectedSlug || item.slug === selectedSlug));
   if (!selectedSlug) return undefined;
-  const matches = items.filter(item => item.slug === selectedSlug && (filter === "all" || item.status === filter));
+  const matches = items.filter(item => item.slug === selectedSlug && filterActivity([item], filter).length > 0);
   return matches.length === 1 ? matches[0] : undefined;
 }
 export const openEntriesHref = "/account/entries?filter=active";
@@ -80,7 +87,9 @@ export function activityPresentation(item: ActivityItem) {
     case "active": return { label: "Still Open", action: "See My Entry", color: "text-cyan-300", background: "bg-[#154b74]" };
     case "prize": return { label: "Prize Ready", action: item.rewardKind === "digital" ? "View Gift Card" : "Claim Prize", color: "text-[#31ff83]", background: "bg-[#16703f]" };
     case "completion": return { label: "Purchase Option", action: "Continue with Purchase", color: "text-[#ff8a45]", background: "bg-[#8c3d15]" };
-    case "completed": return item.completionOptionStatus === "declined"
+    case "completed": return isPurchasedReward(item)
+      ? { label: "Purchase completed", action: "Open reward", color: "text-[#ff8a45]", background: "bg-[#8c3d15]" }
+      : item.completionOptionStatus === "declined"
       ? { label: "Declined", action: "Review declined offer", color: "text-[#ff8a45]", background: "bg-[#8c3d15]" }
       : { label: "Completed", action: "View Details", color: "text-[#b5cce4]", background: "bg-[#154b74]" };
   }

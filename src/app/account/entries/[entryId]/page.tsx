@@ -72,6 +72,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
       <div className={styles.topline}>
         <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>Your saved entry for the prize below.</p></div>
         <div className={styles.toplineActions}>
+          <Link href="/" className={styles.topShoppingButton}>Continue shopping</Link>
           <Link href={returnHref} className={styles.topReturnButton}>Return to My Activity <span aria-hidden="true">→</span></Link>
           <Link href={returnHref} className={styles.closePage} aria-label="Close entry details and return to My Activity"><span aria-hidden="true">×</span></Link>
         </div>

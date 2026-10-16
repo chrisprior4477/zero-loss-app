@@ -138,6 +138,11 @@
 .detailFooter { margin-top: 16px; padding: 18px; border: 1px solid #185e7a; border-radius: 12px; background: #00172bd9; }
 .detailFooter button { min-height: 48px; width: 100%; padding: 9px 16px; border: 1px solid #40677c; border-radius: 8px; background: #ffffff08; color: #8daabe; font-size: 13px; font-weight: 750; cursor: not-allowed; }
 .detailFooter p { margin-top: 9px; color: #7696ad; font-size: 11px; line-height: 1.5; text-align: center; }
+.detailExits { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.detailExits a { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; border-radius: 9px; padding: 9px 16px; font-size: 13px; font-weight: 850; }
+.detailExits a:first-child { background: #31e800; color: #082514; }
+.detailExits a:last-child { background: #c8efff; color: #10234a; }
+.detailExits a:focus-visible { outline: 3px solid #00b9ff; outline-offset: 3px; }
 
 /* Open entries use the same white, scooped ticket language as purchase options. */
 .detailDialog[data-status="active"] { border: 0; border-radius: 0; background: #071e3e; box-shadow: 0 24px 70px #000b18db; }

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { activityHref, activityPresentation, type ActivityDestination, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
+import { activityHref, activityPresentation, isPurchasedReward, type ActivityDestination, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 
 /** Shared mobile rows become a four-card gallery on desktop; the drawer is separate. */
@@ -27,7 +27,7 @@ export function ActivityRows({ items, destination = "/account/entries", filter =
           <span className={`block text-xs font-black uppercase tracking-wide lg:contents ${style.color}`}><span className="block lg:text-[11px] lg:leading-5 lg:tracking-normal">{style.label}</span>
             {item.status === "completion" ? <span className="mt-1 block font-medium normal-case tracking-normal text-[#b5cce4] lg:col-span-2 lg:row-start-2 lg:mt-0 lg:leading-5">{formatUsdFromCents(item.remainingCents)} remaining · {formatUsdFromCents(item.paidCents)} applied</span> : null}
           </span>
-          <strong className="block shrink-0 text-sm text-white sm:mt-2 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:text-xs lg:leading-5">{item.status === "active" ? <>View<span className="lg:hidden"> Entry</span></> : style.action} <span aria-hidden="true" className="ml-1 text-cyan-300">›</span></strong>
+          <strong className={`block shrink-0 text-sm sm:mt-2 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:text-xs lg:leading-5 ${isPurchasedReward(item) ? "text-[#31e800]" : "text-white"}`}>{item.status === "active" ? <>View<span className="lg:hidden"> Entry</span></> : style.action} <span aria-hidden="true" className="ml-1 text-cyan-300">›</span></strong>
         </span>
       </Link>;
     })}
