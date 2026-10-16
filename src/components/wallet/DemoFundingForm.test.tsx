@@ -131,6 +131,21 @@ test("manual amount opens confirmation, posts the chosen cents and refreshes the
   expect(vi.mocked(completeDemoFunding).mock.calls[0]?.[1].get("amountCents")).toBe("3700");
   await waitFor(() => expect(navigation.refresh).toHaveBeenCalled());
 });
+test("known lifetime requests block an impossible $500 deposit before confirmation", () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  render(<DemoFundingForm requestKey="stable_demo_request_001" requests={[
+    { id: "prior-1", amount: 50000, currency: "USD", status: "succeeded", created_at: "2026-10-14", idempotencyKey: "earlier_request_key_01", reconciliation: "reconciled" },
+    { id: "prior-2", amount: 5200, currency: "USD", status: "succeeded", created_at: "2026-10-15", idempotencyKey: "earlier_request_key_02", reconciliation: "reconciled" },
+  ]} />);
+  const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
+  fireEvent.change(custom, { target: { value: "500" } });
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("alert").textContent).toContain("$1,000 lifetime demo limit");
+  fireEvent.change(custom, { target: { value: "448" } });
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  expect(screen.getByRole("dialog", { name: "Add $448 to your balance?" })).toBeTruthy();
+});
 test("choosing a preset clears the custom amount and invalid custom amounts cannot advance", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
