@@ -7,8 +7,8 @@ import type { ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./purchase-options.module.css";
 
-export function PurchaseOptionRail({ title, options }: { title: string; options: ActivityItem[] }) {
-  const [expanded, setExpanded] = useState(false);
+export function PurchaseOptionRail({ title, options, initiallyExpanded = false }: { title: string; options: ActivityItem[]; initiallyExpanded?: boolean }) {
+  const [expanded, setExpanded] = useState(initiallyExpanded);
   const railRef = useRef<HTMLElement>(null);
   const count = options.length;
 

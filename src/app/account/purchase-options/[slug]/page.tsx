@@ -9,8 +9,9 @@ import styles from "@/components/account/purchase-options.module.css";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
-export default async function PurchaseOptionsPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ options?: string }> }) {
   const { slug } = await params;
+  const { options: optionView } = await searchParams;
   const account = await getAccountContext();
   const returnPath = `/account/purchase-options/${encodeURIComponent(slug)}`;
   if (!account) redirect(authNavigationHref("/login", returnPath));
@@ -47,7 +48,7 @@ export default async function PurchaseOptionsPage({ params }: { params: Promise<
         </div>
       </section>
 
-      <PurchaseOptionRail title={item.title} options={options} />
+      <PurchaseOptionRail title={item.title} options={options} initiallyExpanded={optionView === "open"} />
 
       <section className={styles.explanation} aria-labelledby="option-explanation-heading">
         <p className={styles.eyebrow}>YOUR CHOICE</p>

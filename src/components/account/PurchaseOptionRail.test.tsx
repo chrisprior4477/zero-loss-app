@@ -26,3 +26,10 @@ test("expansion keeps ten purchase options numbered and linked to their own save
   expect(within(last).getByRole("link", { name: /Review purchase option 10 of 10/ }).getAttribute("href"))
     .toBe(`/account/entries?item=nike-court-shot-shoes&entry=ent_${"10".padStart(32, "0")}&filter=completion&from=purchase-options`);
 });
+
+test("returning from a review reopens the same set of options", () => {
+  const base = { ...storedActivityFixture().activity[2], entryId: `ent_${"1".repeat(32)}` };
+  render(<PurchaseOptionRail title={base.title} options={[base]} initiallyExpanded />);
+  expect(screen.getByRole("button", { name: "Hide 1 purchase option" }).getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByRole("link", { name: /Review purchase option 1 of 1/ })).toBeTruthy();
+});
