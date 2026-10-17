@@ -32,7 +32,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId }:
         return <button key={entryId} type="button" className={styles.compactTicket} data-selected={isSelected} aria-expanded={isSelected} aria-label={`${isSelected ? "Hide" : "Show"} purchase option ${index + 1} of ${count}`} onClick={() => toggle(entryId)}><small>OPTION</small><strong>{index + 1}</strong></button>;
       })}
     </div>
-    {selected.size > 0 ? <div className={styles.optionList} aria-label="Selected purchase option details">
+    {selected.size > 0 ? <div className={`${styles.optionList} ${selected.size === 1 ? styles.singleOptionList : ""}`} aria-label="Selected purchase option details">
       {options.map((option, index) => {
         if (!option.entryId || !selected.has(option.entryId)) return null;
         const href = `/account/entries?item=${encodeURIComponent(option.slug)}&entry=${encodeURIComponent(option.entryId)}&filter=completion&from=purchase-options`;
