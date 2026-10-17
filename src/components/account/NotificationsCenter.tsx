@@ -151,6 +151,7 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
       </div>
       <div id="alert-settings" className={styles.settingsBlock}>
         <InAppAlertPreferences initialPreferences={initialAlertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setAlertPreferences(current => ({ ...current, [key]: enabled }))} />
+        <Link href="/account/crew?tab=picks#sharing" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>
         <h2>Email choices</h2>
         <p>These controls affect email only; the in-app choices above affect this notification list.</p>
         {outcomeEmailEnabled !== undefined ? <EntryOutcomeEmailPreference initialEnabled={outcomeEmailEnabled} placement="account" /> : null}

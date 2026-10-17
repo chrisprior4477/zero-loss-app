@@ -46,6 +46,8 @@
 .actionShortcut span { color: #4c5d75; font-size: 13px; }
 .actionShortcut:hover { background: #ffc993; }
 .settingsBlock { margin-top: 32px; scroll-margin-top: 20px; }
+.sharingLink { display: inline-flex; align-items: center; gap: 7px; margin-top: 15px; color: #a8eaff; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
+.sharingLink svg { width: 18px; height: 18px; }
 .settingsBlock > h2 { margin-top: 22px; font-size: clamp(23px, 2.5vw, 32px); font-weight: 850; }
 .settingsBlock > p { margin: 4px 0 16px; color: #c8d8f5; font-size: 14px; }
 .preferenceSection { padding: clamp(16px, 2vw, 26px); border: 1px solid #4e94c6; border-radius: 18px; background: #092d56; }
