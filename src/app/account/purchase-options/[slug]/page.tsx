@@ -9,9 +9,9 @@ import styles from "@/components/account/purchase-options.module.css";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
-export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ options?: string }> }) {
+export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ option?: string }> }) {
   const { slug } = await params;
-  const { options: optionView } = await searchParams;
+  const { option: selectedEntryId } = await searchParams;
   const account = await getAccountContext();
   const returnPath = `/account/purchase-options/${encodeURIComponent(slug)}`;
   if (!account) redirect(authNavigationHref("/login", returnPath));
@@ -43,12 +43,12 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
           <p className={styles.retailer}>{item.retailer}</p>
           <h2>{item.title}</h2>
           <span className={styles.status}>Purchase options available</span>
-          <p className={styles.heroNote}>Each entry’s credit applies to its own option. Choose one to see its applied amount and remaining balance.</p>
-          <a href="#purchase-option-rail" className={styles.heroCount}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></a>
+          <p className={styles.heroNote}>Each entry’s credit applies only to its own purchase option.</p>
+          <div className={styles.heroCountRow}><span className={styles.heroCount}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></span><p>Choose as many or as few as you like to complete.</p></div>
         </div>
       </section>
 
-      <PurchaseOptionRail title={item.title} options={options} initiallyExpanded={optionView === "open"} />
+      <PurchaseOptionRail title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} />
 
       <section className={styles.explanation} aria-labelledby="option-explanation-heading">
         <p className={styles.eyebrow}>YOUR CHOICE</p>

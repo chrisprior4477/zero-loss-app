@@ -28,7 +28,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
   const presentation = activityPresentation(item);
   const offerStatus = offerMetrics ? availabilityStatus(offerMetrics.capacity, offerMetrics.sold) : undefined;
   // The return destination is a fixed application route, never user-provided URL text.
-  const returnHref = returnToOptions ? `/account/purchase-options/${encodeURIComponent(item.slug)}?options=open#purchase-option-rail` : destination === "/account/entries" && filter !== "all" ? `${destination}?filter=${filter}` : destination;
+  const returnHref = returnToOptions ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(item.entryId ?? "")}#purchase-option-rail` : destination === "/account/entries" && filter !== "all" ? `${destination}?filter=${filter}` : destination;
   const close = () => router.replace(returnHref, { scroll: returnToOptions });
 
   useEffect(() => {

@@ -253,9 +253,9 @@ test("closing an individual purchase review returns to its grouped options", () 
   state.activity = [option];
   render(<MyZeroLossActivity state={state} filter="completion" selectedSlug={option.slug} selectedEntryId={option.entryId} returnToOptions />);
   expect(screen.getByRole("link", { name: "Return to Purchase Options" }).getAttribute("href"))
-    .toBe("/account/purchase-options/nike-court-shot-shoes?options=open#purchase-option-rail");
+    .toBe("/account/purchase-options/nike-court-shot-shoes?option=entry-one#purchase-option-rail");
   fireEvent.click(screen.getByRole("button", { name: "Close activity details" }));
-  expect(replace).toHaveBeenCalledWith("/account/purchase-options/nike-court-shot-shoes?options=open#purchase-option-rail", { scroll: true });
+  expect(replace).toHaveBeenCalledWith("/account/purchase-options/nike-court-shot-shoes?option=entry-one#purchase-option-rail", { scroll: true });
 });
 
 test("completion displays exact product math and stays unavailable without a stored option id", () => {
