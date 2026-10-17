@@ -204,6 +204,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
           ? group.entries.reduce((total, entry) => total + entry.paidCents, 0)
           : item.paidCents;
         const purchaseOption = item.status === "completion" && group.entries.every(entry => entry.entryId);
+        const sameOptionCredit = group.entries.every(entry => entry.paidCents === item.paidCents);
         const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}` : activityHref(item, "/account/entries", filter);
         const featured = item.status === "prize" && index === 0;
         const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
@@ -231,7 +232,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
               </div>
               <div className={styles.cardFoot}>
                 <div className={styles.noteStack}><p className={styles.productNote}>{purchaseOption
-                  ? <>{group.entries.length > 1 ? `${group.entries.length} separate options · ` : ""}{formatUsdFromCents(item.paidCents)} applied to each</>
+                  ? <>{group.entries.length > 1 ? `${group.entries.length} separate options · ` : ""}{sameOptionCredit ? `${formatUsdFromCents(item.paidCents)} applied to each` : "Review each option’s credit"}</>
                   : item.status === "completion" ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? <><span><strong>{formatUsdFromCents(enteredCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left<span className={styles.forPrize}> for prize</span></>) : "Still in play"}</span></>
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? "Your purchased reward is ready." : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p></div>

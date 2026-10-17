@@ -5,7 +5,6 @@ import { notFound, redirect } from "next/navigation";
 import { PurchaseOptionRail } from "@/components/account/PurchaseOptionRail";
 import { getAccountContext } from "@/lib/account/context";
 import { authNavigationHref } from "@/lib/auth/entry-return";
-import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "@/components/account/purchase-options.module.css";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
@@ -43,7 +42,7 @@ export default async function PurchaseOptionsPage({ params }: { params: Promise<
           <p className={styles.retailer}>{item.retailer}</p>
           <h2>{item.title}</h2>
           <span className={styles.status}>Purchase options available</span>
-          <p className={styles.heroNote}>{formatUsdFromCents(item.paidCents)} from each entry applies to its own option. Choose one to review its remaining balance.</p>
+          <p className={styles.heroNote}>Each entry’s credit applies to its own option. Choose one to see its applied amount and remaining balance.</p>
           <a href="#purchase-option-rail" className={styles.heroCount}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></a>
         </div>
       </section>

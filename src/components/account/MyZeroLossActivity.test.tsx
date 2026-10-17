@@ -274,6 +274,7 @@ test("grouped options still open the exact entry by ID, while ambiguous old link
   const { rerender } = render(<MyZeroLossActivity state={state} filter="completion" selectedSlug={first.slug} selectedEntryId="entry-two" />);
   const cards = screen.getAllByRole("link", { name: /Nike Men's Court Shot Shoes/ });
   expect(cards.map(card => card.getAttribute("href"))).toEqual(["/account/purchase-options/nike-court-shot-shoes"]);
+  expect(within(cards[0]).getByText(/Review each option’s credit/)).toBeTruthy();
   expect(within(screen.getByRole("dialog")).getByText("$73")).toBeTruthy();
   rerender(<MyZeroLossActivity state={state} filter="completion" selectedSlug={first.slug} />);
   expect(screen.queryByRole("dialog")).toBeNull();
