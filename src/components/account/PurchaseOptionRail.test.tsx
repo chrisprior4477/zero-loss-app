@@ -50,8 +50,7 @@ test("bulk decline confirms the current item's offers and offers a 30-second und
   const optionIds = options.map(option => option.completionOptionId!);
   mocks.decline.mockResolvedValueOnce({ status: "succeeded", message: "2 offers declined. You can undo this for 30 seconds.", optionIds });
   mocks.undo.mockResolvedValueOnce({ status: "succeeded", message: "All offers restored.", optionIds });
-  render(<PurchaseOptionRail title={base.title} options={options} canBulkDecline />);
-  fireEvent.click(screen.getByRole("button", { name: "Decline all offers" }));
+  render(<PurchaseOptionRail title={base.title} options={options} canBulkDecline initiallyConfirmDecline />);
   expect(screen.getByText(`Decline all 2 offers for ${base.title}?`)).toBeTruthy();
   expect(mocks.decline).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Confirm decline all" }));
@@ -60,5 +59,15 @@ test("bulk decline confirms the current item's offers and offers a 30-second und
   expect(screen.getByRole("timer", { name: /seconds left to undo/ })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Undo decline all" }));
   await waitFor(() => expect(mocks.undo).toHaveBeenCalledWith(optionIds));
+  expect(mocks.replace).toHaveBeenCalledWith(`/account/purchase-options/${encodeURIComponent(base.slug)}`);
   expect(mocks.refresh).toHaveBeenCalled();
+});
+
+test("keeping offers dismisses confirmation and clears the confirmation link", () => {
+  const base = storedActivityFixture().activity[2];
+  render(<PurchaseOptionRail title={base.title} options={[base]} canBulkDecline initiallyConfirmDecline />);
+  fireEvent.click(screen.getByRole("button", { name: "Keep my offers" }));
+  expect(screen.queryByRole("group", { name: "Confirm declining all offers" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Show purchase option 1 of 1" })).toBeTruthy();
+  expect(mocks.replace).toHaveBeenCalledWith(`/account/purchase-options/${encodeURIComponent(base.slug)}`);
 });
