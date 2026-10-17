@@ -247,6 +247,17 @@ test("ten purchase options for one product consolidate without combining their i
   expect(screen.getByRole("link", { name: "Purchase Options10" })).toBeTruthy();
 });
 
+test("closing an individual purchase review returns to its grouped options", () => {
+  const state = storedActivityFixture();
+  const option = { ...state.activity[2], entryId: "entry-one" };
+  state.activity = [option];
+  render(<MyZeroLossActivity state={state} filter="completion" selectedSlug={option.slug} selectedEntryId={option.entryId} returnToOptions />);
+  expect(screen.getByRole("link", { name: "Return to Purchase Options" }).getAttribute("href"))
+    .toBe("/account/purchase-options/nike-court-shot-shoes");
+  fireEvent.click(screen.getByRole("button", { name: "Close activity details" }));
+  expect(replace).toHaveBeenCalledWith("/account/purchase-options/nike-court-shot-shoes", { scroll: false });
+});
+
 test("completion displays exact product math and stays unavailable without a stored option id", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="completion" selectedSlug="babys-essentials-bundle" />);
   expect(screen.getByText("$100")).toBeTruthy();

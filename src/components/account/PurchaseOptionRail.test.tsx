@@ -24,5 +24,5 @@ test("expansion keeps ten purchase options numbered and linked to their own save
   expect(within(last).getByText("PURCHASE OPTION 10 OF 10")).toBeTruthy();
   expect(within(last).getByText("$1 applied")).toBeTruthy();
   expect(within(last).getByRole("link", { name: /Review purchase option 10 of 10/ }).getAttribute("href"))
-    .toBe(`/account/entries?item=nike-court-shot-shoes&entry=ent_${"10".padStart(32, "0")}&filter=completion`);
+    .toBe(`/account/entries?item=nike-court-shot-shoes&entry=ent_${"10".padStart(32, "0")}&filter=completion&from=purchase-options`);
 });

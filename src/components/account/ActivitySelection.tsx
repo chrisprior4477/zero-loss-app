@@ -4,7 +4,7 @@ import { ActivityDetailDialog } from "./ActivityDetailDialog";
 import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 
 /** Resolve the requested item only against data already authorized by the server. */
-export function ActivitySelection({ state, selectedSlug, selectedEntryId, destination, filter = "all", metricsBySlug, outcomeEmailPreference }: {
+export function ActivitySelection({ state, selectedSlug, selectedEntryId, destination, filter = "all", metricsBySlug, outcomeEmailPreference, returnToOptions = false }: {
   state: AccountActivity;
   selectedSlug?: string;
   selectedEntryId?: string;
@@ -12,6 +12,7 @@ export function ActivitySelection({ state, selectedSlug, selectedEntryId, destin
   filter?: ActivityFilter;
   metricsBySlug?: Record<string, ActivityOfferMetrics>;
   outcomeEmailPreference?: boolean | null;
+  returnToOptions?: boolean;
 }) {
   if (!selectedSlug && !selectedEntryId) return null;
   const item = findActivityItem(state.activity, selectedSlug, selectedEntryId, filter);
@@ -19,5 +20,5 @@ export function ActivitySelection({ state, selectedSlug, selectedEntryId, destin
   if (item && isWalletReward(item) && state.source !== "unavailable") redirect(walletRewardHref(item));
   if (item?.completionOptionStatus === "declined") redirect("/account/declined-offers");
   if (item?.status === "active" && item.entryId) redirect(`/account/entries/${encodeURIComponent(item.entryId)}`);
-  return item ? <ActivityDetailDialog key={item.entryId ?? item.slug} item={item} destination={destination} filter={filter} offerMetrics={metricsBySlug?.[item.slug]} outcomeEmailPreference={outcomeEmailPreference} /> : <p role="status" className="mt-4 rounded-xl border border-white/10 px-4 py-3 text-sm text-[#b5cce4]">That activity is not available in your account.</p>;
+  return item ? <ActivityDetailDialog key={item.entryId ?? item.slug} item={item} destination={destination} filter={filter} offerMetrics={metricsBySlug?.[item.slug]} outcomeEmailPreference={outcomeEmailPreference} returnToOptions={returnToOptions && item.status === "completion"} /> : <p role="status" className="mt-4 rounded-xl border border-white/10 px-4 py-3 text-sm text-[#b5cce4]">That activity is not available in your account.</p>;
 }

@@ -14,7 +14,7 @@ function winnerFirst(items: AccountActivity["activity"]) {
   return [...items].sort((left, right) => galleryStatusOrder[left.status] - galleryStatusOrder[right.status]);
 }
 
-export function MyZeroLossActivity({ state, filter, metricsBySlug = {}, pendingEntries = [], outcomeEmailPreference = null, selectedSlug, selectedEntryId, viewedEntryId, canClearDemoEntries = false }: { state: AccountActivity; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[]; outcomeEmailPreference?: boolean | null; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; canClearDemoEntries?: boolean }) {
+export function MyZeroLossActivity({ state, filter, metricsBySlug = {}, pendingEntries = [], outcomeEmailPreference = null, selectedSlug, selectedEntryId, viewedEntryId, returnToOptions = false, canClearDemoEntries = false }: { state: AccountActivity; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[]; outcomeEmailPreference?: boolean | null; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; returnToOptions?: boolean; canClearDemoEntries?: boolean }) {
   const verifiedState = state.source === "unavailable" ? { ...state, activity: [] } : state;
   const allItems = filterActivity(verifiedState.activity, "all");
   const items = winnerFirst(filterActivity(verifiedState.activity, filter));
@@ -32,6 +32,6 @@ export function MyZeroLossActivity({ state, filter, metricsBySlug = {}, pendingE
       <p className="mt-2 max-w-xl text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "We can’t verify your activity right now. No entries or outcomes have been assumed. Please try again shortly." : pendingEntries.length && allItems.length === 0 ? "Confirm your pending request above, or wait for the automatic result. Your activity will update when the entry is accepted." : allItems.length === 0 ? "No activity yet. Your entries, prizes and purchase options will appear here after you participate." : "Choose another filter to see the rest of your activity."}</p>
       {state.source !== "unavailable" && allItems.length > 0 ? <Link href="/account/entries" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-black text-[#002719]">View all activity <span aria-hidden="true" className="ml-3">›</span></Link> : null}
     </div><div className={styles.emptyControls}><Link href="/" className={styles.continueShopping}>Continue shopping</Link>{canClearDemoEntries && state.source !== "unavailable" ? <ClearAllEntriesButton /> : null}</div></>}
-    <ActivitySelection state={verifiedState} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} destination="/account/entries" filter={filter} metricsBySlug={metricsBySlug} outcomeEmailPreference={outcomeEmailPreference} />
+    <ActivitySelection state={verifiedState} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} destination="/account/entries" filter={filter} metricsBySlug={metricsBySlug} outcomeEmailPreference={outcomeEmailPreference} returnToOptions={returnToOptions} />
   </section>;
 }

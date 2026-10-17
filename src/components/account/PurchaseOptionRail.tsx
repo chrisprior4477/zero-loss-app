@@ -26,7 +26,7 @@ export function PurchaseOptionRail({ title, options }: { title: string; options:
     <div className={styles.compactTickets} aria-hidden="true">{options.map((option, index) => <span key={option.entryId} className={styles.compactTicket}><small>OPTION</small><strong>{index + 1}</strong></span>)}</div>
     {expanded ? <div id="purchase-option-list" className={styles.optionList}>
       {options.map((option, index) => {
-        const href = `/account/entries?item=${encodeURIComponent(option.slug)}&entry=${encodeURIComponent(option.entryId!)}&filter=completion`;
+        const href = `/account/entries?item=${encodeURIComponent(option.slug)}&entry=${encodeURIComponent(option.entryId!)}&filter=completion&from=purchase-options`;
         return <article key={option.entryId} className={styles.optionTicket} aria-label={`Purchase option ${index + 1} of ${count}`}>
           <div className={styles.optionImage}><Image src={option.image} alt={option.title} fill sizes="(max-width: 640px) 75px, 110px" /></div>
           <div className={styles.optionCopy}>

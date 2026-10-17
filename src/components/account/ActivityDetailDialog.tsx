@@ -13,12 +13,13 @@ import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { availabilityStatus } from "@/lib/catalog/availability";
 
-export function ActivityDetailDialog({ item, destination, filter = "all", offerMetrics, outcomeEmailPreference = null }: {
+export function ActivityDetailDialog({ item, destination, filter = "all", offerMetrics, outcomeEmailPreference = null, returnToOptions = false }: {
   item: ActivityItem;
   destination: ActivityDestination;
   filter?: ActivityFilter;
   offerMetrics?: ActivityOfferMetrics;
   outcomeEmailPreference?: boolean | null;
+  returnToOptions?: boolean;
 }) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -27,7 +28,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
   const presentation = activityPresentation(item);
   const offerStatus = offerMetrics ? availabilityStatus(offerMetrics.capacity, offerMetrics.sold) : undefined;
   // The return destination is a fixed application route, never user-provided URL text.
-  const returnHref = destination === "/account/entries" && filter !== "all" ? `${destination}?filter=${filter}` : destination;
+  const returnHref = returnToOptions ? `/account/purchase-options/${encodeURIComponent(item.slug)}` : destination === "/account/entries" && filter !== "all" ? `${destination}?filter=${filter}` : destination;
   const close = () => router.replace(returnHref, { scroll: false });
 
   useEffect(() => {
@@ -142,7 +143,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
       </>}
       <nav aria-label="Activity detail exits" className={styles.detailExits}>
         <Link href="/">Continue shopping</Link>
-        <Link href={returnHref}>Return to My Activity</Link>
+        <Link href={returnHref}>{returnToOptions ? "Return to Purchase Options" : "Return to My Activity"}</Link>
       </nav>
     </div>
   </dialog>;
