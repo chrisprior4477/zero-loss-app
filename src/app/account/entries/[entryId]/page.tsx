@@ -19,8 +19,6 @@ import styles from "@/components/account/entry-page.module.css";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
 
-const entryCountWords = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
-
 function enteredTime(value: string | null | undefined): number {
   const time = value ? Date.parse(value) : NaN;
   return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
@@ -38,11 +36,13 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     .sort((left, right) => enteredTime(left.enteredAt) - enteredTime(right.enteredAt)
       || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
   const entryCount = relatedEntries.length;
-  const entryCountLabel = entryCountWords[entryCount] ?? entryCount.toLocaleString("en-US");
-  const expandEntries = (await searchParams)?.entries === "open";
+  const entryView = (await searchParams)?.entries;
+  const expandEntries = entryView === "open" || entryView === "first";
   const savedTickets = relatedEntries.map((entry, index) => ({
     entryId: entry.entryId!,
     number: index + 1,
+    title: entry.title,
+    image: entry.image,
     enteredAt: entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt)) ? entry.enteredAt : null,
     enteredLabel: entry.enteredAt && Number.isFinite(Date.parse(entry.enteredAt))
       ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.enteredAt)) : "Date unavailable",
@@ -84,7 +84,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <h2>{item.title}</h2>
           <span className={styles.status}>◷ No winners yet. We will notify you when the pool is complete.</span>
           <dl className={styles.entryIdentity}>
-            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><a href="#saved-entry-rail" className={styles.entryCountBadge} aria-label={`Jump to your ${entryCount} ${entryCount === 1 ? "entry" : "entries"} for this prize`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{entryCount === 1 ? "Entry" : "Entries"}</span></a></dd></div>
+            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><Link href={`/account/entries/${encodeURIComponent(entryId)}?entries=first#saved-entry-rail`} className={styles.entryCountBadge} aria-label={`Open entry 1 of your ${entryCount} ${entryCount === 1 ? "entry" : "entries"} for this prize`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{entryCount === 1 ? "Entry" : "Entries"}</span></Link></dd></div>
             <div><dt>Prize number</dt><PrizeNumberCopy number={prizeNumberForSlug(item.slug)} /></div>
           </dl>
         </div>
@@ -93,7 +93,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <strong>{metrics.remaining === 0 ? "Pool full" : `${metrics.remaining.toLocaleString("en-US")} tickets left`}</strong>
         </div> : <p className={styles.progressUnavailable}>Current pool count unavailable</p>}
       </section>
-      <EntryTicketRail key={`${entryId}:${expandEntries}`} title={item.title} tickets={savedTickets} selectedEntryId={entryId} initiallyExpanded={expandEntries} heading={entryCount === 1 ? "Your saved entry" : `Your ${entryCountLabel} separate entries`} />
+      <EntryTicketRail key={`${entryId}:${entryView}`} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} initiallyExpanded={expandEntries} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>

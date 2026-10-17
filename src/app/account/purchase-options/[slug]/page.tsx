@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { PurchaseOptionRail } from "@/components/account/PurchaseOptionRail";
 import { getAccountContext } from "@/lib/account/context";
 import { authNavigationHref } from "@/lib/auth/entry-return";
+import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import styles from "@/components/account/purchase-options.module.css";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
@@ -44,11 +45,11 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
           <h2>{item.title}</h2>
           <span className={styles.status}>Purchase options available</span>
           <p className={styles.heroNote}>Each entry’s credit applies only to its own purchase option.</p>
-          <div className={styles.heroCountRow}><span className={styles.heroCount}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></span><p>Choose as many or as few as you like to complete.</p></div>
+          <div className={styles.heroCountRow}><Link href={`${returnPath}?option=${encodeURIComponent(item.entryId!)}#purchase-option-rail`} className={styles.heroCount} aria-label={`Open purchase option 1 of ${count}`}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></Link><p>Choose as many or as few as you would like to complete.</p></div>
         </div>
       </section>
 
-      <PurchaseOptionRail title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} />
+      <PurchaseOptionRail key={selectedEntryId ?? "closed"} title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} canBulkDecline={account.wallet?.scope === "demo" && isPreviewDataEnvironment()} />
 
       <section className={styles.explanation} aria-labelledby="option-explanation-heading">
         <p className={styles.eyebrow}>YOUR CHOICE</p>
