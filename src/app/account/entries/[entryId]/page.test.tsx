@@ -4,12 +4,8 @@ import EntryPage from "./page";
 import { prizeNumberForSlug } from "@/lib/catalog/prize-number";
 
 const mocks = vi.hoisted(() => ({
-  account: vi.fn(),
-  availability: vi.fn(),
-  progress: vi.fn(),
-  createClient: vi.fn(),
-  notFound: vi.fn(() => { throw new Error("NEXT_NOT_FOUND"); }),
-  redirect: vi.fn(),
+  account: vi.fn(), availability: vi.fn(), progress: vi.fn(), createClient: vi.fn(),
+  notFound: vi.fn(() => { throw new Error("NEXT_NOT_FOUND"); }), redirect: vi.fn(),
 }));
 
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
@@ -17,31 +13,21 @@ vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailability: m
 vi.mock("@/lib/account/activity-progress", () => ({ activityOfferMetrics: mocks.progress }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound, redirect: mocks.redirect }));
-vi.mock("next/image", () => ({ default: () => <span /> }));
+vi.mock("next/image", () => ({ default: ({ src, alt }: { src: string; alt: string }) => <span role="img" aria-label={alt} data-src={src} /> }));
 vi.mock("@/components/account/EntryPageActions", () => ({ EntryPageActions: () => <div>Entry actions</div> }));
 
 const ids = Array.from({ length: 5 }, (_, index) => `ent_${String(index + 1).repeat(32)}`);
 const activity = ids.map((entryId, index) => ({
-  entryId,
-  enteredAt: new Date(Date.UTC(2026, 9, 8, 20, 20 + index)).toISOString(),
-  slug: "playstation-5-slim",
-  title: "PlayStation 5 Slim Model",
-  retailer: "Best Buy",
-  image: "/playstation.png",
-  status: "active",
-  paidCents: 100,
-  priceCents: 50000,
-  remainingCents: 49900,
-  availability: "open",
+  entryId, enteredAt: new Date(Date.UTC(2026, 9, 8, 20, 20 + index)).toISOString(),
+  slug: "playstation-5-slim", title: "PlayStation 5 Slim Model", retailer: "Best Buy", image: "/playstation.png",
+  status: "active", paidCents: 100, priceCents: 50000, remainingCents: 49900, availability: "open",
 }));
 
 beforeEach(() => {
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
   mocks.account.mockResolvedValue({
     activity: { activity: [...activity].reverse().concat({ ...activity[0], entryId: `ent_${"a".repeat(32)}`, slug: "another-prize" }), source: "stored" },
-    wallet: { balanceCents: 10000, scope: "demo" },
-    emailConfirmed: true,
-    displayName: "Chris",
+    wallet: { balanceCents: 10000, scope: "demo" }, emailConfirmed: true, displayName: "Chris",
   });
   mocks.availability.mockResolvedValue({ "playstation-5-slim": { entryPriceCents: 100 } });
   mocks.progress.mockReturnValue({ "playstation-5-slim": { percentFilled: 68, sold: 1327, capacity: 1950, remaining: 623 } });
@@ -49,58 +35,41 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-test("five authorized entries expand into individual tickets, copy full IDs, and retain one prize number", async () => {
-  const { rerender } = render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
+test("entry numbers independently reveal pictured entry details and keep the saved ID copy action", async () => {
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
   expect(within(hero).getByText("◷ No winners yet. We will notify you when the pool is complete.")).toBeTruthy();
-  expect(within(hero).getByRole("link", { name: "Jump to your 5 entries for this prize" }).getAttribute("href")).toBe("#saved-entry-rail");
-  expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
-  expect(within(hero).queryByText("Average people entering per day")).toBeNull();
-  expect(within(hero).getByText("Prize number")).toBeTruthy();
   expect(within(hero).getByText(prizeNumberForSlug("playstation-5-slim"))).toBeTruthy();
-  fireEvent.click(within(hero).getByRole("button", { name: `Copy prize number ${prizeNumberForSlug("playstation-5-slim")}` }));
-  await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prizeNumberForSlug("playstation-5-slim")));
-  expect(within(hero).getByRole("button", { name: `Copied prize number ${prizeNumberForSlug("playstation-5-slim")}` })).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
-  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
+  expect(within(hero).getByRole("link", { name: "Open entry 1 of your 5 entries for this prize" }).getAttribute("href"))
+    .toBe(`/account/entries/${ids[2]}?entries=first#saved-entry-rail`);
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
-  expect(rail.id).toBe("saved-entry-rail");
-  expect(within(rail).getByText("Your five separate entries")).toBeTruthy();
-  const compact = within(rail).getByRole("navigation", { name: "Choose an entry for PlayStation 5 Slim Model" });
-  expect(within(compact).getAllByRole("link")).toHaveLength(5);
-  expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("true");
-  fireEvent.click(within(rail).getByRole("button", { name: "See 5 entries" }));
-  expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("false");
-  expect(within(rail).getByRole("button", { name: "Hide 5 entries" }).getAttribute("aria-expanded")).toBe("true");
-  expect(within(compact).getAllByRole("link")).toHaveLength(5);
-  const expanded = rail.querySelector("[class*='entryRailChoices']") as HTMLElement;
-  const links = within(expanded).getAllByRole("link");
-  expect(links.map(link => link.getAttribute("href"))).toEqual(ids.map(id => `/account/entries/${id}?entries=open`));
-  expect(Array.from(expanded.querySelectorAll("[class*='entryRailLink']")).map((ticket, index) => ticket.textContent?.startsWith(`ENTRY${index + 1}`))).toEqual([true, true, true, true, true]);
-  expect(within(rail).getByText("#33333333")).toBeTruthy();
-  expect(links[2].getAttribute("aria-current")).toBe("page");
-  fireEvent.click(within(expanded).getByRole("button", { name: `Copy full entry number ${ids[2]}` }));
-  await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(ids[2]));
-  expect(within(expanded).getByRole("button", { name: `Copied full entry number ${ids[2]}` })).toBeTruthy();
-  expect(links[2].getAttribute("href")).toBe(`/account/entries/${ids[2]}?entries=open`);
-  expect(rail.querySelector(`a[href="/account/entries/ent_${"a".repeat(32)}?entries=open"]`)).toBeNull();
-  expect(screen.getByRole("region", { name: "Saved entry and prize pool" }).compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(rail.compareDocumentPosition(screen.getByRole("heading", { name: /prize pool still has tickets available/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Close entry details and return to My Activity" }).getAttribute("href")).toBe(`/account/entries?viewed=${ids[2]}`);
+  expect(within(rail).getByRole("heading", { name: "Your 5 separate entries" })).toBeTruthy();
+  expect(rail.querySelector("[class*='entryRailCount']")?.textContent).toBe("5");
+  expect(within(rail).queryByRole("button", { name: "Hide 5 entries" })).toBeNull();
+  expect(within(rail).queryAllByRole("article")).toHaveLength(0);
+  fireEvent.click(within(rail).getByRole("button", { name: "Show entry 1 of 5" }));
+  fireEvent.click(within(rail).getByRole("button", { name: "Show entry 3 of 5" }));
+  expect(within(rail).getAllByRole("article")).toHaveLength(2);
+  const first = within(rail).getByRole("article", { name: "Entry 1 of 5" });
+  expect(within(first).getByRole("img", { name: "PlayStation 5 Slim Model" }).getAttribute("data-src")).toBe("/playstation.png");
+  expect(within(first).getByText("$1 entered")).toBeTruthy();
+  expect(within(first).getByText("Entry #11111111")).toBeTruthy();
+  fireEvent.click(within(first).getByRole("button", { name: `Copy full entry number ${ids[0]}` }));
+  await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(ids[0]));
+  expect(within(first).getByRole("button", { name: `Copied full entry number ${ids[0]}` })).toBeTruthy();
+  fireEvent.click(within(rail).getByRole("button", { name: "Hide entry 1 of 5" }));
+  expect(within(rail).queryAllByRole("article")).toHaveLength(1);
+  expect(within(rail).getByRole("article", { name: "Entry 3 of 5" })).toBeTruthy();
+  expect(rail.querySelector(`a[href*="${"a".repeat(32)}"]`)).toBeNull();
+});
 
-  fireEvent.pointerDown(document.body);
-  expect(within(rail).getByRole("button", { name: "See 5 entries" }).getAttribute("aria-expanded")).toBe("false");
-  expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("true");
-
-  fireEvent.click(within(rail).getByRole("button", { name: "See 5 entries" }));
-  fireEvent.click(within(rail).getByRole("button", { name: "Close" }));
-  expect(within(rail).getByRole("button", { name: "See 5 entries" }).getAttribute("aria-expanded")).toBe("false");
-  expect(document.activeElement).toBe(within(rail).getByRole("button", { name: "See 5 entries" }));
-
-  rerender(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }), searchParams: Promise.resolve({ entries: "open" }) }));
-  expect(within(screen.getByRole("region", { name: "Saved entry and prize pool" })).getByText(prizeNumberForSlug("playstation-5-slim"))).toBeTruthy();
-  expect(within(screen.getByRole("navigation", { name: "Choose an entry for PlayStation 5 Slim Model" })).getAllByRole("link")[4].getAttribute("aria-current")).toBe("page");
-  expect(within(document.querySelector("[class*='entryRailChoices']") as HTMLElement).getAllByRole("link")[4].getAttribute("aria-current")).toBe("page");
+test("the count shortcut opens entry one while a direct entry return opens its own ticket", async () => {
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }), searchParams: Promise.resolve({ entries: "first" }) }));
+  expect(screen.getByRole("article", { name: "Entry 1 of 5" })).toBeTruthy();
+  cleanup();
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }), searchParams: Promise.resolve({ entries: "open" }) }));
+  expect(screen.getByRole("article", { name: "Entry 5 of 5" })).toBeTruthy();
+  expect(screen.queryByRole("article", { name: "Entry 1 of 5" })).toBeNull();
 });
 
 test("an entry outside the signed-in account cannot open through the rail", async () => {
@@ -108,49 +77,15 @@ test("an entry outside the signed-in account cannot open through the rail", asyn
   expect(mocks.notFound).toHaveBeenCalledOnce();
 });
 
-test("the ticket-style entry section remains visible even for a single saved entry", async () => {
-  mocks.account.mockResolvedValueOnce({
-    activity: { activity: [activity[0]], source: "stored" },
-    wallet: { balanceCents: 10000, scope: "demo" },
-    emailConfirmed: true,
-    displayName: "Chris",
-  });
+test("a single saved entry and later count changes keep the same numbered-ticket UI", async () => {
+  mocks.account.mockResolvedValueOnce({ activity: { activity: [activity[0]], source: "stored" }, wallet: { balanceCents: 10000, scope: "demo" }, emailConfirmed: true, displayName: "Chris" });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
-  const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
-  expect(within(hero).getByRole("link", { name: "Jump to your 1 entry for this prize" }).getAttribute("href")).toBe("#saved-entry-rail");
-  expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
-  const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
-  expect(within(rail).getByText("Your saved entry")).toBeTruthy();
-  expect(within(rail).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).getAttribute("aria-current")).toBe("page");
-  expect(rail.querySelector("#saved-entry-tickets")?.getAttribute("aria-hidden")).toBe("true");
-  fireEvent.click(within(rail).getByRole("button", { name: "See 1 entry" }));
-  expect(within(rail.querySelector("[class*='entryRailChoices']") as HTMLElement).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) })).toBeTruthy();
-  const compact = within(rail).getByRole("navigation", { name: "Choose an entry for PlayStation 5 Slim Model" });
-  expect(within(compact).getByRole("link", { name: new RegExp(`entry number ${ids[0]}`) }).querySelector("i")).toBeNull();
-  fireEvent.keyDown(document, { key: "Escape" });
-  expect(within(rail).getByRole("button", { name: "See 1 entry" }).getAttribute("aria-expanded")).toBe("false");
-});
-
-test("the expanded saved-ticket count follows newly confirmed account records", async () => {
-  mocks.account.mockResolvedValueOnce({
-    activity: { activity: [activity[0]], source: "stored" },
-    wallet: { balanceCents: 10000, scope: "demo" },
-    emailConfirmed: true,
-    displayName: "Chris",
-  });
-  render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
-  expect(screen.getByText("Your saved entry")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Your 1 entry" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Show entry 1 of 1" }));
+  expect(screen.getByRole("article", { name: "Entry 1 of 1" })).toBeTruthy();
   cleanup();
-  mocks.account.mockResolvedValueOnce({
-    activity: { activity: activity.slice(0, 3), source: "stored" },
-    wallet: { balanceCents: 9800, scope: "demo" },
-    emailConfirmed: true,
-    displayName: "Chris",
-  });
+  mocks.account.mockResolvedValueOnce({ activity: { activity: activity.slice(0, 3), source: "stored" }, wallet: { balanceCents: 9800, scope: "demo" }, emailConfirmed: true, displayName: "Chris" });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
-  expect(screen.getByText("Your three separate entries")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "See 3 entries" })).toBeTruthy();
-  const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
-  expect(within(hero).getByRole("link", { name: "Jump to your 3 entries for this prize" }).getAttribute("href")).toBe("#saved-entry-rail");
-  expect(within(hero).queryByText("Total entered on this prize")).toBeNull();
+  expect(screen.getByRole("heading", { name: "Your 3 separate entries" })).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: /Show entry \d of 3/ })).toHaveLength(3);
 });
