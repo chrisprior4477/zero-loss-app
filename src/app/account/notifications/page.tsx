@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { NotificationsCenter } from "@/components/account/NotificationsCenter";
 import { getAccountContext } from "@/lib/account/context";
-import { buildAccountNotifications } from "@/lib/account/notifications";
+import { buildAccountNotifications, buildOrderNotifications, parseNotificationPreferences } from "@/lib/account/notifications";
+import { getAccountOrders } from "@/lib/account/orders";
 import { createClient } from "@/lib/supabase/server";
 import { supportNotifications } from "@/lib/support/notifications";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -29,6 +30,7 @@ export default async function NotificationsPage() {
     visualValue: "Approval needed",
     tone: "crew" as const,
     crewRequestId: request.id,
+    preferenceKey: "crew_updates" as const,
   }));
   // Explicit owner filter is required even when the signed-in owner is also
   // allowed to review other customers' cases in the private support inbox.
@@ -42,7 +44,13 @@ export default async function NotificationsPage() {
       catch { /* Keep the original history visible if its archive state is invalid. */ }
     }
   }
-  const notifications = [...supportNotifications(support.data), ...crewNotifications, ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed, hiddenWalletIds)];
+  const [orders, alertPreferences] = await Promise.all([
+    getAccountOrders(db).catch(() => null),
+    db.rpc("get_in_app_alert_preferences"),
+  ]);
+  const notifications = [...supportNotifications(support.data), ...crewNotifications,
+    ...buildOrderNotifications(orders?.orders ?? []),
+    ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed, hiddenWalletIds)];
   const { data: readRows, error: readError } = await db.from("customer_notification_reads")
     .select("notification_id").eq("customer_id", account.userId)
     .in("notification_id", notifications.map((notification) => notification.id));
@@ -57,6 +65,8 @@ export default async function NotificationsPage() {
     walletAvailable={account.wallet !== null}
     crewAvailable={!crewError}
     readAvailable={!readError}
+    ordersAvailable={orders !== null}
+    initialAlertPreferences={alertPreferences.error ? null : parseNotificationPreferences(alertPreferences.data)}
     outcomeEmailEnabled={outcomeEmailError || typeof outcomeEmailEnabled !== "boolean" ? null : outcomeEmailEnabled}
     favoriteAlertEmailEnabled={favoriteAlertEmailError || typeof favoriteAlertEmailEnabled !== "boolean" ? null : favoriteAlertEmailEnabled}
     purchaseOptionEmailEnabled={purchaseOptionEmailError || typeof purchaseOptionEmailEnabled !== "boolean" ? null : purchaseOptionEmailEnabled}

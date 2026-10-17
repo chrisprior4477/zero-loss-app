@@ -39,6 +39,25 @@
 .headerActions svg { width: 23px; height: 23px; flex: 0 0 23px; }
 .sourceWarning { margin: 14px 0; padding: 12px 16px; border: 1px solid #eeb66b; color: #ffe4c6; background: #523614; font-size: 13px; }
 .layout { min-width: 0; }
+.actionShortcut { display: flex; width: 100%; min-height: 64px; align-items: center; gap: 13px; margin: 0 0 14px; padding: 12px 18px; border: 2px solid #ffc17b; border-radius: 12px; color: #101b50; background: #ffdeb7; text-align: left; }
+.actionShortcut > svg { width: 25px; height: 25px; flex: 0 0 25px; }
+.actionShortcut > svg:last-child { margin-left: auto; }
+.actionShortcut strong { font-size: 18px; }
+.actionShortcut span { color: #4c5d75; font-size: 13px; }
+.actionShortcut:hover { background: #ffc993; }
+.settingsBlock { margin-top: 32px; scroll-margin-top: 20px; }
+.settingsBlock > h2 { margin-top: 22px; font-size: clamp(23px, 2.5vw, 32px); font-weight: 850; }
+.settingsBlock > p { margin: 4px 0 16px; color: #c8d8f5; font-size: 14px; }
+.preferenceSection { padding: clamp(16px, 2vw, 26px); border: 1px solid #4e94c6; border-radius: 18px; background: #092d56; }
+.preferenceSection h2 { font-size: clamp(23px, 2.5vw, 32px); font-weight: 850; }
+.preferenceSection > p { margin: 5px 0 16px; color: #c8d8f5; font-size: 14px; line-height: 1.4; }
+.preferenceGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.preferenceChoice { display: flex; min-height: 78px; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 17px; border: 1px solid #a6d6ef; border-radius: 12px; color: #0b1c4d; background: #fffdfa; cursor: pointer; }
+.preferenceChoice span { display: grid; gap: 3px; }
+.preferenceChoice strong { font-size: 16px; line-height: 1.2; }
+.preferenceChoice small { color: #486288; font-size: 12px; line-height: 1.25; }
+.preferenceChoice input { width: 25px; height: 25px; flex: 0 0 25px; accent-color: #0076ff; cursor: pointer; }
+.preferenceChoice input:disabled { cursor: not-allowed; }
 
 .filters { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
 .filters button {
@@ -141,6 +160,9 @@
   .visual { align-self: stretch; }
 }
 @media (max-width: 620px) {
+  .actionShortcut { flex-wrap: wrap; gap: 7px 10px; }
+  .actionShortcut span { flex-basis: 65%; }
+  .preferenceGrid { grid-template-columns: 1fr; }
   .page { padding: 14px 12px 32px; }
   .header { gap: 13px; }
   .header h1 { font-size: 39px; }

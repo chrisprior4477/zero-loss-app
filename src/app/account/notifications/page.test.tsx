@@ -1,7 +1,8 @@
 import { beforeEach, expect, test, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ account: vi.fn(), from: vi.fn(), rpc: vi.fn(), redirect: vi.fn() }));
+const mocks = vi.hoisted(() => ({ account: vi.fn(), from: vi.fn(), rpc: vi.fn(), orders: vi.fn(), redirect: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: mocks.from, rpc: mocks.rpc }) }));
+vi.mock("@/lib/account/orders", () => ({ getAccountOrders: mocks.orders }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/components/account/NotificationsCenter", () => ({ NotificationsCenter: () => null }));
 import NotificationsPage from "./page";
@@ -17,6 +18,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.account.mockResolvedValue({ userId: "owner", emailConfirmed: true, wallet: null, activity: { source: "customer-empty", activity: [] } });
   mocks.rpc.mockResolvedValue({ data: true, error: null });
+  mocks.orders.mockResolvedValue({ source: "customer-empty", orders: [] });
 });
 test("signed-out visitors return to Notifications after login", async () => {
   mocks.account.mockResolvedValue(null);
@@ -41,8 +43,23 @@ test("Crew, support and persisted read receipts are scoped to the signed-in owne
   expect(mocks.rpc).toHaveBeenCalledWith("get_entry_outcome_email_enabled");
   expect(mocks.rpc).toHaveBeenCalledWith("get_purchase_option_email_enabled");
   expect(mocks.rpc).toHaveBeenCalledWith("get_crew_win_email_enabled");
+  expect(mocks.rpc).toHaveBeenCalledWith("get_in_app_alert_preferences");
   expect(crew.eq).toHaveBeenCalledWith("recipient_id", "owner");
   expect(crew.eq).toHaveBeenCalledWith("status", "pending");
   expect(support.eq).toHaveBeenCalledWith("customer_id", "owner");
   expect(reads.eq).toHaveBeenCalledWith("customer_id", "owner");
+});
+
+test("verified orders appear in the Orders notification category", async () => {
+  mocks.from.mockImplementation(table => query(table === "crew_invitations" || table === "support_cases" ? [] : []));
+  mocks.orders.mockResolvedValue({ source: "stored", orders: [{
+    orderNumber: "ord_1234567890abcdef", rewardSlug: "netflix-25-gift-card",
+    rewardId: "11111111-1111-4111-8111-111111111111", title: "$25 Netflix Gift Card",
+    retailer: "Netflix", image: "/netflix.png", faceValueCents: 2500,
+    amountPaidCents: 2400, status: "fulfilled", createdAt: "2026-10-17T18:00:00Z",
+  }] });
+  const page = await NotificationsPage();
+  const center = page.props.children[1] as ReactElement<{ notifications: AccountNotification[] }>;
+  expect(center.props.notifications.find(item => item.category === "orders")?.href)
+    .toBe("/account/orders?order=ord_1234567890abcdef#order-ord_1234567890abcdef");
 });

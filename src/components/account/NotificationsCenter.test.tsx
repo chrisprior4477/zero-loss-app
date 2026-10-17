@@ -8,10 +8,12 @@ import { NotificationsCenter } from "./NotificationsCenter";
 vi.mock("next/image", () => ({ default: () => <span data-testid="notification-image" /> }));
 const actionMocks = vi.hoisted(() => ({ respond: vi.fn(), refresh: vi.fn(), push: vi.fn() }));
 const readMocks = vi.hoisted(() => ({ mark: vi.fn() }));
+const preferenceMocks = vi.hoisted(() => ({ save: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: actionMocks.refresh, push: actionMocks.push }) }));
 vi.mock("@/lib/crew/actions", () => ({ respondToCrewRequest: actionMocks.respond }));
 vi.mock("@/lib/account/notification-read-actions", () => ({ markNotificationsRead: readMocks.mark }));
-beforeEach(() => { readMocks.mark.mockResolvedValue({ ok: true, message: "Saved." }); });
+vi.mock("@/lib/account/notification-preference-actions", () => ({ setInAppAlertPreference: preferenceMocks.save }));
+beforeEach(() => { readMocks.mark.mockResolvedValue({ ok: true, message: "Saved." }); preferenceMocks.save.mockResolvedValue({ ok: true, message: "Off — your alert choice was saved." }); });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const wallet: WalletSnapshot = {
@@ -45,7 +47,7 @@ test("notification filters, links, and read controls remain functional", () => {
   fireEvent.click(screen.getByRole("button", { name: /All6/ }));
   fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
   expect((screen.getByRole("button", { name: "Mark all as read" }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByRole("link", { name: /Sharing preferences/ }).getAttribute("href")).toBe("/account/crew?tab=picks#sharing");
+  expect(screen.getByRole("link", { name: /Alert settings/ }).getAttribute("href")).toBe("#alert-settings");
 });
 
 test("overview tickets and every existing notification category keep their destinations", () => {
@@ -76,6 +78,16 @@ test("unavailable data sources are disclosed instead of replaced with samples", 
 test("a Crew lookup failure is disclosed even when other account data is available", () => {
   render(<NotificationsCenter notifications={[]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable={false} readAvailable />);
   expect(screen.getByText(/Some account updates could not be verified/)).toBeTruthy();
+});
+
+test("in-app choices persist and hide only the selected optional updates", async () => {
+  const notifications = buildAccountNotifications(storedActivityFixture(), wallet, true);
+  render(<NotificationsCenter notifications={notifications} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable initialAlertPreferences={{}} />);
+  fireEvent.click(screen.getByRole("checkbox", { name: "Wallet activity in-app alerts" }));
+  await waitFor(() => expect(preferenceMocks.save).toHaveBeenCalledWith("wallet_updates", false));
+  await waitFor(() => expect(screen.getByRole("button", { name: /All5/ })).toBeTruthy());
+  expect(screen.queryByText("Funds added to your playable wallet")).toBeNull();
+  expect(screen.getByText("Your email is confirmed")).toBeTruthy();
 });
 
 test.each([["approve", true, "Approve"], ["decline", false, "Decline"]] as const)("a Crew request links to the requests tab and can %s", async (_label, accept, button) => {

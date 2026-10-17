@@ -10,6 +10,7 @@ export function supportNotifications(rows: unknown): AccountNotification[] {
       title: r.status === "resolved" ? "Support case resolved" : r.status === "awaiting_customer" ? "Your support case needs a reply" : "Support case received",
       body: r.subject, meta: new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(r.updated_at)),
       href: `/support?case=${r.id}#conversation`, action: "View conversation", visualLabel: "Support",
+      preferenceKey: "support_replies",
     }];
   });
 }

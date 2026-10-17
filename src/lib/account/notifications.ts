@@ -1,8 +1,12 @@
 import { activityHref, walletRewardHref, type AccountActivity, type ActivityItem } from "./activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
+import type { AccountOrder } from "./orders";
 
 export type NotificationCategory = "action" | "account" | "activity" | "orders" | "crew";
+export const notificationPreferenceKeys = ["purchase_options", "reward_ready", "reward_deadline", "order_updates", "wallet_updates", "crew_updates", "support_replies", "pool_progress"] as const;
+export type NotificationPreferenceKey = typeof notificationPreferenceKeys[number];
+export type NotificationPreferences = Partial<Record<NotificationPreferenceKey, boolean>>;
 export type AccountNotification = {
   id: string;
   category: NotificationCategory;
@@ -16,7 +20,20 @@ export type AccountNotification = {
   visualValue?: string;
   crewRequestId?: string;
   tone: "reward" | "active" | "completion" | "wallet" | "account" | "order" | "crew";
+  preferenceKey?: NotificationPreferenceKey;
 };
+
+export function parseNotificationPreferences(value: unknown): NotificationPreferences {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(notificationPreferenceKeys.flatMap(key => {
+    const enabled = (value as Record<string, unknown>)[key];
+    return typeof enabled === "boolean" ? [[key, enabled]] : [];
+  })) as NotificationPreferences;
+}
+
+export function notificationIsEnabled(notification: AccountNotification, preferences: NotificationPreferences): boolean {
+  return !notification.preferenceKey || preferences[notification.preferenceKey] !== false;
+}
 
 function activityNotification(item: ActivityItem): AccountNotification {
   // A winning entry stays a win in history, but its reward may no longer be usable.
@@ -34,6 +51,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
       title: `Your ${item.retailer} reward ${state[0]}`,
       body: state[1], meta: "Reward status update", href: walletRewardHref(item),
       action: "View reward details", image: item.image, visualLabel: item.retailer, tone: "order",
+      preferenceKey: item.rewardStatus === "expired" ? "reward_deadline" : "order_updates",
     };
   }
   if (item.status === "prize" || (item.rewardStatus === "ready" && item.rewardId)) return {
@@ -48,6 +66,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     visualLabel: item.retailer,
     visualValue: formatUsdFromCents(item.priceCents),
     tone: "reward",
+    preferenceKey: "reward_ready",
   };
   if (item.completionOptionStatus === "declined") return {
     id: `completion-${item.completionOptionId ?? item.entryId ?? item.slug}-declined`,
@@ -55,6 +74,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     body: "Review it in Declined Offers. Revival is available only before the original deadline.",
     meta: "Purchase option update", href: "/account/declined-offers", action: "Review declined offers",
     image: item.image, visualLabel: item.retailer, tone: "order",
+    preferenceKey: "purchase_options",
   };
   if (item.status === "completion" && item.completionOptionStatus && item.completionOptionStatus !== "available") return {
     id: `completion-${item.completionOptionId ?? item.entryId ?? item.slug}-${item.completionOptionStatus}`,
@@ -62,6 +82,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     body: "This option is no longer available to purchase. Its outcome is saved in My Activity.",
     meta: "Purchase option update", href: activityHref(item), action: "View details", image: item.image,
     visualLabel: item.retailer, tone: "order",
+    preferenceKey: "purchase_options",
   };
   if (item.status === "completion") return {
     id: `completion-${item.completionOptionId ?? item.entryId ?? item.slug}`,
@@ -75,6 +96,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     visualLabel: item.retailer,
     visualValue: `${formatUsdFromCents(item.remainingCents)} left`,
     tone: "completion",
+    preferenceKey: "purchase_options",
   };
   if (item.status === "completed") return {
     id: `completed-${item.entryId ?? item.slug}`,
@@ -87,6 +109,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     image: item.image,
     visualLabel: item.retailer,
     tone: "order",
+    preferenceKey: "order_updates",
   };
   return {
     id: `active-${item.entryId ?? item.slug}`,
@@ -99,7 +122,29 @@ function activityNotification(item: ActivityItem): AccountNotification {
     image: item.image,
     visualLabel: item.retailer,
     tone: "active",
+    preferenceKey: "pool_progress",
   };
+}
+
+/** The order log is authoritative for fulfillment; reward readiness alone is not an order event. */
+export function buildOrderNotifications(orders: readonly AccountOrder[]): AccountNotification[] {
+  return orders.map(order => {
+    const issued = order.status === "fulfilled";
+    const exception = order.status === "exception";
+    return {
+      id: `order-${order.orderNumber}-${order.status}`,
+      category: exception ? "action" : "orders",
+      title: issued ? `${order.retailer} gift card issued` : exception ? `${order.retailer} order needs attention` : `${order.retailer} order ${order.status === "cancelled" ? "cancelled" : "is processing"}`,
+      body: issued ? "Your retailer gift card is ready to open." : exception ? "Your order is saved, but its issuance needs attention." : order.status === "cancelled" ? "This order is closed. Its history remains available." : "Payment is confirmed. We’ll show the issued card when it is ready.",
+      meta: `Order ${order.orderNumber.slice(-8).toUpperCase()}`,
+      href: `/account/orders?order=${encodeURIComponent(order.orderNumber)}#order-${encodeURIComponent(order.orderNumber)}`,
+      action: "View exact order",
+      image: order.image,
+      visualLabel: order.retailer,
+      tone: "order",
+      preferenceKey: "order_updates",
+    };
+  });
 }
 
 function ledgerTitle(entryType: string) {
@@ -134,6 +179,22 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
   const notifications = activity.source === "unavailable" ? [] : [...activity.activity]
     .sort((left, right) => activityPriority[left.status] - activityPriority[right.status])
     .map(activityNotification);
+  if (activity.source !== "unavailable") {
+    const now = Date.now();
+    for (const item of activity.activity) {
+      const deadline = item.rewardClaimExpiresAt ? Date.parse(item.rewardClaimExpiresAt) : NaN;
+      if (!item.rewardId || item.rewardStatus !== "ready" || !Number.isFinite(deadline)
+        || deadline <= now || deadline > now + 7 * 24 * 60 * 60 * 1000) continue;
+      notifications.push({
+        id: `reward-deadline-${item.rewardId}`,
+        category: "action", title: `Claim your ${item.retailer} reward soon`,
+        body: "Your claim deadline is approaching. Open the reward for the exact date and next step.",
+        meta: new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(deadline)),
+        href: walletRewardHref(item), action: "View reward deadline", image: item.image,
+        visualLabel: item.retailer, tone: "reward", preferenceKey: "reward_deadline",
+      });
+    }
+  }
   if (wallet) {
     const hidden = new Set(hiddenWalletIds);
     for (const entry of wallet.entries.filter(item => !hidden.has(item.id))) notifications.push({
@@ -147,6 +208,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
       visualLabel: entry.amount > 0 ? "Added" : "Posted",
       visualValue: `${entry.amount > 0 ? "+" : ""}${formatUsdFromCents(entry.amount)}`,
       tone: "wallet",
+      preferenceKey: "wallet_updates",
     });
   }
   notifications.push({

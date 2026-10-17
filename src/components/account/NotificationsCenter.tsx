@@ -14,8 +14,9 @@ import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { FavoriteAlertEmailPreference } from "./FavoriteAlertEmailPreference";
 import { PurchaseOptionEmailPreference } from "./PurchaseOptionEmailPreference";
 import { CrewWinEmailPreference } from "./CrewWinEmailPreference";
+import { InAppAlertPreferences } from "./InAppAlertPreferences";
 import stripStyles from "./account-status-strip.module.css";
-import type { AccountNotification, NotificationCategory } from "@/lib/account/notifications";
+import { notificationIsEnabled, type AccountNotification, type NotificationCategory, type NotificationPreferenceKey, type NotificationPreferences } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
 
 type FilterKey = "all" | NotificationCategory;
@@ -31,16 +32,18 @@ const filters = [
 
 type NotificationOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function NotificationsCenter({ notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, readAvailable, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; readAvailable: boolean; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable, initialAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [alertPreferences, setAlertPreferences] = useState<NotificationPreferences>(initialAlertPreferences ?? {});
   const router = useRouter();
   const [responding, startTransition] = useTransition();
   const [savingRead, startReadTransition] = useTransition();
   const [crewMessage, setCrewMessage] = useState("");
   const [readMessage, setReadMessage] = useState("");
   const [read, setRead] = useState<Set<string>>(() => new Set(initialReadIds));
-  const visible = useMemo(() => filter === "all" ? notifications : notifications.filter(notification => notification.category === filter), [filter, notifications]);
-  const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? notifications.length : notifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [notifications]);
+  const enabledNotifications = useMemo(() => notifications.filter(notification => notificationIsEnabled(notification, alertPreferences)), [notifications, alertPreferences]);
+  const visible = useMemo(() => filter === "all" ? enabledNotifications : enabledNotifications.filter(notification => notification.category === filter), [filter, enabledNotifications]);
+  const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? enabledNotifications.length : enabledNotifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [enabledNotifications]);
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter((item) => item.status === "completion").length;
@@ -51,7 +54,7 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
   }
 
   function markAllRead() {
-    const ids = notifications.map((notification) => notification.id).filter((id) => !read.has(id));
+    const ids = enabledNotifications.map((notification) => notification.id).filter((id) => !read.has(id));
     if (!ids.length || !readAvailable) return;
     setReadMessage("");
     setRead((previous) => new Set([...previous, ...ids]));
@@ -100,21 +103,17 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
       <header className={styles.header}>
         <div><h1>Notifications</h1><p>The updates that need your attention.</p></div>
         <div className={styles.headerActions}>
-          <button type="button" onClick={markAllRead} disabled={notifications.length === 0 || notifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
+          <button type="button" onClick={markAllRead} disabled={enabledNotifications.length === 0 || enabledNotifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
             <AccountIcon name="mail" /> Mark all as read
           </button>
-          <Link href="/account/crew?tab=picks#sharing"><AccountIcon name="settings" /> Sharing preferences</Link>
+          <a href="#alert-settings"><AccountIcon name="settings" /> Alert settings</a>
         </div>
       </header>
 
-      {outcomeEmailEnabled !== undefined ? <EntryOutcomeEmailPreference initialEnabled={outcomeEmailEnabled} placement="account" /> : null}
-      {favoriteAlertEmailEnabled !== undefined ? <FavoriteAlertEmailPreference initialEnabled={favoriteAlertEmailEnabled} /> : null}
-      {purchaseOptionEmailEnabled !== undefined ? <PurchaseOptionEmailPreference initialEnabled={purchaseOptionEmailEnabled} /> : null}
-      {crewWinEmailEnabled !== undefined ? <CrewWinEmailPreference initialEnabled={crewWinEmailEnabled} /> : null}
-
-      {!activityAvailable || !walletAvailable || !crewAvailable || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
+      {!activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
       {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
       {readMessage ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}
+      {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => setFilter("action")}><AccountIcon name="alert" /> <strong>{counts.action} action needed</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
 
       <div className={styles.layout}>
         <nav aria-label="Notification filters" className={styles.filters}>
@@ -149,6 +148,15 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
             <Link href={notification.href} aria-label={`Open ${notification.title}`} className={styles.chevron} onClick={(event) => handleNotificationClick(event, notification)}><AccountIcon name="chevron" /></Link>
           </article>)}
         </section>
+      </div>
+      <div id="alert-settings" className={styles.settingsBlock}>
+        <InAppAlertPreferences initialPreferences={initialAlertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setAlertPreferences(current => ({ ...current, [key]: enabled }))} />
+        <h2>Email choices</h2>
+        <p>These controls affect email only; the in-app choices above affect this notification list.</p>
+        {outcomeEmailEnabled !== undefined ? <EntryOutcomeEmailPreference initialEnabled={outcomeEmailEnabled} placement="account" /> : null}
+        {favoriteAlertEmailEnabled !== undefined ? <FavoriteAlertEmailPreference initialEnabled={favoriteAlertEmailEnabled} /> : null}
+        {purchaseOptionEmailEnabled !== undefined ? <PurchaseOptionEmailPreference initialEnabled={purchaseOptionEmailEnabled} /> : null}
+        {crewWinEmailEnabled !== undefined ? <CrewWinEmailPreference initialEnabled={crewWinEmailEnabled} /> : null}
       </div>
       <p className={styles.footerNote}>SHOPPING SHOULD NEVER FEEL LIKE A LOSS.</p>
     </div>

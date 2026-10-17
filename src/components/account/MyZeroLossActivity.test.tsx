@@ -441,7 +441,7 @@ test("mobile hybrid marks only the first winner as featured and keeps every prod
   ]);
 });
 
-test("white ticket space drags while the image and action remain click targets without an extra chevron", () => {
+test("the whole white ticket opens details while swipes remain guarded", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="active" />);
   const card = screen.getByRole("link", { name: /PlayStation 5 Slim Model/ });
   function wasPreventedBeforeTarget(target: Element) {
@@ -450,7 +450,7 @@ test("white ticket space drags while the image and action remain click targets w
     fireEvent.click(target, { detail: 1 });
     return prevented;
   }
-  expect(wasPreventedBeforeTarget(within(card).getByText("PlayStation 5 Slim Model"))).toBe(true);
+  expect(wasPreventedBeforeTarget(within(card).getByText("PlayStation 5 Slim Model"))).toBe(false);
   expect(wasPreventedBeforeTarget(card.querySelector("[class*='productStage']")!)).toBe(false);
   expect(wasPreventedBeforeTarget(within(card).getByText("See My"))).toBe(false);
   expect(card.querySelector("[class*='cardChevron']")).toBeNull();

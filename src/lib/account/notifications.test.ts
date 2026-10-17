@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { storedActivityFixture } from "./activity.test-fixture";
-import { buildAccountNotifications } from "./notifications";
+import { buildAccountNotifications, buildOrderNotifications, notificationIsEnabled, parseNotificationPreferences } from "./notifications";
 import type { RewardStatus, CompletionOptionStatus } from "./activity";
 
 test("same-product purchase options have distinct notifications and exact entry links", () => {
@@ -78,4 +78,18 @@ test("archived demo ledger rows do not create visible notifications", () => {
     entries: [{ id, entry_type: "DEPOSIT", amount: 100, created_at: "2026-09-21T12:00:00Z" }],
   };
   expect(buildAccountNotifications(storedActivityFixture(), wallet, true, [id]).some(item => item.id === `wallet-${id}`)).toBe(false);
+});
+
+test("the Orders filter is backed by exact fulfillment records", () => {
+  const [notice] = buildOrderNotifications([{
+    orderNumber: "ord_1234567890abcdef", rewardSlug: "netflix-25-gift-card",
+    rewardId: "11111111-1111-4111-8111-111111111111", title: "$25 Netflix Gift Card",
+    retailer: "Netflix", image: "/netflix.png", faceValueCents: 2500,
+    amountPaidCents: 2400, status: "fulfilled", createdAt: "2026-10-17T18:00:00Z",
+  }]);
+  expect(notice.category).toBe("orders");
+  expect(notice.title).toBe("Netflix gift card issued");
+  expect(notice.href).toBe("/account/orders?order=ord_1234567890abcdef#order-ord_1234567890abcdef");
+  expect(notificationIsEnabled(notice, parseNotificationPreferences({ order_updates: false }))).toBe(false);
+  expect(notificationIsEnabled(notice, parseNotificationPreferences({ order_updates: true }))).toBe(true);
 });

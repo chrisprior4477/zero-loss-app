@@ -46,8 +46,7 @@ test("entry numbers independently reveal pictured entry details and keep the sav
   expect(within(rail).getByRole("heading", { name: "Your 5 separate entries" })).toBeTruthy();
   expect(rail.querySelector("[class*='entryRailCount']")?.textContent).toBe("5");
   expect(within(rail).queryByRole("button", { name: "Hide 5 entries" })).toBeNull();
-  expect(within(rail).queryAllByRole("article")).toHaveLength(0);
-  fireEvent.click(within(rail).getByRole("button", { name: "Show entry 1 of 5" }));
+  expect(within(rail).getByRole("article", { name: "Entry 1 of 5" })).toBeTruthy();
   fireEvent.click(within(rail).getByRole("button", { name: "Show entry 3 of 5" }));
   expect(within(rail).getAllByRole("article")).toHaveLength(2);
   const first = within(rail).getByRole("article", { name: "Entry 1 of 5" });
@@ -81,11 +80,11 @@ test("a single saved entry and later count changes keep the same numbered-ticket
   mocks.account.mockResolvedValueOnce({ activity: { activity: [activity[0]], source: "stored" }, wallet: { balanceCents: 10000, scope: "demo" }, emailConfirmed: true, displayName: "Chris" });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
   expect(screen.getByRole("heading", { name: "Your 1 entry" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Show entry 1 of 1" }));
   expect(screen.getByRole("article", { name: "Entry 1 of 1" })).toBeTruthy();
   cleanup();
   mocks.account.mockResolvedValueOnce({ activity: { activity: activity.slice(0, 3), source: "stored" }, wallet: { balanceCents: 9800, scope: "demo" }, emailConfirmed: true, displayName: "Chris" });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
   expect(screen.getByRole("heading", { name: "Your 3 separate entries" })).toBeTruthy();
-  expect(screen.getAllByRole("button", { name: /Show entry \d of 3/ })).toHaveLength(3);
+  expect(screen.getByRole("article", { name: "Entry 1 of 3" })).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: /entry \d of 3/ })).toHaveLength(3);
 });

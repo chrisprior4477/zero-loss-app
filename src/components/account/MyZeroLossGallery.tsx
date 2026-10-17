@@ -164,13 +164,6 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
     drag.current.moved = false;
   }
 
-  function onlyOpenFromAction(event: ReactMouseEvent<HTMLAnchorElement>) {
-    // The rest of the white ticket is a drag surface, not a navigation target.
-    // Keyboard and assistive-technology activation still open the focused link.
-    if (event.detail === 0 || (event.target instanceof Element && event.target.closest("[data-activity-click]"))) return;
-    event.preventDefault();
-  }
-
   return <div className={styles.galleryShell}>
     <div
       id={galleryId}
@@ -221,7 +214,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={group.key} className={styles.galleryItem} style={placement}>
-          <Link href={cardHref} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : purchaseOption ? `See My ${group.entries.length} Purchase ${group.entries.length === 1 ? "Option" : "Options"} for ${item.title}` : undefined} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-purchase-completed={purchasedReward ? "true" : undefined} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
+          <Link href={cardHref} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : purchaseOption ? `See My ${group.entries.length} Purchase ${group.entries.length === 1 ? "Option" : "Options"} for ${item.title}` : undefined} draggable={false} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-purchase-completed={purchasedReward ? "true" : undefined} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
