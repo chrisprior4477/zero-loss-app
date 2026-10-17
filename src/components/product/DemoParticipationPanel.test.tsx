@@ -21,14 +21,17 @@ test("product balance comes from server data and signed-in preview submits a qua
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$26");
 });
 
-test("the funding return briefly highlights the enabled entry action, not an unfunded or full pool", () => {
+test("the funding return highlights the enabled entry action until it is pressed, not an unfunded or full pool", () => {
   const { rerender } = render(<DemoParticipationPanel {...props} isSignedIn isDemoWallet balanceCents={2500} highlightAfterFunding />);
   expect(screen.getByRole("button", { name: "Enter for $1.00" }).getAttribute("data-funding-cue")).toBe("light-sweep");
+  expect(screen.getByRole("button", { name: "Enter for $1.00" }).className).toContain("bg-[#31e800]");
   rerender(<DemoParticipationPanel {...props} isSignedIn isDemoWallet balanceCents={0} highlightAfterFunding />);
   expect(screen.getByRole("button", { name: "Enter for $1.00" }).getAttribute("data-funding-cue")).toBeNull();
   rerender(<DemoParticipationPanel {...props} sold={19} isSignedIn isDemoWallet balanceCents={2500} highlightAfterFunding />);
   expect(screen.getByRole("button", { name: "Add one entry" }).hasAttribute("disabled")).toBe(true);
   expect(screen.getByRole("button", { name: "Enter for $1.00" }).getAttribute("data-funding-cue")).toBe("light-sweep");
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
+  expect(screen.getByRole("button", { name: "Enter for $1.00" }).getAttribute("data-funding-cue")).toBeNull();
 });
 
 test("a return visit carries the last saved request into a new product entry", () => {

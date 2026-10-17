@@ -96,6 +96,7 @@ export function DemoParticipationPanel({
   const [preferenceResetMessage, setPreferenceResetMessage] = useState<string | null>(null);
   const [sharePromptOpen, setSharePromptOpen] = useState(false);
   const [balanceNoticeOpen, setBalanceNoticeOpen] = useState(false);
+  const [entryActionTouched, setEntryActionTouched] = useState(false);
   const [dismissedBalanceError, setDismissedBalanceError] = useState<typeof state | null>(null);
   const entryFormRef = useRef<HTMLFormElement>(null);
   const shareChoiceRef = useRef<HTMLInputElement>(null);
@@ -104,7 +105,7 @@ export function DemoParticipationPanel({
   const totalCents = quantity * Math.round(entryPrice * 100);
   const total = totalCents / 100;
   const knownBalance = typeof balanceCents === "number" && Number.isSafeInteger(balanceCents) ? balanceCents : null;
-  const showFundingSweep = highlightAfterFunding && isDemoWallet && isSignedIn && requestHead.ready
+  const showFundingSweep = highlightAfterFunding && !entryActionTouched && !entryBusy && isDemoWallet && isSignedIn && requestHead.ready
     && availabilityConfirmed && remaining > 0 && knownBalance !== null && knownBalance >= totalCents;
   const serverBalanceError = state.status === "error" && state.code === "insufficient_balance";
   const showBalanceNotice = balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state);
@@ -356,6 +357,7 @@ export function DemoParticipationPanel({
         <form ref={entryFormRef} action={action} onSubmit={(event) => {
           setSelectedTicketsToast(null);
           if (entryBusy || !requestHead.ready) { event.preventDefault(); return; }
+          setEntryActionTouched(true);
           // Retry the original intent, not new balance/quantity/sharing choices.
           if (uncertain) return;
           if (knownBalance !== null && knownBalance < totalCents) {
@@ -374,7 +376,7 @@ export function DemoParticipationPanel({
           <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? requestHead.requestId ?? "" : requestHead.requestId ?? ""} />
           <input type="hidden" name="quantity" value={quantity} />
           <input ref={shareChoiceRef} type="hidden" name="shareWithCrew" value="no" />
-          <button type="submit" disabled={entryBusy || !requestHead.ready} data-funding-cue={showFundingSweep && !entryBusy ? "light-sweep" : undefined} className={`mt-3 min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60 ${showFundingSweep && !entryBusy ? entryActionStyles.fundingSweep : ""}`}>
+          <button type="submit" disabled={entryBusy || !requestHead.ready} data-funding-cue={showFundingSweep ? "light-sweep" : undefined} className={`mt-3 min-h-12 w-full rounded-xl bg-[#31e800] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-[#66f34c] disabled:cursor-wait disabled:opacity-60 ${showFundingSweep ? entryActionStyles.fundingSweep : ""}`}>
             <span className={showFundingSweep ? entryActionStyles.buttonLabel : undefined}>{pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}</span>
           </button>
         </form>

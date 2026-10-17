@@ -86,7 +86,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     </section>
   );
   const freeEntryDetails = (
-    <Link href={`/free-entry?offering=${product.slug}`} className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 text-center font-extrabold text-[#002719] transition hover:bg-[#66f34c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
+    <Link href={`/free-entry?offering=${product.slug}`} className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#00b9ff] px-5 py-3 text-center font-extrabold text-[#00132e] transition hover:bg-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
       Prefer to enter without a purchase?
     </Link>
   );

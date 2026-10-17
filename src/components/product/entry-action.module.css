@@ -15,7 +15,7 @@
   transform: skewX(-22deg);
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 62%), transparent);
   pointer-events: none;
-  animation: funding-light-sweep 1.9s ease-in-out 0.25s 2 both;
+  animation: funding-light-sweep 2.4s ease-in-out 0.25s infinite;
 }
 
 .buttonLabel {
@@ -30,5 +30,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .fundingSweep::after { animation: none; opacity: 0; }
-  .fundingSweep { outline: 3px solid #a9f3ff; outline-offset: 2px; }
+  .fundingSweep { outline: 3px solid #b5ff90; outline-offset: 2px; }
 }
