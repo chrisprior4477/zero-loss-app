@@ -10,9 +10,9 @@ import styles from "@/components/account/purchase-options.module.css";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
-export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ option?: string }> }) {
+export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ option?: string; decline?: string }> }) {
   const { slug } = await params;
-  const { option: selectedEntryId } = await searchParams;
+  const { option: selectedEntryId, decline } = await searchParams;
   const account = await getAccountContext();
   const returnPath = `/account/purchase-options/${encodeURIComponent(slug)}`;
   if (!account) redirect(authNavigationHref("/login", returnPath));
@@ -27,6 +27,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
 
   const item = options[0];
   const count = options.length;
+  const canBulkDecline = account.wallet?.scope === "demo" && isPreviewDataEnvironment();
   return <main className={styles.page}>
     <div className={styles.shell}>
       <div className={styles.topline}>
@@ -45,11 +46,11 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
           <h2>{item.title}</h2>
           <span className={styles.status}>Purchase options available</span>
           <p className={styles.heroNote}>Each entry’s credit applies only to its own purchase option.</p>
-          <div className={styles.heroCountRow}><Link href={`${returnPath}?option=${encodeURIComponent(item.entryId!)}#purchase-option-rail`} className={styles.heroCount} aria-label={`Open purchase option 1 of ${count}`}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></Link><p>Choose as many or as few as you would like to complete.</p></div>
+          <div className={styles.heroActionRow}><div className={styles.heroCountRow}><Link href={`${returnPath}?option=${encodeURIComponent(item.entryId!)}#purchase-option-rail`} className={styles.heroCount} aria-label={`Open purchase option 1 of ${count}`}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></Link><p>Choose as many or as few as you would like to complete.</p></div>{canBulkDecline ? <Link href={`${returnPath}?decline=confirm#purchase-option-rail`} className={styles.heroDeclineAll}>Decline all offers</Link> : null}</div>
         </div>
       </section>
 
-      <PurchaseOptionRail key={selectedEntryId ?? "closed"} title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} canBulkDecline={account.wallet?.scope === "demo" && isPreviewDataEnvironment()} />
+      <PurchaseOptionRail key={`${selectedEntryId ?? "first"}:${decline ?? "view"}`} title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={canBulkDecline && decline === "confirm"} canBulkDecline={canBulkDecline} />
 
       <section className={styles.explanation} aria-labelledby="option-explanation-heading">
         <p className={styles.eyebrow}>YOUR CHOICE</p>

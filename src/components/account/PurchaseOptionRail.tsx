@@ -10,10 +10,10 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import styles from "./purchase-options.module.css";
 
-export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, canBulkDecline = false }: { title: string; options: ActivityItem[]; initiallySelectedEntryId?: string; canBulkDecline?: boolean }) {
+export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, initiallyConfirmDecline = false, canBulkDecline = false }: { title: string; options: ActivityItem[]; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean; canBulkDecline?: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set([initiallySelectedEntryId && options.some(option => option.entryId === initiallySelectedEntryId) ? initiallySelectedEntryId : options[0]?.entryId].filter((id): id is string => Boolean(id))));
-  const [bulkPhase, setBulkPhase] = useState<"idle" | "confirm" | "working" | "undo" | "undoing" | "error">("idle");
+  const [bulkPhase, setBulkPhase] = useState<"idle" | "confirm" | "working" | "undo" | "undoing" | "error">(initiallyConfirmDecline && canBulkDecline ? "confirm" : "idle");
   const [bulkMessage, setBulkMessage] = useState("");
   const [bulkOptionIds, setBulkOptionIds] = useState<string[]>([]);
   const [undoUntil, setUndoUntil] = useState<number | null>(null);
@@ -70,7 +70,10 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, c
       setBulkMessage(result.message);
       setUndoUntil(null);
       setBulkPhase(result.status === "succeeded" ? "idle" : "error");
-      if (result.status === "succeeded") router.refresh();
+      if (result.status === "succeeded") {
+        router.replace(`/account/purchase-options/${encodeURIComponent(options[0].slug)}`);
+        router.refresh();
+      }
     } catch {
       setBulkMessage("The connection was interrupted. Check Declined Offers to verify what was restored.");
       setUndoUntil(null);
@@ -82,9 +85,8 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, c
     <div className={styles.railHeading}>
       <h2>Your {count} purchase {count === 1 ? "option" : "options"}</h2>
       <p>Tap any numbered ticket to see its own purchase details. You can open more than one.</p>
-      {canBulkDecline && bulkPhase === "idle" ? <button type="button" className={styles.declineAll} onClick={() => setBulkPhase("confirm")}>Decline all offers</button> : null}
     </div>
-    {bulkPhase === "confirm" ? <div className={styles.bulkPanel} role="group" aria-label="Confirm declining all offers"><strong>Decline all {count} offers for {title}?</strong><p>They will leave your active purchase options. Your original entries and wallet history will not be refunded or removed.</p><div className={styles.bulkButtons}><button type="button" onClick={() => void declineAll()}>Confirm decline all</button><button type="button" onClick={() => setBulkPhase("idle")}>Keep my offers</button></div></div> : null}
+    {bulkPhase === "confirm" ? <div className={styles.bulkPanel} role="group" aria-label="Confirm declining all offers"><strong>Decline all {count} offers for {title}?</strong><p>They will leave your active purchase options. Your original entries and wallet history will not be refunded or removed.</p><div className={styles.bulkButtons}><button type="button" onClick={() => void declineAll()}>Confirm decline all</button><button type="button" onClick={() => { setBulkPhase("idle"); router.replace(`/account/purchase-options/${encodeURIComponent(options[0].slug)}`); }}>Keep my offers</button></div></div> : null}
     {bulkPhase === "working" || bulkPhase === "undo" || bulkPhase === "undoing" || bulkPhase === "error" ? <div className={styles.bulkPanel} role="status"><div className={styles.bulkStatus}><div><strong>{bulkPhase === "working" ? "Declining your offers…" : bulkPhase === "undoing" ? "Restoring your offers…" : bulkPhase === "undo" ? "Offers declined · Undo available" : "Check your offers"}</strong><p>{bulkMessage}</p></div>{bulkPhase === "undo" ? <EntryUndoCountdown seconds={secondsLeft} /> : null}</div>{bulkPhase === "undo" ? <button type="button" className={styles.undoAll} onClick={() => void undoAll()} disabled={secondsLeft === 0}>Undo decline all</button> : null}{bulkPhase === "error" ? <Link href="/account/declined-offers">Check Declined Offers →</Link> : null}</div> : null}
     {bulkPhase === "idle" ? <div className={styles.compactTickets} aria-label="Choose purchase options">
       {options.map((option, index) => {

@@ -17,17 +17,19 @@
 .heroCopy h2 { margin: 0; font-size: clamp(24px, 2.7vw, 35px); line-height: 1.09; letter-spacing: -.035em; }
 .status { display: inline-flex; margin-top: 10px; border-radius: 8px; background: #ffac57; padding: 5px 11px; color: #34200c; font-size: 12px; font-weight: 900; text-transform: uppercase; }
 .heroNote { margin: 14px 0 0; color: #4d6179; font-size: 14px; line-height: 1.45; }
-.heroCountRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 14px; }
+.heroActionRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 18px; margin-top: 14px; }
+.heroCountRow { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 8px; }
 .heroCountRow p { margin: 0; color: #334f6c; font-size: 14px; font-weight: 750; }
 .heroCount { display: inline-flex; align-items: center; gap: 9px; border-radius: 11px; background: #ffe6c9; padding: 5px 13px 5px 5px; color: #10234a; font-size: 13px; font-weight: 900; text-decoration: none; }
 .heroCount:hover { background: #ffd4a8; }
 .heroCount:focus-visible { outline: 3px solid #16baff; outline-offset: 3px; }
+.heroDeclineAll { display: inline-flex; min-height: 38px; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: 8px; background: #a9430a; padding: 8px 13px; color: #fff; font-size: 13px; font-weight: 900; text-align: center; text-decoration: none; }
+.heroDeclineAll:hover { background: #762f06; }
+.heroDeclineAll:focus-visible { outline: 3px solid #16baff; outline-offset: 3px; }
 .heroCircle, .numberCircle { display: grid; width: 35px; height: 35px; flex: none; place-items: center; border-radius: 50%; background: #fff; color: #ad4408; font-size: 19px; font-weight: 950; font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px #8b3a1c24; }
 .rail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: 12px 20px; align-items: center; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #ff992f; padding: 24px 36px; color: #10234a; scroll-margin-top: 126px; }
 .railHeading h2 { margin: 0; font-size: 20px; line-height: 1.2; }
 .railHeading p { margin: 6px 0 0; font-size: 13px; line-height: 1.4; }
-.declineAll { min-height: 38px; margin-top: 14px; border: 0; border-radius: 8px; background: #a9430a; padding: 8px 13px; color: #fff; font-size: 13px; font-weight: 900; cursor: pointer; }
-.declineAll:hover { background: #762f06; }
 .bulkPanel { display: grid; gap: 10px; align-self: stretch; border-radius: 12px; background: #ff6a00; padding: 16px; color: #00132e; }
 .bulkPanel strong { font-size: 16px; font-weight: 900; }
 .bulkPanel p { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
@@ -38,7 +40,7 @@
 .bulkButtons button:last-child { background: #fff3e8; }
 .undoAll { width: 100%; background: #bcecff; }
 .bulkStatus { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.declineAll:focus-visible, .bulkButtons button:focus-visible, .undoAll:focus-visible { outline: 3px solid #0b376a; outline-offset: 3px; }
+.bulkButtons button:focus-visible, .undoAll:focus-visible { outline: 3px solid #0b376a; outline-offset: 3px; }
 .compactTickets { display: flex; min-height: 78px; flex-wrap: wrap; align-items: center; gap: 8px; border-radius: 14px; background: #fff0de; padding: 10px; }
 .compactTicket { --ticket-side-notch: 5px; --ticket-corner-notch: 7px; display: flex; width: 48px; height: 40px; flex: 0 0 48px; align-items: center; flex-direction: column; justify-content: center; border: 0; background: #a9430a; color: #fff; line-height: 1; cursor: pointer; }
 .compactTicket:hover { background: #762f06; }
@@ -67,5 +69,5 @@
 .explanation p:last-child { margin: 0; color: #526e8a; line-height: 1.5; }
 .shopping:focus-visible, .return:focus-visible, .close:focus-visible, .compactTicket:focus-visible, .reviewOption:focus-visible { outline: 3px solid #16baff; outline-offset: 3px; }
 @media (max-width: 800px) { .topline { align-items: start; flex-direction: column; } .hero { grid-template-columns: 140px minmax(0, 1fr); } .optionList { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .topActions { width: 100%; flex-wrap: wrap; } .shopping, .return { flex: 1 1 auto; } .hero { grid-template-columns: 90px minmax(0, 1fr); gap: 14px; min-height: 190px; padding: 20px 19px; } .heroImage { height: 100px; } .heroCopy h2 { font-size: 21px; } .heroNote { font-size: 12px; } .heroCountRow p { font-size: 12px; } .rail { grid-template-columns: 1fr; padding: 20px; } .optionList { grid-column: 1; padding: 8px; } .optionTicket { grid-template-columns: 75px minmax(0, 1fr); gap: 8px; padding: 18px 16px; } .optionImage { min-height: 84px; } .optionMath, .optionMeta { font-size: 11px; } .reviewOption { font-size: 11px; } .explanation { padding: 24px; } }
+@media (max-width: 600px) { .topActions { width: 100%; flex-wrap: wrap; } .shopping, .return { flex: 1 1 auto; } .hero { grid-template-columns: 90px minmax(0, 1fr); gap: 14px; min-height: 190px; padding: 20px 19px; } .heroImage { height: 100px; } .heroCopy h2 { font-size: 21px; } .heroNote { font-size: 12px; } .heroActionRow { grid-template-columns: 1fr; } .heroCountRow p { font-size: 12px; } .heroDeclineAll { justify-self: start; } .rail { grid-template-columns: 1fr; padding: 20px; } .optionList { grid-column: 1; padding: 8px; } .optionTicket { grid-template-columns: 75px minmax(0, 1fr); gap: 8px; padding: 18px 16px; } .optionImage { min-height: 84px; } .optionMath, .optionMeta { font-size: 11px; } .reviewOption { font-size: 11px; } .explanation { padding: 24px; } }
 @media (max-width: 380px) { .optionTicket { grid-template-columns: 68px minmax(0, 1fr); padding: 16px 14px; } .optionImage { height: 94px; min-height: 0; align-self: start; } .optionHeading { align-items: flex-start; flex-direction: column; gap: 4px; } .numberCircle { width: 31px; height: 31px; font-size: 16px; } .optionHeading h3 { font-size: 14px; } }
