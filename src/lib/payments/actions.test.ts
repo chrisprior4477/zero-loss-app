@@ -59,7 +59,7 @@ test("confirmed credit redirects on the server to the same product and quantity"
   const f = form(); f.set("returnTo", "/items/samsung-m70h-tv?quantity=4#enter-entry");
   await completeDemoFunding({ status: "idle" }, f);
   expect(mocks.rpc.mock.calls.at(-1)?.[0]).toBe("accept_demo_payment_event");
-  expect(mocks.redirect).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=4#enter-entry");
+  expect(mocks.redirect).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=4&funded=1#enter-entry");
 });
 test("confirmed credit redirects to the exact saved purchase option", async () => {
   const destination = "/account/entries?item=babys-essentials-bundle&entry=ent_11111111111111111111111111111111";

@@ -11,6 +11,7 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { demoCardFixture } from "./demo-card";
 import { confirmDemoFunding } from "./funding-authorization";
 import { entryReturnPath } from "@/lib/auth/entry-return";
+import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { redirect } from "next/navigation";
 
@@ -46,7 +47,7 @@ function updateWalletViews() { revalidatePath("/", "layout"); }
 
 function fundingContinuation(value: unknown): string | null {
   const product = entryReturnPath(value);
-  if (product) return product;
+  if (product) return fundedProductEntryHref(product);
   const account = accountReturnPath(value);
   return account?.startsWith("/account/entries?item=") ? account : null;
 }

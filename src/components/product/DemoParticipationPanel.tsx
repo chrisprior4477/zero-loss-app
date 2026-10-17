@@ -15,6 +15,7 @@ import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_
 import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { clearEntryIntent, productEntryHref, saveEntryIntent } from "@/lib/entries/return-intent";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
+import entryActionStyles from "./entry-action.module.css";
 
 type Props = {
   productSlug: string;
@@ -33,6 +34,7 @@ type Props = {
   isDemoWallet?: boolean;
   isPreviewExperience?: boolean;
   isSignedIn?: boolean;
+  highlightAfterFunding?: boolean;
   extraEntryExplainerAcknowledged?: boolean;
   signedOutCompact?: boolean;
 };
@@ -54,6 +56,7 @@ export function DemoParticipationPanel({
   isDemoWallet = false,
   isPreviewExperience = false,
   isSignedIn = false,
+  highlightAfterFunding = false,
   extraEntryExplainerAcknowledged = false,
   signedOutCompact = false,
 }: Props) {
@@ -101,6 +104,8 @@ export function DemoParticipationPanel({
   const totalCents = quantity * Math.round(entryPrice * 100);
   const total = totalCents / 100;
   const knownBalance = typeof balanceCents === "number" && Number.isSafeInteger(balanceCents) ? balanceCents : null;
+  const showFundingSweep = highlightAfterFunding && isDemoWallet && isSignedIn && requestHead.ready
+    && availabilityConfirmed && remaining > 0 && knownBalance !== null && knownBalance >= totalCents;
   const serverBalanceError = state.status === "error" && state.code === "insufficient_balance";
   const showBalanceNotice = balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state);
   const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity))}`;
@@ -306,11 +311,11 @@ export function DemoParticipationPanel({
           <span>Separate chances. Nothing is entered until you press Enter for ${(selectedTicketsToast * entryPrice).toFixed(2)}.</span>
         </div> : null}
         <fieldset disabled={uncertain} data-testid="entry-quantity-ticket" className={quantityTicketStyles.ticket}>
-          <p className={quantityTicketStyles.label}>Want to add extra entries?<span className={quantityTicketStyles.hint}>Click + to add one.</span></p>
+          <p className={quantityTicketStyles.label}>Add extra entries</p>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
             <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
-            <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#56ff3b] bg-[#123e27] text-xl font-black text-[#67ff42] shadow-[0_0_12px_rgba(81,255,59,.85),inset_0_0_12px_rgba(81,255,59,.2)] transition hover:bg-[#1b5834] hover:shadow-[0_0_18px_rgba(81,255,59,1),inset_0_0_14px_rgba(81,255,59,.28)] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
+            <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#29ed14] bg-[#43f027] text-xl font-black text-[#002719] shadow-[0_0_15px_rgba(67,240,39,.72)] transition hover:bg-[#6aff50] hover:shadow-[0_0_22px_rgba(81,255,59,.95)] disabled:cursor-not-allowed disabled:border-[#91b2cf] disabled:bg-[#d9e9f5] disabled:text-[#7794ac] disabled:shadow-none" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
           </div>
         </fieldset>
       </div>
@@ -369,8 +374,8 @@ export function DemoParticipationPanel({
           <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? requestHead.requestId ?? "" : requestHead.requestId ?? ""} />
           <input type="hidden" name="quantity" value={quantity} />
           <input ref={shareChoiceRef} type="hidden" name="shareWithCrew" value="no" />
-          <button type="submit" disabled={entryBusy || !requestHead.ready} className="mt-3 min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60">
-            {pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}
+          <button type="submit" disabled={entryBusy || !requestHead.ready} data-funding-cue={showFundingSweep && !entryBusy ? "light-sweep" : undefined} className={`mt-3 min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200 disabled:cursor-wait disabled:opacity-60 ${showFundingSweep && !entryBusy ? entryActionStyles.fundingSweep : ""}`}>
+            <span className={showFundingSweep ? entryActionStyles.buttonLabel : undefined}>{pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}</span>
           </button>
         </form>
       ) : (

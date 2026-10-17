@@ -52,8 +52,8 @@ test("successful funding automatically returns to the selected product and quant
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
-  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=4#enter-entry"));
-  expect(screen.getByRole("link", { name: "Continue your entry" }).getAttribute("href")).toBe("/items/samsung-m70h-tv?quantity=4#enter-entry");
+  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=4&funded=1#enter-entry"));
+  expect(screen.getByRole("link", { name: "Continue your entry" }).getAttribute("href")).toBe("/items/samsung-m70h-tv?quantity=4&funded=1#enter-entry");
   expect(screen.getByRole("button", { name: "Add more funds" })).toBeTruthy();
 });
 test("successful funding returns to the exact purchase option that needed more balance", async () => {
@@ -86,7 +86,7 @@ test("a reconciled deposit also returns to the selected product", async () => {
     { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", idempotencyKey: "pending_request_key_01", reconciliation: "credit_pending" },
   ]} />);
   fireEvent.click(screen.getByRole("button", { name: "Finish / check" }));
-  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv#enter-entry"));
+  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv?funded=1#enter-entry"));
 });
 
 test("archived demo deposits are hidden by default but can still be reviewed", () => {

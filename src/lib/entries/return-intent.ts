@@ -15,6 +15,13 @@ export function productEntryHref(slug: string, quantity = 1): string {
   return `/items/${slug}${selected > 1 ? `?quantity=${selected}` : ""}#enter-entry`;
 }
 
+/** Mark a successful demo-funding return so the entry button can give a one-time cue. */
+export function fundedProductEntryHref(href: string): string {
+  if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?quantity=(?:[1-9]|10))?#enter-entry$/.test(href)) return href;
+  const [path, hash] = href.split("#");
+  return `${path}${path.includes("?") ? "&" : "?"}funded=1#${hash}`;
+}
+
 /** Keep a shopper on the same prize when they sign out from its page. */
 export function currentProductEntryHref(pathname: string, search: string, intent: EntryIntent | null): string | null {
   const match = /^\/items\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(pathname);

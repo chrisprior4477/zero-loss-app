@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { clearEntryIntent, currentProductEntryHref, parseEntryQuantity, productEntryHref, readEntryIntent, saveEntryIntent } from "./return-intent";
+import { clearEntryIntent, currentProductEntryHref, fundedProductEntryHref, parseEntryQuantity, productEntryHref, readEntryIntent, saveEntryIntent } from "./return-intent";
 
 afterEach(() => { sessionStorage.clear(); vi.restoreAllMocks(); });
 
@@ -12,6 +12,13 @@ test("a product return carries only a bounded ticket count to the entry section"
   expect(parseEntryQuantity("0")).toBeNull();
   expect(parseEntryQuantity("11")).toBeNull();
   expect(parseEntryQuantity(["2", "3"])).toBeNull();
+});
+
+test("only a valid prize return gets the after-funding cue", () => {
+  expect(fundedProductEntryHref("/items/amazon-75-gift-card#enter-entry")).toBe("/items/amazon-75-gift-card?funded=1#enter-entry");
+  expect(fundedProductEntryHref("/items/amazon-75-gift-card?quantity=4#enter-entry")).toBe("/items/amazon-75-gift-card?quantity=4&funded=1#enter-entry");
+  expect(fundedProductEntryHref("/account/entries?item=amazon-75-gift-card")).toBe("/account/entries?item=amazon-75-gift-card");
+  expect(fundedProductEntryHref("https://example.test/items/amazon-75-gift-card#enter-entry")).toBe("https://example.test/items/amazon-75-gift-card#enter-entry");
 });
 
 test("signing out on a product keeps that product and its selected quantity", () => {

@@ -16,7 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 
-type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ quantity?: string | string[]; from?: string | string[] }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ quantity?: string | string[]; from?: string | string[]; funded?: string | string[] }> };
 
 export function generateStaticParams() {
   return demoProducts.map((product) => ({ id: product.slug }));
@@ -53,7 +53,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
       <Link href={declinedOutcome ? "/account/declined-offers" : "/account/entries"} className="mt-4 inline-flex min-h-10 max-w-full items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 py-2 text-center text-sm font-extrabold leading-5 text-[#00132e]"><span>See if you won or if you have a purchase option</span><span aria-hidden="true">→</span></Link>
     </section>
   ) : (
-    <DemoParticipationPanel key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
+    <DemoParticipationPanel key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
   );
   const productDetails = (
     <section className="rounded-3xl border border-white/12 bg-white/5 p-5 sm:p-8">

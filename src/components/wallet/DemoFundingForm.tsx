@@ -9,6 +9,7 @@ import { saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken } from "@/lib/payments/demo-card";
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
+import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 
 type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" };
 const noRequests: DemoFundingRequest[] = [];
@@ -19,7 +20,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof completeDemoFunding>>, form: FormData) => {
     const result = await completeDemoFunding(previous, form);
     // Navigate before revalidation can replace this funding form with fresh wallet data.
-    if (result.status === "succeeded" && continueTo?.href) router.replace(continueTo.href);
+    if (result.status === "succeeded" && continueTo?.href) router.replace(fundedProductEntryHref(continueTo.href));
     return result;
   }, { status: "idle" });
   const [amount, setAmount] = useState(initialAmount);
@@ -78,7 +79,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   useEffect(() => {
     if (state.status === "already_credited" || (state.status === "succeeded" && !continueTo?.href)) onSuccess(state.message);
   }, [state, continueTo?.href, onSuccess]);
-  if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo && state.status === "succeeded" ? <Link href={continueTo.href} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
+  if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo && state.status === "succeeded" ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
   return <form action={action} onSubmit={() => {
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
     onStart();
@@ -206,7 +207,7 @@ function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: Cont
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof reconcileDemoFunding>>, form: FormData) => {
     const result = await reconcileDemoFunding(previous, form);
-    if (result.status === "succeeded" && continueTo?.href) router.replace(continueTo.href);
+    if (result.status === "succeeded" && continueTo?.href) router.replace(fundedProductEntryHref(continueTo.href));
     return result;
   }, { status: "idle" });
   return <form action={action} className="mt-2">

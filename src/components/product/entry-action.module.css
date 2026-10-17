@@ -1,0 +1,34 @@
+.fundingSweep {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.fundingSweep::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -25%;
+  bottom: -25%;
+  left: -34%;
+  width: 24%;
+  transform: skewX(-22deg);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 62%), transparent);
+  pointer-events: none;
+  animation: funding-light-sweep 1.9s ease-in-out 0.25s 2 both;
+}
+
+.buttonLabel {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes funding-light-sweep {
+  0%, 18% { left: -34%; }
+  55%, 100% { left: 120%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fundingSweep::after { animation: none; opacity: 0; }
+  .fundingSweep { outline: 3px solid #a9f3ff; outline-offset: 2px; }
+}
