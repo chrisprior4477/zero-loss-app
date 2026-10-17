@@ -17,17 +17,18 @@ type GalleryGroup = { key: string; entries: ActivityItem[] };
 
 function groupGalleryEntries(items: ActivityItem[]): GalleryGroup[] {
   const groups: GalleryGroup[] = [];
-  const openGroups = new Map<string, GalleryGroup>();
+  const groupedOptions = new Map<string, GalleryGroup>();
   for (const item of items) {
-    // Only combine open entries for the same prize. Outcomes and purchase options
-    // can differ per entry and must keep their own tickets.
-    const key = item.status === "active" && item.entryId ? `active:${item.slug}` : `entry:${item.entryId ?? item.slug}:${groups.length}`;
-    const existing = item.status === "active" && item.entryId ? openGroups.get(key) : undefined;
+    // The gallery combines like products, but every underlying entry and
+    // purchase option keeps its own record and next step on the detail page.
+    const canGroup = (item.status === "active" || item.status === "completion") && Boolean(item.entryId);
+    const key = canGroup ? `${item.status}:${item.slug}` : `entry:${item.entryId ?? item.slug}:${groups.length}`;
+    const existing = canGroup ? groupedOptions.get(key) : undefined;
     if (existing) existing.entries.push(item);
     else {
       const group = { key, entries: [item] };
       groups.push(group);
-      if (item.status === "active" && item.entryId) openGroups.set(key, group);
+      if (canGroup) groupedOptions.set(key, group);
     }
   }
   return groups;
@@ -202,6 +203,8 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
         const enteredCents = item.status === "active"
           ? group.entries.reduce((total, entry) => total + entry.paidCents, 0)
           : item.paidCents;
+        const purchaseOption = item.status === "completion" && group.entries.every(entry => entry.entryId);
+        const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}` : activityHref(item, "/account/entries", filter);
         const featured = item.status === "prize" && index === 0;
         const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
         const isRecent = recentEntry?.slug === item.slug && (!recentEntry.entryId || recentEntry.entryId === item.entryId);
@@ -217,7 +220,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={group.key} className={styles.galleryItem} style={placement}>
-          <Link href={activityHref(item, "/account/entries", filter)} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : undefined} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-purchase-completed={purchasedReward ? "true" : undefined} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
+          <Link href={cardHref} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : purchaseOption ? `See My ${group.entries.length} Purchase ${group.entries.length === 1 ? "Option" : "Options"} for ${item.title}` : undefined} draggable={false} onClickCapture={onlyOpenFromAction} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-purchase-completed={purchasedReward ? "true" : undefined} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>
@@ -227,12 +230,14 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
                 {viewedEntry === item.entryId || isRecent ? <span className={styles.newEntryLabel} aria-label={viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}><span className={styles.newEntryLong}>{viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}</span><span className={styles.newEntryShort}>{viewedEntry === item.entryId ? "Viewing" : "New"}</span></span> : null}
               </div>
               <div className={styles.cardFoot}>
-                <div className={styles.noteStack}><p className={styles.productNote}>{item.status === "completion"
-                  ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
+                <div className={styles.noteStack}><p className={styles.productNote}>{purchaseOption
+                  ? <>{group.entries.length > 1 ? `${group.entries.length} separate options · ` : ""}{formatUsdFromCents(item.paidCents)} applied to each</>
+                  : item.status === "completion" ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? <><span><strong>{formatUsdFromCents(enteredCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left<span className={styles.forPrize}> for prize</span></>) : "Still in play"}</span></>
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? "Your purchased reward is ready." : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p></div>
                 <span className={styles.cardAction} data-activity-click>{item.status === "active"
                   ? <><span>See My</span><span className={styles.entryActionTicket} aria-hidden="true">{group.entries.length}</span><span className={styles.srOnly}>{group.entries.length}</span><span>{group.entries.length === 1 ? "Entry" : "Entries"}</span></>
+                  : purchaseOption ? <><span>See My</span><span className={styles.optionActionCount} aria-hidden="true">{group.entries.length}</span><span>{group.entries.length === 1 ? "Purchase Option" : "Purchase Options"}</span><AccountIcon name="arrow" /></>
                   : <>{action(item)}<AccountIcon name="arrow" /></>}</span>
               </div>
             </div>

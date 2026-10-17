@@ -221,16 +221,30 @@ test("open entry details reuse the same live count and explain outcomes", () => 
   expect(within(dialog).getByText(/win or no win/)).toBeTruthy();
   expect(within(dialog).getByRole("checkbox", { name: /Email me when any of my entry outcomes posts/ })).toBeTruthy();
 });
-test("available and revived non-winner options say Continue with Purchase without changing their destination", () => {
+test("available and revived non-winner options lead to their grouped purchase page", () => {
   const state = storedActivityFixture();
   const item = { ...state.activity[3], entryId: "entry-revived", completionOptionStatus: "available" as const };
   state.activity = [item];
   render(<MyZeroLossActivity state={state} filter="completion" />);
   const card = within(screen.getByRole("region", { name: "Your products" })).getByRole("link", { name: /Baby's Essentials Bundle/ });
-  expect(within(card).getByText("Continue with Purchase")).toBeTruthy();
-  expect(card.getAttribute("href")).toBe("/account/entries?item=babys-essentials-bundle&entry=entry-revived&filter=completion");
+  expect(within(card).getByText("Purchase Option")).toBeTruthy();
+  expect(card.getAttribute("href")).toBe("/account/purchase-options/babys-essentials-bundle");
   expect(activityPresentation(item).action).toBe("Continue with Purchase");
   expect(buildAccountNotifications(state, null, true).find(notification => notification.category === "action")?.action).toBe("Continue with Purchase");
+});
+
+test("ten purchase options for one product consolidate without combining their individual credits", () => {
+  const state = storedActivityFixture();
+  const base = { ...state.activity[2], completionOptionStatus: "available" as const };
+  state.activity = Array.from({ length: 10 }, (_, index) => ({ ...base, entryId: `ent_${String(index + 1).padStart(32, "0")}`, completionOptionId: `option-${index + 1}` }));
+  render(<MyZeroLossActivity state={state} filter="completion" />);
+  const gallery = screen.getByRole("region", { name: "Your products" });
+  const card = within(gallery).getByRole("link", { name: /See My 10 Purchase Options for Nike/ });
+  expect(within(gallery).getAllByRole("link")).toHaveLength(1);
+  expect(card.getAttribute("href")).toBe("/account/purchase-options/nike-court-shot-shoes");
+  expect(within(card).getByText("10", { selector: "[class*='optionActionCount']" })).toBeTruthy();
+  expect(within(card).getByText(/10 separate options/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Purchase Options10" })).toBeTruthy();
 });
 
 test("completion displays exact product math and stays unavailable without a stored option id", () => {
@@ -251,7 +265,7 @@ test("prize action respects reward format and old URLs redirect straight to the 
   expect(() => ActivitySelection({ state: storedActivityFixture(), selectedSlug: prize.slug, destination: "/account" })).toThrow("redirect:/account/wallet?reward=samsung-m70h-tv");
 });
 
-test("separate options for one product open by entry ID, while ambiguous old links fail closed", () => {
+test("grouped options still open the exact entry by ID, while ambiguous old links fail closed", () => {
   const state = storedActivityFixture();
   const first = state.activity[2];
   first.entryId = "entry-one";
@@ -259,10 +273,7 @@ test("separate options for one product open by entry ID, while ambiguous old lin
   state.activity.push(second);
   const { rerender } = render(<MyZeroLossActivity state={state} filter="completion" selectedSlug={first.slug} selectedEntryId="entry-two" />);
   const cards = screen.getAllByRole("link", { name: /Nike Men's Court Shot Shoes/ });
-  expect(cards.map(card => card.getAttribute("href"))).toEqual([
-    "/account/entries?item=nike-court-shot-shoes&entry=entry-one&filter=completion",
-    "/account/entries?item=nike-court-shot-shoes&entry=entry-two&filter=completion",
-  ]);
+  expect(cards.map(card => card.getAttribute("href"))).toEqual(["/account/purchase-options/nike-court-shot-shoes"]);
   expect(within(screen.getByRole("dialog")).getByText("$73")).toBeTruthy();
   rerender(<MyZeroLossActivity state={state} filter="completion" selectedSlug={first.slug} />);
   expect(screen.queryByRole("dialog")).toBeNull();
