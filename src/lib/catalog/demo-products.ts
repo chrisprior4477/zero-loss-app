@@ -399,7 +399,7 @@ export const demoProducts: DemoProduct[] = [
     retailer: "Lowe's",
     category: "Home Essentials",
     value: 150,
-    entryPrice: 2,
+    entryPrice: 1,
     capacity: 450,
     sold: 440,
     summary: "A $150 Lowe's gift card that can be applied toward eligible home-improvement, appliance, tool, lawn, and garden purchases.",

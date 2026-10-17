@@ -137,7 +137,7 @@ export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
     title: "$150 Lowe's Appliance Gift Card",
     category: "Home Essentials",
     faceValueLabel: "$150",
-    entryPriceLabel: "$2 Entry",
+    entryPriceLabel: "$1 Entry",
     ticketCapacity: 450,
     ticketsSold: 440,
     status: "popular",
