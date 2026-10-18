@@ -242,6 +242,7 @@
 }
 @media (max-width: 700px) {
   .transactions, .fundingRequests { scroll-margin-top: 180px; }
+  .demoCardsPanel, .fundingAmountSection { scroll-margin-top: 185px; }
   .fundingAmounts { grid-template-columns: 1fr; gap: 14px; }
   .showAllTicket { --corner-scoop: 15px; --side-scoop: 10px; min-height: 62px; padding-inline: 25px; font-size: 14px; }
   .fundingForm .confirmationTicket { --corner-scoop: 15px; --side-scoop: 10px; }
