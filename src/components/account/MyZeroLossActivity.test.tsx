@@ -258,6 +258,15 @@ test("closing an individual purchase review returns to its grouped options", () 
   expect(replace).toHaveBeenCalledWith("/account/purchase-options/nike-court-shot-shoes?option=entry-one#purchase-option-rail", { scroll: true });
 });
 
+test("returning from Add funds opens the saved option at its purchase confirmation", () => {
+  const state = storedActivityFixture();
+  const option = { ...state.activity[2], entryId: "entry-one", completionOptionId: "11111111-1111-4111-8111-111111111111" };
+  state.activity = [option];
+  render(<MyZeroLossActivity state={state} filter="completion" selectedSlug={option.slug} selectedEntryId={option.entryId} resumePurchase />);
+  expect(within(screen.getByRole("dialog")).getByRole("heading", { name: "Confirm your purchase" })).toBeTruthy();
+  expect(within(screen.getByRole("dialog")).getByRole("button", { name: /Confirm .* purchase/ })).toBeTruthy();
+});
+
 test("completion displays exact product math and stays unavailable without a stored option id", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="completion" selectedSlug="babys-essentials-bundle" />);
   expect(screen.getByText("$100")).toBeTruthy();
