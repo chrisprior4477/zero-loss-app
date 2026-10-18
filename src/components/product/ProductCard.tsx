@@ -37,7 +37,7 @@ const STATUS_STYLE: Record<
 
 export function ProductCard({ opportunity, href = "/browse" }: ProductCardProps) {
   const progress = availabilityStatus(opportunity.ticketCapacity, opportunity.ticketsSold);
-  const status = opportunity.status === "closing" ? { background: progress.color, color: "#00132e" } : STATUS_STYLE[opportunity.status];
+  const status = opportunity.status === "closing" ? { background: progress.color, color: progress.almostFull ? "#fff" : "#00132e" } : STATUS_STYLE[opportunity.status];
 
   return (
     <article className="h-full">

@@ -152,6 +152,8 @@ test("product urgency follows counts and identifies a full pool", () => {
   const { rerender } = render(<DemoParticipationPanel {...props} sold={7} capacity={20} />);
   expect(screen.getByText(/35% full/)).toBeTruthy();
   expect(screen.queryByText(/Ending soon/i)).toBeNull();
+  rerender(<DemoParticipationPanel {...props} sold={19} capacity={20} />);
+  expect(screen.getByText("Almost full").parentElement?.style.color).toBe("rgb(255, 255, 255)");
   rerender(<DemoParticipationPanel {...props} sold={20} capacity={20} />);
   expect(screen.getByText(/Pool full/)).toBeTruthy();
   expect(screen.getByText(/No entries left/)).toBeTruthy();

@@ -297,7 +297,7 @@ export function DemoParticipationPanel({
         <div>
           <p className="text-3xl font-extrabold leading-none">${entryPrice.toFixed(2)} <span className="text-sm font-bold text-white/80">per entry</span></p>
         </div>
-        <span className="flex min-h-12 min-w-24 shrink-0 flex-col items-center justify-center rounded-xl px-3 py-1.5 text-center text-xs font-extrabold leading-4 text-[#00132e] sm:min-w-28" style={{ backgroundColor: availabilityConfirmed ? availability.color : "#8ba5bd" }}>
+        <span className="flex min-h-12 min-w-24 shrink-0 flex-col items-center justify-center rounded-xl px-3 py-1.5 text-center text-xs font-extrabold leading-4 sm:min-w-28" style={{ backgroundColor: availabilityConfirmed ? availability.color : "#8ba5bd", color: availabilityConfirmed && availability.almostFull ? "#fff" : "#00132e" }}>
           {availabilityConfirmed ? <><span>{availability.label}</span><span>{remaining === 0 ? "No entries left" : `${remaining.toLocaleString()} left`}</span></> : "Availability unverified"}
         </span>
       </div>
