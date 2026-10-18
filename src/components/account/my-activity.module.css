@@ -276,7 +276,9 @@
   .galleryActions { width: 100%; flex-wrap: wrap; justify-content: flex-end; gap: 12px; }
   .carouselButtons { gap: 7px; }
   .arrowButton { width: 36px; height: 36px; }
-  .empty { --ticket-side-notch: 10px; --ticket-corner-notch: 13px; padding: 28px 26px; }
+  .empty { --ticket-side-notch: 10px; --ticket-corner-notch: 13px; padding: 22px; }
+  .empty h2 { font-size: 18px; line-height: 1.2; }
+  .empty a { margin-top: 12px; }
   .productCard { --ticket-side-notch: 8px; --ticket-corner-notch: 10px; }
   .cardChevron { top: 22%; right: 11px; width: 8px; height: 8px; }
   .productCard[data-has-progress="true"] .cardChevron { top: 58%; }

@@ -106,9 +106,28 @@ test("the saved-entry action count updates when confirmed entries are added", ()
 
 test("normal empty state cannot expose a fixture by selected slug or filter", () => {
   render(<MyZeroLossActivity state={drawerState(true)} filter="all" selectedSlug="nike-court-shot-shoes" />);
-  expect(screen.getByText("Your next choice starts here")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Unfortunately, you don't have any activity yet." })).toBeTruthy();
   expect(screen.queryByText("Nike Men's Court Shot Shoes")).toBeNull();
   expect(screen.queryByRole("dialog")).toBeNull();
+});
+test.each([
+  ["all", "Unfortunately, you don't have any activity yet.", "Your entries, rewards, and purchase options will appear here."],
+  ["active", "Unfortunately, you don't have any open entries yet.", "Your entries will appear here once you enter a reward."],
+  ["prize", "Unfortunately, you haven't won anything yet.", "We will notify you when you do."],
+  ["completion", "Unfortunately, you don't have any purchase options yet.", "We will notify you if one becomes available."],
+  ["completed", "Unfortunately, you don't have any completed activity yet.", "Your completed rewards and purchases will appear here."],
+] as const)("%s empty filter has its own message", (filter, title, detail) => {
+  render(<MyZeroLossActivity state={drawerState(true)} filter={filter} />);
+  expect(screen.getByRole("heading", { name: title })).toBeTruthy();
+  expect(screen.getByText(detail)).toBeTruthy();
+  expect(screen.queryByRole("link", { name: /See my other activity/ })).toBeNull();
+});
+test("empty category links clearly to the rest of the saved activity", () => {
+  const state = storedActivityFixture();
+  state.activity = [state.activity[0]];
+  render(<MyZeroLossActivity state={state} filter="completion" />);
+  expect(screen.getByRole("heading", { name: "Unfortunately, you don't have any purchase options yet." })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /See my other activity/ }).getAttribute("href")).toBe("/account/entries");
 });
 test("a saved pending request is visible without counting it as a confirmed entry", () => {
   const pending = { requestId: "41414141-4141-4141-8141-414141414141", slug: "best-buy-100-gift-card", title: "$100 Best Buy Gift Card",
@@ -149,7 +168,7 @@ test("an account with only declined offers has no My Activity cards", () => {
   state.activity = [{ ...state.activity[2], status: "completed", completionOptionStatus: "declined" }];
   render(<MyZeroLossActivity state={state} filter="all" />);
   expect(screen.getByRole("link", { name: "All0" })).toBeTruthy();
-  expect(screen.getByText("Your next choice starts here")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Unfortunately, you don't have any activity yet." })).toBeTruthy();
   expect(screen.queryByRole("link", { name: /Nike Men's Court Shot Shoes/ })).toBeNull();
 });
 test("entry reset control appears only when explicitly enabled for a demo account", () => {
