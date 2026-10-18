@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryPageActions } from "@/components/account/EntryPageActions";
+import { EntryCountShortcut } from "@/components/account/EntryCountShortcut";
 import { EntryTicketRail } from "@/components/account/EntryTicketRail";
 import { PrizeNumberCopy } from "@/components/account/PrizeNumberCopy";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
@@ -84,7 +85,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <h2>{item.title}</h2>
           <span className={styles.status}>◷ No winners yet. We will notify you when the pool is complete.</span>
           <dl className={styles.entryIdentity}>
-            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><Link href={`/account/entries/${encodeURIComponent(entryId)}?entries=first#saved-entry-rail`} className={styles.entryCountBadge} aria-label={`See my ${entryCount} ${entryCount === 1 ? "entry" : "entries"}`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{`See my ${entryCount} ${entryCount === 1 ? "entry" : "entries"}`}</span></Link></dd></div>
+            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><EntryCountShortcut count={entryCount} /></dd></div>
             <div><dt>Prize number</dt><PrizeNumberCopy number={prizeNumberForSlug(item.slug)} /></div>
           </dl>
         </div>
