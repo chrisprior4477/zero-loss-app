@@ -267,6 +267,26 @@ test("returning from Add funds opens the saved option at its purchase confirmati
   expect(within(screen.getByRole("dialog")).getByRole("button", { name: /Confirm .* purchase/ })).toBeTruthy();
 });
 
+test("a small phone opens purchase details at the price and next action", () => {
+  const state = storedActivityFixture();
+  const option = { ...state.activity[2], entryId: "entry-one", completionOptionId: "11111111-1111-4111-8111-111111111111" };
+  state.activity = [option];
+  const originalScroll = HTMLElement.prototype.scrollIntoView;
+  const scroll = vi.fn();
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: scroll });
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  const frame = vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { callback(0); return 1; });
+  try {
+    render(<MyZeroLossActivity state={state} filter="completion" selectedSlug={option.slug} selectedEntryId={option.entryId} />);
+    expect(scroll.mock.contexts.some(element => element instanceof HTMLElement && element.className.includes("purchaseSummary"))).toBe(true);
+    expect(scroll).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
+  } finally {
+    frame.mockRestore();
+    vi.unstubAllGlobals();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: originalScroll });
+  }
+});
+
 test("completion displays exact product math and stays unavailable without a stored option id", () => {
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="completion" selectedSlug="babys-essentials-bundle" />);
   expect(screen.getByText("$100")).toBeTruthy();
