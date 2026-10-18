@@ -44,3 +44,11 @@ test("unconfirmed save response fails closed", async () => {
   const rpc = vi.fn().mockResolvedValue({ data: null });
   await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).savePaymentMethod(false)).rejects.toThrow("Unconfirmed");
 });
+
+test("card removal requires a confirmed database response", async () => {
+  const rpc = vi.fn().mockResolvedValueOnce({ data: true }).mockResolvedValueOnce({ data: null });
+  const provider = new DemoPaymentProvider({ rpc } as unknown as SupabaseClient);
+  await expect(provider.deletePaymentMethod("demo_card_4242")).resolves.toBeUndefined();
+  expect(rpc).toHaveBeenCalledWith("delete_demo_payment_method", { p_payment_method: "demo_card_4242" });
+  await expect(provider.deletePaymentMethod("demo_card_4242")).rejects.toThrow("Unconfirmed payment-method deletion");
+});

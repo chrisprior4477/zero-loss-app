@@ -2,10 +2,9 @@
 import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { completeDemoFunding, reconcileDemoFunding } from "@/lib/payments/actions";
+import { completeDemoFunding, deleteDemoPaymentMethod, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { formatUsdFromCents } from "@/lib/wallet/money";
-import { saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken } from "@/lib/payments/demo-card";
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
@@ -29,24 +28,53 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   const amountIsValid = Number.isSafeInteger(Number(amount)) && Number(amount) >= 100 && Number(amount) <= 50_000;
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
   const [visibleTokens, setVisibleTokens] = useState<DemoCardToken[]>(() => cards.length ? cards.map(card => card.token) : [DEMO_CARD_TOKEN]);
-  const [selectedToken, setSelectedToken] = useState<DemoCardToken>(initialToken ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
+  const [selectedToken, setSelectedToken] = useState<DemoCardToken | null>(initialToken ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
   const [defaultToken, setDefaultToken] = useState<DemoCardToken | null>(() => initialDefault === false ? null : initialDefault === true ? (initialToken ?? cards.find(card => card.isDefault)?.token ?? DEMO_CARD_TOKEN) : cards.find(card => card.isDefault)?.token ?? null);
   const [savingCard, setSavingCard] = useState<DemoCardToken | null>(null);
   const [cardMessage, setCardMessage] = useState("");
-  const makeDefault = initialDefault ?? selectedToken === defaultToken;
+  const [deleteToken, setDeleteToken] = useState<DemoCardToken | null>(null);
+  const [deletingCard, setDeletingCard] = useState(false);
+  const deleteDialog = useRef<HTMLDialogElement>(null);
+  const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
   const policyInput = useRef<HTMLInputElement>(null);
   function clearConfirmation() {
     if (policyInput.current) policyInput.current.checked = false;
   }
   function openConfirmation() {
-    if (!amountIsValid || locked || (cardUnavailable && !recovered) || (blocked && state.status === "idle")) return;
+    if (!amountIsValid || (!recoveryOnly && selectedToken === null) || locked || (cardUnavailable && !recovered) || (blocked && state.status === "idle")) return;
     clearConfirmation();
     confirmation.current?.showModal();
     policyInput.current?.focus();
   }
   const beforePaymentError = state.status === "error" && state.beforePayment === true;
   const locked = pending || (!beforePaymentError && (recovered || state.status !== "idle"));
+  useEffect(() => {
+    if (deleteToken !== null && !deleteDialog.current?.open) deleteDialog.current?.showModal();
+  }, [deleteToken]);
+  function closeDeleteDialog() {
+    deleteDialog.current?.close();
+    setDeleteToken(null);
+  }
+  async function confirmDeleteCard() {
+    if (!deleteToken || deletingCard) return;
+    setDeletingCard(true);
+    try {
+      const result = await deleteDemoPaymentMethod(deleteToken);
+      setCardMessage(result.message);
+      if (result.status === "succeeded") {
+        const remainingVisible = visibleTokens.filter(token => token !== deleteToken);
+        setCards(previous => previous.filter(card => card.token !== deleteToken));
+        setVisibleTokens(remainingVisible);
+        setSelectedToken(current => current === deleteToken ? remainingVisible[0] ?? null : current);
+        setDefaultToken(current => current === deleteToken ? null : current);
+        closeDeleteDialog();
+        router.refresh();
+      }
+    } catch {
+      setCardMessage("Could not confirm the card was removed. Refresh your saved cards before trying again.");
+    } finally { setDeletingCard(false); }
+  }
   async function persistCard(token: DemoCardToken, asDefault: boolean) {
     setSavingCard(token);
     setCardMessage("");
@@ -89,15 +117,18 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     <input type="hidden" name="idempotencyKey" value={requestKey} />
     <input type="hidden" name="amountCents" value={amount} />
     <input type="hidden" name="currency" value="USD" />
-    <input type="hidden" name="paymentMethod" value={recoveryOnly ? "" : selectedToken} />
+    <input type="hidden" name="paymentMethod" value={recoveryOnly ? "" : selectedToken ?? ""} />
     <input type="hidden" name="makeDefault" value={String(makeDefault)} />
     <input type="hidden" name="recoveryOnly" value={String(recoveryOnly)} />
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
-    {!recoveryOnly ? <section aria-label="Add Credit Card" className={styles.demoCardsPanel}>
+    {!recoveryOnly ? <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel}>
       <div className={styles.demoCardsHeading}><div><h3>Add a card</h3><p>Choose a supplied sample card. No real card details are accepted.</p></div>
         <button type="button" disabled={locked || cardUnavailable || visibleTokens.length === DEMO_CARD_FIXTURES.length} onClick={() => {
           const next = DEMO_CARD_FIXTURES.find(card => !visibleTokens.includes(card.token));
-          if (next) setVisibleTokens(current => [...current, next.token]);
+          if (next) {
+            setVisibleTokens(current => [...current, next.token]);
+            setSelectedToken(current => current ?? next.token);
+          }
         }}>+ Add another card</button></div>
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const fixture = demoCardFixture(token)!;
@@ -112,13 +143,23 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
             else { if (saved) void persistCard(token, true); else setDefaultToken(token); }
           }} disabled={locked || cardUnavailable || savingCard !== null} />Use as my default payment method</label>
           {!saved ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : "Save this card"}</button> : null}
+          {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); setDeleteToken(token); }}>Delete Card</button> : null}
         </article>;
       })}</div>
+      {visibleTokens.length === 0 ? <p className={styles.cardMessage}>No card selected. Add a sample card above to continue.</p> : null}
       {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
       {cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       <p className={styles.cardMessage}>Only safe sample-card references are saved. You’ll confirm each deposit separately.</p>
     </section> : null}
-    <div className={styles.fundingAmounts}>
+    {deleteToken ? <dialog ref={deleteDialog} aria-labelledby="delete-demo-card-title" onCancel={event => { event.preventDefault(); if (!deletingCard) closeDeleteDialog(); }} className={styles.deleteCardDialog}>
+      <h2 id="delete-demo-card-title">Delete this card?</h2>
+      <p>Remove test card •••• {demoCardFixture(deleteToken)?.lastFour} from your saved cards? Past deposits and wallet history will stay as they are.</p>
+      {cardMessage ? <p role="alert">{cardMessage}</p> : null}
+      <div className={styles.deleteCardActions}><button type="button" disabled={deletingCard} onClick={closeDeleteDialog}>Keep Card</button><button type="button" disabled={deletingCard} onClick={() => void confirmDeleteCard()}>{deletingCard ? "Removing…" : "Delete Card"}</button></div>
+    </dialog> : null}
+    <div id="add-funds" className={styles.fundingAmountSection}>
+      {!recoveryOnly ? <a href="#add-card" className={styles.addCardShortcut}>Add Card</a> : null}
+      <div className={styles.fundingAmounts}>
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-amount">Amount (USD)
         <select id="demo-funding-amount" value={selectedPreset} onChange={event => { setAmount(event.target.value); setCustomAmount(""); }} disabled={locked} className={styles.fundingAmountControl}>
           <option value="">Choose an amount</option>
@@ -132,9 +173,10 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
           setAmount(dollars ? String(Number(dollars) * 100) : "");
         }} disabled={locked} className={styles.fundingAmountControl} />
       </label>
+      </div>
     </div>
     {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter a whole-dollar amount from $1 to $500.</p> : null}
-    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
+    <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>

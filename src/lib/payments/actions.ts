@@ -121,6 +121,21 @@ export async function saveDemoPaymentMethod(
   return result;
 }
 
+export async function deleteDemoPaymentMethod(paymentMethod: string): Promise<{ status: "succeeded" | "error"; message: string }> {
+  const fixture = demoCardFixture(paymentMethod);
+  if (!fixture) return { status: "error", message: "Only supplied preview test cards can be removed." };
+  try {
+    await (await fundingProvider()).deletePaymentMethod(fixture.token);
+    updateWalletViews();
+    return { status: "succeeded", message: `Test card •••• ${fixture.lastFour} removed. Earlier deposit records remain unchanged.` };
+  } catch (error) {
+    if (error instanceof FundingFailure && error.code === "42501") {
+      return { status: "error", message: "Card removal is not available for this account." };
+    }
+    return { status: "error", message: "Could not confirm the card was removed. Refresh your saved cards before trying again." };
+  }
+}
+
 export async function reconcileDemoFunding(_previous: DemoFundingActionState, formData: FormData): Promise<DemoFundingActionState> {
   const sessionId = formData.get("sessionId");
   const returnTo = fundingContinuation(formData.get("returnTo"));

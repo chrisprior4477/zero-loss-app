@@ -5,7 +5,7 @@ vi.mock("./funding-authorization", () => authorization);
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod } from "./actions";
+import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "./actions";
 import { FundingFailure } from "./demo-provider";
 const sid = "99999999-9999-4999-8999-999999999999";
 const snapshot = { walletAccountId: sid, scope: "demo", currency: "USD", balanceCents: "0", transactionCount: "0", entries: [], fundingAvailable: true };
@@ -21,6 +21,7 @@ beforeEach(() => {
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "ensure_preview_customer" ? { walletAccountId: sid, scope: "demo", fundingAvailable: true }
     : name === "get_wallet_snapshot" ? snapshot
     : name === "save_demo_payment_method" ? { token: "demo_card_4242", lastFour: "4242", isDefault: true }
+    : name === "delete_demo_payment_method" ? true
     : ["create_demo_card_funding_session", "resume_demo_funding_session"].includes(name) ? { id: sid }
     : name === "simulate_demo_payment" ? { body: "signed-by-demo-provider", signature: "provider-signature" }
     : { status: "succeeded", sessionId: sid, duplicate: false } }));
@@ -165,5 +166,17 @@ test("saved card uses the confirmed preview account boundary without funding", a
 test.each(["", "4242424242424242", "real_card_token"])("saved card rejects unsafe method %s before database access", async method => {
   const value = new FormData(); value.set("paymentMethod", method); value.set("makeDefault", "true");
   expect((await saveDemoPaymentMethod({ status: "idle" }, value)).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
+test("deleting a saved demo card is owner-scoped and does not touch wallet records", async () => {
+  expect(await deleteDemoPaymentMethod("demo_card_4242")).toEqual({ status: "succeeded", message: "Test card •••• 4242 removed. Earlier deposit records remain unchanged." });
+  expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot", "delete_demo_payment_method"]);
+  expect(mocks.rpc).toHaveBeenCalledWith("delete_demo_payment_method", { p_payment_method: "demo_card_4242" });
+  expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+});
+
+test("deleting a card rejects real or unknown card details before database access", async () => {
+  expect((await deleteDemoPaymentMethod("4111111111111111")).status).toBe("error");
   expect(mocks.rpc).not.toHaveBeenCalled();
 });

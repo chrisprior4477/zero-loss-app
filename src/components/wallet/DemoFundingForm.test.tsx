@@ -2,9 +2,15 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 const navigation = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
-vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn() }));
-import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
+vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
+import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
+test("funding links land on the amount controls, with a shortcut back to sample cards", () => {
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
+  expect(container.querySelector("#add-funds")?.contains(screen.getByLabelText("Amount (USD)"))).toBe(true);
+  expect(screen.getByRole("link", { name: "Add Card" }).getAttribute("href")).toBe("#add-card");
+  expect(container.querySelector("#add-card")?.contains(screen.getByRole("heading", { name: "Add a card" }))).toBe(true);
+});
 test("deposit confirmation stays on the page and requires an unchecked acknowledgment, not a password", () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
@@ -23,7 +29,7 @@ test("deposit confirmation stays on the page and requires an unchecked acknowled
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
   expect(sessionStorage.length).toBe(0);
 });
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); navigation.refresh.mockReset(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); vi.mocked(deleteDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); navigation.refresh.mockReset(); });
 test("a rejected confirmation clears the recovery marker and can be retried", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
@@ -284,6 +290,41 @@ test("additional sample cards form a two-card selection and can be saved", async
   await waitFor(() => expect(saveDemoPaymentMethod).toHaveBeenCalled());
   expect(vi.mocked(saveDemoPaymentMethod).mock.calls[0]?.[1].get("paymentMethod")).toBe("demo_card_5556");
   expect(container.querySelectorAll("article")).toHaveLength(2);
+});
+
+test("saved card deletion asks for confirmation and leaves deposit history untouched", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+  vi.mocked(deleteDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Test card removed. Earlier deposits remain unchanged." });
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[
+    { token: "demo_card_4242", lastFour: "4242", isDefault: true },
+    { token: "demo_card_5556", lastFour: "5556", isDefault: false },
+  ]} />);
+  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
+  expect(screen.getByRole("dialog", { name: "Delete this card?" })).toBeTruthy();
+  expect(screen.getByText(/Past deposits and wallet history will stay/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Keep Card" }));
+  expect(deleteDemoPaymentMethod).not.toHaveBeenCalled();
+  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
+  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" }).at(-1)!);
+  await waitFor(() => expect(deleteDemoPaymentMethod).toHaveBeenCalledWith("demo_card_4242"));
+  await waitFor(() => expect(container.querySelectorAll("article")).toHaveLength(1));
+  expect(container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_5556");
+  expect(container.querySelector<HTMLInputElement>('[name="makeDefault"]')?.value).toBe("false");
+  expect(navigation.refresh).toHaveBeenCalled();
+});
+
+test("removing the only saved card blocks funding until another card is chosen", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+  vi.mocked(deleteDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Test card removed." });
+  render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
+  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
+  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" }).at(-1)!);
+  await waitFor(() => expect(screen.getByText("No card selected. Add a sample card above to continue.")).toBeTruthy());
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "+ Add another card" }));
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
 });
 
 test("retry restores and locks the original default preference, not the current preference", () => {

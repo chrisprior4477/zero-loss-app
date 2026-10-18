@@ -52,6 +52,13 @@ export class DemoPaymentProvider {
     return card;
   }
 
+  async deletePaymentMethod(paymentMethod: DemoCardToken): Promise<void> {
+    if (!demoCardFixture(paymentMethod)) throw new Error("Unsupported test card");
+    const { data, error } = await this.db.rpc("delete_demo_payment_method", { p_payment_method: paymentMethod });
+    if (error) throw new FundingFailure(error.code, error.message);
+    if (typeof data !== "boolean") throw new Error("Unconfirmed payment-method deletion");
+  }
+
   async finishFunding(sessionId: string): Promise<{ alreadyCredited: boolean }> {
     // Owner-scoped RPC reuses the one durable receipt, even after a timeout.
     const { data: receipt, error: providerError } = await this.db.rpc("simulate_demo_payment", { p_session_id: sessionId });

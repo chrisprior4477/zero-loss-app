@@ -39,9 +39,11 @@ test("wallet layout exposes responsive transaction filters without replacing led
 test("enabled preview wallet puts Add Card beside Add funds", () => {
   render(<WalletOverview wallet={{ ...empty, walletAccountId: "wallet-a", scope: "demo", fundingAvailable: true }} fundingEnabled requests={[]} requestKey="stable_demo_request_001" />);
   expect(screen.getAllByRole("link", { name: "Add funds" }).map(link => link.getAttribute("href"))).toEqual(expect.arrayContaining(["#add-funds", "/account/wallet?view=history#add-funds"]));
-  expect(screen.getByRole("link", { name: "Add Card" }).getAttribute("href")).toBe("/account/payment-methods");
+  expect(screen.getByRole("article", { name: "Current balance" }).querySelector<HTMLAnchorElement>('a[href="/account/payment-methods"]')?.textContent).toBe("Add Card");
   expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("/account/payment-methods");
   expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy();
+  expect(screen.getByRole("form", { name: "Add funds" }).querySelector("#add-funds")).toBeTruthy();
+  expect(document.querySelectorAll("#add-funds")).toHaveLength(1);
   expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy();
   expect(screen.getByRole("article", { name: "Current balance" }).querySelector("button")?.textContent).toBe("Delete Funds");
   expect(screen.getByRole("navigation", { name: "Account wallet overview" }).querySelector("button")?.textContent).not.toBe("Delete Funds");
