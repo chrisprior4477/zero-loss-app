@@ -2,7 +2,6 @@
 
 import { type PointerEvent as ReactPointerEvent, type TransitionEvent as ReactTransitionEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { HowItWorksExplainer } from "@/components/home/HowItWorksExplainer";
 
 const HERO_SLIDES = [
@@ -320,17 +319,11 @@ function DesktopHeroCarousel() {
       >
         <div className="mx-auto max-w-[1440px]">
           <HowItWorksExplainer />
-          <div className="mt-5 flex items-stretch gap-3">
-            <Link
-              href="/how-it-works"
-              className="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#087feb] px-3 py-2 text-center text-sm font-bold leading-tight text-white transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)] sm:flex-none sm:px-5"
-            >
-              Open the full How It Works page →
-            </Link>
+          <div className="mt-5">
             <button
               type="button"
               onClick={closeHowItWorks}
-              className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-lg border border-cyan-300/60 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)] sm:px-6"
+              className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#087feb] px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)]"
             >
               Close
             </button>
