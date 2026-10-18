@@ -227,6 +227,10 @@
   .featuredImage { height: 245px; }
   .rewardTicket, .howToTicket { padding: 22px 18px; }
   .rewardPass h2 { font-size: 32px; }
+  .codePanel { margin-top: 10px; padding: 7px 12px 8px; }
+  .sampleBarcode { height: 58px; padding: 2px 4px 0; }
+  .rewardCode { margin-top: 4px; }
+  .codeCaption { display: none; }
   .rewardDetails dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rewardDetails dl > div { padding: 9px 10px; }
   .rewardDetails dl > div:nth-child(odd) { padding-left: 0; }

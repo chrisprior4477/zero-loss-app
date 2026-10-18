@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
 
@@ -21,4 +21,11 @@ test("the shopping exit remains available when wallet pass links are connected",
 
   expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
   expect(screen.queryByText("Wallet passes are not connected in this preview yet.")).toBeNull();
+});
+
+test("the sample barcode notice is hidden on phones without hiding other action feedback", () => {
+  render(<RewardRedemptionActions displayCode="123456789012" isPreview />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Show barcode" }));
+  expect(screen.getByRole("status").className).toContain("max-[700px]:hidden");
 });
