@@ -73,7 +73,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>{entryCount === 1 ? "Your saved entry" : `Your ${entryCount} saved entries`} for the prize below.</p></div>
         <div className={styles.toplineActions}>
           <Link href="/" className={styles.topShoppingButton}>Continue shopping</Link>
-          <Link href={returnHref} className={styles.topReturnButton}>Return to My Activity <span aria-hidden="true">→</span></Link>
+          <Link href={returnHref} className={styles.topReturnButton}>Go to My Activity</Link>
           <Link href={returnHref} className={styles.closePage} aria-label="Close entry details and return to My Activity"><span aria-hidden="true">×</span></Link>
         </div>
       </div>
@@ -84,7 +84,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <h2>{item.title}</h2>
           <span className={styles.status}>◷ No winners yet. We will notify you when the pool is complete.</span>
           <dl className={styles.entryIdentity}>
-            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><Link href={`/account/entries/${encodeURIComponent(entryId)}?entries=first#saved-entry-rail`} className={styles.entryCountBadge} aria-label={`Open entry 1 of your ${entryCount} ${entryCount === 1 ? "entry" : "entries"} for this prize`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{entryCount === 1 ? "Entry" : "Entries"}</span></Link></dd></div>
+            <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><Link href={`/account/entries/${encodeURIComponent(entryId)}?entries=first#saved-entry-rail`} className={styles.entryCountBadge} aria-label={`See my ${entryCount} ${entryCount === 1 ? "entry" : "entries"}`}><span className={styles.entryCountTicket} aria-hidden="true">{entryCount}</span><span>{`See my ${entryCount} ${entryCount === 1 ? "entry" : "entries"}`}</span></Link></dd></div>
             <div><dt>Prize number</dt><PrizeNumberCopy number={prizeNumberForSlug(item.slug)} /></div>
           </dl>
         </div>

@@ -40,8 +40,10 @@ test("entry numbers independently reveal pictured entry details and keep the sav
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
   expect(within(hero).getByText("◷ No winners yet. We will notify you when the pool is complete.")).toBeTruthy();
   expect(within(hero).getByText(prizeNumberForSlug("playstation-5-slim"))).toBeTruthy();
-  expect(within(hero).getByRole("link", { name: "Open entry 1 of your 5 entries for this prize" }).getAttribute("href"))
+  expect(within(hero).getByRole("link", { name: "See my 5 entries" }).getAttribute("href"))
     .toBe(`/account/entries/${ids[2]}?entries=first#saved-entry-rail`);
+  expect(within(hero).getByRole("link", { name: "See my 5 entries" }).textContent).toBe("5See my 5 entries");
+  expect(screen.getByRole("link", { name: "Go to My Activity" })).toBeTruthy();
   const rail = screen.getByRole("region", { name: "Your separate entries for PlayStation 5 Slim Model" });
   expect(within(rail).getByRole("heading", { name: "Your 5 separate entries" })).toBeTruthy();
   expect(rail.querySelector("[class*='entryRailCount']")?.textContent).toBe("5");
