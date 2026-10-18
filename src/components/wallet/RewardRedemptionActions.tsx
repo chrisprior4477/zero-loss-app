@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type RewardRedemptionActionsProps = {
@@ -63,7 +64,8 @@ export function RewardRedemptionActions({
         {appleWalletUrl ? <a href={appleWalletUrl} className="flex min-h-12 items-center justify-center rounded-xl bg-black px-4 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b9ff]">Add to Apple Wallet</a> : <button type="button" disabled className="flex min-h-12 cursor-not-allowed items-center justify-center rounded-xl bg-black px-4 text-sm font-bold text-white opacity-70">Add to Apple Wallet</button>}
         {googleWalletUrl ? <a href={googleWalletUrl} className="flex min-h-12 items-center justify-center rounded-xl border border-[#d7e1e8] bg-white px-4 text-sm font-bold text-[#182435] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b9ff]">Save to Google Wallet</a> : <button type="button" disabled className="flex min-h-12 cursor-not-allowed items-center justify-center rounded-xl border border-[#d7e1e8] bg-white px-4 text-sm font-bold text-[#182435] opacity-70">Save to Google Wallet</button>}
       </div>
-      {!appleWalletUrl && !googleWalletUrl ? <p className="mt-2 text-center text-[11px] leading-4 text-[#4a667c]">Wallet passes are not connected in this preview yet.</p> : null}
+      <Link href="/" className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl bg-[#ff7417] px-4 py-3 text-sm font-black text-[#061630] transition hover:bg-[#ff963f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b9ff]">Continue Shopping</Link>
+      {!appleWalletUrl && !googleWalletUrl ? <p className="mt-4 text-center text-[11px] leading-4 text-[#4a667c]">Wallet passes are not connected in this preview yet.</p> : null}
     </section>
   </>;
 }
