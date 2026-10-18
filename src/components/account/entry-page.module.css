@@ -39,7 +39,7 @@
 .progressCircle { display: grid; width: 86px; height: 86px; place-items: center; border-radius: 50%; box-shadow: 0 5px 12px #001a3e24; }
 .progressCircle span { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 20px; font-weight: 900; }
 .progressUnavailable { grid-column: 3; grid-row: 1; align-self: end; color: #57738f; font-size: 12px; }
-.entryRail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); align-items: center; gap: 12px 20px; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #55caff; padding: 24px 36px; color: #10234a; scroll-margin-top: 126px; }
+.entryRail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); align-items: center; gap: 12px 20px; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #55caff; padding: 24px 36px; color: #10234a; scroll-margin-top: 220px; }
 .entryRailHeader { min-width: 0; }
 .entryRailHeader h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0; font-size: 20px; font-weight: 900; line-height: 1.2; }
 .entryRailHeader p { margin: 7px 0 0; color: #173c63; font-size: 13px; line-height: 1.4; }
@@ -178,7 +178,7 @@
   .progressCorner { gap: 4px; font-size: 11px; }
   .progressCircle { width: 68px; height: 68px; }
   .progressCircle span { width: 54px; height: 54px; font-size: 17px; }
-  .entryRail { display: block; margin-top: 12px; padding: 20px; scroll-margin-top: 170px; }
+  .entryRail { display: block; margin-top: 12px; padding: 20px; scroll-margin-top: 285px; }
   .entryRailHeader h2 { font-size: 17px; }
   .entryRailCompact { min-height: 0; gap: 6px; margin-top: 12px; padding: 9px; }
   .entryRailChoices { grid-template-columns: 1fr; gap: 8px; padding: 9px; }
