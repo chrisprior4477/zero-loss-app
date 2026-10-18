@@ -16,7 +16,21 @@ const steps = [
   { start: 3072, end: IMAGE_WIDTH, description: "Step 5: Your call. Use the gift card for your pick or other items at that retailer." },
 ] as const;
 
-export function HowItWorksExplainer() {
+function CloseControl({ onClose, className }: { onClose: () => void; className: string }) {
+  return (
+    <button
+      type="button"
+      aria-label="Close How It Works"
+      onClick={onClose}
+      onPointerDown={(event) => event.stopPropagation()}
+      className={`absolute right-1 top-1 z-10 size-11 place-items-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a0ff00] ${className}`}
+    >
+      <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-[#a0ff00] text-[22px] font-bold leading-none text-[#00132e] shadow-[0_0_12px_rgba(160,255,0,0.65)] transition-colors hover:bg-[#bbff4d]">×</span>
+    </button>
+  );
+}
+
+export function HowItWorksExplainer({ onClose }: { onClose?: () => void } = {}) {
   const railRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
@@ -78,7 +92,7 @@ export function HowItWorksExplainer() {
   }
 
   return (
-    <div>
+    <div className="relative">
       <Image
         src={IMAGE_SRC}
         alt="How ZeroLoss works in five steps: pick a product, enter for $1, receive the full-value retailer gift card if you win, or use what you spent toward the balance if you don't; then use the gift card at that retailer."
@@ -88,6 +102,7 @@ export function HowItWorksExplainer() {
         className={styles.desktopArtwork}
         unoptimized
       />
+      {onClose ? <CloseControl onClose={onClose} className="hidden lg:grid" /> : null}
 
       <div
         ref={railRef}
@@ -120,6 +135,7 @@ export function HowItWorksExplainer() {
                   unoptimized
                 />
               </div>
+              {onClose ? <CloseControl onClose={onClose} className="grid lg:hidden" /> : null}
               {index < steps.length - 1 ? (
                 <button
                   type="button"

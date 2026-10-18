@@ -315,19 +315,10 @@ function DesktopHeroCarousel() {
         ref={howItWorksPanelRef}
         id="desktop-how-it-works-panel"
         aria-label="How ZeroLoss works"
-        className="relative left-1/2 w-screen -translate-x-1/2 border-y border-cyan-300/20 bg-[#00132e] px-4 py-5 sm:px-6 md:px-[clamp(4rem,8vw,10rem)]"
+        className="relative left-1/2 w-screen -translate-x-1/2 border-y border-cyan-300/20 bg-[#00132e] px-4 py-2 sm:px-6 sm:py-3 md:px-[clamp(4rem,8vw,10rem)]"
       >
         <div className="mx-auto max-w-[1440px]">
-          <HowItWorksExplainer />
-          <div className="mt-5">
-            <button
-              type="button"
-              onClick={closeHowItWorks}
-              className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#087feb] px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)]"
-            >
-              Close
-            </button>
-          </div>
+          <HowItWorksExplainer onClose={closeHowItWorks} />
         </div>
       </section>
     ) : null}
