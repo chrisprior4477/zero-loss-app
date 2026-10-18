@@ -16,7 +16,7 @@ const purchaseActivity = { entryId: purchaseEntry, slug: "babys-essentials-bundl
 test("funding returns to the exact authorized option even with another entry for the same product", async () => {
   mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, entryId: "ent_22222222222222222222222222222222" }, purchaseActivity] } });
   render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: purchaseActivity.slug, entry: purchaseEntry }) }));
-  expect(screen.getByRole("link", { name: "Back to purchase option" }).getAttribute("href")).toBe(`/account/entries?item=${purchaseActivity.slug}&entry=${purchaseEntry}`);
+  expect(screen.getByRole("link", { name: "Back to purchase option" }).getAttribute("href")).toBe(`/account/entries?item=${purchaseActivity.slug}&entry=${purchaseEntry}&resume=purchase`);
   expect(screen.queryByRole("link", { name: "Back to this prize" })).toBeNull();
 });
 test.each(["ent_99999999999999999999999999999999", [purchaseEntry, purchaseEntry]])("foreign or ambiguous funding selectors cannot substitute another entry: %j", async entry => {

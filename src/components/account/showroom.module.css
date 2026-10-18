@@ -364,6 +364,7 @@
 }
 @media (max-width: 639px) {
   .detailDialog[data-status="completion"] { width: 100%; max-width: none; }
+  .purchaseSummary { scroll-margin-top: 12px; }
   .purchaseTicket { grid-template-columns: 1fr; gap: 16px; }
   .purchaseProductImage { min-height: 235px; }
   .purchaseSteps ol { display: block; }

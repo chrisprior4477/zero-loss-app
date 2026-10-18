@@ -13,17 +13,19 @@ import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { availabilityStatus } from "@/lib/catalog/availability";
 
-export function ActivityDetailDialog({ item, destination, filter = "all", offerMetrics, outcomeEmailPreference = null, returnToOptions = false }: {
+export function ActivityDetailDialog({ item, destination, filter = "all", offerMetrics, outcomeEmailPreference = null, returnToOptions = false, resumePurchase = false }: {
   item: ActivityItem;
   destination: ActivityDestination;
   filter?: ActivityFilter;
   offerMetrics?: ActivityOfferMetrics;
   outcomeEmailPreference?: boolean | null;
   returnToOptions?: boolean;
+  resumePurchase?: boolean;
 }) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const purchaseSummaryRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const presentation = activityPresentation(item);
   const offerStatus = offerMetrics ? availabilityStatus(offerMetrics.capacity, offerMetrics.sold) : undefined;
@@ -40,13 +42,17 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
     dialog.showModal();
     document.body.style.overflow = "hidden";
     closeRef.current?.focus();
+    // On a narrow phone, lead with the price and next action, not the tall image.
+    const frame = !resumePurchase && item.status === "completion" && window.matchMedia?.("(max-width: 639px)")?.matches
+      ? window.requestAnimationFrame(() => purchaseSummaryRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" })) : null;
     return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame);
       dialog.close();
       document.body.style.overflow = previousOverflow;
       if (previousFocus?.isConnected && previousFocus !== document.body) previousFocus.focus();
       else Array.from(document.querySelectorAll<HTMLAnchorElement>("a[data-activity-slug]")).find(link => item.entryId ? link.dataset.activityEntryId === item.entryId : link.dataset.activitySlug === item.slug)?.focus();
     };
-  }, [item.entryId, item.slug]);
+  }, [item.entryId, item.slug, item.status, resumePurchase]);
 
   const disabledAction = item.status === "completion" ? "Continue with option" : item.status === "active" ? "Entry participation" : presentation.action;
   const introduction = item.status === "completion"
@@ -83,7 +89,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
         <div className={styles.purchaseLayout}>
           <section className={styles.purchaseTicket} aria-label="Purchase option details">
             <div className={styles.purchaseProductImage}><Image src={item.image} alt={item.title} fill draggable={false} sizes="(max-width: 700px) 82vw, 330px" /></div>
-            <div className={styles.purchaseSummary}>
+            <div ref={purchaseSummaryRef} className={styles.purchaseSummary}>
               <p className={styles.purchaseBadge}><AccountIcon name="completion" />Purchase option</p>
               <h3 id={titleId}>{item.title}</h3>
               <p className={styles.purchaseRetailer}>{item.retailer}</p>
@@ -91,7 +97,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
                 {[["Product value", formatUsdFromCents(item.priceCents)], ["Your entry applied", `−${formatUsdFromCents(item.paidCents)}`], ["Remaining balance", formatUsdFromCents(item.remainingCents)]].map(([label, value], index) => <div key={label}><dt>{label}</dt><dd data-emphasis={index === 2}>{value}</dd></div>)}
               </dl>
               <p className={styles.purchaseNotice}>Pay the remaining amount to receive a retailer gift card for the advertised value. You decide whether to continue.</p>
-              {item.completionOptionId ? <PurchaseOptionControls key={item.completionOptionId} item={{ ...item, completionOptionId: item.completionOptionId }} /> : <div className={styles.detailFooter}><button disabled type="button">Continue with option — not enabled</button><p role="status" className={styles.purchaseUnavailable}>This option is not available to complete yet.</p></div>}
+              {item.completionOptionId ? <PurchaseOptionControls key={item.completionOptionId} item={{ ...item, completionOptionId: item.completionOptionId }} resumePurchase={resumePurchase} /> : <div className={styles.detailFooter}><button disabled type="button">Continue with option — not enabled</button><p role="status" className={styles.purchaseUnavailable}>This option is not available to complete yet.</p></div>}
               <p className={styles.purchaseNotice}>This credit applies only to this product and cannot be stacked or transferred.</p>
               {item.completionExpiresAt ? <p className={styles.purchaseNotice}><strong>Available until:</strong> <time dateTime={item.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short" }).format(new Date(item.completionExpiresAt))}</time></p> : null}
             </div>

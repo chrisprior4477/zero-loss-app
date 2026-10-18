@@ -188,6 +188,7 @@
 .featuredTitle { margin-top: 5px; font-size: clamp(17px, 1.6vw, 23px); font-weight: 850; line-height: 1.18; }
 .featuredNote { margin-top: 6px; color: #516b8a; font-size: 13px; line-height: 1.45; }
 .rewardPass { padding: 0; border: 0; border-radius: 0; background: transparent; color: #101b4e; box-shadow: none; }
+.rewardPass[id] { scroll-margin-top: 110px; }
 .rewardPass h2 { font-size: clamp(28px, 3vw, 43px); font-weight: 900; line-height: 1.02; letter-spacing: -.045em; }
 .rewardIntro { margin-top: 6px; color: #526b8b; font-size: 17px; line-height: 1.3; }
 .codePanel { margin-top: 15px; border-radius: 11px; background: #e8f4ff; box-shadow: none; }
@@ -218,6 +219,7 @@
   .howToTicket li { border-bottom: 0; }
 }
 @media (max-width: 700px) {
+  .rewardPass[id] { scroll-margin-top: 178px; }
   .detailPage { padding: 16px 12px 32px; }
   .detailStatusStrip { margin-bottom: 20px; }
   .detailHeading { margin-bottom: 13px; }

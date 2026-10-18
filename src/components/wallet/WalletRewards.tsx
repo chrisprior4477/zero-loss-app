@@ -208,7 +208,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
               <p className={styles.featuredTitle}>{item.title}</p>
               <p className={styles.featuredNote}>This is the product featured in your entry—not a restriction on your reward.</p>
             </div>
-            <div className={styles.rewardPass}>
+            <div id="reward-pass" className={styles.rewardPass}>
               <h2>{formatUsdFromCents(item.priceCents)} {item.retailer} gift card</h2>
               <p className={styles.rewardIntro}>Your digital reward {rewardReady ? "is ready to use." : unclaimedDemoPreview ? "is shown in this sample preview. Claim it to open your saved reward." : canClaim ? "is ready to claim." : "is shown below."}</p>
               {rewardReady || previewCode ? <div id="reward-barcode" className={styles.codePanel}>

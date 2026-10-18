@@ -99,6 +99,7 @@ export function DemoParticipationPanel({
   const [entryActionTouched, setEntryActionTouched] = useState(false);
   const [dismissedBalanceError, setDismissedBalanceError] = useState<typeof state | null>(null);
   const entryFormRef = useRef<HTMLFormElement>(null);
+  const pendingReceiptRef = useRef<HTMLDivElement>(null);
   const shareChoiceRef = useRef<HTMLInputElement>(null);
   const shareChoiceConfirmed = useRef(false);
   const remainingBalance = Math.max(0, productValue - entryPrice);
@@ -233,6 +234,12 @@ export function DemoParticipationPanel({
     return () => window.clearInterval(timer);
   }, [requestReceipt?.status]);
 
+  useEffect(() => {
+    if (requestReceipt?.status !== "pending") return;
+    const frame = window.requestAnimationFrame(() => pendingReceiptRef.current?.scrollIntoView({ block: "center", behavior: "auto" }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [requestReceipt?.requestId, requestReceipt?.status]);
+
   const undoSeconds = requestReceipt?.status === "pending"
     ? Math.max(0, Math.ceil((Date.parse(requestReceipt.undoUntil) - Date.parse(requestReceipt.serverNow)
       - (undoNow - receiptReceivedAt)) / 1000)) : 0;
@@ -290,8 +297,8 @@ export function DemoParticipationPanel({
         <div>
           <p className="text-3xl font-extrabold leading-none">${entryPrice.toFixed(2)} <span className="text-sm font-bold text-white/80">per entry</span></p>
         </div>
-        <span className="rounded-full px-2.5 py-1 text-right text-xs font-extrabold leading-4 text-[#00132e]" style={{ backgroundColor: availabilityConfirmed ? availability.color : "#8ba5bd" }}>
-          {availabilityConfirmed ? <>{availability.label}<br />{remaining === 0 ? "No entries left" : `${remaining.toLocaleString()} left`}</> : "Availability unverified"}
+        <span className="flex min-h-12 min-w-24 shrink-0 flex-col items-center justify-center rounded-xl px-3 py-1.5 text-center text-xs font-extrabold leading-4 text-[#00132e] sm:min-w-28" style={{ backgroundColor: availabilityConfirmed ? availability.color : "#8ba5bd" }}>
+          {availabilityConfirmed ? <><span>{availability.label}</span><span>{remaining === 0 ? "No entries left" : `${remaining.toLocaleString()} left`}</span></> : "Availability unverified"}
         </span>
       </div>
 
@@ -323,7 +330,7 @@ export function DemoParticipationPanel({
       {signedOutCompact && !isSignedIn ? null : <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine.{isPreviewExperience ? "" : " Terms apply."}</p>}
       {isPreviewExperience && isDemoWallet && isSignedIn && skipFutureExplainer ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceResetting} className="mt-1 inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60">{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null}
       {preferenceResetMessage ? <p role="status" className="mt-1 text-xs text-cyan-200">{preferenceResetMessage}</p> : null}
-      {requestReceipt?.status === "pending" ? <div className="mt-3 rounded-xl border border-[#ff9a45] bg-[#ff6a00] p-3 text-sm text-[#00132e]" role="status">
+      {requestReceipt?.status === "pending" ? <div ref={pendingReceiptRef} className="mt-3 rounded-xl border border-[#ff9a45] bg-[#ff6a00] p-3 text-sm text-[#00132e]" role="status">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="font-extrabold">{undoSeconds > 0 ? "Entry submitted · Undo available" : "Checking your saved entry…"}</p>

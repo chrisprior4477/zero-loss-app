@@ -11,9 +11,9 @@ import styles from "./showroom.module.css";
 
 const initialState: PurchaseOptionActionState = { status: "idle" };
 
-export function PurchaseOptionControls({ item }: { item: ActivityItem & { completionOptionId: string } }) {
+export function PurchaseOptionControls({ item, resumePurchase = false }: { item: ActivityItem & { completionOptionId: string }; resumePurchase?: boolean }) {
   const router = useRouter();
-  const [confirmation, setConfirmation] = useState<"purchase" | "decline" | null>(null);
+  const [confirmation, setConfirmation] = useState<"purchase" | "decline" | null>(resumePurchase ? "purchase" : null);
   const inFlight = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const confirmationRef = useRef<HTMLElement>(null);
@@ -25,7 +25,10 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
       const intent = form.get("intent");
       const result = await (intent === "decline" ? declinePurchaseOption : purchaseGiftCard)(initialState, form);
       // Navigate before the refreshed activity can unmount this completed option.
-      if (result.status === "succeeded") router.replace(result.href ?? (intent === "purchase" ? "/account/wallet" : "/account/entries"));
+      if (result.status === "succeeded") {
+        const destination = result.href ?? (intent === "purchase" ? "/account/wallet" : "/account/entries");
+        router.replace(intent === "purchase" && destination.startsWith("/account/wallet?") ? `${destination}#reward-pass` : destination);
+      }
       return result;
     } catch {
       // Also catches a dropped browser-to-server response, not just RPC errors.
@@ -37,14 +40,18 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
 
   useEffect(() => {
     if (state.status === "error") {
-      resultRef.current?.scrollIntoView?.({ block: "nearest" });
+      resultRef.current?.scrollIntoView?.({ block: "center", behavior: "auto" });
     }
   }, [state]);
   useEffect(() => {
     if (!confirmation) return;
     headingRef.current?.focus({ preventScroll: true });
-    // Keep the amount and both choices together in the dialog's scroll area.
-    confirmationRef.current?.scrollIntoView?.({ block: "nearest" });
+    // Wait for the parent modal to open, then focus and center the decision.
+    const frame = window.requestAnimationFrame(() => {
+      headingRef.current?.focus({ preventScroll: true });
+      confirmationRef.current?.scrollIntoView?.({ block: "center", behavior: "auto" });
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [confirmation]);
 
   function cancel() {
@@ -81,7 +88,7 @@ export function PurchaseOptionControls({ item }: { item: ActivityItem & { comple
       <button type="button" disabled={pending || finished || needsCheck} onClick={cancel}>Cancel</button>
     </section>}
     {state.status !== "idle" ? <div ref={resultRef}>
-      <p role="status" data-status={state.status}>{state.message}</p>
+      <p role="status" data-status={state.status}>{state.status === "error" && state.recovery === "balance" ? `Sorry, ${state.message.charAt(0).toLowerCase()}${state.message.slice(1)}` : state.message}</p>
       {needsCheck ? <a href={activityHref(item)}>Check purchase status →</a> : null}
       {state.status === "error" && state.recovery === "balance" ? <Link data-funding-action="true" href={fundingHref(item.slug, item.entryId ?? undefined)}>Add funds →</Link> : null}
       {state.status === "succeeded" && state.href ? <Link href={state.href}>Open your gift card or receipt →</Link> : null}

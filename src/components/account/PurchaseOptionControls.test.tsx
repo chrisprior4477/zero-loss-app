@@ -43,7 +43,7 @@ test("duplicate clicks only dispatch once and success opens the exact reward", a
   await waitFor(() => expect(mocks.purchase).toHaveBeenCalledOnce());
   expect((screen.getByRole("button", { name: "Cancel" }) as HTMLButtonElement).disabled).toBe(true);
   await act(async () => finish({ status: "succeeded", message: "Saved", href: "/account/wallet?rewardId=22222222-2222-4222-8222-222222222222" }));
-  expect(mocks.replace).toHaveBeenCalledWith("/account/wallet?rewardId=22222222-2222-4222-8222-222222222222");
+  expect(mocks.replace).toHaveBeenCalledWith("/account/wallet?rewardId=22222222-2222-4222-8222-222222222222#reward-pass");
 });
 test("lost server response blocks new attempts until a full authoritative status reload", async () => {
   mocks.purchase.mockRejectedValue(new Error("connection lost"));
@@ -59,8 +59,14 @@ test("insufficient balance carries this exact entry into Add funds", async () =>
   const link = await screen.findByRole("link", { name: "Add funds →" });
   expect(link.getAttribute("href")).toBe(`/account/wallet?view=history&from=${item.slug}&entry=${item.entryId}#add-funds`);
   expect(link.getAttribute("data-funding-action")).toBe("true");
-  expect(screen.getByRole("status").textContent).toContain("You do not have enough funds in your wallet. Please add more funds to complete the purchase.");
+  expect(screen.getByRole("status").textContent).toContain("Sorry, you do not have enough funds in your wallet. Please add more funds to complete the purchase.");
   expect(mocks.replace).not.toHaveBeenCalled();
+});
+test("funding return opens the exact purchase confirmation immediately", () => {
+  render(<PurchaseOptionControls item={item} resumePurchase />);
+  expect(screen.getByRole("heading", { name: "Confirm your purchase" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Confirm $99 purchase" })).toBeTruthy();
+  expect(mocks.purchase).not.toHaveBeenCalled();
 });
 test("declining still requires confirmation and preserves its no-refund explanation", async () => {
   mocks.decline.mockResolvedValue({ status: "succeeded", message: "Declined", href: "/account/entries" });

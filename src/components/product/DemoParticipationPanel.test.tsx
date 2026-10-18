@@ -10,6 +10,9 @@ const props = { productSlug: "test-product", requestKey: "entry_request_key_01",
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
   expect(screen.getByTestId("entry-quantity-ticket")).toBeTruthy();
+  const availabilityBadge = screen.getByText((_, element) => element?.tagName === "SPAN" && element.textContent === "45% full11 left");
+  expect(availabilityBadge.className).toContain("rounded-xl");
+  expect(availabilityBadge.className).toContain("text-center");
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$26");
   expect(screen.queryByText("$24.00")).toBeNull();
   expect(screen.getByRole("button", { name: "Enter for $1.00" })).toBeTruthy();

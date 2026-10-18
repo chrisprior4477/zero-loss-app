@@ -37,7 +37,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const fromEntry = fromProduct && typeof query.entry === "string" && account.activity.source !== "unavailable"
     ? findActivityItem(account.activity.activity, fromProduct.slug, query.entry) : undefined;
   const fundingReturn = query.entry !== undefined
-    ? fromEntry ? { title: fromEntry.title, href: activityHref(fromEntry), label: "Back to purchase option" as const } : undefined
+    ? fromEntry ? { title: fromEntry.title, href: fromEntry.status === "completion" ? `${activityHref(fromEntry)}&resume=purchase` : activityHref(fromEntry), label: "Back to purchase option" as const } : undefined
     : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity) } : undefined;
   // A URL only selects from this authenticated account's authorized data.
   const matchingRewards = walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
