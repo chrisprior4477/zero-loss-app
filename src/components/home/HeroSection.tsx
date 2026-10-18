@@ -123,6 +123,18 @@ function DesktopHeroCarousel() {
     showSlide(activeSlide + (deltaX < 0 ? 1 : -1));
   };
 
+  const closeHowItWorks = () => {
+    const trigger = document.querySelector<HTMLButtonElement>('article[aria-hidden="false"] [data-how-it-works-trigger]');
+    setShowHowItWorks(false);
+    requestAnimationFrame(() => {
+      trigger?.focus({ preventScroll: true });
+      trigger?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "center",
+      });
+    });
+  };
+
   return (
     <>
     <section
@@ -308,7 +320,21 @@ function DesktopHeroCarousel() {
       >
         <div className="mx-auto max-w-[1440px]">
           <HowItWorksExplainer />
-          <Link href="/how-it-works" className="mt-5 inline-flex text-sm font-semibold text-cyan-300 underline-offset-4 hover:underline">Open the full How It Works page →</Link>
+          <div className="mt-5 flex items-stretch gap-3">
+            <Link
+              href="/how-it-works"
+              className="inline-flex min-h-12 min-w-0 flex-1 items-center justify-center rounded-lg bg-[#087feb] px-3 py-2 text-center text-sm font-bold leading-tight text-white transition-colors hover:bg-[#1692ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)] sm:flex-none sm:px-5"
+            >
+              Open the full How It Works page →
+            </Link>
+            <button
+              type="button"
+              onClick={closeHowItWorks}
+              className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-lg border border-cyan-300/60 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--live)] sm:px-6"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </section>
     ) : null}
