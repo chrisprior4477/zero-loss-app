@@ -7,6 +7,7 @@ import stripStyles from "@/components/account/account-status-strip.module.css";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { accountRoutes } from "@/lib/account/navigation";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
+import { RewardPassAutoScroll } from "./RewardPassAutoScroll";
 import { RewardClaimControl } from "./RewardClaimControl";
 import { DemoRewardRestartControl } from "./DemoRewardRestartControl";
 import { DemoIdentityPreviewButton } from "@/components/identity/DemoVerificationDialog";
@@ -184,6 +185,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
   const singleReady = ready.length === 1 ? ready[0] : null;
 
   return <main className={styles.detailPage}>
+    <RewardPassAutoScroll rewardKey={item.rewardId ?? item.slug} />
     <section aria-label="Reward redemption details" className={styles.detailShell}>
       {accountOverview ? <section aria-label="Your account overview" className={`${stripStyles.row} ${styles.detailStatusStrip}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={accountOverview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={accountOverview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!accountOverview.fundingEnabled} />
