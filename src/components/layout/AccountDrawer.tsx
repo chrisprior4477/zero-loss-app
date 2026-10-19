@@ -26,6 +26,8 @@ type AccountDrawerProps = {
   balanceLabel: string | null;
   fundingEnabled?: boolean;
   activityState: AccountActivity;
+  onPreviewOpen?: () => void;
+  previewExpanded?: boolean;
 };
 
 const secondaryLinks = [
@@ -59,7 +61,7 @@ function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initi
   );
 }
 
-export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showPhotoInMenu = true, balanceLabel, fundingEnabled = false, activityState }: AccountDrawerProps) {
+export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showPhotoInMenu = true, balanceLabel, fundingEnabled = false, activityState, onPreviewOpen, previewExpanded = false }: AccountDrawerProps) {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
   const [walletHistoryOpen, setWalletHistoryOpen] = useState(false);
@@ -148,9 +150,9 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => { setWalletHistoryOpen(new URLSearchParams(window.location.search).get("view") === "history"); setOpen(true); }}
+        onClick={() => { if (onPreviewOpen) { onPreviewOpen(); return; } setWalletHistoryOpen(new URLSearchParams(window.location.search).get("view") === "history"); setOpen(true); }}
         aria-label="Open account menu"
-        aria-expanded={open}
+        aria-expanded={onPreviewOpen ? previewExpanded : open}
         className={`grid h-9 w-9 place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${hasSavedAvatar ? "rounded-full border border-cyan-300/40 bg-[#07533f] hover:border-cyan-200" : "rounded-md text-white/75 hover:bg-white/8 hover:text-white"}`}
       >
         {hasSavedAvatar ? (

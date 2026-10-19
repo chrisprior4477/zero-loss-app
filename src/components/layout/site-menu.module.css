@@ -24,6 +24,9 @@
   .pageCategories { display: flex; flex: none; position: relative; height: 48px; background: var(--header); }
   .searchToggle { display: none; flex: none; align-items: center; justify-content: center; color: white; height: 40px; width: 32px; }
   .searchToggle svg { height: 23px; width: 23px; }
+  .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"])[data-search-open="false"] .searchToggle { animation: search-invitation 2.6s ease-in-out infinite; border-radius: 50%; }
+  .searchToggle:hover, .searchToggle:focus-visible { color: #6feaff; outline: 2px solid #6feaff; outline-offset: 2px; }
+  @keyframes search-invitation { 0%, 72%, 100% { transform: scale(1); box-shadow: 0 0 0 0 #55d9ff00; } 36% { transform: scale(1.1); box-shadow: 0 0 0 5px #55d9ff23; color: #9defff; } }
   .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"]) .searchToggle { display: flex; }
   .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"]) .mobileSearchRow { height: 0; padding-block: 0; border: 0; overflow: hidden; visibility: hidden; transition: height 200ms ease, padding 200ms ease, visibility 200ms; }
   .header[data-menu-layout="search-down"][data-search-open="true"] .mobileSearchRow { height: 44px; padding-block: 2px 6px; visibility: visible; }
@@ -63,4 +66,4 @@
   .accountControls [data-header-auth] { gap: 2px; }
   .accountControls [data-header-auth] a { padding-inline: 4px; max-width: 66px; font-size: 11px; line-height: 14px; text-align: center; }
 }
-@media (prefers-reduced-motion: reduce) { .header *, .header *::before { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .header *, .header *::before { transition: none !important; animation: none !important; } }

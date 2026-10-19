@@ -1,13 +1,8 @@
 .ticket { --corner: 18px; --side: 12px; color: #111d4e; background: #fffdfa; margin-top: 12px; padding: 26px; min-width: 0; scroll-margin-top: calc(var(--site-header-height, 149px) + 12px); mask-image: radial-gradient(circle var(--corner) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side) at 100% 50%, transparent 99%, #000 103%); mask-composite: intersect; }
-.disclosure summary { display: flex; justify-content: space-between; gap: 12px; align-items: center; cursor: pointer; list-style: none; }
-.disclosure summary::-webkit-details-marker { display: none; }
-.disclosure summary:focus-visible { outline: 3px solid #087fff; outline-offset: 6px; border-radius: 3px; }
 .eyebrow { display: block; color: #0878ae; font-size: 11px; font-weight: 900; letter-spacing: .16em; }
 .ticket h2 { margin-top: 7px; font-size: clamp(23px, 3vw, 32px); font-weight: 900; letter-spacing: -.035em; line-height: 1.1; }
 .summaryText { display: block; margin-top: 8px; font-size: 14px; color: #506b8e; }
 .current { display: inline-block; margin-top: 12px; padding: 5px 10px; border-radius: 8px; background: #e5f5ff; font-size: 12px; font-weight: 800; color: #176083; }
-.chevron { font-size: 28px; line-height: 1; color: #087fff; }
-.disclosure[open] .chevron { transform: rotate(180deg); }
 .content { margin-top: 18px; padding-top: 18px; border-top: 1px solid #c6ddeb; }
 .content p { font-size: 14px; line-height: 1.5; color: #506b8e; }
 .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0 18px; }
@@ -19,10 +14,29 @@
 .number { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%; background: white; font-weight: 900; color: #087fff; }
 .option strong { display: block; font-size: 12px; line-height: 1.25; }
 .option small { display: block; font-size: 11px; color: #506b8e; margin-top: 3px; }
-.demo { position: relative; background: #edf5fb; border-radius: 12px; overflow: hidden; pointer-events: none; max-width: 390px; margin-inline: auto; }
-.demoCanvas { width: 390px; transform-origin: top left; }
-.demoPage { display: flex; gap: 8px; padding: 14px; }
-.demoPage span { height: 28px; border-radius: 5px; background: #d1e5f3; flex: 1; }
+.previewPanel { animation: reveal-preview 220ms ease-out; }
+@keyframes reveal-preview { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.tryHint { margin-bottom: 10px; }
+.demo { position: relative; background: white; border-radius: 12px; overflow: hidden; max-width: 390px; margin-inline: auto; }
+.demoCanvas { position: relative; width: 390px; transform-origin: top left; }
+.previewBackdrop { background: white; }
+.demoPage { height: 220px; overflow: hidden; background: #031b44; color: white; filter: grayscale(1); opacity: .3; pointer-events: none; }
+.demoBreadcrumb { padding: 10px 16px; background: #061d31; font-size: 12px; font-weight: 700; }
+.demoHero { position: relative; height: 180px; padding: 26px 20px; overflow: hidden; }
+.demoHero img { position: absolute; right: -35px; top: -10px; width: 250px; height: 220px; object-fit: contain; }
+.demoHero h3 { position: relative; font-size: 34px; line-height: .98; letter-spacing: -.045em; font-weight: 800; }
+.demoHero h3 span { color: #65f000; }
+.demoProducts { padding: 14px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.demoProducts h4 { width: 100%; font-size: 20px; font-weight: 800; }
+.demoDestination { padding: 20px; }
+.demoDestination small { font-weight: 900; letter-spacing: .12em; font-size: 11px; }
+.demoDestination h3 { font-weight: 900; font-size: 26px; line-height: 1.1; margin-block: 8px; overflow-wrap: anywhere; }
+.demoDestination p { color: white; font-size: 14px; }
+.demoAccount { position: absolute; top: 54px; right: 10px; width: 235px; z-index: 4; background: #fffdfa; color: #111d4e; border: 1px solid #b8d6e9; border-radius: 12px; padding: 12px; box-shadow: 0 8px 20px #00132e33; }
+.demoAccount > div { display: flex; justify-content: space-between; align-items: center; }
+.demoAccount button { display: block; min-height: 40px; width: 100%; text-align: left; font-size: 14px; font-weight: 800; }
+.demoAccount > div button { width: 36px; text-align: center; font-size: 24px; }
+.previewStatus { font-size: 11px !important; margin-top: 5px; }
 .demoCaption { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: #506b8e; font-size: 10px; }
 .demoCaption button { color: #0065cf; font-weight: 800; min-height: 36px; }
 .description { margin-top: 10px; }
@@ -34,4 +48,4 @@
 .status { margin-top: 10px; font-size: 12px !important; }
 .status[data-error="true"] { color: #a52c17; }
 @media (max-width: 420px) { .ticket { padding: 23px 19px; } .option { gap: 6px; padding: 8px; } }
-@media (prefers-reduced-motion: reduce) { .demo * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .previewPanel, .demo * { transition: none !important; animation: none !important; } }

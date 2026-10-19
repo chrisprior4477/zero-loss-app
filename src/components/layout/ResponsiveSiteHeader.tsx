@@ -16,7 +16,7 @@ type Props = {
   accountMenu: ReactNode;
   endingSoonItems: { title: string; href: string; remaining: number }[];
   hiddenSlugs: string[];
-  preview?: { expanded: boolean; query: string };
+  preview?: { expanded: boolean; query: string; onExpandedChange?: (open: boolean) => void; onSearch?: (query: string) => void };
 };
 
 export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonItems, hiddenSlugs, preview }: Props) {
@@ -28,9 +28,13 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
   const [searchSession, setSearchSession] = useState({ layout, pathname, open: false });
   const expanded = preview ? preview.expanded : searchSession.layout === layout && searchSession.pathname === pathname && searchSession.open;
   const singleRow = layout === "search-down" || layout === "search-over";
-  const closeSearch = () => setSearchSession({ layout, pathname, open: false });
+  const setSearchOpen = (open: boolean) => {
+    if (preview) preview.onExpandedChange?.(open);
+    else setSearchSession({ layout, pathname, open });
+  };
+  const closeSearch = () => setSearchOpen(false);
   const openSearch = () => {
-    setSearchSession({ layout, pathname, open: true });
+    setSearchOpen(true);
     requestAnimationFrame(() => searchRef.current?.querySelector<HTMLInputElement>("input")?.focus());
   };
 
@@ -44,10 +48,10 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
     return () => observer.disconnect();
   }, [layout, expanded, preview]);
 
-  const categories = <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} />;
+  const categories = <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} />;
   const searchProps = {
     inputId: preview ? "preview-mobile-header-search" : "mobile-header-search",
-    onActivate: () => setSearchSession({ layout, pathname, open: true }),
+    onActivate: () => setSearchOpen(true),
     onSubmitted: closeSearch,
     onDismiss: layout !== "classic" && expanded ? () => {
       closeSearch();
@@ -71,7 +75,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
           {layout === "home-ending-search" ? <Link href="/" aria-label="Home" className={styles.home}><HomeIcon className="h-5 w-5" /></Link> : null}
           <Link href="/browse?sort=ending-soon" className={styles.endingSoon}>Ending Soon</Link>
         </div>
-        <div className={styles.mobileSearch}>{preview ? <DesktopHeaderSearchFallback key={preview.query} {...searchProps} initialQuery={preview.query} /> : <Suspense fallback={<DesktopHeaderSearchFallback {...searchProps} />}><DesktopHeaderSearch {...searchProps} /></Suspense>}</div>
+        <div className={styles.mobileSearch}>{preview ? <DesktopHeaderSearchFallback key={preview.query} {...searchProps} initialQuery={preview.query} navigate={href => preview.onSearch?.(new URLSearchParams(href.split("?")[1]).get("q") ?? "")} /> : <Suspense fallback={<DesktopHeaderSearchFallback {...searchProps} />}><DesktopHeaderSearch {...searchProps} /></Suspense>}</div>
       </div>
       <div className={styles.stickyCategories}>{categories}</div>
       <div aria-hidden="true" className={styles.brandRule} />

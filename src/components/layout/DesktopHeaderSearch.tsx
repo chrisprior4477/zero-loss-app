@@ -138,6 +138,6 @@ export function DesktopHeaderSearch({ inputId = "desktop-header-search", ...opti
   return <HeaderSearchForm key={`${pathname}:${currentQuery}`} inputId={inputId} initialQuery={currentQuery} {...options} navigate={href => router.push(href)} />;
 }
 
-export function DesktopHeaderSearchFallback({ inputId = "desktop-header-search", initialQuery = "", ...options }: SearchOptions & { initialQuery?: string }) {
+export function DesktopHeaderSearchFallback({ inputId = "desktop-header-search", initialQuery = "", ...options }: SearchOptions & { initialQuery?: string; navigate?: (href: string) => void }) {
   return <HeaderSearchForm inputId={inputId} initialQuery={initialQuery} {...options} />;
 }

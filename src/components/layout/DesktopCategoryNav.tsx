@@ -46,7 +46,7 @@ const desktopCategoryItems: Record<string, readonly string[]> = {
 
 type EndingSoonMenuItem = { title: string; href: string; remaining: number };
 
-export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [] }: { endingSoonItems: EndingSoonMenuItem[]; resolvedSlugs?: string[] }) {
+export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], preview = false }: { endingSoonItems: EndingSoonMenuItem[]; resolvedSlugs?: string[]; preview?: boolean }) {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const resolved = new Set(resolvedSlugs);
   const navRef = useRef<HTMLElement>(null);
@@ -54,7 +54,7 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [] }: { en
   const suppressClick = useRef(false);
   const [menuTop, setMenuTop] = useState(0);
   const openMenu = (category: string) => {
-    if (dragRef.current?.dragging) return;
+    if (preview || dragRef.current?.dragging) return;
     setMenuTop(navRef.current?.getBoundingClientRect().bottom ?? 0);
     setOpenCategory(category);
   };
@@ -169,8 +169,8 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [] }: { en
             >
               <Link
                 href={marketplaceCategoryHref(category)}
-                aria-expanded={isOpen}
-                aria-haspopup="menu"
+                aria-expanded={preview ? undefined : isOpen}
+                aria-haspopup={preview ? undefined : "menu"}
                 onFocus={() => openMenu(category)}
                 onClick={() => setOpenCategory(null)}
                 className={

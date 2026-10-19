@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { MenuLayoutProvider, useMenuLayout } from "@/components/layout/MenuLayoutProvider";
 import { MenuLayoutPicker } from "./MenuLayoutPicker";
@@ -8,10 +8,20 @@ vi.mock("@/lib/account/menu-layout-action", () => ({ saveMenuLayout: save }));
 function ActiveMenu() { const { layout, savedLayout } = useMenuLayout(); return <output data-testid="active-menu">{layout}:{savedLayout}</output>; }
 function setup() {
   render(<MenuLayoutProvider initialLayout="classic"><ActiveMenu /><MenuLayoutPicker /></MenuLayoutProvider>);
-  fireEvent.click(screen.getByText("Personalize your top menu"));
 }
 beforeEach(() => { save.mockReset(); save.mockResolvedValue({ ok: true }); });
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+test("all choices are visible immediately, but the preview waits for a choice—even Classic", () => {
+  setup();
+  expect(screen.getAllByRole("radio")).toHaveLength(5);
+  expect(screen.queryByRole("group", { name: "Interactive menu preview" })).toBeNull();
+  expect(document.querySelector("#personalize-menu details")).toBeNull();
+  fireEvent.click(screen.getByRole("radio", { name: "1. Classic" }));
+  expect(screen.getByRole("group", { name: "Interactive menu preview" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Close preview" }));
+  expect(screen.queryByRole("group", { name: "Interactive menu preview" })).toBeNull();
+});
 
 test("all five choices preview immediately, cancel restores the saved menu, and previews do not write", () => {
   setup();
@@ -40,15 +50,47 @@ test("Keep saves the chosen layout; a failed save retains the previous saved cho
   expect(screen.getByTestId("active-menu").textContent).toBe("search-down:search-down");
 });
 
-test("the demonstration opens, types and closes without running a real search", () => {
+test.each(menuLayouts)("$name automatically demonstrates search and can replay it", option => {
   vi.useFakeTimers(); setup();
-  fireEvent.click(screen.getByRole("radio", { name: /Search in place/ }));
-  fireEvent.click(screen.getByRole("button", { name: /Play search preview/ }));
-  act(() => vi.advanceTimersByTime(1200));
+  fireEvent.click(screen.getByRole("radio", { name: `${menuLayouts.indexOf(option) + 1}. ${option.name}` }));
+  act(() => vi.advanceTimersByTime(1500));
   expect(screen.getByDisplayValue("Coffee")).toBeTruthy();
   act(() => vi.advanceTimersByTime(1500));
   expect(screen.queryByDisplayValue("Coffee")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /Replay animation/ }));
+  act(() => vi.advanceTimersByTime(1500));
+  expect(screen.getByDisplayValue("Coffee")).toBeTruthy();
   expect(save).not.toHaveBeenCalled();
+});
+
+test.each(menuLayouts)("$name lets customers try search and navigation without leaving Profile", option => {
+  vi.useFakeTimers(); setup();
+  fireEvent.click(screen.getByRole("radio", { name: `${menuLayouts.indexOf(option) + 1}. ${option.name}` }));
+  act(() => vi.advanceTimersByTime(3000));
+  const demo = screen.getByRole("group", { name: "Interactive menu preview" });
+  const input = within(demo).getByRole("searchbox");
+  if (option.id.startsWith("search-")) fireEvent.click(within(demo).getByRole("button", { name: "Open search" }));
+  fireEvent.focus(input); fireEvent.change(input, { target: { value: "Publix" } });
+  fireEvent.click(within(demo).getByRole("button", { name: "Go to search results" }));
+  expect(screen.getByText('Preview: Search results for “Publix”. Menu actions here won’t leave Profile.')).toBeTruthy();
+  expect(demo.querySelector("header")?.dataset.searchOpen).toBe("false");
+  fireEvent.click(within(demo).getByRole("link", { name: "ZeroLoss home" }));
+  expect(screen.getByText("Preview: Home. Menu actions here won’t leave Profile.")).toBeTruthy();
+  fireEvent.click(within(demo).getByRole("button", { name: "Open account menu" }));
+  fireEvent.click(within(demo).getByRole("button", { name: "Your Profile" }));
+  expect(screen.getByText("Preview: Your Profile. Menu actions here won’t leave Profile.")).toBeTruthy();
+  expect(save).not.toHaveBeenCalled();
+});
+
+test("interacting interrupts the animation so it cannot overwrite a typed query", () => {
+  vi.useFakeTimers(); setup();
+  fireEvent.click(screen.getByRole("radio", { name: "4. Search push down" }));
+  const demo = screen.getByRole("group", { name: "Interactive menu preview" });
+  fireEvent.pointerDown(demo.querySelector("button")!);
+  fireEvent.focus(within(demo).getByRole("searchbox"));
+  fireEvent.change(within(demo).getByRole("searchbox"), { target: { value: "My search" } });
+  act(() => vi.advanceTimersByTime(4000));
+  expect(screen.getByDisplayValue("My search")).toBeTruthy();
 });
 
 test("shopping bar includes browsing and favorites but excludes account tasks", () => {
