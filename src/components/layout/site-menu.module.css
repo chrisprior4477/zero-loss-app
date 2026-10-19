@@ -1,6 +1,7 @@
 .header { position: sticky; top: 0; z-index: 40; background: var(--header); }
 .topRow { display: flex; position: relative; align-items: center; height: 60px; gap: 16px; padding: 0 16px; }
-.logo { flex: none; }
+.logo { flex: none; width: 108.75px; }
+.logo img { width: 108.75px; height: 20px; }
 .desktopSearch { display: flex; flex: 1; min-width: 0; max-width: 700px; }
 .accountControls { margin-left: auto; display: flex; flex: none; align-items: center; gap: 16px; }
 .mobileSearchRow, .searchToggle, .pageCategories { display: none; }
@@ -44,16 +45,19 @@
   .header:not([data-menu-preview]) .topRow { height: 60px; gap: 16px; padding: 0 16px; }
   .header:not([data-menu-preview]) .accountControls { gap: 16px; }
   .header:not([data-menu-preview]) .desktopSearch { display: flex; }
+  .header:not([data-menu-preview]) .logo { width: auto; }
+  .header:not([data-menu-preview]) .logo img { width: auto; height: 28px; }
   .header:not([data-menu-preview])[data-menu-layout] .mobileSearchRow,
   .header:not([data-menu-preview])[data-menu-layout] .searchToggle { display: none; }
   .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { display: flex; padding: 0 8px; }
   .header:not([data-menu-preview])[data-menu-layout] .accountControls { visibility: visible; }
   .pageCategories:not([data-menu-preview]) { display: none; }
 }
-@media (min-width: 1024px) { .header:not([data-menu-preview]) .topRow { gap: 24px; } .header:not([data-menu-preview]) .accountControls { gap: 20px; } .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { padding: 0 16px; } }
+@media (min-width: 1024px) { .header:not([data-menu-preview]) .topRow { gap: 24px; } .header:not([data-menu-preview]) .logo img { height: 32px; } .header:not([data-menu-preview]) .accountControls { gap: 20px; } .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { padding: 0 16px; } }
 @media (max-width: 374px) {
   .topRow { gap: 3px; padding-inline: 6px; }
-  .logo img { max-width: 102px; height: auto; }
+  .header:not([data-menu-preview]) .logo { width: 84px; }
+  .header:not([data-menu-preview]) .logo img { width: 84px; height: auto; }
   .accountControls { gap: 3px; }
   .searchToggle { width: 27px; }
   .accountControls [data-header-auth] { gap: 2px; }
