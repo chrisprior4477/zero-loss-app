@@ -16,7 +16,7 @@ type Props = {
   accountMenu: ReactNode;
   endingSoonItems: { title: string; href: string; remaining: number }[];
   hiddenSlugs: string[];
-  preview?: { expanded: boolean; query: string; onExpandedChange?: (open: boolean) => void; onSearch?: (query: string) => void };
+  preview?: { expanded: boolean; query: string; pageCategoriesInPreviewBody?: boolean; onExpandedChange?: (open: boolean) => void; onSearch?: (query: string) => void };
 };
 
 export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonItems, hiddenSlugs, preview }: Props) {
@@ -80,7 +80,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
       <div className={styles.stickyCategories}>{categories}</div>
       <div aria-hidden="true" className={styles.brandRule} />
     </header>
-    {layout !== "classic" && (preview || showsShoppingCategories(pathname)) ? <div className={styles.pageCategories} data-shopping-category-row={preview ? undefined : true} data-menu-preview={preview ? "true" : undefined}>
+    {layout !== "classic" && !preview?.pageCategoriesInPreviewBody && (preview || showsShoppingCategories(pathname)) ? <div className={styles.pageCategories} data-shopping-category-row={preview ? undefined : true} data-menu-preview={preview ? "true" : undefined}>
       {categories}
     </div> : null}
   </>;

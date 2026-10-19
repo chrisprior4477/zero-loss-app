@@ -19,8 +19,11 @@
 .tryHint { margin-bottom: 10px; }
 .demo { position: relative; background: white; border-radius: 12px; overflow: hidden; max-width: 390px; margin-inline: auto; }
 .demoCanvas { position: relative; width: 390px; transform-origin: top left; }
-.previewBackdrop { background: white; }
-.demoPage { height: 220px; overflow: hidden; background: #031b44; color: white; filter: grayscale(1); opacity: .3; pointer-events: none; }
+.previewBackdrop { height: 300px; overflow-y: auto; overflow-x: hidden; background: white; scrollbar-width: none; overscroll-behavior-y: contain; touch-action: pan-y; cursor: grab; user-select: none; }
+.previewBackdrop::-webkit-scrollbar { display: none; }
+.previewBackdrop:active { cursor: grabbing; }
+.previewBackdrop:focus-visible { outline: 3px solid #087fff; outline-offset: -3px; }
+.demoPage { background: #031b44; color: white; filter: grayscale(1); opacity: .3; pointer-events: none; }
 .demoBreadcrumb { padding: 10px 16px; background: #061d31; font-size: 12px; font-weight: 700; }
 .demoHero { position: relative; height: 180px; padding: 26px 20px; overflow: hidden; }
 .demoHero img { position: absolute; right: -35px; top: -10px; width: 250px; height: 220px; object-fit: contain; }
@@ -28,6 +31,10 @@
 .demoHero h3 span { color: #65f000; }
 .demoProducts { padding: 14px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .demoProducts h4 { width: 100%; font-size: 20px; font-weight: 800; }
+.demoProduct { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px; background: #fffdfa; color: #111d4e; border-radius: 12px; }
+.demoProduct img { width: 220px; height: 140px; object-fit: contain; }
+.demoProduct strong { font-size: 19px; }
+.demoProduct span { padding: 8px 22px; background: #31e800; border-radius: 8px; font-weight: 800; }
 .demoDestination { padding: 20px; }
 .demoDestination small { font-weight: 900; letter-spacing: .12em; font-size: 11px; }
 .demoDestination h3 { font-weight: 900; font-size: 26px; line-height: 1.1; margin-block: 8px; overflow-wrap: anywhere; }

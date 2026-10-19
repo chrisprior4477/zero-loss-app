@@ -93,6 +93,22 @@ test("interacting interrupts the animation so it cannot overwrite a typed query"
   expect(screen.getByDisplayValue("My search")).toBeTruthy();
 });
 
+test.each(menuLayouts)("$name has a non-clickable scrollable page, with compact categories inside it", option => {
+  setup();
+  fireEvent.click(screen.getByRole("radio", { name: `${menuLayouts.indexOf(option) + 1}. ${option.name}` }));
+  const demo = screen.getByRole("group", { name: "Interactive menu preview" });
+  const page = within(demo).getByRole("region", { name: "Scrollable page preview" });
+  expect(page.tabIndex).toBe(0);
+  expect(page.querySelector("[inert][aria-hidden='true']")).toBeTruthy();
+  expect(page.querySelector("[data-preview-page-categories]") !== null).toBe(option.id !== "classic");
+  expect(demo.querySelector("header")?.contains(page)).toBe(false);
+  expect(within(page).queryByRole("link")).toBeNull();
+  const category = page.querySelector<HTMLAnchorElement>("a[href]");
+  if (category) fireEvent.click(category);
+  expect(screen.getByText("Preview: Home. Menu actions here won’t leave Profile.")).toBeTruthy();
+  expect(save).not.toHaveBeenCalled();
+});
+
 test("shopping bar includes browsing and favorites but excludes account tasks", () => {
   for (const path of ["/", "/browse", "/items/amazon-100-gift-card", "/rewards/amazon", "/account/favorites"]) expect(showsShoppingCategories(path)).toBe(true);
   for (const path of ["/account/profile", "/account/wallet", "/account/entries", "/account/notifications", "/login", "/how-it-works"]) expect(showsShoppingCategories(path)).toBe(false);
