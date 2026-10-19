@@ -330,7 +330,7 @@
   .gallery[data-stacked-overflowing="true"], .gallery[data-overflowing="true"][data-stacked-overflowing="true"] { --gallery-peek: 10px; }
   .productCard[data-status="active"] .cardAction { gap: 3px; padding-inline: 5px; font-size: 9px; }
   .cardFoot { gap: 4px; }
-  .productCard[data-status="completion"] .cardAction { padding-inline: 4px; }
+  .productCard[data-status="completion"] .cardAction { gap: 2px; padding-inline: 3px; }
 }
 @media (max-width: 610px) {
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
