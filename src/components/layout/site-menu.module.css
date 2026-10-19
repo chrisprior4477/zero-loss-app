@@ -30,7 +30,8 @@
   .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"]) .searchToggle { display: flex; }
   .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"]) .mobileSearchRow { height: 0; padding-block: 0; border: 0; overflow: hidden; visibility: hidden; transition: height 200ms ease, padding 200ms ease, visibility 200ms; }
   .header[data-menu-layout="search-down"][data-search-open="true"] .mobileSearchRow { height: 44px; padding-block: 2px 6px; visibility: visible; }
-  .header[data-menu-layout="search-over"] .mobileSearchRow { position: absolute; z-index: 2; left: 48px; right: 8px; top: 0; height: 54px; padding: 0 4px; border: 0; transform: scaleX(.08); transform-origin: right; opacity: 0; background: var(--header); transition: transform 220ms ease, opacity 150ms ease, visibility 200ms; }
+  /* Offset the origin by half the unequal side insets so it opens at the page center. */
+  .header[data-menu-layout="search-over"] .mobileSearchRow { position: absolute; z-index: 2; left: 48px; right: 8px; top: 0; height: 54px; padding: 0 4px; border: 0; transform: scaleX(.08); transform-origin: calc(50% - 20px) center; opacity: 0; background: var(--header); transition: transform 220ms ease, opacity 150ms ease, visibility 200ms; }
   .header[data-menu-layout="search-over"][data-search-open="true"] .mobileSearchRow { height: 54px; padding: 0 4px; visibility: visible; transform: scaleX(1); opacity: 1; }
   .header[data-menu-layout="search-over"][data-search-open="true"] .accountControls,
   .header[data-menu-layout="search-over"][data-search-open="true"] .searchToggle { visibility: hidden; }
@@ -42,6 +43,8 @@
 .header[data-menu-preview] .accountControls a[aria-label$="playable balance"] { gap: 4px; }
 .header[data-menu-preview] .accountControls a[aria-label$="playable balance"] > span { font-size: 14px; }
 .header[data-menu-preview] form { min-width: 0; }
+.header[data-menu-preview] form > [role="group"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 4px; }
+.header[data-menu-preview] form > [role="group"] > p { grid-column: 1 / -1; }
 .header[data-menu-preview] .stickyCategories a, .pageCategories[data-menu-preview] a { font-size: 13px; }
 .header[data-menu-preview] .stickyCategories a[aria-label="Home"], .pageCategories[data-menu-preview] a[aria-label="Home"] { height: 40px; width: 40px; }
 .header[data-menu-preview] .stickyCategories ul, .pageCategories[data-menu-preview] ul { justify-content: flex-start; gap: 4px; padding-inline: 8px; }

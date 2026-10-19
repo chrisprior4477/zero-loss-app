@@ -73,7 +73,7 @@ test.each(menuLayouts.filter(option => option.id !== "classic"))("$name preview 
   expect(header.dataset.searchOpen).toBe("true");
   fireEvent.pointerDown(document.body);
   expect(header.dataset.searchOpen).toBe("false");
-  act(() => vi.advanceTimersByTime(3000));
+  act(() => vi.advanceTimersByTime(18000));
   expect(header.dataset.searchOpen).toBe("false");
   expect(screen.queryByDisplayValue("Coffee")).toBeNull();
 });
@@ -85,7 +85,13 @@ test.each(menuLayouts)("$name automatically demonstrates search and can replay i
   expect(screen.getByDisplayValue("Coffee")).toBeTruthy();
   act(() => vi.advanceTimersByTime(1500));
   expect(screen.queryByDisplayValue("Coffee")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: /Replay animation/ }));
+  act(() => vi.advanceTimersByTime(13500));
+  expect(screen.getByDisplayValue("Coffee")).toBeTruthy();
+  act(() => vi.advanceTimersByTime(1500));
+  expect(screen.queryByDisplayValue("Coffee")).toBeNull();
+  act(() => vi.advanceTimersByTime(6000));
+  expect(screen.queryByDisplayValue("Coffee")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Replay Animation", exact: true }));
   act(() => vi.advanceTimersByTime(1500));
   expect(screen.getByDisplayValue("Coffee")).toBeTruthy();
   expect(save).not.toHaveBeenCalled();
@@ -117,8 +123,25 @@ test("interacting interrupts the animation so it cannot overwrite a typed query"
   fireEvent.pointerDown(demo.querySelector("button")!);
   fireEvent.focus(within(demo).getByRole("searchbox"));
   fireEvent.change(within(demo).getByRole("searchbox"), { target: { value: "My search" } });
-  act(() => vi.advanceTimersByTime(4000));
+  act(() => vi.advanceTimersByTime(19000));
   expect(screen.getByDisplayValue("My search")).toBeTruthy();
+});
+
+test("reduced motion skips the extended demo and replay while keeping manual search available", () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
+  setup();
+  fireEvent.click(screen.getByRole("radio", { name: "5. Search in place" }));
+  act(() => vi.advanceTimersByTime(18000));
+  expect(screen.queryByDisplayValue("Coffee")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Replay Animation", exact: true }));
+  act(() => vi.advanceTimersByTime(18000));
+  expect(screen.queryByDisplayValue("Coffee")).toBeNull();
+  const demo = screen.getByRole("group", { name: "Interactive menu preview" });
+  fireEvent.click(within(demo).getByRole("button", { name: "Open search" }));
+  fireEvent.change(within(demo).getByRole("searchbox"), { target: { value: "TV" } });
+  fireEvent.click(within(demo).getByRole("button", { name: "Go to search results" }));
+  expect(screen.getByText('Preview: Search results for “TV”. Menu actions here won’t leave Profile.')).toBeTruthy();
 });
 
 test.each(menuLayouts)("$name has a non-clickable scrollable page, with compact categories inside it", option => {

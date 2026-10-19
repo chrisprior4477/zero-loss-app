@@ -29,7 +29,7 @@ export function MenuLayoutPreview({ layout, account, searchResults = {} }: { lay
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
   const [searchVersion, setSearchVersion] = useState(0);
   const dragRef = useRef<{ id: number; y: number; top: number } | null>(null);
-  const [dimensions, setDimensions] = useState({ scale: 1, height: 369 });
+  const [dimensions, setDimensions] = useState({ scale: 1, height: 232 });
   const matches = searchQuery === null ? null : searchResults[searchQuery.toLowerCase()] ?? [];
   useLayoutEffect(() => {
     const page = pageRef.current, results = resultsRef.current;
@@ -55,10 +55,18 @@ export function MenuLayoutPreview({ layout, account, searchResults = {} }: { lay
     if (!playing) return;
     // Reduced-motion customers can still type, tap and submit the preview themselves.
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const open = window.setTimeout(() => setExpanded(true), 550);
-    const type = window.setTimeout(() => setQuerySeed("Coffee"), 1250);
-    const close = window.setTimeout(() => { setExpanded(false); setQuerySeed(""); setPlaying(false); }, 2900);
-    return () => { clearTimeout(open); clearTimeout(type); clearTimeout(close); };
+    // Six short demonstrations add 15 seconds without slowing the real menu down.
+    const timers: number[] = [];
+    for (let cycle = 0; cycle < 6; cycle++) {
+      const start = cycle * 3000;
+      timers.push(window.setTimeout(() => setExpanded(true), start + 550));
+      timers.push(window.setTimeout(() => setQuerySeed("Coffee"), start + 1250));
+      timers.push(window.setTimeout(() => {
+        setExpanded(false); setQuerySeed("");
+        if (cycle === 5) setPlaying(false);
+      }, start + 2900));
+    }
+    return () => timers.forEach(clearTimeout);
   }, [playing, replay]);
 
   const activity = { isPreview: false, activity: [], activeCount: account.count, source: "stored" as const };
@@ -126,7 +134,7 @@ export function MenuLayoutPreview({ layout, account, searchResults = {} }: { lay
         </div>
       </div>
     </div>
-    <div className={styles.demoCaption}><span>Interactive preview · phone or narrow window</span><button type="button" onClick={() => { setExpanded(false); setQuerySeed(""); setPlaying(true); setReplay(value => value + 1); }}>↻ Replay animation</button></div>
+    <div className={styles.demoCaption}><span>Interactive preview · phone or narrow window</span><button className={styles.replay} type="button" onClick={() => { setExpanded(false); setQuerySeed(""); setPlaying(true); setReplay(value => value + 1); }}>Replay Animation</button></div>
     <p className={styles.previewStatus} role="status">Preview: {destination}. Menu actions here won’t leave Profile.</p>
   </div>;
 }
