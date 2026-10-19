@@ -8,9 +8,12 @@
 .stickyCategories { display: flex; height: 48px; padding: 0 8px; border-top: 1px solid #ffffff14; }
 .brandRule { height: 3px; background: var(--brand-rule); }
   .topRow { height: 54px; gap: 6px; padding: 0 10px; }
+  .header:not([data-menu-layout="search-over"]) .topRow { height: 45px; }
   .accountControls { gap: 6px; }
   .desktopSearch { display: none; }
-  .mobileSearchRow { display: flex; align-items: center; height: 44px; padding: 2px 10px 6px; gap: 0; border-top: 1px solid #ffffff0a; }
+  .mobileSearchRow { display: flex; align-items: center; height: 43px; padding: 1px 10px 6px; gap: 0; border-top: 1px solid #ffffff0a; }
+  .header[data-menu-layout="classic"] .mobileSearchRow { height: 40px; padding-bottom: 3px; }
+  .header[data-menu-layout="classic"] .stickyCategories { height: 40px; }
   .mobileSearch { display: flex; min-width: 0; flex: 1; }
   .mobileSearch form { width: 100%; min-width: 0; height: 36px; padding-inline: 9px; }
   .mobileSearch input { min-width: 0; width: 100%; font-size: 16px; }
@@ -29,7 +32,7 @@
   @keyframes search-invitation { 0%, 72%, 100% { transform: scale(1); box-shadow: 0 0 0 0 #55d9ff00; } 36% { transform: scale(1.1); box-shadow: 0 0 0 5px #55d9ff23; color: #9defff; } }
   .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"]) .searchToggle { display: flex; }
   .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"]) .mobileSearchRow { height: 0; padding-block: 0; border: 0; overflow: hidden; visibility: hidden; transition: height 200ms ease, padding 200ms ease, visibility 200ms; }
-  .header[data-menu-layout="search-down"][data-search-open="true"] .mobileSearchRow { height: 44px; padding-block: 2px 6px; visibility: visible; }
+  .header[data-menu-layout="search-down"][data-search-open="true"] .mobileSearchRow { height: 43px; padding-block: 1px 6px; visibility: visible; }
   /* Offset the origin by half the unequal side insets so it opens at the page center. */
   .header[data-menu-layout="search-over"] .mobileSearchRow { position: absolute; z-index: 2; left: 48px; right: 8px; top: 0; height: 54px; padding: 0 4px; border: 0; transform: scaleX(.08); transform-origin: calc(50% - 20px) center; opacity: 0; background: var(--header); transition: transform 220ms ease, opacity 150ms ease, visibility 200ms; }
   .header[data-menu-layout="search-over"][data-search-open="true"] .mobileSearchRow { height: 54px; padding: 0 4px; visibility: visible; transform: scaleX(1); opacity: 1; }
@@ -56,7 +59,7 @@
   .header:not([data-menu-preview]) .logo img { width: auto; height: 28px; }
   .header:not([data-menu-preview])[data-menu-layout] .mobileSearchRow,
   .header:not([data-menu-preview])[data-menu-layout] .searchToggle { display: none; }
-  .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { display: flex; padding: 0 8px; }
+  .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { display: flex; height: 48px; padding: 0 8px; }
   .header:not([data-menu-preview])[data-menu-layout] .accountControls { visibility: visible; }
   .pageCategories:not([data-menu-preview]) { display: none; }
 }
