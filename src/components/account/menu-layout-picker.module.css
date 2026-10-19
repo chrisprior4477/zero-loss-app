@@ -19,27 +19,10 @@
 .number { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%; background: white; font-weight: 900; color: #087fff; }
 .option strong { display: block; font-size: 12px; line-height: 1.25; }
 .option small { display: block; font-size: 11px; color: #506b8e; margin-top: 3px; }
-.demo { position: relative; background: #edf5fb; border-radius: 12px; overflow: hidden; min-height: 148px; }
-.demoSticky { background: #00132e; position: relative; color: white; border-bottom: 2px solid #028bff; }
-.demoTop { height: 32px; display: flex; gap: 9px; align-items: center; padding: 0 10px; }
-.demoLogo { font-size: 12px; font-weight: 900; font-style: italic; white-space: nowrap; }
-.demoLogo span { color: #69f900; }
-.demoMetrics { margin-left: auto; font-size: 11px; font-weight: 800; white-space: nowrap; }
-.demoMagnifier { font-size: 22px; }
-.demoSearchRow { display: flex; gap: 0; height: 30px; align-items: center; padding: 2px 8px 4px; overflow: hidden; transition: height 400ms ease, padding 400ms ease; }
-.demoSearch { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 3px 7px; height: 24px; border-radius: 20px; background: #f5f7fa; color: #007fee; }
-.demoSearch > span:nth-child(2) { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; font-size: 8px; color: #617791; }
-.demoSearch > b { font-size: 9px; }
-.demoShortcuts { max-width: 126px; display: flex; flex: none; align-items: center; gap: 4px; padding-right: 5px; overflow: hidden; white-space: nowrap; transition: max-width 500ms ease, padding 500ms ease; }
-.demoShortcuts b, .demoCategories b { border-radius: 20px; padding: 5px 6px; background: #ff630f; color: white; font-size: 8px; }
-.demoCategories { display: flex; align-items: center; white-space: nowrap; gap: 10px; height: 28px; padding: 0 9px; background: #00132e; color: white; overflow: hidden; font-size: 8px; }
+.demo { position: relative; background: #edf5fb; border-radius: 12px; overflow: hidden; pointer-events: none; }
+.demoCanvas { width: 390px; transform-origin: top left; }
 .demoPage { display: flex; gap: 8px; padding: 14px; }
 .demoPage span { height: 28px; border-radius: 5px; background: #d1e5f3; flex: 1; }
-.demo[data-expanded="true"] .demoShortcuts { max-width: 0; padding-right: 0; }
-.demo[data-layout="search-down"] .demoSearchRow { height: 0; padding-block: 0; }
-.demo[data-layout="search-down"][data-expanded="true"] .demoSearchRow { height: 30px; padding-block: 2px 4px; }
-.demo[data-layout="search-over"] .demoSearchRow { position: absolute; left: 26px; right: 4px; top: 0; height: 32px; padding: 0 4px; background: #00132e; transform: scaleX(0); transform-origin: right; opacity: 0; transition: transform 500ms ease, opacity 350ms ease; }
-.demo[data-layout="search-over"][data-expanded="true"] .demoSearchRow { transform: scaleX(1); opacity: 1; }
 .demoCaption { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: #506b8e; font-size: 10px; }
 .demoCaption button { color: #0065cf; font-weight: 800; min-height: 36px; }
 .description { margin-top: 10px; }

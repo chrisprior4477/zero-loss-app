@@ -1,14 +1,29 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import { menuLayouts, type MenuLayout } from "@/lib/navigation/menu-layout";
 import { saveMenuLayout } from "@/lib/account/menu-layout-action";
 import { useMenuLayout } from "@/components/layout/MenuLayoutProvider";
+import { ResponsiveSiteHeader } from "@/components/layout/ResponsiveSiteHeader";
+import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
+import { AccountDrawer } from "@/components/layout/AccountDrawer";
 import styles from "./menu-layout-picker.module.css";
 
-function MenuAnimation({ layout }: { layout: MenuLayout }) {
+type PreviewAccount = { count: number | null; balance: string | null; avatarUrl: string | null; showPhoto: boolean };
+const emptyPreview: PreviewAccount = { count: 0, balance: "$0.00", avatarUrl: null, showPhoto: false };
+function MenuAnimation({ layout, account }: { layout: MenuLayout; account: PreviewAccount }) {
   const [playing, setPlaying] = useState(false);
   const [phase, setPhase] = useState<"closed" | "open" | "typed">("closed");
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const element = previewRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => { const width = element.getBoundingClientRect().width; if (width > 0) setScale(width / 390); });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     if (!playing) return;
     const open = window.setTimeout(() => setPhase("open"), 60);
@@ -17,30 +32,25 @@ function MenuAnimation({ layout }: { layout: MenuLayout }) {
     return () => { clearTimeout(open); clearTimeout(type); clearTimeout(close); };
   }, [playing]);
   const expanded = phase !== "closed";
-  const compact = layout !== "classic";
-  const single = layout === "search-down" || layout === "search-over";
+  const activity = { isPreview: false, activity: [], activeCount: account.count, source: "stored" as const };
   return <div>
-    <div className={styles.demo} data-layout={layout} data-expanded={expanded} aria-hidden="true">
-      <div className={styles.demoSticky}>
-        <div className={styles.demoTop}><span className={styles.demoLogo}>ZERØ<span>LØSS</span></span>{single ? <span className={styles.demoMagnifier}>⌕</span> : null}<span className={styles.demoMetrics}>🎟 10　◉ $90　☰</span></div>
-        <div className={styles.demoSearchRow}>
-          {!single && compact ? <span className={styles.demoShortcuts}>{layout === "home-ending-search" ? <span>⌂</span> : null}<b>Ending Soon</b></span> : null}
-          <span className={styles.demoSearch}><span>⌕</span><span>{phase === "typed" ? "Coffee" : "Search products, brands, and categories…"}</span><b>{phase === "typed" ? "Go" : "♩"}</b></span>
+    <div ref={previewRef} className={styles.demo} style={{ height: 205 * scale }} aria-hidden="true" inert>
+      <div className={styles.demoCanvas} style={{ transform: `scale(${scale})` }}>
+        <ResponsiveSiteHeader
+          preview={{ expanded, query: phase === "typed" ? "Coffee" : "" }}
+          logo={<Image src="/zeroloss-logo.svg" alt="" width={174} height={32} className="h-5 w-auto" />}
+          metrics={<HeaderAccountMetrics isSignedIn liveBalance={account.balance} activityState={activity} />}
+          accountMenu={<AccountDrawer isSignedIn displayName="" email={null} avatarUrl={account.avatarUrl} showPhotoInMenu={account.showPhoto} balanceLabel={account.balance} activityState={activity} />}
+          endingSoonItems={[]} hiddenSlugs={[]}
+        />
+        <div className={styles.demoPage}><span /><span /><span /></div>
         </div>
-        {!compact ? <DemoCategories /> : null}
-      </div>
-      {compact ? <DemoCategories /> : null}
-      <div className={styles.demoPage}><span /><span /><span /></div>
     </div>
     <div className={styles.demoCaption}><span>Preview · phone or narrow window</span>{layout !== "classic" ? <button type="button" disabled={playing} onClick={() => setPlaying(true)}>{playing ? "Playing…" : "▶ Play search preview"}</button> : <span>Always open</span>}</div>
   </div>;
 }
 
-function DemoCategories() {
-  return <div className={styles.demoCategories}><span>⌂</span><b>Ending Soon</b><span>All</span><span>Everyday Items</span><span>Groceries</span></div>;
-}
-
-export function MenuLayoutPicker() {
+export function MenuLayoutPicker({ previewAccount = emptyPreview }: { previewAccount?: PreviewAccount }) {
   const { layout, savedLayout, preview, keep, cancel } = useMenuLayout();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
@@ -72,7 +82,7 @@ export function MenuLayoutPicker() {
             <span className={styles.number}>{index + 1}</span><span><strong>{option.name}</strong><small>{option.rows}</small></span>
           </label>)}
         </fieldset>
-        <MenuAnimation key={layout} layout={layout} />
+        <MenuAnimation key={layout} layout={layout} account={previewAccount} />
         <p className={styles.description}>{current.description}</p>
         <div className={styles.actions}>
           <button type="button" disabled={pending || !changed} onClick={save}>{pending ? "Saving…" : changed ? "Keep this layout" : "Your saved layout"}</button>

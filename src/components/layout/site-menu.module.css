@@ -6,8 +6,6 @@
 .mobileSearchRow, .searchToggle, .pageCategories { display: none; }
 .stickyCategories { display: flex; height: 48px; padding: 0 8px; border-top: 1px solid #ffffff14; }
 .brandRule { height: 3px; background: var(--brand-rule); }
-@media (min-width: 1024px) { .topRow { gap: 24px; } .accountControls { gap: 20px; } .stickyCategories { padding: 0 16px; } }
-@media (max-width: 767px) {
   .topRow { height: 54px; gap: 6px; padding: 0 10px; }
   .accountControls { gap: 6px; }
   .desktopSearch { display: none; }
@@ -22,7 +20,7 @@
   .endingSoon { flex: none; display: flex; align-items: center; min-height: 36px; padding: 0 9px; border-radius: 22px; color: white; background: #ff630f; font-size: 12px; font-weight: 800; white-space: nowrap; }
   .home { display: grid; place-items: center; width: 30px; height: 36px; flex: none; color: #bdefff; }
   .header:not([data-menu-layout="classic"]) .stickyCategories { display: none; }
-  .pageCategories { display: flex; flex: none; position: relative; height: 48px; background: var(--header); border-bottom: 3px solid #028bff; }
+  .pageCategories { display: flex; flex: none; position: relative; height: 48px; background: var(--header); }
   .searchToggle { display: none; flex: none; align-items: center; justify-content: center; color: white; height: 40px; width: 32px; }
   .searchToggle svg { height: 23px; width: 23px; }
   .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"]) .searchToggle { display: flex; }
@@ -32,7 +30,27 @@
   .header[data-menu-layout="search-over"][data-search-open="true"] .mobileSearchRow { height: 54px; padding: 0 4px; visibility: visible; transform: scaleX(1); opacity: 1; }
   .header[data-menu-layout="search-over"][data-search-open="true"] .accountControls,
   .header[data-menu-layout="search-over"][data-search-open="true"] .searchToggle { visibility: hidden; }
+/* Mobile is the base so the miniature uses the exact same layout at any screen width. */
+.header[data-menu-preview] { position: relative; z-index: 0; }
+.header[data-menu-preview] .logo img { width: 108.75px; max-width: none; height: 20px; }
+.header[data-menu-preview] .accountControls svg { height: 24px; width: 36px; }
+.header[data-menu-preview] .accountControls a[aria-label$="playable balance"] { gap: 4px; }
+.header[data-menu-preview] .accountControls a[aria-label$="playable balance"] > span { font-size: 14px; }
+.header[data-menu-preview] form { min-width: 0; }
+.header[data-menu-preview] .stickyCategories a, .pageCategories[data-menu-preview] a { font-size: 13px; }
+.header[data-menu-preview] .stickyCategories a[aria-label="Home"], .pageCategories[data-menu-preview] a[aria-label="Home"] { height: 40px; width: 40px; }
+.header[data-menu-preview] .stickyCategories ul, .pageCategories[data-menu-preview] ul { justify-content: flex-start; gap: 4px; padding-inline: 8px; }
+@media (min-width: 768px) {
+  .header:not([data-menu-preview]) .topRow { height: 60px; gap: 16px; padding: 0 16px; }
+  .header:not([data-menu-preview]) .accountControls { gap: 16px; }
+  .header:not([data-menu-preview]) .desktopSearch { display: flex; }
+  .header:not([data-menu-preview])[data-menu-layout] .mobileSearchRow,
+  .header:not([data-menu-preview])[data-menu-layout] .searchToggle { display: none; }
+  .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { display: flex; padding: 0 8px; }
+  .header:not([data-menu-preview])[data-menu-layout] .accountControls { visibility: visible; }
+  .pageCategories:not([data-menu-preview]) { display: none; }
 }
+@media (min-width: 1024px) { .header:not([data-menu-preview]) .topRow { gap: 24px; } .header:not([data-menu-preview]) .accountControls { gap: 20px; } .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { padding: 0 16px; } }
 @media (max-width: 374px) {
   .topRow { gap: 3px; padding-inline: 6px; }
   .logo img { max-width: 102px; height: auto; }

@@ -45,9 +45,9 @@ test("the demonstration opens, types and closes without running a real search", 
   fireEvent.click(screen.getByRole("radio", { name: /Search in place/ }));
   fireEvent.click(screen.getByRole("button", { name: /Play search preview/ }));
   act(() => vi.advanceTimersByTime(1200));
-  expect(screen.getByText("Coffee")).toBeTruthy();
+  expect(screen.getByDisplayValue("Coffee")).toBeTruthy();
   act(() => vi.advanceTimersByTime(1500));
-  expect(screen.queryByText("Coffee")).toBeNull();
+  expect(screen.queryByDisplayValue("Coffee")).toBeNull();
   expect(save).not.toHaveBeenCalled();
 });
 

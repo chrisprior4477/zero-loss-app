@@ -10,7 +10,7 @@ import { MenuLayoutProvider } from "@/components/layout/MenuLayoutProvider";
 
 const mocks = vi.hoisted(() => ({ account: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
-vi.mock("next/navigation", () => ({ redirect: (href: string) => { throw new Error(`redirect:${href}`); } }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/account/profile", redirect: (href: string) => { throw new Error(`redirect:${href}`); } }));
 vi.mock("next/image", () => ({ default: () => <span data-testid="saved-photo" /> }));
 vi.mock("./ProfilePhotoCard", () => ({ ProfilePhotoCard: ({ fullName, initialAvatarUrl }: { fullName: string; initialAvatarUrl: string | null }) => <div data-testid="profile-editor" data-avatar={initialAvatarUrl}>{fullName}</div> }));
 afterEach(cleanup);
