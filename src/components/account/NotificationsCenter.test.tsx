@@ -51,6 +51,41 @@ test("notification filters, links, and read controls remain functional", () => {
   expect(screen.getByRole("link", { name: /Sharing preferences/ }).getAttribute("href")).toBe("/account/crew?tab=picks#sharing");
 });
 
+test("mobile filter changes reveal the Notifications section below the sticky site header", () => {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
+  const scrollTo = vi.fn();
+  vi.stubGlobal("scrollTo", scrollTo);
+  const frames: FrameRequestCallback[] = [];
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => { frames.push(callback); return frames.length; });
+  vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+  const originalScrollY = Object.getOwnPropertyDescriptor(window, "scrollY");
+  Object.defineProperty(window, "scrollY", { configurable: true, value: 300 });
+  const siteHeader = document.createElement("header");
+  siteHeader.className = "sticky";
+  siteHeader.getBoundingClientRect = vi.fn(() => new DOMRect(0, 0, 360, 150));
+  document.body.append(siteHeader);
+
+  try {
+    render(<NotificationsCenter notifications={[]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+    const heading = screen.getByRole("heading", { name: "Notifications" }).closest("header")!;
+    heading.getBoundingClientRect = vi.fn(() => new DOMRect(0, 520, 360, 120));
+    fireEvent.click(screen.getByRole("button", { name: /Action needed0/ }));
+    expect(screen.getByText("No action needed updates")).toBeTruthy();
+    frames.shift()?.(0);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 658, behavior: "auto" });
+
+    fireEvent.click(screen.getByRole("button", { name: /Orders0/ }));
+    expect(screen.getByText("No order updates")).toBeTruthy();
+    frames.shift()?.(0);
+    expect(scrollTo).toHaveBeenCalledTimes(2);
+  } finally {
+    siteHeader.remove();
+    if (originalScrollY) Object.defineProperty(window, "scrollY", originalScrollY);
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  }
+});
+
 test("overview tickets and every existing notification category keep their destinations", () => {
   const activity = storedActivityFixture();
   render(<NotificationsCenter notifications={buildAccountNotifications(activity, wallet, true)} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable overview={{ balanceLabel: "$146", fundingEnabled: true, activity }} />);

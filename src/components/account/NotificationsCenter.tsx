@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type MouseEvent } from "react";
 import { respondToCrewRequest } from "@/lib/crew/actions";
 import { markNotificationsRead } from "@/lib/account/notification-read-actions";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
@@ -41,12 +41,32 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
   const [crewMessage, setCrewMessage] = useState("");
   const [readMessage, setReadMessage] = useState("");
   const [read, setRead] = useState<Set<string>>(() => new Set(initialReadIds));
+  const headingRef = useRef<HTMLElement>(null);
+  const scrollFrame = useRef<number | null>(null);
   const enabledNotifications = useMemo(() => notifications.filter(notification => notificationIsEnabled(notification, alertPreferences)), [notifications, alertPreferences]);
   const visible = useMemo(() => filter === "all" ? enabledNotifications : enabledNotifications.filter(notification => notification.category === filter), [filter, enabledNotifications]);
   const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? enabledNotifications.length : enabledNotifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [enabledNotifications]);
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter((item) => item.status === "completion").length;
+
+  useEffect(() => () => {
+    if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
+  }, []);
+
+  function selectFilter(nextFilter: FilterKey) {
+    setFilter(nextFilter);
+    if (!window.matchMedia?.("(max-width: 620px)").matches) return;
+    if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
+    scrollFrame.current = window.requestAnimationFrame(() => {
+      scrollFrame.current = null;
+      const heading = headingRef.current;
+      if (!heading) return;
+      const stickyHeaderBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+      const top = window.scrollY + heading.getBoundingClientRect().top - stickyHeaderBottom - 12;
+      window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+    });
+  }
 
   async function saveRead(ids: string[]) {
     try { return await markNotificationsRead(ids); }
@@ -100,7 +120,7 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
         <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
-      <header className={styles.header}>
+      <header ref={headingRef} className={styles.header}>
         <div><h1>Notifications</h1><p>The updates that need your attention.</p></div>
         <div className={styles.headerActions}>
           <button type="button" onClick={markAllRead} disabled={enabledNotifications.length === 0 || enabledNotifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>
@@ -113,11 +133,11 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
       {!activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
       {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
       {readMessage ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}
-      {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => setFilter("action")}><AccountIcon name="alert" /> <strong>{counts.action} action needed</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
+      {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => selectFilter("action")}><AccountIcon name="alert" /> <strong>{counts.action} action needed</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
 
       <div className={styles.layout}>
         <nav aria-label="Notification filters" className={styles.filters}>
-          {filters.map(([key, label, icon]) => <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)}>
+          {filters.map(([key, label, icon]) => <button key={key} type="button" aria-pressed={filter === key} onClick={() => selectFilter(key)}>
             <AccountIcon name={icon} />
             <span>{label}</span>
             <strong>{counts[key]}</strong>
