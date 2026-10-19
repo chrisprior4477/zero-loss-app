@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { MenuLayoutProvider, useMenuLayout } from "./MenuLayoutProvider";
 import { MenuLayoutTrialBar } from "./MenuLayoutTrialBar";
+import { MenuLayoutPicker } from "@/components/account/MenuLayoutPicker";
 const save = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/account/menu-layout-action", () => ({ saveMenuLayout: save }));
 function Controls() {
@@ -45,4 +46,24 @@ test("trial survives reload in this account's session, not another account", () 
   expect(screen.getByText("search-over:classic")).toBeTruthy(); next.unmount();
   setup("another"); act(() => vi.runAllTimers());
   expect(screen.getByText("classic:classic")).toBeTruthy();
+});
+
+test("previewing saved number five still shows the return bar, including after reload", () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("requestAnimationFrame", (callback: () => void) => setTimeout(callback, 0));
+  vi.stubGlobal("cancelAnimationFrame", clearTimeout);
+  const view = render(<MenuLayoutProvider initialLayout="search-down-browse" accountId="owner"><MenuLayoutPicker /><MenuLayoutTrialBar /></MenuLayoutProvider>);
+  act(() => vi.runAllTimers());
+  expect(screen.queryByRole("complementary", { name: "Menu layout trial" })).toBeNull();
+  fireEvent.click(screen.getByRole("radio", { name: "5. Search push down with Ending Soon & Browse" }));
+  expect(screen.getByRole("complementary", { name: "Menu layout trial" })).toBeTruthy();
+  expect((screen.getByRole("button", { name: "Layout saved" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("link", { name: "Try other styles" })).toBeTruthy();
+  view.unmount();
+  render(<MenuLayoutProvider initialLayout="search-down-browse" accountId="owner"><Controls /><MenuLayoutTrialBar /></MenuLayoutProvider>);
+  act(() => vi.runAllTimers());
+  expect(screen.getByRole("complementary", { name: "Menu layout trial" })).toBeTruthy();
+  fireEvent.click(screen.getByText("Cancel"));
+  expect(screen.queryByRole("complementary", { name: "Menu layout trial" })).toBeNull();
+  expect(save).not.toHaveBeenCalled();
 });

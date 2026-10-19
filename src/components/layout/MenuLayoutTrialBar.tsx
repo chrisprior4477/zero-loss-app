@@ -7,9 +7,8 @@ import { useMenuLayout } from "./MenuLayoutProvider";
 import styles from "./menu-layout-trial.module.css";
 
 export function MenuLayoutTrialBar() {
-  const { layout, savedLayout, pending, message, save } = useMenuLayout();
+  const { layout, savedLayout, trying, pending, message, save } = useMenuLayout();
   const ref = useRef<HTMLElement>(null);
-  const trying = layout !== savedLayout;
   useLayoutEffect(() => {
     const bar = ref.current;
     if (!trying || !bar) return;
@@ -24,7 +23,7 @@ export function MenuLayoutTrialBar() {
     <div className={styles.inner}>
       <p>Trying: <strong>{menuLayouts.find(option => option.id === layout)!.name}</strong></p>
       <div className={styles.actions}>
-        <button type="button" disabled={pending} onClick={save}>{pending ? "Saving…" : "Keep this layout"}</button>
+        <button type="button" disabled={pending || layout === savedLayout} onClick={save}>{pending ? "Saving…" : layout === savedLayout ? "Layout saved" : "Keep this layout"}</button>
         <Link href="/account/profile#personalize-menu">Try other styles</Link>
       </div>
       {message?.error ? <p role="alert">{message.text}</p> : null}

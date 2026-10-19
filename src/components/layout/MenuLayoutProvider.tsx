@@ -7,6 +7,7 @@ import { saveMenuLayout } from "@/lib/account/menu-layout-action";
 type MenuChoice = {
   layout: MenuLayout;
   savedLayout: MenuLayout;
+  trying: boolean;
   preview: (layout: MenuLayout) => void;
   keep: (layout: MenuLayout) => void;
   cancel: () => void;
@@ -20,6 +21,7 @@ const MenuLayoutContext = createContext<MenuChoice | null>(null);
 export function MenuLayoutProvider({ initialLayout, accountId, children }: { initialLayout: MenuLayout; accountId?: string; children: ReactNode }) {
   const [savedLayout, setSavedLayout] = useState(initialLayout);
   const [layout, setLayout] = useState(initialLayout);
+  const [trying, setTrying] = useState(false);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const storageKey = accountId ? `zero-loss:menu-trial:${accountId}` : null;
@@ -28,14 +30,14 @@ export function MenuLayoutProvider({ initialLayout, accountId, children }: { ini
     const frame = requestAnimationFrame(() => {
       try {
         const trial = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
-        if (trial?.savedLayout === initialLayout && isMenuLayout(trial.layout)) setLayout(trial.layout);
+        if (trial?.savedLayout === initialLayout && isMenuLayout(trial.layout)) { setLayout(trial.layout); setTrying(true); }
         else sessionStorage.removeItem(storageKey);
       } catch { /* Trial storage is optional; account preferences stay authoritative. */ }
     });
     return () => cancelAnimationFrame(frame);
   }, [storageKey, initialLayout]);
   function clearTrial() { try { if (storageKey) sessionStorage.removeItem(storageKey); } catch {} }
-  function keep(choice: MenuLayout) { clearTrial(); setSavedLayout(choice); setLayout(choice); }
+  function keep(choice: MenuLayout) { clearTrial(); setTrying(false); setSavedLayout(choice); setLayout(choice); }
   function save() {
     if (pending || layout === savedLayout) return;
     const chosen = layout;
@@ -50,18 +52,17 @@ export function MenuLayoutProvider({ initialLayout, accountId, children }: { ini
     });
   }
   return <MenuLayoutContext.Provider value={{
-    layout, savedLayout,
+    layout, savedLayout, trying,
     pending, message, save, clearMessage: () => setMessage(null),
     preview: choice => {
       if (pending) return;
-      setLayout(choice); setMessage(null);
+      setLayout(choice); setTrying(true); setMessage(null);
       try { if (storageKey) {
-        if (choice === savedLayout) sessionStorage.removeItem(storageKey);
-        else sessionStorage.setItem(storageKey, JSON.stringify({ layout: choice, savedLayout }));
+        sessionStorage.setItem(storageKey, JSON.stringify({ layout: choice, savedLayout }));
       } } catch {}
     },
     keep,
-    cancel: () => { if (!pending) { clearTrial(); setLayout(savedLayout); setMessage(null); } },
+    cancel: () => { if (!pending) { clearTrial(); setTrying(false); setLayout(savedLayout); setMessage(null); } },
   }}>{children}</MenuLayoutContext.Provider>;
 }
 

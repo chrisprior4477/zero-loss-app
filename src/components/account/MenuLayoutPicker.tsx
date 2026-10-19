@@ -28,7 +28,7 @@ export function MenuLayoutPicker({ previewAccount = emptyPreview, previewSearchR
         <fieldset disabled={pending} className={styles.options}>
           <legend className="sr-only">Choose your top menu style</legend>
           {menuLayouts.map((option, index) => <label key={option.id} className={styles.option} data-selected={option.id === layout}>
-            <input type="radio" name="menu-layout" aria-label={`${index + 1}. ${option.name}`} value={option.id} checked={option.id === layout} onChange={() => { preview(option.id); clearMessage(); setPreviewChoice(value => value + 1); }} onClick={() => { if (option.id === layout) setPreviewChoice(value => value + 1); }} />
+            <input type="radio" name="menu-layout" aria-label={`${index + 1}. ${option.name}`} value={option.id} checked={option.id === layout} onChange={() => { preview(option.id); clearMessage(); setPreviewChoice(value => value + 1); }} onClick={() => { if (option.id === layout) { preview(option.id); setPreviewChoice(value => value + 1); } }} />
             <span className={styles.number}>{index + 1}</span><span><strong>{option.name}</strong><small>{option.rows}</small></span>
           </label>)}
         </fieldset>
