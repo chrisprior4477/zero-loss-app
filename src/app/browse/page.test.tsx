@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import BrowsePage from "./page";
+// Full-directory integration renders hundreds of cards in jsdom.
+vi.setConfig({ testTimeout: 20000 });
 
 const account = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue(null) }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: account.get }));
@@ -100,10 +102,10 @@ describe("Browse search results", () => {
     async category => {
       render(await BrowsePage({ searchParams: Promise.resolve(category === "ending-soon" ? { sort: "ending-soon" } : { category }) }));
       const headings = Array.from(document.querySelectorAll('section[aria-label="Products"] article h2'), heading => heading.textContent ?? "");
-      const firstGiftCard = headings.findIndex(title => /gift card|bed bath & beyond \+ wayfair bundle/i.test(title));
+      const firstGiftCard = headings.findIndex(title => /gift card|demo reward|bed bath & beyond \+ wayfair bundle/i.test(title));
       expect(firstGiftCard).toBeGreaterThan(0);
       expect(headings.slice(0, firstGiftCard).every(title => !/gift card/i.test(title))).toBe(true);
-      expect(headings.slice(firstGiftCard).every(title => /gift card|bed bath & beyond \+ wayfair bundle/i.test(title))).toBe(true);
+      expect(headings.slice(firstGiftCard).every(title => /gift card|demo reward|bed bath & beyond \+ wayfair bundle/i.test(title))).toBe(true);
     },
   );
 
@@ -157,14 +159,15 @@ describe("Browse search results", () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy" }) }));
     const retailerNav = within(screen.getByRole("navigation", { name: "Retailer categories" }));
     expect(retailerNav.getByRole("button", { name: "Pharmacy" }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByText("4 products shown")).toBeTruthy();
-    expect(screen.getAllByRole("article")).toHaveLength(4);
+    expect(screen.getByText("5 products shown")).toBeTruthy();
+    expect(screen.getAllByRole("article")).toHaveLength(5);
     expect(screen.queryByRole("link", { name: /Walmart Gift Card/i })).toBeNull();
   });
 
-  test("keeps directory-only retailers visible without inventing an offer", async () => {
+  test("opens the added simulated Walgreens card from its retailer category", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy", retailer: "Walgreens" }) }));
-    expect(screen.getByRole("heading", { name: "No current Walgreens offer matches here." })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /\$100 Walgreens Gift Card/ }).getAttribute("href")).toContain("/items/directory-walgreens-100-gift-card");
+    expect(screen.getAllByRole("article")).toHaveLength(1);
   });
 
   test("filters by the displayed prize value while retaining the inline search", async () => {

@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 import { DemoParticipationPanel } from "./DemoParticipationPanel";
@@ -6,6 +6,7 @@ const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), reset: vi.fn(), en
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: actionMocks.replace, refresh: vi.fn() }) }));
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resetExtraEntryExplainer: actionMocks.reset, resolvePendingEntryRequest: actionMocks.resolve, confirmPendingEntryRequest: actionMocks.confirm }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
+beforeEach(() => { Element.prototype.scrollIntoView = vi.fn(); });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", requestHead: { ready: true as const, requestId: null }, productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);

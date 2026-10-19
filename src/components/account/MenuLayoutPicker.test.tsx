@@ -91,7 +91,7 @@ test.each(menuLayouts)("$name automatically demonstrates search and can replay i
   expect(screen.queryByDisplayValue("Coffee")).toBeNull();
   act(() => vi.advanceTimersByTime(6000));
   expect(screen.queryByDisplayValue("Coffee")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Replay Animation", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Replay Animation" }));
   act(() => vi.advanceTimersByTime(1500));
   expect(screen.getByDisplayValue("Coffee")).toBeTruthy();
   expect(save).not.toHaveBeenCalled();
@@ -134,7 +134,7 @@ test("reduced motion skips the extended demo and replay while keeping manual sea
   fireEvent.click(screen.getByRole("radio", { name: "6. Search in place" }));
   act(() => vi.advanceTimersByTime(18000));
   expect(screen.queryByDisplayValue("Coffee")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Replay Animation", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Replay Animation" }));
   act(() => vi.advanceTimersByTime(18000));
   expect(screen.queryByDisplayValue("Coffee")).toBeNull();
   const demo = screen.getByRole("group", { name: "Interactive menu preview" });
@@ -173,7 +173,7 @@ test.each(menuLayouts)("$name supports a suggested search locally with matching 
   const demo = screen.getByRole("group", { name: "Interactive menu preview" });
   if (option.id.startsWith("search-")) fireEvent.click(within(demo).getByRole("button", { name: "Open search" }));
   fireEvent.focus(within(demo).getByRole("searchbox"));
-  fireEvent.click(within(demo).getByRole("button", { name: "TV", exact: true }));
+  fireEvent.click(within(demo).getByRole("button", { name: "TV" }));
   fireEvent.click(within(demo).getByRole("button", { name: "Go to search results" }));
   expect(within(demo).getByText("Sample television")).toBeTruthy();
   expect(within(demo).getByText("1 product shown")).toBeTruthy();

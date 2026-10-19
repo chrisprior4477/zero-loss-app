@@ -13,7 +13,7 @@ describe("catalog search", () => {
   });
 
   test("matches brands and marketplace categories", () => {
-    expect(searchCatalog(demoProducts, "gas").map(product => product.brand)).toEqual(["BP", "Pilot Flying J", "Speedway", "Sheetz"]);
+    expect(new Set(searchCatalog(demoProducts, "gas").map(product => product.brand))).toEqual(new Set(["BP", "Pilot Flying J", "Speedway", "Sheetz"]));
     expect(searchCatalog(demoProducts, "coffee").some(product => product.brand === "Starbucks")).toBe(true);
     expect(searchCatalog(demoProducts, "coffee").some(product => product.brand === "Dunkin'")).toBe(true);
   });

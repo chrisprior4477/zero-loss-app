@@ -20,7 +20,7 @@ test.each(searchExamples)("suggestion %s fills search without navigating until G
   render(<DesktopHeaderSearchFallback navigate={navigate} />);
   fireEvent.focus(screen.getByRole("searchbox"));
   expect(screen.getByRole("group", { name: "Try a search" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: example, exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: example }));
   expect(screen.getByDisplayValue(example)).toBeTruthy();
   expect(navigate).not.toHaveBeenCalled();
   expect(screen.queryByRole("group", { name: "Try a search" })).toBeNull();

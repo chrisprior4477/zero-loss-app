@@ -13,12 +13,12 @@ describe("browse filters", () => {
     expect(giftCardPartnerGroups.find(group => group.category === "Specialty Retail")?.brands).toContain("Best Buy®");
   });
 
-  test("maps provider names to current offers without claiming all brands have listings", () => {
+  test("maps provider names to existing and new demo offers", () => {
     const groups = retailerFilterGroups(giftCardPartnerGroups, demoProducts);
     const bestBuy = groups.find(group => group.category === "Specialty Retail")?.options.find(option => option.label === "Best Buy®");
     const autoZone = groups.find(group => group.category === "Automotive")?.options.find(option => option.label === "AutoZone®");
     expect(bestBuy).toEqual({ label: "Best Buy®", value: "Best Buy", hasOffer: true });
-    expect(autoZone).toEqual({ label: "AutoZone®", value: "AutoZone®", hasOffer: false });
+    expect(autoZone).toEqual({ label: "AutoZone®", value: "AutoZone®", hasOffer: true });
     expect(groups.find(group => group.category === "Other current offers")?.options.some(option => option.value === "Netflix")).toBe(true);
   });
 

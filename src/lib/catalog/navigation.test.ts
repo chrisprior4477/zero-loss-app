@@ -12,7 +12,7 @@ describe("Gas marketplace category", () => {
   test("contains the four supplied fuel and convenience brands", () => {
     const gasProducts = demoProducts.filter(product => productMatchesMarketplaceCategory(product, "gas"));
 
-    expect(gasProducts.map(product => product.brand)).toEqual([
+    expect([...new Set(gasProducts.map(product => product.brand))]).toEqual([
       "BP",
       "Pilot Flying J",
       "Sheetz",
@@ -28,6 +28,9 @@ describe("Gas marketplace category", () => {
       "/items/pilot-flying-j-150-gift-card",
       "/items/sheetz-75-gift-card",
       "/items/speedway-50-gift-card",
+      "/items/directory-pilot-flying-j-100-gift-card",
+      "/items/directory-speedway-100-gift-card",
+      "/items/directory-sheetz-100-gift-card",
     ]);
     expect(marketplaceCategoryHref("gas")).toBe("/browse?category=gas");
   });

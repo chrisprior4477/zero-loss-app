@@ -66,17 +66,20 @@ export function searchCatalogMatches(products: readonly DemoProduct[], query: st
   if (!tokens.length || tokens.length > 32) return [];
 
   return products.map(product => {
+    const giftCard = product.slug.endsWith("-gift-card");
     const title = new Set(words(product.title));
     const merchant = new Set(words(`${product.brand} ${product.retailer}`));
     const category = new Set(words(product.category));
     const document = new Set(words([
-      product.slug, product.title, product.brand, product.retailer, product.category,
+      product.slug, product.title, product.brand, product.retailer,
+      // A broad category is not a claim that a retailer sells a specific item
+      // (for example Dog Haus + Food & Restaurants must not match "dog food").
+      !giftCard || tokens.length === 1 ? product.category : "",
       product.summary, ...product.highlights,
       ...product.specifications.flatMap(item => [item.label, item.value]), ...product.included,
       productSearchTerms[product.slug] ?? "",
     ].join(" ")));
     const direct = tokens.every(token => matchWord(token, document) > 0);
-    const giftCard = product.slug.endsWith("-gift-card");
     const expanded = new Set([...document, ...words(giftCard ? retailerSearchTerms[product.retailer] ?? "" : "")]);
     if (!direct && !tokens.every(token => matchWord(token, expanded) > 0)) return null;
 
@@ -92,6 +95,7 @@ export function searchCatalogMatches(products: readonly DemoProduct[], query: st
     return { product, kind, score };
   }).filter((match): match is CatalogSearchMatch & { score: number } => match !== null)
     .sort((left, right) => Number(left.kind === "retailer") - Number(right.kind === "retailer")
+      || Number(left.product.slug.endsWith("-gift-card")) - Number(right.product.slug.endsWith("-gift-card"))
       || right.score - left.score || left.product.title.localeCompare(right.product.title))
     .map(({ product, kind }) => ({ product, kind }));
 }

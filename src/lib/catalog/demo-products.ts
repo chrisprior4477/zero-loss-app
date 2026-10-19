@@ -19,6 +19,7 @@ export type DemoProduct = {
 };
 
 import { popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "./popular-rewards";
+import { buildDirectoryRewards } from "./directory-rewards";
 
 const popularRewardProducts: DemoProduct[] = popularRewardBrands.flatMap((brand, brandIndex) =>
   popularRewardAmounts.map((amount, amountIndex) => ({
@@ -146,7 +147,7 @@ const gasRewardProducts: DemoProduct[] = [
   },
 ];
 
-export const demoProducts: DemoProduct[] = [
+export const existingDemoProducts: DemoProduct[] = [
   {
     slug: "samsung-m70h-tv",
     title: 'Samsung 50" M70H Mini LED 4K Smart TV',
@@ -473,3 +474,6 @@ export const demoProducts: DemoProduct[] = [
 export function getDemoProduct(slug: string) {
   return demoProducts.find((product) => product.slug === slug);
 }
+
+export const directoryDemoScenarios = buildDirectoryRewards(existingDemoProducts);
+export const demoProducts: DemoProduct[] = [...existingDemoProducts, ...directoryDemoScenarios.map(scenario => scenario.product)];
