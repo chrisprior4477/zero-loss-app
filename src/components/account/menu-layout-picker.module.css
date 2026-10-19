@@ -17,7 +17,7 @@
 .previewPanel { animation: reveal-preview 220ms ease-out; }
 @keyframes reveal-preview { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 .tryHint { margin-bottom: 10px; }
-.demo { position: relative; background: white; border-radius: 12px; overflow: hidden; max-width: 390px; margin-inline: auto; }
+.demo { position: relative; background: white; border-radius: 12px; overflow: clip; max-width: 390px; margin-inline: auto; }
 .demoCanvas { position: relative; width: 390px; transform-origin: top left; }
 .previewBackdrop { height: 300px; overflow-y: auto; overflow-x: hidden; background: white; scrollbar-width: none; overscroll-behavior-y: contain; touch-action: pan-y; cursor: grab; user-select: none; }
 .previewBackdrop::-webkit-scrollbar { display: none; }
