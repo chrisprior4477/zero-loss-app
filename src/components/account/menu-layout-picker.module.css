@@ -2,7 +2,12 @@
 .eyebrow { display: block; color: #0878ae; font-size: 11px; font-weight: 900; letter-spacing: .16em; }
 .ticket h2 { margin-top: 7px; font-size: clamp(23px, 3vw, 32px); font-weight: 900; letter-spacing: -.035em; line-height: 1.1; }
 .summaryText { display: block; margin-top: 8px; font-size: 14px; color: #506b8e; }
-.current { display: inline-block; margin-top: 12px; padding: 5px 10px; border-radius: 8px; background: #e5f5ff; font-size: 12px; font-weight: 800; color: #176083; }
+.styleToolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.current, .quickSave { display: inline-block; padding: 5px 10px; border-radius: 8px; font-size: 12px; line-height: 18px; font-weight: 800; }
+.current { background: #e5f5ff; color: #176083; }
+.quickSave { background: #31e800; color: #062134; cursor: pointer; }
+.quickSave:disabled { opacity: .55; cursor: default; }
+.quickSave:focus-visible { outline: 3px solid #087fff; outline-offset: 3px; }
 .content { margin-top: 18px; padding-top: 18px; border-top: 1px solid #c6ddeb; }
 .content p { font-size: 14px; line-height: 1.5; color: #506b8e; }
 .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0 18px; }

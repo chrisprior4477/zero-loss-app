@@ -40,6 +40,32 @@ test("Escape closes in-place search and returns keyboard focus", () => {
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Open search" }));
 });
 
+test.each(["ending-search", "home-ending-search", "search-down", "search-over"] as const)("%s dismisses empty and typed search outside, but not inside", layout => {
+  const { mobile, header } = setup(layout);
+  const input = within(mobile).getByRole("searchbox");
+  for (const query of ["", "Coffee"]) {
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: query } });
+    fireEvent.pointerDown(input);
+    expect(header.dataset.searchOpen).toBe("true");
+    fireEvent.pointerDown(screen.getByRole("button", { name: "My account" }));
+    expect(header.dataset.searchOpen).toBe("false");
+    expect((input as HTMLInputElement).value).toBe(query);
+    expect(navigation.push).not.toHaveBeenCalled();
+  }
+});
+
+test("outside dismissal stops voice capture", () => {
+  const stop = vi.fn();
+  vi.stubGlobal("SpeechRecognition", class { start() {} stop() { stop(); } });
+  const { mobile, header } = setup("search-down");
+  fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+  fireEvent.click(within(mobile).getByRole("button", { name: "Start voice search" }));
+  fireEvent.pointerDown(document.body);
+  expect(header.dataset.searchOpen).toBe("false");
+  expect(stop).toHaveBeenCalled();
+});
+
 test("voice transcription uses the same Go action and closes the push-down", () => {
   let recognition: { onresult: (event: unknown) => void; onend: () => void };
   vi.stubGlobal("SpeechRecognition", class {

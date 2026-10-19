@@ -71,7 +71,7 @@ export function MenuLayoutPreview({ layout, account }: { layout: MenuLayout; acc
           navigatePreview(link.getAttribute("href")!, link.getAttribute("aria-label") ?? link.textContent ?? "Home");
         }}>
         <ResponsiveSiteHeader
-          preview={{ expanded, query: querySeed, pageCategoriesInPreviewBody: true, onExpandedChange: setExpanded, onSearch: query => showDestination(query ? `Search results for “${query}”` : "All rewards") }}
+          preview={{ expanded, query: querySeed, pageCategoriesInPreviewBody: true, onExpandedChange: open => { setPlaying(false); setExpanded(open); }, onSearch: query => showDestination(query ? `Search results for “${query}”` : "All rewards") }}
           logo={<Link href="/" aria-label="ZeroLoss home"><Image src="/zeroloss-logo.svg" alt="" width={174} height={32} className="h-5 w-auto" /></Link>}
           metrics={<HeaderAccountMetrics isSignedIn liveBalance={account.balance} activityState={activity} />}
           accountMenu={<AccountDrawer isSignedIn displayName="" email={null} avatarUrl={account.avatarUrl} showPhotoInMenu={account.showPhoto} balanceLabel={account.balance} activityState={activity} previewExpanded={accountOpen} onPreviewOpen={() => setAccountOpen(value => !value)} />}

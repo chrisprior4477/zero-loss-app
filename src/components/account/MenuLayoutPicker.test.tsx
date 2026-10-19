@@ -50,6 +50,33 @@ test("Keep saves the chosen layout; a failed save retains the previous saved cho
   expect(screen.getByTestId("active-menu").textContent).toBe("search-down:search-down");
 });
 
+test("compact Keep New Layout button shares the durable save and shows success beside the badge", async () => {
+  setup();
+  const button = screen.getByRole("button", { name: "Keep New Layout" }) as HTMLButtonElement;
+  expect(button.disabled).toBe(true);
+  fireEvent.click(screen.getByRole("radio", { name: "4. Search push down" }));
+  expect(button.disabled).toBe(false);
+  fireEvent.click(button);
+  await screen.findByText("Your menu choice is saved.");
+  expect(save).toHaveBeenCalledTimes(1);
+  expect(save).toHaveBeenCalledWith("search-down");
+  expect(screen.getByText("Current style: Search push down")).toBeTruthy();
+  expect((await screen.findByRole("button", { name: "Keep New Layout" }) as HTMLButtonElement).disabled).toBe(true);
+});
+
+test.each(menuLayouts.filter(option => option.id !== "classic"))("$name preview dismisses outside and cancels the remaining automatic animation", option => {
+  vi.useFakeTimers(); setup();
+  fireEvent.click(screen.getByRole("radio", { name: `${menuLayouts.indexOf(option) + 1}. ${option.name}` }));
+  act(() => vi.advanceTimersByTime(600));
+  const header = screen.getByRole("group", { name: "Interactive menu preview" }).querySelector("header")!;
+  expect(header.dataset.searchOpen).toBe("true");
+  fireEvent.pointerDown(document.body);
+  expect(header.dataset.searchOpen).toBe("false");
+  act(() => vi.advanceTimersByTime(3000));
+  expect(header.dataset.searchOpen).toBe("false");
+  expect(screen.queryByDisplayValue("Coffee")).toBeNull();
+});
+
 test.each(menuLayouts)("$name automatically demonstrates search and can replay it", option => {
   vi.useFakeTimers(); setup();
   fireEvent.click(screen.getByRole("radio", { name: `${menuLayouts.indexOf(option) + 1}. ${option.name}` }));

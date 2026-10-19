@@ -31,7 +31,13 @@ export function MenuLayoutPicker({ previewAccount = emptyPreview }: { previewAcc
   }
 
   return <section id="personalize-menu" className={styles.ticket} aria-labelledby="personalize-menu-heading">
-      <div><span className={styles.eyebrow}>MAKE IT YOURS</span><h2 id="personalize-menu-heading">Personalize your top menu</h2><span className={styles.summaryText}>Choose how your menu and search look.</span><span className={styles.current}>Current style: {menuLayouts.find(option => option.id === savedLayout)!.name}</span></div>
+      <div><span className={styles.eyebrow}>MAKE IT YOURS</span><h2 id="personalize-menu-heading">Personalize your top menu</h2><span className={styles.summaryText}>Choose how your menu and search look.</span>
+        <div className={styles.styleToolbar}>
+          <span className={styles.current}>Current style: {menuLayouts.find(option => option.id === savedLayout)!.name}</span>
+          <button type="button" className={styles.quickSave} disabled={pending || !changed} onClick={save}>{pending ? "Saving…" : "Keep New Layout"}</button>
+        </div>
+        {message ? <p className={styles.status} role={message.error ? "alert" : "status"} data-error={message.error}>{message.text}</p> : null}
+      </div>
       <div className={styles.content}>
         <p>Choose a style to reveal its interactive preview. Your top menu changes live too.</p>
         <fieldset disabled={pending} className={styles.options}>
@@ -48,7 +54,7 @@ export function MenuLayoutPicker({ previewAccount = emptyPreview }: { previewAcc
           <button type="button" disabled={pending || !changed} onClick={save}>{pending ? "Saving…" : changed ? "Keep this layout" : "Your saved layout"}</button>
           <button type="button" disabled={pending} onClick={() => { cancel(); setMessage(null); setPreviewChoice(0); }}>{changed ? "Cancel preview" : "Close preview"}</button>
         </div>
-        <p className={styles.status} role={message?.error ? "alert" : "status"} data-error={message?.error}>{message?.text ?? (changed ? "You’re trying this style. Keep it when you’re ready." : "You can come back and change this anytime.")}</p>
+        {!message ? <p className={styles.status} role="status">{changed ? "You’re trying this style. Keep it when you’re ready." : "You can come back and change this anytime."}</p> : null}
         </> : null}
       </div>
   </section>;

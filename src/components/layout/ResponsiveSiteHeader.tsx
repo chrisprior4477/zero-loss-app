@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useMenuLayout } from "./MenuLayoutProvider";
 import { DesktopHeaderSearch, DesktopHeaderSearchFallback } from "./DesktopHeaderSearch";
@@ -48,9 +48,22 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
     return () => observer.disconnect();
   }, [layout, expanded, preview]);
 
+  useEffect(() => {
+    if (!expanded || layout === "classic") return;
+    const dismissOutside = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node) || searchRef.current?.contains(target) || toggleRef.current?.contains(target)) return;
+      if (preview) preview.onExpandedChange?.(false);
+      else setSearchSession({ layout, pathname, open: false });
+    };
+    document.addEventListener("pointerdown", dismissOutside, true);
+    return () => document.removeEventListener("pointerdown", dismissOutside, true);
+  }, [expanded, layout, pathname, preview]);
+
   const categories = <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} />;
   const searchProps = {
     inputId: preview ? "preview-mobile-header-search" : "mobile-header-search",
+    active: layout === "classic" ? undefined : expanded,
     onActivate: () => setSearchOpen(true),
     onSubmitted: closeSearch,
     onDismiss: layout !== "classic" && expanded ? () => {

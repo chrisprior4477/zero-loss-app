@@ -35,14 +35,20 @@ function HeaderMicrophoneIcon() {
   );
 }
 
-type SearchOptions = { inputId?: string; onActivate?: () => void; onSubmitted?: () => void; onDismiss?: () => void };
-function HeaderSearchForm({ inputId, initialQuery, onActivate, onSubmitted, onDismiss, navigate }: SearchOptions & { inputId: string; initialQuery: string; navigate?: (href: string) => void }) {
+type SearchOptions = { inputId?: string; active?: boolean; onActivate?: () => void; onSubmitted?: () => void; onDismiss?: () => void };
+function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitted, onDismiss, navigate }: SearchOptions & { inputId: string; initialQuery: string; navigate?: (href: string) => void }) {
   const [query, setQuery] = useState(initialQuery);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [voiceError, setVoiceError] = useState("");
   useEffect(() => () => { recognitionRef.current?.stop(); }, []);
+  useEffect(() => {
+    if (active === false) {
+      recognitionRef.current?.stop();
+      inputRef.current?.blur();
+    }
+  }, [active]);
 
   const toggleVoiceSearch = () => {
     if (isListening) {
