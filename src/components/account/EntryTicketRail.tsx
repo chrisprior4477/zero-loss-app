@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./entry-page.module.css";
 
 export type SavedTicket = {
@@ -25,6 +25,19 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
   const [copiedEntryId, setCopiedEntryId] = useState<string | null>(null);
   const [copyErrorEntryId, setCopyErrorEntryId] = useState<string | null>(null);
   const count = tickets.length;
+  const railRef = useRef<HTMLElement>(null);
+  const previousCount = useRef(count);
+
+  useEffect(() => {
+    const addedEntries = count > previousCount.current;
+    previousCount.current = count;
+    if (!addedEntries) return;
+    // Wait for the confirmed server refresh to render the new numbered tickets.
+    const frame = requestAnimationFrame(() => {
+      railRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [count]);
 
   function toggle(entryId: string) {
     setSelected(previous => {
@@ -46,7 +59,7 @@ export function EntryTicketRail({ title, tickets, selectedEntryId, initiallyExpa
     }
   }
 
-  return <section id="saved-entry-rail" className={styles.entryRail} aria-label={`Your separate entries for ${title}`}>
+  return <section ref={railRef} id="saved-entry-rail" className={styles.entryRail} aria-label={`Your separate entries for ${title}`}>
     <div className={styles.entryRailHeader}>
       <h2>Your <span className={styles.entryRailCount}>{count}</span> {count === 1 ? "entry" : "separate entries"}</h2>
       <p>Tap any numbered ticket to see its own entry details. You can open more than one.</p>

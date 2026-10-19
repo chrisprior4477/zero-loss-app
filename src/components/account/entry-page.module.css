@@ -39,16 +39,17 @@
 .progressCircle { display: grid; width: 86px; height: 86px; place-items: center; border-radius: 50%; box-shadow: 0 5px 12px #001a3e24; }
 .progressCircle span { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 20px; font-weight: 900; }
 .progressUnavailable { grid-column: 3; grid-row: 1; align-self: end; color: #57738f; font-size: 12px; }
-.entryRail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); align-items: center; gap: 12px 20px; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #55caff; padding: 24px 36px; color: #10234a; scroll-margin-top: 126px; }
+.entryRail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); align-items: center; gap: 12px 20px; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #55caff; padding: 24px 36px; color: #10234a; scroll-margin-top: calc(var(--site-header-height, 114px) + 12px); }
 .entryRailHeader { min-width: 0; }
 .entryRailHeader h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 0; font-size: 20px; font-weight: 900; line-height: 1.2; }
 .entryRailHeader p { margin: 7px 0 0; color: #173c63; font-size: 13px; line-height: 1.4; }
 .entryRailCount { display: inline-grid; width: 35px; height: 35px; flex: 0 0 35px; place-items: center; border-radius: 50%; background: #fff; color: #087bc7; font-size: 19px; font-weight: 950; font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px #004b7b28; }
 .entryRailCompact { display: flex; min-width: 0; min-height: 78px; flex-wrap: wrap; align-items: center; gap: 8px; border-radius: 14px; background: #e4f4ff; padding: 10px; }
-.entryRailSmallTicket { --ticket-side-notch: 7px; --ticket-corner-notch: 10px; display: flex; width: 48px; height: 40px; flex: 0 0 48px; align-items: center; flex-direction: column; justify-content: center; border: 0; background: #0b376a; color: #fff; font-size: 16px; font-weight: 900; line-height: 1; cursor: pointer; }
+/* Match the See my entries ticket's 39:30 proportions, with space between each circular scoop. */
+.entryRailSmallTicket { --ticket-side-notch: 5.33px; --ticket-corner-notch: 8px; display: flex; width: 52px; height: 40px; flex: 0 0 52px; align-items: center; flex-direction: column; justify-content: center; border: 0; background: #0b376a; color: #fff; font-size: 16px; font-weight: 900; line-height: 1; cursor: pointer; }
 .entryRailSmallTicket small { font-size: 9px; font-weight: 700; letter-spacing: .03em; }
 .entryRailSmallTicket:hover, .entryRailSmallTicket[data-selected="true"] { background: #0789ef; }
-.entryRailSmallTicket:focus-visible { outline: 3px solid #0b376a; outline-offset: 3px; }
+.entryRailSmallTicket:focus-visible { outline: 2px solid #fff; outline-offset: -5px; }
 .entryRailChoices { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 8px; border-radius: 14px; background: #e4f4ff; padding: 13px; }
 .entryRailSingleChoice { grid-template-columns: 1fr; }
 .entryRailLink { --ticket-side-notch: 10px; --ticket-corner-notch: 14px; display: grid; grid-template-columns: 105px minmax(0, 1fr); align-items: start; gap: 16px; min-width: 0; background: #fffefa; padding: 22px 26px; color: #10234a; }
