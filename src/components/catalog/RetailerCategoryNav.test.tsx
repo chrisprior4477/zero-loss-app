@@ -1,8 +1,8 @@
-import { afterEach, expect, test } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { RetailerCategoryNav } from "./RetailerCategoryNav";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 const props = {
   groups: [
@@ -86,4 +86,25 @@ test("All retailers clears the selected brand and category", () => {
   expect(all.searchParams.get("partnerCategory")).toBeNull();
   expect(all.searchParams.get("retailer")).toBeNull();
   expect(all.searchParams.get("q")).toBe("card");
+});
+
+test.each([true, false])("category selection scrolls the button and panel into view only on mobile (%s)", mobile => {
+  vi.useFakeTimers();
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: mobile })));
+  vi.stubGlobal("requestAnimationFrame", (callback: () => void) => setTimeout(callback, 0));
+  vi.stubGlobal("cancelAnimationFrame", clearTimeout);
+  render(<RetailerCategoryNav {...props} />);
+  for (const name of ["Automotive", "Groceries"]) {
+    const button = screen.getByRole("button", { name });
+    const scroll = vi.fn(); button.scrollIntoView = scroll;
+    fireEvent.click(button);
+    act(() => vi.runAllTimers());
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(button.style.scrollMarginTop).toContain("--site-header-height");
+    expect(scroll).toHaveBeenCalledTimes(mobile ? 1 : 0);
+    if (mobile) expect(scroll).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
+    fireEvent.click(button);
+    act(() => vi.runAllTimers());
+    expect(scroll).toHaveBeenCalledTimes(mobile ? 1 : 0);
+  }
 });

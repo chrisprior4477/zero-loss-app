@@ -6,6 +6,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.stubGlobal("requestAnimationFrame", (callback: () => void) => setTimeout(callback, 0));
   vi.stubGlobal("cancelAnimationFrame", clearTimeout);
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
 });
 
 test("Browse targets retailer categories rather than products and settles after the menu closes", () => {
@@ -47,4 +48,40 @@ test("ordinary browse does not jump and user interaction cancels pending scroll"
   act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
   view.rerender(<><div id="search-results" /><SearchResultsAutoScroll searchKey="TV" /></>);
   fireEvent.wheel(window); act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
+});
+
+test("mobile browse, category and retailer routes land on offers and rerun for each selection", () => {
+  const view = render(<><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse" /></>);
+  const scroll = vi.fn(); document.getElementById("search-results")!.scrollIntoView = scroll;
+  act(() => vi.runAllTimers()); expect(scroll).toHaveBeenCalledTimes(2);
+  for (const route of ["/browse?partnerCategory=automotive", "/browse?partnerCategory=automotive&retailer=Jiffy+Lube", "/browse?partnerCategory=babies-and-kids&retailer=Babylist"]) {
+    view.rerender(<><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey={route} /></>);
+    act(() => vi.runAllTimers());
+  }
+  expect(scroll).toHaveBeenCalledTimes(8);
+});
+
+test("mobile browse still respects the explicit category directory destination", () => {
+  window.history.replaceState(null, "", "/browse#retailer-categories-heading");
+  render(<><h2 id="retailer-categories-heading" /><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse" /></>);
+  const categories = vi.fn(), products = vi.fn();
+  document.getElementById("retailer-categories-heading")!.scrollIntoView = categories;
+  document.getElementById("search-results")!.scrollIntoView = products;
+  act(() => vi.runAllTimers());
+  expect(categories).toHaveBeenCalledTimes(2);
+  expect(products).not.toHaveBeenCalled();
+});
+
+test("desktop category and retailer browsing retains its existing scroll position", () => {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+  render(<><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse?partnerCategory=automotive&retailer=Jiffy+Lube" /></>);
+  const scroll = vi.fn(); document.getElementById("search-results")!.scrollIntoView = scroll;
+  act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
+});
+
+test("touch interaction cancels the pending mobile browse scroll", () => {
+  render(<><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse" /></>);
+  const scroll = vi.fn(); document.getElementById("search-results")!.scrollIntoView = scroll;
+  fireEvent.touchStart(window);
+  act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
 });

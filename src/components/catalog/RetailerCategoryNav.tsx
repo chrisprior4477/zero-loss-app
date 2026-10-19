@@ -55,6 +55,15 @@ export function RetailerCategoryNav(props: Props) {
   };
 
   useEffect(() => {
+    if (!pinnedId || pinnedId !== openId || !window.matchMedia?.("(max-width: 1023px)").matches) return;
+    // Keep the selected category and the retailer panel together below the sticky header.
+    const frame = requestAnimationFrame(() => {
+      buttonRefs.current[pinnedId]?.scrollIntoView?.({ block: "start", behavior: "auto" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [pinnedId, openId]);
+
+  useEffect(() => {
     if (!openId) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -151,6 +160,7 @@ export function RetailerCategoryNav(props: Props) {
               aria-pressed={props.selectedGroupId === group.id}
               aria-expanded={openId === group.id}
               aria-controls={openId === group.id ? "retailer-category-panel" : undefined}
+              style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}
               onPointerEnter={event => {
                 if (event.pointerType === "mouse" && (!window.matchMedia || window.matchMedia("(min-width: 1024px)").matches) && !pinnedId) showGroup(group.id, event.currentTarget);
               }}

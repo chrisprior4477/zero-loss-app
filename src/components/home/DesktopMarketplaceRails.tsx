@@ -222,7 +222,8 @@ export function DesktopMarketplaceRails() {
             <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Shop by category</h2>
             <p className="mt-1 text-[13px] text-white/60">Find the kinds of products you already shop for.</p>
           </div>
-          <Link href="/browse" className="text-[14px] font-semibold text-cyan-300 hover:text-cyan-200">See all</Link>
+          <Link href="/browse#retailer-categories-heading" className="text-[14px] font-semibold text-cyan-300 hover:text-cyan-200 lg:hidden">See all</Link>
+          <Link href="/browse" className="hidden text-[14px] font-semibold text-cyan-300 hover:text-cyan-200 lg:block">See all</Link>
         </div>
 
         <div className="relative">

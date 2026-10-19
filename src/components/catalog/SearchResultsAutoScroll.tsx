@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Settle the requested browse destination below the menu's closing animation. */
-export function SearchResultsAutoScroll({ searchKey }: { searchKey: string }) {
+export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "" }: { searchKey: string; mobileBrowseKey?: string }) {
   useEffect(() => {
     let cancelled = false;
     let first = 0;
@@ -11,8 +11,10 @@ export function SearchResultsAutoScroll({ searchKey }: { searchKey: string }) {
     let settle: ReturnType<typeof setTimeout>;
     const start = () => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
+      const mobileBrowse = mobileBrowseKey && window.matchMedia?.("(max-width: 1023px)").matches;
       const target = window.location.hash === "#retailer-categories-heading"
-        ? "retailer-categories-heading" : searchKey ? "search-results" : null;
+        ? "retailer-categories-heading"
+        : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
       if (!target) return;
       cancelled = false;
       const scroll = () => { if (!cancelled) document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "auto" }); };
@@ -32,6 +34,6 @@ export function SearchResultsAutoScroll({ searchKey }: { searchKey: string }) {
       window.removeEventListener("pointerdown", stop); window.removeEventListener("wheel", stop);
       window.removeEventListener("touchstart", stop); window.removeEventListener("keydown", stop);
     };
-  }, [searchKey]);
+  }, [searchKey, mobileBrowseKey]);
   return null;
 }
