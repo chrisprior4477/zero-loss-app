@@ -1,5 +1,4 @@
 -- Keep the saved photo while letting its owner choose where it is displayed.
-begin;
 
 alter table public.customer_profiles
   add column show_photo_in_menu boolean not null default true,
@@ -83,4 +82,3 @@ revoke all on function public.get_crew_member_profiles() from public, anon, auth
 grant execute on function public.get_crew_member_profiles() to authenticated;
 
 notify pgrst, 'reload schema';
-commit;
