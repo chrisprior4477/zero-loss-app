@@ -50,7 +50,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
     } catch { /* The detail view remains usable when preferences are unavailable. */ }
   }
   return <div className={styles.page}><div className={styles.pageContent}>
-    <h1 className={styles.heading}>Everything you chose. Every outcome.</h1>
+    <h1 id="my-activity-heading" className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
     <MyZeroLossActivity state={account.activity} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
