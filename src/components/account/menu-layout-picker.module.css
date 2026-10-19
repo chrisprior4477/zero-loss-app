@@ -19,7 +19,7 @@
 .number { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%; background: white; font-weight: 900; color: #087fff; }
 .option strong { display: block; font-size: 12px; line-height: 1.25; }
 .option small { display: block; font-size: 11px; color: #506b8e; margin-top: 3px; }
-.demo { position: relative; background: #edf5fb; border-radius: 12px; overflow: hidden; pointer-events: none; }
+.demo { position: relative; background: #edf5fb; border-radius: 12px; overflow: hidden; pointer-events: none; max-width: 390px; margin-inline: auto; }
 .demoCanvas { width: 390px; transform-origin: top left; }
 .demoPage { display: flex; gap: 8px; padding: 14px; }
 .demoPage span { height: 28px; border-radius: 5px; background: #d1e5f3; flex: 1; }
