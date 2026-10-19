@@ -114,7 +114,7 @@ test("new push-down reveals shopping shortcuts and closes after navigation", () 
   expect(shortcuts.hasAttribute("inert")).toBe(false);
   expect(within(shortcuts).getByRole("link", { name: "Ending Soon" }).getAttribute("href")).toBe("/browse?sort=ending-soon#search-results");
   const browse = within(shortcuts).getByRole("link", { name: "Browse" });
-  expect(browse.getAttribute("href")).toBe("/browse#search-results");
+  expect(browse.getAttribute("href")).toBe("/browse#retailer-categories-heading");
   fireEvent.pointerDown(browse);
   expect(header.dataset.searchOpen).toBe("true");
   fireEvent.click(browse);

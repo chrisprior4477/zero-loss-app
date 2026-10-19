@@ -91,7 +91,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
         <div className={styles.mobileSearch}>{preview ? <DesktopHeaderSearchFallback key={preview.query} {...searchProps} initialQuery={preview.query} navigate={href => preview.onSearch?.(new URL(href, "https://preview.invalid").searchParams.get("q") ?? "")} /> : <Suspense fallback={<DesktopHeaderSearchFallback {...searchProps} />}><DesktopHeaderSearch {...searchProps} /></Suspense>}</div>
         {layout === "search-down-browse" ? <div className={styles.pushDownActions} aria-label="Search shopping shortcuts" inert={!expanded} aria-hidden={!expanded}>
           <Link href="/browse?sort=ending-soon#search-results" className={styles.endingSoon} onClick={closeSearch}>Ending Soon</Link>
-          <Link href="/browse#search-results" className={styles.browse} onClick={closeSearch}>Browse</Link>
+          <Link href="/browse#retailer-categories-heading" className={styles.browse} onClick={closeSearch}>Browse</Link>
         </div> : null}
       </div>
       <div className={styles.stickyCategories}>{categories}</div>

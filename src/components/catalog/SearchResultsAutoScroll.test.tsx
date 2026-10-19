@@ -2,9 +2,34 @@ import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { SearchResultsAutoScroll } from "./SearchResultsAutoScroll";
 beforeEach(() => {
+  window.history.replaceState(null, "", "/browse");
   vi.useFakeTimers();
   vi.stubGlobal("requestAnimationFrame", (callback: () => void) => setTimeout(callback, 0));
   vi.stubGlobal("cancelAnimationFrame", clearTimeout);
+});
+
+test("Browse targets retailer categories rather than products and settles after the menu closes", () => {
+  window.history.replaceState(null, "", "/browse#retailer-categories-heading");
+  render(<><h2 id="retailer-categories-heading" /><div id="search-results" /><SearchResultsAutoScroll searchKey="" /></>);
+  const categories = vi.fn(), products = vi.fn();
+  document.getElementById("retailer-categories-heading")!.scrollIntoView = categories;
+  document.getElementById("search-results")!.scrollIntoView = products;
+  act(() => vi.runAllTimers());
+  expect(categories).toHaveBeenCalledTimes(2);
+  expect(categories).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
+  expect(products).not.toHaveBeenCalled();
+});
+
+test("a category hash navigation works on the existing browse page and stops for user scrolling", () => {
+  render(<><h2 id="retailer-categories-heading" /><SearchResultsAutoScroll searchKey="" /></>);
+  const scroll = vi.fn(); document.getElementById("retailer-categories-heading")!.scrollIntoView = scroll;
+  act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
+  window.history.replaceState(null, "", "/browse#retailer-categories-heading");
+  fireEvent(window, new HashChangeEvent("hashchange"));
+  act(() => vi.runAllTimers()); expect(scroll).toHaveBeenCalledTimes(2);
+  fireEvent(window, new HashChangeEvent("hashchange"));
+  fireEvent.touchStart(window); act(() => vi.runAllTimers());
+  expect(scroll).toHaveBeenCalledTimes(2);
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 test("search lands at items, settles header height, and runs again for a new query", () => {

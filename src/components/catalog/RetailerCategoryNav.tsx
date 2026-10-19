@@ -120,7 +120,7 @@ export function RetailerCategoryNav(props: Props) {
       <summary className={props.collapseByDefault
         ? "flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-cyan-300/70 bg-[#0b3b69] px-4 font-bold text-white marker:hidden focus-visible:outline-2 focus-visible:outline-cyan-300 [&::-webkit-details-marker]:hidden"
         : "mb-3 flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden focus-visible:outline-2 focus-visible:outline-cyan-300 [&::-webkit-details-marker]:hidden"}>
-        <h2 id="retailer-categories-heading" className={props.collapseByDefault ? "text-base font-black" : "text-xl font-black"}>Shop by retailer category</h2>
+        <h2 id="retailer-categories-heading" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }} className={props.collapseByDefault ? "text-base font-black" : "text-xl font-black"}>Shop by retailer category</h2>
         <span className="flex items-center gap-2 text-sm text-cyan-200">
           {props.selectedGroupId ? <span className="hidden sm:inline">{props.groups.find(group => group.id === props.selectedGroupId)?.category}</span> : null}
           <span aria-hidden="true" className="text-2xl leading-none group-open:rotate-45">+</span>

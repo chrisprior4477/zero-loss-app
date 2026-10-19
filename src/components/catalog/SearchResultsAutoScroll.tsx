@@ -2,15 +2,25 @@
 
 import { useEffect } from "react";
 
-/** Settle below the measured menu, including its closing search animation. */
+/** Settle the requested browse destination below the menu's closing animation. */
 export function SearchResultsAutoScroll({ searchKey }: { searchKey: string }) {
   useEffect(() => {
-    if (!searchKey) return;
     let cancelled = false;
+    let first = 0;
     let second = 0;
-    const scroll = () => { if (!cancelled) document.getElementById("search-results")?.scrollIntoView?.({ block: "start", behavior: "auto" }); };
-    const first = requestAnimationFrame(() => { second = requestAnimationFrame(scroll); });
-    const settle = setTimeout(scroll, 280);
+    let settle: ReturnType<typeof setTimeout>;
+    const start = () => {
+      cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
+      const target = window.location.hash === "#retailer-categories-heading"
+        ? "retailer-categories-heading" : searchKey ? "search-results" : null;
+      if (!target) return;
+      cancelled = false;
+      const scroll = () => { if (!cancelled) document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "auto" }); };
+      first = requestAnimationFrame(() => { second = requestAnimationFrame(scroll); });
+      settle = setTimeout(scroll, 280);
+    };
+    start();
+    window.addEventListener("hashchange", start);
     const stop = () => { cancelled = true; };
     window.addEventListener("pointerdown", stop, { passive: true });
     window.addEventListener("wheel", stop, { passive: true });
@@ -18,6 +28,7 @@ export function SearchResultsAutoScroll({ searchKey }: { searchKey: string }) {
     window.addEventListener("keydown", stop);
     return () => {
       cancelled = true; cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
+      window.removeEventListener("hashchange", start);
       window.removeEventListener("pointerdown", stop); window.removeEventListener("wheel", stop);
       window.removeEventListener("touchstart", stop); window.removeEventListener("keydown", stop);
     };
