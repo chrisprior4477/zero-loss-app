@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ProfilePhotoCard } from "@/components/account/ProfilePhotoCard";
+import { ProfileLandingScroll } from "@/components/account/ProfileLandingScroll";
 import { ProfileDetailsForm } from "@/components/account/ProfileDetailsForm";
 import { AccountSettingsFrame } from "@/components/account/AccountSettingsFrame";
 import { getAccountContext } from "@/lib/account/context";
@@ -13,9 +14,10 @@ export default async function ProfilePage() {
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", "/account/profile"));
   return <AccountSettingsFrame active="profile" overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}>
-    <section className={styles.introTicket} aria-labelledby="profile-heading">
+    <ProfileLandingScroll />
+    <section id="profile-intro" className={styles.introTicket} aria-labelledby="profile-heading">
       <div><span className={styles.eyebrow}>PERSONAL PROFILE</span><h2 id="profile-heading">Profile</h2><p>Manage your identity, contact details, address, and preferences. Changes save only to your signed-in account.</p></div>
-      <div className={styles.profileCard}><ProfilePhotoCard initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} compact emailStatus={account.emailConfirmed ? "verified" : "pending"} /></div>
+      <div className={styles.profileCard}><ProfilePhotoCard initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} initialVisibility={{ menu: account.showPhotoInMenu, crew: account.showPhotoToCrew }} compact emailStatus={account.emailConfirmed ? "verified" : "pending"} /></div>
     </section>
     <ProfileDetailsForm ticket details={{
         displayName: account.displayName,

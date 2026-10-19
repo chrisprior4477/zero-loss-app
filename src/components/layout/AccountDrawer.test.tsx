@@ -40,7 +40,7 @@ test("signed-in drawer follows the compact account-menu hierarchy", () => {
   expect(screen.getByLabelText("Open account menu").querySelector("img")?.getAttribute("src")).toBe("/saved-photo.webp");
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const dialog = within(screen.getByRole("dialog"));
-  expect(dialog.getByRole("link", { name: "Open Chris Prior's account" }).getAttribute("href")).toBe("/account/profile");
+  expect(dialog.getByRole("link", { name: "Open Chris Prior's account" }).getAttribute("href")).toBe("/account/profile#profile-intro");
   expect(dialog.getByText("Playable Wallet")).toBeTruthy();
   expect(dialog.getByText("Prize Ready")).toBeTruthy();
   expect(dialog.getByText("Purchase Options")).toBeTruthy();
@@ -65,6 +65,16 @@ test("a successfully saved photo immediately updates the menu trigger", () => {
   render(<AccountDrawer {...props} />);
   fireEvent(window, new CustomEvent("zero-loss-avatar-updated", { detail: { photo: "/new-saved-photo.webp" } }));
   expect(screen.getByLabelText("Open account menu").querySelector("img")?.getAttribute("src")).toBe("/new-saved-photo.webp");
+});
+
+test("the photo checkbox changes the round menu button immediately without removing the saved photo", () => {
+  render(<AccountDrawer {...props} />);
+  fireEvent(window, new CustomEvent("zero-loss-photo-menu-visibility", { detail: { enabled: false } }));
+  expect(screen.getByLabelText("Open account menu").querySelector("img")).toBeNull();
+  fireEvent.click(screen.getByLabelText("Open account menu"));
+  expect(screen.getByRole("link", { name: "Open Chris Prior's account" }).querySelector("img")).toBeNull();
+  fireEvent(window, new CustomEvent("zero-loss-photo-menu-visibility", { detail: { enabled: true } }));
+  expect(screen.getByLabelText("Open account menu").querySelector("img")?.getAttribute("src")).toBe("/saved-photo.webp");
 });
 
 test("authorized activity populates the three compact shortcuts", () => {

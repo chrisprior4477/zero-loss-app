@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { ChangeEvent, PointerEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { saveProfilePhoto } from "@/lib/account/actions";
+import { saveProfilePhoto, saveProfilePhotoVisibility, type PhotoVisibilitySurface } from "@/lib/account/actions";
 
 const PHOTO_KEY = "zero-loss-profile-photo";
 const CROP_KEY = "zero-loss-profile-photo-crop";
@@ -71,6 +71,7 @@ export function ProfilePhotoCard({
   initialAvatarUrl,
   compact = false,
   emailStatus,
+  initialVisibility,
 }: {
   initials: string;
   fullName: string;
@@ -78,6 +79,7 @@ export function ProfilePhotoCard({
   initialAvatarUrl: string | null;
   compact?: boolean;
   emailStatus?: "verified" | "pending";
+  initialVisibility?: { menu: boolean; crew: boolean };
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dragRef = useRef<{ x: number; y: number; cropX: number; cropY: number } | null>(null);
@@ -89,6 +91,37 @@ export function ProfilePhotoCard({
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [menuVisible, setMenuVisible] = useState(initialVisibility?.menu ?? true);
+  const [crewVisible, setCrewVisible] = useState(initialVisibility?.crew ?? true);
+  const [savingVisibility, setSavingVisibility] = useState(false);
+  const [visibilityMessage, setVisibilityMessage] = useState<{ error: boolean; text: string } | null>(null);
+
+  async function changeVisibility(surface: PhotoVisibilitySurface, enabled: boolean) {
+    const previous = surface === "menu" ? menuVisible : crewVisible;
+    if (surface === "menu") {
+      setMenuVisible(enabled);
+      window.dispatchEvent(new CustomEvent("zero-loss-photo-menu-visibility", { detail: { enabled } }));
+    } else {
+      setCrewVisible(enabled);
+    }
+    setVisibilityMessage({ error: false, text: "Saving photo choice…" });
+    setSavingVisibility(true);
+    try {
+      const result = await saveProfilePhotoVisibility(surface, enabled);
+      if (!result.ok) throw new Error(result.message);
+      setVisibilityMessage({ error: false, text: "Photo choice saved." });
+    } catch (caught) {
+      if (surface === "menu") {
+        setMenuVisible(previous);
+        window.dispatchEvent(new CustomEvent("zero-loss-photo-menu-visibility", { detail: { enabled: previous } }));
+      } else {
+        setCrewVisible(previous);
+      }
+      setVisibilityMessage({ error: true, text: caught instanceof Error ? caught.message : "Your photo choice could not be saved." });
+    } finally {
+      setSavingVisibility(false);
+    }
+  }
 
   async function persistPhoto(source: string, sourceCrop: Crop) {
     const blob = await renderCroppedPhoto(source, sourceCrop);
@@ -209,8 +242,21 @@ export function ProfilePhotoCard({
             </button>
           </div>
         </div>
+        {initialVisibility ? <fieldset className="mt-4 border-t border-[#b9d7ea] pt-4 text-[#0b1c4d]">
+          <legend className="sr-only">Where to show your photo</legend>
+          <p className="mb-2 text-sm font-extrabold">Where to show your photo</p>
+          <label className="flex min-h-12 cursor-pointer items-start gap-3 py-2 text-sm font-bold">
+            <input type="checkbox" checked={menuVisible} disabled={savingVisibility} onChange={(event) => changeVisibility("menu", event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#087fff]" />
+            <span>Show my photo in the account menu<span className="mt-0.5 block text-xs font-normal text-[#506b8e]">The round photo in the header changes immediately.</span></span>
+          </label>
+          <label className="flex min-h-12 cursor-pointer items-start gap-3 py-2 text-sm font-bold">
+            <input type="checkbox" checked={crewVisible} disabled={savingVisibility} onChange={(event) => changeVisibility("crew", event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#087fff]" />
+            <span>Show my photo to My Crew<span className="mt-0.5 block text-xs font-normal text-[#506b8e]">Connected Crew members see it in My Crew.</span></span>
+          </label>
+          {visibilityMessage ? <p role={visibilityMessage.error ? "alert" : "status"} className={`mt-2 text-xs font-semibold ${visibilityMessage.error ? "text-[#a6321a]" : "text-[#087443]"}`}>{visibilityMessage.text}</p> : null}
+        </fieldset> : null}
         {!compact ? <p className="mt-5 border-t border-white/10 pt-4 text-sm leading-6 text-white/50">
-          Your photo becomes the account-menu button and follows your account across devices.
+          Your saved photo follows your account across devices. Choose where to show it in Profile settings.
         </p> : null}
         {error ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
       </article>

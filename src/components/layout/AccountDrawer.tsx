@@ -22,6 +22,7 @@ type AccountDrawerProps = {
   displayName: string;
   email: string | null;
   avatarUrl: string | null;
+  showPhotoInMenu?: boolean;
   balanceLabel: string | null;
   fundingEnabled?: boolean;
   activityState: AccountActivity;
@@ -58,13 +59,14 @@ function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initi
   );
 }
 
-export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balanceLabel, fundingEnabled = false, activityState }: AccountDrawerProps) {
+export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showPhotoInMenu = true, balanceLabel, fundingEnabled = false, activityState }: AccountDrawerProps) {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
   const [walletHistoryOpen, setWalletHistoryOpen] = useState(false);
   const pathname = usePathname();
   const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
   const [avatarUpdate, setAvatarUpdate] = useState<{ original: string | null; photo: string | null } | null>(null);
+  const [menuVisibilityUpdate, setMenuVisibilityUpdate] = useState<{ original: boolean; enabled: boolean } | null>(null);
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -78,6 +80,15 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
     window.addEventListener("zero-loss-avatar-updated", updateAvatar);
     return () => window.removeEventListener("zero-loss-avatar-updated", updateAvatar);
   }, [avatarUrl]);
+
+  useEffect(() => {
+    const updateVisibility = (event: Event) => {
+      const detail = (event as CustomEvent<{ enabled: boolean }>).detail;
+      setMenuVisibilityUpdate({ original: showPhotoInMenu, enabled: detail.enabled });
+    };
+    window.addEventListener("zero-loss-photo-menu-visibility", updateVisibility);
+    return () => window.removeEventListener("zero-loss-photo-menu-visibility", updateVisibility);
+  }, [showPhotoInMenu]);
 
   useEffect(() => {
     if (!open) return;
@@ -128,7 +139,8 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
   const shownName = isSignedIn ? displayName : "Welcome";
   const initials = shownName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ZL";
   const resolvedAvatar = avatarUpdate?.original === avatarUrl ? avatarUpdate.photo : avatarUrl;
-  const hasSavedAvatar = isSignedIn && Boolean(resolvedAvatar);
+  const resolvedMenuVisibility = menuVisibilityUpdate?.original === showPhotoInMenu ? menuVisibilityUpdate.enabled : showPhotoInMenu;
+  const hasSavedAvatar = isSignedIn && resolvedMenuVisibility && Boolean(resolvedAvatar);
   const ticketLabel = state.activeCount === null ? "Active entries unavailable" : `${state.activeCount} active ${state.activeCount === 1 ? "entry" : "entries"}`;
 
   return (
@@ -154,8 +166,8 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, balan
           <aside ref={drawerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} className={`absolute inset-y-0 right-0 flex h-dvh flex-col overflow-hidden outline-none ${showAccountContent ? styles.drawer : "w-[min(100%,440px)] border-l border-cyan-300/25 bg-[#03172f] shadow-[-18px_0_50px_rgba(0,0,0,.45)]"}`}>
             {showAccountContent ? (
               <div className={styles.accountHeader}>
-                <Link href="/account/profile" onClick={close} aria-label={`Open ${shownName}'s account`} className={styles.profile}>
-                  <DrawerAvatar avatar={resolvedAvatar} initials={initials} size="large" />
+                <Link href="/account/profile#profile-intro" onClick={close} aria-label={`Open ${shownName}'s account`} className={styles.profile}>
+                  <DrawerAvatar avatar={resolvedMenuVisibility ? resolvedAvatar : null} initials={initials} size="large" />
                   <span><strong>{shownName}</strong><small>Your account</small></span>
                 </Link>
                 <span id={titleId} className="sr-only">Your Zero Loss account menu</span>

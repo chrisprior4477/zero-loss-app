@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn(), revalidate: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-import { saveProfileDetails } from "./actions";
+import { saveProfileDetails, saveProfilePhotoVisibility } from "./actions";
 
 function profileForm() {
   const value = new FormData();
@@ -56,4 +56,18 @@ test("expired session cannot update a profile", async () => {
   mocks.getUser.mockResolvedValue({ data: { user: null }, error: new Error("expired") });
   expect((await saveProfileDetails({ status: "idle" }, profileForm())).status).toBe("error");
   expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
+test("photo visibility saves one owner-scoped surface without changing the photo", async () => {
+  expect(await saveProfilePhotoVisibility("menu", false)).toEqual({ ok: true });
+  expect(mocks.rpc).toHaveBeenCalledWith("set_profile_photo_visibility", { p_surface: "menu", p_enabled: false });
+  expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
+  expect(mocks.revalidate).toHaveBeenCalledWith("/account/crew");
+});
+
+test("photo visibility rejects invalid input and failed saves", async () => {
+  expect((await saveProfilePhotoVisibility("invalid" as "menu", false)).ok).toBe(false);
+  expect(mocks.rpc).not.toHaveBeenCalled();
+  mocks.rpc.mockResolvedValue({ error: new Error("database unavailable") });
+  expect((await saveProfilePhotoVisibility("crew", true)).ok).toBe(false);
 });

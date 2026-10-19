@@ -25,7 +25,7 @@ export const getAccountContext = cache(async () => {
     }
   }
   const [profileResult, wallet] = await Promise.all([
-    supabase.from("customer_profiles").select("display_name, legal_first_name, legal_last_name, date_of_birth, preferred_locale, timezone, avatar_reference, phone_number, address_line_1, address_line_2, city, region, postal_code, country, extra_entry_explainer_acknowledged_at").eq("customer_id", user.id).maybeSingle(),
+    supabase.from("customer_profiles").select("display_name, legal_first_name, legal_last_name, date_of_birth, preferred_locale, timezone, avatar_reference, show_photo_in_menu, show_photo_to_crew, phone_number, address_line_1, address_line_2, city, region, postal_code, country, extra_entry_explainer_acknowledged_at").eq("customer_id", user.id).maybeSingle(),
     provisioningAvailable ? getWalletSnapshot(user.id).catch(() => null) : Promise.resolve(null),
   ]);
   const activity = wallet
@@ -58,6 +58,8 @@ export const getAccountContext = cache(async () => {
     displayName,
     initials: customerInitials(displayName),
     avatarUrl: profile?.avatar_reference ? supabase.storage.from("profile-photos").getPublicUrl(profile.avatar_reference).data.publicUrl : null,
+    showPhotoInMenu: profile?.show_photo_in_menu ?? true,
+    showPhotoToCrew: profile?.show_photo_to_crew ?? true,
     wallet,
     balanceLabel: wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable",
     fundingEnabled: demoFundingAllowed(wallet, Boolean(user.email_confirmed_at)),

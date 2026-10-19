@@ -11,6 +11,9 @@ export type SaveProfilePhotoResult =
   | { ok: true; publicUrl: string }
   | { ok: false; message: string };
 
+export type PhotoVisibilitySurface = "menu" | "crew";
+export type SavePhotoVisibilityResult = { ok: true } | { ok: false; message: string };
+
 export type SaveProfileDetailsResult =
   | { status: "idle" }
   | { status: "succeeded"; message: string }
@@ -137,4 +140,20 @@ export async function saveProfilePhoto(formData: FormData): Promise<SaveProfileP
   revalidatePath("/account/profile");
   const publicUrl = supabase.storage.from("profile-photos").getPublicUrl(reference).data.publicUrl;
   return { ok: true, publicUrl };
+}
+
+export async function saveProfilePhotoVisibility(surface: PhotoVisibilitySurface, enabled: boolean): Promise<SavePhotoVisibilityResult> {
+  if ((surface !== "menu" && surface !== "crew") || typeof enabled !== "boolean") {
+    return { ok: false, message: "Choose a valid photo setting." };
+  }
+  const supabase = await createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) return { ok: false, message: "Your session expired. Sign in again before changing your photo settings." };
+
+  const { error } = await supabase.rpc("set_profile_photo_visibility", { p_surface: surface, p_enabled: enabled });
+  if (error) return { ok: false, message: "Your photo setting could not be saved. Please try again." };
+  revalidatePath("/", "layout");
+  revalidatePath("/account/profile");
+  revalidatePath("/account/crew");
+  return { ok: true };
 }

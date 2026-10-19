@@ -65,6 +65,7 @@ export async function SiteHeader() {
             displayName={account?.displayName ?? "Welcome"}
             email={account?.email ?? null}
             avatarUrl={account?.avatarUrl ?? null}
+            showPhotoInMenu={account?.showPhotoInMenu ?? true}
             balanceLabel={account?.balanceLabel ?? null}
             fundingEnabled={account?.fundingEnabled ?? false}
             activityState={activityState}
