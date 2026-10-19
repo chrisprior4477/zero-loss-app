@@ -6,6 +6,7 @@ import { MyZeroLossSummary, PlayableBalanceCard } from "./AccountSummaries";
 import { WalletShortcut } from "@/components/wallet/WalletShortcut";
 import AccountPage from "@/app/account/page";
 import ProfilePage from "@/app/account/profile/page";
+import { MenuLayoutProvider } from "@/components/layout/MenuLayoutProvider";
 
 const mocks = vi.hoisted(() => ({ account: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
@@ -61,7 +62,7 @@ test("retired account dashboard redirects to My Activity and preserves a selecte
 
 test("profile destination preserves stored name/photo and requires authentication", async () => {
   mocks.account.mockResolvedValue({ displayName: "O’Neill", initials: "O", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", emailConfirmed: true, activity: storedActivityFixture(), balanceLabel: "$17", fundingEnabled: false });
-  render(await ProfilePage());
+  render(<MenuLayoutProvider initialLayout="classic">{await ProfilePage()}</MenuLayoutProvider>);
   expect(screen.getByTestId("profile-editor").textContent).toBe("O’Neill");
   expect(screen.getByTestId("profile-editor").getAttribute("data-avatar")).toBe("/saved-photo.webp");
   expect(screen.getByRole("link", { name: "Profile" }).getAttribute("aria-current")).toBe("page");

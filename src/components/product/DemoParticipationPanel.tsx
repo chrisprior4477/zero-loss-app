@@ -292,7 +292,7 @@ export function DemoParticipationPanel({
   };
 
   return (
-    <aside id="enter-entry" className={`scroll-mt-[180px] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
+    <aside id="enter-entry" className={`scroll-mt-[calc(var(--site-header-height,163px)+17px)] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-3xl font-extrabold leading-none">${entryPrice.toFixed(2)} <span className="text-sm font-bold text-white/80">per entry</span></p>

@@ -8,6 +8,7 @@ import { PendingEntryNotice } from "@/components/product/PendingEntryNotice";
 import { FavoritesProvider } from "@/components/favorites/FavoritesProvider";
 import { getAccountContext } from "@/lib/account/context";
 import { getFavoriteSnapshot } from "@/lib/favorites/reader";
+import { MenuLayoutProvider } from "./MenuLayoutProvider";
 
 type AppShellProps = {
   children: ReactNode;
@@ -17,7 +18,8 @@ export async function AppShell({ children }: AppShellProps) {
   const account = await getAccountContext();
   const favorites = account ? await getFavoriteSnapshot(account.userId) : { slugs: [], available: true };
   return (
-    <FavoritesProvider key={account?.userId ?? "guest"} initialSlugs={favorites.slugs} isSignedIn={Boolean(account)} available={favorites.available}>
+    <MenuLayoutProvider key={account?.userId ?? "guest"} initialLayout={account?.menuLayout ?? "classic"}>
+    <FavoritesProvider initialSlugs={favorites.slugs} isSignedIn={Boolean(account)} available={favorites.available}>
     <div className="flex min-h-full flex-col">
       <a
         href="#main-content"
@@ -35,5 +37,6 @@ export async function AppShell({ children }: AppShellProps) {
       <Suspense fallback={null}><PendingEntryNotice /></Suspense>
     </div>
     </FavoritesProvider>
+    </MenuLayoutProvider>
   );
 }

@@ -178,7 +178,7 @@
   .progressCorner { gap: 4px; font-size: 11px; }
   .progressCircle { width: 68px; height: 68px; }
   .progressCircle span { width: 54px; height: 54px; font-size: 17px; }
-  .entryRail { display: block; margin-top: 12px; padding: 20px; scroll-margin-top: 170px; }
+  .entryRail { display: block; margin-top: 12px; padding: 20px; scroll-margin-top: calc(var(--site-header-height, 163px) + 7px); }
   .entryRailHeader h2 { font-size: 17px; }
   .entryRailCompact { min-height: 0; gap: 6px; margin-top: 12px; padding: 9px; }
   .entryRailChoices { grid-template-columns: 1fr; gap: 8px; padding: 9px; }

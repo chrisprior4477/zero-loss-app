@@ -21,7 +21,7 @@ export function HeaderAccountMetrics({
 
   if (!isSignedIn) {
     return (
-      <div className="flex items-center gap-2">
+      <div data-header-auth className="flex items-center gap-2">
         <Link href="/login" className="grid min-h-9 place-items-center px-2 text-xs font-bold text-white sm:px-3 sm:text-sm">Sign in</Link>
         <Link href="/signup" className="grid min-h-9 place-items-center rounded-full bg-cyan-300 px-3 text-xs font-black text-[#00132e] hover:bg-cyan-200 sm:px-4 sm:text-sm">Create account</Link>
       </div>

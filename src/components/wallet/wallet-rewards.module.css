@@ -219,7 +219,7 @@
   .howToTicket li { border-bottom: 0; }
 }
 @media (max-width: 700px) {
-  .rewardPass[id] { scroll-margin-top: 178px; }
+  .rewardPass[id] { scroll-margin-top: calc(var(--site-header-height, 163px) + 15px); }
   .detailPage { padding: 16px 12px 32px; }
   .detailStatusStrip { margin-bottom: 20px; }
   .detailHeading { margin-bottom: 13px; }

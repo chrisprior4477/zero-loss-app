@@ -1,8 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Suspense } from "react";
-import { DesktopCategoryNav } from "@/components/layout/DesktopCategoryNav";
-import { DesktopHeaderSearch, DesktopHeaderSearchFallback } from "@/components/layout/DesktopHeaderSearch";
+import { ResponsiveSiteHeader } from "./ResponsiveSiteHeader";
 import { AccountDrawer } from "@/components/layout/AccountDrawer";
 import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
 import { getAccountContext } from "@/lib/account/context";
@@ -30,17 +28,8 @@ export async function SiteHeader() {
       remaining: status.remaining,
     }));
 
-  return (
-    // Blur lives on a non-interactive underlay — not on <header> itself — so
-    // sticky + backdrop-filter does not create a containing/stacking context
-    // that traps or breaks taps on header controls (esp. iOS Safari).
-    <header className="relative sticky top-0 z-40 bg-[var(--header)]">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 backdrop-blur supports-[backdrop-filter]:bg-[var(--header)]/90"
-      />
-      <div className="relative z-10 flex h-[60px] w-full items-center gap-2 px-3 sm:gap-4 sm:px-4 lg:gap-6 xl:px-6">
-        <Link href="/" className="shrink-0" aria-label="ZeroLoss home">
+  return <ResponsiveSiteHeader endingSoonItems={endingSoonItems} hiddenSlugs={hiddenSlugs}
+      logo={<Link href="/" className="shrink-0" aria-label="ZeroLoss home">
           <Image
             src="/zeroloss-logo.svg"
             alt=""
@@ -49,17 +38,9 @@ export async function SiteHeader() {
             className="h-5 w-auto sm:h-[28px] lg:h-[32px]"
             priority
           />
-        </Link>
-
-        <div className="hidden min-w-0 max-w-[640px] flex-1 md:flex xl:max-w-[700px]">
-          <Suspense fallback={<DesktopHeaderSearchFallback />}>
-            <DesktopHeaderSearch />
-          </Suspense>
-        </div>
-
-        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-4 lg:gap-5">
-          <HeaderAccountMetrics isSignedIn={Boolean(account)} liveBalance={account?.balanceLabel ?? null} activityState={activityState} />
-          <AccountDrawer
+        </Link>}
+      metrics={<HeaderAccountMetrics isSignedIn={Boolean(account)} liveBalance={account?.balanceLabel ?? null} activityState={activityState} />}
+      accountMenu={<AccountDrawer
             key={account?.userId ?? "signed-out"}
             isSignedIn={Boolean(account)}
             displayName={account?.displayName ?? "Welcome"}
@@ -69,25 +50,6 @@ export async function SiteHeader() {
             balanceLabel={account?.balanceLabel ?? null}
             fundingEnabled={account?.fundingEnabled ?? false}
             activityState={activityState}
-          />
-        </div>
-      </div>
-
-      <div className="relative z-10 flex h-[52px] items-center border-t border-white/8 px-3 md:hidden">
-        <Suspense fallback={<DesktopHeaderSearchFallback inputId="mobile-header-search" />}>
-          <DesktopHeaderSearch inputId="mobile-header-search" />
-        </Suspense>
-      </div>
-
-      <div className="relative z-10 flex h-12 w-full items-center overflow-visible border-t border-white/8 bg-[var(--header)] px-0 sm:px-2 lg:px-4 xl:px-6">
-        <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} />
-      </div>
-
-      <div
-        aria-hidden="true"
-        className="h-[3px] w-full"
-        style={{ background: "var(--brand-rule)" }}
-      />
-    </header>
-  );
+          />}
+    />;
 }

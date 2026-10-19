@@ -50,6 +50,14 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [] }: { en
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const resolved = new Set(resolvedSlugs);
   const navRef = useRef<HTMLElement>(null);
+  const dragRef = useRef<{ x: number; left: number; dragging: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  const [menuTop, setMenuTop] = useState(0);
+  const openMenu = (category: string) => {
+    if (dragRef.current?.dragging) return;
+    setMenuTop(navRef.current?.getBoundingClientRect().bottom ?? 0);
+    setOpenCategory(category);
+  };
 
   useEffect(() => {
     const nav = navRef.current;
@@ -86,9 +94,15 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [] }: { en
 
     document.addEventListener("mousedown", closeOutside);
     document.addEventListener("keydown", closeOnEscape);
+    const closeOnPageScroll = (event: Event) => { if (event.target === document) setOpenCategory(null); };
+    window.addEventListener("scroll", closeOnPageScroll, true);
+    const closeOnResize = () => setOpenCategory(null);
+    window.addEventListener("resize", closeOnResize);
     return () => {
       document.removeEventListener("mousedown", closeOutside);
       document.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("scroll", closeOnPageScroll, true);
+      window.removeEventListener("resize", closeOnResize);
     };
   }, [navRef, openCategory]);
 
@@ -96,7 +110,36 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [] }: { en
     <nav
       ref={navRef}
       aria-label="Marketplace categories"
-      className="min-w-0 self-stretch flex-1 overflow-x-auto overscroll-x-contain scroll-smooth zl-noscroll"
+      className="min-w-0 self-stretch flex-1 overflow-x-auto overscroll-x-contain zl-noscroll"
+      style={{ cursor: "grab" }}
+      onDragStart={event => event.preventDefault()}
+      onPointerDown={event => {
+        if (event.pointerType !== "mouse" || event.button !== 0 || (event.target as Element).closest('[role="menu"]')) return;
+        suppressClick.current = false;
+        dragRef.current = { x: event.clientX, left: event.currentTarget.scrollLeft, dragging: false };
+      }}
+      onPointerMove={event => {
+        const drag = dragRef.current;
+        if (!drag || event.buttons !== 1) return;
+        const distance = event.clientX - drag.x;
+        if (!drag.dragging && Math.abs(distance) < 6) return;
+        drag.dragging = true;
+        suppressClick.current = true;
+        setOpenCategory(null);
+        event.currentTarget.setPointerCapture(event.pointerId);
+        event.currentTarget.style.cursor = "grabbing";
+        event.currentTarget.style.userSelect = "none";
+        event.preventDefault();
+        event.currentTarget.scrollLeft = drag.left - distance;
+      }}
+      onPointerUp={event => {
+        dragRef.current = null;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+        event.currentTarget.style.cursor = "grab";
+        event.currentTarget.style.userSelect = "";
+      }}
+      onPointerCancel={event => { dragRef.current = null; event.currentTarget.style.cursor = "grab"; event.currentTarget.style.userSelect = ""; }}
+      onClickCapture={event => { if (suppressClick.current && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); suppressClick.current = false; } }}
       onMouseLeave={() => setOpenCategory(null)}
     >
       <ul className="flex h-full w-max min-w-full items-center justify-start gap-1 px-2 lg:justify-center lg:px-0 xl:gap-2">
@@ -122,13 +165,13 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [] }: { en
             <li
               key={category}
               className="flex h-full shrink-0 items-center"
-              onMouseEnter={() => setOpenCategory(category)}
+              onMouseEnter={() => openMenu(category)}
             >
               <Link
                 href={marketplaceCategoryHref(category)}
                 aria-expanded={isOpen}
                 aria-haspopup="menu"
-                onFocus={() => setOpenCategory(category)}
+                onFocus={() => openMenu(category)}
                 onClick={() => setOpenCategory(null)}
                 className={
                   isMerchandising
@@ -143,7 +186,8 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [] }: { en
                 <div
                   role="menu"
                   aria-label={`${category} menu`}
-                  className="fixed left-0 top-[160px] z-50 w-screen border-y border-white/10 bg-[#00132e]/[0.98] px-4 py-5 shadow-[0_22px_48px_rgba(0,0,0,0.42)] backdrop-blur-md sm:px-6 md:top-[108px] lg:px-[clamp(3rem,8vw,10rem)] lg:py-7"
+                  style={{ top: menuTop, maxHeight: `calc(100dvh - ${menuTop}px)`, overflowY: "auto", cursor: "auto" }}
+                  className="fixed left-0 z-50 w-screen border-y border-white/10 bg-[#00132e]/[0.98] px-4 py-5 shadow-[0_22px_48px_rgba(0,0,0,0.42)] backdrop-blur-md sm:px-6 lg:px-[clamp(3rem,8vw,10rem)] lg:py-7"
                 >
                   <div className="mx-auto max-w-[1440px]">
                     <p className="mb-4 text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--accent)]">

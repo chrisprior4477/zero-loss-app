@@ -257,7 +257,7 @@ export function DesktopMarketplaceRails() {
         </div>
       </div>
 
-      <div id="ending-soon" className="scroll-mt-[180px] md:scroll-mt-[128px]">
+      <div id="ending-soon" className="scroll-mt-[calc(var(--site-header-height,163px)+17px)] md:scroll-mt-[128px]">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">

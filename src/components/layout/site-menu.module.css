@@ -1,0 +1,44 @@
+.header { position: sticky; top: 0; z-index: 40; background: var(--header); }
+.topRow { display: flex; position: relative; align-items: center; height: 60px; gap: 16px; padding: 0 16px; }
+.logo { flex: none; }
+.desktopSearch { display: flex; flex: 1; min-width: 0; max-width: 700px; }
+.accountControls { margin-left: auto; display: flex; flex: none; align-items: center; gap: 16px; }
+.mobileSearchRow, .searchToggle, .pageCategories { display: none; }
+.stickyCategories { display: flex; height: 48px; padding: 0 8px; border-top: 1px solid #ffffff14; }
+.brandRule { height: 3px; background: var(--brand-rule); }
+@media (min-width: 1024px) { .topRow { gap: 24px; } .accountControls { gap: 20px; } .stickyCategories { padding: 0 16px; } }
+@media (max-width: 767px) {
+  .topRow { height: 54px; gap: 6px; padding: 0 10px; }
+  .accountControls { gap: 6px; }
+  .desktopSearch { display: none; }
+  .mobileSearchRow { display: flex; align-items: center; height: 44px; padding: 2px 10px 6px; gap: 0; border-top: 1px solid #ffffff0a; }
+  .mobileSearch { display: flex; min-width: 0; flex: 1; }
+  .mobileSearch form { width: 100%; min-width: 0; height: 36px; padding-inline: 9px; }
+  .mobileSearch input { min-width: 0; width: 100%; font-size: 16px; }
+  .stickyCategories { padding: 0; }
+  .shortcuts { display: none; }
+  .header[data-menu-layout="ending-search"] .shortcuts, .header[data-menu-layout="home-ending-search"] .shortcuts { display: flex; overflow: hidden; align-items: center; gap: 4px; max-width: 160px; opacity: 1; padding-right: 6px; transition: max-width 220ms ease, opacity 150ms ease, padding 220ms ease; }
+  .header[data-search-open="true"] .shortcuts { max-width: 0; padding-right: 0; opacity: 0; pointer-events: none; }
+  .endingSoon { flex: none; display: flex; align-items: center; min-height: 36px; padding: 0 9px; border-radius: 22px; color: white; background: #ff630f; font-size: 12px; font-weight: 800; white-space: nowrap; }
+  .home { display: grid; place-items: center; width: 30px; height: 36px; flex: none; color: #bdefff; }
+  .header:not([data-menu-layout="classic"]) .stickyCategories { display: none; }
+  .pageCategories { display: flex; flex: none; position: relative; height: 48px; background: var(--header); border-bottom: 3px solid #028bff; }
+  .searchToggle { display: none; flex: none; align-items: center; justify-content: center; color: white; height: 40px; width: 32px; }
+  .searchToggle svg { height: 23px; width: 23px; }
+  .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"]) .searchToggle { display: flex; }
+  .header:is([data-menu-layout="search-down"], [data-menu-layout="search-over"]) .mobileSearchRow { height: 0; padding-block: 0; border: 0; overflow: hidden; visibility: hidden; transition: height 200ms ease, padding 200ms ease, visibility 200ms; }
+  .header[data-menu-layout="search-down"][data-search-open="true"] .mobileSearchRow { height: 44px; padding-block: 2px 6px; visibility: visible; }
+  .header[data-menu-layout="search-over"] .mobileSearchRow { position: absolute; z-index: 2; left: 48px; right: 8px; top: 0; height: 54px; padding: 0 4px; border: 0; transform: scaleX(.08); transform-origin: right; opacity: 0; background: var(--header); transition: transform 220ms ease, opacity 150ms ease, visibility 200ms; }
+  .header[data-menu-layout="search-over"][data-search-open="true"] .mobileSearchRow { height: 54px; padding: 0 4px; visibility: visible; transform: scaleX(1); opacity: 1; }
+  .header[data-menu-layout="search-over"][data-search-open="true"] .accountControls,
+  .header[data-menu-layout="search-over"][data-search-open="true"] .searchToggle { visibility: hidden; }
+}
+@media (max-width: 374px) {
+  .topRow { gap: 3px; padding-inline: 6px; }
+  .logo img { max-width: 102px; height: auto; }
+  .accountControls { gap: 3px; }
+  .searchToggle { width: 27px; }
+  .accountControls [data-header-auth] { gap: 2px; }
+  .accountControls [data-header-auth] a { padding-inline: 4px; max-width: 66px; font-size: 11px; line-height: 14px; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) { .header *, .header *::before { transition: none !important; } }
