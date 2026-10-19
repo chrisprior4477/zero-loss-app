@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isMenuLayout } from "@/lib/navigation/menu-layout";
 
 export async function saveMenuLayout(layout: unknown): Promise<{ ok: true } | { ok: false; message: string }> {
-  if (!isMenuLayout(layout)) return { ok: false, message: "Choose one of the five menu styles." };
+  if (!isMenuLayout(layout)) return { ok: false, message: "Choose one of the menu styles." };
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return { ok: false, message: "Sign in again to save your menu choice." };

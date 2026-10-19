@@ -12,6 +12,7 @@ import { demoProducts } from "@/lib/catalog/demo-products";
 import { searchCatalog } from "@/lib/catalog/search";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { searchExamples } from "@/lib/navigation/search-examples";
+import { productMatchesMarketplaceCategory } from "@/lib/catalog/navigation";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -21,6 +22,8 @@ export default async function ProfilePage() {
   const hidden = new Set(resolvedCatalogSlugs(account.activity));
   const catalog = demoProducts.filter(product => !hidden.has(product.slug));
   const previewSearchResults = Object.fromEntries(searchExamples.map(query => [query.toLowerCase(), searchCatalog(catalog, query).map(product => ({ title: product.title, image: product.gallery[0].src }))]));
+  previewSearchResults["@ending-soon"] = catalog.filter(product => productMatchesMarketplaceCategory(product, "ending-soon")).sort((a, b) => (a.capacity - a.sold) - (b.capacity - b.sold)).map(product => ({ title: product.title, image: product.gallery[0].src }));
+  previewSearchResults["@browse"] = catalog.map(product => ({ title: product.title, image: product.gallery[0].src }));
   return <AccountSettingsFrame active="profile" overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}>
     <ProfileLandingScroll />
     <section id="profile-intro" className={styles.introTicket} aria-labelledby="profile-heading">

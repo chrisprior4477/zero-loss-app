@@ -73,6 +73,13 @@ export function MenuLayoutPreview({ layout, account, searchResults = {} }: { lay
   function showDestination(title: string) { setSearchQuery(null); setDestination(title); setExpanded(false); setAccountOpen(false); if (pageRef.current) pageRef.current.scrollTop = 0; }
   function navigatePreview(href: string, label: string) {
     const target = new URL(href, "https://preview.invalid");
+    if (target.pathname === "/browse" && (target.searchParams.get("sort") === "ending-soon" || target.searchParams.get("category") === "ending-soon" || !target.search)) {
+      const endingSoon = target.searchParams.get("sort") === "ending-soon" || target.searchParams.get("category") === "ending-soon";
+      showDestination(endingSoon ? "Ending Soon" : "Browse");
+      setSearchQuery(endingSoon ? "@ending-soon" : "@browse");
+      setSearchVersion(value => value + 1);
+      return;
+    }
     showDestination(target.pathname === "/" ? "Home" : target.pathname === "/browse" ? label.trim() || "All rewards" : target.pathname === "/account/entries" ? "My Activity" : target.pathname === "/account/wallet" ? "Playable Wallet" : label.trim());
   }
 

@@ -20,7 +20,7 @@ function setup(layout: MenuLayout) {
   return { ...result, mobile, header: result.container.querySelector("header")! };
 }
 
-test.each(["ending-search", "home-ending-search", "search-down", "search-over"] as const)("%s opens, submits the real search and collapses", layout => {
+test.each(["ending-search", "home-ending-search", "search-down", "search-down-browse", "search-over"] as const)("%s opens, submits the real search and collapses", layout => {
   const { mobile, header } = setup(layout);
   if (layout.startsWith("search-")) fireEvent.click(screen.getByRole("button", { name: "Open search" }));
   const input = within(mobile).getByRole("searchbox");
@@ -40,7 +40,7 @@ test("Escape closes in-place search and returns keyboard focus", () => {
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Open search" }));
 });
 
-test.each(["ending-search", "home-ending-search", "search-down", "search-over"] as const)("%s dismisses empty and typed search outside, but not inside", layout => {
+test.each(["ending-search", "home-ending-search", "search-down", "search-down-browse", "search-over"] as const)("%s dismisses empty and typed search outside, but not inside", layout => {
   const { mobile, header } = setup(layout);
   const input = within(mobile).getByRole("searchbox");
   for (const query of ["", "Coffee"]) {
@@ -99,4 +99,25 @@ test("compact shopping pages have an in-page category row; Profile does not", ()
   expect(view.container.querySelector("[data-shopping-category-row]")).not.toBeNull();
   view.unmount(); view = setup("classic");
   expect(view.container.querySelector("[data-shopping-category-row]")).toBeNull();
+});
+
+test.each(["ending-search", "home-ending-search"] as const)("%s Ending Soon targets the product list", layout => {
+  const { mobile } = setup(layout);
+  expect(within(mobile).getByRole("link", { name: "Ending Soon" }).getAttribute("href")).toBe("/browse?sort=ending-soon#search-results");
+});
+
+test("new push-down reveals shopping shortcuts and closes after navigation", () => {
+  const { mobile, header } = setup("search-down-browse");
+  const shortcuts = mobile.querySelector<HTMLElement>('[aria-label="Search shopping shortcuts"]')!;
+  expect(shortcuts.hasAttribute("inert")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Open search" }));
+  expect(shortcuts.hasAttribute("inert")).toBe(false);
+  expect(within(shortcuts).getByRole("link", { name: "Ending Soon" }).getAttribute("href")).toBe("/browse?sort=ending-soon#search-results");
+  const browse = within(shortcuts).getByRole("link", { name: "Browse" });
+  expect(browse.getAttribute("href")).toBe("/browse#search-results");
+  fireEvent.pointerDown(browse);
+  expect(header.dataset.searchOpen).toBe("true");
+  fireEvent.click(browse);
+  expect(header.dataset.searchOpen).toBe("false");
+  expect(shortcuts.hasAttribute("inert")).toBe(true);
 });

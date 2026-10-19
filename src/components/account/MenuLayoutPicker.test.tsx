@@ -14,7 +14,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 test("all choices are visible immediately, but the preview waits for a choice—even Classic", () => {
   setup();
-  expect(screen.getAllByRole("radio")).toHaveLength(5);
+  expect(screen.getAllByRole("radio")).toHaveLength(6);
   expect(screen.queryByRole("group", { name: "Interactive menu preview" })).toBeNull();
   expect(document.querySelector("#personalize-menu details")).toBeNull();
   fireEvent.click(screen.getByRole("radio", { name: "1. Classic" }));
@@ -23,7 +23,7 @@ test("all choices are visible immediately, but the preview waits for a choice—
   expect(screen.queryByRole("group", { name: "Interactive menu preview" })).toBeNull();
 });
 
-test("all five choices preview immediately, cancel restores the saved menu, and previews do not write", () => {
+test("all six choices preview immediately, cancel restores the saved menu, and previews do not write", () => {
   setup();
   for (const [index, option] of menuLayouts.entries()) {
     fireEvent.click(screen.getByRole("radio", { name: `${index + 1}. ${option.name}` }));
@@ -36,7 +36,7 @@ test("all five choices preview immediately, cancel restores the saved menu, and 
 
 test("Keep saves the chosen layout; a failed save retains the previous saved choice", async () => {
   setup();
-  fireEvent.click(screen.getByRole("radio", { name: /Search push down/ }));
+  fireEvent.click(screen.getByRole("radio", { name: "4. Search push down" }));
   fireEvent.click(screen.getByRole("button", { name: "Keep this layout" }));
   await screen.findByText("Your menu choice is saved.");
   expect(save).toHaveBeenCalledWith("search-down");
@@ -131,7 +131,7 @@ test("reduced motion skips the extended demo and replay while keeping manual sea
   vi.useFakeTimers();
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
   setup();
-  fireEvent.click(screen.getByRole("radio", { name: "5. Search in place" }));
+  fireEvent.click(screen.getByRole("radio", { name: "6. Search in place" }));
   act(() => vi.advanceTimersByTime(18000));
   expect(screen.queryByDisplayValue("Coffee")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Replay Animation", exact: true }));
@@ -178,5 +178,24 @@ test.each(menuLayouts)("$name supports a suggested search locally with matching 
   expect(within(demo).getByText("Sample television")).toBeTruthy();
   expect(within(demo).getByText("1 product shown")).toBeTruthy();
   expect(screen.getByText('Preview: Search results for “TV”. Menu actions here won’t leave Profile.')).toBeTruthy();
+  expect(save).not.toHaveBeenCalled();
+});
+
+test.each(["Ending Soon", "Browse"])("new push-down %s shows products inside the preview without navigating or saving", label => {
+  vi.useFakeTimers();
+  render(<MenuLayoutProvider initialLayout="classic"><MenuLayoutPicker previewSearchResults={{
+    "@ending-soon": [{ title: "Ending reward", image: "/catalog/best-buy-100-gift-card.svg" }],
+    "@browse": [{ title: "Browse reward", image: "/catalog/homegoods-75-gift-card.svg" }],
+  }} /></MenuLayoutProvider>);
+  fireEvent.click(screen.getByRole("radio", { name: "5. Search push down with Ending Soon & Browse" }));
+  act(() => vi.advanceTimersByTime(18000));
+  const demo = screen.getByRole("group", { name: "Interactive menu preview" });
+  fireEvent.click(within(demo).getByRole("button", { name: "Open search" }));
+  const shortcuts = demo.querySelector<HTMLElement>('[aria-label="Search shopping shortcuts"]')!;
+  fireEvent.click(within(shortcuts).getByRole("link", { name: label }));
+  expect(within(demo).getByText(label === "Browse" ? "Browse reward" : "Ending reward")).toBeTruthy();
+  expect(within(demo).getByText("1 product shown")).toBeTruthy();
+  expect(demo.querySelector("header")?.dataset.searchOpen).toBe("false");
+  expect(screen.getByText(`Preview: ${label}. Menu actions here won’t leave Profile.`)).toBeTruthy();
   expect(save).not.toHaveBeenCalled();
 });

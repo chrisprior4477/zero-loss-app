@@ -3,10 +3,11 @@ const mocks = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn(), revalidate: vi
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { saveMenuLayout } from "./menu-layout-action";
+import { menuLayouts } from "@/lib/navigation/menu-layout";
 beforeEach(() => { vi.clearAllMocks(); mocks.getUser.mockResolvedValue({ data: { user: { id: "owner" } } }); mocks.rpc.mockResolvedValue({ error: null }); });
-test("saves a validated choice without accepting a customer identifier", async () => {
-  expect(await saveMenuLayout("search-over")).toEqual({ ok: true });
-  expect(mocks.rpc).toHaveBeenCalledWith("set_menu_layout", { p_layout: "search-over" });
+test.each(menuLayouts)("saves $id without accepting a customer identifier", async ({ id }) => {
+  expect(await saveMenuLayout(id)).toEqual({ ok: true });
+  expect(mocks.rpc).toHaveBeenCalledWith("set_menu_layout", { p_layout: id });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
 });
 test("invalid choices and expired sessions never write", async () => {

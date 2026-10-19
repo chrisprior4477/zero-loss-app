@@ -27,7 +27,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
   const toggleRef = useRef<HTMLButtonElement>(null);
   const [searchSession, setSearchSession] = useState({ layout, pathname, open: false });
   const expanded = preview ? preview.expanded : searchSession.layout === layout && searchSession.pathname === pathname && searchSession.open;
-  const singleRow = layout === "search-down" || layout === "search-over";
+  const singleRow = layout === "search-down" || layout === "search-down-browse" || layout === "search-over";
   const setSearchOpen = (open: boolean) => {
     if (preview) preview.onExpandedChange?.(open);
     else setSearchSession({ layout, pathname, open });
@@ -86,9 +86,13 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
       <div id={preview ? "preview-menu-search" : "mobile-menu-search"} ref={searchRef} className={styles.mobileSearchRow}>
         <div className={styles.shortcuts} aria-hidden={expanded || undefined} inert={expanded || undefined}>
           {layout === "home-ending-search" ? <Link href="/" aria-label="Home" className={styles.home}><HomeIcon className="h-5 w-5" /></Link> : null}
-          <Link href="/browse?sort=ending-soon" className={styles.endingSoon}>Ending Soon</Link>
+          <Link href="/browse?sort=ending-soon#search-results" className={styles.endingSoon}>Ending Soon</Link>
         </div>
         <div className={styles.mobileSearch}>{preview ? <DesktopHeaderSearchFallback key={preview.query} {...searchProps} initialQuery={preview.query} navigate={href => preview.onSearch?.(new URL(href, "https://preview.invalid").searchParams.get("q") ?? "")} /> : <Suspense fallback={<DesktopHeaderSearchFallback {...searchProps} />}><DesktopHeaderSearch {...searchProps} /></Suspense>}</div>
+        {layout === "search-down-browse" ? <div className={styles.pushDownActions} aria-label="Search shopping shortcuts" inert={!expanded} aria-hidden={!expanded}>
+          <Link href="/browse?sort=ending-soon#search-results" className={styles.endingSoon} onClick={closeSearch}>Ending Soon</Link>
+          <Link href="/browse#search-results" className={styles.browse} onClick={closeSearch}>Browse</Link>
+        </div> : null}
       </div>
       <div className={styles.stickyCategories}>{categories}</div>
       <div aria-hidden="true" className={styles.brandRule} />

@@ -12,7 +12,7 @@
 .content p { font-size: 14px; line-height: 1.5; color: #506b8e; }
 .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0 18px; }
 .option { display: flex; align-items: center; min-height: 65px; gap: 8px; padding: 10px; border-radius: 12px; background: #eaf5fc; cursor: pointer; border: 2px solid transparent; }
-.option:last-child { grid-column: 1 / -1; }
+.option:last-child:nth-child(even) { grid-column: 1 / -1; }
 .option[data-selected="true"] { background: #d6f2ff; border-color: #087fff; }
 .option:has(input:focus-visible) { outline: 3px solid #087fff; outline-offset: 3px; }
 .option input { position: absolute; width: 1px; height: 1px; opacity: 0; }

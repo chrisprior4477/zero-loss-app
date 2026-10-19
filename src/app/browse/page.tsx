@@ -108,7 +108,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <div className={showAllLayout ? "mt-5 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-6" : "mt-3"}>
           <BrowseFilters filters={filters} retailerGroups={retailerGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} collapseOnDesktop={!showAllLayout} />
           <div id="search-results" className="min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
-            <SearchResultsAutoScroll searchKey={searchTerm ? browseReturnHref : ""} />
+            <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} />
             <p aria-live="polite" className={`mt-4 text-sm font-bold text-white/75 ${showAllLayout ? "lg:mt-0" : ""}`}>{products.length} {products.length === 1 ? "product" : "products"} shown</p>
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
