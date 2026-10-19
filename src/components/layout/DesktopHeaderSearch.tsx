@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { searchExamples, searchResultsHref } from "@/lib/navigation/search-examples";
 
 type SpeechResultEvent = {
   results: ArrayLike<{ 0: { transcript: string } }>;
@@ -42,6 +43,16 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [voiceError, setVoiceError] = useState("");
+  const [suggestions, setSuggestions] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (!suggestions) return;
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !formRef.current?.contains(event.target)) setSuggestions(false);
+    };
+    document.addEventListener("pointerdown", outside, true);
+    return () => document.removeEventListener("pointerdown", outside, true);
+  }, [suggestions]);
   useEffect(() => () => { recognitionRef.current?.stop(); }, []);
   useEffect(() => {
     if (active === false) {
@@ -65,6 +76,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
 
     if (!Recognition) { setVoiceError("Voice search is unavailable in this browser. Please type your search."); inputRef.current?.focus(); return; }
     setVoiceError("");
+    setSuggestions(false);
     onActivate?.();
 
     const recognition = new Recognition();
@@ -84,16 +96,19 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
 
   return (
     <form
+      ref={formRef}
       action="/browse"
       method="get"
       onSubmit={event => {
+        setSuggestions(false);
         recognitionRef.current?.stop();
         inputRef.current?.blur();
         onSubmitted?.();
-        if (navigate) { event.preventDefault(); navigate(`/browse?${new URLSearchParams({ q: query.trim() })}`); }
+        if (navigate) { event.preventDefault(); navigate(searchResultsHref(query)); }
       }}
-      onKeyDown={event => { if (event.key === "Escape" && onDismiss) { event.preventDefault(); recognitionRef.current?.stop(); onDismiss(); } }}
-      className="mx-auto flex h-9 min-w-0 max-w-[760px] flex-1 items-center rounded-full bg-[#f5f7fa] px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] sm:h-10 sm:min-w-[240px] sm:px-4"
+      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSuggestions(false); }}
+      onKeyDown={event => { if (event.key === "Escape") { setSuggestions(false); if (onDismiss) { event.preventDefault(); recognitionRef.current?.stop(); onDismiss(); } } }}
+      className="relative mx-auto flex h-9 min-w-0 max-w-[760px] flex-1 items-center rounded-full bg-[#f5f7fa] px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] sm:h-10 sm:min-w-[240px] sm:px-4"
     >
       <button type="submit" aria-label="Search catalog" title="Search catalog" className="relative mr-3 h-5 w-5 shrink-0 text-[#087feb]">
         <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
@@ -105,9 +120,12 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         id={inputId}
         name="q"
         type="search"
+        autoComplete="off"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        onFocus={onActivate}
+        onChange={(event) => { setQuery(event.target.value); setSuggestions(false); }}
+        onFocus={() => { onActivate?.(); setSuggestions(true); }}
+        onClick={() => setSuggestions(true)}
+        aria-controls={suggestions && active !== false ? `${inputId}-suggestions` : undefined}
         enterKeyHint="search"
         placeholder="Search products, brands, and categories..."
         className="min-w-0 flex-1 bg-transparent text-[14px] text-[#00132e] outline-none placeholder:text-slate-500"
@@ -131,6 +149,10 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         <HeaderMicrophoneIcon />
       </button>}
       {onDismiss ? <button type="button" aria-label="Close search" onClick={() => { recognitionRef.current?.stop(); onDismiss(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#00132e] hover:bg-slate-200">×</button> : null}
+      {suggestions && active !== false ? <div id={`${inputId}-suggestions`} role="group" aria-label="Try a search" className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-cyan-300 bg-[#052749] p-2 text-white shadow-xl">
+        <p className="px-2 py-1 text-xs font-bold text-cyan-200">Try a search</p>
+        {searchExamples.map(example => <button key={example} type="button" className="block min-h-9 w-full rounded-lg px-3 py-2 text-left text-sm font-bold hover:bg-[#124674] focus-visible:bg-[#124674] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" onPointerDown={event => event.preventDefault()} onClick={() => { setQuery(example); inputRef.current?.focus(); setSuggestions(false); }}>{example}</button>)}
+      </div> : null}
       {voiceError ? <span role="status" className="absolute left-2 right-2 top-full rounded-lg bg-white p-3 text-sm text-[#00132e] shadow-lg">{voiceError}</span> : null}
     </form>
   );

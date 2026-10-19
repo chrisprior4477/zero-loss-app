@@ -41,6 +41,7 @@ test("Keep saves the chosen layout; a failed save retains the previous saved cho
   await screen.findByText("Your menu choice is saved.");
   expect(save).toHaveBeenCalledWith("search-down");
   expect(screen.getByTestId("active-menu").textContent).toBe("search-down:search-down");
+  await waitFor(() => expect(screen.getByRole("button", { name: "Close preview" }).hasAttribute("disabled")).toBe(false));
   save.mockResolvedValue({ ok: false, message: "Please try again." });
   fireEvent.click(screen.getByRole("radio", { name: /Search in place/ }));
   fireEvent.click(screen.getByRole("button", { name: "Keep this layout" }));
@@ -139,4 +140,20 @@ test.each(menuLayouts)("$name has a non-clickable scrollable page, with compact 
 test("shopping bar includes browsing and favorites but excludes account tasks", () => {
   for (const path of ["/", "/browse", "/items/amazon-100-gift-card", "/rewards/amazon", "/account/favorites"]) expect(showsShoppingCategories(path)).toBe(true);
   for (const path of ["/account/profile", "/account/wallet", "/account/entries", "/account/notifications", "/login", "/how-it-works"]) expect(showsShoppingCategories(path)).toBe(false);
+});
+
+test.each(menuLayouts)("$name supports a suggested search locally with matching preview items", option => {
+  vi.useFakeTimers();
+  render(<MenuLayoutProvider initialLayout={option.id}><MenuLayoutPicker previewSearchResults={{ tv: [{ title: "Sample television", image: "/catalog/samsung-m70h-tv-real.png" }] }} /></MenuLayoutProvider>);
+  fireEvent.click(screen.getByRole("radio", { name: `${menuLayouts.indexOf(option) + 1}. ${option.name}` }));
+  act(() => vi.advanceTimersByTime(3000));
+  const demo = screen.getByRole("group", { name: "Interactive menu preview" });
+  if (option.id.startsWith("search-")) fireEvent.click(within(demo).getByRole("button", { name: "Open search" }));
+  fireEvent.focus(within(demo).getByRole("searchbox"));
+  fireEvent.click(within(demo).getByRole("button", { name: "TV", exact: true }));
+  fireEvent.click(within(demo).getByRole("button", { name: "Go to search results" }));
+  expect(within(demo).getByText("Sample television")).toBeTruthy();
+  expect(within(demo).getByText("1 product shown")).toBeTruthy();
+  expect(screen.getByText('Preview: Search results for “TV”. Menu actions here won’t leave Profile.')).toBeTruthy();
+  expect(save).not.toHaveBeenCalled();
 });

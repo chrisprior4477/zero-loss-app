@@ -88,7 +88,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
           {layout === "home-ending-search" ? <Link href="/" aria-label="Home" className={styles.home}><HomeIcon className="h-5 w-5" /></Link> : null}
           <Link href="/browse?sort=ending-soon" className={styles.endingSoon}>Ending Soon</Link>
         </div>
-        <div className={styles.mobileSearch}>{preview ? <DesktopHeaderSearchFallback key={preview.query} {...searchProps} initialQuery={preview.query} navigate={href => preview.onSearch?.(new URLSearchParams(href.split("?")[1]).get("q") ?? "")} /> : <Suspense fallback={<DesktopHeaderSearchFallback {...searchProps} />}><DesktopHeaderSearch {...searchProps} /></Suspense>}</div>
+        <div className={styles.mobileSearch}>{preview ? <DesktopHeaderSearchFallback key={preview.query} {...searchProps} initialQuery={preview.query} navigate={href => preview.onSearch?.(new URL(href, "https://preview.invalid").searchParams.get("q") ?? "")} /> : <Suspense fallback={<DesktopHeaderSearchFallback {...searchProps} />}><DesktopHeaderSearch {...searchProps} /></Suspense>}</div>
       </div>
       <div className={styles.stickyCategories}>{categories}</div>
       <div aria-hidden="true" className={styles.brandRule} />

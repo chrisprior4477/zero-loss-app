@@ -1,0 +1,9 @@
+.bar { position: fixed; bottom: 0; inset-inline: 0; z-index: 45; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); color: white; background: #052749; border-top: 2px solid #37d9f4; box-shadow: 0 -5px 24px #00132e33; }
+.inner { max-width: 760px; margin-inline: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; }
+.inner p { font-size: 13px; flex: 1 1 200px; }
+.actions { display: flex; gap: 8px; flex: 1 1 280px; }
+.actions button, .actions a { display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 12px; border-radius: 9px; font-size: 13px; font-weight: 800; flex: 1; text-align: center; }
+.actions button { background: #31e800; color: #062134; }
+.actions a { background: #e5f5ff; color: #07517a; }
+.actions button:disabled { opacity: .6; }
+.actions :focus-visible { outline: 3px solid white; outline-offset: 2px; }

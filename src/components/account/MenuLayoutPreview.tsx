@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { MenuLayout } from "@/lib/navigation/menu-layout";
@@ -10,11 +10,12 @@ import { AccountDrawer } from "@/components/layout/AccountDrawer";
 import { DesktopCategoryNav } from "@/components/layout/DesktopCategoryNav";
 import menuStyles from "@/components/layout/site-menu.module.css";
 import styles from "./menu-layout-picker.module.css";
+import type { MenuPreviewSearchResults } from "@/lib/navigation/search-examples";
 
 export type MenuPreviewAccount = { count: number | null; balance: string | null; avatarUrl: string | null; showPhoto: boolean };
 
 /** A local try-it area: shared menu controls, but destinations stay inside this preview. */
-export function MenuLayoutPreview({ layout, account }: { layout: MenuLayout; account: MenuPreviewAccount }) {
+export function MenuLayoutPreview({ layout, account, searchResults = {} }: { layout: MenuLayout; account: MenuPreviewAccount; searchResults?: MenuPreviewSearchResults }) {
   const [playing, setPlaying] = useState(true);
   const [replay, setReplay] = useState(0);
   const [expanded, setExpanded] = useState(false);
@@ -24,8 +25,17 @@ export function MenuLayoutPreview({ layout, account }: { layout: MenuLayout; acc
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  const [searchVersion, setSearchVersion] = useState(0);
   const dragRef = useRef<{ id: number; y: number; top: number } | null>(null);
   const [dimensions, setDimensions] = useState({ scale: 1, height: 369 });
+  const matches = searchQuery === null ? null : searchResults[searchQuery.toLowerCase()] ?? [];
+  useLayoutEffect(() => {
+    const page = pageRef.current, results = resultsRef.current;
+    if (searchQuery === null || !page || !results) return;
+    page.scrollTop += (results.getBoundingClientRect().top - page.getBoundingClientRect().top) / dimensions.scale;
+  }, [searchQuery, searchVersion, dimensions.scale]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -52,7 +62,7 @@ export function MenuLayoutPreview({ layout, account }: { layout: MenuLayout; acc
   }, [playing, replay]);
 
   const activity = { isPreview: false, activity: [], activeCount: account.count, source: "stored" as const };
-  function showDestination(title: string) { setDestination(title); setExpanded(false); setAccountOpen(false); if (pageRef.current) pageRef.current.scrollTop = 0; }
+  function showDestination(title: string) { setSearchQuery(null); setDestination(title); setExpanded(false); setAccountOpen(false); if (pageRef.current) pageRef.current.scrollTop = 0; }
   function navigatePreview(href: string, label: string) {
     const target = new URL(href, "https://preview.invalid");
     showDestination(target.pathname === "/" ? "Home" : target.pathname === "/browse" ? label.trim() || "All rewards" : target.pathname === "/account/entries" ? "My Activity" : target.pathname === "/account/wallet" ? "Playable Wallet" : label.trim());
@@ -71,7 +81,7 @@ export function MenuLayoutPreview({ layout, account }: { layout: MenuLayout; acc
           navigatePreview(link.getAttribute("href")!, link.getAttribute("aria-label") ?? link.textContent ?? "Home");
         }}>
         <ResponsiveSiteHeader
-          preview={{ expanded, query: querySeed, pageCategoriesInPreviewBody: true, onExpandedChange: open => { setPlaying(false); setExpanded(open); }, onSearch: query => showDestination(query ? `Search results for “${query}”` : "All rewards") }}
+          preview={{ expanded, query: querySeed, pageCategoriesInPreviewBody: true, onExpandedChange: open => { setPlaying(false); setExpanded(open); }, onSearch: query => { showDestination(query ? `Search results for “${query}”` : "All rewards"); if (query) { setSearchQuery(query); setSearchVersion(value => value + 1); } } }}
           logo={<Link href="/" aria-label="ZeroLoss home"><Image src="/zeroloss-logo.svg" alt="" width={174} height={32} className="h-5 w-auto" /></Link>}
           metrics={<HeaderAccountMetrics isSignedIn liveBalance={account.balance} activityState={activity} />}
           accountMenu={<AccountDrawer isSignedIn displayName="" email={null} avatarUrl={account.avatarUrl} showPhotoInMenu={account.showPhoto} balanceLabel={account.balance} activityState={activity} previewExpanded={accountOpen} onPreviewOpen={() => setAccountOpen(value => !value)} />}
@@ -104,11 +114,14 @@ export function MenuLayoutPreview({ layout, account }: { layout: MenuLayout; acc
               <Image src="/mobile-hero-zero-loss-coin-transparent.png" alt="" width={250} height={220} />
               <h3>Real shots.<br />Real wins.<br /><span>Zero loss.</span></h3>
             </div> : <div className={styles.demoDestination}><small>ZERO LOSS MARKETPLACE</small><h3>{destination}</h3><p>Choose a product to see its entry details and current availability.</p></div>}
-            <div className={styles.demoProducts}><h4>Ending Soon</h4>
+            {matches ? <div ref={resultsRef} className={`${styles.demoProducts} ${styles.demoSearchResults}`}>
+              <h4>{matches.length} {matches.length === 1 ? "product" : "products"} shown</h4>
+              {matches.length ? matches.map(product => <div key={product.title} className={styles.demoProduct}><Image src={product.image} alt="" width={220} height={140} /><strong>{product.title}</strong></div>) : <p>No sample results for this search. Try TV, baby stuff, Publix, coffee, or sneakers.</p>}
+            </div> : <div className={styles.demoProducts}><h4>Ending Soon</h4>
               <div className={styles.demoProduct}><Image src="/catalog/best-buy-100-gift-card.svg" alt="" width={220} height={140} /><strong>$100 Best Buy Gift Card</strong><span>View reward</span></div>
               <h4>Everyday Items</h4>
               <div className={styles.demoProduct}><Image src="/catalog/homegoods-75-gift-card.svg" alt="" width={220} height={140} /><strong>$75 HomeGoods Gift Card</strong><span>View reward</span></div>
-            </div>
+            </div>}
           </div>
         </div>
       </div>

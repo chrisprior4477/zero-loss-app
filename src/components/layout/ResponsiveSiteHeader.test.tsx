@@ -28,7 +28,7 @@ test.each(["ending-search", "home-ending-search", "search-down", "search-over"] 
   expect(header.dataset.searchOpen).toBe("true");
   fireEvent.change(input, { target: { value: "Coffee & tea" } });
   fireEvent.click(within(mobile).getByRole("button", { name: "Go to search results" }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?q=Coffee+%26+tea");
+  expect(navigation.push).toHaveBeenCalledWith("/browse?q=Coffee+%26+tea#search-results");
   expect(header.dataset.searchOpen).toBe("false");
 });
 
@@ -77,7 +77,7 @@ test("voice transcription uses the same Go action and closes the push-down", () 
   fireEvent.click(within(mobile).getByRole("button", { name: "Start voice search" }));
   act(() => { recognition.onresult({ results: [{ 0: { transcript: "Publix" } }] }); recognition.onend(); });
   fireEvent.click(within(mobile).getByRole("button", { name: "Go to search results" }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?q=Publix");
+  expect(navigation.push).toHaveBeenCalledWith("/browse?q=Publix#search-results");
   expect(header.dataset.searchOpen).toBe("false");
 });
 

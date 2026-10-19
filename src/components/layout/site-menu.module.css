@@ -35,7 +35,8 @@
   .header[data-menu-layout="search-over"][data-search-open="true"] .accountControls,
   .header[data-menu-layout="search-over"][data-search-open="true"] .searchToggle { visibility: hidden; }
 /* Mobile is the base so the miniature uses the exact same layout at any screen width. */
-.header[data-menu-preview] { position: relative; z-index: 0; }
+.header[data-menu-preview] { position: relative; z-index: 3; }
+.header[data-search-open="true"] .mobileSearchRow { overflow: visible; }
 .header[data-menu-preview] .logo img { width: 108.75px; max-width: none; height: 20px; }
 .header[data-menu-preview] .accountControls svg { height: 24px; width: 36px; }
 .header[data-menu-preview] .accountControls a[aria-label$="playable balance"] { gap: 4px; }
