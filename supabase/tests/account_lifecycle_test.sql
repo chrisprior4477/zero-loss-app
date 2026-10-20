@@ -45,7 +45,7 @@ select is(public.create_preview_entry('lifecycle-winner-expire','lifecycle_entry
 select is(public.create_preview_entry('lifecycle-option-buy','lifecycle_entry_buy_01')->>'status','not_selected','purchase option entry is recorded');
 select is(public.create_preview_entry('lifecycle-option-decline','lifecycle_entry_decline_01')->>'status','not_selected','decline option entry is recorded');
 
-select is((select count(*)::integer from public.completion_option_reminders),'16','each 30-day option receives the eight approved reminder checkpoints');
+select is((select count(*)::integer from public.completion_option_reminders),'4','each option receives the current 7-day and 24-hour reminders');
 select ok((select min(expires_at-created_at)>interval '30 days' from public.completion_options),'purchase-option deadline includes 30 full calendar days after Day 0');
 select is(public.decline_purchase_option(
   (select c.id from public.completion_options c join public.customer_entries e on e.id=c.customer_entry_id where e.offering_slug='lifecycle-option-decline'),
@@ -56,7 +56,7 @@ select is(public.decline_purchase_option(
   'lifecycle_decline_request_01'
 )->>'duplicate','true','decline replay is idempotent');
 select is((select count(*)::integer from public.ledger_entries where entry_type='REFUND' and customer_id='88888888-8888-4888-8888-888888888881'),0,'declining never refunds the entry amount');
-select is((select count(*)::integer from public.completion_option_reminders where status='cancelled' and completion_option_id=(select c.id from public.completion_options c join public.customer_entries e on e.id=c.customer_entry_id where e.offering_slug='lifecycle-option-decline')),8,'declining stops all pending reminders');
+select is((select count(*)::integer from public.completion_option_reminders where status='cancelled' and completion_option_id=(select c.id from public.completion_options c join public.customer_entries e on e.id=c.customer_entry_id where e.offering_slug='lifecycle-option-decline')),2,'declining stops all pending reminders');
 
 select is(public.purchase_preview_gift_card(
   (select c.id from public.completion_options c join public.customer_entries e on e.id=c.customer_entry_id where e.offering_slug='lifecycle-option-buy'),

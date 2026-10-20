@@ -87,7 +87,7 @@ async function sendPreview(): Promise<Response> {
   return respond(200, { sent });
 }
 
-type Database = SupabaseClient<any, "public">;
+type Database = SupabaseClient;
 
 async function processReady(db: Database, origin: string) {
   const { data: deliveries, error: claimError } = await db.rpc("claim_reward_ready_email_deliveries", { p_limit: 10 });

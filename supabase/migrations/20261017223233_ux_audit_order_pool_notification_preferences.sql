@@ -18,7 +18,14 @@ revoke all on demo_private.popular_reward_ux_checkpoint from public, anon, authe
 do $$
 declare v_count integer;
 begin
-  if not coalesce((select environment = 'development-test' and preview_entries_enabled
+  -- Initialize fictional occupancy on a fresh, disabled database too.
+  -- Existing customer databases retain the original demo-enablement guard.
+  if not coalesce((select environment = 'development-test' and (
+      preview_entries_enabled or (
+        not enabled and not preview_provisioning_enabled
+        and not exists (select 1 from public.customers)
+        and not exists (select 1 from public.ledger_entries)
+      ))
     from demo_private.funding_config where singleton), false) then
     raise exception 'Demo calibration is unavailable outside development-test' using errcode = '42501';
   end if;

@@ -1,5 +1,4 @@
 // Mechanical SQL export from the same catalog used by the application.
-/* eslint-disable @typescript-eslint/no-require-imports -- Standalone CommonJS exporter installs a local TS require hook; it is never shipped to clients. */
 const fs = require('node:fs');
 const ts = require('typescript');
 require.extensions['.ts'] = (module, filename) => {

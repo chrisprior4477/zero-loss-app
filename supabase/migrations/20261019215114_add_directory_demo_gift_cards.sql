@@ -5,8 +5,13 @@ begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '30s';
 do $$ begin
-  if not coalesce((select preview_entries_enabled and environment = 'development-test'
-      from demo_private.funding_config where singleton), false) then
+  -- Seed catalog metadata during an empty, disabled replay without enabling funding.
+  if not coalesce((select environment = 'development-test' and (
+      preview_entries_enabled or (
+        not enabled and not preview_provisioning_enabled
+        and not exists (select 1 from public.customers)
+        and not exists (select 1 from public.ledger_entries)
+      )) from demo_private.funding_config where singleton), false) then
     raise exception 'Directory gift cards are available only in the demo environment' using errcode = '42501';
   end if;
 end $$;

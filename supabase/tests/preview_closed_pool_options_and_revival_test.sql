@@ -35,9 +35,9 @@ select set_config('request.jwt.claims',
 select public.create_preview_entries('closed-pool-option-test',10,'closed_pool_ten_entries_01');
 select is((select count(*)::integer from public.completion_options c
   join public.customer_entries e on e.id=c.customer_entry_id where e.offering_slug='closed-pool-option-test'),
-  0,'the ten pending entries have no premature purchase options');
-select public.confirm_preview_entry_request((select id from public.entry_requests
-  where offering_slug='closed-pool-option-test'));
+  10,'single-step confirmation creates options when the pool closes');
+select is(public.create_preview_entries('closed-pool-option-test',10,'closed_pool_ten_entries_01')->>'duplicate',
+  'true','replaying the completed submission cannot buy ten more entries');
 select is((select count(*)::integer from public.customer_entries where offering_slug='closed-pool-option-test'),
   10,'all ten final entries are saved independently');
 select is((select count(*)::integer from public.entry_outcomes x join public.customer_entries e

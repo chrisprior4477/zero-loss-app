@@ -34,6 +34,68 @@ create table demo_private.preview_entry_offerings (
 alter table demo_private.preview_entry_offerings enable row level security;
 revoke all on demo_private.preview_entry_offerings from public, anon, authenticated, service_role;
 
+-- Immutable catalog snapshot from the original preview-entry commit 057825a.
+-- This replaces the undocumented manual import needed by later migrations.
+-- Funding/entry enablement remains disabled; no customer or ledger rows are seeded.
+insert into demo_private.preview_entry_offerings
+  (slug, title, retailer, category, image_path, value_cents, entry_price_cents, capacity, forced_outcome)
+values
+  ('samsung-m70h-tv', 'Samsung 50" M70H Mini LED 4K Smart TV', 'Best Buy', 'Electronics', '/catalog/samsung-m70h-tv-real.png', 40000, 100, 1200, 'winner'),
+  ('nike-court-shot-shoes', 'Nike Men''s Court Shot Shoes', 'Dick''s Sporting Goods', 'Shoes & Apparel', '/catalog/nike-court-shot-side-cutout.png', 7500, 100, 225, 'not_selected'),
+  ('babys-essentials-bundle', 'Baby''s Essentials Bundle', 'Walmart', 'Baby Essentials', '/catalog/babys-essentials-bundle-angled-real.png', 10000, 100, 300, 'not_selected'),
+  ('playstation-5-slim', 'PlayStation 5 Slim Model', 'Best Buy', 'Gaming', '/dollar-choice-gaming.png', 65000, 100, 1950, 'active'),
+  ('publix-100-gift-card', '$100 Publix Gift Card', 'Publix', 'Groceries', '/catalog/publix-100-gift-card-cutout-final.png', 10000, 100, 300, 'active'),
+  ('dyson-v8-cordless-vacuum', 'Dyson V8 Cordless Pet Vacuum', 'Lowe''s', 'Home Essentials', '/catalog/dyson-v8-diagonal-real.png', 35000, 100, 1050, 'active'),
+  ('lg-oled-c6-65-tv', '65-inch LG OLED evo AI C6 4K Smart TV', 'Best Buy', 'Electronics', '/dollar-choice-lg-oled-c6.png', 270000, 100, 8100, 'active'),
+  ('dunkin-25-gift-card', '$25 Dunkin'' Gift Card', 'Dunkin''', 'Dining & Coffee', '/catalog/dunkin-25-gift-card.svg', 2500, 100, 75, 'active'),
+  ('homegoods-75-gift-card', '$75 HomeGoods Gift Card', 'HomeGoods', 'Home Essentials', '/catalog/homegoods-75-gift-card.svg', 7500, 100, 225, 'active'),
+  ('lowes-150-gift-card', '$150 Lowe''s Appliance Gift Card', 'Lowe''s', 'Home Essentials', '/catalog/lowes-150-gift-card.svg', 15000, 200, 450, 'active'),
+  ('home-style-50-gift-card-bundle', '$50 Bed Bath & Beyond + Wayfair Bundle', 'Bed Bath & Beyond + Wayfair', 'Gift Cards', '/catalog/home-style-50-gift-card-bundle.svg', 5000, 100, 150, 'active'),
+  ('best-buy-100-gift-card', '$100 Best Buy Gift Card', 'Best Buy', 'Electronics', '/catalog/best-buy-100-gift-card.svg', 10000, 100, 300, 'active'),
+  ('netflix-25-gift-card', '$25 Netflix Gift Card', 'Netflix', 'Movie Night', '/catalog/netflix-25-gift-card.svg', 2500, 100, 75, 'active'),
+  ('amazon-100-gift-card', '$100 Amazon Gift Card', 'Amazon', 'Shopping', '/catalog/reward-cards/amazon-card-display.png', 10000, 100, 300, 'active'),
+  ('amazon-75-gift-card', '$75 Amazon Gift Card', 'Amazon', 'Shopping', '/catalog/reward-cards/amazon-card-display.png', 7500, 100, 225, 'active'),
+  ('amazon-50-gift-card', '$50 Amazon Gift Card', 'Amazon', 'Shopping', '/catalog/reward-cards/amazon-card-display.png', 5000, 100, 150, 'active'),
+  ('amazon-25-gift-card', '$25 Amazon Gift Card', 'Amazon', 'Shopping', '/catalog/reward-cards/amazon-card-display.png', 2500, 100, 75, 'active'),
+  ('walmart-100-gift-card', '$100 Walmart Gift Card', 'Walmart', 'Everyday Shopping', '/catalog/reward-cards/walmart-card-display.png', 10000, 100, 300, 'active'),
+  ('walmart-75-gift-card', '$75 Walmart Gift Card', 'Walmart', 'Everyday Shopping', '/catalog/reward-cards/walmart-card-display.png', 7500, 100, 225, 'active'),
+  ('walmart-50-gift-card', '$50 Walmart Gift Card', 'Walmart', 'Everyday Shopping', '/catalog/reward-cards/walmart-card-display.png', 5000, 100, 150, 'active'),
+  ('walmart-25-gift-card', '$25 Walmart Gift Card', 'Walmart', 'Everyday Shopping', '/catalog/reward-cards/walmart-card-display.png', 2500, 100, 75, 'active'),
+  ('starbucks-100-gift-card', '$100 Starbucks Gift Card', 'Starbucks', 'Dining & Coffee', '/catalog/reward-cards/starbucks-card-final.png', 10000, 100, 300, 'active'),
+  ('starbucks-75-gift-card', '$75 Starbucks Gift Card', 'Starbucks', 'Dining & Coffee', '/catalog/reward-cards/starbucks-card-final.png', 7500, 100, 225, 'active'),
+  ('starbucks-50-gift-card', '$50 Starbucks Gift Card', 'Starbucks', 'Dining & Coffee', '/catalog/reward-cards/starbucks-card-final.png', 5000, 100, 150, 'active'),
+  ('starbucks-25-gift-card', '$25 Starbucks Gift Card', 'Starbucks', 'Dining & Coffee', '/catalog/reward-cards/starbucks-card-final.png', 2500, 100, 75, 'active'),
+  ('doordash-100-gift-card', '$100 DoorDash Gift Card', 'DoorDash', 'Dining & Delivery', '/catalog/reward-cards/doordash-card-red.svg', 10000, 100, 300, 'active'),
+  ('doordash-75-gift-card', '$75 DoorDash Gift Card', 'DoorDash', 'Dining & Delivery', '/catalog/reward-cards/doordash-card-red.svg', 7500, 100, 225, 'active'),
+  ('doordash-50-gift-card', '$50 DoorDash Gift Card', 'DoorDash', 'Dining & Delivery', '/catalog/reward-cards/doordash-card-red.svg', 5000, 100, 150, 'active'),
+  ('doordash-25-gift-card', '$25 DoorDash Gift Card', 'DoorDash', 'Dining & Delivery', '/catalog/reward-cards/doordash-card-red.svg', 2500, 100, 75, 'active'),
+  ('home-depot-100-gift-card', '$100 The Home Depot Gift Card', 'The Home Depot', 'Home Essentials', '/catalog/reward-cards/home-depot-card-final.png', 10000, 100, 300, 'active'),
+  ('home-depot-75-gift-card', '$75 The Home Depot Gift Card', 'The Home Depot', 'Home Essentials', '/catalog/reward-cards/home-depot-card-final.png', 7500, 100, 225, 'active'),
+  ('home-depot-50-gift-card', '$50 The Home Depot Gift Card', 'The Home Depot', 'Home Essentials', '/catalog/reward-cards/home-depot-card-final.png', 5000, 100, 150, 'active'),
+  ('home-depot-25-gift-card', '$25 The Home Depot Gift Card', 'The Home Depot', 'Home Essentials', '/catalog/reward-cards/home-depot-card-final.png', 2500, 100, 75, 'active'),
+  ('nintendo-100-gift-card', '$100 Nintendo Gift Card', 'Nintendo', 'Gaming', '/catalog/reward-cards/nintendo.png', 10000, 100, 300, 'active'),
+  ('nintendo-75-gift-card', '$75 Nintendo Gift Card', 'Nintendo', 'Gaming', '/catalog/reward-cards/nintendo.png', 7500, 100, 225, 'active'),
+  ('nintendo-50-gift-card', '$50 Nintendo Gift Card', 'Nintendo', 'Gaming', '/catalog/reward-cards/nintendo.png', 5000, 100, 150, 'active'),
+  ('nintendo-25-gift-card', '$25 Nintendo Gift Card', 'Nintendo', 'Gaming', '/catalog/reward-cards/nintendo.png', 2500, 100, 75, 'active'),
+  ('cvs-100-gift-card', '$100 CVS Gift Card', 'CVS', 'Health & Essentials', '/catalog/reward-cards/cvs-card-clean.png', 10000, 100, 300, 'active'),
+  ('cvs-75-gift-card', '$75 CVS Gift Card', 'CVS', 'Health & Essentials', '/catalog/reward-cards/cvs-card-clean.png', 7500, 100, 225, 'active'),
+  ('cvs-50-gift-card', '$50 CVS Gift Card', 'CVS', 'Health & Essentials', '/catalog/reward-cards/cvs-card-clean.png', 5000, 100, 150, 'active'),
+  ('cvs-25-gift-card', '$25 CVS Gift Card', 'CVS', 'Health & Essentials', '/catalog/reward-cards/cvs-card-clean.png', 2500, 100, 75, 'active'),
+  ('uber-eats-100-gift-card', '$100 Uber Eats Gift Card', 'Uber Eats', 'Dining & Delivery', '/catalog/reward-cards/uber-eats-card-display.png', 10000, 100, 300, 'active'),
+  ('uber-eats-75-gift-card', '$75 Uber Eats Gift Card', 'Uber Eats', 'Dining & Delivery', '/catalog/reward-cards/uber-eats-card-display.png', 7500, 100, 225, 'active'),
+  ('uber-eats-50-gift-card', '$50 Uber Eats Gift Card', 'Uber Eats', 'Dining & Delivery', '/catalog/reward-cards/uber-eats-card-display.png', 5000, 100, 150, 'active'),
+  ('uber-eats-25-gift-card', '$25 Uber Eats Gift Card', 'Uber Eats', 'Dining & Delivery', '/catalog/reward-cards/uber-eats-card-display.png', 2500, 100, 75, 'active'),
+  ('adidas-100-gift-card', '$100 Adidas Gift Card', 'Adidas', 'Apparel & Footwear', '/catalog/reward-cards/adidas-card-display.png', 10000, 100, 300, 'active'),
+  ('adidas-75-gift-card', '$75 Adidas Gift Card', 'Adidas', 'Apparel & Footwear', '/catalog/reward-cards/adidas-card-display.png', 7500, 100, 225, 'active'),
+  ('adidas-50-gift-card', '$50 Adidas Gift Card', 'Adidas', 'Apparel & Footwear', '/catalog/reward-cards/adidas-card-display.png', 5000, 100, 150, 'active'),
+  ('adidas-25-gift-card', '$25 Adidas Gift Card', 'Adidas', 'Apparel & Footwear', '/catalog/reward-cards/adidas-card-display.png', 2500, 100, 75, 'active'),
+  ('petsmart-100-gift-card', '$100 PetSmart Gift Card', 'PetSmart', 'Pet Essentials', '/catalog/reward-cards/petsmart.jpg', 10000, 100, 300, 'active'),
+  ('petsmart-75-gift-card', '$75 PetSmart Gift Card', 'PetSmart', 'Pet Essentials', '/catalog/reward-cards/petsmart.jpg', 7500, 100, 225, 'active'),
+  ('petsmart-50-gift-card', '$50 PetSmart Gift Card', 'PetSmart', 'Pet Essentials', '/catalog/reward-cards/petsmart.jpg', 5000, 100, 150, 'active'),
+  ('petsmart-25-gift-card', '$25 PetSmart Gift Card', 'PetSmart', 'Pet Essentials', '/catalog/reward-cards/petsmart.jpg', 2500, 100, 75, 'active')
+on conflict (slug) do nothing;
+
+
 create table public.customer_entries (
   id uuid primary key default gen_random_uuid(),
   entry_id text not null unique check (entry_id ~ '^ent_[0-9a-f]+$'),

@@ -99,7 +99,7 @@ jobs:
         run: |
           supabase start -x studio,realtime,storage-api,imgproxy,logflare,vector,supavisor,mailpit,edge-runtime,postgrest,postgres-meta,kong
 
-      # Applies every migration from scratch and then runs the 71 pgTAP
+      # Applies every migration from scratch and then runs the pgTAP
       # assertions, so this also proves the migration chain is replayable in
       # order on a clean database.
       - name: Run pgTAP suite

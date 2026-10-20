@@ -111,8 +111,14 @@ declare
   v_saved bigint;
   v_new_sample integer;
 begin
-  if not coalesce((select preview_entries_enabled and environment = 'development-test'
-      from demo_private.funding_config where singleton), false) then
+  -- A fresh replay may initialize fictional catalog slots while all demo
+  -- funding remains disabled. Existing accounts retain the original guard.
+  if not coalesce((select environment = 'development-test' and (
+      preview_entries_enabled or (
+        not enabled and not preview_provisioning_enabled
+        and not exists (select 1 from public.customers)
+        and not exists (select 1 from public.ledger_entries)
+      )) from demo_private.funding_config where singleton), false) then
     raise exception 'Popular reward calibration is demo-only' using errcode = '42501';
   end if;
   if (select count(*) from demo_private.preview_popular_reward_scenarios) <> 40

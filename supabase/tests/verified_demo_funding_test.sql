@@ -68,7 +68,7 @@ set local request.jwt.claim.sub='77777777-7777-4777-8777-777777777772';
 select throws_ok($$ select public.create_demo_funding_session(100,'daily_limit_request_21') $$,'P0001','Demo limit: twenty new requests per day.','daily count survives different request keys');
 select is((select count(*)::integer from public.ledger_entries),0,'RLS hides another customer credit');
 set local request.jwt.claim.sub='77777777-7777-4777-8777-777777777773';
-select throws_ok($$ select public.create_demo_funding_session(100,'total_limit_request_03') $$,'P0001','Demo limit: $1,000 total requested per account.','lifetime ceiling survives rolling window');
+select lives_ok($$ select public.create_demo_funding_session(100,'total_limit_request_03') $$,'funding beyond the removed lifetime ceiling remains available');
 set local request.jwt.claim.sub='77777777-7777-4777-8777-777777777774';
 select throws_ok($$ select public.create_demo_funding_session(100,'pending_limit_request_04') $$,'P0001','Resolve your pending demo payments before starting another.','pending request cap enforced');
 reset role;

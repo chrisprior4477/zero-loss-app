@@ -449,6 +449,9 @@ export async function signOutEverywhereAction(
   _previous: SignOutEverywhereState,
   _formData: FormData,
 ): Promise<SignOutEverywhereState> {
+  // Keep the React action-state signature; this action needs no form fields.
+  void _previous;
+  void _formData;
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {

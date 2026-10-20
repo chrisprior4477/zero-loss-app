@@ -10,8 +10,14 @@ declare
   v_new_sample integer;
   v_best_buy jsonb;
 begin
-  if not coalesce((select preview_entries_enabled and environment = 'development-test'
-      from demo_private.funding_config where singleton), false) then
+  -- A fresh replay may initialize fictional catalog slots while all demo
+  -- funding remains disabled. Existing accounts retain the original guard.
+  if not coalesce((select environment = 'development-test' and (
+      preview_entries_enabled or (
+        not enabled and not preview_provisioning_enabled
+        and not exists (select 1 from public.customers)
+        and not exists (select 1 from public.ledger_entries)
+      )) from demo_private.funding_config where singleton), false) then
     raise exception 'Preview pool calibration is unavailable outside the demo' using errcode = '42501';
   end if;
 
@@ -54,10 +60,18 @@ begin
 
   -- This audited replay retains the two accounts' Best Buy entries and the
   -- already-posted outcomes while opening exactly one new demo slot.
-  v_best_buy := demo_private.reset_full_preview_pool_to_one(
-    'best-buy-100-gift-card', null, 'manual');
-  if (v_best_buy->>'remaining')::integer <> 1 then
-    raise exception 'Best Buy did not reopen with one slot' using errcode = 'P0001';
+  if (select preview_entries_enabled from demo_private.funding_config where singleton) then
+    v_best_buy := demo_private.reset_full_preview_pool_to_one(
+      'best-buy-100-gift-card', null, 'manual');
+    if (v_best_buy->>'remaining')::integer <> 1 then
+      raise exception 'Best Buy did not reopen with one slot' using errcode = 'P0001';
+    end if;
+  else
+    -- The guard above permits this only on an empty, disabled installation.
+    -- There are no customer entries to replay and no runtime gate is enabled.
+    update demo_private.preview_entry_offerings
+      set sample_entries = capacity - 1, updated_at = now()
+      where slug = 'best-buy-100-gift-card';
   end if;
 end;
 $$;

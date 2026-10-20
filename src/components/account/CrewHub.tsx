@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
   getCrewSharedPicks, removeCrewConnection, requestCrewInvitationFromLink, respondToCrewRequest, setCrewDiscoverable, setEntryCrewSharing,
 } from "@/lib/crew/actions";
@@ -37,6 +37,9 @@ type Props = {
 };
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+const subscribeToOrigin = () => () => {};
+const getBrowserOrigin = () => window.location.origin;
+const getServerOrigin = () => "";
 
 export function CrewHub({ currentUserId, invitations, members, discoverable, entries, selectedMemberId, selectedPicks, available, initialTab, overview, ownInviteToken = null, incomingInviteToken = null }: Props) {
   const router = useRouter();
@@ -47,7 +50,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
   const [memberPicks, setMemberPicks] = useState<SharedCrewPick[]>(selectedPicks);
   const [memberPicksError, setMemberPicksError] = useState(false);
   const [memberPicksLoading, setMemberPicksLoading] = useState(false);
-  const [inviteUrl, setInviteUrl] = useState("");
+  const origin = useSyncExternalStore(subscribeToOrigin, getBrowserOrigin, getServerOrigin);
+  const inviteUrl = ownInviteToken && origin ? `${origin}/account/crew?invite=${ownInviteToken}` : "";
   const [copyMessage, setCopyMessage] = useState("");
   const [incomingRequestSent, setIncomingRequestSent] = useState(false);
   const pickRequest = useRef(0);
@@ -58,7 +62,6 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
   const [pending, startTransition] = useTransition();
   const samples = useSampleCrewPreviews();
   useEffect(() => { initializeSampleCrewPreview(); }, []);
-  useEffect(() => { if (ownInviteToken) setInviteUrl(`${window.location.origin}/account/crew?invite=${ownInviteToken}`); }, [ownInviteToken]);
   useEffect(() => {
     if (initialSampleSelected.current || selectedMemberId || !samples.length) return;
     initialSampleSelected.current = true;

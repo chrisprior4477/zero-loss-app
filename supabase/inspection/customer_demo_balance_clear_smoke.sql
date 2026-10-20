@@ -1,4 +1,5 @@
 -- Rollback-only smoke test for a linked project without pgTAP installed.
+-- Kept outside tests/: supabase test db expects TAP output from every SQL file.
 begin;
 update demo_private.funding_config set enabled=true, preview_provisioning_enabled=true,
   preview_issuer='https://ocgdfnvvjvutevgqzzgj.supabase.co/auth/v1', environment='development-test'

@@ -52,8 +52,8 @@ select is(public.get_wallet_snapshot()->>'balanceCents','9800','full-pool retrie
 select throws_ok($$update demo_private.preview_entry_offerings set repeatable_scenario=true where slug='availability-audit'$$,'42501',null,'customer cannot turn an ordinary pool into an unlimited fixture');
 reset role;
 
-select throws_ok($$update demo_private.preview_entry_offerings set repeatable_scenario=true where slug='availability-audit'$$,'23514',null,'database allowlist limits repeatability to the three approved showcases');
-select is((select count(*)::integer from demo_private.preview_entry_offerings where repeatable_scenario),3,'exactly three showcase scenarios are repeatable');
+select throws_ok($$update demo_private.preview_entry_offerings set repeatable_scenario=true where slug='availability-audit'$$,'23514',null,'database allowlist limits repeatability to the approved showcases');
+select is((select count(*)::integer from demo_private.preview_entry_offerings where repeatable_scenario),4,'the original showcases and Dunkin are repeatable');
 
 -- Test a second run after the same user has already completed each showcase.
 set local role authenticated;
@@ -64,9 +64,9 @@ select is(public.create_preview_entries('nike-court-shot-shoes',1,'availability_
 select is(public.create_preview_entries('babys-essentials-bundle',1,'availability_baby_one')->>'status','not_selected','baby bundle preserves its completion outcome');
 select is(public.create_preview_entries('babys-essentials-bundle',1,'availability_baby_two')->>'status','not_selected','baby bundle can be demonstrated again');
 select is((select count(*)::integer from public.customer_rewards),2,'repeated TV test has two separate reward records');
-select is((select count(*)::integer from public.completion_options),4,'repeated completion tests retain four separate options');
+select is((select count(*)::integer from public.completion_options c join public.customer_entries e on e.id=c.customer_entry_id where e.offering_slug in ('nike-court-shot-shoes','babys-essentials-bundle')),4,'repeated completion tests retain four separate options');
 select is((select count(*)::integer from jsonb_array_elements(public.get_preview_offering_availability()) a
-  where (a->>'repeatableScenario')::boolean and a->>'remaining'='1'),3,'showcase sample displays retain their last-slot setup');
+  where (a->>'repeatableScenario')::boolean and a->>'remaining'='1'),4,'showcase sample displays retain their last-slot setup');
 reset role;
 
 update demo_private.funding_config set preview_entries_enabled=false where singleton;

@@ -8,8 +8,14 @@ set local statement_timeout = '30s';
 do $$
 declare v_price integer;
 begin
-  if not coalesce((select preview_entries_enabled and environment = 'development-test'
-      from demo_private.funding_config where singleton), false) then
+  -- A fresh replay may initialize fictional catalog slots while all demo
+  -- funding remains disabled. Existing accounts retain the original guard.
+  if not coalesce((select environment = 'development-test' and (
+      preview_entries_enabled or (
+        not enabled and not preview_provisioning_enabled
+        and not exists (select 1 from public.customers)
+        and not exists (select 1 from public.ledger_entries)
+      )) from demo_private.funding_config where singleton), false) then
     raise exception 'Lowe''s demo price change is unavailable outside the demo' using errcode = '42501';
   end if;
   select entry_price_cents into v_price
