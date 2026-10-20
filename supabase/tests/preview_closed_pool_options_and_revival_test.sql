@@ -61,6 +61,13 @@ select is(public.revive_preview_purchase_option((select c.id from public.complet
   'closed_pool_revive_request_01')->>'status','available','declined option is revived without a new charge');
 select is((select count(*)::integer from jsonb_array_elements(public.get_account_activity()) a
   where a->>'status'='completion'),10,'revived option returns to Purchase Options');
+select ok((select max(ce.created_at) filter (where ce.event_type='revived')
+    > max(ce.created_at) filter (where ce.event_type='declined')
+  from public.completion_option_events ce
+  join public.completion_options c on c.id=ce.completion_option_id
+  join public.customer_entries e on e.id=c.customer_entry_id
+  where e.offering_slug='closed-pool-option-test'),
+  'revival is timestamped after decline even within the same transaction');
 select is(public.decline_purchase_option((select c.id from public.completion_options c
   join public.customer_entries e on e.id=c.customer_entry_id
   where e.offering_slug='closed-pool-option-test' order by e.entry_id limit 1),

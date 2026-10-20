@@ -71,6 +71,13 @@ Bootstrap tests verify disabled gates, no customer/ledger seed records, and
 catalog prerequisites. Do not mark historical migrations pending on a live
 project just to apply these replay repairs.
 
+Migration `20261020152720_timestamp_option_events_at_insertion.sql` changes
+only the default timestamp for future completion-option events. It fixes
+decline/revive timestamp ties within a transaction; existing history is untouched.
+Unlike the historical replay repairs, this new migration must also be applied
+through the normal hosted-database release process. A Git push/Vercel deployment
+does not apply Supabase migrations automatically.
+
 The remaining development-tool audit finding is `braces` (GHSA-vfj7-8cjw-p6xm)
 through the Next.js ESLint plugin. As of this check there is no patched release;
 do not force npm's proposed downgrade to Next 14 tooling. Production dependency
