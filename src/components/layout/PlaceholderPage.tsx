@@ -1,13 +1,16 @@
+import type { ReactNode } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 
 type PlaceholderPageProps = {
   title: string;
   description?: string;
+  children?: ReactNode;
 };
 
 export function PlaceholderPage({
   title,
   description = "This page is route scaffolding for the application shell. Content will arrive in a later release.",
+  children,
 }: PlaceholderPageProps) {
   return (
     <PageContainer>
@@ -20,6 +23,7 @@ export function PlaceholderPage({
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--muted)]">
         {description}
       </p>
+      {children}
     </PageContainer>
   );
 }
