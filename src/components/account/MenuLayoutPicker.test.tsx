@@ -218,3 +218,19 @@ test.each(["Ending Soon", "Browse"])("new push-down %s shows products inside the
   expect(screen.getByText(`Preview: ${label}. Menu actions here won’t leave Profile.`)).toBeTruthy();
   expect(save).not.toHaveBeenCalled();
 });
+
+test("style five Favorites stays inside the preview without saving a layout", () => {
+  vi.useFakeTimers();
+  render(<MenuLayoutProvider initialLayout="classic"><MenuLayoutPicker /></MenuLayoutProvider>);
+  fireEvent.click(screen.getByRole("radio", { name: "5. Search push down with Ending Soon & Browse" }));
+  act(() => vi.advanceTimersByTime(18000));
+  const demo = screen.getByRole("group", { name: "Interactive menu preview" });
+  fireEvent.click(within(demo).getByRole("button", { name: "Open search" }));
+  const shortcuts = demo.querySelector<HTMLElement>('[aria-label="Search shopping shortcuts"]')!;
+  const favorites = within(shortcuts).getByRole("link", { name: "Favorites" });
+  expect(favorites.getAttribute("href")).toBe("/account/favorites");
+  fireEvent.click(favorites);
+  expect(demo.querySelector("header")?.dataset.searchOpen).toBe("false");
+  expect(screen.getByText("Preview: Favorites. Menu actions here won’t leave Profile.")).toBeTruthy();
+  expect(save).not.toHaveBeenCalled();
+});

@@ -10,6 +10,13 @@ vi.mock("./SocialActivityFeed", () => ({ SocialActivityFeed: () => null }));
 
 afterEach(cleanup);
 
+test("the homepage Ending Soon heading uses the orange accent", () => {
+  render(<OfferingAvailabilityProvider snapshot={null} resolvedSlugs={[]}><DesktopMarketplaceRails /></OfferingAvailabilityProvider>);
+  const heading = within(document.getElementById("ending-soon")!).getByRole("heading", { name: "Ending Soon" });
+  expect(heading.classList.contains("text-[#ff630f]")).toBe(true);
+  expect(heading.classList.contains("text-white")).toBe(false);
+});
+
 test("all homepage product rails hide resolved demo prizes but preserve open prizes", () => {
   const resolvedSlugs = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"];
   render(<OfferingAvailabilityProvider snapshot={null} resolvedSlugs={resolvedSlugs}><DesktopMarketplaceRails /></OfferingAvailabilityProvider>);
