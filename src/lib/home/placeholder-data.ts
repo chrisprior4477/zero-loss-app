@@ -26,6 +26,7 @@
  */
 
 import { repeatedHomepageProducts } from "@/lib/home/demo-data";
+import { endingSoonProducts } from "@/lib/catalog/ending-soon-products";
 
 /** Status pill on a card. Semantic roles only — green is live activity,
  *  orange is genuine urgency, cyan is neutral emphasis. */
@@ -93,6 +94,19 @@ export const placeholderFeaturedOpportunities: PlaceholderOpportunity[] = [
 ];
 
 export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
+  ...endingSoonProducts.map((product): PlaceholderOpportunity => ({
+    id: `ending-soon-${product.slug}`,
+    title: product.title,
+    category: product.category,
+    faceValueLabel: `$${product.value}`,
+    entryPriceLabel: `$${product.entryPrice} Entry`,
+    ticketCapacity: product.capacity,
+    ticketsSold: product.sold,
+    status: "closing",
+    statusLabel: "Closing soon",
+    image: product.gallery[0].src,
+    href: `/items/${product.slug}`,
+  })),
   {
     id: "placeholder-discovery-1",
     title: "$25 Dunkin' Donuts Gift Card",

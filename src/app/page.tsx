@@ -12,6 +12,7 @@ import { OfferingAvailabilityProvider } from "@/components/home/OfferingAvailabi
 import { ContinueEntryBanner } from "@/components/home/ContinueEntryBanner";
 import { getAccountContext } from "@/lib/account/context";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
+import { livePulseItems } from "@/lib/home/live-pulse";
 
 /**
  * Homepage composition (spec §4), following the Checkpoint 2 artboards with
@@ -28,7 +29,7 @@ export default async function HomePage() {
   const [availability, account] = await Promise.all([getOfferingAvailability(), getAccountContext()]);
   return (
     <>
-      <LivePulseTicker />
+      <LivePulseTicker items={livePulseItems(availability)} />
 
       <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0 md:pb-4">
         <ContinueEntryBanner />

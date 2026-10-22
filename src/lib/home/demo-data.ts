@@ -34,14 +34,14 @@ function percentFilled(entriesSold: number, entryCapacity: number) {
 }
 
 export const livePulseDemoItems = [
-  { label: "AirPod Pros", value: "Only 2 left", tone: "urgent" },
-  { label: "Popular Publix gift card", value: "$100", tone: "live" },
-  { label: "Dunkin' Donuts $25 card", value: "97% full", tone: "neutral" },
-  { label: "Nintendo Switch", value: "6 tickets left", tone: "danger" },
-  { label: "Darden Restaurants $100 gift card", value: "42 tickets left", tone: "urgent" },
-  { label: "193 winners", value: "TODAY!", tone: "live" },
-  { label: "Grocery reward", value: "11 entries left", tone: "urgent" },
-  { label: "Active prize pools", value: "142", tone: "neutral" },
+  { label: "AirPods Pro", value: "Only 2 left", tone: "urgent", href: "/items/airpods-pro", format: "only" },
+  { label: "Popular Publix gift card", value: "$100", tone: "live", href: "/items/publix-100-gift-card", format: "value" },
+  { label: "Dunkin' Donuts $25 card", value: "97% full", tone: "neutral", href: "/items/dunkin-25-gift-card", format: "percent" },
+  { label: "Nintendo Switch", value: "6 tickets left", tone: "danger", href: "/items/nintendo-switch", format: "tickets" },
+  { label: "Darden Restaurants $100 gift card", value: "42 tickets left", tone: "urgent", href: "/items/directory-darden-restaurants-100-gift-card", format: "tickets" },
+  { label: "193 winners", value: "TODAY!", tone: "live", href: "/#meet-winners-heading", format: "stat" },
+  { label: "Publix gift card", value: "11 entries left", tone: "urgent", href: "/items/publix-100-gift-card-ending-soon", format: "entries" },
+  { label: "Active prize pools", value: "142", tone: "neutral", href: "/browse#search-results", format: "stat" },
 ] as const;
 
 export const transparencyStatsDemo = [
