@@ -37,7 +37,7 @@ export function MyZeroLossActivity({ state, filter, metricsBySlug = {}, pendingE
       <p className="mt-1 text-sm text-[#b5cce4]">{pendingEntries[0].title} is saved as a pending request. It will appear in your activity after confirmation; it is not a completed entry yet.</p>
       <Link href={`/items/${pendingEntries[0].slug}#enter-entry`} className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">Review pending entry <span aria-hidden="true" className="ml-2">›</span></Link>
     </div> : null}
-    {filter === "active" && items.length > 0 ? <h2 className={styles.openEntriesHeading}>These are the prizes you&apos;re entered in.</h2> : null}
+    {filter === "active" && items.length > 0 ? <h2 className={styles.openEntriesHeading}>The prizes you&apos;ve entered</h2> : null}
     {items.length ? <MyZeroLossGallery key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
       <h2 className="text-xl font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : pendingOnly ? "Your entry is being confirmed" : emptyMessages[filter].title}</h2>
       <p className="mt-2 max-w-xl text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "We can’t verify your activity right now. No entries or outcomes have been assumed. Please try again shortly." : pendingOnly ? "Confirm your pending request above, or wait for the automatic result. Your activity will update when the entry is accepted." : emptyMessages[filter].detail}</p>

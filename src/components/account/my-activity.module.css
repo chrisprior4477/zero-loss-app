@@ -55,8 +55,8 @@
 .filter[data-filter="completion"] .filterCount { background: #bf480ac9; }
 
 .galleryShell { margin-top: 26px; }
-.openEntriesHeading { margin: 20px 0 0; color: #fff; font-size: clamp(24px, 2.4vw, 37px); font-weight: 820; line-height: 1.2; }
-.openEntriesHeading + .galleryShell { margin-top: 12px; }
+.openEntriesHeading { margin: 14px 0 0; color: #fff; font-size: clamp(22px, 2.2vw, 33px); font-weight: 820; line-height: 1.2; }
+.openEntriesHeading + .galleryShell { margin-top: 8px; }
 .gallery {
   --gallery-gap: 18px;
   display: grid;

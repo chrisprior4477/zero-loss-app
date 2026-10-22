@@ -27,15 +27,15 @@ test("Open Entries links to its filter area and introduces only the entered priz
   const filters = screen.getByRole("navigation", { name: "Filter My Activity" });
   expect(filters.id).toBe("my-activity-filters");
   expect(within(filters).getByRole("link", { name: /See Open Entries/ }).getAttribute("href")).toBe("/account/entries?filter=active#my-activity-filters");
-  const heading = screen.getByRole("heading", { name: "These are the prizes you're entered in." });
+  const heading = screen.getByRole("heading", { name: "The prizes you've entered" });
   expect(heading.nextElementSibling?.contains(screen.getByRole("region", { name: "Your products" }))).toBe(true);
   for (const filter of ["all", "prize", "completion", "completed"] as const) {
     rerender(<MyZeroLossActivity state={state} filter={filter} />);
-    expect(screen.queryByText("These are the prizes you're entered in.")).toBeNull();
+    expect(screen.queryByText("The prizes you've entered")).toBeNull();
     expect(screen.getByRole("link", { name: /Purchase Options/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
   }
   rerender(<MyZeroLossActivity state={drawerState(true)} filter="active" />);
-  expect(screen.queryByText("These are the prizes you're entered in.")).toBeNull();
+  expect(screen.queryByText("The prizes you've entered")).toBeNull();
 });
 
 test("newly confirmed card gets a brief Your new entry label without changing other cards", async () => {

@@ -11,6 +11,7 @@ type MenuChoice = {
   preview: (layout: MenuLayout) => void;
   keep: (layout: MenuLayout) => void;
   cancel: () => void;
+  dismiss: () => void;
   save: () => void;
   pending: boolean;
   message: { text: string; error: boolean } | null;
@@ -30,13 +31,16 @@ export function MenuLayoutProvider({ initialLayout, accountId, children }: { ini
     const frame = requestAnimationFrame(() => {
       try {
         const trial = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
-        if (trial?.savedLayout === initialLayout && isMenuLayout(trial.layout)) { setLayout(trial.layout); setTrying(true); }
+        if (trial?.savedLayout === initialLayout && isMenuLayout(trial.layout)) { setLayout(trial.layout); setTrying(trial.dismissed !== true); }
         else sessionStorage.removeItem(storageKey);
       } catch { /* Trial storage is optional; account preferences stay authoritative. */ }
     });
     return () => cancelAnimationFrame(frame);
   }, [storageKey, initialLayout]);
   function clearTrial() { try { if (storageKey) sessionStorage.removeItem(storageKey); } catch {} }
+  function storeTrial(choice: MenuLayout, savedChoice: MenuLayout, dismissed = false) {
+    try { if (storageKey) sessionStorage.setItem(storageKey, JSON.stringify({ layout: choice, savedLayout: savedChoice, dismissed })); } catch {}
+  }
   function keep(choice: MenuLayout) { clearTrial(); setTrying(false); setSavedLayout(choice); setLayout(choice); }
   function save() {
     if (pending || layout === savedLayout) return;
@@ -46,7 +50,8 @@ export function MenuLayoutProvider({ initialLayout, accountId, children }: { ini
       try {
         const result = await saveMenuLayout(chosen);
         if (!result.ok) { setMessage({ text: result.message, error: true }); return; }
-        keep(chosen);
+        setSavedLayout(chosen);
+        storeTrial(chosen, chosen, !trying);
         setMessage({ text: "Your menu choice is saved.", error: false });
       } catch { setMessage({ text: "Your menu choice could not be saved. Please try again.", error: true }); }
     });
@@ -57,12 +62,15 @@ export function MenuLayoutProvider({ initialLayout, accountId, children }: { ini
     preview: choice => {
       if (pending) return;
       setLayout(choice); setTrying(true); setMessage(null);
-      try { if (storageKey) {
-        sessionStorage.setItem(storageKey, JSON.stringify({ layout: choice, savedLayout }));
-      } } catch {}
+      storeTrial(choice, savedLayout);
     },
     keep,
     cancel: () => { if (!pending) { clearTrial(); setTrying(false); setLayout(savedLayout); setMessage(null); } },
+    dismiss: () => {
+      if (pending) return;
+      setTrying(false); setMessage(null);
+      storeTrial(layout, savedLayout, true);
+    },
   }}>{children}</MenuLayoutContext.Provider>;
 }
 
