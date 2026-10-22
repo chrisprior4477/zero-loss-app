@@ -76,10 +76,11 @@ test("Search has no tap or hover box but keeps a keyboard-only underline", () =>
   expect(declarations(".searchToggle:focus-visible::after")).toMatchObject({ height: "2px", background: "currentColor" });
 });
 
-test("the header shortcut stays orange and desktop still hides the page strip", () => {
+test("the header shortcut stays orange and wide screens retain Classic until viewport preferences are ready", () => {
   expect(declarations(".endingSoon").background).toBe("#ff630f");
   const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
-  expect(desktop?.toString()).toContain(".pageCategories:not([data-menu-preview]) { display: none; }");
+  expect(desktop?.toString()).toContain(".pageCategories:not([data-menu-preview]):not([data-menu-viewport]) { display: none; }");
+  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]):is([data-menu-layout="classic"], :not([data-menu-viewport])) .desktopSearch { display: flex; }');
 });
 
 test("all mobile header styles scale only the ticket artwork without changing its layout box", () => {

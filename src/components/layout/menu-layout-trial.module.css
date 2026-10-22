@@ -2,7 +2,7 @@
 .inner { max-width: 760px; margin-inline: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; }
 .inner p { font-size: 13px; flex: 1 1 200px; }
 .actions { display: flex; align-items: center; gap: 8px; flex: 1 1 300px; min-width: 0; }
-.saveButton, .otherStyles { display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 10px; border-radius: 9px; font-size: 12px; font-weight: 800; flex: 0 1 auto; text-align: center; }
+.saveButton, .otherStyles { display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 10px; border-radius: 9px; font-size: 12px; font-weight: 800; flex: 1 1 0; min-width: 0; text-align: center; }
 .saveButton { background: #31e800; color: #062134; }
 .otherStyles { background: #e5f5ff; color: #07517a; }
 .closeButton { display: flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; margin-left: auto; border: 2px solid #37d9f4; border-radius: 50%; color: #fff; background: #0b385e; }

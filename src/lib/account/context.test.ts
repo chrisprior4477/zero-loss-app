@@ -59,3 +59,10 @@ test("invalid authentication stops before any profile, balance or capability rea
   expect(mocks.from).not.toHaveBeenCalled();
   expect(mocks.snapshot).not.toHaveBeenCalled();
 });
+
+test("loads each saved screen-size preference independently, with Classic wider-screen defaults", async () => {
+  mocks.maybeSingle.mockResolvedValueOnce({ data: { menu_layout: "home-ending-search", mobile_logo_size: 25 } });
+  expect(await getAccountContext()).toMatchObject({ menuLayout: "home-ending-search", tabletMenuLayout: "classic", desktopMenuLayout: "classic", mobileLogoSize: 25 });
+  mocks.maybeSingle.mockResolvedValueOnce({ data: { menu_layout: "ending-search", tablet_menu_layout: "search-down", desktop_menu_layout: "search-over" } });
+  expect(await getAccountContext()).toMatchObject({ menuLayout: "ending-search", tabletMenuLayout: "search-down", desktopMenuLayout: "search-over" });
+});

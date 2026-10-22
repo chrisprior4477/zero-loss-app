@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
-import { menuLayouts } from "@/lib/navigation/menu-layout";
+import { menuDeviceLabel, menuLayouts } from "@/lib/navigation/menu-layout";
 import { useMenuLayout } from "./MenuLayoutProvider";
 import { useMobileLogoSize } from "./MobileLogoSizeProvider";
 import styles from "./menu-layout-trial.module.css";
 
 export function MenuLayoutTrialBar() {
-  const { layout, savedLayout, trying, pending, message, save, dismiss } = useMenuLayout();
+  const { layout, savedLayout, trying, pending, message, save, dismiss, device } = useMenuLayout();
   const logo = useMobileLogoSize();
   const ref = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
@@ -23,7 +23,7 @@ export function MenuLayoutTrialBar() {
   if (!trying) return null;
   return <aside ref={ref} className={styles.bar} data-logo-trial-active={logo.trying} aria-label="Menu layout trial">
     <div className={styles.inner}>
-      <p>Trying: <strong>{menuLayouts.find(option => option.id === layout)!.name}</strong></p>
+      <p>{menuDeviceLabel(device)} · Trying: <strong>{menuLayouts.find(option => option.id === layout)!.name}</strong></p>
       <div className={styles.actions}>
         <button className={styles.saveButton} type="button" disabled={pending || layout === savedLayout} onClick={save}>{pending ? "Saving…" : layout === savedLayout ? "Layout saved" : "Save layout"}</button>
         <Link className={styles.otherStyles} href="/account/profile#personalize-menu">Try other styles</Link>

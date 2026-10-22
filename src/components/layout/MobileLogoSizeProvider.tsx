@@ -36,7 +36,7 @@ export function MobileLogoSizeProvider({ initialSize = 0, accountId, children }:
       if (interacted.current) return;
       try {
         const trial = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
-        if (trial?.savedSize === initial.current && isMobileLogoSize(trial.size)) {
+        if (trial?.savedSize === initial.current && isMobileLogoSize(trial.size) && trial.size !== initial.current) {
           setSize(trial.size); setTrying(trial.dismissed !== true);
         } else sessionStorage.removeItem(storageKey);
       } catch { /* The saved account preference remains authoritative. */ }
@@ -55,7 +55,8 @@ export function MobileLogoSizeProvider({ initialSize = 0, accountId, children }:
       try {
         const result = await saveMobileLogoSize(chosen);
         if (!result.ok) { setMessage({ text: result.message, error: true }); return; }
-        setSavedSize(chosen); storeTrial(chosen, chosen, !trying);
+        setSavedSize(chosen); setTrying(false);
+        try { if (storageKey) sessionStorage.removeItem(storageKey); } catch {}
         setMessage({ text: "Your mobile logo size is saved.", error: false });
       } catch { setMessage({ text: "Your logo size could not be saved. Please try again.", error: true }); }
       finally { saving.current = false; }
@@ -65,7 +66,9 @@ export function MobileLogoSizeProvider({ initialSize = 0, accountId, children }:
     preview: choice => {
       if (saving.current || !isMobileLogoSize(choice)) return;
       interacted.current = true;
-      setSize(choice); setTrying(true); setMessage(null); storeTrial(choice, savedSize);
+      setSize(choice); setTrying(choice !== savedSize); setMessage(null);
+      if (choice !== savedSize) storeTrial(choice, savedSize);
+      else { try { if (storageKey) sessionStorage.removeItem(storageKey); } catch {} }
     },
     cancel: () => {
       if (saving.current) return;
@@ -76,7 +79,9 @@ export function MobileLogoSizeProvider({ initialSize = 0, accountId, children }:
     dismiss: () => {
       if (saving.current) return;
       interacted.current = true;
-      setTrying(false); setMessage(null); storeTrial(size, savedSize, true);
+      setTrying(false); setMessage(null);
+      if (size !== savedSize) storeTrial(size, savedSize, true);
+      else { try { if (storageKey) sessionStorage.removeItem(storageKey); } catch {} }
     },
   }}>{children}</MobileLogoSizeContext.Provider>;
 }

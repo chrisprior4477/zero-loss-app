@@ -5,10 +5,11 @@ import { Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSPropert
 import { usePathname } from "next/navigation";
 import { useMenuLayout } from "./MenuLayoutProvider";
 import { useMobileLogoSize } from "./MobileLogoSizeProvider";
+import { useMenuViewport } from "./useMenuViewport";
 import { DesktopHeaderSearch, DesktopHeaderSearchFallback } from "./DesktopHeaderSearch";
 import { DesktopCategoryNav } from "./DesktopCategoryNav";
 import { HomeIcon } from "./HomeIcon";
-import { showsShoppingCategories } from "@/lib/navigation/menu-layout";
+import { showsShoppingCategories, type MenuLayout } from "@/lib/navigation/menu-layout";
 import styles from "./site-menu.module.css";
 
 type Props = {
@@ -17,11 +18,13 @@ type Props = {
   accountMenu: ReactNode;
   endingSoonItems: { title: string; href: string; remaining: number }[];
   hiddenSlugs: string[];
-  preview?: { expanded: boolean; query: string; pageCategoriesInPreviewBody?: boolean; onExpandedChange?: (open: boolean) => void; onSearch?: (query: string) => void };
+  preview?: { layout?: MenuLayout; expanded: boolean; query: string; pageCategoriesInPreviewBody?: boolean; onExpandedChange?: (open: boolean) => void; onSearch?: (query: string) => void };
 };
 
 export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonItems, hiddenSlugs, preview }: Props) {
-  const { layout } = useMenuLayout();
+  const menu = useMenuLayout();
+  const viewport = useMenuViewport();
+  const layout = preview ? (preview.layout ?? menu.layout) : menu.layouts[viewport ?? "mobile"];
   const { size: logoSize } = useMobileLogoSize();
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
@@ -86,7 +89,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
   };
 
   return <>
-    <header ref={headerRef} data-menu-layout={layout} data-search-open={expanded} data-menu-preview={preview ? "true" : undefined} style={{ "--mobile-logo-scale": 1 + logoSize / 100 } as CSSProperties} className={`${preview ? "" : "sticky"} ${styles.header}`}>
+    <header ref={headerRef} data-menu-layout={layout} data-menu-viewport={viewport ?? undefined} data-search-open={expanded} data-menu-preview={preview ? "true" : undefined} style={{ "--mobile-logo-scale": 1 + logoSize / 100 } as CSSProperties} className={`${preview ? "" : "sticky"} ${styles.header}`}>
       <div className={styles.topRow}>
         <div ref={logoRef} className={styles.logo}>{logo}</div>
         <button ref={toggleRef} type="button" className={styles.searchToggle} aria-label="Open search" aria-expanded={expanded} aria-controls={preview ? "preview-menu-search" : "mobile-menu-search"} onClick={openSearch}>
@@ -109,7 +112,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
       <div className={styles.stickyCategories}>{categories}</div>
       <div aria-hidden="true" className={styles.brandRule} />
     </header>
-    {layout !== "classic" && !preview?.pageCategoriesInPreviewBody && (preview || showsShoppingCategories(pathname)) ? <div className={styles.pageCategories} data-shopping-category-row={preview ? undefined : true} data-menu-preview={preview ? "true" : undefined}>
+    {layout !== "classic" && !preview?.pageCategoriesInPreviewBody && (preview || showsShoppingCategories(pathname)) ? <div className={styles.pageCategories} data-menu-viewport={viewport ?? undefined} data-shopping-category-row={preview ? undefined : true} data-menu-preview={preview ? "true" : undefined}>
       <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} showHome={layout !== "home-ending-search"} />
     </div> : null}
   </>;

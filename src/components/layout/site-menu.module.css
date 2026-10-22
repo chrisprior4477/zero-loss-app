@@ -83,14 +83,20 @@
   .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-group] { gap: 6px; }
   .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="standard"] { display: inline; }
   .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="narrow"] { display: none; }
-  .header:not([data-menu-preview]) .desktopSearch { display: flex; }
+  /* Keep the existing wide header during hydration, before viewport size is known. */
+  .header:not([data-menu-preview]):is([data-menu-layout="classic"], :not([data-menu-viewport])) .desktopSearch { display: flex; }
   .header:not([data-menu-preview]) .logo { flex: none; width: auto; }
   .header:not([data-menu-preview]) .logo img { width: auto; height: 28px; }
-  .header:not([data-menu-preview])[data-menu-layout] .mobileSearchRow,
-  .header:not([data-menu-preview])[data-menu-layout] .searchToggle { display: none; }
-  .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { display: flex; height: 48px; padding: 0 8px; }
-  .header:not([data-menu-preview])[data-menu-layout] .accountControls { visibility: visible; }
-  .pageCategories:not([data-menu-preview]) { display: none; }
+  .header:not([data-menu-preview]):is([data-menu-layout="classic"], :not([data-menu-viewport])) .mobileSearchRow,
+  .header:not([data-menu-preview]):is([data-menu-layout="classic"], :not([data-menu-viewport])) .searchToggle { display: none; }
+  .header:not([data-menu-preview]):is([data-menu-layout="classic"], :not([data-menu-viewport])) .stickyCategories { display: flex; height: 48px; padding: 0 8px; }
+  .pageCategories:not([data-menu-preview]):not([data-menu-viewport]) { display: none; }
+  /* Opt-in wider-screen styles reuse the same live controls as their mobile equivalents. */
+  .header:not([data-menu-preview]) .mobileSearchRow { padding-inline: 16px; justify-content: center; }
+  .header:not([data-menu-preview]) .mobileSearch { max-width: 700px; }
+  .header:not([data-menu-preview])[data-menu-layout="search-down-browse"] .mobileSearchRow { align-items: center; }
+  .header:not([data-menu-preview])[data-menu-layout="search-down-browse"] .mobileSearch { width: 100%; }
+  .header:not([data-menu-preview])[data-menu-layout="search-over"] .mobileSearchRow { height: 60px; left: 16px; right: 16px; }
 }
 @media (min-width: 1024px) { .header:not([data-menu-preview]) .topRow { gap: 24px; } .header:not([data-menu-preview]) .logo img { height: 32px; } .header:not([data-menu-preview]) .accountControls { gap: 20px; } .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { padding: 0 16px; } }
 @media (min-width: 1024px) {

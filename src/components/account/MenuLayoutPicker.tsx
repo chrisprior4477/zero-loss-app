@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { menuLayouts } from "@/lib/navigation/menu-layout";
+import { menuDeviceLabel, menuDevices, menuLayouts } from "@/lib/navigation/menu-layout";
 import { useMenuLayout } from "@/components/layout/MenuLayoutProvider";
 import { useMobileLogoSize } from "@/components/layout/MobileLogoSizeProvider";
 import { MenuLayoutPreview, type MenuPreviewAccount } from "./MenuLayoutPreview";
@@ -11,7 +11,7 @@ import type { MenuPreviewSearchResults } from "@/lib/navigation/search-examples"
 const emptyPreview: MenuPreviewAccount = { count: 0, balance: "$0.00", avatarUrl: null, showPhoto: false };
 
 export function MenuLayoutPicker({ previewAccount = emptyPreview, previewSearchResults }: { previewAccount?: MenuPreviewAccount; previewSearchResults?: MenuPreviewSearchResults }) {
-  const { layout, savedLayout, preview, cancel, pending, message, clearMessage, save } = useMenuLayout();
+  const { layout, savedLayout, preview, cancel, pending, message, clearMessage, save, device, selectDevice } = useMenuLayout();
   const logo = useMobileLogoSize();
   const [previewChoice, setPreviewChoice] = useState(0);
   const current = menuLayouts.find(option => option.id === layout)!;
@@ -26,6 +26,10 @@ export function MenuLayoutPicker({ previewAccount = emptyPreview, previewSearchR
         {message ? <p className={styles.status} role={message.error ? "alert" : "status"} data-error={message.error}>{message.text}</p> : null}
       </div>
       <div className={styles.content}>
+        <div className={styles.deviceChoices} role="group" aria-label="Save menu style for">
+          {menuDevices.map(target => <button key={target} type="button" className={styles.quickSave} aria-pressed={device === target} disabled={pending || logo.pending} onClick={() => { selectDevice(target); setPreviewChoice(0); }}>{menuDeviceLabel(target)}</button>)}
+        </div>
+        <p className={styles.deviceHint}>{menuDeviceLabel(device)} menu only. Your other screen sizes stay the same.</p>
         <p>Choose a style to reveal its interactive preview. Your top menu changes live too.</p>
         <fieldset disabled={pending || logo.pending} className={styles.options}>
           <legend className="sr-only">Choose your top menu style</legend>
@@ -35,7 +39,7 @@ export function MenuLayoutPicker({ previewAccount = emptyPreview, previewSearchR
           </label>)}
         </fieldset>
         {previewChoice > 0 ? <>
-        <MenuLayoutPreview key={`${layout}:${previewChoice}`} layout={layout} account={previewAccount} searchResults={previewSearchResults} />
+        <MenuLayoutPreview key={`${device}:${layout}:${previewChoice}`} layout={layout} account={previewAccount} searchResults={previewSearchResults} />
         <p className={styles.description}>{current.description}</p>
         <div className={styles.actions}>
           <button type="button" disabled={pending || !changed} onClick={save}>{pending ? "Saving…" : changed ? "Keep this layout" : "Your saved layout"}</button>

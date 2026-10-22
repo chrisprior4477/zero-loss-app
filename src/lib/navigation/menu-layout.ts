@@ -8,6 +8,13 @@ export const menuLayouts = [
 ] as const;
 
 export type MenuLayout = (typeof menuLayouts)[number]["id"];
+export const menuDevices = ["mobile", "tablet", "desktop"] as const;
+export type MenuDevice = (typeof menuDevices)[number];
+export type MenuLayoutsByDevice = Record<MenuDevice, MenuLayout>;
+export function isMenuDevice(value: unknown): value is MenuDevice {
+  return menuDevices.some(device => device === value);
+}
+export function menuDeviceLabel(device: MenuDevice) { return device[0].toUpperCase() + device.slice(1); }
 export function isMenuLayout(value: unknown): value is MenuLayout {
   return menuLayouts.some(layout => layout.id === value);
 }

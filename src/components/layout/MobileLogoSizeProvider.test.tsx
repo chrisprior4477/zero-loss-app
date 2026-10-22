@@ -77,8 +77,8 @@ test("a delayed trial restore cannot erase a freshly saved choice", async () => 
   fireEvent.click(screen.getByRole("button", { name: "Keep this size" }));
   await waitFor(() => expect(state().saved).toBe(35));
   act(() => callbacks.forEach(callback => callback(0)));
-  expect(state()).toMatchObject({ size: 35, saved: 35, trying: true });
-  expect(JSON.parse(sessionStorage.getItem("zero-loss:logo-size-trial:owner")!)).toMatchObject({ size: 35, savedSize: 35 });
+  expect(state()).toMatchObject({ size: 35, saved: 35, trying: false });
+  expect(sessionStorage.getItem("zero-loss:logo-size-trial:owner")).toBeNull();
 });
 test("stale trials cannot override newer account preferences or a different account", async () => {
   sessionStorage.setItem("zero-loss:logo-size-trial:owner", JSON.stringify({ size: 35, savedSize: 0 }));
@@ -88,4 +88,13 @@ test("stale trials cannot override newer account preferences or a different acco
   fireEvent.click(screen.getByRole("radio", { name: "30% bigger" }));
   view.rerender(<Fixture accountId="another-owner" initialSize={5} />);
   expect(state()).toMatchObject({ size: 5, saved: 5, trying: false });
+});
+
+test("legacy already-saved logo trials are cleared and selecting the saved size does not reopen a bar", async () => {
+  sessionStorage.setItem("zero-loss:logo-size-trial:owner", JSON.stringify({ size: 25, savedSize: 25, dismissed: false }));
+  render(<Fixture initialSize={25} />);
+  await waitFor(() => expect(sessionStorage.getItem("zero-loss:logo-size-trial:owner")).toBeNull());
+  fireEvent.click(screen.getByRole("radio", { name: "25% bigger" }));
+  expect(state()).toMatchObject({ size: 25, saved: 25, trying: false });
+  expect(mocks.save).not.toHaveBeenCalled();
 });

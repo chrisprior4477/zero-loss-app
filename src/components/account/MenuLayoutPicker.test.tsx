@@ -39,8 +39,8 @@ test("Keep saves the chosen layout; a failed save retains the previous saved cho
   setup();
   fireEvent.click(screen.getByRole("radio", { name: "4. Search push down" }));
   fireEvent.click(screen.getByRole("button", { name: "Keep this layout" }));
-  await screen.findByText("Your menu choice is saved.");
-  expect(save).toHaveBeenCalledWith("search-down");
+  await screen.findByText("Your mobile menu choice is saved.");
+  expect(save).toHaveBeenCalledWith("search-down", "mobile");
   expect(screen.getByTestId("active-menu").textContent).toBe("search-down:search-down");
   await waitFor(() => expect(screen.getByRole("button", { name: "Close preview" }).hasAttribute("disabled")).toBe(false));
   save.mockResolvedValue({ ok: false, message: "Please try again." });
@@ -59,9 +59,9 @@ test("compact Keep New Layout button shares the durable save and shows success b
   fireEvent.click(screen.getByRole("radio", { name: "4. Search push down" }));
   expect(button.disabled).toBe(false);
   fireEvent.click(button);
-  await screen.findByText("Your menu choice is saved.");
+  await screen.findByText("Your mobile menu choice is saved.");
   expect(save).toHaveBeenCalledTimes(1);
-  expect(save).toHaveBeenCalledWith("search-down");
+  expect(save).toHaveBeenCalledWith("search-down", "mobile");
   expect(screen.getByText("Current style: Search push down")).toBeTruthy();
   expect((await screen.findByRole("button", { name: "Keep New Layout" }) as HTMLButtonElement).disabled).toBe(true);
 });

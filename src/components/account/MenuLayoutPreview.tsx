@@ -96,7 +96,7 @@ export function MenuLayoutPreview({ layout, account, searchResults = {} }: { lay
           navigatePreview(link.getAttribute("href")!, link.getAttribute("aria-label") ?? link.textContent ?? "Home");
         }}>
         <ResponsiveSiteHeader
-          preview={{ expanded, query: querySeed, pageCategoriesInPreviewBody: true, onExpandedChange: open => { setPlaying(false); setExpanded(open); }, onSearch: query => { showDestination(query ? `Search results for “${query}”` : "All rewards"); if (query) { setSearchQuery(query); setSearchVersion(value => value + 1); } } }}
+          preview={{ layout, expanded, query: querySeed, pageCategoriesInPreviewBody: true, onExpandedChange: open => { setPlaying(false); setExpanded(open); }, onSearch: query => { showDestination(query ? `Search results for “${query}”` : "All rewards"); if (query) { setSearchQuery(query); setSearchVersion(value => value + 1); } } }}
           logo={<Link href="/" aria-label="ZeroLoss home"><Image src="/zeroloss-logo.svg" alt="" width={174} height={32} className="h-5 w-auto" /></Link>}
           metrics={<HeaderAccountMetrics isSignedIn liveBalance={account.balance} activityState={activity} />}
           accountMenu={<AccountDrawer isSignedIn displayName="" email={null} avatarUrl={account.avatarUrl} showPhotoInMenu={account.showPhoto} balanceLabel={account.balance} activityState={activity} previewExpanded={accountOpen} onPreviewOpen={() => setAccountOpen(value => !value)} />}

@@ -22,7 +22,7 @@ export async function AppShell({ children }: AppShellProps) {
   const favorites = account ? await getFavoriteSnapshot(account.userId) : { slugs: [], available: true };
   return (
     <MobileLogoSizeProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialSize={account?.mobileLogoSize ?? 0}>
-    <MenuLayoutProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialLayout={account?.menuLayout ?? "classic"}>
+    <MenuLayoutProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialLayout={account?.menuLayout ?? "classic"} initialTabletLayout={account?.tabletMenuLayout ?? "classic"} initialDesktopLayout={account?.desktopMenuLayout ?? "classic"}>
     <FavoritesProvider initialSlugs={favorites.slugs} isSignedIn={Boolean(account)} available={favorites.available}>
     <div className="flex min-h-full flex-col" style={{ paddingBottom: "max(var(--menu-trial-height, 0px), var(--logo-size-trial-height, 0px))" }}>
       <a
