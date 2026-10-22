@@ -8,6 +8,7 @@ import { AccountIcon } from "@/components/account/AccountIcon";
 import { accountRoutes } from "@/lib/account/navigation";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
 import { RewardPassAutoScroll } from "./RewardPassAutoScroll";
+import { WalletRewardLink } from "./WalletRewardLink";
 import { RewardClaimControl } from "./RewardClaimControl";
 import { DemoRewardRestartControl } from "./DemoRewardRestartControl";
 import { DemoIdentityPreviewButton } from "@/components/identity/DemoVerificationDialog";
@@ -95,21 +96,21 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         <aside className={`${overview.ticketPanel} ${overview.summary}`} aria-labelledby="summary-heading">
           <div className={overview.sectionHeading}><h2 id="summary-heading">Reward summary</h2><p>A quick look at your rewards activity.</p></div>
           <div className={overview.summaryRows}>
-            <Link href={rewardViewHrefs.ready} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="ready"><AccountIcon name="gift" /></span><span><strong>Ready</strong><small>Available to use</small></span><b>{readyCount === null ? "—" : ready.length}</b><AccountIcon name="chevron" /></Link>
-            <Link href={rewardViewHrefs.used} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="used"><AccountIcon name="active" /></span><span><strong>Used</strong><small>Already redeemed</small></span><b>{state.source === "unavailable" ? "—" : used.length}</b><AccountIcon name="chevron" /></Link>
-            <Link href={rewardViewHrefs.expired} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="expired"><AccountIcon name="completion" /></span><span><strong>Expired</strong><small>No longer available</small></span><b>{state.source === "unavailable" ? "—" : expired.length}</b><AccountIcon name="chevron" /></Link>
-            {other.length > 0 ? <Link href={rewardViewHrefs.history} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="other"><AccountIcon name="bell" /></span><span><strong>Other updates</strong><small>See reward status</small></span><b>{other.length}</b><AccountIcon name="chevron" /></Link> : null}
+            <WalletRewardLink href={rewardViewHrefs.ready} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="ready"><AccountIcon name="gift" /></span><span><strong>Ready</strong><small>Available to use</small></span><b>{readyCount === null ? "—" : ready.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
+            <WalletRewardLink href={rewardViewHrefs.used} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="used"><AccountIcon name="active" /></span><span><strong>Used</strong><small>Already redeemed</small></span><b>{state.source === "unavailable" ? "—" : used.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
+            <WalletRewardLink href={rewardViewHrefs.expired} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="expired"><AccountIcon name="completion" /></span><span><strong>Expired</strong><small>No longer available</small></span><b>{state.source === "unavailable" ? "—" : expired.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
+            {other.length > 0 ? <WalletRewardLink href={rewardViewHrefs.history} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="other"><AccountIcon name="bell" /></span><span><strong>Other updates</strong><small>See reward status</small></span><b>{other.length}</b><AccountIcon name="chevron" /></WalletRewardLink> : null}
           </div>
         </aside>
       </div> : null}
       <section id="reward-history" className={`${overview.ticketPanel} ${overview.historySection}`} aria-labelledby="history-heading">
         <div className={overview.historyHeading}><div><h2 id="history-heading">{view === "used" ? "Used rewards" : view === "expired" ? "Expired rewards & purchase options" : "Reward history"}</h2>{!focusedHistory ? <p>Your complete reward activity, from your account records.</p> : null}</div>
           <nav aria-label="Filter reward history" className={overview.historyFilters}>
-            <Link href={rewardViewHrefs.all} aria-current={view === "all" ? "page" : undefined}>All</Link>
-            <Link href={rewardViewHrefs.ready} aria-current={view === "ready" ? "page" : undefined}>Ready</Link>
-            <Link href={rewardViewHrefs.used} aria-current={view === "used" ? "page" : undefined}>Used</Link>
-            {(expired.length > 0 || focusedHistory) && <Link href={rewardViewHrefs.expired} aria-current={view === "expired" ? "page" : undefined}>Expired</Link>}
-            {(other.length > 0 || view === "history") && <Link href={rewardViewHrefs.history} aria-current={view === "history" ? "page" : undefined}>History</Link>}
+            <WalletRewardLink href={rewardViewHrefs.all} aria-current={view === "all" ? "page" : undefined}>All</WalletRewardLink>
+            <WalletRewardLink href={rewardViewHrefs.ready} aria-current={view === "ready" ? "page" : undefined}>Ready</WalletRewardLink>
+            <WalletRewardLink href={rewardViewHrefs.used} aria-current={view === "used" ? "page" : undefined}>Used</WalletRewardLink>
+            {(expired.length > 0 || focusedHistory) && <WalletRewardLink href={rewardViewHrefs.expired} aria-current={view === "expired" ? "page" : undefined}>Expired</WalletRewardLink>}
+            {(other.length > 0 || view === "history") && <WalletRewardLink href={rewardViewHrefs.history} aria-current={view === "history" ? "page" : undefined}>History</WalletRewardLink>}
           </nav>
         </div>
         {state.source === "unavailable" ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <div className={overview.message}>
@@ -127,7 +128,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         {focusedHistory ? <>
           {view === "expired" ? <p className={overview.message}>Remember to check your Declined Offers page.</p> : null}
           <div className={overview.returnActions}>
-            <Link href={view === "expired" ? accountRoutes.declinedOffers : rewardViewHrefs.all}>{view === "expired" ? "Declined Offers" : "Return to Gift Cards & Rewards"}<AccountIcon name="arrow" /></Link>
+            <WalletRewardLink href={view === "expired" ? accountRoutes.declinedOffers : rewardViewHrefs.all}>{view === "expired" ? "Declined Offers" : "Return to Gift Cards & Rewards"}<AccountIcon name="arrow" /></WalletRewardLink>
             <Link href="/">Continue Shopping<AccountIcon name="arrow" /></Link>
           </div>
         </> : null}
