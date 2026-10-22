@@ -33,13 +33,15 @@ export function HeaderAccountMetrics({
   const ticketCount = state.activeCount;
   const ticketLabel = ticketCount === null ? "Active entries unavailable" : `${ticketCount} active ${ticketCount === 1 ? "entry" : "entries"}`;
   const balance = liveBalance ?? "Unavailable";
+  // Presentation only: keep the wallet amount and saved logo preference untouched.
+  const largeBalance = Number(balance.replace(/[$,]/g, "")) >= 1000;
 
   return (
     <>
       <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex min-h-11 min-w-11 items-center text-white hover:opacity-80">
         <EntryTicket count={ticketCount} />
       </Link>
-      <Link href={`${walletHistoryHref}#balance`} aria-label={`${balance} playable balance`} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
+      <Link href={`${walletHistoryHref}#balance`} aria-label={`${balance} playable balance`} data-header-large-balance={largeBalance || undefined} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
         <CreditIcon />
         <span className="text-sm font-bold tabular-nums sm:text-xl">{balance}</span>
       </Link>

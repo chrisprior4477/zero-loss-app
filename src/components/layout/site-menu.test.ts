@@ -4,6 +4,17 @@ import { parse } from "postcss";
 
 const css = readFileSync("src/components/layout/site-menu.module.css", "utf8");
 
+test("only single-row headers cap the displayed mobile logo for a large balance", () => {
+  const selector = '.header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"]):has(.accountControls > [data-header-large-balance="true"]) .logo';
+  expect(declarations(selector)["--mobile-logo-fitted-scale"]).toBe("min(var(--mobile-logo-scale, 1), 1.2)");
+  expect(declarations(".logo")["--mobile-logo-fitted-scale"]).toBe("var(--mobile-logo-scale, 1)");
+  expect(declarations(".logo").width).toBe("calc(108.75px * var(--mobile-logo-fitted-scale))");
+  expect(css).toContain("calc(84px * var(--mobile-logo-fitted-scale))");
+  const wide = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
+  expect(wide?.toString()).toContain(".header:not([data-menu-preview]) .logo { flex: none; width: auto; }");
+  expect(wide?.toString()).toContain(".header:not([data-menu-preview]) .logo img { width: auto; height: 28px; }");
+});
+
 function declarations(selector: string) {
   const values: Record<string, string> = {};
   parse(css).walkRules(rule => {

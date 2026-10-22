@@ -1,6 +1,9 @@
 .header { position: sticky; top: 0; z-index: 40; background: var(--header); }
 .topRow { display: flex; position: relative; align-items: center; height: 60px; gap: 16px; padding: 0 16px; }
-.logo { flex: 0 1 calc(108.75px * var(--mobile-logo-scale, 1)); width: calc(108.75px * var(--mobile-logo-scale, 1)); min-width: 0; }
+.logo { --mobile-logo-fitted-scale: var(--mobile-logo-scale, 1); flex: 0 1 calc(108.75px * var(--mobile-logo-fitted-scale)); width: calc(108.75px * var(--mobile-logo-fitted-scale)); min-width: 0; }
+/* Cap only the mobile logo in single-row styles, including their phone previews.
+   Wide headers use fixed image heights below; the saved size is never changed. */
+.header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"]):has(.accountControls > [data-header-large-balance="true"]) .logo { --mobile-logo-fitted-scale: min(var(--mobile-logo-scale, 1), 1.2); }
 .logo a { display: flex; min-height: 44px; align-items: center; }
 .logo img { display: block; width: 100%; height: auto; }
 .desktopSearch { display: flex; flex: 1; min-width: 0; max-width: 700px; }
@@ -112,7 +115,7 @@
 }
 @media (max-width: 374px) {
   .topRow { gap: 3px; padding-inline: 6px; }
-  .header:not([data-menu-preview]) .logo { flex-basis: calc(84px * var(--mobile-logo-scale, 1)); width: calc(84px * var(--mobile-logo-scale, 1)); }
+  .header:not([data-menu-preview]) .logo { flex-basis: calc(84px * var(--mobile-logo-fitted-scale)); width: calc(84px * var(--mobile-logo-fitted-scale)); }
   .accountControls { gap: 3px; }
   .searchToggle { width: 27px; }
   .accountControls [data-header-auth] { gap: 2px; }
