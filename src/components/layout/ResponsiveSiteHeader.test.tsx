@@ -101,6 +101,19 @@ test("compact shopping pages have an in-page category row; Profile does not", ()
   expect(view.container.querySelector("[data-shopping-category-row]")).toBeNull();
 });
 
+test.each(["ending-search", "home-ending-search", "search-down", "search-down-browse", "search-over"] as const)("%s scopes the page-style Ending Soon link outside the sticky header", layout => {
+  navigation.path = "/";
+  const { container, header, mobile } = setup(layout);
+  const row = container.querySelector<HTMLElement>("[data-shopping-category-row]")!;
+  const endingSoon = within(row).getByRole("link", { name: "Ending Soon" });
+  expect(endingSoon.hasAttribute("data-ending-soon-link")).toBe(true);
+  expect(endingSoon.getAttribute("href")).toBe("/browse?sort=ending-soon");
+  expect(header.contains(row)).toBe(false);
+  expect(within(row).getByRole("link", { name: "Home" }).getAttribute("href")).toBe("/");
+  expect(within(row).getByRole("link", { name: "Groceries" }).getAttribute("href")).toBe("/browse?category=groceries");
+  expect(mobile.querySelector("[data-ending-soon-link]")).toBeNull();
+});
+
 test.each(["ending-search", "home-ending-search"] as const)("%s Ending Soon targets the product list", layout => {
   const { mobile } = setup(layout);
   expect(within(mobile).getByRole("link", { name: "Ending Soon" }).getAttribute("href")).toBe("/browse?sort=ending-soon#search-results");

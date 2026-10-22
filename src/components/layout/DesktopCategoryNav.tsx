@@ -169,6 +169,7 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
             >
               <Link
                 href={marketplaceCategoryHref(category)}
+                data-ending-soon-link={isMerchandising || undefined}
                 aria-expanded={preview ? undefined : isOpen}
                 aria-haspopup={preview ? undefined : "menu"}
                 onFocus={() => openMenu(category)}

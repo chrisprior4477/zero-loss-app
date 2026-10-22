@@ -29,7 +29,11 @@
   .browse { display: flex; align-items: center; min-height: 36px; border-radius: 22px; color: #062134; background: #e5f5ff; font-size: 12px; font-weight: 800; }
   .home { display: grid; place-items: center; width: 30px; height: 36px; flex: none; color: #bdefff; }
   .header:not([data-menu-layout="classic"]) .stickyCategories { display: none; }
-  .pageCategories { display: flex; flex: none; position: relative; height: 48px; background: var(--header); }
+  /* Layouts 2–6 put this strip in the page, not in the sticky header. */
+  .pageCategories { display: flex; flex: none; position: relative; height: 48px; background: var(--background); }
+  .pageCategories [data-ending-soon-link] { background: transparent; color: #fff; font-weight: 800; border-radius: 6px; padding-inline: 8px; box-shadow: none; }
+  .pageCategories [data-ending-soon-link]:hover { background: #ffffff14; }
+  .pageCategories [data-ending-soon-link]:focus-visible { outline: 2px solid #6feaff; outline-offset: -2px; }
   .searchToggle { display: none; flex: none; align-items: center; justify-content: center; color: white; height: 40px; width: 32px; }
   .searchToggle svg { height: 23px; width: 23px; }
   .header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"])[data-search-open="false"] .searchToggle { animation: search-invitation 2.6s ease-in-out infinite; border-radius: 50%; }
