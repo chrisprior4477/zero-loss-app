@@ -3,6 +3,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { MenuLayoutProvider } from "./MenuLayoutProvider";
 import { ResponsiveSiteHeader } from "./ResponsiveSiteHeader";
 import type { MenuLayout } from "@/lib/navigation/menu-layout";
+import { menuLayouts } from "@/lib/navigation/menu-layout";
+import { HeaderAccountMetrics } from "./HeaderAccountMetrics";
 import Link from "next/link";
 
 const navigation = vi.hoisted(() => ({ path: "/account/profile", push: vi.fn() }));
@@ -15,10 +17,25 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 function setup(layout: MenuLayout) {
-  const result = render(<MenuLayoutProvider initialLayout={layout}><ResponsiveSiteHeader logo={<Link href="/">Logo</Link>} metrics={<span>11 · $38</span>} accountMenu={<button>My account</button>} endingSoonItems={[]} hiddenSlugs={[]} /></MenuLayoutProvider>);
+  const metrics = <HeaderAccountMetrics isSignedIn liveBalance="$38" activityState={{ isPreview: false, activity: [], activeCount: 11, source: "stored" }} />;
+  const result = render(<MenuLayoutProvider initialLayout={layout}><ResponsiveSiteHeader logo={<Link href="/">Logo</Link>} metrics={metrics} accountMenu={<button>My account</button>} endingSoonItems={[]} hiddenSlugs={[]} /></MenuLayoutProvider>);
   const mobile = result.container.querySelector<HTMLElement>("#mobile-menu-search")!;
   return { ...result, mobile, header: result.container.querySelector("header")! };
 }
+
+test.each(menuLayouts)("$name exposes just the header ticket artwork for resizing", ({ id }) => {
+  const { header } = setup(id);
+  const entries = within(header).getByRole("link", { name: "11 active entries" });
+  const ticket = entries.querySelector("[data-entry-ticket-icon]");
+  expect(ticket?.tagName).toBe("svg");
+  expect(ticket?.getAttribute("viewBox")).toBe("0 0 54 36");
+  expect(ticket?.getAttribute("class")).toBe("h-6 w-9 shrink-0");
+  expect(entries.getAttribute("href")).toBe("/account/entries?filter=active");
+  expect(within(entries).getByText("11").hasAttribute("data-entry-ticket-icon")).toBe(false);
+  const balance = within(header).getByRole("link", { name: "$38 playable balance" });
+  expect(balance.querySelector("[data-entry-ticket-icon]")).toBeNull();
+  expect(header.querySelectorAll("[data-entry-ticket-icon]")).toHaveLength(1);
+});
 
 test.each(["ending-search", "home-ending-search", "search-down", "search-down-browse", "search-over"] as const)("%s opens, submits the real search and collapses", layout => {
   const { mobile, header } = setup(layout);

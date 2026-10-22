@@ -44,3 +44,15 @@ test("the header shortcut stays orange and desktop still hides the page strip", 
   const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
   expect(desktop?.toString()).toContain(".pageCategories:not([data-menu-preview]) { display: none; }");
 });
+
+test("all mobile header styles scale only the ticket artwork without changing its layout box", () => {
+  expect(declarations(".accountControls > a [data-entry-ticket-icon]")).toEqual({
+    transform: "scale(.9)",
+    "transform-origin": "center",
+  });
+});
+
+test("desktop keeps the original ticket size while mobile previews keep the reduction", () => {
+  const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
+  expect(desktop?.toString()).toContain(".header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-icon] { transform: none; }");
+});
