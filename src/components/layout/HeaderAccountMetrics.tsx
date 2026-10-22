@@ -34,7 +34,7 @@ export function HeaderAccountMetrics({
 
   return (
     <>
-      <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex items-center text-white hover:opacity-80">
+      <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex min-h-11 min-w-11 items-center text-white hover:opacity-80">
         <EntryTicket count={ticketCount} />
       </Link>
       <Link href={walletHistoryHref} aria-label={`${balance} playable balance`} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">

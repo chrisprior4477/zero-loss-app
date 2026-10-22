@@ -9,7 +9,7 @@
 .heading { margin: 0; font-size: clamp(34px, 4.1vw, 68px); line-height: 1.08; font-weight: 850; letter-spacing: -.045em; text-wrap: balance; }
 .subtitle { margin-top: 12px; color: #d5dfed; font-size: clamp(17px, 2.2vw, 36px); line-height: 1.25; }
 
-.filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 30px; }
+.filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 30px; scroll-margin-top: calc(var(--site-header-height, 140px) + 12px); }
 .filter, .productCard, .accountTool, .empty, .declinedRow, .entryActionTicket {
   --ticket-side-notch: 10px;
   --ticket-corner-notch: 12px;
@@ -55,6 +55,8 @@
 .filter[data-filter="completion"] .filterCount { background: #bf480ac9; }
 
 .galleryShell { margin-top: 26px; }
+.openEntriesHeading { margin: 20px 0 0; color: #fff; font-size: clamp(24px, 2.4vw, 37px); font-weight: 820; line-height: 1.2; }
+.openEntriesHeading + .galleryShell { margin-top: 12px; }
 .gallery {
   --gallery-gap: 18px;
   display: grid;

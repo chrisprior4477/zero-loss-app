@@ -8,6 +8,22 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+test.each([true, false])("Open Entries lands at the filters on mobile=%s, without stealing detail-view scroll", matches => {
+  const { header, heading, controls, scrollTo } = setup(matches);
+  const filters = document.createElement("nav");
+  filters.id = "my-activity-filters";
+  filters.getBoundingClientRect = vi.fn(() => new DOMRect(0, 420, 360, 200));
+  document.body.append(filters);
+  const view = render(<MyActivityLandingScroll filter="active" revealControls={false} enabled />);
+  expect(scrollTo).toHaveBeenLastCalledWith({ top: 248, behavior: "auto" });
+  scrollTo.mockClear();
+  view.rerender(<MyActivityLandingScroll filter="active" revealControls={false} enabled={false} />);
+  expect(scrollTo).not.toHaveBeenCalled();
+  view.rerender(<MyActivityLandingScroll filter="active" revealControls={false} enabled />);
+  expect(scrollTo).toHaveBeenLastCalledWith({ top: 248, behavior: "auto" });
+  filters.remove(); header.remove(); heading.remove(); controls.remove();
+});
+
 function setup(matches = true) {
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches })));
   vi.stubGlobal("scrollTo", vi.fn());

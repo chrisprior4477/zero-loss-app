@@ -12,6 +12,8 @@
   .accountControls { gap: 6px; }
   /* Scale only the header artwork; retain its space, count and full link target. */
   .accountControls > a [data-entry-ticket-icon] { transform: scale(.9); transform-origin: center; }
+  /* Approved 40% reduction of the 10.392px visible gap, including SVG inset. */
+  .accountControls > a [data-entry-ticket-group] { gap: calc(6px - 10.392px * .4); }
   .accountControls > a [data-entry-ticket-outline="standard"] { display: none; }
   .accountControls > a [data-entry-ticket-outline="narrow"] { display: inline; }
   .desktopSearch { display: none; }
@@ -77,6 +79,7 @@
   .header:not([data-menu-preview]) .topRow { height: 60px; gap: 16px; padding: 0 16px; }
   .header:not([data-menu-preview]) .accountControls { gap: 16px; }
   .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-icon] { transform: none; }
+  .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-group] { gap: 6px; }
   .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="standard"] { display: inline; }
   .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="narrow"] { display: none; }
   .header:not([data-menu-preview]) .desktopSearch { display: flex; }

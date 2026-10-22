@@ -86,7 +86,7 @@ test("authorized activity populates the three compact shortcuts", () => {
   const options = dialog.getByRole("link", { name: "Purchase Options — 1 available" });
   expect(options.getAttribute("href")).toBe("/account/entries?filter=completion");
   expect(within(options).getByText("1")).toBeTruthy();
-  expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active");
+  expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active#my-activity-filters");
   expect(dialog.getByRole("link", { name: "My Activity" }).getAttribute("aria-current")).toBe("page");
 });
 
@@ -124,7 +124,7 @@ test("approved drawer controls keep their real routes and one mounted dialog", (
   expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
   expect(dialog.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("/account/wallet?view=history#add-funds");
   expect(dialog.getByRole("link", { name: "Open notifications" }).getAttribute("href")).toBe("/account/notifications");
-  expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active");
+  expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active#my-activity-filters");
   expect(dialog.getByText("Real prizes. Real possibilities.")).toBeTruthy();
   expect(dialog.getByRole("navigation", { name: "Account navigation" }).querySelectorAll("img")).toHaveLength(9);
   expect(dialog.getByRole("link", { name: "Declined Offers" }).getAttribute("href")).toBe("/account/declined-offers");

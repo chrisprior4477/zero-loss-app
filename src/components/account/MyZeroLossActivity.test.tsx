@@ -21,6 +21,23 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); document.body.style.overflow = ""; });
 
+test("Open Entries links to its filter area and introduces only the entered prizes", () => {
+  const state = storedActivityFixture();
+  const { rerender } = render(<MyZeroLossActivity state={state} filter="active" />);
+  const filters = screen.getByRole("navigation", { name: "Filter My Activity" });
+  expect(filters.id).toBe("my-activity-filters");
+  expect(within(filters).getByRole("link", { name: /See Open Entries/ }).getAttribute("href")).toBe("/account/entries?filter=active#my-activity-filters");
+  const heading = screen.getByRole("heading", { name: "These are the prizes you're entered in." });
+  expect(heading.nextElementSibling?.contains(screen.getByRole("region", { name: "Your products" }))).toBe(true);
+  for (const filter of ["all", "prize", "completion", "completed"] as const) {
+    rerender(<MyZeroLossActivity state={state} filter={filter} />);
+    expect(screen.queryByText("These are the prizes you're entered in.")).toBeNull();
+    expect(screen.getByRole("link", { name: /Purchase Options/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
+  }
+  rerender(<MyZeroLossActivity state={drawerState(true)} filter="active" />);
+  expect(screen.queryByText("These are the prizes you're entered in.")).toBeNull();
+});
+
 test("newly confirmed card gets a brief Your new entry label without changing other cards", async () => {
   sessionStorage.setItem(RECENT_ENTRY_STORAGE_KEY, JSON.stringify({ slug: "playstation-5-slim", entryId: null, at: Date.now() }));
   render(<MyZeroLossActivity state={storedActivityFixture()} filter="all" />);

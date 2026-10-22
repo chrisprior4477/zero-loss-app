@@ -82,6 +82,12 @@ test("all mobile headers select the narrower outline without affecting drawer ti
   expect(declarations('.accountControls > a [data-entry-ticket-outline="narrow"]')).toEqual({ display: "inline" });
 });
 
+test("mobile tickets use the approved 40 percent closer gap and desktop retains its spacing", () => {
+  expect(declarations('.accountControls > a [data-entry-ticket-group]')).toEqual({ gap: "calc(6px - 10.392px * .4)" });
+  const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
+  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-group] { gap: 6px; }');
+});
+
 test("desktop restores the standard outline while mobile previews remain narrow", () => {
   const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
   expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="standard"] { display: inline; }');

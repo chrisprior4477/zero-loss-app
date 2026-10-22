@@ -38,7 +38,12 @@ test.each(menuLayouts)("$name exposes just the header ticket artwork for resizin
   expect(narrowOutline?.getAttribute("stroke-width")).toBe(standardOutline?.getAttribute("stroke-width"));
   expect(ticket?.querySelector("circle")?.outerHTML).toBe('<circle cx="27" cy="18" r="7.5" stroke="currentColor" stroke-width="2.2"></circle>');
   expect(ticket?.querySelector('path[stroke-linecap="round"]')?.getAttribute("d")).toBe("m20.5 25 13-14");
-  expect(entries.getAttribute("href")).toBe("/account/entries?filter=active");
+  expect(entries.getAttribute("href")).toBe("/account/entries?filter=active#my-activity-filters");
+  expect(ticket?.closest("a")).toBe(entries);
+  expect(within(entries).getByText("11").closest("a")).toBe(entries);
+  expect(entries.querySelectorAll("a, button")).toHaveLength(0);
+  expect(entries.classList.contains("min-h-11")).toBe(true);
+  expect(entries.classList.contains("min-w-11")).toBe(true);
   expect(within(entries).getByText("11").hasAttribute("data-entry-ticket-icon")).toBe(false);
   const balance = within(header).getByRole("link", { name: "$38 playable balance" });
   expect(balance.querySelector("[data-entry-ticket-icon]")).toBeNull();

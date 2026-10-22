@@ -81,7 +81,8 @@ export function findActivityItem(items: ActivityItem[], selectedSlug?: string, s
   const matches = items.filter(item => item.slug === selectedSlug && filterActivity([item], filter).length > 0);
   return matches.length === 1 ? matches[0] : undefined;
 }
-export const openEntriesHref = "/account/entries?filter=active";
+export const openEntriesAnchorId = "my-activity-filters";
+export const openEntriesHref = `/account/entries?filter=active#${openEntriesAnchorId}`;
 export function activityPresentation(item: ActivityItem) {
   switch (item.status) {
     case "active": return { label: "Still Open", action: "See My Entry", color: "text-cyan-300", background: "bg-[#154b74]" };
