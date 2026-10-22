@@ -68,5 +68,6 @@
 .actions button:disabled { opacity: .6; cursor: default; }
 .status { margin-top: 10px; font-size: 12px !important; }
 .status[data-error="true"] { color: #a52c17; }
+@media (max-width: 767px) { .deviceChoices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); } .deviceChoices button { min-width: 0; text-align: center; } }
 @media (max-width: 420px) { .ticket { padding: 23px 19px; } .option { gap: 6px; padding: 8px; } }
 @media (prefers-reduced-motion: reduce) { .previewPanel, .demo * { transition: none !important; animation: none !important; } }
