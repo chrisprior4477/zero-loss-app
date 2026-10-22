@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useMenuLayout } from "./MenuLayoutProvider";
+import { useMobileLogoSize } from "./MobileLogoSizeProvider";
 import { DesktopHeaderSearch, DesktopHeaderSearchFallback } from "./DesktopHeaderSearch";
 import { DesktopCategoryNav } from "./DesktopCategoryNav";
 import { HomeIcon } from "./HomeIcon";
@@ -21,6 +22,7 @@ type Props = {
 
 export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonItems, hiddenSlugs, preview }: Props) {
   const { layout } = useMenuLayout();
+  const { size: logoSize } = useMobileLogoSize();
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
   };
 
   return <>
-    <header ref={headerRef} data-menu-layout={layout} data-search-open={expanded} data-menu-preview={preview ? "true" : undefined} className={`${preview ? "" : "sticky"} ${styles.header}`}>
+    <header ref={headerRef} data-menu-layout={layout} data-search-open={expanded} data-menu-preview={preview ? "true" : undefined} style={{ "--mobile-logo-scale": 1 + logoSize / 100 } as CSSProperties} className={`${preview ? "" : "sticky"} ${styles.header}`}>
       <div className={styles.topRow}>
         <div className={styles.logo}>{logo}</div>
         <button ref={toggleRef} type="button" className={styles.searchToggle} aria-label="Open search" aria-expanded={expanded} aria-controls={preview ? "preview-menu-search" : "mobile-menu-search"} onClick={openSearch}>

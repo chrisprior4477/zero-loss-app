@@ -4,6 +4,7 @@ import { ProfilePhotoCard } from "@/components/account/ProfilePhotoCard";
 import { ProfileLandingScroll } from "@/components/account/ProfileLandingScroll";
 import { ProfileDetailsForm } from "@/components/account/ProfileDetailsForm";
 import { MenuLayoutPicker } from "@/components/account/MenuLayoutPicker";
+import { MobileLogoSizePicker } from "@/components/account/MobileLogoSizePicker";
 import { AccountSettingsFrame } from "@/components/account/AccountSettingsFrame";
 import { getAccountContext } from "@/lib/account/context";
 import styles from "@/components/account/account-settings-pages.module.css";
@@ -31,6 +32,7 @@ export default async function ProfilePage() {
       <div className={styles.profileCard}><ProfilePhotoCard initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} initialVisibility={{ menu: account.showPhotoInMenu, crew: account.showPhotoToCrew }} compact emailStatus={account.emailConfirmed ? "verified" : "pending"} /></div>
     </section>
     <MenuLayoutPicker previewSearchResults={previewSearchResults} previewAccount={{ count: account.activity.activeCount, balance: account.balanceLabel, avatarUrl: account.avatarUrl, showPhoto: account.showPhotoInMenu }} />
+    <MobileLogoSizePicker />
     <ProfileDetailsForm ticket details={{
         displayName: account.displayName,
         legalFirstName: account.legalFirstName,

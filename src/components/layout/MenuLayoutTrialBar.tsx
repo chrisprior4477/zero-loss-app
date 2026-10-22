@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
 import { menuLayouts } from "@/lib/navigation/menu-layout";
 import { useMenuLayout } from "./MenuLayoutProvider";
+import { useMobileLogoSize } from "./MobileLogoSizeProvider";
 import styles from "./menu-layout-trial.module.css";
 
 export function MenuLayoutTrialBar() {
   const { layout, savedLayout, trying, pending, message, save, dismiss } = useMenuLayout();
+  const logo = useMobileLogoSize();
   const ref = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const bar = ref.current;
@@ -19,7 +21,7 @@ export function MenuLayoutTrialBar() {
     return () => { observer.disconnect(); document.documentElement.style.removeProperty("--menu-trial-height"); };
   }, [trying]);
   if (!trying) return null;
-  return <aside ref={ref} className={styles.bar} aria-label="Menu layout trial">
+  return <aside ref={ref} className={styles.bar} data-logo-trial-active={logo.trying} aria-label="Menu layout trial">
     <div className={styles.inner}>
       <p>Trying: <strong>{menuLayouts.find(option => option.id === layout)!.name}</strong></p>
       <div className={styles.actions}>

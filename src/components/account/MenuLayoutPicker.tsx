@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { menuLayouts } from "@/lib/navigation/menu-layout";
 import { useMenuLayout } from "@/components/layout/MenuLayoutProvider";
+import { useMobileLogoSize } from "@/components/layout/MobileLogoSizeProvider";
 import { MenuLayoutPreview, type MenuPreviewAccount } from "./MenuLayoutPreview";
 import styles from "./menu-layout-picker.module.css";
 import type { MenuPreviewSearchResults } from "@/lib/navigation/search-examples";
@@ -11,6 +12,7 @@ const emptyPreview: MenuPreviewAccount = { count: 0, balance: "$0.00", avatarUrl
 
 export function MenuLayoutPicker({ previewAccount = emptyPreview, previewSearchResults }: { previewAccount?: MenuPreviewAccount; previewSearchResults?: MenuPreviewSearchResults }) {
   const { layout, savedLayout, preview, cancel, pending, message, clearMessage, save } = useMenuLayout();
+  const logo = useMobileLogoSize();
   const [previewChoice, setPreviewChoice] = useState(0);
   const current = menuLayouts.find(option => option.id === layout)!;
   const changed = layout !== savedLayout;
@@ -25,10 +27,10 @@ export function MenuLayoutPicker({ previewAccount = emptyPreview, previewSearchR
       </div>
       <div className={styles.content}>
         <p>Choose a style to reveal its interactive preview. Your top menu changes live too.</p>
-        <fieldset disabled={pending} className={styles.options}>
+        <fieldset disabled={pending || logo.pending} className={styles.options}>
           <legend className="sr-only">Choose your top menu style</legend>
           {menuLayouts.map((option, index) => <label key={option.id} className={styles.option} data-selected={option.id === layout}>
-            <input type="radio" name="menu-layout" aria-label={`${index + 1}. ${option.name}`} value={option.id} checked={option.id === layout} onChange={() => { preview(option.id); clearMessage(); setPreviewChoice(value => value + 1); }} onClick={() => { if (option.id === layout) { preview(option.id); setPreviewChoice(value => value + 1); } }} />
+            <input type="radio" name="menu-layout" aria-label={`${index + 1}. ${option.name}`} value={option.id} checked={option.id === layout} onChange={() => { logo.dismiss(); preview(option.id); clearMessage(); setPreviewChoice(value => value + 1); }} onClick={() => { if (option.id === layout) { logo.dismiss(); preview(option.id); setPreviewChoice(value => value + 1); } }} />
             <span className={styles.number}>{index + 1}</span><span><strong>{option.name}</strong><small>{option.rows}</small></span>
           </label>)}
         </fieldset>

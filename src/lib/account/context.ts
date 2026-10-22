@@ -11,6 +11,7 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { getStoredAccountActivity } from "./activity-reader";
 import { getAccountOrders } from "./orders";
 import { menuLayoutOrClassic } from "@/lib/navigation/menu-layout";
+import { mobileLogoSizeOrOriginal } from "@/lib/navigation/mobile-logo-size";
 
 /** Request-scoped reader shared by pages, header and drawer. No writes. */
 export const getAccountContext = cache(async () => {
@@ -26,7 +27,7 @@ export const getAccountContext = cache(async () => {
     }
   }
   const [profileResult, wallet] = await Promise.all([
-    supabase.from("customer_profiles").select("display_name, legal_first_name, legal_last_name, date_of_birth, preferred_locale, timezone, avatar_reference, show_photo_in_menu, show_photo_to_crew, menu_layout, phone_number, address_line_1, address_line_2, city, region, postal_code, country, extra_entry_explainer_acknowledged_at").eq("customer_id", user.id).maybeSingle(),
+    supabase.from("customer_profiles").select("display_name, legal_first_name, legal_last_name, date_of_birth, preferred_locale, timezone, avatar_reference, show_photo_in_menu, show_photo_to_crew, menu_layout, mobile_logo_size, phone_number, address_line_1, address_line_2, city, region, postal_code, country, extra_entry_explainer_acknowledged_at").eq("customer_id", user.id).maybeSingle(),
     provisioningAvailable ? getWalletSnapshot(user.id).catch(() => null) : Promise.resolve(null),
   ]);
   const activity = wallet
@@ -62,6 +63,7 @@ export const getAccountContext = cache(async () => {
     showPhotoInMenu: profile?.show_photo_in_menu ?? true,
     showPhotoToCrew: profile?.show_photo_to_crew ?? true,
     menuLayout: menuLayoutOrClassic(profile?.menu_layout),
+    mobileLogoSize: mobileLogoSizeOrOriginal(profile?.mobile_logo_size),
     wallet,
     balanceLabel: wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable",
     fundingEnabled: demoFundingAllowed(wallet, Boolean(user.email_confirmed_at)),

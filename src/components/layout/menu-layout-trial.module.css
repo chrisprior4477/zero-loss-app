@@ -9,3 +9,5 @@
 .closeButton:hover:not(:disabled) { background: #12517b; }
 .actions button:disabled { opacity: .6; }
 .actions :focus-visible { outline: 3px solid white; outline-offset: 2px; }
+@media (max-width: 767px) { .bar[data-logo-trial-active="true"] { display: none; } }
+@media (min-width: 768px) { .mobileOnly { display: none; } }

@@ -1,7 +1,8 @@
 .header { position: sticky; top: 0; z-index: 40; background: var(--header); }
 .topRow { display: flex; position: relative; align-items: center; height: 60px; gap: 16px; padding: 0 16px; }
-.logo { flex: none; width: 108.75px; }
-.logo img { width: 108.75px; height: 20px; }
+.logo { flex: 0 1 calc(108.75px * var(--mobile-logo-scale, 1)); width: calc(108.75px * var(--mobile-logo-scale, 1)); min-width: 0; }
+.logo a { display: flex; min-height: 44px; align-items: center; }
+.logo img { display: block; width: 100%; height: auto; }
 .desktopSearch { display: flex; flex: 1; min-width: 0; max-width: 700px; }
 .accountControls { margin-left: auto; display: flex; flex: none; align-items: center; gap: 16px; }
 .mobileSearchRow, .searchToggle, .pageCategories { display: none; }
@@ -65,7 +66,7 @@
 /* Mobile is the base so the miniature uses the exact same layout at any screen width. */
 .header[data-menu-preview] { position: relative; z-index: 3; }
 .header[data-search-open="true"] .mobileSearchRow { overflow: visible; }
-.header[data-menu-preview] .logo img { width: 108.75px; max-width: none; height: 20px; }
+.header[data-menu-preview] .logo img { width: 100%; max-width: none; height: auto; }
 .header[data-menu-preview] .accountControls svg { height: 24px; width: 36px; }
 .header[data-menu-preview] .accountControls a[aria-label$="playable balance"] { gap: 4px; }
 .header[data-menu-preview] .accountControls a[aria-label$="playable balance"] > span { font-size: 14px; }
@@ -83,7 +84,7 @@
   .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="standard"] { display: inline; }
   .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="narrow"] { display: none; }
   .header:not([data-menu-preview]) .desktopSearch { display: flex; }
-  .header:not([data-menu-preview]) .logo { width: auto; }
+  .header:not([data-menu-preview]) .logo { flex: none; width: auto; }
   .header:not([data-menu-preview]) .logo img { width: auto; height: 28px; }
   .header:not([data-menu-preview])[data-menu-layout] .mobileSearchRow,
   .header:not([data-menu-preview])[data-menu-layout] .searchToggle { display: none; }
@@ -94,8 +95,7 @@
 @media (min-width: 1024px) { .header:not([data-menu-preview]) .topRow { gap: 24px; } .header:not([data-menu-preview]) .logo img { height: 32px; } .header:not([data-menu-preview]) .accountControls { gap: 20px; } .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { padding: 0 16px; } }
 @media (max-width: 374px) {
   .topRow { gap: 3px; padding-inline: 6px; }
-  .header:not([data-menu-preview]) .logo { width: 84px; }
-  .header:not([data-menu-preview]) .logo img { width: 84px; height: auto; }
+  .header:not([data-menu-preview]) .logo { flex-basis: calc(84px * var(--mobile-logo-scale, 1)); width: calc(84px * var(--mobile-logo-scale, 1)); }
   .accountControls { gap: 3px; }
   .searchToggle { width: 27px; }
   .accountControls [data-header-auth] { gap: 2px; }

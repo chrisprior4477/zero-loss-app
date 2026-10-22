@@ -1,0 +1,12 @@
+.savedSize { margin-top: 12px; color: #506b8e; font-size: 12px; }
+.options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.option { position: relative; display: flex; min-height: 44px; align-items: center; justify-content: center; padding: 6px 8px; border: 2px solid transparent; border-radius: 9px; background: #eaf5fc; color: #111d4e; font-size: 12px; font-weight: 800; cursor: pointer; }
+.option[data-selected="true"] { border-color: #087fff; background: #d6f2ff; }
+.option:has(input:focus-visible) { outline: 3px solid #087fff; outline-offset: 3px; }
+.option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.options:disabled .option { opacity: .6; cursor: default; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.actions button { min-height: 44px; }
+.cancel { padding: 6px 10px; color: #075fae; font-size: 12px; font-weight: 800; border-radius: 8px; }
+.cancel:focus-visible { outline: 3px solid #087fff; outline-offset: 3px; }
+@media (min-width: 768px) { .mobileOnly { display: none; } }
