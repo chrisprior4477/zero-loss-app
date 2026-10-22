@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { drawerState } from "@/lib/account/drawer-state";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { walletRewards, activityHref } from "@/lib/account/activity";
@@ -44,10 +44,68 @@ test("reward overview uses real statuses and retains authorized history links", 
   mocks.account.mockResolvedValue({ activity: state, wallet, balanceLabel: "$0.00", fundingEnabled: false });
   render(await WalletPage({ searchParams: Promise.resolve({}) }));
   expect(screen.getByRole("link", { name: /Prize Ready: 1/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=ready-reward");
-  expect(screen.getByRole("link", { name: /Used.*Already redeemed.*1/ }).getAttribute("href")).toBe("/account/wallet?rewards=used");
-  expect(screen.getByRole("link", { name: /Expired.*No longer available.*1/ }).getAttribute("href")).toBe("/account/wallet?rewards=expired");
+  expect(screen.getByRole("link", { name: /Used.*Already redeemed.*1/ }).getAttribute("href")).toBe("/account/wallet?rewards=used#reward-history");
+  expect(screen.getByRole("link", { name: /Expired.*No longer available.*1/ }).getAttribute("href")).toBe("/account/wallet?rewards=expired#reward-history");
   expect(screen.getByRole("region", { name: "Reward history" }).querySelectorAll('a[aria-label^="Open "]')).toHaveLength(3);
   expect(screen.getByRole("link", { name: /Open Samsung.*Used/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=used-reward");
+});
+
+test.each(["all", "ready"])("summary and history controls target the right ticket in the %s view", async rewards => {
+  render(await WalletPage({ searchParams: Promise.resolve({ rewards }) }));
+  const filters = within(screen.getByRole("navigation", { name: "Filter reward history" }));
+  expect(filters.getByRole("link", { name: "All" }).getAttribute("href")).toBe("/account/wallet#ready-rewards");
+  expect(filters.getByRole("link", { name: "Ready" }).getAttribute("href")).toBe("/account/wallet?rewards=ready#ready-rewards");
+  expect(filters.getByRole("link", { name: "Used" }).getAttribute("href")).toBe("/account/wallet?rewards=used#reward-history");
+  expect(screen.getByRole("link", { name: /Ready.*Available to use/ }).getAttribute("href")).toBe(filters.getByRole("link", { name: "Ready" }).getAttribute("href"));
+  expect(screen.getByRole("region", { name: "Ready to use" }).id).toBe("ready-rewards");
+});
+
+test("empty Used is its own ticket with shopping and a return to the ready ticket", async () => {
+  render(await WalletPage({ searchParams: Promise.resolve({ rewards: "used" }) }));
+  expect(screen.queryByRole("region", { name: "Ready to use" })).toBeNull();
+  expect(screen.queryByRole("complementary", { name: "Reward summary" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Used rewards" }).id).toBe("reward-history");
+  expect(screen.getByText(/You haven’t used or transferred any prizes/)).toBeTruthy();
+  expect(screen.getByText(/Please check back after/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Return to Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet#ready-rewards");
+  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
+});
+
+test("empty Expired has the requested reminder and both working destinations", async () => {
+  render(await WalletPage({ searchParams: Promise.resolve({ rewards: "expired" }) }));
+  expect(screen.queryByRole("region", { name: "Ready to use" })).toBeNull();
+  expect(screen.getByText("You do not have any expired purchase options yet.")).toBeTruthy();
+  expect(screen.getByText("Remember to check your Declined Offers page.")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Declined Offers" }).getAttribute("href")).toBe("/account/declined-offers");
+  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
+});
+
+test.each(["used", "expired"])("the %s view shows real records instead of the empty message", async rewards => {
+  const state = storedActivityFixture();
+  state.activity[1].rewardStatus = rewards === "used" ? "redeemed" : "expired";
+  state.activity[1].rewardId = "existing-reward";
+  mocks.account.mockResolvedValue({ activity: state, wallet });
+  render(await WalletPage({ searchParams: Promise.resolve({ rewards }) }));
+  expect(screen.getByRole("link", { name: /Open Samsung/ }).getAttribute("href")).toContain("rewardId=existing-reward");
+  expect(screen.queryByText(/You haven’t used or transferred|You do not have any expired/)).toBeNull();
+});
+
+test("expired purchase options without issued rewards retain their activity destination", async () => {
+  const state = storedActivityFixture();
+  state.activity[2].completionOptionStatus = "expired";
+  state.activity[2].status = "completed";
+  state.activity[2].entryId = "expired-option-entry";
+  mocks.account.mockResolvedValue({ activity: state, wallet });
+  render(await WalletPage({ searchParams: Promise.resolve({ rewards: "expired" }) }));
+  expect(screen.getByRole("link", { name: /Open Nike.*Expired/ }).getAttribute("href")).toBe("/account/entries?item=nike-court-shot-shoes&entry=expired-option-entry");
+  expect(screen.queryByText("You do not have any expired purchase options yet.")).toBeNull();
+});
+
+test.each(["used", "expired"])("failed activity reads do not masquerade as empty %s records", async rewards => {
+  mocks.account.mockResolvedValue({ activity: drawerState(false), wallet: null });
+  render(await WalletPage({ searchParams: Promise.resolve({ rewards }) }));
+  expect(screen.getByRole("status").textContent).toBe("Reward history unavailable right now.");
+  expect(screen.queryByText(/You haven’t used or transferred|You do not have any expired/)).toBeNull();
 });
 
 test("specific reward opens its redemption destination without another dialog or reveal button", async () => {

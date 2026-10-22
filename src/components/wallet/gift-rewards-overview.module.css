@@ -33,6 +33,7 @@
   mask-composite: intersect;
 }
 .readySection, .summary { min-height: 414px; padding: 19px 28px 20px; }
+.readySection, .historySection { scroll-margin-top: calc(var(--site-header-height, 163px) + 12px); }
 .sectionHeading h2, .historyHeading h2 { font-size: clamp(25px, 2vw, 33px); font-weight: 850; letter-spacing: -.035em; line-height: 1.1; }
 .sectionHeading p, .historyHeading p { margin-top: 3px; color: #526c87; font-size: clamp(14px, 1.1vw, 19px); line-height: 1.3; }
 .readyGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; margin-top: 14px; }
@@ -86,6 +87,11 @@
 .historyValue { color: #0a1741; font-weight: 850; }
 .historyRow > span:last-child svg { width: 18px; height: 18px; }
 .message, .empty { margin-top: 19px; color: #526c87; font-size: 14px; line-height: 1.45; }
+.message p + p { margin-top: 10px; }
+.returnActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.returnActions a { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 10px; padding: 12px 20px; border-radius: 10px; background: #b7e8ff; color: #09203b; font-size: 14px; font-weight: 800; text-align: center; }
+.returnActions a:last-child { background: #32e800; }
+.returnActions svg { width: 19px; height: 19px; flex-shrink: 0; }
 .empty h3 { color: #0a1741; font-size: 18px; font-weight: 850; }
 .empty p { margin-top: 5px; }
 .empty a { display: inline-flex; align-items: center; gap: 7px; margin-top: 15px; color: #0d64b5; font-weight: 800; }
@@ -106,6 +112,7 @@
   .historyHeading { align-items: flex-start; flex-direction: column; }
 }
 @media (max-width: 700px) {
+  .returnActions { flex-direction: column; }
   .page { padding: 22px 13px 45px; }
   .heading { align-items: flex-start; flex-direction: column; gap: 9px; }
   .heading h1 { font-size: clamp(34px, 8vw, 44px); }
