@@ -46,7 +46,7 @@ const desktopCategoryItems: Record<string, readonly string[]> = {
 
 type EndingSoonMenuItem = { title: string; href: string; remaining: number };
 
-export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], preview = false }: { endingSoonItems: EndingSoonMenuItem[]; resolvedSlugs?: string[]; preview?: boolean }) {
+export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], preview = false, showHome = true }: { endingSoonItems: EndingSoonMenuItem[]; resolvedSlugs?: string[]; preview?: boolean; showHome?: boolean }) {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const resolved = new Set(resolvedSlugs);
   const navRef = useRef<HTMLElement>(null);
@@ -143,11 +143,11 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
       onMouseLeave={() => setOpenCategory(null)}
     >
       <ul className="flex h-full w-max min-w-full items-center justify-start gap-1 px-2 lg:justify-center lg:px-0 xl:gap-2">
-        <li className="flex h-full shrink-0 items-center">
+        {showHome ? <li className="flex h-full shrink-0 items-center">
           <Link href="/" aria-label="Home" onClick={() => setOpenCategory(null)} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-cyan-100 transition-colors hover:bg-cyan-300/10 hover:text-cyan-300 focus-visible:outline-2 focus-visible:outline-cyan-300 sm:h-9 sm:w-9">
             <HomeIcon className="h-[18px] w-[18px]" />
           </Link>
-        </li>
+        </li> : null}
         {desktopCategories.map((category, index) => {
           const isOpen = openCategory === category;
           const isMerchandising = index === 0;

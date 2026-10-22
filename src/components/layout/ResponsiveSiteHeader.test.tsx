@@ -109,7 +109,15 @@ test.each(["ending-search", "home-ending-search", "search-down", "search-down-br
   expect(endingSoon.hasAttribute("data-ending-soon-link")).toBe(true);
   expect(endingSoon.getAttribute("href")).toBe("/browse?sort=ending-soon");
   expect(header.contains(row)).toBe(false);
-  expect(within(row).getByRole("link", { name: "Home" }).getAttribute("href")).toBe("/");
+  if (layout === "home-ending-search") {
+    expect(within(row).queryByRole("link", { name: "Home" })).toBeNull();
+    expect(within(row).getAllByRole("link")[0]).toBe(endingSoon);
+    expect(within(mobile).getByRole("link", { name: "Home" }).getAttribute("href")).toBe("/");
+  } else {
+    expect(within(row).getAllByRole("link")[0]).toBe(within(row).getByRole("link", { name: "Home" }));
+  }
+  // Desktop keeps its own Home link, including when layout 3 is selected.
+  expect(within(within(header).getByRole("navigation", { name: "Marketplace categories" })).getByRole("link", { name: "Home" }).getAttribute("href")).toBe("/");
   expect(within(row).getByRole("link", { name: "Groceries" }).getAttribute("href")).toBe("/browse?category=groceries");
   expect(mobile.querySelector("[data-ending-soon-link]")).toBeNull();
 });

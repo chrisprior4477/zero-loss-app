@@ -122,7 +122,7 @@ export function MenuLayoutPreview({ layout, account, searchResults = {} }: { lay
           onLostPointerCapture={() => { dragRef.current = null; }}>
           <div className={styles.demoPage} aria-hidden="true" inert>
             {layout !== "classic" ? <div className={menuStyles.pageCategories} data-menu-preview="true" data-preview-page-categories>
-              <DesktopCategoryNav endingSoonItems={[]} resolvedSlugs={[]} preview />
+              <DesktopCategoryNav endingSoonItems={[]} resolvedSlugs={[]} preview showHome={layout !== "home-ending-search"} />
             </div> : null}
             <div className={styles.demoBreadcrumb}>⌂ Home {destination !== "Home" ? `› ${destination}` : ""}</div>
             {destination === "Home" ? <div className={styles.demoHero}>

@@ -160,6 +160,24 @@ test.each(menuLayouts)("$name has a non-clickable scrollable page, with compact 
   expect(save).not.toHaveBeenCalled();
 });
 
+test.each(menuLayouts)("$name preview matches the page-strip Home choice without changing the header", option => {
+  setup();
+  fireEvent.click(screen.getByRole("radio", { name: `${menuLayouts.indexOf(option) + 1}. ${option.name}` }));
+  const demo = screen.getByRole("group", { name: "Interactive menu preview" });
+  const row = demo.querySelector("[data-preview-page-categories]");
+  if (option.id === "classic") {
+    expect(row).toBeNull();
+  } else {
+    expect(row?.querySelector('a[aria-label="Home"]') !== null).toBe(option.id !== "home-ending-search");
+    if (option.id === "home-ending-search") {
+      expect(row?.querySelector("li:first-child a")?.textContent).toBe("Ending Soon");
+      expect(demo.querySelector('#preview-menu-search a[aria-label="Home"]')?.getAttribute("href")).toBe("/");
+    }
+  }
+  expect(demo.querySelector('header nav a[aria-label="Home"]')?.getAttribute("href")).toBe("/");
+  expect(save).not.toHaveBeenCalled();
+});
+
 test("shopping bar includes browsing and favorites but excludes account tasks", () => {
   for (const path of ["/", "/browse", "/items/amazon-100-gift-card", "/rewards/amazon", "/account/favorites"]) expect(showsShoppingCategories(path)).toBe(true);
   for (const path of ["/account/profile", "/account/wallet", "/account/entries", "/account/notifications", "/login", "/how-it-works"]) expect(showsShoppingCategories(path)).toBe(false);

@@ -98,7 +98,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
       <div aria-hidden="true" className={styles.brandRule} />
     </header>
     {layout !== "classic" && !preview?.pageCategoriesInPreviewBody && (preview || showsShoppingCategories(pathname)) ? <div className={styles.pageCategories} data-shopping-category-row={preview ? undefined : true} data-menu-preview={preview ? "true" : undefined}>
-      {categories}
+      <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} showHome={layout !== "home-ending-search"} />
     </div> : null}
   </>;
 }
