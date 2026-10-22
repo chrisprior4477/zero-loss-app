@@ -34,9 +34,29 @@ test.each([".endingSoon", ".header [data-ending-soon-link]", ".pageCategories [d
   });
 });
 
-test("Browse and the search toggle keep their existing focus indicators", () => {
+test("Browse keeps its existing focus indicator", () => {
   expect(declarations(".browse:focus-visible").outline).toBe("2px solid #6feaff");
-  expect(declarations(".searchToggle:focus-visible").outline).toBe("2px solid #6feaff");
+});
+
+test("mobile Search and account controls split the free space evenly", () => {
+  expect(declarations(".searchToggle")["margin-left"]).toBe("auto");
+  expect(declarations(".accountControls")["margin-left"]).toBe("auto");
+});
+
+test("Search pulses only its magnifying glass and never draws a pulse ring", () => {
+  const selector = '.header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"])[data-search-open="false"] .searchToggle';
+  expect(declarations(selector).animation).toBeUndefined();
+  expect(declarations(`${selector} svg`).animation).toBe("search-invitation 2.6s ease-in-out infinite");
+  const animation = parse(css).nodes.find(node => node.type === "atrule" && node.name === "keyframes" && node.params === "search-invitation");
+  expect(animation?.toString()).toContain("scale(1.1)");
+  expect(animation?.toString()).not.toContain("box-shadow");
+});
+
+test("Search has no tap or hover box but keeps a keyboard-only underline", () => {
+  expect(declarations(".searchToggle")).toMatchObject({ outline: "none", "-webkit-tap-highlight-color": "transparent" });
+  expect(declarations(".searchToggle:focus").outline).toBe("none");
+  expect(declarations(".searchToggle:hover").outline).toBeUndefined();
+  expect(declarations(".searchToggle:focus-visible::after")).toMatchObject({ height: "2px", background: "currentColor" });
 });
 
 test("the header shortcut stays orange and desktop still hides the page strip", () => {
