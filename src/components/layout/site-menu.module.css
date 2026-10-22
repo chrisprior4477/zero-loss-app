@@ -12,6 +12,8 @@
   .accountControls { gap: 6px; }
   /* Scale only the header artwork; retain its space, count and full link target. */
   .accountControls > a [data-entry-ticket-icon] { transform: scale(.9); transform-origin: center; }
+  .accountControls > a [data-entry-ticket-outline="standard"] { display: none; }
+  .accountControls > a [data-entry-ticket-outline="narrow"] { display: inline; }
   .desktopSearch { display: none; }
   .mobileSearchRow { display: flex; align-items: center; height: 43px; padding: 1px 10px 6px; gap: 0; border-top: 1px solid #ffffff0a; }
   .header[data-menu-layout="classic"] .mobileSearchRow { height: 40px; padding-bottom: 3px; }
@@ -75,6 +77,8 @@
   .header:not([data-menu-preview]) .topRow { height: 60px; gap: 16px; padding: 0 16px; }
   .header:not([data-menu-preview]) .accountControls { gap: 16px; }
   .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-icon] { transform: none; }
+  .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="standard"] { display: inline; }
+  .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="narrow"] { display: none; }
   .header:not([data-menu-preview]) .desktopSearch { display: flex; }
   .header:not([data-menu-preview]) .logo { width: auto; }
   .header:not([data-menu-preview]) .logo img { width: auto; height: 28px; }

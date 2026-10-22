@@ -76,3 +76,14 @@ test("desktop keeps the original ticket size while mobile previews keep the redu
   const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
   expect(desktop?.toString()).toContain(".header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-icon] { transform: none; }");
 });
+
+test("all mobile headers select the narrower outline without affecting drawer tickets", () => {
+  expect(declarations('.accountControls > a [data-entry-ticket-outline="standard"]')).toEqual({ display: "none" });
+  expect(declarations('.accountControls > a [data-entry-ticket-outline="narrow"]')).toEqual({ display: "inline" });
+});
+
+test("desktop restores the standard outline while mobile previews remain narrow", () => {
+  const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
+  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="standard"] { display: inline; }');
+  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="narrow"] { display: none; }');
+});

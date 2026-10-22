@@ -30,6 +30,14 @@ test.each(menuLayouts)("$name exposes just the header ticket artwork for resizin
   expect(ticket?.tagName).toBe("svg");
   expect(ticket?.getAttribute("viewBox")).toBe("0 0 54 36");
   expect(ticket?.getAttribute("class")).toBe("h-6 w-9 shrink-0");
+  const standardOutline = ticket?.querySelector('[data-entry-ticket-outline="standard"]');
+  const narrowOutline = ticket?.querySelector('[data-entry-ticket-outline="narrow"]');
+  expect(standardOutline?.getAttribute("d")).toBe("M3 3h48v9a6 6 0 0 0 0 12v9H3v-9a6 6 0 0 0 0-12V3Z");
+  expect(narrowOutline?.getAttribute("d")).toBe("M5.52 3H48.48v9a6 6 0 0 0 0 12v9H5.52v-9a6 6 0 0 0 0-12V3Z");
+  expect(narrowOutline?.getAttribute("class")).toBe("hidden");
+  expect(narrowOutline?.getAttribute("stroke-width")).toBe(standardOutline?.getAttribute("stroke-width"));
+  expect(ticket?.querySelector("circle")?.outerHTML).toBe('<circle cx="27" cy="18" r="7.5" stroke="currentColor" stroke-width="2.2"></circle>');
+  expect(ticket?.querySelector('path[stroke-linecap="round"]')?.getAttribute("d")).toBe("m20.5 25 13-14");
   expect(entries.getAttribute("href")).toBe("/account/entries?filter=active");
   expect(within(entries).getByText("11").hasAttribute("data-entry-ticket-icon")).toBe(false);
   const balance = within(header).getByRole("link", { name: "$38 playable balance" });
