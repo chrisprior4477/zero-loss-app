@@ -66,7 +66,12 @@ function useDeviceMenuChoice(initialLayout: MenuLayout, device: MenuDevice, acco
       try {
         const trial = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
         // A saved choice is not an unfinished trial (including legacy cached records).
-        if (trial?.savedLayout === initialLayout && isMenuLayout(trial.layout) && trial.layout !== initialLayout) { setLayout(trial.layout); setTrying(trial.dismissed !== true); }
+        if (trial?.savedLayout === initialLayout && isMenuLayout(trial.layout) && trial.layout !== initialLayout) {
+          // Keep an unfinished preview, but only a fresh picker action may open its bar.
+          // Restoring a browser tab or resizing it is not a new request to choose a style.
+          setLayout(trial.layout); setTrying(false);
+          sessionStorage.setItem(storageKey, JSON.stringify({ layout: trial.layout, savedLayout: initialLayout, dismissed: true }));
+        }
         else sessionStorage.removeItem(storageKey);
       } catch { /* Trial storage is optional; account preferences stay authoritative. */ }
     });

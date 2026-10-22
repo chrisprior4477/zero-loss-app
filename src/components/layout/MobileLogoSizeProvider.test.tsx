@@ -90,6 +90,18 @@ test("stale trials cannot override newer account preferences or a different acco
   expect(state()).toMatchObject({ size: 5, saved: 5, trying: false });
 });
 
+test("restoring an unfinished size preview never reopens its prompt or changes the saved size", async () => {
+  sessionStorage.setItem("zero-loss:logo-size-trial:owner", JSON.stringify({ size: 35, savedSize: 25, dismissed: false }));
+  const view = render(<Fixture initialSize={25} />);
+  await waitFor(() => expect(state()).toMatchObject({ size: 35, saved: 25, trying: false }));
+  expect(JSON.parse(sessionStorage.getItem("zero-loss:logo-size-trial:owner")!)).toMatchObject({ dismissed: true });
+  view.unmount(); render(<Fixture initialSize={25} />);
+  await waitFor(() => expect(state()).toMatchObject({ size: 35, saved: 25, trying: false }));
+  fireEvent.click(screen.getByRole("radio", { name: "35% bigger" }));
+  expect(state()).toMatchObject({ size: 35, saved: 25, trying: true });
+  expect(mocks.save).not.toHaveBeenCalled();
+});
+
 test("legacy already-saved logo trials are cleared and selecting the saved size does not reopen a bar", async () => {
   sessionStorage.setItem("zero-loss:logo-size-trial:owner", JSON.stringify({ size: 25, savedSize: 25, dismissed: false }));
   render(<Fixture initialSize={25} />);

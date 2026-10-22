@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { useFavorites } from "./FavoritesProvider";
+import { FavoritesLandingScroll } from "./FavoritesLandingScroll";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { availabilityStatus, type AvailabilitySnapshot } from "@/lib/catalog/availability";
 import { setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
@@ -35,6 +36,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled }: { a
   }
 
   return <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
+    <FavoritesLandingScroll enabled={available && slugs.length > 0} />
     <div className="mx-auto max-w-7xl">
       <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Saved for later</p>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">Favorites</h1><p className="mt-2 text-white/70">The products you picked out, together in one place.</p></div><Link href="/browse" className="text-sm font-bold text-cyan-300 hover:text-white">Browse all products →</Link></div>
@@ -45,7 +47,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled }: { a
 
       {!available ? <section role="alert" className="mt-8 rounded-2xl border border-amber-300/40 bg-[#30251b] p-5 text-sm leading-6">Favorites couldn’t be loaded right now. Refresh to try again; nothing has been removed.</section>
         : slugs.length === 0 ? <section className="mt-8 rounded-2xl border border-cyan-300/30 bg-[#082848] p-7 sm:p-10"><span aria-hidden="true" className="text-4xl text-[#31e800]">♡</span><h2 className="mt-3 text-2xl font-black">Nothing saved yet</h2><p className="mt-2 max-w-lg text-sm leading-6 text-white/70">Tap the heart on any product to keep it here. Favorites save items to revisit; they don’t place an entry or reserve a prize.</p><Link href="/browse" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-extrabold text-[#002719]">Find a product →</Link></section>
-        : <section aria-label="Favorite products" className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+        : <section id="favorite-products" aria-label="Favorite products" className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
           {slugs.map(slug => {
             const product = getDemoProduct(slug);
             const current = availability?.[slug];

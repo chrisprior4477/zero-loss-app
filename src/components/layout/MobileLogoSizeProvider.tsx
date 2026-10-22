@@ -58,7 +58,9 @@ export function MobileLogoSizeProvider({ initialSize = 0, accountId, children }:
       try {
         const trial = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
         if (trial?.savedSize === initial.current && isMobileLogoSize(trial.size) && trial.size !== initial.current) {
-          setSize(trial.size); setTrying(trial.dismissed !== true);
+          // Restoring a preview must not reopen a prompt during ordinary browsing.
+          setSize(trial.size); setTrying(false);
+          sessionStorage.setItem(storageKey, JSON.stringify({ size: trial.size, savedSize: initial.current, dismissed: true }));
         } else sessionStorage.removeItem(storageKey);
       } catch { /* The saved account preference remains authoritative. */ }
     });

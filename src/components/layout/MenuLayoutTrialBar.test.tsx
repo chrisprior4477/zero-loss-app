@@ -115,9 +115,30 @@ test("unfinished desktop trial restores its correct save destination across navi
   fireEvent.click(screen.getByText("desktop")); fireEvent.click(screen.getByText("Try search-down-browse"));
   first.unmount(); setup();
   await screen.findByText("search-down-browse:classic");
+  expect(bar()).toBeNull();
+  // Explicitly trying the restored choice can reopen the confirmation, on Desktop.
+  fireEvent.click(screen.getByText("Try search-down-browse"));
   fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
   await waitFor(() => expect(bar()).toBeNull());
   expect(save).toHaveBeenCalledExactlyOnceWith("search-down-browse", "desktop");
+});
+
+test.each(menuDevices)("an old %s preview restores silently until a fresh picker action", async device => {
+  const key = `zero-loss:menu-trial:owner${device === "mobile" ? "" : `:${device}`}`;
+  sessionStorage.setItem(key, JSON.stringify({ layout: "search-down-browse", savedLayout: "classic", dismissed: false }));
+  sessionStorage.setItem("zero-loss:menu-trial-target:owner", device);
+  const view = setup();
+  await screen.findByText("search-down-browse:classic");
+  expect(bar()).toBeNull();
+  expect(JSON.parse(sessionStorage.getItem(key)!)).toMatchObject({ dismissed: true });
+  act(() => window.dispatchEvent(new Event("resize")));
+  expect(bar()).toBeNull();
+  view.unmount(); setup();
+  await screen.findByText("search-down-browse:classic");
+  expect(bar()).toBeNull();
+  fireEvent.click(screen.getByText("Try search-down-browse"));
+  expect(bar()).toBeTruthy();
+  expect(save).not.toHaveBeenCalled();
 });
 
 test.each(menuDevices)("an account refresh confirming the %s menu choice ends an already-saved trial", async device => {
