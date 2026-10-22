@@ -1,3 +1,5 @@
+import { isEntryQuantity } from "./quantity";
+
 export type EntryRequest = {
   requestId: string;
   slug: string;
@@ -33,7 +35,7 @@ export function parseEntryRequest(value: unknown): EntryRequest {
   const r = value as Record<string, unknown>;
   if (typeof r.requestId !== "string" || !uuid.test(r.requestId) ||
     typeof r.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(r.slug) ||
-    typeof r.title !== "string" || typeof r.quantity !== "number" || !Number.isInteger(r.quantity) || r.quantity < 1 || r.quantity > 10 ||
+    typeof r.title !== "string" || !isEntryQuantity(r.quantity) ||
     typeof r.amountCents !== "number" || !Number.isSafeInteger(r.amountCents) || r.amountCents <= 0 ||
     !["pending", "accepted", "cancelled", "rejected"].includes(String(r.status)) ||
     typeof r.undoUntil !== "string" || !Number.isFinite(Date.parse(r.undoUntil)) ||

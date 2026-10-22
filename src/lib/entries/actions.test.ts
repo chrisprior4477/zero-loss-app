@@ -42,7 +42,7 @@ test("sends the selected quantity to the atomic database batch function", async 
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
 });
 
-test.each(["0", "11", "2.5", "NaN", "Infinity"])('rejects unsafe quantity %s before database access', async quantity => {
+test.each(["0", "2147483648", "2.5", "NaN", "Infinity"])('rejects unsafe quantity %s before database access', async quantity => {
   expect((await createPreviewEntry({ status: "idle" }, entryForm(quantity))).status).toBe("error");
   expect(mocks.rpc).not.toHaveBeenCalled();
 });

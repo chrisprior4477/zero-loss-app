@@ -2,12 +2,14 @@ import { describe, expect, test } from "vitest";
 import { assertFundingAmount, assertIdempotencyKey } from "@/lib/payments/provider";
 
 describe("payment provider boundary", () => {
-  test("accepts integer-cent demo funding within the configured limits", () => {
+  test("accepts integer-cent demo funding above the retired deposit cap", () => {
     expect(() => assertFundingAmount(2_500)).not.toThrow();
     expect(() => assertFundingAmount(50_000)).not.toThrow();
+    expect(() => assertFundingAmount(50_001)).not.toThrow();
+    expect(() => assertFundingAmount(1_000_000)).not.toThrow();
   });
 
-  test.each([0, 99, 50_001, 10.5, Number.NaN])(
+  test.each([0, 99, 2_147_483_648, 10.5, Number.NaN])(
     "rejects unsafe funding amount %s",
     (amount) => expect(() => assertFundingAmount(amount)).toThrow(),
   );

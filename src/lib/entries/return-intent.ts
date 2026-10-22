@@ -1,23 +1,23 @@
+import { isEntryQuantity, parseEntryQuantity } from "./quantity";
+export { parseEntryQuantity } from "./quantity";
+
 const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const quantityPattern = /^(?:[1-9]|10)$/;
 const storageKey = "zero-loss-entry-intent-v1";
 const maxAgeMs = 24 * 60 * 60 * 1000;
 
 export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number };
 
-export function parseEntryQuantity(value: unknown): number | null {
-  return typeof value === "string" && quantityPattern.test(value) ? Number(value) : null;
-}
-
 export function productEntryHref(slug: string, quantity = 1): string {
   if (!productSlugPattern.test(slug)) return "/browse";
-  const selected = Number.isInteger(quantity) && quantity >= 1 && quantity <= 10 ? quantity : 1;
+  const selected = isEntryQuantity(quantity) ? quantity : 1;
   return `/items/${slug}${selected > 1 ? `?quantity=${selected}` : ""}#enter-entry`;
 }
 
 /** Mark a successful demo-funding return so the entry button can give a one-time cue. */
 export function fundedProductEntryHref(href: string): string {
-  if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?quantity=(?:[1-9]|10))?#enter-entry$/.test(href)) return href;
+  if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?quantity=[1-9]\d*)?#enter-entry$/.test(href)) return href;
+  const selected = new URL(href, "https://navigation.invalid").searchParams.get("quantity");
+  if (selected !== null && parseEntryQuantity(selected) === null) return href;
   const [path, hash] = href.split("#");
   return `${path}${path.includes("?") ? "&" : "?"}funded=1#${hash}`;
 }
@@ -36,7 +36,7 @@ function validIntent(value: unknown): value is EntryIntent {
   const intent = value as Partial<EntryIntent>;
   return typeof intent.slug === "string" && productSlugPattern.test(intent.slug)
     && typeof intent.title === "string" && intent.title.length > 0 && intent.title.length <= 160 && !/[\u0000-\u001f]/.test(intent.title)
-    && typeof intent.quantity === "number" && Number.isInteger(intent.quantity) && intent.quantity >= 1 && intent.quantity <= 10
+    && isEntryQuantity(intent.quantity)
     && typeof intent.savedAt === "number" && Number.isFinite(intent.savedAt) && intent.savedAt <= Date.now() && Date.now() - intent.savedAt < maxAgeMs;
 }
 

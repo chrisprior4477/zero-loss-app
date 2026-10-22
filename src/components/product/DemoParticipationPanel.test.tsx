@@ -346,11 +346,11 @@ test("a server-side balance change shows the funding toast without trusting stal
   expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
 });
 
-test("the quantity is capped at ten, total uses cents, and reducing stops at one", () => {
+test("quantity can exceed ten up to actual availability, total uses cents, and reducing stops at one", () => {
   render(<DemoParticipationPanel {...props} entryPrice={0.1} isSignedIn extraEntryExplainerAcknowledged />);
   for (let i = 0; i < 12; i++) fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("10");
-  expect(screen.getByRole("button", { name: "Enter for $1.00" })).toBeTruthy();
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("11");
+  expect(screen.getByRole("button", { name: "Enter for $1.10" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Add one entry" }).hasAttribute("disabled")).toBe(true);
   for (let i = 0; i < 12; i++) fireEvent.click(screen.getByRole("button", { name: "Remove one entry" }));
   expect(screen.getByTestId("entry-quantity").textContent).toBe("1");

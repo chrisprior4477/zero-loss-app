@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isFundingAmount } from "./provider";
 import { DEMO_CARD_TOKEN, demoCardFixture, parseDemoCard, parseDemoCards, type DemoCard, type DemoCardToken } from "./demo-card";
 
 export type DemoFundingRequest = {
@@ -73,8 +74,8 @@ export class DemoPaymentProvider {
   async getRequests(): Promise<DemoFundingRequest[]> {
     const { data, error } = await this.db.rpc("get_demo_funding_requests");
     if (error) throw new FundingFailure(error.code, error.message);
-    if (!Array.isArray(data) || data.some(row => !row || typeof row.id !== "string" || !Number.isSafeInteger(row.amount)
-      || row.amount < 100 || row.amount > 50000 || row.currency !== "USD" || typeof row.created_at !== "string"
+    if (!Array.isArray(data) || data.some(row => !row || typeof row.id !== "string" || !isFundingAmount(row.amount)
+      || row.currency !== "USD" || typeof row.created_at !== "string"
       || typeof row.idempotencyKey !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(row.idempotencyKey)
       || !["not_processed", "credit_pending", "reconciled", "discrepancy"].includes(row.reconciliation))) {
       throw new Error("Invalid funding request list");

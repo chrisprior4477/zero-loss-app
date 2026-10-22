@@ -105,7 +105,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','99999999-9999-4999-8999-999999999992',true);
 select set_config('request.jwt.claims','{"sub":"99999999-9999-4999-8999-999999999992","iss":"https://ocgdfnvvjvutevgqzzgj.supabase.co/auth/v1"}',true);
 select lives_ok($$ select public.create_preview_entry('active-product-five','rate_limit_public_key_10') $$,'tenth entry in one minute is allowed');
-select throws_ok($$ select public.create_preview_entry('samsung-m70h-tv','rate_limit_public_key_11') $$,'P0001','Demo limit: ten entries per minute.','eleventh rapid entry is rejected by the database');
+select lives_ok($$ select public.create_preview_entry('samsung-m70h-tv','rate_limit_public_key_11') $$,'eleventh rapid entry is allowed');
 reset role;
 
 select * from finish();

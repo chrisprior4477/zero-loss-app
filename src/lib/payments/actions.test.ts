@@ -35,7 +35,7 @@ test("request, durable provider and verified consumer run in order and refresh s
   expect(mocks.rpc).toHaveBeenCalledWith("accept_demo_payment_event", { p_body: "signed-by-demo-provider", p_signature: "provider-signature" });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
 });
-test("$500 remains the per-deposit maximum without a cumulative wallet cap", async () => {
+test("deposits above $500 pass through to the authorized provider", async () => {
   const maximum = form();
   maximum.set("amountCents", "50000");
   expect((await completeDemoFunding({ status: "idle" }, maximum)).status).toBe("succeeded");
@@ -44,7 +44,7 @@ test("$500 remains the per-deposit maximum without a cumulative wallet cap", asy
   });
   const overMaximum = form();
   overMaximum.set("amountCents", "50100");
-  expect((await completeDemoFunding({ status: "idle" }, overMaximum)).status).toBe("error");
+  expect((await completeDemoFunding({ status: "idle" }, overMaximum)).status).toBe("succeeded");
 });
 test("replaying a credited request never claims a second deposit", async () => {
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "ensure_preview_customer" ? { walletAccountId: sid, scope: "demo", fundingAvailable: true }
@@ -85,7 +85,7 @@ test.each(["EUR", "", "usd"])("rejects altered currency %s before database acces
   const f = form(); f.set("currency", currency);
   expect((await completeDemoFunding({ status: "idle" }, f)).status).toBe("error"); expect(mocks.rpc).not.toHaveBeenCalled();
 });
-test.each(["0", "99", "50001", "2500.5", "NaN", "Infinity"])("rejects unsafe amount %s", async amount => {
+test.each(["0", "99", "2147483648", "2500.5", "NaN", "Infinity"])("rejects unsafe amount %s", async amount => {
   const f = form(); f.set("amountCents", amount);
   expect((await completeDemoFunding({ status: "idle" }, f)).status).toBe("error"); expect(mocks.rpc).not.toHaveBeenCalled();
 });
@@ -118,8 +118,8 @@ test.each(["simulate_demo_payment", "accept_demo_payment_event"])("lost %s respo
   if (lost === "simulate_demo_payment") expect(mocks.rpc.mock.calls.some(call => call[0] === "accept_demo_payment_event")).toBe(false);
 });
 test("database rate limit stops before provider simulation", async () => {
-  mocks.rpc.mockImplementation(async name => name === "ensure_preview_customer" ? { data: { walletAccountId: sid, scope: "demo", fundingAvailable: true } } : name === "get_wallet_snapshot" ? { data: snapshot } : { error: { code: "P0001", message: "Demo limit reached" } });
-  expect(await completeDemoFunding({ status: "idle" }, form())).toEqual({ status: "error", message: "Demo limit reached" });
+  mocks.rpc.mockImplementation(async name => name === "ensure_preview_customer" ? { data: { walletAccountId: sid, scope: "demo", fundingAvailable: true } } : name === "get_wallet_snapshot" ? { data: snapshot } : { error: { code: "P0001", message: "Resolve your pending demo payments before starting another." } });
+  expect(await completeDemoFunding({ status: "idle" }, form())).toEqual({ status: "error", message: "Resolve your pending demo payments before starting another." });
   expect(mocks.rpc).toHaveBeenCalledTimes(3);
 });
 test("reconciliation retries existing session, never creates a replacement", async () => {

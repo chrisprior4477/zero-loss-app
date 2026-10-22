@@ -1,0 +1,13 @@
+---
+description: No artificial demo deposit or customer ticket purchase quotas anywhere in the MVP.
+alwaysApply: true
+---
+
+# Owner-approved purchasing policy — October 22, 2026
+
+- Do not impose demo per-minute, per-day, lifetime, per-deposit, per-submission, or per-customer ticket purchase quotas. The former 10-ticket, 100-ticket/day, 3-deposit/minute, 20-deposit/day and $500 deposit caps are retired site-wide.
+- Customers may select any available ticket quantity and deposit an amount they choose. Preserve the existing $1 funding minimum and exact, representable integer cents/quantities; machine representation boundaries are not business allowances.
+- Enforce actual prize capacity, eligibility, sufficient ledger-backed funds, authentication, ownership, confirmation, idempotency, and concurrency protections. Never enable real payments as part of removing demo quotas.
+- Preserve password/authentication abuse protections and reconciliation of uncertain payments. These are security/integrity checks, not completed-purchase quotas.
+- Apply this policy consistently to UI controls/copy, navigation and recovery, server actions, database constraints, and all active writers. Do not restore old caps from historical migrations or generic architecture examples.
+- Test quantities above 10 and 100, deposits above $500 and more than 20 repeated deposits, retry safety, insufficient funds, sold-out prizes, and clearing funded balances. Keep ledger history and sample data intact.

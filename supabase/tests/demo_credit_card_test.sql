@@ -38,8 +38,8 @@ select is(public.get_demo_payment_method()->>'isDefault','false','opt out persis
 select lives_ok($$select public.create_demo_card_funding_session(2500,'card_request_key_01','demo_card_4242',true)$$,'old payment can still be recovered');
 select is(public.get_demo_payment_method()->>'isDefault','false','old replay never overwrites newer preference');
 select lives_ok($$select public.create_demo_card_funding_session(100,'card_request_key_03','demo_card_4242',false)$$,'third request allowed');
-select throws_ok($$select public.create_demo_card_funding_session(100,'card_request_key_04','demo_card_4242',true)$$,'P0001','Demo limit: three new requests per minute. Retry this request later.','card path retains DB-enforced rate limit');
-select is(public.get_demo_payment_method()->>'isDefault','false','limited request does not change default');
+select lives_ok($$select public.create_demo_card_funding_session(100,'card_request_key_04','demo_card_4242',true)$$,'fourth rapid card request is allowed');
+select is(public.get_demo_payment_method()->>'isDefault','true','successful request saves the selected default');
 select throws_ok($$select public.resume_demo_funding_session(100,'card_missing_key_99')$$,'P0001',null,'recovery cannot create a new request');
 select throws_ok($$select * from demo_private.customer_payment_methods$$,'42501',null,'direct private card reads denied');
 select throws_ok($$update demo_private.customer_payment_methods set is_default=true$$,'42501',null,'direct private card writes denied');
@@ -53,7 +53,7 @@ select throws_ok($$select public.create_demo_card_funding_session(100,'card_wron
 select throws_ok($$select public.get_demo_payment_method()$$,'42501',null,'wrong issuer cannot read methods');
 reset role;
 select is((select count(*)::integer from demo_private.customer_payment_methods where customer_id='98999999-9999-4999-8999-999999999991'),1,'one simulated method per account, not an unlimited card creator');
-select is((select count(*)::integer from demo_private.funding_payment_methods where customer_id='98999999-9999-4999-8999-999999999991'),3,'one immutable method association per request');
+select is((select count(*)::integer from demo_private.funding_payment_methods where customer_id='98999999-9999-4999-8999-999999999991'),4,'one immutable method association per request');
 select throws_ok($$update demo_private.funding_payment_methods set make_default=false where customer_id='98999999-9999-4999-8999-999999999991'$$,'55000',null,'financial request method snapshot immutable');
 select throws_ok($$delete from demo_private.funding_payment_methods where customer_id='98999999-9999-4999-8999-999999999991'$$,'55000',null,'financial method audit history cannot be deleted');
 select throws_ok($$insert into demo_private.funding_payment_methods(session_id,customer_id,provider_token,make_default)

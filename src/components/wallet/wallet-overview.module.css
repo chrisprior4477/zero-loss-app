@@ -172,6 +172,7 @@
 .fundingAmountLabel { display: block; min-width: 0; color: #0b1940; font-size: 14px; font-weight: 800; }
 .fundingAmountControl { display: block; width: 100%; min-height: 52px; margin-top: 9px; padding: 10px 14px; border: 1px solid #b7ccdc; border-radius: 9px; background: #fff; color: #0b1940; font: inherit; font-size: 17px; }
 .fundingAmountControl:focus-visible { outline: 3px solid #63caff; outline-offset: 2px; }
+.fundingAmountControl::placeholder { font-size: clamp(11px, 3.5vw, 17px); }
 .fundingAmountError { color: #a12424; font-size: 13px; font-weight: 750; }
 .fundingSubmit { min-height: 52px; width: 100%; border: 0; border-radius: 9px; background: #0872fb; color: #fff; font-size: 17px; font-weight: 850; cursor: pointer; }
 .fundingSubmitAdd { background: #31e800; color: #002719; }

@@ -1,3 +1,5 @@
+import { parseEntryQuantity } from "@/lib/entries/quantity";
+
 type Query = Record<string, string | string[] | undefined>;
 const slug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const identifier = /^[a-zA-Z0-9_-]{1,80}$/;
@@ -9,7 +11,7 @@ const routes: Record<string, { query: Record<string, (value: string) => boolean>
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), viewed: matches(identifier), filter: oneOf("all", "active", "prize", "completion", "completed") } },
   "/account/declined-offers": { query: {} },
   "/account/favorites": { query: {} },
-  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: matches(/^(?:[1-9]|10)$/), transaction: matches(uuid) }, hash: /^#(?:add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
+  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid) }, hash: /^#(?:add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
   "/account/crew": { query: { member: matches(uuid), tab: oneOf("crew", "requests", "picks"), request: matches(uuid), invite: matches(uuid) }, hash: /^#(?:sharing|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {} },
   "/account/notifications": { query: {} },

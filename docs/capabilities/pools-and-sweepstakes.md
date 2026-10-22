@@ -1764,6 +1764,14 @@ Such a correction must not silently alter the authoritative Draw population.
 
 # 30. Entry Limits
 
+**Owner-approved MVP policy, October 22, 2026:** no artificial demo rate/day,
+per-submission, per-customer, or lifetime ticket-purchase quotas apply. Customers
+may buy the available quantity with sufficient Playable Balance. The generic
+configuration examples below do not authorize reintroducing retired quotas.
+Capacity, eligibility, exact integer representation, authorization, idempotency,
+and ledger/concurrency controls remain mandatory. See
+`.cursor/rules/demo-purchase-policy.mdc`.
+
 Participation limits protect operational fairness and support approved promotional rules.
 
 Examples include:

@@ -209,6 +209,12 @@ Suggested quick funding options may include:
 
 Additional funding methods are defined within the Payments & Payouts Specification.
 
+**Owner-approved MVP policy, October 22, 2026:** the former $500 per-deposit
+ceiling and demo minute/day/lifetime funding quotas are removed. Customers choose
+their deposit amount, with the existing $1 minimum and exact integer-cent storage
+validation retained. Confirmation, authentication, pending-payment recovery, and
+idempotent ledger posting remain required. No real payment processing is enabled.
+
 In the MVP environment, Add Funds opens the Demo Payment Provider through the
 ordinary funding UI. The provider component must display **“Simulation only — no
 payment will be processed.”** The balance itself remains ledger-derived and must

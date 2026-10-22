@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { completeDemoFunding, deleteDemoPaymentMethod, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
+import { isFundingAmount } from "@/lib/payments/provider";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken } from "@/lib/payments/demo-card";
 import styles from "./wallet-overview.module.css";
@@ -25,7 +26,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   const [amount, setAmount] = useState(initialAmount);
   const [customAmount, setCustomAmount] = useState(() => presetAmounts.includes(initialAmount) ? "" : String(Number(initialAmount) / 100));
   const selectedPreset = customAmount ? "" : presetAmounts.includes(amount) ? amount : "";
-  const amountIsValid = Number.isSafeInteger(Number(amount)) && Number(amount) >= 100 && Number(amount) <= 50_000;
+  const amountIsValid = isFundingAmount(Number(amount));
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
   const [visibleTokens, setVisibleTokens] = useState<DemoCardToken[]>(() => cards.length ? cards.map(card => card.token) : [DEMO_CARD_TOKEN]);
   const [selectedToken, setSelectedToken] = useState<DemoCardToken | null>(initialToken ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
@@ -167,7 +168,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
         </select>
       </label>
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-custom-amount">Add specific amount (USD)
-        <input id="demo-funding-custom-amount" type="text" inputMode="numeric" autoComplete="off" placeholder="Enter up to $500" value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
+        <input id="demo-funding-custom-amount" type="text" inputMode="numeric" autoComplete="off" placeholder="Enter the amount you want to deposit" value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
           const dollars = event.target.value.replace(/\D/g, "");
           setCustomAmount(dollars);
           setAmount(dollars ? String(Number(dollars) * 100) : "");
@@ -175,7 +176,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
       </label>
       </div>
     </div>
-    {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter a whole-dollar amount from $1 to $500.</p> : null}
+    {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter a whole-dollar amount of at least $1 that can be represented safely.</p> : null}
     <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
@@ -190,7 +191,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
-    <p className="text-xs leading-5 text-[#b5cce4]">Only a test-card reference and your preference are saved—not a card number or security code. You can add up to $500 per deposit; there is no wallet-balance cap. Demo requests are limited to 3/minute and 20/day.</p>
+    <p className="text-xs leading-5 text-[#b5cce4]">Only a test-card reference and your preference are saved—not a card number or security code.</p>
   </form>;
 }
 
@@ -212,7 +213,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     try {
       const value = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
       if (value && typeof value.key === "string" && /^[A-Za-z0-9_-]{16,128}$/.test(value.key)
-        && Number.isSafeInteger(Number(value.amount)) && Number(value.amount) >= 100 && Number(value.amount) <= 50_000 && Number(value.amount) % 100 === 0) saved = {
+        && isFundingAmount(Number(value.amount)) && Number(value.amount) % 100 === 0) saved = {
           key: value.key, amount: value.amount,
           initialDefault: typeof value.makeDefault === "boolean" ? value.makeDefault : undefined,
           initialToken: demoCardFixture(value.paymentMethod)?.token,

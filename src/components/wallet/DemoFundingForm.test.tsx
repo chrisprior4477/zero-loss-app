@@ -118,7 +118,7 @@ test("custom whole-dollar amounts replace the preset and use the same confirmati
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
   expect(custom.inputMode).toBe("numeric");
-  expect(custom.placeholder).toBe("Enter up to $500");
+  expect(custom.placeholder).toBe("Enter the amount you want to deposit");
   fireEvent.change(custom, { target: { value: "500" } });
   expect(custom.value).toBe("$500");
   expect(custom.checkValidity()).toBe(true);
@@ -164,9 +164,12 @@ test("a $500 deposit can be confirmed even when earlier deposits exceed $1,000",
 test("choosing a preset clears the custom amount and invalid custom amounts cannot advance", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
-  fireEvent.change(custom, { target: { value: "1000" } });
+  fireEvent.change(custom, { target: { value: "10000" } });
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("1000000");
+  fireEvent.change(custom, { target: { value: "0" } });
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByRole("alert").textContent).toContain("$500");
+  expect(screen.getByRole("alert").textContent).toContain("at least $1");
   fireEvent.change(screen.getByLabelText("Amount (USD)"), { target: { value: "10000" } });
   expect(custom.value).toBe("");
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("10000");

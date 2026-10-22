@@ -3,14 +3,15 @@ import { clearEntryIntent, currentProductEntryHref, fundedProductEntryHref, pars
 
 afterEach(() => { sessionStorage.clear(); vi.restoreAllMocks(); });
 
-test("a product return carries only a bounded ticket count to the entry section", () => {
+test("a product return carries any representable ticket count to the entry section", () => {
   expect(productEntryHref("dyson-v8-cordless-vacuum", 3)).toBe("/items/dyson-v8-cordless-vacuum?quantity=3#enter-entry");
   expect(productEntryHref("dyson-v8-cordless-vacuum")).toBe("/items/dyson-v8-cordless-vacuum#enter-entry");
   expect(productEntryHref("../account", 3)).toBe("/browse");
-  expect(productEntryHref("dyson-v8-cordless-vacuum", 100)).toBe("/items/dyson-v8-cordless-vacuum#enter-entry");
+  expect(productEntryHref("dyson-v8-cordless-vacuum", 100)).toBe("/items/dyson-v8-cordless-vacuum?quantity=100#enter-entry");
   expect(parseEntryQuantity("10")).toBe(10);
   expect(parseEntryQuantity("0")).toBeNull();
-  expect(parseEntryQuantity("11")).toBeNull();
+  expect(parseEntryQuantity("11")).toBe(11);
+  expect(parseEntryQuantity("2147483648")).toBeNull();
   expect(parseEntryQuantity(["2", "3"])).toBeNull();
 });
 

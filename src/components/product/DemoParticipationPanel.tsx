@@ -63,7 +63,7 @@ export function DemoParticipationPanel({
   const router = useRouter();
   const availability = availabilityStatus(capacity, sold);
   const remaining = availability.remaining;
-  const maxQuantity = Math.min(10, remaining);
+  const maxQuantity = remaining;
   // A lost response must retry the exact intent. Server comparison also protects
   // reloads/new tabs, where this transient form memory has been lost.
   const attemptedForm = useRef<FormData | null>(null);
@@ -322,7 +322,7 @@ export function DemoParticipationPanel({
           <p className={quantityTicketStyles.label}>Add extra entries</p>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
-            <span className="w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
+            <span className="min-w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
             <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#29ed14] bg-[#43f027] text-xl font-black text-[#002719] shadow-[0_0_15px_rgba(67,240,39,.72)] transition hover:bg-[#6aff50] hover:shadow-[0_0_22px_rgba(81,255,59,.95)] disabled:cursor-not-allowed disabled:border-[#91b2cf] disabled:bg-[#d9e9f5] disabled:text-[#7794ac] disabled:shadow-none" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
           </div>
         </fieldset>

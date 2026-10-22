@@ -45,7 +45,7 @@ select is(public.get_wallet_snapshot()->>'balanceCents','2500','replay leaves ba
 select is(public.get_wallet_snapshot()->>'transactionCount','1','one immutable credit only');
 select lives_ok($$ select public.create_demo_funding_session(100,'funding_test_key_02') $$,'second request allowed');
 select lives_ok($$ select public.create_demo_funding_session(100,'funding_test_key_03') $$,'third request allowed');
-select throws_ok($$ select public.create_demo_funding_session(100,'funding_test_key_04') $$,'P0001','Demo limit: three new requests per minute. Retry this request later.','fourth rapid request rejected by database');
+select lives_ok($$ select public.create_demo_funding_session(100,'funding_test_key_04') $$,'fourth rapid request is allowed');
 select lives_ok($$ select public.create_demo_funding_session(2500,'funding_test_key_01') $$,'exact retry still allowed at limit');
 reset role;
 select is((select count(*)::integer from demo_private.provider_receipts where session_id=current_setting('test.sid')::uuid),1,'one provider payment');
@@ -65,7 +65,7 @@ select w.customer_id,100,'pending_limit_request_'||n,w.id,'created',now()-interv
  from public.wallet_accounts w cross join generate_series(1,3) n where w.customer_id='77777777-7777-4777-8777-777777777774';
 set local role authenticated;
 set local request.jwt.claim.sub='77777777-7777-4777-8777-777777777772';
-select throws_ok($$ select public.create_demo_funding_session(100,'daily_limit_request_21') $$,'P0001','Demo limit: twenty new requests per day.','daily count survives different request keys');
+select lives_ok($$ select public.create_demo_funding_session(100,'daily_limit_request_21') $$,'twenty-first daily request is allowed');
 select is((select count(*)::integer from public.ledger_entries),0,'RLS hides another customer credit');
 set local request.jwt.claim.sub='77777777-7777-4777-8777-777777777773';
 select lives_ok($$ select public.create_demo_funding_session(100,'total_limit_request_03') $$,'funding beyond the removed lifetime ceiling remains available');

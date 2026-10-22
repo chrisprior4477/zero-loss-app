@@ -45,9 +45,15 @@ export interface PaymentProvider {
   getFundingStatus(sessionId: string): Promise<FundingStatus>;
 }
 
+export function isFundingAmount(amountCents: number): boolean {
+  // Preserve exact integer cents supported by the existing ledger/RPC storage.
+  // This is a representation boundary, not a demo deposit or account quota.
+  return Number.isSafeInteger(amountCents) && amountCents >= 100 && amountCents <= 2_147_483_647;
+}
+
 export function assertFundingAmount(amountCents: number): void {
-  if (!Number.isSafeInteger(amountCents) || amountCents < 100 || amountCents > 50_000) {
-    throw new Error("Funding amount must be between $1 and $500 in whole cents.");
+  if (!isFundingAmount(amountCents)) {
+    throw new Error("Enter an amount of at least $1 in whole cents that can be represented safely.");
   }
 }
 

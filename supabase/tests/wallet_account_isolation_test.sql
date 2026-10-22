@@ -60,8 +60,8 @@ select throws_ok($$ select public.create_demo_funding_session(null, 'test_fundin
   '22023', null, 'null amount rejected');
 select throws_ok($$ select public.create_demo_funding_session(99, 'test_funding_0002') $$,
   '22023', null, 'amount below minimum rejected');
-select throws_ok($$ select public.create_demo_funding_session(50001, 'test_funding_0002') $$,
-  '22023', null, 'amount above maximum rejected');
+select lives_ok($$ select public.create_demo_funding_session(50001, 'test_funding_0002') $$,
+  'amount above the retired $500 maximum is allowed');
 select throws_ok($$ select public.create_demo_funding_session(2500, null) $$,
   '22023', null, 'null request key rejected');
 select throws_ok($$ select public.create_demo_funding_session(2500, 'short') $$,
@@ -70,7 +70,7 @@ select is(public.get_wallet_snapshot()->>'balanceCents', '0', 'creating a reques
 
 reset role;
 select is((select count(*)::int from public.demo_funding_sessions where customer_id = '33333333-3333-4333-8333-333333333333'),
-  1, 'exactly one request persisted after retries and rejected changes');
+  2, 'two distinct requests persist, including the deposit above $500; retries create none');
 select throws_ok($$ update public.demo_funding_sessions set amount = 9999 where id = current_setting('test.session_a')::uuid $$,
   '55000', 'Funding session identity and amount are immutable', 'even an owner-level edit cannot change the recorded request amount');
 

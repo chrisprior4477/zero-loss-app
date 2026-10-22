@@ -6,6 +6,7 @@ import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 import { entryReceiptHref, parseEntryRequest, type EntryRequest } from "./request";
+import { isEntryQuantity } from "./quantity";
 
 export type PreviewEntryActionState =
   | { status: "idle" }
@@ -79,7 +80,7 @@ export async function createPreviewEntry(
   const quantity = Number(formData.get("quantity") ?? "1");
   const shareWithCrew = formData.get("shareWithCrew") === "yes";
   const previousRequestId = String(formData.get("previousRequestId") ?? "");
-  if (!slugPattern.test(offeringSlug) || !keyPattern.test(idempotencyKey) || !Number.isInteger(quantity) || quantity < 1 || quantity > 10 ||
+  if (!slugPattern.test(offeringSlug) || !keyPattern.test(idempotencyKey) || !isEntryQuantity(quantity) ||
     (previousRequestId !== "" && !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(previousRequestId))) {
     return { status: "error", message: "This entry request is invalid. Refresh the page and try again." };
   }

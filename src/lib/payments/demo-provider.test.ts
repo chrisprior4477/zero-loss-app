@@ -16,6 +16,12 @@ test.each([null, {}, [{ id: "a", amount: 0, currency: "USD", created_at: "2026-0
   await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).getRequests()).rejects.toThrow();
 });
 
+test("large deposits stay readable in owner history and recovery", async () => {
+  const request = { id: "request-large", amount: 1000000, currency: "USD", status: "succeeded", created_at: "2026-10-22T20:00:00Z", idempotencyKey: "large_request_key_01", reconciliation: "reconciled" };
+  const rpc = vi.fn().mockResolvedValue({ data: [request] });
+  await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).getRequests()).resolves.toEqual([request]);
+});
+
 test("owner request history includes the original retry key and rejects a missing one", async () => {
   const request = { id: "request-1", amount: 2500, currency: "USD", status: "succeeded", created_at: "2026-10-14T20:00:00Z", idempotencyKey: "original_request_key_01", reconciliation: "reconciled" };
   const rpc = vi.fn().mockResolvedValueOnce({ data: [request] }).mockResolvedValueOnce({ data: [{ ...request, idempotencyKey: undefined }] });

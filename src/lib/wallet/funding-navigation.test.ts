@@ -17,7 +17,7 @@ test("funding links target the form and retain the originating prize", () => {
   expect(fundingReturnPath(fundingHref("samsung-m70h-tv"))).toBe(fundingHref("samsung-m70h-tv"));
   expect(fundingHref("samsung-m70h-tv", undefined, 4)).toBe("/account/wallet?view=history&from=samsung-m70h-tv&quantity=4#add-funds");
   expect(fundingReturnPath(fundingHref("samsung-m70h-tv", undefined, 4))).toBe(fundingHref("samsung-m70h-tv", undefined, 4));
-  expect(fundingHref("samsung-m70h-tv", undefined, 11)).toBe(fundingHref("samsung-m70h-tv"));
+  expect(fundingHref("samsung-m70h-tv", undefined, 111)).toBe("/account/wallet?view=history&from=samsung-m70h-tv&quantity=111#add-funds");
   expect(fundingHref("samsung-m70h-tv", "ent_11111111111111111111111111111111", 4)).not.toContain("quantity=");
 });
 
@@ -37,7 +37,7 @@ test.each([
   "/account/wallet?view=card#add-funds",
   "/account/wallet?view=history#transactions",
   "/account/wallet?view=history#add-funds\n",
-  "/account/wallet?view=history&from=thing&quantity=11#add-funds",
+  "/account/wallet?view=history&from=thing&quantity=2147483648#add-funds",
   "/account/wallet?view=history&from=thing&quantity=2&quantity=3#add-funds",
   null,
   ["/account/wallet?view=history#add-funds"],

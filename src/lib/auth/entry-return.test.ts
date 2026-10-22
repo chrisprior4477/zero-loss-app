@@ -22,7 +22,7 @@ test("rejects external or unrelated sign-in destinations", () => {
   expect(entryReturnPath("//example.com/items/thing#enter-entry")).toBeNull();
   expect(entryReturnPath("/account/wallet")).toBeNull();
   expect(entryReturnPath("/items/../account#enter-entry")).toBeNull();
-  for (const value of ["/items/thing?quantity=0#enter-entry", "/items/thing?quantity=11#enter-entry", "/items/thing?quantity=2&next=https://evil.test#enter-entry", "/items/thing?quantity=2&quantity=3#enter-entry"]) {
+  for (const value of ["/items/thing?quantity=0#enter-entry", "/items/thing?quantity=2147483648#enter-entry", "/items/thing?quantity=2&next=https://evil.test#enter-entry", "/items/thing?quantity=2&quantity=3#enter-entry"]) {
     expect(entryReturnPath(value)).toBeNull();
   }
 });
