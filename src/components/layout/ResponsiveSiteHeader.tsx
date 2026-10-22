@@ -25,6 +25,8 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
   const { size: logoSize } = useMobileLogoSize();
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const [searchSession, setSearchSession] = useState({ layout, pathname, open: false });
@@ -43,10 +45,18 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
   useLayoutEffect(() => {
     const header = headerRef.current;
     if (!header || preview) return;
-    const measure = () => document.documentElement.style.setProperty("--site-header-height", `${header.getBoundingClientRect().height}px`);
+    const measure = () => {
+      const headerHeight = header.getBoundingClientRect().height;
+      // Equal desktop gutters keep search centered even when balance/count widths change.
+      const sideWidth = Math.max(logoRef.current?.getBoundingClientRect().width ?? 0, accountRef.current?.getBoundingClientRect().width ?? 0);
+      document.documentElement.style.setProperty("--site-header-height", `${headerHeight}px`);
+      header.style.setProperty("--desktop-header-side-width", `${sideWidth}px`);
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(header);
+    if (logoRef.current) observer.observe(logoRef.current);
+    if (accountRef.current) observer.observe(accountRef.current);
     return () => observer.disconnect();
   }, [layout, expanded, preview]);
 
@@ -78,12 +88,12 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
   return <>
     <header ref={headerRef} data-menu-layout={layout} data-search-open={expanded} data-menu-preview={preview ? "true" : undefined} style={{ "--mobile-logo-scale": 1 + logoSize / 100 } as CSSProperties} className={`${preview ? "" : "sticky"} ${styles.header}`}>
       <div className={styles.topRow}>
-        <div className={styles.logo}>{logo}</div>
+        <div ref={logoRef} className={styles.logo}>{logo}</div>
         <button ref={toggleRef} type="button" className={styles.searchToggle} aria-label="Open search" aria-expanded={expanded} aria-controls={preview ? "preview-menu-search" : "mobile-menu-search"} onClick={openSearch}>
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="10" cy="10" r="6.5" /><path d="m15 15 6 6" /></svg>
         </button>
         {!preview ? <div className={styles.desktopSearch}><Suspense fallback={<DesktopHeaderSearchFallback />}><DesktopHeaderSearch /></Suspense></div> : null}
-        <div className={styles.accountControls}>{metrics}{accountMenu}</div>
+        <div ref={accountRef} className={styles.accountControls}>{metrics}{accountMenu}</div>
       </div>
       <div id={preview ? "preview-menu-search" : "mobile-menu-search"} ref={searchRef} className={styles.mobileSearchRow}>
         <div className={styles.shortcuts} aria-hidden={expanded || undefined} inert={expanded || undefined}>

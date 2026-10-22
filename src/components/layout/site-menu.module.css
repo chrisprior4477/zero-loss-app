@@ -93,6 +93,17 @@
   .pageCategories:not([data-menu-preview]) { display: none; }
 }
 @media (min-width: 1024px) { .header:not([data-menu-preview]) .topRow { gap: 24px; } .header:not([data-menu-preview]) .logo img { height: 32px; } .header:not([data-menu-preview]) .accountControls { gap: 20px; } .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { padding: 0 16px; } }
+@media (min-width: 1024px) {
+  /* Center against the full header, with equal room for the wider side plus padding/gap. */
+  .header:not([data-menu-preview]) .desktopSearch {
+    position: absolute;
+    inset-inline: 0;
+    margin-inline: auto;
+    flex: none;
+    width: min(700px, calc(100% - (var(--desktop-header-side-width, 320px) + 40px) * 2));
+  }
+  .header:not([data-menu-preview]) .desktopSearch form { min-width: 0; }
+}
 @media (max-width: 374px) {
   .topRow { gap: 3px; padding-inline: 6px; }
   .header:not([data-menu-preview]) .logo { flex-basis: calc(84px * var(--mobile-logo-scale, 1)); width: calc(84px * var(--mobile-logo-scale, 1)); }

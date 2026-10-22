@@ -23,6 +23,23 @@ function setup(layout: MenuLayout) {
   return { ...result, mobile, header: result.container.querySelector("header")! };
 }
 
+test("desktop centering reserves the wider side and remeasures changing account controls", () => {
+  let accountWidth = 245;
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    const width = this.className.includes("accountControls") ? accountWidth : this.className.includes("logo") ? 174 : 1280;
+    return { width, height: this.tagName === "HEADER" ? 111 : 44, x: 0, y: 0, top: 0, bottom: 44, left: 0, right: width, toJSON: () => ({}) };
+  });
+  const { header } = setup("classic");
+  expect(header.style.getPropertyValue("--desktop-header-side-width")).toBe("245px");
+  expect(document.documentElement.style.getPropertyValue("--site-header-height")).toBe("111px");
+  accountWidth = 310;
+  act(() => resized());
+  expect(header.style.getPropertyValue("--desktop-header-side-width")).toBe("310px");
+  accountWidth = 120;
+  act(() => resized());
+  expect(header.style.getPropertyValue("--desktop-header-side-width")).toBe("174px");
+});
+
 test.each(menuLayouts)("$name exposes just the header ticket artwork for resizing", ({ id }) => {
   const { header } = setup(id);
   const entries = within(header).getByRole("link", { name: "11 active entries" });

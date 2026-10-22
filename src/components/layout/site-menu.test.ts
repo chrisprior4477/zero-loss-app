@@ -43,6 +43,23 @@ test("mobile Search and account controls split the free space evenly", () => {
   expect(declarations(".accountControls")["margin-left"]).toBe("auto");
 });
 
+test("full-header search centering applies only at desktop widths and excludes mobile previews", () => {
+  const matches: string[] = [];
+  parse(css).walkRules(rule => {
+    if (!rule.selectors.includes(".header:not([data-menu-preview]) .desktopSearch")) return;
+    rule.walkDecls("position", declaration => {
+      if (declaration.value !== "absolute") return;
+      expect(rule.parent?.type).toBe("atrule");
+      if (rule.parent?.type === "atrule") matches.push(rule.parent.params);
+    });
+  });
+  expect(matches).toEqual(["(min-width: 1024px)"]);
+  expect(declarations(".header:not([data-menu-preview]) .desktopSearch")).toMatchObject({
+    "inset-inline": "0", "margin-inline": "auto",
+    width: "min(700px, calc(100% - (var(--desktop-header-side-width, 320px) + 40px) * 2))",
+  });
+});
+
 test("Search pulses only its magnifying glass and never draws a pulse ring", () => {
   const selector = '.header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"])[data-search-open="false"] .searchToggle';
   expect(declarations(selector).animation).toBeUndefined();
