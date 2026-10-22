@@ -21,21 +21,26 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); document.body.style.overflow = ""; });
 
-test("Open Entries links to its filter area and introduces only the entered prizes", () => {
+test.each([
+  ["all", "This is all of your activity"],
+  ["active", "The prizes you've entered"],
+  ["prize", "These are the prizes you won"],
+  ["completion", "These are your purchase options"],
+  ["completed", "Prizes won & completed purchases"],
+] as const)("%s introduces its own activity and removes the redundant gallery captions", (filter, label) => {
   const state = storedActivityFixture();
-  const { rerender } = render(<MyZeroLossActivity state={state} filter="active" />);
+  const { rerender } = render(<MyZeroLossActivity state={state} filter={filter} />);
   const filters = screen.getByRole("navigation", { name: "Filter My Activity" });
   expect(filters.id).toBe("my-activity-filters");
   expect(within(filters).getByRole("link", { name: /See Open Entries/ }).getAttribute("href")).toBe("/account/entries?filter=active#my-activity-filters");
-  const heading = screen.getByRole("heading", { name: "The prizes you've entered" });
+  const heading = screen.getByRole("heading", { name: label });
   expect(heading.nextElementSibling?.contains(screen.getByRole("region", { name: "Your products" }))).toBe(true);
-  for (const filter of ["all", "prize", "completion", "completed"] as const) {
-    rerender(<MyZeroLossActivity state={state} filter={filter} />);
-    expect(screen.queryByText("The prizes you've entered")).toBeNull();
-    expect(screen.getByRole("link", { name: /Purchase Options/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
-  }
-  rerender(<MyZeroLossActivity state={drawerState(true)} filter="active" />);
-  expect(screen.queryByText("The prizes you've entered")).toBeNull();
+  expect(screen.getByRole("link", { name: /Purchase Options/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
+  expect(screen.queryByText("Swipe or use the arrows to explore.")).toBeNull();
+  expect(screen.queryByText("Every choice. Your next step, all in one place.")).toBeNull();
+  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
+  rerender(<MyZeroLossActivity state={drawerState(true)} filter={filter} />);
+  expect(screen.queryByRole("heading", { name: label })).toBeNull();
 });
 
 test("newly confirmed card gets a brief Your new entry label without changing other cards", async () => {

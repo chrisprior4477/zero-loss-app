@@ -3,16 +3,16 @@
 import { useEffect } from "react";
 import { openEntriesAnchorId, type ActivityFilter } from "@/lib/account/activity";
 
-/** Open entries land at their filters; other activity keeps its existing mobile landing. */
+/** Every mobile activity tab lands at its filters; Open Entries also does so on desktop. */
 export function MyActivityLandingScroll({ filter, revealControls, enabled }: { filter: ActivityFilter; revealControls: boolean; enabled: boolean }) {
   useEffect(() => {
-    if (!enabled || (filter !== "active" && !window.matchMedia?.("(max-width: 600px)").matches)) return;
+    if (!enabled || (filter !== "active" && !window.matchMedia?.("(max-width: 767px)").matches)) return;
 
     // Allow the destination and Next's own navigation scroll to settle first.
     let secondFrame = 0;
     const firstFrame = window.requestAnimationFrame(() => {
       secondFrame = window.requestAnimationFrame(() => {
-        const target = document.getElementById(filter === "active" ? openEntriesAnchorId : "my-activity-heading");
+        const target = document.getElementById(openEntriesAnchorId);
         if (!target) return;
 
         const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;

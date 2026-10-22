@@ -16,6 +16,7 @@ import { MenuTicket } from "@/components/account/MenuTicket";
 import { SignOutForm } from "@/components/auth/SignOutForm";
 import { INSTALL_APP_REQUEST_EVENT } from "@/components/layout/InstallAppPrompt";
 import { ResetAllDemoActivityButton } from "@/components/account/ResetAllDemoActivityButton";
+import { useAccountProfileShortcut } from "./useAccountProfileShortcut";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -73,6 +74,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
+  const profileShortcut = useAccountProfileShortcut(isSignedIn && !onPreviewOpen);
 
   useEffect(() => {
     const updateAvatar = (event: Event) => {
@@ -150,10 +152,12 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
       <button
         ref={triggerRef}
         type="button"
+        {...profileShortcut}
         onClick={() => { if (onPreviewOpen) { onPreviewOpen(); return; } setWalletHistoryOpen(new URLSearchParams(window.location.search).get("view") === "history"); setOpen(true); }}
         aria-label="Open account menu"
+        title={isSignedIn && !onPreviewOpen ? "Tap for menu. Hold for your profile." : undefined}
         aria-expanded={onPreviewOpen ? previewExpanded : open}
-        className={`grid h-9 w-9 place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${hasSavedAvatar ? "rounded-full border border-cyan-300/40 bg-[#07533f] hover:border-cyan-200" : "rounded-md text-white/75 hover:bg-white/8 hover:text-white"}`}
+        className={`${styles.menuTrigger} grid h-9 w-9 place-items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 ${hasSavedAvatar ? "rounded-full border border-cyan-300/40 bg-[#07533f] hover:border-cyan-200" : "rounded-md text-white/75 hover:bg-white/8 hover:text-white"}`}
       >
         {hasSavedAvatar ? (
           <DrawerAvatar avatar={resolvedAvatar} initials={initials} size="small" />

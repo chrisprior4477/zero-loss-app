@@ -5,6 +5,7 @@ import { MenuLayoutTrialBar } from "./MenuLayoutTrialBar";
 import { MenuLayoutPicker } from "@/components/account/MenuLayoutPicker";
 import { menuLayouts } from "@/lib/navigation/menu-layout";
 const save = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ usePathname: () => "/account/profile", useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/lib/account/menu-layout-action", () => ({ saveMenuLayout: save }));
 function Controls() {
   const choice = useMenuLayout();

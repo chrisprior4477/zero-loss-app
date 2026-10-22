@@ -243,7 +243,6 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
       })}
     </div>
     <div className={styles.galleryControls}>
-      <p className={styles.galleryHint}>{view.previous || view.next ? "Swipe or use the arrows to explore." : "Every choice. Your next step, all in one place."}</p>
       <div className={styles.galleryActions}>
       <Link href="/" className={styles.continueShopping}>Continue shopping</Link>
       {canClearDemoEntries ? <ClearAllEntriesButton /> : null}

@@ -1,8 +1,8 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 
-const { path } = vi.hoisted(() => ({ path: { value: "/account" } }));
-vi.mock("next/navigation", () => ({ usePathname: () => path.value, useRouter: () => ({ refresh: vi.fn() }) }));
+const { path, push } = vi.hoisted(() => ({ path: { value: "/account" }, push: vi.fn() }));
+vi.mock("next/navigation", () => ({ usePathname: () => path.value, useRouter: () => ({ refresh: vi.fn(), push }) }));
 vi.mock("next/image", () => ({ default: (props: Record<string, unknown>) => {
   const imageProps = { ...props };
   delete imageProps.fill;
@@ -33,6 +33,23 @@ afterEach(() => {
   cleanup();
   path.value = "/account";
   window.history.replaceState({}, "", "/");
+  push.mockReset(); vi.useRealTimers();
+});
+
+test.each([true, false])("long-pressing the photo=%s trigger opens Profile without opening the drawer", showPhotoInMenu => {
+  vi.useFakeTimers();
+  render(<AccountDrawer {...props} showPhotoInMenu={showPhotoInMenu} />);
+  const trigger = screen.getByLabelText("Open account menu");
+  // Supply pointer properties explicitly because jsdom has no native PointerEvent.
+  const down = new Event("pointerdown", { bubbles: true });
+  Object.assign(down, { button: 0, isPrimary: true, pointerId: 1, clientX: 10, clientY: 10 });
+  fireEvent(trigger, down);
+  act(() => vi.advanceTimersByTime(600));
+  expect(push).toHaveBeenCalledExactlyOnceWith("/account/profile#profile-intro");
+  fireEvent.pointerUp(trigger); fireEvent.click(trigger);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent(trigger, down); fireEvent.pointerUp(trigger); fireEvent.click(trigger);
+  expect(screen.getByRole("dialog")).toBeTruthy();
 });
 
 test("signed-in drawer follows the compact account-menu hierarchy", () => {

@@ -4,6 +4,7 @@ import { MenuLayoutProvider, useMenuLayout } from "@/components/layout/MenuLayou
 import { MenuLayoutPicker } from "./MenuLayoutPicker";
 import { menuLayouts, showsShoppingCategories } from "@/lib/navigation/menu-layout";
 const save = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ usePathname: () => "/account/profile", useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/lib/account/menu-layout-action", () => ({ saveMenuLayout: save }));
 function ActiveMenu() { const { layout, savedLayout } = useMenuLayout(); return <output data-testid="active-menu">{layout}:{savedLayout}</output>; }
 function setup() {
