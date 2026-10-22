@@ -9,6 +9,7 @@ import { accountRoutes } from "@/lib/account/navigation";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
 import { RewardPassAutoScroll } from "./RewardPassAutoScroll";
 import { WalletRewardLink } from "./WalletRewardLink";
+import { RewardHistoryCarousel } from "./RewardHistoryCarousel";
 import { RewardClaimControl } from "./RewardClaimControl";
 import { DemoRewardRestartControl } from "./DemoRewardRestartControl";
 import { DemoIdentityPreviewButton } from "@/components/identity/DemoVerificationDialog";
@@ -116,14 +117,14 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
         {state.source === "unavailable" ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <div className={overview.message}>
           {view === "used" ? <><p>You haven’t used or transferred any prizes you’ve won or rewards from completed purchase options.</p><p>Please check back after you’ve used or transferred a reward.</p></> : view === "expired" ? <p>You do not have any expired purchase options yet.</p> : <p>{view === "all" ? "No reward history yet." : `No ${view === "history" ? "past" : view} rewards yet.`}</p>}
         </div> : <>
-          {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe to browse rewards</p> : null}
-          <div className={overview.historyTable} role="group" aria-roledescription="carousel" aria-label="Reward cards" tabIndex={0}>
+          {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe or drag to browse rewards</p> : null}
+          <RewardHistoryCarousel key={view}>
           <div className={overview.tableHeader} aria-hidden="true"><span>Date</span><span>Reward</span><span>Type</span><span>Status</span><span>Value</span><span className={overview.visuallyHidden}>Open</span></div>
-          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={isWalletReward(item) ? walletRewardHref(item) : activityHref(item)} aria-label={`Open ${item.title}, ${rewardLabel(item)}, ${formatUsdFromCents(item.priceCents)}`} className={overview.historyRow}>
-            <span>{claimedDate(item.rewardClaimedAt)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" /></span><strong>{item.title}</strong></span>
+          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={isWalletReward(item) ? walletRewardHref(item) : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item)}, ${formatUsdFromCents(item.priceCents)}`} className={overview.historyRow}>
+            <span>{claimedDate(item.rewardClaimedAt)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><strong>{item.title}</strong></span>
             <span>{isWalletReward(item) ? "Gift Card" : "Purchase Option"}</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
           </Link>)}
-          </div>
+          </RewardHistoryCarousel>
         </>}
         {focusedHistory ? <>
           {view === "expired" ? <p className={overview.message}>Remember to check your Declined Offers page.</p> : null}

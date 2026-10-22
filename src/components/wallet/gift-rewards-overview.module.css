@@ -129,6 +129,8 @@
   .historySwipeHint { display: block; margin-top: 13px; color: #526c87; font-size: 12px; }
   .historyTable { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 10px; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-inline: contain; }
   .historyTable::-webkit-scrollbar { display: none; }
+  .historyTable[data-dragging="true"], .historyTable[data-settling="true"] { scroll-snap-type: none; scroll-behavior: auto; }
+  .historyTable[data-dragging="true"], .historyTable[data-dragging="true"] a { cursor: grabbing; user-select: none; }
   .tableHeader { display: none; }
   .historyRow { position: relative; display: grid; flex: 0 0 calc(100% - 26px); min-width: 0; min-height: 142px; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto; gap: 7px 9px; align-content: space-between; padding: 13px 14px; border: 1px solid #dde6ee; border-radius: 12px; background: #fff; box-shadow: 0 4px 12px #1b34511a; scroll-snap-align: start; scroll-snap-stop: always; }
   .historyRow > span:first-child { grid-column: 1; grid-row: 2; }
@@ -138,6 +140,10 @@
   .historyRow > span:nth-child(4) { grid-column: 2; grid-row: 2; }
   .historyRow > .historyValue { grid-column: 2; grid-row: 3; justify-self: end; }
   .historyRow > span:last-child { position: absolute; top: 19px; right: 12px; }
+}
+@media (max-width: 700px) and (any-pointer: fine) {
+  .historyTable, .historyTable a { cursor: grab; user-select: none; }
+  .historyTable[data-dragging="true"], .historyTable[data-dragging="true"] a { cursor: grabbing; }
 }
 @media (max-width: 460px) {
   .readyGrid { grid-template-columns: 1fr; }
