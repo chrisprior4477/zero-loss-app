@@ -146,6 +146,7 @@ test("approved drawer controls keep their real routes and one mounted dialog", (
   expect(dialog.getByRole("navigation", { name: "Account navigation" }).querySelectorAll("img")).toHaveLength(9);
   expect(dialog.getByRole("link", { name: "Declined Offers" }).getAttribute("href")).toBe("/account/declined-offers");
   expect(dialog.getByRole("link", { name: "Favorites" }).getAttribute("href")).toBe("/account/favorites");
+  expect(dialog.getByRole("link", { name: "Your Crew" }).getAttribute("href")).toBe("/account/crew#crew-intro");
   const controls = dialog.getAllByRole("button").map(button => button.textContent?.trim());
   expect(controls.indexOf("Add to Home Screen")).toBeLessThan(controls.indexOf("Reset All Demo Activity"));
   expect(controls.indexOf("Reset All Demo Activity")).toBeLessThan(controls.indexOf("Sign out"));

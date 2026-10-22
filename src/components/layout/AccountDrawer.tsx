@@ -205,7 +205,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
                   {accountNavigation.map(([label, href]) => {
                     const active = href.startsWith("/account/wallet") ? pathname === "/account/wallet" && (href === walletHistoryHref) === walletHistoryOpen : pathname === href || pathname?.startsWith(href + "/");
                     const visual = navigationVisuals[label];
-                    return <MenuTicket key={href} title={label} description={visual.description} href={href} imageSrc={visual.imageSrc} artworkTreatment={visual.artworkTreatment} onNavigate={close} active={active} />;
+                    return <MenuTicket key={href} title={label} description={visual.description} href={href === accountRoutes.crew ? `${href}#crew-intro` : href} imageSrc={visual.imageSrc} artworkTreatment={visual.artworkTreatment} onNavigate={close} active={active} />;
                   })}
                 </nav>
                 <div className={styles.promoWrap}>

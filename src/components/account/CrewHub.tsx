@@ -9,6 +9,7 @@ import {
 } from "@/lib/crew/actions";
 import type { CrewInvitation, CrewMember, OwnCrewEntry, SharedCrewPick } from "@/app/account/crew/page";
 import { CrewPeopleCarousel } from "./CrewPeopleCarousel";
+import { CrewLandingScroll } from "./CrewLandingScroll";
 import crewStyles from "./crew-people.module.css";
 import styles from "./crew-dashboard.module.css";
 import { CrewSearchPanel } from "./CrewSearchDialog";
@@ -154,7 +155,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
         <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
-      <header className={styles.pageHeading}>
+    <CrewLandingScroll enabled={initialTab === "crew" && !selectedMemberId && !incomingInviteToken} />
+    <header id="crew-intro" className={styles.pageHeading}>
         <div><h1>Your Crew</h1><p>The people you brought with you.</p></div>
         <div className={styles.counts}><span>{connected.length} connected</span>{samples.length ? <span>{samples.length} sample previews</span> : null}</div>
       </header>

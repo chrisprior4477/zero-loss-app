@@ -31,7 +31,20 @@ beforeEach(() => {
   actions.getCrewSharedPicks.mockResolvedValue({ ok: true, picks: [] });
   actions.requestCrewInvitationFromLink.mockResolvedValue({ ok: true, message: "Crew request sent." });
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+test.each([false, true])("Add to Your Crew scrolls to the panel and focuses search without another jump (reduced motion: %s)", reducedMotion => {
+  vi.stubGlobal("matchMedia", vi.fn((query: string) => ({ matches: query.includes("prefers-reduced-motion") && reducedMotion })));
+  render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  const panel = document.getElementById("crew-search")!;
+  const scroll = vi.fn(); panel.scrollIntoView = scroll;
+  const focus = vi.spyOn(document.getElementById("crew-search-name")!, "focus");
+  fireEvent.click(screen.getByRole("button", { name: "Add to Your Crew" }));
+  expect(scroll).toHaveBeenCalledExactlyOnceWith({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+  expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  expect(actions.inviteToCrew).not.toHaveBeenCalled();
+  expect(actions.inviteToCrewByPhone).not.toHaveBeenCalled();
+});
 
 test("the four legacy homepage sample additions appear in the account carousel, clearly separate from real connections", async () => {
   render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
