@@ -6,7 +6,8 @@ const css = readFileSync("src/components/layout/site-menu.module.css", "utf8");
 
 function declarations(selector: string) {
   const values: Record<string, string> = {};
-  parse(css).walkRules(selector, rule => {
+  parse(css).walkRules(rule => {
+    if (!rule.selectors.includes(selector)) return;
     rule.walkDecls(declaration => { values[declaration.prop] = declaration.value; });
   });
   return values;
@@ -21,7 +22,21 @@ test("the non-Classic mobile page strip blends into the site, including menu pre
     "box-shadow": "none",
   });
   expect(declarations(".pageCategories [data-ending-soon-link]:hover").background).toBe("#ffffff14");
-  expect(declarations(".pageCategories [data-ending-soon-link]:focus-visible").outline).toBe("2px solid #6feaff");
+});
+
+test.each([".endingSoon", ".header [data-ending-soon-link]", ".pageCategories [data-ending-soon-link]"])("%s has no click-focus ring and keeps an underlined keyboard focus cue", selector => {
+  expect(declarations(`${selector}:focus`).outline).toBe("none");
+  expect(declarations(`${selector}:focus-visible`)).toMatchObject({
+    outline: "none",
+    "text-decoration": "underline",
+    "text-decoration-thickness": "2px",
+    "text-underline-offset": "3px",
+  });
+});
+
+test("Browse and the search toggle keep their existing focus indicators", () => {
+  expect(declarations(".browse:focus-visible").outline).toBe("2px solid #6feaff");
+  expect(declarations(".searchToggle:focus-visible").outline).toBe("2px solid #6feaff");
 });
 
 test("the header shortcut stays orange and desktop still hides the page strip", () => {
