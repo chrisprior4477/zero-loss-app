@@ -12,6 +12,7 @@ import { StatusTicket } from "@/components/account/StatusTicket";
 import stripStyles from "@/components/account/account-status-strip.module.css";
 import { WalletLedger } from "./WalletLedger";
 import { DeleteAllFundsButton } from "./DeleteAllFundsButton";
+import { WalletLandingScroll } from "./WalletLandingScroll";
 import styles from "./wallet-overview.module.css";
 import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
 import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
@@ -42,6 +43,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : accountRoutes.rewards;
 
   return <main className={styles.page}>
+    <WalletLandingScroll enabled={!selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="/account/wallet?view=history#balance" actionHref={canFund ? "/account/wallet?view=history#add-funds" : undefined} actionDisabled={!canFund} />

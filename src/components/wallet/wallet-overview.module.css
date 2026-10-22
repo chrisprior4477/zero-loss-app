@@ -240,6 +240,9 @@
   .historyControls p { text-align: left; }
   .ledger { margin-top: 0; }
 }
+@media (max-width: 767px) {
+  .balanceCard { scroll-margin-top: calc(var(--site-header-height, 163px) + 12px); }
+}
 @media (max-width: 700px) {
   .transactions, .fundingRequests { scroll-margin-top: calc(var(--site-header-height, 163px) + 17px); }
   .demoCardsPanel, .fundingAmountSection { scroll-margin-top: calc(var(--site-header-height, 163px) + 22px); }

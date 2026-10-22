@@ -5,7 +5,9 @@ import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/
 import { EntryTicket } from "@/components/layout/EntryTicket";
 
 function CreditIcon() {
-  return <svg aria-hidden="true" viewBox="0 0 54 36" className="h-6 w-9 sm:h-[30px] sm:w-[45px]" fill="none"><circle cx="18" cy="18" r="14.5" stroke="currentColor" strokeWidth="2.4" /><circle cx="18" cy="18" r="7.5" stroke="currentColor" strokeWidth="2.2" /><path d="m11.5 25 13-14M37 10h13M39 18h11M37 26h13" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg>;
+  // Approved preview: shorten the painted outer lines (including round caps) by 20%.
+  // 13 - (13 + 2.6) * .2 = 9.88; the coin, middle line and SVG box stay fixed.
+  return <svg aria-hidden="true" viewBox="0 0 54 36" className="h-6 w-9 sm:h-[30px] sm:w-[45px]" fill="none"><circle cx="18" cy="18" r="14.5" stroke="currentColor" strokeWidth="2.4" /><circle cx="18" cy="18" r="7.5" stroke="currentColor" strokeWidth="2.2" /><path d="m11.5 25 13-14M37 10h9.88M39 18h11M37 26h9.88" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg>;
 }
 
 export function HeaderAccountMetrics({
@@ -37,7 +39,7 @@ export function HeaderAccountMetrics({
       <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex min-h-11 min-w-11 items-center text-white hover:opacity-80">
         <EntryTicket count={ticketCount} />
       </Link>
-      <Link href={walletHistoryHref} aria-label={`${balance} playable balance`} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
+      <Link href={`${walletHistoryHref}#balance`} aria-label={`${balance} playable balance`} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
         <CreditIcon />
         <span className="text-sm font-bold tabular-nums sm:text-xl">{balance}</span>
       </Link>

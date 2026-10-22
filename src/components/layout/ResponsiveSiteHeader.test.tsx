@@ -50,6 +50,22 @@ test.each(menuLayouts)("$name exposes just the header ticket artwork for resizin
   expect(header.querySelectorAll("[data-entry-ticket-icon]")).toHaveLength(1);
 });
 
+test.each(menuLayouts)("$name uses the approved coin and links the whole balance to the wallet card", ({ id }) => {
+  const { header } = setup(id);
+  const balance = within(header).getByRole("link", { name: "$38 playable balance" });
+  expect(balance.getAttribute("href")).toBe("/account/wallet?view=history#balance");
+  expect(within(balance).getByText("$38").closest("a")).toBe(balance);
+  const coin = balance.querySelector("svg")!;
+  expect(coin.closest("a")).toBe(balance);
+  expect(coin.getAttribute("viewBox")).toBe("0 0 54 36");
+  expect(coin.getAttribute("class")).toBe("h-6 w-9 sm:h-[30px] sm:w-[45px]");
+  expect([...coin.querySelectorAll("circle")].map(circle => [circle.getAttribute("cx"), circle.getAttribute("cy"), circle.getAttribute("r")])).toEqual([["18", "18", "14.5"], ["18", "18", "7.5"]]);
+  expect(coin.querySelector("path")?.getAttribute("d")).toBe("m11.5 25 13-14M37 10h9.88M39 18h11M37 26h9.88");
+  expect(coin.querySelector("path")?.getAttribute("stroke-width")).toBe("2.6");
+  expect(coin.querySelector("path")?.getAttribute("stroke-linecap")).toBe("round");
+  expect(coin.querySelector("animate, animateTransform")).toBeNull();
+});
+
 test.each(["ending-search", "home-ending-search", "search-down", "search-down-browse", "search-over"] as const)("%s opens, submits the real search and collapses", layout => {
   const { mobile, header } = setup(layout);
   if (layout.startsWith("search-")) fireEvent.click(screen.getByRole("button", { name: "Open search" }));
