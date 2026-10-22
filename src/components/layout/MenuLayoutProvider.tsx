@@ -37,6 +37,27 @@ function useDeviceMenuChoice(initialLayout: MenuLayout, device: MenuDevice, acco
   const interacted = useRef(false);
   const saving = useRef(false);
   const storageKey = accountId ? trialKey(accountId, device) : null;
+  const [serverLayout, setServerLayout] = useState(initialLayout);
+  const cachedServerLayout = useRef(initialLayout);
+  // Reconcile new account responses before children render an obsolete save prompt.
+  // A balance-only refresh does not change this value or accept a manual preview.
+  if (serverLayout !== initialLayout) {
+    setServerLayout(initialLayout);
+    setSavedLayout(initialLayout);
+    if (layout === savedLayout || layout === initialLayout) {
+      setLayout(initialLayout); setTrying(false); setMessage(null);
+    }
+  }
+  useEffect(() => {
+    if (cachedServerLayout.current === initialLayout) return;
+    cachedServerLayout.current = initialLayout;
+    interacted.current = true;
+    try {
+      if (!storageKey) return;
+      if (layout === savedLayout) sessionStorage.removeItem(storageKey);
+      else sessionStorage.setItem(storageKey, JSON.stringify({ layout, savedLayout, dismissed: !trying }));
+    } catch { /* Refreshed account preferences still take effect without trial storage. */ }
+  }, [initialLayout, layout, savedLayout, trying, storageKey]);
   useEffect(() => {
     if (!storageKey) return;
     const frame = requestAnimationFrame(() => {

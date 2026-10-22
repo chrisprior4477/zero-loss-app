@@ -30,6 +30,27 @@ export function MobileLogoSizeProvider({ initialSize = 0, accountId, children }:
   // not when a save revalidates the surrounding server layout.
   const initial = useRef(initialSize);
   const storageKey = accountId ? `zero-loss:logo-size-trial:${accountId}` : null;
+  const [serverSize, setServerSize] = useState(initialSize);
+  const cachedServerSize = useRef(initialSize);
+  // Server-confirmed choices must not keep asking to be saved after an account refresh.
+  // The balance-based visual fit never changes initialSize or the preferred size.
+  if (serverSize !== initialSize) {
+    setServerSize(initialSize);
+    setSavedSize(initialSize);
+    if (size === savedSize || size === initialSize) {
+      setSize(initialSize); setTrying(false); setMessage(null);
+    }
+  }
+  useEffect(() => {
+    if (cachedServerSize.current === initialSize) return;
+    cachedServerSize.current = initialSize;
+    interacted.current = true;
+    try {
+      if (!storageKey) return;
+      if (size === savedSize) sessionStorage.removeItem(storageKey);
+      else sessionStorage.setItem(storageKey, JSON.stringify({ size, savedSize, dismissed: !trying }));
+    } catch { /* Refreshed account preferences still take effect without trial storage. */ }
+  }, [initialSize, size, savedSize, trying, storageKey]);
   useEffect(() => {
     if (!storageKey) return;
     const frame = requestAnimationFrame(() => {

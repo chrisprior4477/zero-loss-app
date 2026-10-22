@@ -98,3 +98,36 @@ test("legacy already-saved logo trials are cleared and selecting the saved size 
   expect(state()).toMatchObject({ size: 25, saved: 25, trying: false });
   expect(mocks.save).not.toHaveBeenCalled();
 });
+
+test("an account refresh confirming the current logo choice ends an already-saved trial", async () => {
+  const view = render(<Fixture initialSize={0} />);
+  fireEvent.click(screen.getByRole("radio", { name: "35% bigger" }));
+  expect(state()).toMatchObject({ size: 35, saved: 0, trying: true });
+  view.rerender(<Fixture initialSize={35} />);
+  await waitFor(() => expect(state()).toMatchObject({ size: 35, saved: 35, trying: false }));
+  expect(sessionStorage.getItem("zero-loss:logo-size-trial:owner")).toBeNull();
+  expect(mocks.save).not.toHaveBeenCalled();
+});
+
+test("a balance-only account refresh leaves a saved logo alone and does not save a manual preview", () => {
+  const view = render(<Fixture initialSize={35} />);
+  view.rerender(<Fixture initialSize={35} />);
+  expect(state()).toMatchObject({ size: 35, saved: 35, trying: false });
+  fireEvent.click(screen.getByRole("radio", { name: "20% bigger" }));
+  view.rerender(<Fixture initialSize={35} />);
+  expect(state()).toMatchObject({ size: 20, saved: 35, trying: true });
+  expect(mocks.save).not.toHaveBeenCalled();
+});
+
+test("a refreshed logo preference updates the saved value while preserving a different manual preview", () => {
+  const view = render(<Fixture initialSize={35} />);
+  view.rerender(<Fixture initialSize={30} />);
+  expect(state()).toMatchObject({ size: 30, saved: 30, trying: false });
+  fireEvent.click(screen.getByRole("radio", { name: "25% bigger" }));
+  view.rerender(<Fixture initialSize={20} />);
+  expect(state()).toMatchObject({ size: 25, saved: 20, trying: true });
+  expect(JSON.parse(sessionStorage.getItem("zero-loss:logo-size-trial:owner")!)).toMatchObject({ size: 25, savedSize: 20 });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel trial" }));
+  expect(state()).toMatchObject({ size: 20, saved: 20, trying: false });
+  expect(mocks.save).not.toHaveBeenCalled();
+});

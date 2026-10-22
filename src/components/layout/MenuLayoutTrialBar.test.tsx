@@ -119,3 +119,37 @@ test("unfinished desktop trial restores its correct save destination across navi
   await waitFor(() => expect(bar()).toBeNull());
   expect(save).toHaveBeenCalledExactlyOnceWith("search-down-browse", "desktop");
 });
+
+test.each(menuDevices)("an account refresh confirming the %s menu choice ends an already-saved trial", async device => {
+  const view = setup();
+  fireEvent.click(screen.getByText(device));
+  fireEvent.click(screen.getByText("Try search-over"));
+  expect(bar()).toBeTruthy();
+  // The account response now confirms this preference, e.g. after another tab saved it.
+  view.rerender(<MenuLayoutProvider initialLayout={device === "mobile" ? "search-over" : "classic"} initialTabletLayout={device === "tablet" ? "search-over" : "classic"} initialDesktopLayout={device === "desktop" ? "search-over" : "classic"} accountId="owner"><Controls /><MenuLayoutTrialBar /></MenuLayoutProvider>);
+  await waitFor(() => expect(bar()).toBeNull());
+  expect(screen.getByText("search-over:search-over")).toBeTruthy();
+  expect(sessionStorage.getItem(`zero-loss:menu-trial:owner${device === "mobile" ? "" : `:${device}`}`)).toBeNull();
+  expect(save).not.toHaveBeenCalled();
+});
+
+test("refreshing the balance does not silently save an unrelated manual menu preview", () => {
+  const view = setup();
+  fireEvent.click(screen.getByText("Try search-down"));
+  view.rerender(<MenuLayoutProvider initialLayout="classic" accountId="owner"><Controls /><MenuLayoutTrialBar /></MenuLayoutProvider>);
+  expect(screen.getByText("search-down:classic")).toBeTruthy();
+  expect(bar()).toBeTruthy();
+  expect(save).not.toHaveBeenCalled();
+});
+
+test("a different refreshed menu preference becomes the cancel target without losing an unfinished preview", () => {
+  const view = setup();
+  fireEvent.click(screen.getByText("Try search-over"));
+  view.rerender(<MenuLayoutProvider initialLayout="search-down" accountId="owner"><Controls /><MenuLayoutTrialBar /></MenuLayoutProvider>);
+  expect(screen.getByText("search-over:search-down")).toBeTruthy();
+  expect(JSON.parse(sessionStorage.getItem("zero-loss:menu-trial:owner")!)).toMatchObject({ layout: "search-over", savedLayout: "search-down" });
+  fireEvent.click(screen.getByText("Cancel"));
+  expect(screen.getByText("search-down:search-down")).toBeTruthy();
+  expect(bar()).toBeNull();
+  expect(save).not.toHaveBeenCalled();
+});
