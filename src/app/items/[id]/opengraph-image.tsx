@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
+import { rasterizeCatalogSvg } from "@/lib/catalog/product-share-artwork";
 
 export const runtime = "nodejs";
 export const size = { width: 1200, height: 630 };
@@ -25,7 +26,11 @@ export default async function ProductShareImage({ params }: { params: Promise<{ 
   const type = artwork && imageTypes[extname(artwork.src).toLowerCase()];
   if (!artwork || !type) return new Response("Product artwork unavailable", { status: 404 });
   const bytes = await readFile(join(process.cwd(), "public", artwork.src));
-  const image = `data:${type};base64,${bytes.toString("base64")}`;
+  // SVG text inside an embedded SVG loses its fonts in ImageResponse. Flatten
+  // it with our packaged font first so cloud hosts render real letters too.
+  const imageBytes = type === "image/svg+xml" ? rasterizeCatalogSvg(bytes) : bytes;
+  const imageType = type === "image/svg+xml" ? "image/png" : type;
+  const image = `data:${imageType};base64,${imageBytes.toString("base64")}`;
 
   return new ImageResponse(
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: "#ffffff" }}>

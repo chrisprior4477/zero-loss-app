@@ -1,9 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["@resvg/resvg-js"],
   // The public share-image endpoint reads catalog art without contacting the app.
   outputFileTracingIncludes: {
-    "/items/*/opengraph-image": ["./public/catalog/**/*", "./public/dollar-choice*.png"],
+    "/items/*/opengraph-image": [
+      "./public/catalog/**/*",
+      "./public/dollar-choice*.png",
+      "./node_modules/next/dist/compiled/@vercel/og/Geist-Regular.ttf",
+    ],
   },
   /**
    * The dev server is initialized with `localhost`, and Next blocks
