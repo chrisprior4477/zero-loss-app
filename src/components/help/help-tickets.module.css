@@ -21,7 +21,7 @@
     radial-gradient(circle var(--side) at 100% 50%, transparent 99%, #000 103%);
   mask-composite: intersect;
 }
-.ticket:focus-visible, .field:focus-within {
+.ticket:focus-visible {
   outline: 3px solid #0079c8;
   outline-offset: -6px;
 }
@@ -58,7 +58,8 @@
 .button[aria-pressed="true"], .primary { background: #48ff00; }
 .button:disabled { opacity: .6; }
 .shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-block: 24px; }
-.shortcut { justify-content: space-between; min-height: 104px; text-align: left; }
+.shortcut { position: relative; justify-content: center; min-height: 64px; padding: 10px 32px; text-align: center; }
+.shortcut > span[aria-hidden] { position: absolute; right: 14px; }
 .shortcut[data-tone="reward"] { background: #e1fbd3; }
 .shortcut[data-tone="purchase"] { background: #ffe1c7; }
 .detail { margin-top: 6px; display: block; color: #4e6784; font-size: 13px; font-weight: 500; line-height: 1.4; }
@@ -78,6 +79,10 @@
 .field input::placeholder { color: #536b86; opacity: 1; }
 .field select { padding-right: 28px; }
 .field select option { color: #0a1741; background: #fff; }
+.field:focus-within { background: #123d65; }
+.field:focus-within input, .field:focus-within textarea, .field:focus-within select { color: #fff; }
+.field:focus-within input::placeholder { color: #c4d8ed; }
+.field:focus-within select option { background: #123d65; color: #fff; }
 .searchRow { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; }
 .searchRow .field { flex: 1; min-width: 0; margin: 0; }
 .searchRow .button { padding-inline: 16px; }
@@ -95,11 +100,14 @@
   .navigation, .topics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .navigation > :last-child:nth-child(odd) { grid-column: 1 / -1; }
   .shortcuts { gap: 7px; }
-  .shortcut { min-height: 100px; padding: 16px 13px; font-size: 12px; }
+  .shortcut { min-height: 64px; padding: 10px 13px; font-size: 12px; }
   .shortcut .detail, .shortcut > span[aria-hidden] { display: none; }
   .panel { padding: 24px; }
   .button { padding-inline: 18px; }
   .question { padding: 20px 24px; }
   .answerBody { margin-inline: 14px; padding: 20px; }
   .shortcut { padding-inline: 13px; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .shortcut .detail { display: none; }
 }

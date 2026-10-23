@@ -50,3 +50,22 @@ test("unmount cancels frames and removes the temporary header measurement", () =
   const { scrollTo, flush, frames } = setup(); const view = render(<HelpLandingScroll target="support-intro" />); view.unmount(); flush();
   expect(frames.size).toBe(0); expect(scrollTo).not.toHaveBeenCalled(); expect(document.documentElement.style.getPropertyValue("--help-header-height")).toBe("");
 });
+test("initial deep links wait for font layout before measuring", async () => {
+  const { scrollTo, flush } = setup("#conversation");
+  let fontsReady!: () => void;
+  Object.defineProperty(document, "fonts", { configurable: true, value: { ready: new Promise<void>(resolve => { fontsReady = resolve; }) } });
+  try {
+    render(<HelpLandingScroll target="support-intro" />); flush(); expect(scrollTo).not.toHaveBeenCalled();
+    await act(async () => { fontsReady(); }); flush();
+    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 708, behavior: "instant" });
+  } finally { Reflect.deleteProperty(document, "fonts"); }
+});
+test("fonts finishing after unmount cannot scroll a different page", async () => {
+  const { scrollTo, flush } = setup();
+  let fontsReady!: () => void;
+  Object.defineProperty(document, "fonts", { configurable: true, value: { ready: new Promise<void>(resolve => { fontsReady = resolve; }) } });
+  try {
+    const view = render(<HelpLandingScroll target="support-intro" />); view.unmount();
+    await act(async () => { fontsReady(); }); flush(); expect(scrollTo).not.toHaveBeenCalled();
+  } finally { Reflect.deleteProperty(document, "fonts"); }
+});
