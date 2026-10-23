@@ -11,6 +11,7 @@ import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } 
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
+import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { sharePrizeWithCrew } from "@/lib/crew/actions";
 import styles from "./entry-page.module.css";
 
@@ -209,6 +210,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   }
 
   return <>
+    <ProductShareButton product={{ slug, title: itemTitle }} />
     <button type="button" className={styles.nextButton} aria-expanded={nextOpen} onClick={() => setNextOpen(open => !open)}>What happens next <span aria-hidden="true">{nextOpen ? "−" : "+"}</span></button>
     {nextOpen ? <div className={styles.nextPanel}><p>The pool stays open until its available tickets are filled. Once the result is posted, your outcome will appear in My Activity and Notifications. If your entry is not selected, any optional purchase offer and its deadline will be shown separately.</p></div> : null}
     <div className={styles.actionGrid}>

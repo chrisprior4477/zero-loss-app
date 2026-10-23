@@ -5,6 +5,7 @@ import { DemoParticipationPanel } from "@/components/product/DemoParticipationPa
 import { ResetDemoPoolButton } from "@/components/product/ResetDemoPoolButton";
 import { GiftCardFulfillmentNotice, SignedOutRewardSummary } from "@/components/product/GiftCardFulfillmentNotice";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { buildProductMetadata } from "@/lib/catalog/product-metadata";
 import { getAccountContext } from "@/lib/account/context";
@@ -106,6 +107,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
           <div className="order-2 lg:sticky lg:top-32 lg:order-none">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">{product.category}</p>
             <h1 className="mt-2 text-3xl font-extrabold leading-tight sm:text-4xl">{product.title}</h1>
+            <ProductShareButton product={{ slug: product.slug, title: product.title, image: product.gallery[0]?.src, retailer: product.retailer, value: product.value }} />
             <GiftCardFulfillmentNotice productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
             {participationPanel}
             {!alreadyResolved ? <div className="mt-4">{freeEntryDetails}</div> : null}

@@ -9,10 +9,10 @@ export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: stri
 type CrewSearchResult = CrewActionResult & { people: CrewSearchPerson[] };
 export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 
-export type CrewShareOptions = { ok: boolean; message: string; memberCount: number; groups: { id: string; name: string; memberCount: number }[] };
+export type CrewShareOptions = { ok: boolean; message: string; memberCount: number; members: { id: string; name: string }[]; groups: { id: string; name: string; memberCount: number; memberIds: string[] }[] };
 
 export async function getCrewShareOptions(): Promise<CrewShareOptions> {
-  const unavailable = { ok: false, message: "We couldn’t load your Crew. Please try again.", memberCount: 0, groups: [] };
+  const unavailable = { ok: false, message: "We couldn’t load your Crew. Please try again.", memberCount: 0, members: [], groups: [] };
   const session = await signedInClient();
   if (!session) return { ...unavailable, message: "Sign in to share with your Crew." };
   const [members, settings] = await Promise.all([
@@ -22,8 +22,11 @@ export async function getCrewShareOptions(): Promise<CrewShareOptions> {
   if (members.error || settings.error) return unavailable;
   const approved = new Set<string>((members.data ?? []).map((member: { member_id: string }) => member.member_id));
   const groups: unknown[] = Array.isArray(settings.data?.groups) ? settings.data.groups : [];
-  return { ok: true, message: "", memberCount: approved.size, groups: groups.filter(isCrewVisibilityGroup).map(group => ({
+  return { ok: true, message: "", memberCount: approved.size,
+    members: (members.data ?? []).map((member: { member_id: string; name: string }) => ({ id: member.member_id, name: member.name })),
+    groups: groups.filter(isCrewVisibilityGroup).map(group => ({
     id: group.id, name: group.name, memberCount: group.memberIds.filter(id => approved.has(id)).length,
+    memberIds: group.memberIds.filter(id => approved.has(id)),
   })) };
 }
 

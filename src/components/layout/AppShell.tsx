@@ -38,7 +38,7 @@ export async function AppShell({ children }: AppShellProps) {
       </main>
       <SiteFooter />
       <InstallAppPrompt />
-      <Suspense fallback={null}><PendingEntryNotice /></Suspense>
+      {account ? <Suspense fallback={null}><PendingEntryNotice accountId={account.userId} /></Suspense> : null}
       <MenuLayoutTrialBar />
       <MobileLogoSizeTrialBar />
     </div>

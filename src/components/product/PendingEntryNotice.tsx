@@ -5,16 +5,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { acknowledgeEntryReceipt, listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 import { PostEntryCrewToast } from "./PostEntryCrewToast";
+import { PRODUCT_SHARE_EVENT, isProductShareItem, shareDismissalKey, type ProductShareItem } from "@/lib/sharing/product-share";
 
 type TimedRequest = EntryRequest & { receivedAt: number };
 
 // Undo stays inline. Optional sharing appears only after a newly created entry
 // is confirmed by the server, never while money is reserved or on old receipts.
-export function PendingEntryNotice() {
+export function PendingEntryNotice({ accountId }: { accountId: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [requests, setRequests] = useState<TimedRequest[]>([]);
   const [shareRequest, setShareRequest] = useState<EntryRequest | null>(null);
+  const [manualProduct, setManualProduct] = useState<ProductShareItem | null>(null);
+  const dismissed = useRef(new Set<string>());
+  const shareTrigger = useRef<HTMLElement | null>(null);
   const [now, setNow] = useState(0);
   const createdHere = useRef(new Set<string>());
   const inFlight = useRef(new Set<string>());
@@ -36,7 +40,9 @@ export function PendingEntryNotice() {
     if (routed.current.has(request.requestId) || !createdHere.current.delete(request.requestId))
       return routedInActivity.current.has(request.requestId) || routed.current.has(request.requestId);
     routed.current.add(request.requestId);
-    setShareRequest(request);
+    let muted = dismissed.current.has(request.slug);
+    try { muted ||= sessionStorage.getItem(shareDismissalKey(accountId, request.slug)) === "1"; } catch { /* In-memory dismissal still works. */ }
+    if (!muted) { setManualProduct(null); setShareRequest(request); }
     if (routedInActivity.current.has(request.requestId)) return true;
     try {
       const entryId = request.href ? new URL(request.href, window.location.origin).searchParams.get("entry") : null;
@@ -44,7 +50,29 @@ export function PendingEntryNotice() {
     } catch { /* The confirmed entry remains in the account database. */ }
     router.replace(request.href ?? "/account/entries");
     return true;
-  }, [router]);
+  }, [router, accountId]);
+
+  const closeSharing = useCallback(() => {
+    const slug = shareRequest?.slug ?? manualProduct?.slug;
+    if (slug) {
+      dismissed.current.add(slug);
+      try { sessionStorage.setItem(shareDismissalKey(accountId, slug), "1"); } catch { /* Storage is optional, not an entry record. */ }
+    }
+    setShareRequest(null); setManualProduct(null);
+    if (shareTrigger.current?.isConnected) shareTrigger.current.focus({ preventScroll: true });
+    shareTrigger.current = null;
+  }, [accountId, shareRequest, manualProduct]);
+
+  useEffect(() => {
+    const openSharing = (event: Event) => {
+      const product: unknown = (event as CustomEvent).detail;
+      if (!isProductShareItem(product)) return;
+      shareTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setShareRequest(null); setManualProduct(product);
+    };
+    window.addEventListener(PRODUCT_SHARE_EVENT, openSharing);
+    return () => window.removeEventListener(PRODUCT_SHARE_EVENT, openSharing);
+  }, []);
 
   const refresh = useCallback(async function refreshEntries() {
     if (refreshing.current) return;
@@ -126,5 +154,6 @@ export function PendingEntryNotice() {
     }
   }, [requests, routeAccepted]);
 
-  return shareRequest ? <PostEntryCrewToast key={shareRequest.requestId} request={shareRequest} onClose={() => setShareRequest(null)} /> : null;
+  return shareRequest ? <PostEntryCrewToast key={shareRequest.requestId} request={shareRequest} onClose={closeSharing} />
+    : manualProduct ? <PostEntryCrewToast key={`manual-${manualProduct.slug}`} product={manualProduct} onClose={closeSharing} focusOnOpen /> : null;
 }
