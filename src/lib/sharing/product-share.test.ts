@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { crewLookupKind, emailHref, isAppleMobile, isProductShareItem, messageHref, productShareUrl, shareDismissalKey } from "./product-share";
+import { crewLookupKind, emailHref, isAppleMobile, isProductShareItem, messageHref, nativeProductShareData, productShareUrl, shareDismissalKey, webmailHref } from "./product-share";
 
 test("public exact listing excludes private account path, query and fragments", () => {
   expect(productShareUrl("https://example.test/account/entries?entry=private#receipt", "nike-court-shot")).toBe("https://example.test/items/nike-court-shot");
@@ -21,4 +21,25 @@ test("discovery routes privately and transient dismissal is account-and-item sco
   expect(crewLookupKind("Jane Smith")).toBe("name"); expect(crewLookupKind("+1 202 555 0123")).toBe("phone"); expect(crewLookupKind("mom@example.test")).toBe("email");
   expect(shareDismissalKey("a", "shoe")).not.toBe(shareDismissalKey("b", "shoe"));
   expect(isProductShareItem({ slug: "shoe", title: "Shoe" })).toBe(true); expect(isProductShareItem({ slug: "../account", title: "Private" })).toBe(false);
+});
+
+test("Windows receives the URL inside text too, without changing mobile payloads", () => {
+  const item = { title: "Lowe’s gift card", slug: "lowes-gift-card" };
+  const windows = nativeProductShareData(item, "https://example.test", "Windows NT 10.0");
+  expect(windows.text).toContain(windows.url);
+  for (const ua of ["Android", "iPhone", "iPad"]) {
+    const data = nativeProductShareData(item, "https://example.test", ua);
+    expect(data.text).not.toContain("https://"); expect(data.url).toBe(windows.url);
+  }
+});
+
+test.each(["gmail", "outlook", "outlook-work"] as const)("%s browser draft includes exactly encoded recipient, subject and public URL", provider => {
+  const body = "Shoes & gift cards\nhttps://example.test/items/test-prize";
+  const url = new URL(webmailHref(provider, "friend+test@example.test", "Lowe’s & Nike", body));
+  expect(url.protocol).toBe("https:");
+  expect(url.searchParams.get("to")).toBe("friend+test@example.test");
+  expect(url.searchParams.get("subject") ?? url.searchParams.get("su")).toBe("Lowe’s & Nike");
+  expect(url.searchParams.get("body")).toBe(body);
+  expect(new URL(webmailHref(provider, "", "A", body)).searchParams.get("to")).toBe("");
+  expect(() => webmailHref(provider, "friend@example.test?bcc=evil@example.test", "A", body)).toThrow();
 });

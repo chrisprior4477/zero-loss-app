@@ -21,6 +21,13 @@ export function productShareText(title: string): string {
   return `Thought you might like ${title} on Zero Loss. Take a look:`;
 }
 
+/** Windows targets can drop the separate URL field. Keep it in the text too. */
+export function nativeProductShareData(item: ProductShareItem, origin: string, userAgent: string): ShareData {
+  const url = productShareUrl(origin, item.slug);
+  const text = productShareText(item.title);
+  return { title: item.title, text: /Windows NT/i.test(userAgent) ? `${text}\n${url}` : text, url };
+}
+
 export function isAppleMobile(userAgent: string, platform: string, maxTouchPoints: number): boolean {
   return /iPhone|iPad|iPod/i.test(userAgent) || (platform === "MacIntel" && maxTouchPoints > 1);
 }
@@ -33,10 +40,27 @@ export function messageHref(phone: string, body: string, appleMobile: boolean): 
   return `sms:${recipient}${appleMobile ? "&" : "?"}body=${encodeURIComponent(body)}`;
 }
 
-export function emailHref(email: string, title: string, body: string): string {
+function emailRecipient(email: string): string {
   const recipient = email.trim();
   if (recipient && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient) || /[\r\n?&#;,]/.test(recipient))) throw new Error("Enter a valid email address.");
+  return recipient;
+}
+
+export function emailHref(email: string, title: string, body: string): string {
+  const recipient = emailRecipient(email);
   return `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+}
+
+export type WebmailProvider = "outlook" | "gmail" | "outlook-work";
+export function webmailHref(provider: WebmailProvider, email: string, title: string, body: string): string {
+  const recipient = emailRecipient(email);
+  const url = new URL(provider === "gmail" ? "https://mail.google.com/mail/"
+    : provider === "outlook-work" ? "https://outlook.office.com/mail/deeplink/compose"
+      : "https://outlook.live.com/mail/0/deeplink/compose");
+  url.search = new URLSearchParams(provider === "gmail"
+    ? { view: "cm", fs: "1", to: recipient, su: title, body }
+    : { to: recipient, subject: title, body }).toString();
+  return url.href;
 }
 
 export function crewLookupKind(query: string): "email" | "phone" | "name" {

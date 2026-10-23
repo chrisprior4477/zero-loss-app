@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { renderCrewInvitationEmail } from "../_shared/crew-invitation-email.ts";
+import { crewInvitationReviewHref, renderCrewInvitationEmail } from "../_shared/crew-invitation-email.ts";
 import { emailSender } from "../_shared/email-sender.ts";
 
 declare const Deno: {
@@ -122,7 +122,7 @@ Deno.serve(async request => {
         continue;
       }
       const message = renderCrewInvitationEmail({
-        senderName: String(payload.requesterName), reviewHref: `${origin}/account/crew`,
+        senderName: String(payload.requesterName), reviewHref: crewInvitationReviewHref(origin, delivery.invitation_id),
       });
       const providerMessageId = await sendMessage(account.user.email, message.subject, message.html, message.text,
         `zero-loss-crew-invitation-${delivery.id}`);

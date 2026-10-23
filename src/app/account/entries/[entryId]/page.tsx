@@ -15,6 +15,7 @@ import { EntryPageActions } from "@/components/account/EntryPageActions";
 import { EntryCountShortcut } from "@/components/account/EntryCountShortcut";
 import { EntryTicketRail } from "@/components/account/EntryTicketRail";
 import { PrizeNumberCopy } from "@/components/account/PrizeNumberCopy";
+import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
 import styles from "@/components/account/entry-page.module.css";
 
@@ -67,6 +68,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     }));
   const enteredAt = item.enteredAt && Number.isFinite(Date.parse(item.enteredAt)) ? item.enteredAt : null;
   const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}`;
+  const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
   return <main className={styles.page}>
     <div className={styles.shell}>
@@ -86,13 +88,16 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <span className={styles.status}>◷ No winners yet. We will notify you when the pool is complete.</span>
           <dl className={styles.entryIdentity}>
             <div><dt>Entered</dt><dd>{enteredAt ? <time dateTime={enteredAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(enteredAt))}</time> : "Date unavailable"}</dd><dd><EntryCountShortcut count={entryCount} /></dd></div>
-            <div><dt>Prize number</dt><PrizeNumberCopy number={prizeNumberForSlug(item.slug)} /></div>
+            <div><dt>Prize number</dt><PrizeNumberCopy number={prizeNumberForSlug(item.slug)}><ProductShareButton product={shareItem} label="Share" className={styles.mobileShare} /></PrizeNumberCopy></div>
           </dl>
         </div>
-        {metrics ? <div className={styles.progressCorner}>
+        <div className={styles.progressCorner}>
+          {metrics ? <>
           <div role="progressbar" aria-label={`${item.title} prize pool filled`} aria-valuenow={metrics.percentFilled} aria-valuemin={0} aria-valuemax={100} className={styles.progressCircle} style={{ background: `conic-gradient(${progressColor} ${metrics.percentFilled}%, #dbe9f3 0)` }}><span>{metrics.percentFilled}%</span></div>
           <strong>{metrics.remaining === 0 ? "Pool full" : `${metrics.remaining.toLocaleString("en-US")} tickets left`}</strong>
-        </div> : <p className={styles.progressUnavailable}>Current pool count unavailable</p>}
+          </> : <p>Current pool count unavailable</p>}
+          <ProductShareButton product={shareItem} className={styles.desktopShare} />
+        </div>
       </section>
       <EntryTicketRail key={`${entryId}:${entryView}`} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "open" ? entryId : savedTickets[0].entryId} initiallyExpanded={expandEntries} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">

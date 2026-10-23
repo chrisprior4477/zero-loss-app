@@ -10,7 +10,7 @@ beforeEach(() => { vi.resetAllMocks(); mocks.auth.mockResolvedValue({ data: { us
 test("only current approved connections are included in saved group audiences", async () => {
   mocks.rpc.mockResolvedValue({ data: [{ member_id: member, name: "Member" }], error: null });
   mocks.settings.mockResolvedValue({ data: { groups: [{ id: owner, name: "Family", memberIds: [member, outsider], contacts: [] }] }, error: null });
-  expect(await getCrewShareOptions()).toEqual({ ok: true, message: "", memberCount: 1, members: [{ id: member, name: "Member" }], groups: [{ id: owner, name: "Family", memberCount: 1, memberIds: [member] }] });
+  expect(await getCrewShareOptions()).toEqual({ ok: true, message: "", memberCount: 1, members: [{ id: member, name: "Member" }], groups: [{ id: owner, name: "Family", memberCount: 1, memberIds: [member], contacts: [] }] });
   expect(mocks.eq).toHaveBeenCalledWith("owner_id", owner);
 });
 test("signed-out access and failed reads cannot turn into a fake empty successful audience", async () => {

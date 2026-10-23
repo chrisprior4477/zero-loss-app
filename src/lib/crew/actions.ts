@@ -9,7 +9,7 @@ export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: stri
 type CrewSearchResult = CrewActionResult & { people: CrewSearchPerson[] };
 export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 
-export type CrewShareOptions = { ok: boolean; message: string; memberCount: number; members: { id: string; name: string }[]; groups: { id: string; name: string; memberCount: number; memberIds: string[] }[] };
+export type CrewShareOptions = { ok: boolean; message: string; memberCount: number; members: { id: string; name: string }[]; groups: (CrewVisibilityGroup & { memberCount: number })[] };
 
 export async function getCrewShareOptions(): Promise<CrewShareOptions> {
   const unavailable = { ok: false, message: "We couldn’t load your Crew. Please try again.", memberCount: 0, members: [], groups: [] };
@@ -26,7 +26,7 @@ export async function getCrewShareOptions(): Promise<CrewShareOptions> {
     members: (members.data ?? []).map((member: { member_id: string; name: string }) => ({ id: member.member_id, name: member.name })),
     groups: groups.filter(isCrewVisibilityGroup).map(group => ({
     id: group.id, name: group.name, memberCount: group.memberIds.filter(id => approved.has(id)).length,
-    memberIds: group.memberIds.filter(id => approved.has(id)),
+    memberIds: group.memberIds.filter(id => approved.has(id)), contacts: group.contacts ?? [],
   })) };
 }
 

@@ -4,6 +4,12 @@ export type CrewInvitationEmailInput = {
   preview?: boolean;
 };
 
+export function crewInvitationReviewHref(origin: string, invitationId: string): string {
+  const site = new URL(origin);
+  if (site.protocol !== "https:" || site.username || site.password || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(invitationId)) throw new Error("Invalid Crew request link");
+  return `${site.origin}/account/crew?tab=requests&request=${invitationId}#crew-request-${invitationId}`;
+}
+
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 }

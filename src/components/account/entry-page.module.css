@@ -35,7 +35,9 @@
 .prizeCopyButton svg { width: 15px; height: 15px; }
 .prizeCopyButton:hover { background: #c8effe; }
 .prizeCopyButton:focus-visible { outline: 3px solid #0789ef; outline-offset: 2px; }
-.progressCorner { grid-column: 3; grid-row: 1; align-self: end; display: grid; justify-items: center; gap: 6px; text-align: center; color: #142753; font-size: 12px; }
+.progressCorner { grid-column: 3; grid-row: 1; align-self: center; display: grid; justify-items: center; gap: 6px; text-align: center; color: #142753; font-size: 12px; }
+.heroTicket .mobileShare { display: none; }
+.heroTicket .desktopShare { margin-top: 10px; font-size: 14px; }
 .progressCircle { display: grid; width: 86px; height: 86px; place-items: center; border-radius: 50%; box-shadow: 0 5px 12px #001a3e24; }
 .progressCircle span { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; background: #fffefa; font-size: 20px; font-weight: 900; }
 .progressUnavailable { grid-column: 3; grid-row: 1; align-self: end; color: #57738f; font-size: 12px; }
@@ -163,6 +165,8 @@
 @media (max-width: 600px) { .topline { align-items: start; } .toplineActions { display: contents; } .topReturnButton { grid-column: 2; grid-row: 2; } .closePage { grid-column: 2; grid-row: 1; width: 38px; height: 38px; font-size: 27px; } .heroTicket { grid-template-columns: 100px minmax(0, 1fr); gap: 8px 12px; padding: 23px 20px; } .productImage { grid-column: 1; grid-row: 1 / 4; height: 112px; } .heroCopy { display: contents; } .heroCopy > .retailer, .heroCopy > h2, .heroCopy > .status { grid-column: 2; } .heroCopy > .retailer { grid-row: 1; align-self: end; } .heroCopy > h2 { grid-row: 2; align-self: center; font-size: 23px; } .heroCopy > .status { grid-row: 3; justify-self: start; align-self: start; margin-top: 0; } .heroCopy > .entryIdentity { grid-column: 1 / -1; grid-row: 4; margin-top: 14px; } .progressCorner, .progressUnavailable { grid-column: 2; grid-row: 4; justify-self: end; align-self: end; margin-top: -5px; } .playTicket { padding: 25px 22px; } }
 @media (max-width: 390px) { .heroTicket { grid-template-columns: 82px minmax(0, 1fr); } .productImage { height: 100px; } .heroCopy h2 { font-size: 21px; } }
 @media (max-width: 600px) {
+  .heroTicket .desktopShare { display: none; }
+  .heroTicket .mobileShare { display: inline-flex; margin-top: 0; font-size: 13px; padding: 8px 10px; }
   .topline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .toplineHeading { grid-column: 1 / -1; grid-row: 1; padding-right: 48px; }
   .closePage { justify-self: end; }

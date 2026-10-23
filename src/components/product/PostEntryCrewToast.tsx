@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, saveCrewGroup, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
 import { getProductShareItem } from "@/lib/sharing/actions";
-import { crewLookupKind, emailHref, isAppleMobile, messageHref, productShareText, productShareUrl, type ProductShareItem } from "@/lib/sharing/product-share";
+import { crewLookupKind, emailHref, isAppleMobile, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
+import type { CrewGroupContact } from "@/lib/crew/visibility";
+import { containDialogTab } from "@/components/account/dialog-keyboard";
 import type { EntryRequest } from "@/lib/entries/request";
 import { ShareIcon } from "./ShareIcon";
 import styles from "./post-entry-crew-toast.module.css";
@@ -37,6 +39,9 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [groupName, setGroupName] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const groupId = useRef<string | null>(null);
+  const groupContacts = useRef<CrewGroupContact[]>([]);
+  const [editingGroup, setEditingGroup] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const paper = useRef<HTMLDivElement>(null);
   const previousStep = useRef<Step | null>(null);
@@ -47,6 +52,33 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const members = options?.members ?? [];
   const selectedGroup = options?.groups.find(group => group.id === audience);
   const recipientCount = audience ? selectedGroup?.memberCount ?? 0 : options?.memberCount ?? 0;
+
+  useEffect(() => {
+    const element = dialog.current;
+    if (!element) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const desktop = window.matchMedia("(min-width: 601px)");
+    const previousOverflow = document.body.style.overflow;
+    const show = () => {
+      if (element.open) element.close();
+      if (desktop.matches) {
+        element.showModal();
+        document.body.style.overflow = "hidden";
+        heading.current?.focus({ preventScroll: true });
+      } else {
+        element.show();
+        document.body.style.overflow = previousOverflow;
+      }
+    };
+    show();
+    desktop.addEventListener("change", show);
+    return () => {
+      desktop.removeEventListener("change", show);
+      element.close();
+      document.body.style.overflow = previousOverflow;
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    };
+  }, []);
 
   useEffect(() => {
     alive.current = true;
@@ -86,7 +118,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     // Invoke directly from the tap: a preceding server read would lose activation.
     busyRef.current = true; setBusy(true); feedback("");
     try {
-      await navigator.share({ title: item.title, text, url: productShareUrl(window.location.origin, item.slug) });
+      await navigator.share(nativeProductShareData(item, window.location.origin, navigator.userAgent));
       // Handoff is not proof of delivery. Never report "sent" here.
     } catch (reason) {
       if ((reason as { name?: string })?.name !== "AbortError" && alive.current) {
@@ -140,16 +172,36 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     });
   }
 
+  function editGroup(group?: CrewShareOptions["groups"][number]) {
+    groupId.current = group?.id ?? null;
+    groupContacts.current = group?.contacts ?? [];
+    setEditingGroup(Boolean(group));
+    setGroupName(group?.name ?? ""); setGroupMembers(group?.memberIds ?? []);
+    if (group) setAudience(group.id);
+    go("group");
+  }
+
+  async function refreshMembers() {
+    await run(async () => {
+      const result = await getCrewShareOptions();
+      if (!alive.current) return;
+      if (!result.ok) { feedback(result.message, true); return; }
+      setOptions(result);
+      setGroupMembers(current => current.filter(id => result.members.some(member => member.id === id)));
+      feedback("Crew refreshed. Only people who have approved your request can be selected.");
+    });
+  }
+
   async function createGroup() {
     if (!groupName.trim()) { feedback("Give your group a name.", true); return; }
-    const group = { id: groupId.current ?? crypto.randomUUID(), name: groupName.trim(), memberIds: groupMembers, contacts: [] };
+    const group = { id: groupId.current ?? crypto.randomUUID(), name: groupName.trim(), memberIds: groupMembers, contacts: groupContacts.current };
     groupId.current = group.id; // Retry the same group if the response is lost.
     await run(async () => {
       const result = await saveCrewGroup({ group, remove: false });
       if (!alive.current) return;
       if (!result.ok) { feedback(result.message, true); return; }
       setOptions(current => ({ ...(current ?? emptyOptions), groups: [...(current?.groups ?? []).filter(g => g.id !== group.id), { ...group, memberCount: group.memberIds.length }] }));
-      setAudience(group.id); setStep("audience"); history.current.pop(); feedback(result.message);
+      setAudience(group.id); setShared(false); setStep("audience"); history.current.pop(); feedback(result.message);
     });
   }
 
@@ -181,9 +233,17 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     try { externalHref = step === "email" ? emailHref(email, item.title, body) : messageHref(phone, body, isAppleMobile(navigator.userAgent, navigator.platform, navigator.maxTouchPoints)); }
     catch { /* Validate when the user chooses to open their app. */ }
   }
-  const titles: Record<Step, string> = { home: "Would you like to share this with anyone?", send: "Send to anyone", messages: "Send a text", email: "Send an email", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: "Create a new group", copy: "Copy this item’s link" };
+  function emailLink(provider: WebmailProvider) {
+    if (!externalHref) return undefined;
+    return webmailHref(provider, email, item.title, body);
+  }
+  const webmailLink = (provider: WebmailProvider, label: string) => <a className={styles.emailOption} href={emailLink(provider)} target="_blank" rel="noopener noreferrer" onClick={event => {
+    if (!externalHref) { event.preventDefault(); feedback("Enter a valid email address, or leave it blank.", true); }
+    else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
+  }}>{label} ↗</a>;
+  const titles: Record<Step, string> = { home: "Would you like to share this with anyone?", send: "Send to anyone", messages: "Send a text", email: "Send an email", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link" };
 
-  return <aside className={styles.toast} aria-labelledby={`${id}-title`} aria-label="Optional item sharing">
+  return <dialog ref={dialog} className={styles.toast} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className={styles.paper} ref={paper}>
       <div className={styles.top}>
         {step === "home" ? <p className={styles.eyebrow} role="status">{request ? "✓ Entry confirmed" : "Share this item"}</p> : <button type="button" className={styles.back} onClick={back} disabled={busy}>← Back</button>}
@@ -213,10 +273,17 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         </div>
         <p className={styles.messagePreview}>{text}</p>
         <details className={styles.preview}><summary>See the picture and link</summary>{pictureLink}<p className={styles.note}>Picture previews depend on the receiving app.</p></details>
-        <a className={styles.primary} href={externalHref ?? undefined} onClick={event => {
+        {step === "email" ? <div className={styles.emailChoices}>
+          <h3>Choose where to write your email</h3>
+          {webmailLink("outlook", "Outlook / Hotmail in browser")}
+          {webmailLink("gmail", "Gmail in browser")}
+          <details className={styles.more}><summary>Work or school Outlook</summary>{webmailLink("outlook-work", "Outlook for work or school")}</details>
+        </div> : null}
+        <a className={step === "messages" ? styles.primary : styles.emailOption} href={externalHref ?? undefined} onClick={event => {
           if (!externalHref) { event.preventDefault(); feedback(`Enter a valid ${step === "messages" ? "phone number" : "email address"}, or leave it blank.`, true); }
           else feedback("You review and send in your app. If it doesn’t open or the text is missing, copy the message below.");
-        }}>Open {step === "messages" ? "Messages" : "Email"} →</a>
+        }}>{step === "messages" ? "Send text" : "Use my default email app"} →</a>
+        <p className={styles.note}>{step === "messages" ? "Review and send in Messages." : "Subject, message, and item link are included. You review and send; nothing is sent automatically."}</p>
         <details className={styles.more}><summary>Copy the message instead</summary><textarea aria-label="Message with item link" readOnly value={body} onFocus={event => event.target.select()} /></details>
       </> : null}
 
@@ -228,17 +295,24 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           <div className={styles.searchRow}><input id={`${id}-query`} value={query} onChange={event => { setQuery(event.target.value); setReviewQuery(""); setPeople([]); }} autoComplete="off" maxLength={254} placeholder="Name, email, or phone" disabled={busy} /><button type="submit" className={styles.primary} disabled={busy} aria-label="Search for a member"><ShareIcon name="search" /></button></div>
         </form>
         <p className={styles.note}>Name search shows members who opted in. Email and phone requests are private—we don’t reveal whether an account exists.</p>
-        {people.map(person => <div className={styles.result} key={person.memberId}><strong>{person.name}</strong><small>Discoverable Zero Loss member</small><button type="button" disabled={busy || requested.includes(person.memberId)} onClick={() => void addPerson(person.memberId, "id")}>{requested.includes(person.memberId) ? "Request sent" : "Add to Crew"}</button></div>)}
-        {reviewQuery ? <div className={styles.result}><strong>{reviewQuery}</strong><small>They can approve your request if this belongs to a confirmed account{crewLookupKind(reviewQuery) === "phone" ? " with that verified phone" : ""}.</small><button type="button" disabled={busy || requested.includes(reviewQuery)} onClick={() => void addPerson(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")}>{requested.includes(reviewQuery) ? "Request submitted" : "Add to Crew"}</button></div> : null}
+        {people.map(person => <div className={styles.result} key={person.memberId}><strong>{person.name}</strong><small>Discoverable Zero Loss member</small><button type="button" className={styles.darkButton} disabled={busy || requested.includes(person.memberId)} onClick={() => void addPerson(person.memberId, "id")}>{requested.includes(person.memberId) ? "Request sent" : "Add to Crew"}</button></div>)}
+        {reviewQuery ? <div className={styles.result}><strong>{reviewQuery}</strong><small>They can approve your request if this belongs to a confirmed account{crewLookupKind(reviewQuery) === "phone" ? " with that verified phone" : ""}.</small><button type="button" className={styles.darkButton} disabled={busy || requested.includes(reviewQuery)} onClick={() => void addPerson(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")}>{requested.includes(reviewQuery) ? "Request submitted" : "Add to Crew"}</button></div> : null}
         <div className={styles.divider}><button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences()}>Share with your Crew or groups</button><button type="button" onClick={() => go("messages")}>Send to anyone instead</button></div>
       </> : null}
 
       {step === "audience" ? <>
         <button type="button" onClick={() => go("find")}>Don’t have a Crew yet? Create one.</button>
         {options ? <>
-          <label className={styles.choice}><input type="radio" name={`${id}-audience`} checked={!audience} disabled={busy || !options.memberCount} onChange={() => setAudience("")} /><span>Everyone in my Crew<small>{options.memberCount} approved {options.memberCount === 1 ? "connection" : "connections"}</small></span></label>
-          <section className={styles.divider} aria-label="Your groups"><h3>Share with groups you’ve created</h3><button type="button" disabled={busy} onClick={() => { setGroupName(""); setGroupMembers([]); groupId.current = null; go("group"); }}>＋ Create a new group</button>
-            {options.groups.map(group => <label className={styles.choice} key={group.id}><input type="radio" name={`${id}-audience`} checked={audience === group.id} disabled={busy || !group.memberCount} onChange={() => setAudience(group.id)} /><span>{group.name}<small>{group.memberCount} approved {group.memberCount === 1 ? "person" : "people"}</small></span></label>)}
+          <div className={styles.audienceRow}>
+            <label className={styles.audienceChoice}><input type="radio" name={`${id}-audience`} checked={!audience} disabled={busy || !options.memberCount} onChange={() => { setAudience(""); setShared(false); }} /><span>Everyone in my Crew<small>{options.memberCount} approved {options.memberCount === 1 ? "connection" : "connections"}</small></span></label>
+            <button type="button" className={styles.addPeople} aria-label="Add People to my Crew" disabled={busy} onClick={() => go("find")}>Add People</button>
+          </div>
+          <section className={styles.divider} aria-label="Your groups"><h3>Share with groups you’ve created</h3><button type="button" disabled={busy} onClick={() => editGroup()}>＋ Create a new group</button>
+            {options.groups.map(group => <div className={styles.audienceRow} key={group.id}>
+              <input type="radio" name={`${id}-audience`} aria-label={`Share with ${group.name}`} checked={audience === group.id} disabled={busy || !group.memberCount} onChange={() => { setAudience(group.id); setShared(false); }} />
+              <button type="button" className={styles.groupName} disabled={busy} aria-label={`Edit ${group.name}`} onClick={() => editGroup(group)}><span>{group.name}<small>{group.memberCount} approved {group.memberCount === 1 ? "person" : "people"}</small></span></button>
+              <button type="button" className={styles.addPeople} aria-label={`Add People to ${group.name}`} disabled={busy} onClick={() => editGroup(group)}>Add People</button>
+            </div>)}
             {!options.groups.length ? <p className={styles.note}>No groups yet. Create one whenever you’re ready.</p> : null}
           </section>
           {!recipientCount ? <p className={styles.note}>No approved members in this audience yet. They need to accept your Crew request first.</p> : null}
@@ -255,6 +329,9 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           {!members.length ? <p className={styles.note}>Create the group now. Add people after they accept your request.</p> : null}
           <button type="submit" className={styles.primary} disabled={busy}>{busy ? "Saving…" : "Save group"}</button>
         </form>
+        <button type="button" className={styles.darkButton} disabled={busy} onClick={() => go("find")}>Find someone to add to my Crew</button>
+        <p className={styles.note}>New people must accept your Crew request first. Then refresh this list, select them, and save your group.</p>
+        <button type="button" disabled={busy} onClick={() => void refreshMembers()}>Refresh approved people</button>
         <Link className={styles.manage} href="/account/crew#crew-groups" onClick={onClose}>Manage groups and saved contacts →</Link>
       </> : null}
 
@@ -262,5 +339,5 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       <button type="button" className={styles.later} onClick={onClose}>{shared ? "Done" : "Not now"}</button>
       <p className={styles.privacy}>{request && !shared ? "Your entry stays private unless you share it with your Crew." : "Your wallet and payment details stay private."}</p>
     </div>
-  </aside>;
+  </dialog>;
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CrewHub } from "@/components/account/CrewHub";
+import { CrewInvitationPrompt } from "@/components/account/CrewInvitationPrompt";
 import { getAccountContext } from "@/lib/account/context";
 import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -64,7 +65,14 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     };
   });
 
-  return <CrewHub
+  // Older invitation emails linked to the general Crew page. Surface received
+  // requests there too, while an exact request link must never reveal another's.
+  const incoming = invitations.find(invitation => invitation.recipient_id === account.userId
+    && (params.request ? invitation.id === params.request : invitation.status === "pending"));
+  return <><CrewInvitationPrompt key={`${account.userId}:${params.request ?? "incoming"}`}
+    invitation={incoming ? { id: incoming.id, name: incoming.requester_name, status: incoming.status } : null}
+    unavailable={Boolean(params.request) && (!incoming || Boolean(invitationsResult.error))} />
+  <CrewHub
     visibility={crewVisibilitySnapshot(settingsResult.data, new Set((membersResult.data ?? []).map((member: { member_id: string }) => member.member_id)))}
     visibilityAvailable={!settingsResult.error}
     key={`${params.tab ?? "crew"}-${params.request ?? ""}`}
@@ -84,5 +92,5 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
     ownInviteToken={inviteLinkResult.error ? null : typeof inviteLinkResult.data === "string" ? inviteLinkResult.data : null}
     incomingInviteToken={typeof params.invite === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.invite) ? params.invite : null}
-  />;
+  /></>;
 }

@@ -10,15 +10,22 @@ const request: EntryRequest = { requestId: "11111111-1111-4111-8111-111111111111
 const groupId = "22222222-2222-4222-8222-222222222222";
 const memberId = "33333333-3333-4333-8333-333333333333";
 const options = { ok: true, message: "", memberCount: 1, members: [{ id: memberId, name: "Member" }], groups: [{ id: groupId, name: "Mom", memberCount: 1, memberIds: [memberId] }] };
-beforeEach(() => { vi.resetAllMocks(); mocks.item.mockResolvedValue(null); mocks.options.mockResolvedValue(options); Object.defineProperty(navigator, "share", { configurable: true, value: undefined }); });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+beforeEach(() => {
+  vi.resetAllMocks(); mocks.item.mockResolvedValue(null); mocks.options.mockResolvedValue(options);
+  Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.show = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+});
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 function open() { render(<PostEntryCrewToast request={request} onClose={vi.fn()} />); }
 async function audiences() { fireEvent.click(screen.getByRole("button", { name: "Share with your Crew" })); fireEvent.click(screen.getByRole("button", { name: /Use my Crew/ })); await screen.findByLabelText(/Everyone in my Crew/); }
 
 test.each(["Not now", "Close sharing toast"])("%s only dismisses; no sharing or membership write", label => {
   const close = vi.fn(); render(<PostEntryCrewToast request={request} onClose={close} />);
   expect(screen.getByRole("heading", { name: /Would you like to share this/ })).toBeTruthy();
-  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("dialog")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: label }));
   expect(close).toHaveBeenCalledOnce(); expect(mocks.share).not.toHaveBeenCalled(); expect(mocks.options).not.toHaveBeenCalled();
 });
@@ -45,12 +52,18 @@ test("native cancellation is quiet; failure and unsupported browsers get three c
 test("Messages and Email provide optional recipients and real encoded app links", () => {
   open(); fireEvent.click(screen.getByRole("button", { name: "Share…" })); fireEvent.click(screen.getByRole("button", { name: "Messages" }));
   fireEvent.change(screen.getByLabelText(/Phone number/), { target: { value: "+1 (202) 555-0123" } });
-  const sms = screen.getByRole("link", { name: /Open Messages/ }).getAttribute("href")!;
+  const sms = screen.getByRole("link", { name: /Send text/ }).getAttribute("href")!;
   expect(sms).toContain("sms:+12025550123?"); expect(decodeURIComponent(sms)).toContain(`${location.origin}/items/test-prize`);
   expect(screen.getByAltText("Test prize sharing picture").getAttribute("src")).toBe("/items/test-prize/opengraph-image");
   fireEvent.click(screen.getByRole("button", { name: /Back/ })); fireEvent.click(screen.getByRole("button", { name: "Email" }));
   fireEvent.change(screen.getByLabelText(/Email address/), { target: { value: "friend@example.test" } });
-  expect(screen.getByRole("link", { name: /Open Email/ }).getAttribute("href")).toMatch(/^mailto:friend%40example.test\?subject=/);
+  expect(screen.getByRole("link", { name: /Use my default email app/ }).getAttribute("href")).toMatch(/^mailto:friend%40example.test\?subject=/);
+  for (const name of [/Outlook \/ Hotmail in browser/, /Gmail in browser/]) {
+    const url = new URL(screen.getByRole("link", { name }).getAttribute("href")!);
+    expect(url.searchParams.get("to")).toBe("friend@example.test");
+    expect(url.searchParams.get("subject") ?? url.searchParams.get("su")).toBe(request.title);
+    expect(url.searchParams.get("body")).toContain(`${location.origin}/items/test-prize`);
+  }
 });
 
 test("copy denial exposes a selectable public link instead of claiming success", async () => {
@@ -62,7 +75,7 @@ test("copy denial exposes a selectable public link instead of claiming success",
 
 test("group audience shares only on explicit confirmation", async () => {
   mocks.share.mockResolvedValue({ ok: true, message: "Shared with selected approved Crew members." }); open(); await audiences();
-  fireEvent.click(screen.getByLabelText(/Mom/)); expect(mocks.share).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" })); expect(mocks.share).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Share this pick" }));
   await waitFor(() => expect(mocks.share).toHaveBeenCalledWith(request.requestId, groupId));
   expect(await screen.findByRole("button", { name: "Done" })).toBeTruthy();
@@ -71,7 +84,7 @@ test("group audience shares only on explicit confirmation", async () => {
 test("empty groups cannot expose an entry and offer real creation", async () => {
   mocks.options.mockResolvedValue({ ...options, memberCount: 0, members: [], groups: [{ ...options.groups[0], memberCount: 0, memberIds: [] }] }); open(); await audiences();
   expect(screen.getByRole("button", { name: "Share this pick" }).hasAttribute("disabled")).toBe(true);
-  expect(screen.getByLabelText(/Mom/).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("radio", { name: "Share with Mom" }).hasAttribute("disabled")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: /Don’t have a Crew/ }));
   expect(screen.getByRole("heading", { name: "Find someone on Zero Loss" })).toBeTruthy();
 });
@@ -82,7 +95,42 @@ test("create group persists exact approved members before adding the saved choic
   fireEvent.change(screen.getByLabelText("Group name"), { target: { value: "Family" } }); fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: expect.any(String), name: "Family", memberIds: [memberId], contacts: [] }, remove: false }));
-  expect(await screen.findByLabelText(/Family/)).toHaveProperty("checked", true); expect(mocks.share).not.toHaveBeenCalled();
+  expect(await screen.findByRole("radio", { name: "Share with Family" })).toHaveProperty("checked", true); expect(mocks.share).not.toHaveBeenCalled();
+});
+
+test.each(["Add People to Mom", "Edit Mom"])("%s edits the existing group without erasing saved contacts", async label => {
+  const contacts = [{ id: request.requestId, name: "Saved contact", email: "saved@example.test", phone: "" }];
+  mocks.options.mockResolvedValue({ ...options, groups: [{ ...options.groups[0], contacts }] });
+  mocks.save.mockResolvedValue({ ok: true, message: "Mom saved." }); open(); await audiences();
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Mom");
+  expect(screen.getByLabelText("Member")).toHaveProperty("checked", true);
+  fireEvent.click(screen.getByLabelText("Member"));
+  fireEvent.click(screen.getByRole("button", { name: "Save group" }));
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [], contacts }, remove: false }));
+  expect(await screen.findByRole("radio", { name: "Share with Mom" })).toHaveProperty("disabled", true);
+  expect(mocks.share).not.toHaveBeenCalled();
+});
+
+test("empty groups stay editable and Crew Add People opens private discovery", async () => {
+  mocks.options.mockResolvedValue({ ...options, memberCount: 0, members: [], groups: [{ ...options.groups[0], memberCount: 0, memberIds: [] }] });
+  open(); await audiences(); fireEvent.click(screen.getByRole("button", { name: "Add People to Mom" }));
+  expect(screen.getByRole("heading", { name: "Add people to your group" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Find someone to add to my Crew" }));
+  expect(screen.getByRole("heading", { name: "Find someone on Zero Loss" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: /Back/ }));
+  expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Mom");
+  fireEvent.click(screen.getByRole("button", { name: /Back/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Add People to my Crew" }));
+  expect(screen.getByRole("heading", { name: "Find someone on Zero Loss" })).toBeTruthy();
+});
+
+test("desktop dialog restores page scroll and focus after unmount", () => {
+  const trigger = document.createElement("button"); document.body.append(trigger); trigger.focus();
+  const { unmount } = render(<PostEntryCrewToast request={request} onClose={vi.fn()} />);
+  expect(document.body.style.overflow).toBe("hidden");
+  expect(document.activeElement).toBe(screen.getByRole("heading", { name: /Would you like/ }));
+  unmount(); expect(document.body.style.overflow).not.toBe("hidden"); expect(document.activeElement).toBe(trigger); trigger.remove();
 });
 
 test("private email lookup does not enumerate accounts or send until Add to Crew", async () => {

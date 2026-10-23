@@ -1,15 +1,20 @@
-.toast { position:fixed; z-index:180; right:20px; bottom:max(20px,env(safe-area-inset-bottom)); width:min(420px,calc(100vw - 24px)); filter:drop-shadow(0 12px 24px #0006); color:#112644; }
+.toast { position:fixed; z-index:180; inset:auto 20px max(20px,env(safe-area-inset-bottom)) auto; width:min(420px,calc(100vw - 24px)); max-width:none; max-height:none; margin:0; padding:0; border:0; overflow:visible; background:transparent; filter:drop-shadow(0 12px 24px #0006); color:#112644; }
+.toast::backdrop { background:#04152c80; }
+@media(min-width:601px) { .toast { inset:50% auto auto 50%; transform:translate(-50%,-50%); width:min(460px,calc(100vw - 48px)); } }
 .paper { background:#fffefa; padding:22px; max-height:calc(100dvh - 44px - env(safe-area-inset-bottom)); overflow-y:auto; overscroll-behavior:contain; --scoop:14px; mask:radial-gradient(circle at 0 0,transparent var(--scoop),#000 calc(var(--scoop) + .5px)),radial-gradient(circle at 100% 0,transparent var(--scoop),#000 calc(var(--scoop) + .5px)),radial-gradient(circle at 0 100%,transparent var(--scoop),#000 calc(var(--scoop) + .5px)),radial-gradient(circle at 100% 100%,transparent var(--scoop),#000 calc(var(--scoop) + .5px)); mask-composite:intersect; }
 .toast h2 { font-size:25px; font-weight:800; line-height:1.2; letter-spacing:-.5px; margin:14px 0 18px; }
 .toast h3 { font-size:16px; font-weight:800; line-height:1.4; margin-bottom:10px; }
 .top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .eyebrow { color:#087a3f; font-size:14px; font-weight:750; }
 .toast .close { display:grid; place-items:center; flex-shrink:0; width:44px; height:44px; padding:0; margin:0; border:0; border-radius:50%; background:#edf3f6; color:#4c647d; font-size:27px; font-weight:400; }
-.toast button, .toast a.primary { display:flex; justify-content:center; align-items:center; gap:8px; width:100%; min-height:48px; padding:12px; border:0; border-radius:11px; margin-top:10px; background:#dff3fd; color:#123552; font-size:15px; font-weight:800; text-align:center; text-decoration:none; cursor:pointer; }
+.toast button, .toast a.primary, .toast a.emailOption { display:flex; justify-content:center; align-items:center; gap:8px; width:100%; min-height:48px; padding:12px; border:0; border-radius:11px; margin-top:10px; background:#dff3fd; color:#123552; font-size:15px; font-weight:800; text-align:center; text-decoration:none; cursor:pointer; }
 .toast button:disabled { opacity:.55; cursor:not-allowed; }
 .toast svg { flex-shrink:0; }
 .toast .primary, .toast a.primary { background:#ff7100; color:#11263c; }
 .toast .crewButton { background:#b9e9fc; }
+.toast .darkButton { background:#123b65; color:white; }
+.emailChoices { margin-top:12px; }
+.emailChoices h3 { margin-bottom:4px; }
 .toast .later { background:#edf0f3; color:#354e68; margin-top:14px; }
 .toast .back { width:auto; padding:8px 0; background:none; color:#0066ad; margin:0; font-size:14px; }
 .item { display:flex; gap:11px; align-items:center; padding:11px; border-radius:12px; background:#eef5fa; }
@@ -45,6 +50,12 @@
 .choice { display:flex; align-items:center; gap:10px; padding:13px 11px; background:#edf5fa; border-radius:10px; margin-top:10px; min-height:62px; font-size:14px; font-weight:750; }
 .choice input { width:20px; height:20px; accent-color:#098347; flex-shrink:0; }
 .choice small { display:block; font-size:12px; font-weight:400; color:#536d88; margin-top:3px; }
+.audienceRow { display:flex; align-items:center; gap:8px; padding:10px; background:#edf5fa; border-radius:10px; margin-top:10px; }
+.audienceChoice { display:flex; align-items:center; gap:8px; flex:1; min-width:0; font-size:14px; font-weight:750; }
+.audienceRow input { width:20px; height:20px; accent-color:#098347; flex-shrink:0; }
+.audienceRow small { display:block; font-size:12px; font-weight:400; color:#536d88; margin-top:3px; }
+.toast .groupName { flex:1; min-width:0; width:auto; justify-content:flex-start; text-align:left; padding:4px 0; margin:0; background:none; overflow-wrap:anywhere; font-size:14px; }
+.toast .addPeople { flex-shrink:0; width:auto; padding:8px; margin:0; min-height:44px; font-size:12px; background:#123b65; color:white; }
 .messagePreview { padding:13px; border-radius:12px; background:#edf5fa; color:#233e5a; font-size:14px; line-height:1.5; margin:14px 0 4px; }
 .pictureLink { display:block; overflow:hidden; background:white; border:1px solid #d1e0eb; border-radius:13px; color:#153350; margin:10px 0; text-decoration:none; }
 .pictureLink img { display:block; width:100%; height:auto; }
