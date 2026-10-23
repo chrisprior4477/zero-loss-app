@@ -3,9 +3,19 @@
 .heading p { margin-top: 7px; color: #b7cce4; font-size: 13px; }
 .heading p span + span::before { content: " · "; }
 .addButton { border: 0; border-radius: 10px; padding: 12px 20px; min-height: 46px; background: #ff7900; color: #071c38; font-weight: 850; font-size: 15px; white-space: nowrap; cursor: pointer; }
-.tabs { display: flex; flex-wrap: wrap; gap: 5px; padding-bottom: 10px; border-bottom: 1px solid #365777; margin-bottom: 20px; }
-.tabs button { border: 0; border-radius: 9px; padding: 11px 14px; min-height: 44px; color: #c4d8ed; background: transparent; font-size: 14px; font-weight: 800; cursor: pointer; }
-.tabs button[aria-pressed="true"] { background: #c5f0ff; color: #0a2746; }
+.tabs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; max-width: 760px; padding-bottom: 10px; border-bottom: 1px solid #365777; margin-bottom: 20px; }
+.tabs button {
+  --corner-scoop: 10px;
+  --side-scoop: 5px;
+  display: grid; place-items: center; min-width: 0; min-height: 60px; border: 0; border-radius: 0; padding: 10px 12px; color: #0a2746; background: #c5f0ff; font-size: 14px; font-weight: 800; line-height: 1.15; text-align: center; cursor: pointer;
+  -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}
+.tabs button[aria-pressed="true"] { background: #48ff00; }
+.tabs button:hover { filter: brightness(1.05); }
+.tabs button[aria-pressed]:focus-visible { outline: 3px solid #031b53; outline-offset: -5px; }
 .content { min-width: 0; }
 .content > [hidden] { display: none; }
 .people { min-width: 0; }
@@ -17,15 +27,20 @@
 .manage summary { padding: 10px; white-space: nowrap; cursor: pointer; }
 .manage > div { position: absolute; z-index: 5; right: 0; top: 100%; min-width: 170px; max-width: 230px; background: #fffefb; color: #153551; border: 1px solid #acd3e7; border-radius: 8px; padding: 8px; box-shadow: 0 5px 16px #0004; }
 .manage button { min-height: 44px; width: 100%; padding: 8px; border-radius: 5px; background: #e5f2f9; cursor: pointer; }
-.peopleRail { display: flex; align-items: stretch; gap: 10px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x proximity; padding: 4px 3px 9px; scrollbar-width: thin; scrollbar-color: #397497 transparent; }
-.person { flex: 0 0 102px; background: #10375d; border-radius: 11px; color: #eaf7ff; scroll-snap-align: start; }
-.person > button { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 7px; width: 100%; height: 100%; padding: 12px 8px; cursor: pointer; border-radius: inherit; }
+.peopleRail { display: flex; align-items: stretch; gap: 10px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x proximity; scroll-padding-inline: 3px; padding: 4px 3px 5px; scrollbar-width: none; cursor: grab; user-select: none; }
+.peopleRail::-webkit-scrollbar { display: none; }
+.peopleRail[data-dragging="true"], .peopleRail[data-settling="true"] { scroll-snap-type: none; }
+.peopleRail[data-dragging="true"] { scroll-behavior: auto; }
+.peopleRail[data-dragging="true"], .peopleRail[data-dragging="true"] * { cursor: grabbing; }
+.person { flex: 0 0 132px; background: #10375d; border-radius: 11px; color: #eaf7ff; scroll-snap-align: start; }
+.person > button { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 9px; width: 100%; height: 100%; padding: 12px 10px; cursor: grab; border-radius: inherit; }
+.peopleRail .person > button:focus-visible, .peopleRail .addPerson:focus-visible { outline: 3px solid #5cf760; outline-offset: -3px; }
 .personSelected { color: #0c2d4c; background: #c6f0ff; }
-.avatar { width: 52px; height: 52px; flex: 0 0 auto; border: 2px solid #8bd8f1; border-radius: 50%; overflow: hidden; position: relative; display: grid; place-items: center; background: #126183; color: white; font-size: 22px; font-weight: 800; }
+.avatar { width: 104px; height: 104px; flex: 0 0 auto; border: 2px solid #8bd8f1; border-radius: 50%; overflow: hidden; position: relative; display: grid; place-items: center; background: #126183; color: white; font-size: 42px; font-weight: 800; }
 .avatar img { object-fit: cover; }
-.personName { max-width: 100%; overflow-wrap: anywhere; text-align: center; font-size: 13px; font-weight: 850; line-height: 1.15; }
+.personName { max-width: 100%; overflow-wrap: anywhere; text-align: center; font-size: 15px; font-weight: 850; line-height: 1.15; }
 .person small { font-size: 10px; line-height: 1.2; opacity: .86; }
-.addPerson { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; flex: 0 0 102px; border: 1px dashed #659dc1; border-radius: 11px; color: #89e9fa; font-size: 12px; font-weight: 800; cursor: pointer; }
+.addPerson { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; flex: 0 0 132px; border: 1px dashed #659dc1; border-radius: 11px; color: #89e9fa; font-size: 12px; font-weight: 800; cursor: grab; scroll-snap-align: start; }
 .addPerson > span { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid #5d97b9; border-radius: 50%; font-size: 27px; }
 .sampleNotice { margin-top: 5px; color: #adc7dc; font-size: 11px; line-height: 1.4; }
 .addPanel { max-width: 830px; margin-inline: auto; }
@@ -43,13 +58,14 @@
   .heading { align-items: flex-start; margin: 19px 0 15px; gap: 9px; }
   .heading p { font-size: 11px; }
   .addButton { padding: 11px 13px; font-size: 13px; }
-  .tabs { gap: 3px; margin-bottom: 15px; }
-  .tabs button { padding: 10px 8px; font-size: 12px; }
+  .tabs { gap: 4px; margin-bottom: 15px; }
+  .tabs button { padding: 10px 6px; font-size: clamp(10px, 2.8vw, 12px); }
+  .crewTabSecondLine { display: block; }
   .peopleRail { gap: 8px; }
-  .person, .addPerson { flex-basis: 82px; }
-  .person > button { padding: 10px 5px; gap: 6px; }
-  .avatar { width: 44px; height: 44px; }
-  .personName { font-size: 12px; }
+  .person, .addPerson { flex-basis: 112px; }
+  .person > button { padding: 10px 8px; gap: 9px; }
+  .avatar { width: 88px; height: 88px; font-size: 36px; }
+  .personName { font-size: 14px; }
   .person small { font-size: 9px; }
   .peopleTools > button { width: 44px; height: 44px; }
   .invite { padding: 14px; }

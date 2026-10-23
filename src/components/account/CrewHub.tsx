@@ -170,7 +170,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
 
       <nav className={firstStyles.tabs} aria-label="Your Crew sections">
         {([["crew", "Your Crew"], ["requests", `Requests${received.length ? ` (${received.length})` : ""}`], ["picks", "My shared picks"], ["groups", "Groups"], ["privacy", "Privacy"]] as const).map(([key, label]) =>
-          <button key={key} type="button" aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</button>) }
+          <button key={key} type="button" aria-label={label} aria-pressed={tab === key} onClick={() => setTab(key)}>{key === "picks" ? <span>My shared<br />picks</span> : key === "crew" ? <span>Your<span className={firstStyles.crewTabSecondLine}> Crew</span></span> : label}</button>) }
       </nav>
 
       {tab === "crew" ? <section className={styles.crewSection} aria-label="Approved Crew">
