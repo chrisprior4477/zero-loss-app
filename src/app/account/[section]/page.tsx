@@ -5,6 +5,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { AccountSecurityDashboard } from "@/components/account/AccountSecurityDashboard";
 import { OrdersFulfillment } from "@/components/account/OrdersFulfillment";
 import { getAccountContext } from "@/lib/account/context";
+import { fulfillmentFilter } from "@/lib/account/fulfillment";
 
 export const metadata: Metadata = { title: "My Account" };
 
@@ -50,8 +51,10 @@ type LiveSection = keyof typeof liveSections;
 
 export default async function LiveAccountSection({
   params,
+  searchParams,
 }: {
   params: Promise<{ section: string }>;
+  searchParams?: Promise<{ filter?: string; rewardId?: string }>;
 }) {
   const { section } = await params;
   if (!(section in liveSections)) notFound();
@@ -75,7 +78,10 @@ export default async function LiveAccountSection({
     />;
   }
 
-  if (section === "orders") return <OrdersFulfillment state={account.orders} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
+  if (section === "orders") {
+    const query = await searchParams;
+    return <OrdersFulfillment state={account.orders} filter={fulfillmentFilter(query?.filter)} selectedRewardId={typeof query?.rewardId === "string" ? query.rewardId : undefined} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
+  }
 
   return (
     <PageContainer>

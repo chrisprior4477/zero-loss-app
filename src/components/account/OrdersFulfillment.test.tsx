@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { OrdersFulfillment } from "./OrdersFulfillment";
 import type { AccountOrder, AccountOrders } from "@/lib/account/orders";
@@ -52,23 +52,47 @@ test("two orders for the same product open their own saved gift cards", () => {
 test("uses honest empty and unavailable states", () => {
   const empty: AccountOrders = { source: "customer-empty", orders: [] };
   const { rerender } = render(<OrdersFulfillment state={empty} />);
-  expect(screen.getByText("No retailer gift-card orders yet")).toBeTruthy();
+  expect(screen.getByText("No orders or winning rewards yet")).toBeTruthy();
   rerender(<OrdersFulfillment state={{ source: "unavailable", orders: [] }} />);
-  expect(screen.getByRole("status").textContent).toMatch(/could not be verified/i);
-  expect(screen.getByText("Orders unavailable")).toBeTruthy();
+  expect(screen.getByText(/Some fulfillment records could not be verified/)).toBeTruthy();
+  expect(screen.getByText("Fulfillment unavailable")).toBeTruthy();
 });
 
 test("ticket filters use actual order statuses without changing saved destinations", () => {
-  render(<OrdersFulfillment state={{ source: "stored", orders: [order("issuance_pending", "pending"), order("fulfilled", "ready")] }} overview={{ balanceLabel: "$17", fundingEnabled: false, activity: storedActivityFixture() }} />);
+  const state: AccountOrders = { source: "stored", orders: [order("issuance_pending", "pending"), order("fulfilled", "ready")] };
+  const overview = { balanceLabel: "$17", fundingEnabled: false, activity: storedActivityFixture() };
+  const { rerender } = render(<OrdersFulfillment state={state} overview={overview} />);
   expect(screen.getByRole("link", { name: "Playable Wallet: $17" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /In progress/ }));
+  expect(screen.getByRole("link", { name: /In progress:/ }).getAttribute("href")).toBe("/account/orders?filter=processing#fulfillment-records");
+  rerender(<OrdersFulfillment state={state} overview={overview} filter="processing" />);
   expect(screen.getByRole("heading", { name: "pending gift card" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "ready gift card" })).toBeNull();
-  expect(screen.getByText("1 of 2 orders")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /Issued/ }));
+  expect(screen.getByText("1 of 2 records")).toBeTruthy();
+  rerender(<OrdersFulfillment state={state} overview={overview} filter="fulfilled" />);
   expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id");
-  fireEvent.click(screen.getByRole("button", { name: /Exceptions/ }));
-  expect(screen.getByText("No orders in this status")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Show all orders" }));
-  expect(screen.getAllByRole("link", { name: /Open gift card/ })).toHaveLength(2);
+  rerender(<OrdersFulfillment state={state} overview={overview} filter="exceptions" />);
+  expect(screen.getByText("No records in this status")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Show all records" }).getAttribute("href")).toBe("/account/orders#fulfillment-records");
+});
+
+test("winning rewards appear without a purchase order and link to the exact activity card", () => {
+  const activity = storedActivityFixture();
+  activity.activity = [{ ...activity.activity[1], entryId: "ent_winner", rewardId: "winner-id", rewardSource: "winner", rewardStatus: "ready" }];
+  render(<OrdersFulfillment state={{ source: "customer-empty", orders: [] }} overview={{ balanceLabel: "$17", fundingEnabled: true, activity }} />);
+  expect(screen.getByRole("link", { name: "Issued: 1 record" })).toBeTruthy();
+  expect(screen.getByText("Prize ready to claim")).toBeTruthy();
+  expect(screen.getByText("No purchase required")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "View in My Activity" }).getAttribute("href")).toBe("/account/entries?viewed=ent_winner");
+  expect(screen.getByRole("link", { name: "View winning reward" }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=winner-id");
+  const journey = within(screen.getByRole("list", { name: "Gift-card fulfillment journey" }));
+  expect(journey.getByRole("link", { name: /Payment confirmed/ }).getAttribute("href")).toBe("/account/orders?filter=payment#fulfillment-records");
+  expect(journey.getByRole("link", { name: /Issuance/ }).getAttribute("href")).toBe("/account/orders?filter=processing#fulfillment-records");
+  expect(journey.getByRole("link", { name: /Reward wallet/ }).getAttribute("href")).toBe("/account/wallet");
+  expect(journey.getByRole("link", { name: /Exceptions/ }).getAttribute("href")).toBe("/account/orders?filter=exceptions#fulfillment-records");
+});
+
+test("an unknown selected reward never falls back to another customer's or product's card", () => {
+  render(<OrdersFulfillment state={{ source: "stored", orders: [order("fulfilled", "ready")] }} selectedRewardId="not-owned" />);
+  expect(screen.getByText("That reward is not available here")).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Open gift card" })).toBeNull();
 });

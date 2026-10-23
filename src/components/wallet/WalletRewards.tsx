@@ -6,6 +6,7 @@ import { StatusTicket } from "@/components/account/StatusTicket";
 import stripStyles from "@/components/account/account-status-strip.module.css";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { accountRoutes } from "@/lib/account/navigation";
+import { fulfillmentHref } from "@/lib/account/fulfillment";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
 import { RewardPassAutoScroll } from "./RewardPassAutoScroll";
 import { WalletRewardLink } from "./WalletRewardLink";
@@ -70,7 +71,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
     <div className={overview.shell}>
       <header className={overview.heading}>
         <div><h1>Gift Cards &amp; Rewards</h1><p>Everything you’ve earned, ready when you are.</p></div>
-        <nav aria-label="Wallet sections" className={overview.walletSections}><Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href={walletHistoryHref}>Funds &amp; history</Link></nav>
+        <nav aria-label="Wallet sections" className={overview.walletSections}><Link href="/account/wallet" aria-current="page">Gift Cards &amp; Rewards</Link><Link href={walletHistoryHref}>Funds &amp; history</Link><Link href={fulfillmentHref()}>Orders &amp; Fulfillment</Link></nav>
       </header>
       <section aria-label="Your account overview" className={`${stripStyles.row} ${overview.statusTickets}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!fundingEnabled} />
@@ -275,6 +276,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
         <Link href="/browse" className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-5 py-2 text-sm font-black text-[#062218] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Try another demo offer</Link>
       </div> : null}
       <nav aria-label="Reward detail exits" className={styles.detailExitActions}>
+        {item.rewardId ? <Link href={fulfillmentHref(item.rewardId)} className={styles.backToRewards}>View fulfillment status</Link> : null}
         <Link href="/" className={styles.detailShoppingButton}>Continue shopping</Link>
         <Link href="/account/wallet" className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>
       </nav>

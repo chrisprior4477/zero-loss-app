@@ -15,7 +15,7 @@
 .headingActions svg { width: 18px; height: 18px; }
 
 /* The same concave corner and side scoops are used by every ticket surface. */
-.headingActions a, .summary button, .orderCard, .empty, .warning, .helpCard, .linksCard, .truthNote, .fulfillmentHero, .journey li {
+.headingActions a, .summary a, .orderCard, .empty, .warning, .helpCard, .linksCard, .truthNote, .fulfillmentHero, .journey li {
   --corner-scoop: 13px;
   --side-scoop: 12px;
   -webkit-mask-image:
@@ -38,7 +38,7 @@
 
 /* Short tickets need separated scoops; larger side bites merge into their corners. */
 .headingActions a { --corner-scoop: 11px; --side-scoop: 4px; }
-.summary button { --corner-scoop: 16px; --side-scoop: 7px; }
+.summary a { --corner-scoop: 16px; --side-scoop: 7px; }
 .truthNote {
   --corner-scoop: 14px;
   /* This shallow full-width ticket has corner scoops only; a middle bite reads as an arrow. */
@@ -55,17 +55,19 @@
 }
 
 .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 17px; }
-.summary button { display: flex; min-width: 0; min-height: 65px; align-items: center; gap: 12px; padding: 11px 19px; border: 0; background: #fcfbf8; color: #0a1741; cursor: pointer; font-size: clamp(13px, 1.3vw, 18px); font-weight: 820; text-align: left; }
-.summary button:first-child { background: #91e5ff; }
-.summary button[aria-pressed="true"] { filter: brightness(1.04); }
-.summary button:hover { filter: brightness(.96); }
-.summary button > svg { width: clamp(23px, 2.3vw, 32px); height: clamp(23px, 2.3vw, 32px); flex: 0 0 auto; }
-.summary button > span { min-width: 0; }
-.summary button > strong { display: grid; min-width: 35px; min-height: 35px; flex: 0 0 auto; place-items: center; margin-left: auto; padding: 4px 7px; border-radius: 9px; background: #072c60; color: #fff; font-size: 20px; font-variant-numeric: tabular-nums; }
+.summary a { display: flex; min-width: 0; min-height: 65px; align-items: center; gap: 12px; padding: 11px 19px; background: #c5f0ff; color: #0a1741; font-size: clamp(13px, 1.3vw, 18px); font-weight: 820; text-align: left; text-decoration: none; }
+.summary a[aria-current="page"] { background: #48ff00; }
+.summary a:hover { filter: brightness(.96); }
+.summary a > svg { width: clamp(23px, 2.3vw, 32px); height: clamp(23px, 2.3vw, 32px); flex: 0 0 auto; }
+.summary a > span { min-width: 0; }
+.summary a > strong { display: grid; min-width: 35px; min-height: 35px; flex: 0 0 auto; place-items: center; margin-left: auto; padding: 4px 7px; border-radius: 9px; background: #072c60; color: #fff; font-size: 20px; font-variant-numeric: tabular-nums; }
 .warning { margin-top: 12px; padding: 17px 22px; background: #fff0d5; color: #6c3710; font-size: 13px; }
 
 .contentGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(225px, 250px); grid-template-areas: "heading ." "orders rail"; align-items: start; column-gap: 10px; row-gap: 0; margin-top: 12px; }
 .orders { grid-area: orders; min-width: 0; }
+.contentGrid { scroll-margin-top: 150px; }
+.showAll { display: inline-flex; align-items: center; min-height: 44px; color: #91e5ff; font-weight: 800; text-decoration: underline; }
+.filterNote { margin-bottom: 12px; color: #c1d5ef; font-size: 13px; }
 .sectionHeading { display: flex; grid-area: heading; align-items: end; justify-content: space-between; gap: 12px; margin: 2px 0 10px; }
 .sectionHeading h2 { margin-top: 3px; font-size: 20px; font-weight: 820; letter-spacing: -.03em; }
 .sectionHeading > span { flex: 0 0 auto; color: #b8cce7; font-size: 12px; }
@@ -127,10 +129,12 @@
 .heroCopy h2 { margin-top: 5px; font-size: clamp(20px, 2vw, 28px); font-weight: 850; line-height: 1.1; }
 .heroCopy > span { display: block; margin-top: 8px; color: #526b88; font-size: 12px; line-height: 1.4; }
 .journey { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
-.journey li { display: grid; min-height: 107px; place-items: center; align-content: center; gap: 4px; padding: 9px 8px; background: #e3f1fc; text-align: center; }
+.journey li { display: grid; min-height: 107px; background: #e3f1fc; text-align: center; }
+.journey li > a { display: grid; place-items: center; align-content: center; gap: 4px; padding: 14px 12px; color: inherit; text-decoration: none; }
+.journey li > a:hover { background: #c5f0ff; }
 .journey li[data-active="true"] { background: #b9eafe; }
-.journey li > span { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 7px; background: #fff; color: #0d4076; }
-.journey li > span svg { width: 21px; height: 21px; }
+.journey li > a > span { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 7px; background: #fff; color: #0d4076; }
+.journey li > a > span svg { width: 21px; height: 21px; }
 .journey strong { font-size: 11px; line-height: 1.2; }
 .journey small { color: #506887; font-size: 9px; }
 .footerNote { margin-top: 25px; color: #95bdd8; font-size: 10px; font-weight: 800; letter-spacing: .2em; text-align: center; }
@@ -148,7 +152,7 @@
   .contentGrid { grid-template-columns: 1fr; grid-template-areas: "heading" "orders" "rail"; }
   .sideRail { margin-top: 10px; }
   .orderCard { grid-template-columns: minmax(115px, 33%) minmax(0, 1fr); }
-  .summary button { gap: 6px; padding-inline: 12px; }
+  .summary a { gap: 6px; padding-inline: 16px; }
 }
 @media (max-width: 700px) {
   .page { padding: 18px 12px 36px; }
@@ -157,9 +161,9 @@
   .headingActions { width: 100%; }
   .headingActions a { flex: 1; }
   .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .summary button { min-height: 72px; font-size: 13px; }
-  .summary button > svg { width: 23px; height: 23px; }
-  .summary button > strong { min-width: 30px; min-height: 30px; font-size: 16px; }
+  .summary a { min-height: 72px; font-size: 13px; }
+  .summary a > svg { width: 23px; height: 23px; }
+  .summary a > strong { min-width: 30px; min-height: 30px; font-size: 16px; }
   .orderList { grid-template-columns: 1fr; }
   .orderCard { min-height: 215px; }
   .productStage { min-height: 195px; }
@@ -174,12 +178,12 @@
   .orderActions { grid-column: 1; grid-row: 3; justify-content: flex-start; padding: 6px 18px 13px; }
 }
 @media (max-width: 400px) {
-  .summary button { gap: 5px; padding-inline: 10px; font-size: 11px; }
-  .summary button > svg { width: 20px; height: 20px; }
-  .summary button > strong { min-width: 26px; min-height: 26px; font-size: 14px; }
+  .summary a { gap: 5px; padding-inline: 14px; font-size: 11px; }
+  .summary a > svg { width: 20px; height: 20px; }
+  .summary a > strong { min-width: 26px; min-height: 26px; font-size: 14px; }
   .orderCopy h3 { font-size: 17px; }
   .orderFacts { gap: 6px 10px; }
   .secondaryAction { font-size: 10px; }
   .fulfillmentHero { padding: 18px; }
 }
-@media (prefers-reduced-motion: reduce) { .summary button, .orderActions a { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .summary a, .orderActions a { transition: none; } }
