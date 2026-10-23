@@ -43,3 +43,20 @@ test.each(["gmail", "outlook", "outlook-work"] as const)("%s browser draft inclu
   expect(new URL(webmailHref(provider, "", "A", body)).searchParams.get("to")).toBe("");
   expect(() => webmailHref(provider, "friend@example.test?bcc=evil@example.test", "A", body)).toThrow();
 });
+
+test.each(["gmail", "outlook", "outlook-work"] as const)("%s encodes spaces as percent-20 without changing literal plus signs", provider => {
+  const subject = "$150 Lowe’s + Home & Garden = 100%";
+  const body = "Thought you might like this + that.\nhttps://example.test/items/lowes-gift-card";
+  const href = webmailHref(provider, "friend+gift@example.test", subject, body);
+  expect(href).not.toContain("+");
+  expect(href).toContain("%20");
+  expect(href).toContain("%2B");
+  // Unlike URLSearchParams.get(), Outlook's compose decoding can leave + as-is.
+  const fields = Object.fromEntries(new URL(href).search.slice(1).split("&").map(field => {
+    const [key, value] = field.split("=");
+    return [key, decodeURIComponent(value)];
+  }));
+  expect(fields.to).toBe("friend+gift@example.test");
+  expect(fields.subject ?? fields.su).toBe(subject);
+  expect(fields.body).toBe(body);
+});

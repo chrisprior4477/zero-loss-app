@@ -44,6 +44,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const paper = useRef<HTMLDivElement>(null);
+  const perforation = useRef<HTMLDivElement>(null);
+  const emailRecipientPanel = useRef<HTMLDetailsElement>(null);
   const previousStep = useRef<Step | null>(null);
   const id = useId();
   const url = origin ? productShareUrl(origin, item.slug) : `/items/${item.slug}`;
@@ -101,6 +103,28 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     previousStep.current = step;
   }, [step, focusOnOpen]);
 
+  useEffect(() => {
+    const surface = paper.current;
+    const divider = perforation.current;
+    if (step !== "home" || !surface || !divider) return;
+    const positionCutouts = () => {
+      const surfaceBox = surface.getBoundingClientRect();
+      const dividerBox = divider.getBoundingClientRect();
+      const y = dividerBox.top - surfaceBox.top + dividerBox.height / 2;
+      surface.style.setProperty("--perforation-y", `${y > 24 && y < surfaceBox.height - 24 ? y : -100}px`);
+    };
+    positionCutouts();
+    const resize = typeof ResizeObserver !== "undefined" ? new ResizeObserver(positionCutouts) : null;
+    resize?.observe(surface);
+    resize?.observe(divider);
+    surface.addEventListener("scroll", positionCutouts, { passive: true });
+    return () => {
+      resize?.disconnect();
+      surface.removeEventListener("scroll", positionCutouts);
+      surface.style.removeProperty("--perforation-y");
+    };
+  }, [step]);
+
   function feedback(value: string, failed = false) { setMessage(value); setError(failed); }
   function go(next: Step) { history.current.push(step); setStep(next); feedback(""); }
   function back() { setStep(history.current.pop() ?? "home"); feedback(""); }
@@ -122,7 +146,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       // Handoff is not proof of delivery. Never report "sent" here.
     } catch (reason) {
       if ((reason as { name?: string })?.name !== "AbortError" && alive.current) {
-        go("send"); feedback("Your browser couldn’t open sharing. Use Messages, Email, or Copy link instead.");
+        go("send"); feedback("Your browser couldn’t open sharing. Use Text, Email, or Copy link instead.");
       }
     } finally { busyRef.current = false; if (alive.current) setBusy(false); }
   }
@@ -220,9 +244,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     <div><strong>{item.title}</strong>{item.retailer ? <small>{item.retailer}{item.value !== undefined ? ` · $${item.value.toLocaleString()} value` : ""}</small> : null}</div>
   </div>;
   const shortcuts = <div className={styles.shortcuts}>
-    <button type="button" onClick={() => go("messages")}><ShareIcon name="message" />Messages</button>
+    <button type="button" onClick={() => go("messages")}><ShareIcon name="message" />Text</button>
     <button type="button" onClick={() => go("email")}><ShareIcon name="mail" />Email</button>
-    <button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button>
   </div>;
   const pictureLink = <a href={url} target="_blank" rel="noopener noreferrer" className={styles.pictureLink}>
     <Image src={`/items/${item.slug}/opengraph-image`} alt={`${item.title} sharing picture`} width={1200} height={630} unoptimized />
@@ -237,28 +260,36 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!externalHref) return undefined;
     return webmailHref(provider, email, item.title, body);
   }
-  const webmailLink = (provider: WebmailProvider, label: string) => <a className={styles.emailOption} href={emailLink(provider)} target="_blank" rel="noopener noreferrer" onClick={event => {
-    if (!externalHref) { event.preventDefault(); feedback("Enter a valid email address, or leave it blank.", true); }
+  function invalidEmail() {
+    feedback("Enter a valid email address, or leave it blank.", true);
+    if (emailRecipientPanel.current) emailRecipientPanel.current.open = true;
+    document.getElementById(`${id}-recipient`)?.focus();
+  }
+  const webmailLink = (provider: WebmailProvider, label: string, tile = false) => <a className={tile ? styles.emailTile : styles.emailOption} aria-label={`${label} in browser (opens a new tab)`} href={emailLink(provider)} target="_blank" rel="noopener noreferrer" onClick={event => {
+    if (!externalHref) { event.preventDefault(); invalidEmail(); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
-  }}>{label} ↗</a>;
-  const titles: Record<Step, string> = { home: "Would you like to share this with anyone?", send: "Send to anyone", messages: "Send a text", email: "Send an email", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link" };
+  }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
+  const titles: Record<Step, string> = { home: "Share this find", send: "Send to anyone", messages: "Send a text", email: "Email this item", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link" };
+  const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{titles[step]}</h2>;
+  const compact = step === "home" || step === "email";
 
   return <dialog ref={dialog} className={styles.toast} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
-    <div className={styles.paper} ref={paper}>
+    <div className={`${styles.paper} ${compact ? styles.compact : ""} ${step === "home" ? styles.perforated : ""} ${step === "email" ? styles.emailPaper : ""}`} ref={paper}>
       <div className={styles.top}>
-        {step === "home" ? <p className={styles.eyebrow} role="status">{request ? "✓ Entry confirmed" : "Share this item"}</p> : <button type="button" className={styles.back} onClick={back} disabled={busy}>← Back</button>}
+        {step === "home" ? <div>{request ? <p className={styles.eyebrow} role="status">✓ Entry confirmed</p> : null}{titleHeading}</div> : <button type="button" className={styles.back} onClick={back} disabled={busy}>← Back</button>}
         <button type="button" className={styles.close} aria-label="Close sharing toast" onClick={onClose}>×</button>
       </div>
-      <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{titles[step]}</h2>
+      {step !== "home" ? titleHeading : null}
       {!["group", "find", "copy"].includes(step) ? itemSummary : null}
 
       {step === "home" ? <div className={styles.actions}>
         <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
         <button type="button" className={styles.crewButton} onClick={() => go("crew")}><ShareIcon name="crew" />Share with your Crew</button>
-        <details className={styles.more}><summary>Messages &amp; email shortcuts</summary>{shortcuts}</details>
+        <div ref={perforation} className={styles.perforation}>Or send directly</div>
+        {shortcuts}
       </div> : null}
 
-      {step === "send" ? <div className={styles.actions}>{shortcuts}<p className={styles.note}>No Crew or group setup needed. You choose who receives the link.</p></div> : null}
+      {step === "send" ? <div className={styles.actions}>{shortcuts}<button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button><p className={styles.note}>No Crew or group setup needed. You choose who receives the link.</p></div> : null}
 
       {step === "crew" ? <div className={styles.actions}>
         <button type="button" className={`${styles.primary} ${styles.path}`} onClick={() => go("messages")}><ShareIcon name="message" /><span>Send to anyone<small>A text with this item’s picture and link.</small></span><span aria-hidden="true">›</span></button>
@@ -266,25 +297,47 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         <button type="button" onClick={() => void loadAudiences()} disabled={busy}>Use my Crew or groups →</button>
       </div> : null}
 
-      {step === "messages" || step === "email" ? <>
-        <div className={styles.field}><label htmlFor={`${id}-recipient`}>{step === "messages" ? "Phone number" : "Email address"} <span>· optional</span></label>
-          <input id={`${id}-recipient`} type={step === "messages" ? "tel" : "email"} maxLength={254} autoComplete="off" value={step === "messages" ? phone : email} onChange={event => step === "messages" ? setPhone(event.target.value) : setEmail(event.target.value)} placeholder={step === "messages" ? "Phone with country code" : "name@example.com"} />
-          <small>Or choose the recipient in your {step === "messages" ? "Messages" : "email"} app.</small>
+      {step === "messages" ? <>
+        <div className={styles.field}><label htmlFor={`${id}-recipient`}>Phone number <span>· optional</span></label>
+          <input id={`${id}-recipient`} type="tel" maxLength={254} autoComplete="off" value={phone} onChange={event => setPhone(event.target.value)} placeholder="Phone with country code" />
+          <small>Or choose the recipient in your texting app.</small>
         </div>
         <p className={styles.messagePreview}>{text}</p>
         <details className={styles.preview}><summary>See the picture and link</summary>{pictureLink}<p className={styles.note}>Picture previews depend on the receiving app.</p></details>
-        {step === "email" ? <div className={styles.emailChoices}>
-          <h3>Choose where to write your email</h3>
-          {webmailLink("outlook", "Outlook / Hotmail in browser")}
-          {webmailLink("gmail", "Gmail in browser")}
-          <details className={styles.more}><summary>Work or school Outlook</summary>{webmailLink("outlook-work", "Outlook for work or school")}</details>
-        </div> : null}
-        <a className={step === "messages" ? styles.primary : styles.emailOption} href={externalHref ?? undefined} onClick={event => {
-          if (!externalHref) { event.preventDefault(); feedback(`Enter a valid ${step === "messages" ? "phone number" : "email address"}, or leave it blank.`, true); }
+        <a className={styles.primary} href={externalHref ?? undefined} onClick={event => {
+          if (!externalHref) { event.preventDefault(); feedback("Enter a valid phone number, or leave it blank.", true); }
           else feedback("You review and send in your app. If it doesn’t open or the text is missing, copy the message below.");
-        }}>{step === "messages" ? "Send text" : "Use my default email app"} →</a>
-        <p className={styles.note}>{step === "messages" ? "Review and send in Messages." : "Subject, message, and item link are included. You review and send; nothing is sent automatically."}</p>
+        }}>Send text →</a>
+        <p className={styles.note}>Review and send in your texting app.</p>
         <details className={styles.more}><summary>Copy the message instead</summary><textarea aria-label="Message with item link" readOnly value={body} onFocus={event => event.target.select()} /></details>
+      </> : null}
+
+      {step === "email" ? <>
+        <section className={styles.emailChoices} aria-label="Email apps">
+          <h3>Open a draft in</h3>
+          <div className={styles.emailTiles}>
+            {webmailLink("gmail", "Gmail", true)}
+            {webmailLink("outlook", "Outlook", true)}
+            <a className={styles.emailTile} aria-label="Use my default email app" href={externalHref ?? undefined} onClick={event => {
+              if (!externalHref) { event.preventDefault(); invalidEmail(); }
+              else feedback("Review and send in your email app. If it doesn’t open, choose Gmail or Outlook, or copy the message below.");
+            }}><ShareIcon name="mail" /><span>Email app</span></a>
+          </div>
+          <p className={styles.note}>Choose your recipient in your email app.</p>
+        </section>
+        <details className={styles.more} ref={emailRecipientPanel}>
+          <summary>Add recipient · optional</summary>
+          <div className={styles.field}><label htmlFor={`${id}-recipient`}>Email address</label><input id={`${id}-recipient`} type="email" maxLength={254} autoComplete="off" value={email} onChange={event => setEmail(event.target.value)} placeholder="name@example.com" /></div>
+        </details>
+        <details className={styles.more}>
+          <summary>Preview &amp; other email options</summary>
+          <p className={styles.messagePreview}><strong>Subject: {item.title}</strong><br />{text}<br /><span className={styles.publicUrl}>{url}</span></p>
+          <details className={styles.preview}><summary>See the picture and link</summary>{pictureLink}<p className={styles.note}>Picture previews depend on the receiving app.</p></details>
+          {webmailLink("outlook-work", "Outlook for work or school")}
+          <details className={styles.more}><summary>Copy the message instead</summary><textarea aria-label="Message with item link" readOnly value={body} onFocus={event => event.target.select()} /></details>
+        </details>
+        <p className={styles.ready}>✓ Subject, message + link ready</p>
+        <p className={styles.note}>You review and send. Nothing sends automatically.</p>
       </> : null}
 
       {step === "copy" ? <>{pictureLink}<div className={styles.field}><label htmlFor={`${id}-link`}>Product link</label><textarea id={`${id}-link`} readOnly value={url} onFocus={event => event.target.select()} /></div>{shortcuts}</> : null}

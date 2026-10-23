@@ -22,9 +22,47 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 function open() { render(<PostEntryCrewToast request={request} onClose={vi.fn()} />); }
 async function audiences() { fireEvent.click(screen.getByRole("button", { name: "Share with your Crew" })); fireEvent.click(screen.getByRole("button", { name: /Use my Crew/ })); await screen.findByLabelText(/Everyone in my Crew/); }
 
+test("perforated home exposes Text and Email directly with just one Copy link", () => {
+  open();
+  expect(screen.getByText("Or send directly")).toBeTruthy();
+  for (const name of ["Text", "Email"]) {
+    expect(screen.getByRole("button", { name }).closest("details")).toBeNull();
+  }
+  expect(screen.getAllByRole("button", { name: "Copy link" })).toHaveLength(1);
+  expect(screen.queryByText("Messages & email shortcuts")).toBeNull();
+});
+
+test("email starts with three app choices and keeps advanced options collapsed", () => {
+  open(); fireEvent.click(screen.getByRole("button", { name: "Email" }));
+  expect(screen.getByRole("heading", { name: "Email this item" })).toBeTruthy();
+  const apps = screen.getByRole("region", { name: "Email apps" });
+  expect(apps.querySelectorAll("a")).toHaveLength(3);
+  for (const link of apps.querySelectorAll("a")) expect(link.getAttribute("href")).toBeTruthy();
+  expect(screen.getByText("Add recipient · optional").closest("details")).toHaveProperty("open", false);
+  expect(screen.getByText("Preview & other email options").closest("details")).toHaveProperty("open", false);
+  fireEvent.click(screen.getByText("Preview & other email options"));
+  const work = new URL(screen.getByRole("link", { name: /Outlook for work or school/ }).getAttribute("href")!);
+  expect(work.hostname).toBe("outlook.office.com");
+  expect(work.search).not.toContain("+");
+  expect(screen.getByLabelText("Message with item link")).toHaveProperty("value", expect.stringContaining("/items/test-prize"));
+});
+
+test("invalid optional email blocks handoff and reveals the field to correct", () => {
+  open(); fireEvent.click(screen.getByRole("button", { name: "Email" }));
+  const recipient = screen.getByLabelText("Email address");
+  fireEvent.change(recipient, { target: { value: "not-an-email" } });
+  fireEvent.click(screen.getByText("Gmail").closest("a")!);
+  expect(screen.getByRole("alert").textContent).toContain("Enter a valid email");
+  expect(recipient.closest("details")).toHaveProperty("open", true);
+  expect(document.activeElement).toBe(recipient);
+  fireEvent.change(recipient, { target: { value: "" } });
+  expect(screen.getByRole("link", { name: /Gmail in browser/ }).getAttribute("href")).toBeTruthy();
+  expect(mocks.share).not.toHaveBeenCalled(); expect(mocks.prize).not.toHaveBeenCalled();
+});
+
 test.each(["Not now", "Close sharing toast"])("%s only dismisses; no sharing or membership write", label => {
   const close = vi.fn(); render(<PostEntryCrewToast request={request} onClose={close} />);
-  expect(screen.getByRole("heading", { name: /Would you like to share this/ })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Share this find" })).toBeTruthy();
   expect(screen.getByRole("dialog")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: label }));
   expect(close).toHaveBeenCalledOnce(); expect(mocks.share).not.toHaveBeenCalled(); expect(mocks.options).not.toHaveBeenCalled();
@@ -43,22 +81,23 @@ test("native cancellation is quiet; failure and unsupported browsers get three c
   Object.defineProperty(navigator, "share", { configurable: true, value: share }); open();
   fireEvent.click(screen.getByRole("button", { name: "Share…" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Share…" }).hasAttribute("disabled")).toBe(false));
-  expect(screen.getByRole("heading", { name: /Would you like/ })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Share this find" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Share…" }));
   expect(await screen.findByRole("heading", { name: "Send to anyone" })).toBeTruthy();
-  for (const name of ["Messages", "Email", "Copy link"]) expect(screen.getByRole("button", { name })).toBeTruthy();
+  for (const name of ["Text", "Email", "Copy link"]) expect(screen.getByRole("button", { name })).toBeTruthy();
 });
 
-test("Messages and Email provide optional recipients and real encoded app links", () => {
-  open(); fireEvent.click(screen.getByRole("button", { name: "Share…" })); fireEvent.click(screen.getByRole("button", { name: "Messages" }));
+test("Text and Email provide optional recipients and real encoded app links", () => {
+  open(); fireEvent.click(screen.getByRole("button", { name: "Text" }));
   fireEvent.change(screen.getByLabelText(/Phone number/), { target: { value: "+1 (202) 555-0123" } });
   const sms = screen.getByRole("link", { name: /Send text/ }).getAttribute("href")!;
   expect(sms).toContain("sms:+12025550123?"); expect(decodeURIComponent(sms)).toContain(`${location.origin}/items/test-prize`);
   expect(screen.getByAltText("Test prize sharing picture").getAttribute("src")).toBe("/items/test-prize/opengraph-image");
   fireEvent.click(screen.getByRole("button", { name: /Back/ })); fireEvent.click(screen.getByRole("button", { name: "Email" }));
+  fireEvent.click(screen.getByText("Add recipient · optional"));
   fireEvent.change(screen.getByLabelText(/Email address/), { target: { value: "friend@example.test" } });
   expect(screen.getByRole("link", { name: /Use my default email app/ }).getAttribute("href")).toMatch(/^mailto:friend%40example.test\?subject=/);
-  for (const name of [/Outlook \/ Hotmail in browser/, /Gmail in browser/]) {
+  for (const name of [/Outlook in browser/, /Gmail in browser/]) {
     const url = new URL(screen.getByRole("link", { name }).getAttribute("href")!);
     expect(url.searchParams.get("to")).toBe("friend@example.test");
     expect(url.searchParams.get("subject") ?? url.searchParams.get("su")).toBe(request.title);
@@ -129,7 +168,7 @@ test("desktop dialog restores page scroll and focus after unmount", () => {
   const trigger = document.createElement("button"); document.body.append(trigger); trigger.focus();
   const { unmount } = render(<PostEntryCrewToast request={request} onClose={vi.fn()} />);
   expect(document.body.style.overflow).toBe("hidden");
-  expect(document.activeElement).toBe(screen.getByRole("heading", { name: /Would you like/ }));
+  expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Share this find" }));
   unmount(); expect(document.body.style.overflow).not.toBe("hidden"); expect(document.activeElement).toBe(trigger); trigger.remove();
 });
 

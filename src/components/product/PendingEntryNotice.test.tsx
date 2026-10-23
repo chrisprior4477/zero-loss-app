@@ -35,7 +35,7 @@ test("dismissal suppresses new entries for this item in this tab, but manual Sha
   const next = { ...accepted, requestId: "51515151-5151-4151-8151-515151515151" };
   act(() => { window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: next.requestId })); window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: next })); });
   await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(next.requestId));
-  expect(screen.queryByRole("heading", { name: /Would you like to share this/ })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
   const replacements = mocks.replace.mock.calls.length;
   act(() => window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: { slug: request.slug, title: request.title } })));
   fireEvent.click(await screen.findByRole("button", { name: "Close sharing toast" }));
@@ -47,7 +47,7 @@ test("stored dismissal survives remount but does not suppress another account or
   render(<PendingEntryNotice accountId="account-b" />);
   await waitFor(() => expect(mocks.list).toHaveBeenCalled());
   act(() => { window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId })); window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted" } })); });
-  expect(await screen.findByRole("heading", { name: /Would you like to share this/ })).toBeTruthy();
+  expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
 });
 
 test("local accepted entry returns to My Activity and leaves a transient exact-entry marker", async () => {
@@ -61,10 +61,10 @@ test("local accepted entry returns to My Activity and leaves a transient exact-e
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries?item=test-prize&entry=ent_abcd"));
   expect(JSON.parse(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY) ?? "null")).toMatchObject({ slug: "test-prize", entryId: "ent_abcd" });
   expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId);
-  expect(screen.getByRole("heading", { name: /Would you like to share this/ })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Share this find" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Not now" }));
   act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted" } })));
-  expect(screen.queryByRole("heading", { name: /Would you like to share this/ })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
 });
 
 test("an accepted close-out goes straight to its purchase option", async () => {
@@ -96,7 +96,7 @@ test("restored older receipt is acknowledged without redirecting", async () => {
   render(<PendingEntryNotice />);
   await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId));
   expect(mocks.replace).not.toHaveBeenCalled();
-  expect(screen.queryByRole("heading", { name: /Would you like to share this/ })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
 });
 
 test.each(["cancelled", "rejected"])("%s entries never show a sharing prompt", async status => {
@@ -107,7 +107,7 @@ test.each(["cancelled", "rejected"])("%s entries never show a sharing prompt", a
     window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status } }));
   });
   await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalled());
-  expect(screen.queryByRole("heading", { name: /Would you like to share this/ })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
 });
 
 test("expired pending request is checked with the server, not accepted by the browser", async () => {

@@ -59,7 +59,9 @@ export function webmailHref(provider: WebmailProvider, email: string, title: str
       : "https://outlook.live.com/mail/0/deeplink/compose");
   url.search = new URLSearchParams(provider === "gmail"
     ? { view: "cm", fs: "1", to: recipient, su: title, body }
-    : { to: recipient, subject: title, body }).toString();
+    : { to: recipient, subject: title, body }).toString().replace(/\+/g, "%20");
+  // Outlook compose treats form-encoded spaces (+) as literal text. Real plus
+  // signs are already %2B, so replacing only raw + preserves addresses and copy.
   return url.href;
 }
 
