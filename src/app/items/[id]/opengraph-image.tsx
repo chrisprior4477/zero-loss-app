@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import sharp from "sharp";
 import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
@@ -28,8 +29,10 @@ export default async function ProductShareImage({ params }: { params: Promise<{ 
   const bytes = await readFile(join(process.cwd(), "public", artwork.src));
   // SVG text inside an embedded SVG loses its fonts in ImageResponse. Flatten
   // it with our packaged font first so cloud hosts render real letters too.
-  const imageBytes = type === "image/svg+xml" ? rasterizeCatalogSvg(bytes) : bytes;
-  const imageType = type === "image/svg+xml" ? "image/png" : type;
+  const imageBytes = type === "image/svg+xml"
+    ? rasterizeCatalogSvg(bytes)
+    : type === "image/webp" ? await sharp(bytes).png().toBuffer() : bytes;
+  const imageType = type === "image/svg+xml" || type === "image/webp" ? "image/png" : type;
   const image = `data:${imageType};base64,${imageBytes.toString("base64")}`;
 
   return new ImageResponse(
