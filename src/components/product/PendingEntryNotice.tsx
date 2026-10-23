@@ -40,8 +40,8 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     if (routed.current.has(request.requestId) || !createdHere.current.delete(request.requestId))
       return routedInActivity.current.has(request.requestId) || routed.current.has(request.requestId);
     routed.current.add(request.requestId);
-    let muted = dismissed.current.has(request.slug);
-    try { muted ||= sessionStorage.getItem(shareDismissalKey(accountId, request.slug)) === "1"; } catch { /* In-memory dismissal still works. */ }
+    let muted = dismissed.current.has(request.requestId);
+    try { muted ||= sessionStorage.getItem(shareDismissalKey(accountId, request.requestId)) === "1"; } catch { /* In-memory dismissal still works. */ }
     if (!muted) { setManualProduct(null); setShareRequest(request); }
     if (routedInActivity.current.has(request.requestId)) return true;
     try {
@@ -53,15 +53,15 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
   }, [router, accountId]);
 
   const closeSharing = useCallback(() => {
-    const slug = shareRequest?.slug ?? manualProduct?.slug;
-    if (slug) {
-      dismissed.current.add(slug);
-      try { sessionStorage.setItem(shareDismissalKey(accountId, slug), "1"); } catch { /* Storage is optional, not an entry record. */ }
+    // "Not now" dismisses this receipt, not every future entry for the prize.
+    if (shareRequest) {
+      dismissed.current.add(shareRequest.requestId);
+      try { sessionStorage.setItem(shareDismissalKey(accountId, shareRequest.requestId), "1"); } catch { /* Storage is optional, not an entry record. */ }
     }
     setShareRequest(null); setManualProduct(null);
     if (shareTrigger.current?.isConnected) shareTrigger.current.focus({ preventScroll: true });
     shareTrigger.current = null;
-  }, [accountId, shareRequest, manualProduct]);
+  }, [accountId, shareRequest]);
 
   useEffect(() => {
     const openSharing = (event: Event) => {

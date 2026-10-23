@@ -25,27 +25,46 @@ test("does not render either the countdown or View entry toast", async () => {
   expect(container.firstChild).toBeNull();
 });
 
-test("dismissal suppresses new entries for this item in this tab, but manual Share still opens", async () => {
+test("dismissal closes only this entry; the next entry for the same prize and manual Share still open", async () => {
   render(<PendingEntryNotice accountId="account-a" />);
   await waitFor(() => expect(mocks.list).toHaveBeenCalled());
   const accepted = { ...request, status: "accepted", href: "/account/entries?item=test-prize" };
   act(() => { window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId })); window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: accepted })); });
   fireEvent.click(await screen.findByRole("button", { name: "Not now" }));
-  expect(sessionStorage.getItem(shareDismissalKey("account-a", request.slug))).toBe("1");
+  expect(sessionStorage.getItem(shareDismissalKey("account-a", request.requestId))).toBe("1");
   const next = { ...accepted, requestId: "51515151-5151-4151-8151-515151515151" };
   act(() => { window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: next.requestId })); window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: next })); });
   await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(next.requestId));
-  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
+  expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Not now" }));
   const replacements = mocks.replace.mock.calls.length;
   act(() => window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: { slug: request.slug, title: request.title } })));
   fireEvent.click(await screen.findByRole("button", { name: "Close sharing toast" }));
   expect(mocks.replace).toHaveBeenCalledTimes(replacements);
 });
 
-test("stored dismissal survives remount but does not suppress another account or product", async () => {
-  sessionStorage.setItem(shareDismissalKey("account-a", request.slug), "1");
+test("receipt dismissal does not suppress another account", async () => {
+  sessionStorage.setItem(shareDismissalKey("account-a", request.requestId), "1");
   render(<PendingEntryNotice accountId="account-b" />);
   await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => { window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId })); window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted" } })); });
+  expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
+});
+
+test("a legacy per-prize dismissal from before refresh cannot suppress a new confirmation", async () => {
+  sessionStorage.setItem(`zero-loss:share-dismissed:v1:account-a:${request.slug}`, "1");
+  render(<PendingEntryNotice accountId="account-a" />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => { window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId })); window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted" } })); });
+  expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
+});
+
+test("closing manual sharing cannot mute a subsequent confirmed entry", async () => {
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: { slug: request.slug, title: request.title } })));
+  fireEvent.click(await screen.findByRole("button", { name: "Close sharing toast" }));
+  expect(sessionStorage.length).toBe(0);
   act(() => { window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId })); window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted" } })); });
   expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
 });

@@ -147,10 +147,13 @@ export async function inviteToCrew(email: string): Promise<CrewActionResult> {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail) || cleanEmail.length > 254) {
     return { ok: false, message: "Enter a valid email address." };
   }
+  if (session.user.email?.toLowerCase() === cleanEmail.toLowerCase()) {
+    return { ok: false, message: "That’s the email for your current account. Choose someone else to add to your Crew; no invitation was sent." };
+  }
   const { error } = await session.db.rpc("request_crew_invitation", { p_email: cleanEmail });
   if (error) return { ok: false, message: error.code === "P0001" ? "You’ve reached today’s Crew invitation limit." : "We couldn’t send that request. Please try again." };
   refreshCrew();
-  return { ok: true, message: "Request saved. If this person has a confirmed Zero Loss account, they’ll see it in Notifications and can approve it." };
+  return { ok: true, message: "Request submitted. New requests to confirmed Zero Loss accounts appear in Notifications and are queued for email. Allow a few minutes and check Junk or Spam. Existing pending requests or Crew connections do not send another email." };
 }
 
 export async function inviteToCrewByPhone(phone: string): Promise<CrewActionResult> {

@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, saveCrewGroup, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
 import { getProductShareItem } from "@/lib/sharing/actions";
-import { crewLookupKind, emailHref, isAppleMobile, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
+import { crewLookupKind, emailHref, isAppleMobile, messageHref, nativeProductShareData, productShareEmailContent, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
 import type { CrewGroupContact } from "@/lib/crew/visibility";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import type { EntryRequest } from "@/lib/entries/request";
 import { ShareIcon } from "./ShareIcon";
 import styles from "./post-entry-crew-toast.module.css";
 
-type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy";
+type Step = "home" | "send" | "messages" | "email" | "outlook" | "crew" | "find" | "audience" | "group" | "copy";
 type Props = { onClose: () => void; focusOnOpen?: boolean } & ({ request: EntryRequest; product?: ProductShareItem } | { request?: undefined; product: ProductShareItem });
 const emptyOptions: CrewShareOptions = { ok: true, message: "", memberCount: 0, members: [], groups: [] };
 
@@ -32,6 +32,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [shared, setShared] = useState(false);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [outlookProvider, setOutlookProvider] = useState<"outlook" | "outlook-work">("outlook");
+  const [formattedCopied, setFormattedCopied] = useState(false);
   const [query, setQuery] = useState("");
   const [reviewQuery, setReviewQuery] = useState("");
   const [people, setPeople] = useState<CrewSearchPerson[]>([]);
@@ -46,6 +48,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const paper = useRef<HTMLDivElement>(null);
   const perforation = useRef<HTMLDivElement>(null);
   const emailRecipientPanel = useRef<HTMLDetailsElement>(null);
+  const formattedMessage = useRef<HTMLDivElement>(null);
   const previousStep = useRef<Step | null>(null);
   const id = useId();
   const url = origin ? productShareUrl(origin, item.slug) : `/items/${item.slug}`;
@@ -265,11 +268,42 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (emailRecipientPanel.current) emailRecipientPanel.current.open = true;
     document.getElementById(`${id}-recipient`)?.focus();
   }
+  async function copyForOutlook() {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy(true); feedback("");
+    try {
+      // Build and write synchronously from the click, before losing activation.
+      const content = productShareEmailContent(item, origin);
+      if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") throw new Error("Rich clipboard unavailable");
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/html": new Blob([content.html], { type: "text/html" }),
+        "text/plain": new Blob([content.text], { type: "text/plain" }),
+      })]);
+      if (!alive.current) return;
+      setFormattedCopied(true);
+      feedback("Copied with a clickable hyperlink. In Outlook, click the message area and paste (Ctrl+V on Windows), then review and send. If no tab opened, use Open Outlook below.");
+      window.open(webmailHref(outlookProvider, email, item.title, ""), "_blank", "noopener,noreferrer");
+    } catch {
+      if (alive.current) feedback("Automatic copying was blocked. Select the formatted message below, copy it, then open Outlook and paste into the message area. Keep the original formatting so the link stays clickable.", true);
+    } finally {
+      busyRef.current = false;
+      if (alive.current) setBusy(false);
+    }
+  }
+  function selectFormattedMessage() {
+    const selection = window.getSelection();
+    if (!selection || !formattedMessage.current) return;
+    const range = document.createRange();
+    range.selectNodeContents(formattedMessage.current);
+    selection.removeAllRanges(); selection.addRange(range);
+    feedback("Message selected. Copy it (Ctrl+C on Windows), then open Outlook and paste. Keep the original formatting.");
+  }
   const webmailLink = (provider: WebmailProvider, label: string, tile = false) => <a className={tile ? styles.emailTile : styles.emailOption} aria-label={`${label} in browser (opens a new tab)`} href={emailLink(provider)} target="_blank" rel="noopener noreferrer" onClick={event => {
     if (!externalHref) { event.preventDefault(); invalidEmail(); }
+    else if (provider !== "gmail") { event.preventDefault(); setOutlookProvider(provider); setFormattedCopied(false); go("outlook"); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
-  const titles: Record<Step, string> = { home: "Share this find", send: "Send to anyone", messages: "Send a text", email: "Email this item", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link" };
+  const titles: Record<Step, string> = { home: "Share this find", send: "Send to anyone", messages: "Send a text", email: "Email this item", outlook: "A clickable link in Outlook", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link" };
   const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{titles[step]}</h2>;
   const compact = step === "home" || step === "email";
 
@@ -309,6 +343,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           else feedback("You review and send in your app. If it doesn’t open or the text is missing, copy the message below.");
         }}>Send text →</a>
         <p className={styles.note}>Review and send in your texting app.</p>
+        <details className={styles.more}><summary>Texting from a Windows PC?</summary><p className={styles.note}>Choose Phone Link if Windows asks for an app. Your phone must be connected. Windows chooses the apps in its Share menu; Zero Loss does not send texts itself.</p></details>
         <details className={styles.more}><summary>Copy the message instead</summary><textarea aria-label="Message with item link" readOnly value={body} onFocus={event => event.target.select()} /></details>
       </> : null}
 
@@ -338,6 +373,19 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         </details>
         <p className={styles.ready}>✓ Subject, message + link ready</p>
         <p className={styles.note}>You review and send. Nothing sends automatically.</p>
+      </> : null}
+
+      {step === "outlook" ? <>
+        <p className={styles.note}>Copy the formatted message, then paste it into Outlook. Your recipient gets a clickable product link—no copying or searching needed.</p>
+        <button type="button" className={styles.primary} disabled={busy} onClick={() => void copyForOutlook()}>Copy formatted message &amp; open Outlook</button>
+        <p className={styles.note}>In Outlook, click the blank message area and paste. Use Ctrl+V on Windows, or touch and hold → Paste on your phone. Keep the original formatting.</p>
+        {formattedCopied ? <a className={styles.emailOption} href={webmailHref(outlookProvider, email, item.title, "")} target="_blank" rel="noopener noreferrer">Open Outlook again ↗</a> : null}
+        <details className={styles.more}><summary>Preview or copy manually</summary>
+          <div ref={formattedMessage} className={styles.messagePreview} role="region" aria-label="Formatted email message"><p>{text}</p><p><a href={url} target="_blank" rel="noopener noreferrer" style={{ color: "#0066ad", textDecoration: "underline" }}>View {item.title} on Zero Loss</a></p></div>
+          <button type="button" onClick={selectFormattedMessage}>Select message to copy</button>
+          <a className={styles.emailOption} href={webmailHref(outlookProvider, email, item.title, "")} target="_blank" rel="noopener noreferrer">Open Outlook after copying ↗</a>
+        </details>
+        <p className={styles.note}>Subject and optional recipient are filled in. You review and send; nothing sends automatically.</p>
       </> : null}
 
       {step === "copy" ? <>{pictureLink}<div className={styles.field}><label htmlFor={`${id}-link`}>Product link</label><textarea id={`${id}-link`} readOnly value={url} onFocus={event => event.target.select()} /></div>{shortcuts}</> : null}
