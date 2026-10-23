@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest, type PreviewEntryActionState } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
+import { isEntryQuantity } from "@/lib/entries/quantity";
 import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
@@ -64,7 +65,8 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   const [crewSharePending, setCrewSharePending] = useState(false);
   const [crewShareMessage, setCrewShareMessage] = useState("");
   const [crewShareError, setCrewShareError] = useState(false);
-  const maxQuantity = Math.min(10, Math.max(0, remaining ?? 0));
+  const maxQuantity = isEntryQuantity(remaining) ? remaining : 0;
+  const quantityAvailable = isEntryQuantity(quantity) && quantity <= maxQuantity;
   const totalCents = quantity * (entryPriceCents ?? 0);
   const insufficientBalance = balanceCents !== null && totalCents > balanceCents;
   const canEnter = entryEnabled && requestHead.ready && entryPriceCents !== null && balanceCents !== null;
@@ -133,7 +135,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
   }
 
   async function submitInlineEntry() {
-    if (!canEnter || !approved || insufficientBalance || busy || maxQuantity === 0) return;
+    if (!canEnter || !approved || insufficientBalance || busy || (!uncertain && !quantityAvailable)) return;
     const form = uncertain && attemptedForm.current ? attemptedForm.current : new FormData();
     if (!uncertain || !attemptedForm.current) {
       form.set("offeringSlug", slug);
@@ -220,7 +222,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
             <div className={styles.quantityStepper}>
               <button type="button" aria-label="Remove one extra entry" onClick={() => adjustQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1 || busy || uncertain}>−</button>
               <output aria-live="polite">{quantity}</output>
-              <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity === maxQuantity || busy || uncertain}>+</button>
+              <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity >= maxQuantity || busy || uncertain}>+</button>
             </div>
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
           </div>
@@ -229,6 +231,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
             <h4>Review additional entries</h4>
             <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>
             <p>Demo Playable Balance: <strong>{balanceCents === null ? "Unavailable" : formatUsdFromCents(balanceCents)}</strong></p>
+            {!quantityAvailable && !uncertain ? <p className={styles.checkoutError}>Only {maxQuantity} additional {maxQuantity === 1 ? "ticket is" : "tickets are"} available now. Reduce the quantity before confirming.</p> : null}
             {insufficientBalance ? <p className={styles.checkoutError}>Not enough demo funds for this quantity. <Link href="/account/wallet">Add funds</Link></p> : null}
             {!requestHead.ready ? <p className={styles.checkoutError}>We couldn’t check your latest saved submission. Refresh before entering; your balance has not been charged.</p> : !canEnter ? <p className={styles.checkoutError}>This demo checkout is unavailable for this account right now.</p> : null}
             {receipt?.status === "pending" ? <div className={styles.receiptBox} role="status"><div className={styles.receiptHeader}><div className={styles.receiptCopy}><strong>{createdHereRequestId === receipt.requestId ? "Entry submitted · Undo available" : "An earlier submission is still pending"}</strong><span>{createdHereRequestId === receipt.requestId ? `${receipt.quantity} ${receipt.quantity === 1 ? "entry" : "entries"} · ${formatUsdFromCents(receipt.amountCents)} reserved from your demo balance.` : "No second reservation or charge was made."}</span><small>The header counts active entries after confirmation. Undo releases this hold.</small></div><EntryUndoCountdown seconds={secondsLeft} /></div><div className={styles.receiptActions}><button type="button" onClick={() => void resolveEntry(true)} disabled={working || secondsLeft === 0}>Undo entry</button><button type="button" onClick={() => void resolveEntry(false)} disabled={working}>Confirm entry</button></div></div> : null}
@@ -239,7 +242,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
             {actionError ? <p role="alert" className={styles.checkoutError}>{actionError}</p> : null}
             {receipt?.status !== "pending" && receipt?.status !== "accepted" && result.status !== "succeeded" ? <>
               <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} disabled={working} />I approve this demo entry transaction.</label>
-              <button type="button" className={styles.checkoutConfirm} disabled={!approved || !canEnter || insufficientBalance || working} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
+              <button type="button" className={styles.checkoutConfirm} disabled={!approved || !canEnter || insufficientBalance || working || (!uncertain && !quantityAvailable)} onClick={() => void submitInlineEntry()}>{working ? "Saving…" : uncertain ? "Check saved submission" : `Confirm ${quantity === 1 ? "entry" : `${quantity} entries`} for ${formatUsdFromCents(totalCents)}`}</button>
             </> : null}
             {receipt?.status === "accepted" || result.status === "succeeded" ? <button type="button" className={styles.addAgain} onClick={() => { setReceipt(null); setResult({ status: "idle" }); setApproved(false); setCheckoutOpen(false); }}>Add another entry</button> : null}
           </div> : null}

@@ -28,6 +28,79 @@ const props = {
   returnHref: "/account/entries?viewed=ent_11111111111111111111111111111111",
 };
 
+function selectQuantity(quantity: number) {
+  for (let selected = 1; selected < quantity; selected++) {
+    fireEvent.click(screen.getByRole("button", { name: "Add one extra entry" }));
+  }
+}
+
+test.each([11, 101])("Entry Details reviews and submits %i entries without a customer cap", async quantity => {
+  createPreviewEntry.mockResolvedValue({ status: "succeeded", message: "Entries confirmed.", href: "/account/entries", outcome: "active" });
+  render(<EntryPageActions {...props} remaining={150} balanceCents={20000} />);
+  selectQuantity(quantity);
+  fireEvent.click(screen.getByRole("button", { name: `Add ${quantity} more entries to PlayStation 5` }));
+  const confirm = screen.getByRole("button", { name: `Confirm ${quantity} entries for $${quantity}` });
+  expect(confirm.hasAttribute("disabled")).toBe(true);
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(confirm);
+  await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledOnce());
+  const form = createPreviewEntry.mock.calls[0][1] as FormData;
+  expect(form.get("quantity")).toBe(String(quantity));
+  expect(form.get("idempotencyKey")).toBe(props.requestKey);
+});
+
+test("larger quantities still stop at actual capacity and cannot spend unavailable funds", () => {
+  render(<EntryPageActions {...props} remaining={101} balanceCents={10000} />);
+  selectQuantity(101);
+  expect(screen.getByRole("button", { name: "Add one extra entry" }).hasAttribute("disabled")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Add 101 more entries to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  const confirm = screen.getByRole("button", { name: "Confirm 101 entries for $101" });
+  expect(confirm.hasAttribute("disabled")).toBe(true);
+  fireEvent.click(confirm);
+  expect(screen.getByText(/Not enough demo funds for this quantity/)).toBeTruthy();
+  expect(createPreviewEntry).not.toHaveBeenCalled();
+});
+
+test("a capacity refresh blocks a now-too-large selection until it is reduced", () => {
+  const { rerender } = render(<EntryPageActions {...props} remaining={150} balanceCents={20000} />);
+  selectQuantity(11);
+  fireEvent.click(screen.getByRole("button", { name: "Add 11 more entries to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  rerender(<EntryPageActions {...props} remaining={8} balanceCents={20000} />);
+  expect(screen.getByRole("button", { name: "Add one extra entry" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByText(/Only 8 additional tickets are available now/)).toBeTruthy();
+  const confirm = screen.getByRole("button", { name: "Confirm 11 entries for $11" });
+  expect(confirm.hasAttribute("disabled")).toBe(true);
+  fireEvent.click(confirm);
+  expect(createPreviewEntry).not.toHaveBeenCalled();
+  for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Remove one extra entry" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add 8 more entries to PlayStation 5" }));
+  expect((screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }) as HTMLInputElement).checked).toBe(false);
+});
+
+test.each([0, null, -1, NaN, 1.5, Infinity, 2_147_483_648])("unavailable or invalid capacity %s never offers a purchase", remaining => {
+  render(<EntryPageActions {...props} remaining={remaining} />);
+  expect(screen.getByText("No additional tickets are available right now.")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Add one extra entry" })).toBeNull();
+});
+
+test("a larger uncertain submission retries the saved quantity and key without creating a new purchase", async () => {
+  createPreviewEntry.mockRejectedValueOnce(new Error("Interrupted"))
+    .mockResolvedValueOnce({ status: "succeeded", message: "Entries confirmed.", href: "/account/entries", outcome: "active" });
+  render(<EntryPageActions {...props} remaining={150} balanceCents={20000} />);
+  selectQuantity(101);
+  fireEvent.click(screen.getByRole("button", { name: "Add 101 more entries to PlayStation 5" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm 101 entries for $101" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Check saved submission" })).toBeTruthy());
+  expect(screen.getByRole("button", { name: "Add one extra entry" }).hasAttribute("disabled")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Check saved submission" }));
+  await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledTimes(2));
+  expect(createPreviewEntry.mock.calls[1][1]).toBe(createPreviewEntry.mock.calls[0][1]);
+  expect((createPreviewEntry.mock.calls[1][1] as FormData).get("quantity")).toBe("101");
+});
+
 test("additional entries are reviewed and confirmed on the same page", async () => {
   createPreviewEntry.mockResolvedValue({ status: "succeeded", message: "2 entries confirmed.", href: "/account/entries", outcome: "active" });
   render(<EntryPageActions {...props} />);
