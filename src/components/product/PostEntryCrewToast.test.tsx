@@ -60,42 +60,30 @@ test("invalid optional email blocks handoff and reveals the field to correct", (
   expect(mocks.share).not.toHaveBeenCalled(); expect(mocks.prize).not.toHaveBeenCalled();
 });
 
-test.each(["outlook", "outlook-work"] as const)("%s copies HTML and plain text before opening a draft with an empty body", async provider => {
-  const write = vi.fn().mockResolvedValue(undefined);
-  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { write } });
-  vi.stubGlobal("ClipboardItem", class { constructor(public data: Record<string, Blob>) {} });
-  const launch = vi.spyOn(window, "open").mockReturnValue(null);
+test.each([
+  [/^Outlook in browser/, "outlook.live.com", "subject"],
+  [/Outlook for work or school/, "outlook.office.com", "subject"],
+  [/Gmail in browser/, "mail.google.com", "su"],
+] as const)("%s opens a complete draft directly without clipboard or a paste screen", (label, host, subjectKey) => {
+  const write = vi.fn();
+  const writeText = vi.fn();
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { write, writeText } });
   open(); fireEvent.click(screen.getByRole("button", { name: "Email" }));
   fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "friend+gift@example.test" } });
-  fireEvent.click(screen.getByRole("link", { name: provider === "outlook" ? /^Outlook in browser/ : /Outlook for work or school/ }));
-  expect(screen.getByRole("heading", { name: "A clickable link in Outlook" })).toBeTruthy();
-  expect(launch).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Copy formatted message & open Outlook" }));
-  await waitFor(() => expect(launch).toHaveBeenCalledOnce());
-  const payload = write.mock.calls[0][0][0].data;
-  expect(payload["text/html"].type).toBe("text/html");
-  expect(payload["text/plain"].type).toBe("text/plain");
-  const draft = new URL(launch.mock.calls[0][0] as string);
-  expect(draft.hostname).toBe(provider === "outlook" ? "outlook.live.com" : "outlook.office.com");
-  expect(draft.searchParams.get("body")).toBe("");
-  expect(draft.searchParams.get("subject")).toBe(request.title);
+  const link = screen.getByRole("link", { name: label });
+  const draft = new URL(link.getAttribute("href")!);
+  expect(draft.hostname).toBe(host);
+  expect(draft.searchParams.get(subjectKey)).toBe(request.title);
   expect(draft.searchParams.get("to")).toBe("friend+gift@example.test");
-  expect(screen.getByRole("link", { name: "Open Outlook again ↗" })).toBeTruthy();
-  expect(screen.getByRole("status").textContent).toContain("paste");
-});
-
-test("blocked clipboard never opens a misleading empty draft and offers a real selectable hyperlink", async () => {
-  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { write: vi.fn().mockRejectedValue(new Error("blocked")) } });
-  vi.stubGlobal("ClipboardItem", class { constructor(public data: Record<string, Blob>) {} });
-  const launch = vi.spyOn(window, "open").mockReturnValue(null);
-  open(); fireEvent.click(screen.getByRole("button", { name: "Email" }));
-  fireEvent.click(screen.getByRole("link", { name: /^Outlook in browser/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Copy formatted message & open Outlook" }));
-  expect((await screen.findByRole("alert")).textContent).toContain("Automatic copying was blocked");
-  expect(launch).not.toHaveBeenCalled();
-  expect(screen.getByRole("link", { name: "View Test prize on Zero Loss" }).getAttribute("href")).toBe(`${location.origin}/items/test-prize`);
-  fireEvent.click(screen.getByRole("button", { name: "Select message to copy" }));
-  expect(window.getSelection()?.toString()).toContain("View Test prize on Zero Loss");
+  expect(draft.searchParams.get("body")).toBe(`Thought you might like Test prize on Zero Loss. Take a look:\n${location.origin}/items/test-prize`);
+  expect(draft.search).not.toContain("+");
+  expect(link.getAttribute("target")).toBe("_blank");
+  expect(fireEvent.click(link)).toBe(true);
+  expect(write).not.toHaveBeenCalled();
+  expect(writeText).not.toHaveBeenCalled();
+  expect(screen.getByRole("heading", { name: "Email this item" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /Copy formatted/ })).toBeNull();
+  expect(screen.getByRole("status").textContent).not.toMatch(/paste/i);
 });
 
 test.each(["Not now", "Close sharing toast"])("%s only dismisses; no sharing or membership write", label => {

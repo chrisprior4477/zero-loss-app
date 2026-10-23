@@ -1,16 +1,5 @@
 import { expect, test } from "vitest";
-import { crewLookupKind, emailHref, isAppleMobile, isProductShareItem, messageHref, nativeProductShareData, productShareEmailContent, productShareUrl, shareDismissalKey, webmailHref } from "./product-share";
-
-test("formatted email carries an actual safe hyperlink and a plain-text fallback", () => {
-  const content = productShareEmailContent({ slug: "test-prize", title: 'Lowe\'s & <img src=x onerror="alert(1)">' }, "https://example.test/account?private=1");
-  const doc = new DOMParser().parseFromString(content.html, "text/html");
-  expect(doc.querySelectorAll("a")).toHaveLength(1);
-  expect(doc.querySelector("a")?.getAttribute("href")).toBe("https://example.test/items/test-prize");
-  expect(doc.querySelector("img")).toBeNull();
-  expect(doc.body.textContent).toContain('<img src=x onerror="alert(1)">');
-  expect(content.text).toContain("\nhttps://example.test/items/test-prize");
-  expect(content.html).not.toContain("private=1");
-});
+import { crewLookupKind, emailHref, isAppleMobile, isProductShareItem, messageHref, nativeProductShareData, productShareUrl, shareDismissalKey, webmailHref } from "./product-share";
 
 test("public exact listing excludes private account path, query and fragments", () => {
   expect(productShareUrl("https://example.test/account/entries?entry=private#receipt", "nike-court-shot")).toBe("https://example.test/items/nike-court-shot");

@@ -21,17 +21,6 @@ export function productShareText(title: string): string {
   return `Thought you might like ${title} on Zero Loss. Take a look:`;
 }
 
-/** Rich clipboard content, not markup passed to Outlook's plain-text deeplink. */
-export function productShareEmailContent(item: ProductShareItem, origin: string): { text: string; html: string } {
-  const url = productShareUrl(origin, item.slug);
-  const message = productShareText(item.title);
-  const escape = (value: string) => value.replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!);
-  return {
-    text: `${message}\n${url}`,
-    html: `<div><p>${escape(message)}</p><p><a href="${escape(url)}" style="color:#0066ad;text-decoration:underline">View ${escape(item.title)} on Zero Loss</a></p></div>`,
-  };
-}
-
 /** Windows targets can drop the separate URL field. Keep it in the text too. */
 export function nativeProductShareData(item: ProductShareItem, origin: string, userAgent: string): ShareData {
   const url = productShareUrl(origin, item.slug);
