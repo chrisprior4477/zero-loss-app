@@ -6,7 +6,7 @@ const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), reset: vi.fn(), en
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: actionMocks.replace, refresh: vi.fn() }) }));
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resetExtraEntryExplainer: actionMocks.reset, resolvePendingEntryRequest: actionMocks.resolve, confirmPendingEntryRequest: actionMocks.confirm }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
-beforeEach(() => { Element.prototype.scrollIntoView = vi.fn(); });
+beforeEach(() => { Element.prototype.scrollIntoView = vi.fn(); actionMocks.enter.mockResolvedValue({ status: "idle" }); });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", requestHead: { ready: true as const, requestId: null }, productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
@@ -35,7 +35,7 @@ test("the funding return highlights the enabled entry action until it is pressed
   expect(screen.getByRole("button", { name: "Add one entry" }).hasAttribute("disabled")).toBe(true);
   expect(screen.getByRole("button", { name: "Enter for $1.00" }).getAttribute("data-funding-cue")).toBe("light-sweep");
   fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
-  expect(screen.getByRole("button", { name: "Enter for $1.00" }).getAttribute("data-funding-cue")).toBeNull();
+  expect(document.querySelector('button[type="submit"]')?.getAttribute("data-funding-cue")).toBeNull();
 });
 
 test("a return visit carries the last saved request into a new product entry", () => {
@@ -55,7 +55,6 @@ test("lost response retries the identical intent instead of throwing away the pa
   render(<DemoParticipationPanel {...props} isSignedIn extraEntryExplainerAcknowledged />);
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   fireEvent.click(screen.getByRole("button", { name: "Enter for $2.00" }));
-  fireEvent.click(screen.getByRole("button", { name: "Keep private & enter" }));
   const retry = await screen.findByRole("button", { name: "Check saved submission" });
   const original = actionMocks.enter.mock.calls[0][1] as FormData;
   expect(original.get("quantity")).toBe("2");
@@ -73,7 +72,7 @@ test("recovered receipt links to original entry and explicitly distinguishes a n
   expect(screen.getByRole("link", { name: "View previous submission →" }).getAttribute("href")).toBe(receipt.href);
   expect(document.querySelector('input[name="previousRequestId"]')?.getAttribute("value")).toBe(receipt.requestId);
   fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
-  expect(screen.getByText(/This is a new, additional submission for \$1.00/)).toBeTruthy();
+  expect(screen.getByText(/Previous 2-ticket submission saved. A new entry is separate/)).toBeTruthy();
   const key = document.querySelector('input[name="idempotencyKey"]')?.getAttribute("value");
   act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...receipt, status: "pending" } })));
   expect(document.querySelector('input[name="idempotencyKey"]')?.getAttribute("value")).toBe(key);
@@ -286,11 +285,12 @@ test("a full pool cannot start a preview entry", () => {
   expect(screen.queryByRole("button", { name: "Enter for $1.00" })).toBeNull();
 });
 
-test("entry submission asks for an explicit private-or-Crew sharing choice", () => {
+test("entry submission is private without an extra sharing choice", async () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
   fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
-  expect(screen.getByRole("dialog", { name: "Share this pick with your Crew?" })).toBeTruthy();
-  expect(screen.getByText(/Nothing is shared publicly/)).toBeTruthy();
+  expect(screen.queryByRole("dialog", { name: "Share this pick with your Crew?" })).toBeNull();
+  await waitFor(() => expect(actionMocks.enter).toHaveBeenCalledOnce());
+  expect((actionMocks.enter.mock.calls[0][1] as FormData).get("shareWithCrew")).toBe("no");
   expect(document.querySelector('input[name="shareWithCrew"]')?.getAttribute("value")).toBe("no");
 });
 
@@ -331,14 +331,13 @@ test.each([100, null, undefined, NaN])("exact or unavailable balance does not fa
   render(<DemoParticipationPanel {...props} balanceCents={balanceCents} isSignedIn />);
   fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
   expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
-  expect(screen.getByRole("dialog", { name: "Share this pick with your Crew?" })).toBeTruthy();
+  expect(screen.queryByRole("dialog", { name: "Share this pick with your Crew?" })).toBeNull();
 });
 
 test("a server-side balance change shows the funding toast without trusting stale balance numbers", async () => {
   actionMocks.enter.mockResolvedValue({ status: "error", code: "insufficient_balance", message: "Add funds to cover these entries, then return to this prize." });
   render(<DemoParticipationPanel {...props} balanceCents={1000} isSignedIn />);
   fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
-  fireEvent.click(screen.getByRole("button", { name: "Keep private & enter" }));
   await waitFor(() => expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy());
   expect(screen.getByRole("status").textContent).toContain("Your balance no longer covers");
   expect(screen.getByRole("status").textContent).not.toContain("$10.00");

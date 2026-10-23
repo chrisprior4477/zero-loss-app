@@ -54,7 +54,7 @@ test("the four legacy homepage sample additions appear in the account carousel, 
   }
   expect(screen.getByText("4 sample previews")).toBeTruthy();
   expect(screen.getByText("0 connected")).toBeTruthy();
-  expect(screen.getByText(/fictional.*did not send invitations/i)).toBeTruthy();
+  expect(screen.getByText(/fictional.*no invitations sent/i)).toBeTruthy();
   expect(await screen.findByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "See Maya's sample shared activity" }));
   expect(screen.queryByRole("region", { name: "Maya's shared activity" })).toBeNull();

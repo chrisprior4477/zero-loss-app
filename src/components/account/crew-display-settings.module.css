@@ -1,5 +1,22 @@
 .page { min-height: calc(100svh - 140px); padding: 18px clamp(12px, 2.4vw, 38px) 56px; color: #f8fbff; background: radial-gradient(ellipse at 55% 8%, #0a3564 0%, #061d3d 42%, #00152e 100%); }
 .shell { max-width: 1440px; margin-inline: auto; }
+.embedded { min-height: 0; padding: 0; background: none; }
+.embedded .ticket:first-child { margin-top: 0; }
+.ticket, .groupRow { scroll-margin-top: calc(var(--site-header-height, 64px) + 12px); }
+.contacts { grid-column: 1 / -1; display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid #bfd7e8; }
+.contacts > strong { font-size: 15px; }
+.contacts p { color: #526b87; font-size: 12px; line-height: 1.4; }
+.contactFields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.contactFields label { display: grid; gap: 5px; font-size: 12px; font-weight: 800; }
+.contactFields input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #a9c8df; border-radius: 8px; padding: 9px; background: white; color: #0a1741; }
+.contactRow { display: grid; gap: 5px; padding: 10px; background: white; border-radius: 8px; overflow-wrap: anywhere; font-size: 13px; }
+.contactRow span { color: #526b87; font-size: 12px; }
+.contactRow > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.contactRow button { min-height: 36px; padding: 6px 9px; border: 1px solid #a9c8df; border-radius: 7px; background: #dff2ff; color: #075083; font-size: 12px; font-weight: 800; }
+.inlineDiscovery { display: flex; gap: 12px; margin-bottom: 22px; color: #0a1741; font-size: 14px; font-weight: 800; }
+.inlineDiscovery input { width: 20px; height: 20px; flex: none; accent-color: #22c942; }
+.inlineDiscovery small { display: block; margin-top: 5px; color: #526b87; font-weight: 400; }
+@media (max-width: 767px) { .contactFields { grid-template-columns: 1fr; } .groupSummary { align-items: start; } .groupSummary button { max-width: 48%; } }
 .crumbs { display: flex; align-items: center; gap: 9px; color: #8eeeff; font-size: 13px; font-weight: 750; }
 .crumbs a { color: inherit; }
 .crumbs span:last-child { color: #fff; }
@@ -39,7 +56,7 @@
 .groupListHeading { display: flex; align-items: baseline; gap: 10px; color: #0a1741; font-size: 15px; }
 .groupListHeading span { color: #59718d; font-size: 12px; font-weight: 700; }
 .groupList { margin-top: 7px; border-top: 1px solid #c8dbe9; }
-.groupRow { scroll-margin-top: 90px; border-bottom: 1px solid #c8dbe9; }
+.groupRow { border-bottom: 1px solid #c8dbe9; }
 .groupSummary { display: flex; min-height: 53px; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 2px; }
 .groupSummary strong { display: block; font-size: 14px; font-weight: 850; }
 .groupSummary small { display: block; margin-top: 1px; color: #59718d; font-size: 11px; }

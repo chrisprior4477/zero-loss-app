@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), acknowledge: vi.fn(), refresh: vi.fn(), replace: vi.fn(), path: "/items/test-prize" }));
 vi.mock("next/navigation", () => ({ usePathname: () => mocks.path, useRouter: () => ({ refresh: mocks.refresh, replace: mocks.replace }) }));
 vi.mock("@/lib/entries/actions", () => ({ listPendingEntryRequests: mocks.list, resolvePendingEntryRequest: mocks.resolve, acknowledgeEntryReceipt: mocks.acknowledge }));
@@ -27,6 +27,10 @@ test("local accepted entry returns to My Activity and leaves a transient exact-e
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries?item=test-prize&entry=ent_abcd"));
   expect(JSON.parse(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY) ?? "null")).toMatchObject({ slug: "test-prize", entryId: "ent_abcd" });
   expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId);
+  expect(screen.getByRole("heading", { name: /Would you like this pool/ })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Not now · keep private" }));
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted" } })));
+  expect(screen.queryByRole("heading", { name: /Would you like this pool/ })).toBeNull();
 });
 
 test("an accepted close-out goes straight to its purchase option", async () => {
@@ -58,6 +62,18 @@ test("restored older receipt is acknowledged without redirecting", async () => {
   render(<PendingEntryNotice />);
   await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId));
   expect(mocks.replace).not.toHaveBeenCalled();
+  expect(screen.queryByRole("heading", { name: /Would you like this pool/ })).toBeNull();
+});
+
+test.each(["cancelled", "rejected"])("%s entries never show a sharing prompt", async status => {
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => {
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status } }));
+  });
+  await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalled());
+  expect(screen.queryByRole("heading", { name: /Would you like this pool/ })).toBeNull();
 });
 
 test("expired pending request is checked with the server, not accepted by the browser", async () => {

@@ -1,13 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { type MouseEvent, type PointerEvent, type RefObject, useRef } from "react";
+import { type MouseEvent, type PointerEvent, type RefObject, type ReactNode, useRef, useLayoutEffect } from "react";
 import { sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import styles from "./crew-people.module.css";
 
 export type CrewPersonCard = { memberId: string; invitationId: string; name: string; avatarUrl: string | null };
 
-export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemove, onSampleRemove, onSamplePicks, onMemberPicks, pending, railRef, selectedRef }: {
+export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemove, onSampleRemove, onSamplePicks, onMemberPicks, pending, railRef, selectedRef, children }: {
+  children?: ReactNode;
   people: CrewPersonCard[];
   samples: SampleCrewName[];
   selectedKey: string | null;
@@ -21,6 +22,26 @@ export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemo
   selectedRef: RefObject<HTMLDivElement | null>;
 }) {
   const dragRef = useRef({ active: false, moved: false, x: 0, scrollLeft: 0 });
+  const rootRef = useRef<HTMLDivElement>(null);
+  const hasActivity = Boolean(children);
+  useLayoutEffect(() => {
+    const root = rootRef.current, rail = railRef.current;
+    if (!root || !rail || !hasActivity) return;
+    const measure = () => {
+      const selected = selectedRef.current;
+      const box = root.getBoundingClientRect(), railBox = rail.getBoundingClientRect(), selectedBox = selected?.getBoundingClientRect();
+      const left = selectedBox ? Math.max(railBox.left, selectedBox.left) : 0;
+      const right = selectedBox ? Math.min(railBox.right, selectedBox.right) : 0;
+      root.style.setProperty("--crew-connector-x", `${left - box.left}px`);
+      root.style.setProperty("--crew-connector-width", `${Math.max(0, right - left)}px`);
+      root.style.setProperty("--crew-connector-visible", right > left ? "1" : "0");
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure); observer.observe(root); observer.observe(rail);
+    rail.addEventListener("scroll", measure, { passive: true });
+    return () => { observer.disconnect(); rail.removeEventListener("scroll", measure); };
+  }, [selectedKey, hasActivity, railRef, selectedRef]);
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (event.pointerType !== "mouse" || event.button !== 0 || !railRef.current) return;
@@ -57,7 +78,7 @@ export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemo
     rail.scrollBy({ left: direction * (firstCard.getBoundingClientRect().width + gap), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
 
-  return <div className={`${styles.root} ${selectedKey ? styles.rootSelected : ""}`}>
+  return <div ref={rootRef} className={`${styles.root} ${selectedKey ? styles.rootSelected : ""} ${children ? styles.combined : ""}`}>
     <div className={styles.heading}>
       <div><h2>People in your Crew</h2><p>{people.length ? "Swipe through approved connections and sample profiles." : "The people you tried on the homepage appear below as sample previews."}</p></div>
       <div className={styles.arrows} aria-label="Crew carousel controls">
@@ -65,7 +86,7 @@ export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemo
         <button type="button" aria-label="Next Crew member" onClick={() => move(1)}>›</button>
       </div>
     </div>
-    {samples.length ? <p className={styles.sampleNotice}>Sample profiles are fictional. “Preview added” did not send invitations; real members appear here after they approve a request.</p> : null}
+    {samples.length ? <p className={styles.sampleNotice}>Fictional sample profiles—no invitations sent. Real members join after approval.</p> : null}
     <div className={styles.rail} ref={railRef} aria-label="People in your Crew" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { dragRef.current.active = false; dragRef.current.moved = false; if (railRef.current) { railRef.current.style.scrollBehavior = ""; railRef.current.style.scrollSnapType = ""; } }} onClickCapture={onClickCapture} onDragStart={(event) => event.preventDefault()}>
       {people.map((person) => <div ref={selectedKey === person.memberId ? selectedRef : undefined} className={`${styles.person} ${selectedKey === person.memberId ? styles.personSelected : ""}`} key={person.memberId}>
         <button type="button" className={styles.avatar} aria-label={`See ${person.name}'s shared activity`} aria-expanded={selectedKey === person.memberId} onClick={() => onMemberPicks(person.memberId)}>
@@ -90,5 +111,6 @@ export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemo
         <span>Add to Your<br />Crew</span>
       </button>
     </div>
+    {children ? <div className={styles.connectedActivity}>{children}</div> : null}
   </div>;
 }

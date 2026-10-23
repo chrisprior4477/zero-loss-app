@@ -39,6 +39,10 @@
 }
 .accountMode::before { position: absolute; inset: 0; border: 3px solid #47ee62; box-shadow: inset 0 0 0 1px #c4ffd1, inset 0 0 22px #47ee621c; content: ""; pointer-events: none; }
 .accountMode.connectedOutline { margin-top: 0; border-color: transparent; }
+.accountMode.compact { margin: 0; padding: 12px; background: #e7fdeb; box-shadow: none; filter: none; -webkit-mask-image: none; mask-image: none; }
+.accountMode.compact::before { display: none; }
+.accountMode.compact .header { min-height: 24px; margin-bottom: 5px; justify-content: flex-end; }
+.compact .header > div { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .accountMode .header { margin-bottom: 13px; }
 .accountMode .eyebrow { color: #148ab9; }
 .accountMode .header h3 { color: #0a1741; font-size: clamp(21px, 2.2vw, 29px); }

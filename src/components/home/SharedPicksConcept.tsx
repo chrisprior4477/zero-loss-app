@@ -69,7 +69,8 @@ const samplePicks = {
 
 export type CrewActivityPick = { title: string; retailer: string; image: string; slug: string; note?: string };
 
-export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false, connectedOutline = false, accountMode = false, accent = "green", panelRef }: {
+export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading = false, connectedOutline = false, accountMode = false, accent = "green", panelRef, compact = false }: {
+  compact?: boolean;
   person: string;
   onClose: () => void;
   picks?: CrewActivityPick[];
@@ -121,7 +122,7 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
     rail.scrollBy({ left: direction * (card.getBoundingClientRect().width + gap), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }
 
-  return <section ref={panelRef} className={`${styles.panel} ${connectedOutline ? styles.connectedOutline : ""} ${accountMode ? styles.accountMode : ""} ${accent === "orange" ? styles.orange : ""}`} aria-label={`${person}'s shared activity`}>
+  return <section ref={panelRef} className={`${styles.panel} ${connectedOutline ? styles.connectedOutline : ""} ${accountMode ? styles.accountMode : ""} ${compact ? styles.compact : ""} ${accent === "orange" ? styles.orange : ""}`} aria-label={`${person}'s shared activity`}>
     <div className={styles.header}>
       <div className={styles.personHeading}>
         {avatarUrl || sampleAvatar ? <span className={styles.avatar}><Image src={(avatarUrl || sampleAvatar)!} alt="" fill sizes="48px" className={styles.avatarImage} unoptimized={Boolean(avatarUrl)} /></span> : <span className={styles.initial}>{person.slice(0, 1).toUpperCase()}</span>}
@@ -138,6 +139,6 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
       </div>
       <div className={styles.railFooter}><span>Swipe to explore · {visiblePicks.length} {sample ? "sample " : ""}{visiblePicks.length === 1 ? "item" : "items"}</span><div><button type="button" aria-label="Previous shared item" onClick={() => moveRail(-1)}>‹</button><button type="button" aria-label="Next shared item" onClick={() => moveRail(1)}>›</button></div></div>
     </> : <p className={styles.empty} role={loading ? "status" : undefined}>{loading ? "Loading shared activity…" : "No activity shared with Crew yet."}</p>}
-    {sample ? <p className={styles.disclosure}>Illustrative picks from a fictional profile. No invitation or notification was sent. Real Crew activity requires approval and an explicit sharing choice for each entry.</p> : null}
+    {sample && !compact ? <p className={styles.disclosure}>Illustrative picks from a fictional profile. No invitation or notification was sent. Real Crew activity requires approval and an explicit sharing choice for each entry.</p> : null}
   </section>;
 }

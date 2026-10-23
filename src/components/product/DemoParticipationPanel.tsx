@@ -94,14 +94,11 @@ export function DemoParticipationPanel({
   const [preferenceError, setPreferenceError] = useState<string | null>(null);
   const [preferenceResetting, setPreferenceResetting] = useState(false);
   const [preferenceResetMessage, setPreferenceResetMessage] = useState<string | null>(null);
-  const [sharePromptOpen, setSharePromptOpen] = useState(false);
   const [balanceNoticeOpen, setBalanceNoticeOpen] = useState(false);
   const [entryActionTouched, setEntryActionTouched] = useState(false);
   const [dismissedBalanceError, setDismissedBalanceError] = useState<typeof state | null>(null);
   const entryFormRef = useRef<HTMLFormElement>(null);
   const pendingReceiptRef = useRef<HTMLDivElement>(null);
-  const shareChoiceRef = useRef<HTMLInputElement>(null);
-  const shareChoiceConfirmed = useRef(false);
   const remainingBalance = Math.max(0, productValue - entryPrice);
   const totalCents = quantity * Math.round(entryPrice * 100);
   const total = totalCents / 100;
@@ -191,10 +188,6 @@ export function DemoParticipationPanel({
   }, [router, state]);
 
   useEffect(() => {
-    if (state.status === "error") shareChoiceConfirmed.current = false;
-  }, [state]);
-
-  useEffect(() => {
     if (state.status === "request" || state.status === "succeeded") clearEntryIntent(productSlug);
   }, [productSlug, state.status]);
 
@@ -214,7 +207,6 @@ export function DemoParticipationPanel({
       if (request.status === "pending") { setQuantity(request.quantity); clearEntryIntent(productSlug); }
       if (request.status !== "pending") {
         setSubmissionKey(crypto.randomUUID());
-        shareChoiceConfirmed.current = false;
       }
     };
     window.addEventListener(ENTRY_REQUEST_EVENT, receive);
@@ -284,12 +276,6 @@ export function DemoParticipationPanel({
     finally { setUndoBusy(false); }
   }
 
-  const chooseEntrySharing = (share: boolean) => {
-    if (shareChoiceRef.current) shareChoiceRef.current.value = share ? "yes" : "no";
-    shareChoiceConfirmed.current = true;
-    setSharePromptOpen(false);
-    window.setTimeout(() => entryFormRef.current?.requestSubmit(), 0);
-  };
 
   return (
     <aside id="enter-entry" className={`scroll-mt-[calc(var(--site-header-height,163px)+17px)] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
@@ -369,20 +355,15 @@ export function DemoParticipationPanel({
           if (uncertain) return;
           if (knownBalance !== null && knownBalance < totalCents) {
             event.preventDefault();
-            shareChoiceConfirmed.current = false;
-            setSharePromptOpen(false);
             setBalanceNoticeOpen(true);
             return;
           }
-          if (shareChoiceConfirmed.current) return;
-          event.preventDefault();
-          setSharePromptOpen(true);
         }}>
           <input type="hidden" name="offeringSlug" value={productSlug} />
           <input type="hidden" name="idempotencyKey" value={submissionKey} />
           <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? requestHead.requestId ?? "" : requestHead.requestId ?? ""} />
           <input type="hidden" name="quantity" value={quantity} />
-          <input ref={shareChoiceRef} type="hidden" name="shareWithCrew" value="no" />
+          <input type="hidden" name="shareWithCrew" value="no" />
           <button type="submit" disabled={entryBusy || !requestHead.ready} data-funding-cue={showFundingSweep ? "light-sweep" : undefined} className={`mt-3 min-h-12 w-full rounded-xl bg-[#31e800] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-[#66f34c] disabled:cursor-wait disabled:opacity-60 ${showFundingSweep ? entryActionStyles.fundingSweep : ""}`}>
             <span className={showFundingSweep ? entryActionStyles.buttonLabel : undefined}>{pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}</span>
           </button>
@@ -465,22 +446,6 @@ export function DemoParticipationPanel({
         </div>
       ), document.body) : null}
 
-      {sharePromptOpen ? createPortal((
-        <div className="fixed inset-0 z-[210] grid place-items-center bg-[#000914]/80 p-3 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSharePromptOpen(false); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="crew-share-title" className="w-full max-w-md rounded-2xl border border-cyan-300/60 bg-[#072744] p-5 text-white shadow-[0_20px_70px_#000a,0_0_25px_#00b9ff44] sm:p-7">
-            <p className="text-xs font-extrabold uppercase tracking-[.16em] text-cyan-300">One last choice</p>
-            <h2 id="crew-share-title" className="mt-2 text-2xl font-black">Share this pick with your Crew?</h2>
-            {requestReceipt?.status === "accepted" ? <p className="mt-3 rounded-lg border border-cyan-300/35 p-3 text-sm">Your previous {requestReceipt.quantity === 1 ? "ticket is" : `${requestReceipt.quantity} tickets are`} already saved. This is a new, additional submission for ${total.toFixed(2)}.</p> : null}
-            <p className="mt-3 text-sm leading-6 text-white/75">Only people you approve for your Crew can see that you picked <strong className="text-white">{productTitle}</strong>. They won’t see your payment details or wallet. This does not change your entry or chances.</p>
-            <p className="mt-3 text-xs leading-5 text-white/60">You can turn sharing on or off for each entry anytime in <Link href="/account/crew" className="font-bold text-cyan-300 underline">Account → Your Crew</Link>. Nothing is shared publicly.</p>
-            <div className="mt-6 grid gap-2 sm:grid-cols-2">
-              <button type="button" onClick={() => chooseEntrySharing(false)} className="min-h-12 rounded-lg border border-cyan-300/50 bg-[#0c3154] px-4 py-2 font-bold hover:bg-[#13547a]">Keep private &amp; enter</button>
-              <button type="button" onClick={() => chooseEntrySharing(true)} className="min-h-12 rounded-lg bg-[#55ee43] px-4 py-2 font-black text-[#052329] hover:bg-[#8bff7c]">Share with Crew &amp; enter</button>
-            </div>
-            <button type="button" onClick={() => setSharePromptOpen(false)} className="mt-3 w-full py-2 text-sm text-white/60 hover:text-white">Cancel</button>
-          </section>
-        </div>
-      ), document.body) : null}
 
       <p className="mt-4 text-center text-[11px] leading-5 text-white/45">Preview-only activity. The debit, entry and result are written atomically to the development/test database. No real reward is issued.</p>
     </aside>

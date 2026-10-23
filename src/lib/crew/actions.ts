@@ -9,6 +9,34 @@ export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: stri
 type CrewSearchResult = CrewActionResult & { people: CrewSearchPerson[] };
 export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 
+export type CrewShareOptions = { ok: boolean; message: string; memberCount: number; groups: { id: string; name: string; memberCount: number }[] };
+
+export async function getCrewShareOptions(): Promise<CrewShareOptions> {
+  const unavailable = { ok: false, message: "We couldn’t load your Crew. Please try again.", memberCount: 0, groups: [] };
+  const session = await signedInClient();
+  if (!session) return { ...unavailable, message: "Sign in to share with your Crew." };
+  const [members, settings] = await Promise.all([
+    session.db.rpc("get_crew_member_profiles"),
+    session.db.from("crew_visibility_settings").select("groups").eq("owner_id", session.user.id).maybeSingle(),
+  ]);
+  if (members.error || settings.error) return unavailable;
+  const approved = new Set<string>((members.data ?? []).map((member: { member_id: string }) => member.member_id));
+  const groups: unknown[] = Array.isArray(settings.data?.groups) ? settings.data.groups : [];
+  return { ok: true, message: "", memberCount: approved.size, groups: groups.filter(isCrewVisibilityGroup).map(group => ({
+    id: group.id, name: group.name, memberCount: group.memberIds.filter(id => approved.has(id)).length,
+  })) };
+}
+
+export async function shareConfirmedEntryWithCrew(requestId: string, groupId: string | null): Promise<CrewActionResult> {
+  if (!crewUuid.test(requestId) || (groupId !== null && !crewUuid.test(groupId))) return { ok: false, message: "Choose a saved Crew group." };
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in to share this entry." };
+  const { data, error } = await session.db.rpc("share_confirmed_entry_with_crew", { p_request_id: requestId, p_group_id: groupId });
+  if (error || typeof data !== "number" || data < 1) return { ok: false, message: "We couldn’t share this entry. Make sure your selected audience has approved Crew members, then try again." };
+  refreshCrew();
+  return { ok: true, message: "Shared with your selected approved Crew members. Your wallet and payment details stay private." };
+}
+
 export async function sharePrizeWithCrew(offeringSlug: string, recipientIds: string[]): Promise<CrewActionResult & { queued?: number; alreadyShared?: number }> {
   if (!/^[a-z0-9-]{2,100}$/.test(offeringSlug) || !Array.isArray(recipientIds) || recipientIds.length < 1 || recipientIds.length > 20
     || new Set(recipientIds).size !== recipientIds.length || !recipientIds.every(id => crewUuid.test(id))) {
@@ -86,7 +114,7 @@ export async function saveCrewDisplaySettings(input: {
   }
   const { error } = await session.db.rpc("save_crew_visibility_settings", {
     p_default_rule: { audience: input.defaultRule.audience, memberIds: input.defaultRule.memberIds, groupIds: input.defaultRule.groupIds },
-    p_groups: input.groups.map((group) => ({ id: group.id, name: group.name.trim(), memberIds: group.memberIds })),
+    p_groups: input.groups.map((group) => ({ id: group.id, name: group.name.trim(), memberIds: group.memberIds, contacts: group.contacts ?? [] })),
     p_entry_rules: Object.fromEntries(Object.entries(input.entryRules).map(([id, rule]) => [id, { audience: rule.audience, memberIds: rule.memberIds, groupIds: rule.groupIds }])),
     p_discoverable: input.discoverable,
   });
@@ -102,7 +130,7 @@ export async function saveCrewGroup(input: { group: CrewVisibilityGroup; remove:
   if (!input || !isCrewVisibilityGroup(input.group) || typeof input.remove !== "boolean") {
     return { ok: false, message: "Review the group name and people before saving." };
   }
-  const group = { ...input.group, name: input.group.name.trim() };
+  const group = { id: input.group.id, name: input.group.name.trim(), memberIds: input.group.memberIds, contacts: input.group.contacts ?? [] };
   const { error } = await session.db.rpc("save_crew_visibility_group", { p_group: group, p_remove: input.remove });
   if (error) return { ok: false, message: "We couldn’t save that group. Check that everyone is still in your approved Crew, then try again." };
   refreshCrew();

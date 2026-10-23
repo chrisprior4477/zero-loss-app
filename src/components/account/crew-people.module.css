@@ -8,6 +8,10 @@
   mask-composite: intersect;
 }
 .rootSelected { background: #fffdfa; }
+.combined .rail { padding-bottom: 0; }
+.combined .personSelected { border-radius: 15px 15px 0 0; box-shadow: inset 2px 2px #39ea54, inset -2px 0 #39ea54; }
+.connectedActivity { position: relative; margin-top: 12px; background: #e7fdeb; }
+.connectedActivity::before { content: ""; position: absolute; opacity: var(--crew-connector-visible, 0); top: -12px; height: 12px; left: calc(var(--crew-connector-x, 0px) - clamp(16px, 2.2vw, 26px)); width: var(--crew-connector-width, 0px); background: #e7fdeb; border-inline: 2px solid #39ea54; }
 .heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
 .heading h2 { font-size: clamp(20px, 2vw, 26px); font-weight: 850; letter-spacing: -.035em; }
 .heading p { margin-top: 3px; color: #456185; font-size: 12px; line-height: 1.4; }

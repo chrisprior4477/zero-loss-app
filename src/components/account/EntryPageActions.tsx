@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { confirmPendingEntryRequest, createPreviewEntry, resolvePendingEntryRequest, type PreviewEntryActionState } from "@/lib/entries/actions";
-import { ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, type EntryRequest } from "@/lib/entries/request";
+import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -155,6 +155,8 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
         setLatestRequestId(response.request.requestId);
         setReceipt(response.request);
         // The global coordinator auto-finalizes; this page routes its own confirmed result.
+        if (!response.request.duplicate) window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: response.request.requestId }));
+        window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_ROUTED_EVENT, { detail: response.request.requestId }));
         window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: response.request }));
       } else if (response.status === "succeeded") {
         attemptedForm.current = null;

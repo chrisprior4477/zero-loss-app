@@ -4,15 +4,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { acknowledgeEntryReceipt, listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
+import { PostEntryCrewToast } from "./PostEntryCrewToast";
 
 type TimedRequest = EntryRequest & { receivedAt: number };
 
-// Keep server-authoritative finalization and receipt recovery running without a
-// floating toast. The product entry panel owns the visible inline Undo control.
+// Undo stays inline. Optional sharing appears only after a newly created entry
+// is confirmed by the server, never while money is reserved or on old receipts.
 export function PendingEntryNotice() {
   const pathname = usePathname();
   const router = useRouter();
   const [requests, setRequests] = useState<TimedRequest[]>([]);
+  const [shareRequest, setShareRequest] = useState<EntryRequest | null>(null);
   const [now, setNow] = useState(0);
   const createdHere = useRef(new Set<string>());
   const inFlight = useRef(new Set<string>());
@@ -30,10 +32,12 @@ export function PendingEntryNotice() {
   }, []);
 
   const routeAccepted = useCallback((request: EntryRequest) => {
-    if (routedInActivity.current.has(request.requestId)) return true;
-    if (request.status !== "accepted" || routed.current.has(request.requestId)
-      || !createdHere.current.delete(request.requestId)) return false;
+    if (request.status !== "accepted") return false;
+    if (routed.current.has(request.requestId) || !createdHere.current.delete(request.requestId))
+      return routedInActivity.current.has(request.requestId) || routed.current.has(request.requestId);
     routed.current.add(request.requestId);
+    setShareRequest(request);
+    if (routedInActivity.current.has(request.requestId)) return true;
     try {
       const entryId = request.href ? new URL(request.href, window.location.origin).searchParams.get("entry") : null;
       sessionStorage.setItem(RECENT_ENTRY_STORAGE_KEY, JSON.stringify({ slug: request.slug, entryId, at: Date.now() }));
@@ -122,5 +126,5 @@ export function PendingEntryNotice() {
     }
   }, [requests, routeAccepted]);
 
-  return null;
+  return shareRequest ? <PostEntryCrewToast key={shareRequest.requestId} request={shareRequest} onClose={() => setShareRequest(null)} /> : null;
 }

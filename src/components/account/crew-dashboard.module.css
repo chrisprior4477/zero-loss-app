@@ -25,7 +25,7 @@
 .crewGrid { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(270px, .95fr); align-items: stretch; gap: 12px; margin-top: 12px; }
 .activityColumn { min-width: 0; }
 .activityColumn > * { height: 100%; }
-.sidebar { display: grid; grid-template-rows: 1fr 1fr; gap: 12px; min-width: 0; }
+.sidebar { display: grid; grid-template-rows: auto; gap: 12px; min-width: 0; margin-top: 14px; }
 .sideTicket, .activityPlaceholder { min-width: 0; padding: clamp(18px, 2vw, 28px); background: #fcfbf8; color: #0a1741; }
 .sideTicket { position: relative; }
 .inviteArt { position: absolute; top: 12px; right: 16px; width: 90px; height: 62px; object-fit: contain; opacity: .9; }
@@ -93,7 +93,7 @@
 .page button:focus-visible, .page a:focus-visible, .page input:focus-visible { outline: 3px solid #5cf760; outline-offset: 3px; }
 @media (max-width: 900px) {
   .crewGrid { grid-template-columns: 1fr; }
-  .sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }
+  .sidebar { grid-template-columns: 1fr; grid-template-rows: auto; }
 }
 @media (max-width: 700px) {
   .pageHeading { align-items: start; flex-direction: column; }

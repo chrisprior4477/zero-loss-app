@@ -2,8 +2,8 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CrewDisplaySettings } from "./CrewDisplaySettings";
 
-const { saveCrewDisplaySettings, saveCrewGroup } = vi.hoisted(() => ({ saveCrewDisplaySettings: vi.fn(), saveCrewGroup: vi.fn() }));
-vi.mock("@/lib/crew/actions", () => ({ saveCrewDisplaySettings, saveCrewGroup }));
+const { saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhone } = vi.hoisted(() => ({ saveCrewDisplaySettings: vi.fn(), saveCrewGroup: vi.fn(), inviteToCrew: vi.fn(), inviteToCrewByPhone: vi.fn() }));
+vi.mock("@/lib/crew/actions", () => ({ saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhone }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: () => <span /> }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
@@ -47,7 +47,7 @@ test("creates multiple named groups and assigns a shared pick to a chosen group"
 test("removes a saved group from the profile within the inline editor", async () => {
   saveCrewGroup.mockResolvedValue({ ok: true, message: "Group removed." });
   render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[{ id: first, name: "Family", memberIds: [] }]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
-  fireEvent.click(screen.getByRole("button", { name: "Edit group" }));
+  fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
   fireEvent.click(screen.getByRole("button", { name: "Remove group" }));
   await waitFor(() => expect(saveCrewGroup).toHaveBeenCalledWith({ group: { id: first, name: "Family", memberIds: [] }, remove: true }));
   await waitFor(() => expect(screen.getByText(/No groups yet/)).toBeTruthy());
@@ -59,4 +59,38 @@ test("search discoverability remains separate from pick audience", async () => {
   fireEvent.click(screen.getByLabelText(/Let other members find my display name in Crew search/i));
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledWith(expect.objectContaining({ discoverable: true, defaultRule: { audience: "everyone", memberIds: [], groupIds: [] } })));
+});
+
+test("Mom contact details save and reappear without silently inviting or granting access", async () => {
+  saveCrewGroup.mockResolvedValue({ ok: true, message: "Saved." });
+  const props = { available: true, embedded: true, initialDiscoverable: false, initialDefaultRule: { audience: "everyone" as const, memberIds: [], groupIds: [] }, initialEntryRules: {}, members: [], sharedPicks: [] };
+  const view = render(<CrewDisplaySettings {...props} initialGroups={[{ id: first, name: "Mom", memberIds: [] }]} />);
+  expect(screen.queryByRole("heading", { name: "How to display my picks" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
+  fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Mom Contact" } });
+  fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "+12025550123" } });
+  fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "mom@example.test" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add contact to group" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save group" }));
+  await waitFor(() => expect(saveCrewGroup).toHaveBeenCalledOnce());
+  const group = saveCrewGroup.mock.calls[0][0].group;
+  expect(group.memberIds).toEqual([]);
+  expect(group.contacts).toEqual([expect.objectContaining({ name: "Mom Contact", phone: "+12025550123", email: "mom@example.test" })]);
+  expect(await screen.findByText(/Mom saved to your profile · 0 approved members · 1 saved contacts/)).toBeTruthy();
+  expect(inviteToCrew).not.toHaveBeenCalled(); expect(inviteToCrewByPhone).not.toHaveBeenCalled();
+  view.unmount();
+  render(<CrewDisplaySettings {...props} initialGroups={[group]} />);
+  fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
+  expect(screen.getByText("Mom Contact")).toBeTruthy();
+  expect(screen.getByText(/mom@example.test/)).toBeTruthy();
+});
+
+test("failed group save keeps the editor and draft available for retry", async () => {
+  saveCrewGroup.mockRejectedValue(new Error("offline"));
+  render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[{ id: first, name: "Mom", memberIds: [] }]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
+  fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Save group" }));
+  expect(await screen.findByText(/Couldn’t confirm the save/)).toBeTruthy();
+  expect(screen.getByDisplayValue("Mom")).toBeTruthy();
+  expect(await screen.findByRole("button", { name: "Save group" })).toBeTruthy();
 });
