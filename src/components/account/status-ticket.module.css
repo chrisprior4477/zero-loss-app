@@ -35,9 +35,9 @@
   filter: brightness(1.045);
 }
 
-.ticket:focus-visible {
+.ticket[data-size]:focus-visible {
   outline: 3px solid #031b53;
-  outline-offset: 3px;
+  outline-offset: -4px;
 }
 
 .reward {
@@ -150,8 +150,8 @@
   opacity: .65;
 }
 
-.information:focus-visible,
-.action:focus-visible {
+.ticket .information:focus-visible,
+.ticket .action:focus-visible {
   outline: 3px solid #031b53;
   outline-offset: -3px;
 }
@@ -186,6 +186,14 @@
   .ticket[data-size="top"] .action { gap: 4px; padding-inline: 7px; font-size: 14px; line-height: 1.08; white-space: normal; }
   .ticket[data-size="top"] .action > span { max-width: 8ch; }
   .ticket[data-size="top"] .action svg { width: 17px; height: 17px; flex-basis: 17px; }
+}
+
+@media (min-width: 701px) and (max-width: 800px) {
+  .ticket[data-size="top"] .information { gap: 5px; padding-left: 8px; }
+  .ticket[data-size="top"] .iconPanel { width: 34px; height: 38px; flex-basis: 34px; }
+  .ticket[data-size="top"] .statusIcon { width: 27px; height: 27px; }
+  .ticket[data-size="top"] .action { gap: 3px; padding-inline: 6px; font-size: 12px; }
+  .ticket[data-size="top"] .action svg { width: 14px; height: 14px; flex-basis: 14px; }
 }
 
 @media (max-width: 700px) {

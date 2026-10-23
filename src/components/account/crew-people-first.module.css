@@ -1,9 +1,3 @@
-.overview { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 25px; padding: 10px 0 14px; border-bottom: 1px solid #426183; color: #bbcee3; font-size: 12px; }
-.overview > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
-.overview strong { color: white; font-size: 15px; }
-.overview a { color: #b7eeff; text-decoration: none; }
-.overview a:hover { text-decoration: underline; }
-.overview .accountAction { font-size: 11px; font-weight: 800; color: #55dcf3; }
 .heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 22px 0 18px; scroll-margin-top: calc(var(--site-header-height, 64px) + 12px); }
 .heading h1 { font-size: clamp(32px, 3.5vw, 46px); letter-spacing: -.04em; line-height: 1.1; font-weight: 850; }
 .heading p { margin-top: 7px; color: #b7cce4; font-size: 13px; }
@@ -46,10 +40,6 @@
 .footer { color: #b5cadf; font-size: 12px; margin-top: 22px; }
 .retry { min-height: 44px; color: #b9f0ff; text-decoration: underline; padding: 9px; }
 @media (max-width: 640px) {
-  .overview { gap: 8px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); font-size: 10px; }
-  .overview > div { display: block; }
-  .overview strong { display: block; font-size: 14px; }
-  .overview .accountAction { display: inline-block; font-size: 10px; padding: 7px 0; }
   .heading { align-items: flex-start; margin: 19px 0 15px; gap: 9px; }
   .heading p { font-size: 11px; }
   .addButton { padding: 11px 13px; font-size: 13px; }

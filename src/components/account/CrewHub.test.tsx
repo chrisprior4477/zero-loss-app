@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { CrewHub } from "./CrewHub";
 import { CrewSearchPanel } from "./CrewSearchDialog";
 import { addSampleCrewPreview } from "@/lib/crew/sample-preview";
+import { walletHistoryHref, walletRewardHref, type ActivityItem } from "@/lib/account/activity";
+import { accountRoutes } from "@/lib/account/navigation";
 
 const actions = vi.hoisted(() => ({
   inviteToCrew: vi.fn(),
@@ -36,6 +38,37 @@ beforeEach(() => {
   actions.saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Settings saved." });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+const statusReward: ActivityItem = {
+  slug: "playstation-5-slim", title: "PlayStation 5 Slim Model", retailer: "Best Buy",
+  image: "/catalog/playstation-5-slim.png", status: "prize", rewardKind: "digital",
+  priceCents: 65000, paidCents: 100, remainingCents: 64900, availability: "Ready",
+  rewardStatus: "ready", rewardId: "reward-one",
+};
+
+test.each([1, 2])("Crew retains the account ticket strip with live values and destinations (%s ready rewards)", count => {
+  const activity = [
+    ...Array.from({ length: count }, (_, i) => ({ ...statusReward, rewardId: `reward-${i}` })),
+    { ...statusReward, rewardId: "redeemed", rewardStatus: "redeemed" as const },
+    ...Array.from({ length: 2 }, (_, i) => ({ ...statusReward, status: "completion" as const, rewardId: null, rewardStatus: null, entryId: `entry-${i}` })),
+  ];
+  const { container } = render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" overview={{ balanceLabel: "$978", fundingEnabled: true, activity: { isPreview: true, source: "stored", activeCount: 0, activity } }} />);
+  const overview = container.querySelector('[aria-label="Your account overview"]')!;
+  expect(overview.querySelectorAll('[data-size="top"]')).toHaveLength(3);
+  expect(within(overview as HTMLElement).getByRole("link", { name: "Playable Wallet: $978" }).getAttribute("href")).toBe(walletHistoryHref);
+  expect(within(overview as HTMLElement).getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(`${walletHistoryHref}#add-funds`);
+  expect(within(overview as HTMLElement).getByRole("link", { name: `Prize Ready: ${count}. View reward${count === 1 ? "" : "s"}` }).getAttribute("href")).toBe(count === 1 ? walletRewardHref(activity[0]) : accountRoutes.rewards);
+  expect(within(overview as HTMLElement).getByRole("link", { name: "Purchase Options: 2. Continue with Purchase" }).getAttribute("href")).toBe(accountRoutes.purchaseOptions);
+});
+
+test("account tickets keep unavailable states and disabled funding without inventing zero balances", () => {
+  render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" overview={{ balanceLabel: "Unavailable", fundingEnabled: false, activity: { isPreview: false, source: "unavailable", activeCount: null, activity: [] } }} />);
+  expect(screen.getByRole("link", { name: "Playable Wallet: Unavailable" }).getAttribute("href")).toBe(walletHistoryHref);
+  expect(screen.getByRole("button", { name: "Add funds" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
+  expect(screen.getByRole("link", { name: "Prize Ready: Unavailable. View rewards" }).getAttribute("href")).toBe(accountRoutes.rewards);
+  expect(screen.getByRole("link", { name: "Purchase Options: Unavailable. Continue with Purchase" }).getAttribute("href")).toBe(accountRoutes.purchaseOptions);
+});
 
 test.each([false, true])("Add to Your Crew opens one focused search without sending (reduced motion: %s)", reducedMotion => {
   vi.stubGlobal("matchMedia", vi.fn((query: string) => ({ matches: query.includes("prefers-reduced-motion") && reducedMotion })));

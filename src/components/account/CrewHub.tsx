@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
@@ -10,6 +9,8 @@ import {
 import type { CrewInvitation, CrewMember, OwnCrewEntry, SharedCrewPick } from "@/app/account/crew/page";
 import { CrewPeopleFirst } from "./CrewPeopleFirst";
 import { CrewLandingScroll } from "./CrewLandingScroll";
+import { StatusTicket } from "./StatusTicket";
+import stripStyles from "./account-status-strip.module.css";
 import styles from "./crew-dashboard.module.css";
 import firstStyles from "./crew-people-first.module.css";
 import { CrewSearchPanel } from "./CrewSearchDialog";
@@ -151,10 +152,10 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
 
   return <main className={styles.page}>
     <div className={styles.shell}>
-      {overview ? <div className={firstStyles.overview} aria-label="Your account overview">
-        <div><Link href={walletHistoryHref}>Playable Wallet <strong>{overview.balanceLabel}</strong></Link>{overview.fundingEnabled ? <Link className={firstStyles.accountAction} href={`${walletHistoryHref}#add-funds`}>Add funds</Link> : <span>Add funds unavailable</span>}</div>
-        <div><Link href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards}>Prize Ready <strong>{overview.activity.source === "unavailable" ? "Unavailable" : readyRewards.length}</strong></Link><Link className={firstStyles.accountAction} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards}>{singleReward ? "View reward" : "View rewards"}</Link></div>
-        <div><Link href={accountRoutes.purchaseOptions}>Purchase Options <strong>{optionsCount ?? "Unavailable"}</strong></Link><Link className={firstStyles.accountAction} href={accountRoutes.purchaseOptions}>Continue with Purchase</Link></div>
+      {overview ? <div className={stripStyles.row} aria-label="Your account overview">
+        <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
+        <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
+        <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
     <CrewLandingScroll enabled={initialTab === "crew" && !selectedMemberId && !incomingInviteToken} />
     <header id="crew-intro" className={firstStyles.heading}>
