@@ -6,6 +6,7 @@ import { ResetDemoPoolButton } from "@/components/product/ResetDemoPoolButton";
 import { GiftCardFulfillmentNotice, SignedOutRewardSummary } from "@/components/product/GiftCardFulfillmentNotice";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
+import { buildProductMetadata } from "@/lib/catalog/product-metadata";
 import { getAccountContext } from "@/lib/account/context";
 import { randomUUID } from "node:crypto";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   const product = getDemoProduct(id);
   if (!product) return {};
-  return { title: product.title, description: product.summary };
+  return buildProductMetadata(product);
 }
 
 export default async function ItemPage({ params, searchParams }: PageProps) {

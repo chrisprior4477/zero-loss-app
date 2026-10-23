@@ -5,7 +5,7 @@ const authMocks = vi.hoisted(() => ({
   exchange: vi.fn(),
   verify: vi.fn(),
   signOut: vi.fn(),
-  setAll: null as null | ((cookies: Array<{ name: string; value: string; options: { path: string } }>) => void),
+  setAll: null as null | ((cookies: Array<{ name: string; value: string; options: { path: string } }>, headers?: Record<string, string>) => void),
 }));
 
 vi.mock("@supabase/ssr", () => ({
@@ -33,7 +33,7 @@ test("opening a token-hash recovery email does not verify it on GET", async () =
 
 test("explicit confirmation verifies the token and carries its session to the password form", async () => {
   authMocks.verify.mockImplementation(async () => {
-    authMocks.setAll?.([{ name: "sb-session", value: "recovery", options: { path: "/" } }]);
+    authMocks.setAll?.([{ name: "sb-session", value: "recovery", options: { path: "/" } }], { "Cache-Control": "private, no-store", Expires: "0", Pragma: "no-cache" });
     return { data: { session: { access_token: "verified" } }, error: null };
   });
   const response = await POST(new NextRequest("http://localhost:3000/auth/confirm", {
@@ -45,6 +45,9 @@ test("explicit confirmation verifies the token and carries its session to the pa
   expect(response.status).toBe(303);
   expect(response.headers.get("location")).toBe("http://localhost:3000/reset-password");
   expect(response.cookies.get("sb-session")?.value).toBe("recovery");
+  expect(response.headers.get("cache-control")).toBe("private, no-store");
+  expect(response.headers.get("expires")).toBe("0");
+  expect(response.headers.get("pragma")).toBe("no-cache");
   expect(authMocks.signOut).not.toHaveBeenCalled();
 });
 
@@ -64,6 +67,21 @@ test("signup confirmation still signs out before sending the person to login", a
   const response = await GET(new NextRequest("http://localhost:3000/auth/confirm?code=valid"));
   expect(response.headers.get("location")).toBe("http://localhost:3000/login?verified=1");
   expect(authMocks.signOut).toHaveBeenCalledOnce();
+});
+
+test("signup callback carries cache-prevention headers alongside cleared session cookies", async () => {
+  authMocks.exchange.mockResolvedValue({ data: { redirectType: null }, error: null });
+  authMocks.signOut.mockImplementationOnce(async () => {
+    authMocks.setAll?.([{ name: "sb-session", value: "", options: { path: "/" } }], { "Cache-Control": "private, no-store", Expires: "0", Pragma: "no-cache" });
+    return { error: null };
+  });
+  const response = await GET(new NextRequest("http://localhost:3000/auth/confirm?code=valid"));
+  expect(response.headers.get("location")).toBe("http://localhost:3000/login?verified=1");
+  expect(response.cookies.get("sb-session")?.value).toBe("");
+  expect(response.headers.get("cache-control")).toBe("private, no-store");
+  expect(response.headers.get("expires")).toBe("0");
+  expect(response.headers.get("pragma")).toBe("no-cache");
+  expect(response.headers.get("referrer-policy")).toBe("no-referrer");
 });
 
 test("an expired recovery code leads back to a fresh reset request", async () => {

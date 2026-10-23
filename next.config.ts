@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The public share-image endpoint reads catalog art without contacting the app.
+  outputFileTracingIncludes: {
+    "/items/*/opengraph-image": ["./public/catalog/**/*", "./public/dollar-choice*.png"],
+  },
   /**
    * The dev server is initialized with `localhost`, and Next blocks
    * cross-origin requests to dev-only assets and endpoints by default. A

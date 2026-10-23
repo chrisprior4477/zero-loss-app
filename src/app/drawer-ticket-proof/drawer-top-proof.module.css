@@ -1,0 +1,298 @@
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow-y: auto;
+  padding-top: 13px;
+  background: #08182c;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: min(461px, calc(100vw - 25px));
+  min-height: calc(100dvh - 27px);
+  margin-left: 17px;
+  border-radius: 16px;
+  background: #faf8f7;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .28);
+}
+
+.header {
+  display: flex;
+  height: 87px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 20px;
+}
+
+.profile {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 15px;
+  color: #08183b;
+  text-decoration: none;
+}
+
+.avatar {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #168cff, #0965eb);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+
+.profileText {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.profileText strong {
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileText small {
+  color: #5c6a80;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.headerActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.counter,
+.notifications,
+.close {
+  display: flex;
+  height: 50px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d6dbe4;
+  border-radius: 10px;
+  background: #fff;
+  color: #091b3c;
+  text-decoration: none;
+}
+
+.counter {
+  width: 78px;
+  gap: 5px;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.counter svg {
+  width: 37px;
+  height: 27px;
+}
+
+.notifications {
+  width: 35px;
+  border: 0;
+  background: transparent;
+  color: #111;
+}
+
+.notifications svg {
+  width: 24px;
+  height: 24px;
+}
+
+.close {
+  width: 50px;
+  background: #faf9f7;
+}
+
+.close svg {
+  width: 26px;
+  height: 26px;
+}
+
+.tickets {
+  display: grid;
+  gap: 7px;
+  padding: 0 13px;
+}
+
+.firstNavigation {
+  display: grid;
+  gap: 7px;
+  padding: 10px 13px 0;
+}
+
+.promoWrap {
+  padding: 7px 13px 0;
+}
+
+.promo {
+  --cutout: 6.5px;
+  --corner-scoop: 10px;
+  display: flex;
+  height: 56px;
+  align-items: center;
+  gap: 13px;
+  padding-left: 42px;
+  color: #fff;
+  background: linear-gradient(110deg, #0279ff, #006ffe);
+  -webkit-mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--cutout) at 0 50%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--cutout) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--cutout) at 0 50%, transparent 99%, #000 103%),
+    radial-gradient(circle var(--cutout) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}
+
+.promoIcon {
+  display: grid;
+  width: 68px;
+  height: 46px;
+  flex: 0 0 68px;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(0, 61, 163, .45);
+}
+
+.promoMark {
+  display: block;
+  width: 41px;
+  height: 41px;
+  background: #fff;
+  -webkit-mask: url('/zeroloss-favicon.svg') center / contain no-repeat;
+  mask: url('/zeroloss-favicon.svg') center / contain no-repeat;
+}
+
+.promo strong {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+
+.utilityWrap {
+  padding: 14px 13px 0;
+}
+
+.installButton,
+.signOutButton {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  border: 1px solid #cbd5e2;
+  border-radius: 9px;
+  background: #fff;
+  color: #2b3e5b;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.installButton {
+  gap: 12px;
+  padding: 0 13px;
+  text-align: left;
+}
+
+.installButton svg:first-child {
+  width: 23px;
+  height: 23px;
+}
+
+.installButton svg:last-child {
+  width: 17px;
+  height: 17px;
+  margin-left: auto;
+}
+
+.footer {
+  margin-top: auto;
+  padding: 10px 13px 11px;
+  border-top: 1px solid #e3ddd8;
+}
+
+.signOutButton {
+  justify-content: center;
+  gap: 12px;
+}
+
+.signOutButton svg {
+  width: 23px;
+  height: 23px;
+}
+
+.installButton:hover,
+.signOutButton:hover {
+  border-color: #087feb;
+  background: #f4faff;
+}
+
+.installButton:focus-visible,
+.signOutButton:focus-visible {
+  outline: 3px solid #082f81;
+  outline-offset: 2px;
+}
+
+.panel a:focus-visible {
+  outline: 3px solid #082f81;
+  outline-offset: 2px;
+}
+
+@media (max-width: 430px) {
+  .stage { padding-top: 0; }
+  .panel { width: 100%; min-height: 100dvh; margin-left: 0; border-radius: 0; }
+  .header { padding-inline: 12px; }
+  .avatar { width: 50px; height: 50px; flex-basis: 50px; font-size: 18px; }
+  .profile { gap: 8px; }
+  .profileText strong { font-size: 16px; }
+  .profileText small { font-size: 11px; }
+  .counter { width: 65px; font-size: 17px; }
+  .counter svg { width: 31px; }
+  .notifications { width: 27px; }
+  .close { width: 42px; }
+  .headerActions { gap: 5px; }
+  .tickets { padding-inline: 11px; }
+  .firstNavigation { padding-inline: 11px; }
+  .promoWrap { padding-inline: 11px; }
+  .promo { padding-left: 20px; }
+  .utilityWrap { padding-inline: 11px; }
+  .footer { padding-inline: 11px; }
+}
+
+@media (max-width: 355px) {
+  .header { gap: 4px; padding-inline: 8px; }
+  .profileText strong { font-size: 14px; }
+  .profileText small { font-size: 10px; }
+  .counter { width: 56px; }
+  .counter svg { width: 26px; }
+  .notifications { width: 24px; }
+  .notifications svg { width: 21px; height: 21px; }
+  .close { width: 37px; }
+}
