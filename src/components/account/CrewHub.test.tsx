@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { CrewHub } from "./CrewHub";
 import { CrewSearchPanel } from "./CrewSearchDialog";
 import { addSampleCrewPreview } from "@/lib/crew/sample-preview";
@@ -15,6 +15,8 @@ const actions = vi.hoisted(() => ({
   setEntryCrewSharing: vi.fn(),
   getCrewSharedPicks: vi.fn(),
   requestCrewInvitationFromLink: vi.fn(),
+  saveCrewGroup: vi.fn(),
+  saveCrewDisplaySettings: vi.fn(),
 }));
 
 vi.mock("@/lib/crew/actions", () => actions);
@@ -30,18 +32,19 @@ beforeEach(() => {
   actions.inviteToCrew.mockResolvedValue({ ok: true, message: "Request saved." });
   actions.getCrewSharedPicks.mockResolvedValue({ ok: true, picks: [] });
   actions.requestCrewInvitationFromLink.mockResolvedValue({ ok: true, message: "Crew request sent." });
+  actions.saveCrewGroup.mockResolvedValue({ ok: true, message: "Group saved." });
+  actions.saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Settings saved." });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-test.each([false, true])("Add to Your Crew scrolls to the panel and focuses search without another jump (reduced motion: %s)", reducedMotion => {
+test.each([false, true])("Add to Your Crew opens one focused search without sending (reduced motion: %s)", reducedMotion => {
   vi.stubGlobal("matchMedia", vi.fn((query: string) => ({ matches: query.includes("prefers-reduced-motion") && reducedMotion })));
   render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
-  const panel = document.getElementById("crew-search")!;
-  const scroll = vi.fn(); panel.scrollIntoView = scroll;
-  const focus = vi.spyOn(document.getElementById("crew-search-name")!, "focus");
+  expect(screen.queryByRole("searchbox")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Add to Your Crew" }));
-  expect(scroll).toHaveBeenCalledExactlyOnceWith({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
-  expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  expect(document.activeElement).toBe(screen.getByRole("searchbox", { name: "Name, email address, or phone number" }));
+  expect(screen.queryByRole("region", { name: "Approved Crew" })).toBeNull();
+  expect(screen.queryByRole("textbox", { name: "Invite by email" })).toBeNull();
   expect(actions.inviteToCrew).not.toHaveBeenCalled();
   expect(actions.inviteToCrewByPhone).not.toHaveBeenCalled();
 });
@@ -68,6 +71,7 @@ test("a homepage preview choice carries into Your Crew and can be removed", asyn
   render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
   expect(screen.getByRole("button", { name: "See Ari's sample shared activity" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "See Maya's sample shared activity" })).toBeNull();
+  fireEvent.click(screen.getByText("Manage"));
   fireEvent.click(screen.getByRole("button", { name: "Remove preview" }));
   await waitFor(() => expect(screen.queryByRole("button", { name: "See Ari's sample shared activity" })).toBeNull());
   expect(localStorage.getItem("zero-loss-sample-crew-v1")).toBe("[]");
@@ -93,9 +97,9 @@ test("every sample clearly highlights the selected person and matches the shared
     expect(personButton.getAttribute("aria-expanded")).toBe("true");
     expect(personButton.parentElement?.className).toContain("personSelected");
   }
-  fireEvent.click(screen.getByRole("tab", { name: "Requests" }));
+  fireEvent.click(screen.getByRole("button", { name: "Requests" }));
   expect(screen.queryByRole("region", { name: "Leo's shared activity" })).toBeNull();
-  fireEvent.click(screen.getByRole("tab", { name: "Your Crew" }));
+  fireEvent.click(screen.getByRole("button", { name: "Your Crew" }));
   expect(screen.getByRole("region", { name: "Leo's shared activity" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: /Close/ }));
   expect(screen.queryByRole("region", { name: "Leo's shared activity" })).toBeNull();
@@ -107,6 +111,8 @@ test("a personal invite link is copyable and an incoming link sends an approval 
   const writeText = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
   render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" ownInviteToken="11111111-2222-4333-8444-555555555555" incomingInviteToken="22222222-3333-4444-8555-666666666666" />);
+  fireEvent.click(screen.getByRole("button", { name: "Add people" }));
+  fireEvent.click(screen.getByText("Invite with your personal link"));
   fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
   await waitFor(() => expect(writeText).toHaveBeenCalledWith("http://localhost:3000/account/crew?invite=11111111-2222-4333-8444-555555555555"));
   fireEvent.click(screen.getByRole("button", { name: "Request to join" }));
@@ -135,9 +141,9 @@ test("the account Crew section expands approved people's activity in place", asy
   expect(await screen.findByRole("link", { name: /Nike Court Shot Shoes/ })).toHaveProperty("href", "http://localhost:3000/items/nike-court-shot-shoes");
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("button", { name: "Add to Your Crew" })).toBeTruthy();
-  expect(screen.getByRole("searchbox", { name: "Search by name" })).toBeTruthy();
-  expect(screen.getByRole("textbox", { name: "Invite by verified phone" })).toBeTruthy();
-  expect(screen.getByRole("textbox", { name: "Invite by email" })).toBeTruthy();
+  expect(screen.queryByRole("searchbox")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Add people" }));
+  expect(screen.getByRole("searchbox", { name: "Name, email address, or phone number" })).toBeTruthy();
   expect(screen.queryByText(/fictional click-through/i)).toBeNull();
   expect(screen.queryByText(/Maya’s shared picks|Daniel’s shared picks/)).toBeNull();
   expect(screen.queryByRole("button", { name: /find people/i })).toBeNull();
@@ -179,4 +185,65 @@ test("sample people can be found by name without pretending a real invitation wa
   fireEvent.click(screen.getByRole("button", { name: "View sample picks" }));
   expect(onSamplePicks).toHaveBeenCalledWith("Maya");
   expect(actions.inviteToCrewById).not.toHaveBeenCalled();
+});
+
+test.each([["pat@example.test", "inviteToCrew"], ["+1 (202) 555-0123", "inviteToCrewByPhone"]] as const)("compact lookup of %s waits for an explicit request", async (value, action) => {
+  render(<CrewSearchPanel compact onSamplePicks={vi.fn()} disabled={false} />);
+  const input = screen.getByRole("searchbox");
+  fireEvent.change(input, { target: { value } });
+  fireEvent.click(screen.getByRole("button", { name: "Find person" }));
+  expect(screen.getByText(value)).toBeTruthy();
+  expect(actions.searchCrewByName).not.toHaveBeenCalled();
+  expect(actions[action]).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Add to Crew" }));
+  await waitFor(() => expect(actions[action]).toHaveBeenCalledExactlyOnceWith(value));
+  expect((await screen.findByRole("button", { name: "Requested" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(input, { target: { value: "someone-else@example.test" } });
+  expect(screen.queryByRole("button", { name: "Requested" })).toBeNull();
+});
+
+test("groups and privacy share the same editor state across compact navigation", async () => {
+  render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  const nav = within(screen.getByRole("navigation", { name: "Your Crew sections" }));
+  expect(screen.queryByRole("heading", { name: "Make your own groups" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Can people find me?" })).toBeNull();
+  fireEvent.click(nav.getByRole("button", { name: "Groups" }));
+  expect(screen.queryByRole("heading", { name: "Can people find me?" })).toBeNull();
+  fireEvent.change(screen.getByLabelText("New group name"), { target: { value: "Family" } });
+  fireEvent.click(screen.getByRole("button", { name: /Create group/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Save group" }));
+  await screen.findByText(/Family saved to your profile/);
+  fireEvent.click(nav.getByRole("button", { name: "Privacy" }));
+  expect(screen.queryByRole("heading", { name: "Make your own groups" })).toBeNull();
+  fireEvent.click(screen.getByRole("radio", { name: /Only selected groups/ }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Family" }));
+  fireEvent.click(nav.getByRole("button", { name: "Your Crew" }));
+  fireEvent.click(nav.getByRole("button", { name: "Privacy" }));
+  expect((screen.getByRole("checkbox", { name: "Family" }) as HTMLInputElement).checked).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
+  await waitFor(() => expect(actions.saveCrewDisplaySettings).toHaveBeenCalledOnce());
+  const payload = actions.saveCrewDisplaySettings.mock.calls[0][0];
+  expect(payload.groups).toHaveLength(1);
+  expect(payload.groups[0].name).toBe("Family");
+  expect(payload.defaultRule).toEqual({ audience: "groups", memberIds: [], groupIds: [payload.groups[0].id] });
+});
+
+test("a failed member activity request can be retried without a blank panel", async () => {
+  actions.getCrewSharedPicks.mockRejectedValueOnce(new Error("offline"));
+  render(<CrewHub currentUserId="me" invitations={[{ id: "connection", requester_id: "me", recipient_id: "taylor", requester_name: "Me", recipient_name: "Taylor", status: "accepted", created_at: "2026-10-23T10:00:00Z" }]} members={[{ memberId: "taylor", name: "Taylor", avatarUrl: null }]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  fireEvent.click(screen.getByRole("button", { name: "See Taylor's shared activity" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Retry shared activity" }));
+  await screen.findByText("No activity shared with Crew yet.");
+  expect(actions.getCrewSharedPicks).toHaveBeenCalledTimes(2);
+});
+
+test("sample lookup reopens the same person rather than toggling their picks off", async () => {
+  actions.searchCrewByName.mockResolvedValue({ ok: true, people: [], message: "No discoverable members." });
+  render(<CrewHub currentUserId="me" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  await screen.findByRole("region", { name: "Maya's shared activity" });
+  fireEvent.click(screen.getByRole("button", { name: "Add people" }));
+  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Maya" } });
+  fireEvent.click(screen.getByRole("button", { name: "Find person" }));
+  fireEvent.click(await screen.findByRole("button", { name: "View sample picks" }));
+  expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
 });

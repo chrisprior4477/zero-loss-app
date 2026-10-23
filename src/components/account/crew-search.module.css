@@ -41,6 +41,15 @@
 .result button { margin-left: auto; border: 1px solid #2bd244; border-radius: 7px; padding: 8px 10px; color: #092716; background: #caffd2; font-size: .73rem; font-weight: 800; white-space: nowrap; }
 .footer { margin-top: 15px; border-top: 1px solid #c2d5e2; padding-top: 13px; color: #526b87; font-size: .72rem; line-height: 1.4; }
 .panel button:focus-visible { outline: 3px solid #006ebc; outline-offset: 3px; }
+.compact .headerIcon, .compact .header p { display: none; }
+.compact .field { padding: 0; background: transparent; mask-image: none; -webkit-mask-image: none; }
+.compact .row input { font-size: 16px; }
+.compact .row button { min-width: 70px; background: #ff7900; }
+.compact .results { min-height: 0; border: 0; padding: 0; background: transparent; }
+.compact .result strong { overflow-wrap: anywhere; }
+.compact .contactButton { background: #dcefff; border-color: #9ec8e2; }
+.contactChoices { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.contactChoices button { min-height: 44px; border: 1px solid #9ec8e2; border-radius: 7px; padding: 7px 10px; font-size: 12px; font-weight: 800; }
 @media (max-width: 1080px) { .fields { grid-template-columns: 1fr; } .row input { font-size: .8rem; } .row button { min-width: 110px; font-size: .76rem; } }
 @media (max-width: 767px) { .contactButton { width: 100%; } }
 @media (max-width: 520px) { .result { flex-wrap: wrap; } .result button { margin-left: 56px; } .row button { min-width: 98px; } }

@@ -1,0 +1,67 @@
+.overview { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 25px; padding: 10px 0 14px; border-bottom: 1px solid #426183; color: #bbcee3; font-size: 12px; }
+.overview > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.overview strong { color: white; font-size: 15px; }
+.overview a { color: #b7eeff; text-decoration: none; }
+.overview a:hover { text-decoration: underline; }
+.overview .accountAction { font-size: 11px; font-weight: 800; color: #55dcf3; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 22px 0 18px; scroll-margin-top: calc(var(--site-header-height, 64px) + 12px); }
+.heading h1 { font-size: clamp(32px, 3.5vw, 46px); letter-spacing: -.04em; line-height: 1.1; font-weight: 850; }
+.heading p { margin-top: 7px; color: #b7cce4; font-size: 13px; }
+.heading p span + span::before { content: " · "; }
+.addButton { border: 0; border-radius: 10px; padding: 12px 20px; min-height: 46px; background: #ff7900; color: #071c38; font-weight: 850; font-size: 15px; white-space: nowrap; cursor: pointer; }
+.tabs { display: flex; flex-wrap: wrap; gap: 5px; padding-bottom: 10px; border-bottom: 1px solid #365777; margin-bottom: 20px; }
+.tabs button { border: 0; border-radius: 9px; padding: 11px 14px; min-height: 44px; color: #c4d8ed; background: transparent; font-size: 14px; font-weight: 800; cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: #c5f0ff; color: #0a2746; }
+.content { min-width: 0; }
+.content > [hidden] { display: none; }
+.people { min-width: 0; }
+.peopleHeading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.peopleHeading h2 { font-size: 15px; font-weight: 750; color: #d3e6f7; }
+.peopleTools { display: flex; align-items: center; gap: 5px; }
+.peopleTools > button { width: 34px; height: 34px; background: #173e65; color: #bcf0ff; border-radius: 50%; font-size: 24px; line-height: 1; cursor: pointer; }
+.manage { position: relative; font-size: 12px; color: #87e9fc; }
+.manage summary { padding: 10px; white-space: nowrap; cursor: pointer; }
+.manage > div { position: absolute; z-index: 5; right: 0; top: 100%; min-width: 170px; max-width: 230px; background: #fffefb; color: #153551; border: 1px solid #acd3e7; border-radius: 8px; padding: 8px; box-shadow: 0 5px 16px #0004; }
+.manage button { min-height: 44px; width: 100%; padding: 8px; border-radius: 5px; background: #e5f2f9; cursor: pointer; }
+.peopleRail { display: flex; align-items: stretch; gap: 10px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x proximity; padding: 4px 3px 9px; scrollbar-width: thin; scrollbar-color: #397497 transparent; }
+.person { flex: 0 0 102px; background: #10375d; border-radius: 11px; color: #eaf7ff; scroll-snap-align: start; }
+.person > button { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 7px; width: 100%; height: 100%; padding: 12px 8px; cursor: pointer; border-radius: inherit; }
+.personSelected { color: #0c2d4c; background: #c6f0ff; }
+.avatar { width: 52px; height: 52px; flex: 0 0 auto; border: 2px solid #8bd8f1; border-radius: 50%; overflow: hidden; position: relative; display: grid; place-items: center; background: #126183; color: white; font-size: 22px; font-weight: 800; }
+.avatar img { object-fit: cover; }
+.personName { max-width: 100%; overflow-wrap: anywhere; text-align: center; font-size: 13px; font-weight: 850; line-height: 1.15; }
+.person small { font-size: 10px; line-height: 1.2; opacity: .86; }
+.addPerson { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; flex: 0 0 102px; border: 1px dashed #659dc1; border-radius: 11px; color: #89e9fa; font-size: 12px; font-weight: 800; cursor: pointer; }
+.addPerson > span { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid #5d97b9; border-radius: 50%; font-size: 27px; }
+.sampleNotice { margin-top: 5px; color: #adc7dc; font-size: 11px; line-height: 1.4; }
+.addPanel { max-width: 830px; margin-inline: auto; }
+.back { min-height: 44px; padding: 8px 0; margin-bottom: 8px; color: #87e9fc; font-size: 14px; font-weight: 800; cursor: pointer; }
+.invite { margin-top: 14px; background: #0c2d4f; border: 1px solid #335e7d; border-radius: 11px; padding: 16px 20px; }
+.invite summary { min-height: 32px; color: #8feaff; font-weight: 800; font-size: 14px; cursor: pointer; }
+.invite p { color: #c0d5e9; margin: 8px 0 12px; font-size: 13px; }
+.invite input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #5a84a7; border-radius: 7px; padding: 9px; background: #041c36; color: #d2e8f7; font-size: 13px; }
+.invite button { min-height: 44px; margin-top: 9px; padding: 9px 14px; border-radius: 8px; background: #bcefff; color: #102c4d; font-size: 13px; font-weight: 800; cursor: pointer; }
+.invite button:disabled { opacity: .5; }
+.privacyLink { color: #0064a6; font-weight: 800; min-height: 44px; padding: 10px 0; font-size: 13px; text-decoration: underline; cursor: pointer; }
+.footer { color: #b5cadf; font-size: 12px; margin-top: 22px; }
+.retry { min-height: 44px; color: #b9f0ff; text-decoration: underline; padding: 9px; }
+@media (max-width: 640px) {
+  .overview { gap: 8px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); font-size: 10px; }
+  .overview > div { display: block; }
+  .overview strong { display: block; font-size: 14px; }
+  .overview .accountAction { display: inline-block; font-size: 10px; padding: 7px 0; }
+  .heading { align-items: flex-start; margin: 19px 0 15px; gap: 9px; }
+  .heading p { font-size: 11px; }
+  .addButton { padding: 11px 13px; font-size: 13px; }
+  .tabs { gap: 3px; margin-bottom: 15px; }
+  .tabs button { padding: 10px 8px; font-size: 12px; }
+  .peopleRail { gap: 8px; }
+  .person, .addPerson { flex-basis: 82px; }
+  .person > button { padding: 10px 5px; gap: 6px; }
+  .avatar { width: 44px; height: 44px; }
+  .personName { font-size: 12px; }
+  .person small { font-size: 9px; }
+  .peopleTools > button { width: 44px; height: 44px; }
+  .invite { padding: 14px; }
+}
+@media (max-width: 360px) { .peopleHeading h2 { font-size: 13px; } }

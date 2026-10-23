@@ -21,7 +21,7 @@ function PersonPlusIcon() {
   return <svg aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="9" r="4" /><path d="M3.5 25c0-5 3.5-8 8.5-8s8.5 3 8.5 8M24 9v10m-5-5h10" /></svg>;
 }
 
-export function CrewSearchPanel({ onSamplePicks, disabled }: { onSamplePicks: (name: SampleCrewName) => void; disabled: boolean }) {
+export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { onSamplePicks: (name: SampleCrewName) => void; disabled: boolean; compact?: boolean }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,9 +32,22 @@ export function CrewSearchPanel({ onSamplePicks, disabled }: { onSamplePicks: (n
   const [message, setMessage] = useState("Search for members who chose to be found by name, or send a private request by email or verified phone.");
   const [pending, setPending] = useState(false);
   const [requestedIds, setRequestedIds] = useState<string[]>([]);
+  const [contactTarget, setContactTarget] = useState<{ value: string; method: "email" | "phone" } | null>(null);
 
   async function search(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (compact) {
+      const query = name.trim();
+      setResults([]); setSampleResults([]); setContactTarget(null);
+      if (query.includes("@") || /^[+\d\s().-]+$/.test(query)) {
+        const method = query.includes("@") ? "email" : "phone";
+        const valid = method === "email" ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(query) : query.replace(/\D/g, "").length >= 10 && query.replace(/\D/g, "").length <= 15;
+        if (!valid) { setMessage(method === "email" ? "Enter a valid email address." : "Enter a phone number with its country code."); return; }
+        setContactTarget({ value: query, method }); setSearched(true);
+        setMessage("This is a private request—we don’t reveal whether an account exists. They must approve before sharing begins.");
+        return;
+      }
+    }
     setPending(true);
     try {
       const result = await searchCrewByName(name);
@@ -74,24 +87,25 @@ export function CrewSearchPanel({ onSamplePicks, disabled }: { onSamplePicks: (n
       if (contact.name?.[0]) setName(contact.name[0]);
       if (contact.email?.[0]) setEmail(contact.email[0]);
       if (contact.tel?.[0]) setPhone(contact.tel[0]);
+      if (compact) { setName(contact.email?.[0] || contact.tel?.[0] || contact.name?.[0] || ""); setContactTarget(null); }
       setMessage("Contact selected. Review the details, then choose whether to send a request. Your address book was not uploaded.");
     } catch {
       setMessage("No contact was selected. You can enter an email or verified phone number manually.");
     }
   }
 
-  return <section id="crew-search" aria-labelledby="crew-search-title" className={styles.panel}>
+  return <section id="crew-search" aria-labelledby="crew-search-title" className={`${styles.panel} ${compact ? styles.compact : ""}`}>
       <div className={styles.header}><span className={styles.headerIcon}><PersonPlusIcon /></span><div><p>FRIENDS &amp; FAMILY</p><h2 id="crew-search-title">Add to Your Crew</h2></div></div>
-      <p className={styles.intro}>Search here—no extra screen. A real person must approve your request before either of you can see shared picks.</p>
+      <p className={styles.intro}>{compact ? "Find someone by name, email, or phone. They approve before sharing begins." : "Search here—no extra screen. A real person must approve your request before either of you can see shared picks."}</p>
 
       <div className={styles.fields}>
         <form onSubmit={search} className={styles.field}>
-          <label htmlFor="crew-search-name">Search by name</label>
-          <div className={styles.row}><input id="crew-search-name" type="search" value={name} onChange={(event) => setName(event.target.value)} minLength={3} maxLength={60} placeholder="Name (3+ letters)" autoComplete="off" disabled={disabled} />
-          <button type="submit" disabled={pending || disabled} aria-label="Search Crew by name"><SearchIcon /><span>Search</span></button></div>
+          <label htmlFor="crew-search-name">{compact ? "Name, email address, or phone number" : "Search by name"}</label>
+          <div className={styles.row}><input id="crew-search-name" type="search" value={name} onChange={(event) => { setName(event.target.value); setContactTarget(null); }} minLength={3} maxLength={compact ? 254 : 60} placeholder={compact ? "Name, email, or phone with country code" : "Name (3+ letters)"} autoComplete="off" disabled={disabled || pending} required />
+          <button type="submit" disabled={pending || disabled} aria-label={compact ? "Find person" : "Search Crew by name"}><SearchIcon /><span>{compact ? "Find" : "Search"}</span></button></div>
           <small>Only members who opted in appear in name search.</small>
         </form>
-        <form onSubmit={(event) => { event.preventDefault(); void sendRequest(() => inviteToCrewByPhone(phone)); }} className={styles.field}>
+        {!compact ? <><form onSubmit={(event) => { event.preventDefault(); void sendRequest(() => inviteToCrewByPhone(phone)); }} className={styles.field}>
           <label htmlFor="crew-search-phone">Invite by verified phone</label>
           <div className={styles.row}><input id="crew-search-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Phone with country code" autoComplete="tel" disabled={disabled} />
           <button type="submit" disabled={pending || disabled} aria-label="Send Crew request by phone"><span>Send request</span></button></div>
@@ -102,14 +116,16 @@ export function CrewSearchPanel({ onSamplePicks, disabled }: { onSamplePicks: (n
           <div className={styles.row}><input id="crew-search-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email address" autoComplete="email" disabled={disabled} />
           <button type="submit" disabled={pending || disabled} aria-label="Send Crew request by email"><span>Send request</span></button></div>
           <small>They’ll see the request if they have a confirmed account.</small>
-        </form>
+        </form></> : null}
       </div>
 
       <button type="button" onClick={() => void chooseContact()} disabled={disabled} className={styles.contactButton}>Choose from phone contacts</button>
       <p className={styles.contactNote}>On supported phones, you choose which contact to share. Nothing is sent until you press a request button.</p>
+      {compact && (email || phone) ? <div className={styles.contactChoices}>{email ? <button type="button" onClick={() => { setName(email); setContactTarget(null); }}>Use contact’s email</button> : null}{phone ? <button type="button" onClick={() => { setName(phone); setContactTarget(null); }}>Use contact’s phone</button> : null}</div> : null}
 
       <div className={styles.results} aria-live="polite">
         <p role="status">{message}</p>
+        {compact && contactTarget ? <div className={styles.result}><div><strong>{contactTarget.value}</strong><small>Approval required · private lookup</small></div><button type="button" disabled={pending || disabled || requestedIds.includes(contactTarget.value)} onClick={() => void sendRequest(() => contactTarget.method === "email" ? inviteToCrew(contactTarget.value) : inviteToCrewByPhone(contactTarget.value), contactTarget.value)}>{requestedIds.includes(contactTarget.value) ? "Requested" : "Add to Crew"}</button></div> : null}
         {searched && results.length ? <div className={styles.resultList}>{results.map((person) => <div key={person.memberId} className={styles.result}>
           <span className={styles.avatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="48px" unoptimized className={styles.avatarImage} /> : person.name.slice(0, 1).toUpperCase()}</span>
           <div><strong>{person.name}</strong><small>Discoverable Zero Loss member</small></div>

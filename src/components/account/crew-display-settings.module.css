@@ -2,6 +2,10 @@
 .shell { max-width: 1440px; margin-inline: auto; }
 .embedded { min-height: 0; padding: 0; background: none; }
 .embedded .ticket:first-child { margin-top: 0; }
+.embedded .step { display: none; }
+.embedded .discoveryToggle, .embedded .audienceGrid, .embedded .audienceGrid + .targets, .embedded .groupArea, .embedded .pickGrid, .embedded .ticket > .emptyTargets { margin-left: 0; }
+.embedded .sectionHead h2, .embedded .saveRow h2 { font-size: clamp(20px, 2.2vw, 26px); }
+.embedded .ticket { padding: clamp(20px, 2.5vw, 28px); }
 .ticket, .groupRow { scroll-margin-top: calc(var(--site-header-height, 64px) + 12px); }
 .contacts { grid-column: 1 / -1; display: grid; gap: 10px; padding-top: 12px; border-top: 1px solid #bfd7e8; }
 .contacts > strong { font-size: 15px; }

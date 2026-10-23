@@ -88,7 +88,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     selectedMemberId={selectedMemberId}
     selectedPicks={(picksResult?.data ?? []) as SharedCrewPick[]}
     available={available && !picksResult?.error}
-    initialTab={params.tab === "requests" ? "requests" : params.tab === "picks" ? "picks" : "crew"}
+    initialTab={params.tab === "requests" || params.tab === "picks" || params.tab === "groups" || params.tab === "privacy" || params.tab === "add" ? params.tab : "crew"}
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
     ownInviteToken={inviteLinkResult.error ? null : typeof inviteLinkResult.data === "string" ? inviteLinkResult.data : null}
     incomingInviteToken={typeof params.invite === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.invite) ? params.invite : null}
