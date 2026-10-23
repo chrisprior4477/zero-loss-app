@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { activityHref, readyWalletRewards, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
+import styles from "./help-tickets.module.css";
 
 /** Use only the caller's authorized activity. A single result skips the collection page. */
 export function helpShortcuts(activity?: AccountActivity) {
@@ -13,9 +14,9 @@ export function helpShortcuts(activity?: AccountActivity) {
 }
 
 export function HelpShortcuts({ activity }: { activity?: AccountActivity }) {
-  return <nav aria-label="Quick account shortcuts" className="my-6 grid grid-cols-3 gap-2 sm:my-7 sm:gap-3">
-    {helpShortcuts(activity).map(item => <Link key={item.label} href={item.href} className="group flex min-h-20 min-w-0 items-center justify-between gap-3 rounded-2xl border border-cyan-300/25 bg-[#082e52] p-3 transition-colors hover:border-cyan-300 hover:bg-[#0c3d64] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300 sm:p-5">
-      <span className="min-w-0"><strong className={`block text-sm sm:text-base ${item.tone}`}>{item.label}</strong><span className="mt-1 hidden text-sm leading-5 text-white/65 sm:block">{item.detail}</span></span><span aria-hidden="true" className="hidden shrink-0 text-xl text-cyan-300 sm:inline">→</span>
+  return <nav aria-label="Quick account shortcuts" className={styles.shortcuts}>
+    {helpShortcuts(activity).map((item, index) => <Link key={item.label} href={item.href} data-tone={["reward", "purchase", "wallet"][index]} className={`${styles.ticket} ${styles.button} ${styles.shortcut}`}>
+      <span className="min-w-0"><strong className="block">{item.label}</strong><span className={styles.detail}>{item.detail}</span></span><span aria-hidden="true">→</span>
     </Link>)}
   </nav>;
 }
