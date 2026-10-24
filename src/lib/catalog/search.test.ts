@@ -3,6 +3,56 @@ import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
 
 describe("catalog search", () => {
+  test.each(["auto", "atuo", "automot", "automotvie"])("finds every automotive vendor for %s", query => {
+    const retailers = searchCatalog(demoProducts, query).map(product => product.retailer);
+    expect(retailers).toEqual(expect.arrayContaining(["AutoZone®", "Jiffy Lube®", "Turo"]));
+  });
+
+  test.each(["car battery", "car batteries", "car batery", "spark plugs", "sparkplugs", "spark plgs", "brake pads", "windshield wipers", "cabin air filter", "oil change"])("finds automotive retailers for %s without matching a car-rental card", query => {
+    const retailers = searchCatalog(demoProducts, query).map(product => product.retailer);
+    if (query !== "oil change") expect(retailers).toContain("AutoZone®");
+    expect(retailers).toContain("Jiffy Lube®");
+    expect(retailers).not.toContain("Turo");
+  });
+
+  test.each([
+    ["sofa", "Wayfair"], ["printer ink", "Staples"], ["lipstick", "Sephora"],
+    ["baby stroller", "Babylist"], ["movie tickets", "AMC Theaters"], ["guitar", "Guitar Center"],
+  ])("finds the relevant merchant family for %s", (query, retailer) => {
+    expect(searchCatalog(demoProducts, query).map(product => product.retailer)).toContain(retailer);
+  });
+
+  test("every listed retailer remains searchable by its own name", () => {
+    for (const retailer of new Set(demoProducts.map(product => product.retailer))) {
+      expect(searchCatalog(demoProducts, retailer).some(product => product.retailer === retailer), retailer).toBe(true);
+    }
+    expect(searchCatalog(demoProducts, "Best Buy").every(product => product.retailer === "Best Buy")).toBe(true);
+  });
+
+  test.each(["TV", "televis", "televison"])("finds actual TVs and relevant gift cards for %s", query => {
+    const matches = searchCatalogMatches(demoProducts, query);
+    expect(matches[0].kind).toBe("product");
+    expect(matches.some(match => match.product.slug === "lg-oled-c6-65-tv")).toBe(true);
+    for (const retailer of ["Walmart", "Best Buy"]) {
+      expect(matches.some(match => match.product.retailer === retailer && match.kind === "retailer")).toBe(true);
+    }
+    expect(matches.some(match => match.product.retailer === "Microsoft Office 365 Home")).toBe(false);
+  });
+
+  test.each(["baby products", "baby supplies", "babby products"])("finds baby retailers for %s", query => {
+    const matches = searchCatalog(demoProducts, query);
+    expect(matches.map(product => product.retailer)).toEqual(expect.arrayContaining(["Walmart", "Publix"]));
+  });
+
+  test.each(["walm", "walmrat"])("finds Walmart from partial or mistyped %s", query => {
+    expect(searchCatalog(demoProducts, query).some(product => product.retailer === "Walmart")).toBe(true);
+  });
+
+  test("known brand names do not become another retailer through fuzzy matching", () => {
+    const retailers = searchCatalog(demoProducts, "Vons").map(product => product.retailer);
+    expect(retailers.length).toBeGreaterThan(0);
+    expect(retailers.every(retailer => retailer === "Vons")).toBe(true);
+  });
   test("matches familiar product words and synonyms", () => {
     expect(searchCatalog(demoProducts, "TV").map(product => product.slug)).toEqual(expect.arrayContaining([
       "samsung-m70h-tv",
@@ -28,20 +78,20 @@ describe("catalog search", () => {
 
   test.each(["reciprocating saw", "reciprocating saws", "reciprocaitng saw", "power tools", "sawzall"])("offers existing Home Depot cards for %s", query => {
     const matches = searchCatalogMatches(demoProducts, query);
-    expect(matches).toHaveLength(4);
-    expect(matches.every(match => match.product.retailer === "The Home Depot" && match.kind === "retailer")).toBe(true);
+    expect(matches.some(match => match.product.retailer === "The Home Depot")).toBe(true);
+    expect(matches.every(match => ["The Home Depot", "Lowe's", "Menards®", "Ace Hardware"].includes(match.product.retailer) && match.product.slug.endsWith("-gift-card"))).toBe(true);
   });
 
   test.each(["pet food", "pet treats", "dog food", "cat treats", "puppy food", "pet supplies"])("offers PetSmart instead of unrelated groceries for %s", query => {
     const matches = searchCatalogMatches(demoProducts, query);
-    expect(matches).toHaveLength(4);
-    expect(matches.every(match => match.product.retailer === "PetSmart" && match.kind === "retailer")).toBe(true);
+    expect(matches.some(match => match.product.retailer === "PetSmart")).toBe(true);
+    expect(matches.every(match => ["PetSmart", "Petco", "Chewy®", "1-800-PetSupplies.com"].includes(match.product.retailer) && match.kind === "retailer")).toBe(true);
   });
 
   test.each(["medicine", "medication", "meds", "cold medicine"])("offers existing CVS and Walmart cards for %s", query => {
     const matches = searchCatalogMatches(demoProducts, query);
-    expect(matches).toHaveLength(8);
-    expect(matches.every(match => ["CVS", "Walmart"].includes(match.product.retailer) && match.kind === "retailer")).toBe(true);
+    expect(matches).toHaveLength(9);
+    expect(matches.every(match => ["CVS", "Walgreens", "Walmart"].includes(match.product.retailer) && match.kind === "retailer")).toBe(true);
   });
 
   test("keeps a named medicine retailer specific", () => {

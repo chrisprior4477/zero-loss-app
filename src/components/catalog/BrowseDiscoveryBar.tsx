@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
+import { searchTextMatches } from "@/lib/catalog/search-text";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
 import styles from "./browse-discovery.module.css";
@@ -14,6 +15,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const categoryList = useRef<HTMLDivElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
   const [panel, setPanel] = useState<"categories" | "filters" | null>(null);
   const [mode, setMode] = useState<"categories" | "retailers">("categories");
@@ -30,7 +32,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     : props.retailerGroups.filter(group => !query.trim() || group.category.toLowerCase().startsWith(query.trim().toLowerCase()));
   const retailerGroups = query.trim() ? props.retailerGroups : props.selectedRetailerGroup ? [props.selectedRetailerGroup] : props.retailerGroups;
   const retailers = Array.from(new Map(retailerGroups.flatMap(group => group.options.map(option => [option.value, { ...option, groupId: group.id }] as const))).values())
-    .filter(option => !query.trim() || option.label.toLowerCase().includes(query.trim().toLowerCase()))
+    .filter(option => !query.trim() || searchTextMatches(option.label, query))
     .sort((left, right) => left.label.localeCompare(right.label));
 
   useEffect(() => {
@@ -57,22 +59,34 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const url = new URL(props.browseHref, "https://zeroloss.local");
+    // A fresh marketplace search must not be trapped in the previous department.
+    for (const key of ["category", "partnerCategory", "retailer", "subcategory"]) url.searchParams.delete(key);
     if (search.trim()) url.searchParams.set("q", search.trim()); else url.searchParams.delete("q");
     router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
+  }
+  function clearSearch() {
+    setSearch("");
+    searchInput.current?.focus();
+    if (props.searchTerm) {
+      const url = new URL(props.browseHref, "https://zeroloss.local");
+      url.searchParams.delete("q");
+      router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
+    }
   }
 
   return <div className={styles.discovery}>
     <span id="retailer-categories-heading" className={styles.anchor} />
     <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>Search products, brands, and categories</label>
-      <input id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search products or brands" enterKeyHint="search" />
-      {search.trim() ? <button type="submit" aria-label="Search marketplace">Search <span aria-hidden="true">→</span></button> : <VoiceSearchButton onTranscript={setSearch} />}
+      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search products or brands" enterKeyHint="search" autoComplete="off" />
+      {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
+      {search.trim() ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : <VoiceSearchButton onTranscript={setSearch} />}
     </form>
     <div className={styles.controls}>
-      <button type="button" className={styles.ticket} aria-haspopup="dialog" aria-expanded={panel === "categories"} onClick={event => open("categories", event.currentTarget)}>
+      <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories"} onClick={event => open("categories", event.currentTarget)}>
         <span aria-hidden="true">☷</span><span>{props.selectedRetailerGroup?.category ?? "Categories"}</span>
       </button>
-      <button type="button" className={styles.ticket} aria-haspopup="dialog" aria-expanded={panel === "filters"} onClick={event => open("filters", event.currentTarget)}>
+      <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "filters"} onClick={event => open("filters", event.currentTarget)}>
         Filter &amp; sort{activeCount ? <b>{activeCount}</b> : <span aria-hidden="true">↕</span>}
       </button>
     </div>

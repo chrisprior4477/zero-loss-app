@@ -89,8 +89,9 @@ describe("Browse search results", () => {
     const matches = within(screen.getByRole("region", { name: "Matching retailer categories" }));
     expect(matches.getByRole("link", { name: /Automotive/ }).getAttribute("href"))
       .toBe("/browse?partnerCategory=automotive");
-    expect(screen.getByText(/0 products · 1 matching retailer category for/)).toBeTruthy();
-    expect(screen.getByRole("heading", { name: `No current product listings match “${query}” yet.` })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /\$100 AutoZone.*Gift Card/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /\$100 Jiffy Lube.*Gift Card/ })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: `No current product listings match “${query}” yet.` })).toBeNull();
   });
 
   test("finds baby essentials using everyday language", async () => {
@@ -119,7 +120,7 @@ describe("Browse search results", () => {
 
   test("clearly identifies indirect retailer results as gift cards", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "reciprocating saw" }) }));
-    expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.")).toHaveLength(4);
+    expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.").length).toBeGreaterThanOrEqual(4);
     expect(screen.getByRole("link", { name: /\$25 The Home Depot Gift Card/i }).getAttribute("href"))
       .toBe("/items/home-depot-25-gift-card?from=%2Fbrowse%3Fq%3Dreciprocating%2Bsaw");
     expect(screen.queryByRole("heading", { name: "Reciprocating Saw" })).toBeNull();

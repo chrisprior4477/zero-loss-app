@@ -130,7 +130,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               );
             })}
           </section>
-        ) : searchTerm && directoryMatches.length && matchedProducts.length === 0 ? (
+        ) : searchTerm && !selectedCategory && !selectedRetailerGroup && directoryMatches.length && matchedProducts.length === 0 ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
             <h2 className="text-2xl font-bold">No current product listings match “{searchTerm}” yet.</h2>
             <p className="mt-2 text-white/65">Explore the matching retailer category above to see its directory and any available offers.</p>

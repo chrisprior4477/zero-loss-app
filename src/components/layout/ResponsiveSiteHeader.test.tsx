@@ -132,8 +132,8 @@ test("outside dismissal stops voice capture", () => {
 test("voice transcription uses the same Go action and closes the push-down", () => {
   let recognition: { onresult: (event: unknown) => void; onend: () => void };
   vi.stubGlobal("SpeechRecognition", class {
-    onresult: (event: unknown) => void = () => {}; onend = () => {}; start() {} stop() { this.onend(); }
-    constructor() { recognition = { onresult: event => this.onresult(event), onend: () => this.onend() }; }
+    onresult: ((event: unknown) => void) | null = null; onend: (() => void) | null = null; start() {} stop() { this.onend?.(); }
+    constructor() { recognition = { onresult: event => this.onresult?.(event), onend: () => this.onend?.() }; }
   });
   const { mobile, header } = setup("search-down");
   fireEvent.click(screen.getByRole("button", { name: "Open search" }));

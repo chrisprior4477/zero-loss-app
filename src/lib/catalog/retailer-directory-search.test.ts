@@ -7,7 +7,7 @@ import { searchRetailerDirectory } from "./retailer-directory-search";
 const groups = retailerFilterGroups(giftCardPartnerGroups, demoProducts);
 
 describe("retailer directory search", () => {
-  test.each(["auto", "automotive", "spark plug", "spark plugs", "AutoZone"])("finds Automotive for %s", query => {
+  test.each(["auto", "atuo", "automot", "automotive", "spark plug", "spark plugs", "AutoZone"])("finds Automotive for %s", query => {
     expect(searchRetailerDirectory(groups, query)[0]?.id).toBe("automotive");
   });
 
