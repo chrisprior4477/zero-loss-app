@@ -114,3 +114,22 @@ test.each(['support','shared','entry'])('a confirmed %s update refreshes immedia
  expect(await screen.findByRole('button',{name:/1 unread updates/})).toBeTruthy();
  expect(fetcher).toHaveBeenCalledTimes(2);expect(mock.mark).not.toHaveBeenCalled();
 });
+
+function ReceiveShare(){const value=useNotifications()!;return <button onClick={()=>value.receiveConfirmed(make('shared-pick','crew'),false)}>Receive confirmed share</button>;}
+test('a confirmed share appears before refresh and survives stale data without duplication',async()=>{
+ let finishRefresh!:(value:unknown)=>void;
+ vi.stubGlobal('fetch',vi.fn(()=>new Promise(resolve=>{finishRefresh=resolve;})));
+ const old={...snapshot,notifications:[],readIds:['shared-pick']};
+ const app=(initial:typeof snapshot)=><NotificationProvider initial={initial} initialStyle="capsule" initialEnabled><HeaderNotifications><span>Balance</span></HeaderNotifications><ReceiveShare/><ClearDemo/></NotificationProvider>;
+ const rendered=render(app(old));
+ fireEvent.click(screen.getByRole('button',{name:'Receive confirmed share'}));
+ expect(screen.getByRole('button',{name:/1 unread updates/})).toBeTruthy();
+ rendered.rerender(app({...old}));
+ expect(screen.getByRole('button',{name:/1 unread updates/})).toBeTruthy();
+ await act(async()=>finishRefresh({ok:true,status:200,json:async()=>old}));
+ expect(screen.getByRole('button',{name:/1 unread updates/})).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Receive confirmed share'}));
+ expect(screen.getByRole('button',{name:/1 unread updates/})).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Clear demo'}));
+ expect(screen.queryByRole('button',{name:/unread updates/})).toBeNull();
+});

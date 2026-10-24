@@ -368,19 +368,30 @@
 }
 
 @media (max-width: 940px) {
-  .gallery[data-has-options="true"] { --option-rows: 2 !important; grid-template-rows: repeat(var(--option-rows), 210px); }
+  .gallery[data-has-options="true"] { --option-rows: 2 !important; grid-template-rows: repeat(var(--option-rows), 185px); }
   .gallery[data-has-options="true"][data-stacked-rows="1"] { --option-rows: 1 !important; }
 }
+@media (min-width: 601px) and (max-width: 940px) {
+  .gallery[data-has-options="true"] { grid-template-rows: repeat(var(--option-rows), 200px); }
+}
 @media (max-width: 600px) {
-  .gallery[data-has-options="true"] { grid-template-rows: repeat(var(--option-rows), 210px); }
-  .productCard[data-status="completion"] .cardInner { grid-template-columns: minmax(0, 26%) minmax(0, 1fr); grid-template-rows: 14px 24px minmax(32px, auto) minmax(0, 1fr); padding: 12px 15px; }
-  .productCard[data-status="completion"] .cardInner::before { left: calc(26% + 9px); }
-  .productCard[data-status="completion"] .cardAction { min-height: 36px; font-size: 10px; }
-  .optionAmounts { gap: 5px 13px; }
-  .optionAmounts > strong { font-size: 17px; }
-  .optionAmounts > span { font-size: 13px; }
-  .optionSummary time, .optionDeadlineUnknown { font-size: 11px; }
+  /* Options share the compact gallery height; they must not stretch All. */
+  .gallery[data-has-options="true"] { grid-template-rows: repeat(var(--option-rows), 133px); }
+  .productCard[data-status="completion"] .cardInner { grid-template-rows: 11px 17px minmax(0, 1fr) auto; padding-block: 7px; }
+  .productCard[data-status="completion"] .cardInner::before { top: 7px; bottom: 7px; }
+  .productCard[data-status="completion"] .retailer { font-size: 10px; }
+  .productCard[data-status="completion"] .status { gap: 3px; padding: 2px 5px; font-size: 9px; }
+  .productCard[data-status="completion"] .status svg { width: 11px; height: 11px; }
+  .productCard[data-status="completion"] .productTitle { font-size: 13px; line-height: 1.03; }
+  .productCard[data-status="completion"] .cardFoot { gap: 3px; }
+  .productCard[data-status="completion"] .cardAction { min-height: 27px; padding-block: 2px; font-size: 9px; }
+  .productCard[data-status="completion"] .optionActionCount { min-width: 21px; height: 21px; font-size: 13px; }
+  .optionSummary { gap: 2px; }
+  .optionAmounts { flex-wrap: nowrap; gap: 3px 8px; }
+  .optionAmounts > strong, .optionAmounts > span { font-size: 12px; line-height: 1; white-space: nowrap; }
+  .optionAmounts small { display: inline; margin-left: 3px; font-size: 9px; }
+  .optionSummary time, .optionDeadlineUnknown { font-size: 10px; line-height: 1.1; }
 }
 @media (max-width: 355px) {
-  .gallery[data-has-options="true"] { grid-template-rows: repeat(var(--option-rows), 240px); }
+  .gallery[data-has-options="true"] { grid-template-rows: repeat(var(--option-rows), 145px); }
 }

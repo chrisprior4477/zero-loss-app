@@ -7,7 +7,7 @@ import { restoreNotificationBanner } from "@/lib/account/restore-banner-action";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 type Snapshot = { notifications: AccountNotification[]; readIds: string[]; readAvailable: boolean; preferences: NotificationPreferences | null; supportEnabled?: boolean };
-type Value = { preferencesPreviewActive: boolean; setPreferencesPreviewActive: (active: boolean) => void; popupStyle: NotificationPopupStyle; setPopupStyle: (style: NotificationPopupStyle) => void; supportEnabled: boolean; clearAfterDemoReset: () => void; speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
+type Value = { receiveConfirmed: (notification: AccountNotification, isRead: boolean) => void; preferencesPreviewActive: boolean; setPreferencesPreviewActive: (active: boolean) => void; popupStyle: NotificationPopupStyle; setPopupStyle: (style: NotificationPopupStyle) => void; supportEnabled: boolean; clearAfterDemoReset: () => void; speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
 const Context = createContext<Value | null>(null);
 export function NotificationProvider({ children, initial, initialStyle, initialEnabled, initialSpeed = 5, initialDisplaySeconds = 6, initialPopupStyle = "rounded" }: { children: ReactNode; initial: Snapshot | null; initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number; initialDisplaySeconds?: number; initialPopupStyle?: NotificationPopupStyle }) {
   // Keep incoming account refreshes from replacing an unsaved live preview.
@@ -23,6 +23,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   const [style, setStyle] = useState(initialStyle);
   const [open, setOpen] = useState(false);
   const [bannerHidden, setBannerHidden] = useState(false);
+  const received = useRef(new Map<string, AccountNotification>());
   const readChanges = useRef(new Map<string, boolean>());
   const readOperations = useRef(new Map<string, number>());
   const revision = useRef(0);
@@ -30,7 +31,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     if (!next) return null;
     const reads = new Set(next.readIds);
     readChanges.current.forEach((isRead, id) => { if (isRead) reads.add(id); else reads.delete(id); });
-    return { ...next, readIds: [...reads] };
+    return { ...next, notifications: [...received.current.values(), ...next.notifications.filter(n => !received.current.has(n.id))], readIds: [...reads] };
   }, []);
   const pathname = usePathname();
   useEffect(() => { if (!previewActive.current) setPopupStyle(initialPopupStyle); }, [initialPopupStyle]);
@@ -55,6 +56,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
         if (response.ok) {
           const next: Snapshot = await response.json();
           if (requestedRevision !== revision.current) return;
+          next.notifications.forEach(n => received.current.delete(n.id));
           const confirmed = new Set(next.readIds);
           readChanges.current.forEach((isRead, id) => { if (confirmed.has(id) === isRead) readChanges.current.delete(id); });
           setSnapshot(mergeReads(next));
@@ -115,8 +117,15 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     setOpen(false);
     return result.message;
   }, [mergeReads]);
+  const receiveConfirmed = useCallback((notification: AccountNotification, isRead: boolean) => {
+    revision.current++;
+    received.current.set(notification.id, notification);
+    readChanges.current.set(notification.id, isRead);
+    setSnapshot(current => mergeReads(current));
+  }, [mergeReads]);
   const clearAfterDemoReset = useCallback(() => {
     revision.current++;
+    received.current.clear();
     readChanges.current.clear();
     readOperations.current.clear();
     setSnapshot(current => current ? { ...current, notifications: [], readIds: [] } : null);
@@ -125,6 +134,6 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   const read = new Set(snapshot?.readIds);
   const notifications = snapshot?.readAvailable && snapshot.preferences ? snapshot.notifications.filter(n => notificationIsEnabled(n, snapshot.preferences!)) : [];
   const unread = notifications.filter(n => !read.has(n.id));
-  return <Context.Provider value={{ preferencesPreviewActive, setPreferencesPreviewActive, popupStyle, setPopupStyle, supportEnabled: snapshot?.supportEnabled !== false, clearAfterDemoReset, speed, setSpeed, displaySeconds, setDisplaySeconds, enabled, setEnabled, style, setStyle, notifications, unread, open, setOpen, markRead, restoreBanner, bannerHidden, setBannerHidden }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ receiveConfirmed, preferencesPreviewActive, setPreferencesPreviewActive, popupStyle, setPopupStyle, supportEnabled: snapshot?.supportEnabled !== false, clearAfterDemoReset, speed, setSpeed, displaySeconds, setDisplaySeconds, enabled, setEnabled, style, setStyle, notifications, unread, open, setOpen, markRead, restoreBanner, bannerHidden, setBannerHidden }}>{children}</Context.Provider>;
 }
 export function useNotifications() { return useContext(Context); }
