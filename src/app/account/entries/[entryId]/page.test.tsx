@@ -5,7 +5,8 @@ import { prizeNumberForSlug } from "@/lib/catalog/prize-number";
 
 const mocks = vi.hoisted(() => ({
   account: vi.fn(), availability: vi.fn(), progress: vi.fn(), createClient: vi.fn(),
-  notFound: vi.fn(() => { throw new Error("NEXT_NOT_FOUND"); }), redirect: vi.fn(),
+  notFound: vi.fn(() => { throw new Error("NEXT_NOT_FOUND"); }),
+  redirect: vi.fn((href: string) => { throw new Error(`NEXT_REDIRECT:${href}`); }),
 }));
 
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
@@ -38,7 +39,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 test("entry numbers independently reveal pictured entry details and keep the saved ID copy action", async () => {
   const scrollIntoView = vi.fn();
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
-  render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
   const hero = screen.getByRole("region", { name: "Saved entry and prize pool" });
   expect(within(hero).getByText("◷ No winners yet. We will notify you when the pool is complete.")).toBeTruthy();
   expect(within(hero).getByText(prizeNumberForSlug("playstation-5-slim"))).toBeTruthy();
@@ -81,6 +82,57 @@ test("the count shortcut opens entry one while a direct entry return opens its o
 test("an entry outside the signed-in account cannot open through the rail", async () => {
   await expect(EntryPage({ params: Promise.resolve({ entryId: `ent_${"f".repeat(32)}` }) })).rejects.toThrow("NEXT_NOT_FOUND");
   expect(mocks.notFound).toHaveBeenCalledOnce();
+});
+
+test("a bookmarked entry opens its own numbered ticket without extra query parameters", async () => {
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
+  expect(screen.getByRole("article", { name: "Entry 3 of 5" })).toBeTruthy();
+  expect(screen.queryByRole("article", { name: "Entry 1 of 5" })).toBeNull();
+});
+
+test("an unavailable account read offers a full retry instead of falsely reporting a missing entry", async () => {
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+  mocks.account.mockResolvedValueOnce({ activity: { activity: [], source: "unavailable" }, wallet: null });
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
+  expect(screen.getByRole("heading", { name: "We couldn’t load your entry right now" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Try again" }).getAttribute("href")).toBe(`/account/entries/${ids[2]}`);
+  expect(mocks.notFound).not.toHaveBeenCalled();
+  expect(mocks.redirect).not.toHaveBeenCalled();
+  expect(mocks.createClient).not.toHaveBeenCalled();
+  expect(warning).toHaveBeenCalledOnce();
+  warning.mockRestore();
+  cleanup();
+  // The same URL succeeds once the account data becomes available again.
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
+  expect(screen.getByRole("article", { name: "Entry 3 of 5" })).toBeTruthy();
+});
+
+test.each([
+  { status: "prize", rewardId: "reward-1", rewardStatus: "ready", target: "/account/wallet?reward=playstation-5-slim&rewardId=reward-1" },
+  { status: "completed", rewardId: "reward-2", rewardStatus: "redeemed", target: "/account/wallet?reward=playstation-5-slim&rewardId=reward-2" },
+  { status: "completion", completionOptionStatus: "available", target: `/account/entries?item=playstation-5-slim&entry=${ids[2]}` },
+  { status: "completed", completionOptionStatus: "expired", target: `/account/entries?item=playstation-5-slim&entry=${ids[2]}` },
+  { status: "completed", completionOptionStatus: "declined", target: "/account/declined-offers" },
+])("a saved link follows its owned $status / $completionOptionStatus / $rewardStatus result", async ({ target, ...outcome }) => {
+  mocks.account.mockResolvedValueOnce({ activity: { activity: [{ ...activity[2], rewardKind: "digital", ...outcome }], source: "stored" } });
+  await expect(EntryPage({ params: Promise.resolve({ entryId: ids[2] }) })).rejects.toThrow(`NEXT_REDIRECT:${target}`);
+  expect(mocks.redirect).toHaveBeenCalledWith(target);
+  expect(mocks.notFound).not.toHaveBeenCalled();
+  expect(mocks.createClient).not.toHaveBeenCalled();
+});
+
+test("a signed-out saved link returns to that same entry after login", async () => {
+  mocks.account.mockResolvedValueOnce(null);
+  await expect(EntryPage({ params: Promise.resolve({ entryId: ids[2] }) })).rejects.toThrow("NEXT_REDIRECT:");
+  const destination = new URL(mocks.redirect.mock.calls[0][0], "https://navigation.invalid");
+  expect(destination.pathname).toBe("/login");
+  expect(destination.searchParams.get("next")).toBe(`/account/entries/${ids[2]}`);
+  expect(mocks.notFound).not.toHaveBeenCalled();
+});
+
+test("malformed IDs are rejected before reading account data", async () => {
+  await expect(EntryPage({ params: Promise.resolve({ entryId: "not-an-entry" }) })).rejects.toThrow("NEXT_NOT_FOUND");
+  expect(mocks.account).not.toHaveBeenCalled();
 });
 
 test("a single saved entry and later count changes keep the same numbered-ticket UI", async () => {

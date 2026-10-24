@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
+import { activityHref } from "@/lib/account/activity";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { activityOfferMetrics } from "@/lib/account/activity-progress";
@@ -31,8 +32,23 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", `/account/entries/${entryId}`));
-  const item = account.activity.activity.find(entry => entry.entryId === entryId && entry.status === "active");
-  if (!item || account.activity.source === "unavailable") notFound();
+  if (account.activity.source === "unavailable") {
+    console.warn("[entry-details] Account activity unavailable; showing retry instead of not found.");
+    return <main className={styles.page}><div className={styles.shell}>
+      <div className={styles.topline}><div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1></div></div>
+      <section className={styles.playTicket} aria-labelledby="entry-unavailable-title">
+        <h2 id="entry-unavailable-title">We couldn’t load your entry right now</h2>
+        <p>Your account activity is temporarily unavailable. Try again to check this entry.</p>
+        {/* A full navigation retries the server read, including a previously cached failed response. */}
+        <a href={`/account/entries/${entryId}`} className={styles.primaryLink}>Try again</a>
+        <Link href="/account/entries" className={styles.returnButton}>Go to My Activity</Link>
+      </section>
+    </div></main>;
+  }
+  // A saved URL remains usable after this customer's entry receives an outcome.
+  const item = account.activity.activity.find(entry => entry.entryId === entryId);
+  if (!item) notFound();
+  if (item.status !== "active") redirect(activityHref(item));
   const relatedEntries = account.activity.activity
     .filter(entry => entry.status === "active" && entry.slug === item.slug && entry.entryId)
     .sort((left, right) => enteredTime(left.enteredAt) - enteredTime(right.enteredAt)
@@ -99,7 +115,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <ProductShareButton product={shareItem} className={styles.desktopShare} />
         </div>
       </section>
-      <EntryTicketRail key={`${entryId}:${entryView}`} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "open" ? entryId : savedTickets[0].entryId} initiallyExpanded={expandEntries} />
+      <EntryTicketRail key={`${entryId}:${entryView}`} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} initiallyExpanded={expandEntries} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
