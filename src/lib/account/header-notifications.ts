@@ -37,10 +37,8 @@ export function headerCounts(items: AccountNotification[]) {
 }
 export function notificationMessages(notifications: AccountNotification[]): BannerMessage[] {
   const counts = headerCounts(notifications);
-  // Open entries remain available from the ticket link. They never keep the
-  // alert overlay running alone after wins/options and other updates are read.
-  if (!headerCategories.some(c => c.key !== "entries" && counts[c.key])) return [];
-  return headerCategories.filter(c => counts[c.key] > 0).map(c => ({ label: c.label === "You won" ? "You won!" : c.label, count: counts[c.key], color: c.color, category: c.key }));
+  // Open entries remain in the dropdown and ticket link, never in the rotation.
+  return headerCategories.filter(c => c.key !== "entries" && counts[c.key] > 0).map(c => ({ label: c.label === "You won" ? "You won!" : c.label, count: counts[c.key], color: c.color, category: c.key }));
 }
 export type HeaderEntryGroup = { slug: string; title: string; image?: string; count: number; href: string };
 function productKey(n: AccountNotification) {

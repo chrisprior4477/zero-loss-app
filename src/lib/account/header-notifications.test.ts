@@ -5,10 +5,11 @@ const make = (id: string, tone: AccountNotification["tone"], extra: Partial<Acco
 test("routine wallet records and open entries alone do not cover the normal ticket links", () => {
   expect(notificationMessages([make("wallet-hold", "wallet"), make("wallet-debit", "wallet"), make("wallet-release", "wallet"), make("active-1", "active"), make("account-email-confirmed", "account")])).toEqual([]);
 });
-test("open entries are blue, support is purple, and wallet bookkeeping never inflates the count", () => {
+test("open entries stay in the dropdown but never rotate, even alongside support", () => {
   expect(notificationMessages([make("active-1", "active"), make("support-case", "account"), make("wallet-debit", "wallet")])).toEqual([
-    { label: "See open entries", count: 1, color: "blue", category:"entries" }, { label: "Support", count: 1, color: "purple", category:"support" },
+    { label: "Support", count: 1, color: "purple", category:"support" },
   ]);
+  expect(headerCounts([make("active-1","active")]).entries).toBe(1);
 });
 test("all tickets for an unread product are counted, including previously read tickets", () => {
   const a = make("active-1", "active", { itemSlug: "lowes-100", itemTitle: "$100 Lowe's Card", entryId: "one" });

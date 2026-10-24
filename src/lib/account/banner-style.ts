@@ -8,7 +8,11 @@ export function bannerStyleOrDefault(value: unknown): BannerStyle {
 export function bannerSpeedOrDefault(value: unknown): number {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 10 ? value : 5;
 }
-export function bannerTiming(speed: number) {
+export function bannerDisplaySecondsOrDefault(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 10 ? value : 6;
+}
+export function bannerTiming(speed: number, displaySeconds = 6) {
   const revealMs = Math.round(1800 - (bannerSpeedOrDefault(speed) - 1) * (1600 / 9));
-  return { revealMs, holdMs: 6000, gapMs: 200, cycleMs: revealMs * 2 + 6200 };
+  const holdMs = bannerDisplaySecondsOrDefault(displaySeconds) * 1000;
+  return { revealMs, holdMs, gapMs: 200, cycleMs: revealMs * 2 + holdMs + 200 };
 }

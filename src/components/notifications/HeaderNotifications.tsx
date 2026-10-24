@@ -31,7 +31,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const all = value?.notifications ?? unread;
   const counts = headerCounts(unread);
   const messages = notificationMessages(unread);
-  const alertCount = messages.filter(m => m.label !== "See open entries").reduce((sum, m) => sum + m.count, 0);
+  const alertCount = messages.reduce((sum, m) => sum + m.count, 0);
   async function act(ids: string[], href?: string) {
     if (!value || busy) return;
     setBusy(true); setError("");
@@ -57,7 +57,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     <div className={styles.metrics} data-header-metrics>
       <div className={styles.balances} inert={active ? true : undefined} aria-hidden={active ? true : undefined}>{children}</div>
       {active ? <button ref={trigger} type="button" className={styles.trigger} aria-label={`${alertCount} unread updates. Open notifications`} aria-haspopup="dialog" aria-expanded={value?.open} onClick={() => { if (bannerCategory) choose(bannerCategory); value?.setOpen(true); }}>
-        {!value?.bannerHidden ? <NotificationBanner style={value!.style} speed={value?.speed} messages={messages} paused={value?.open} onCategoryChange={setBannerCategory} /> : <span className={styles.dot} />}
+        {!value?.bannerHidden ? <NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={messages} paused={value?.open} onCategoryChange={setBannerCategory} /> : <span className={styles.dot} />}
       </button> : null}
     </div>
     <dialog ref={dialog} className={styles.dialog} aria-labelledby="header-updates-title" onCancel={() => value?.setOpen(false)} onKeyDown={containDialogTab} onClick={e => { if (e.target === e.currentTarget) value?.setOpen(false); }}>
