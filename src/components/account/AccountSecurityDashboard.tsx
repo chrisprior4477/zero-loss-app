@@ -4,6 +4,7 @@ import { ChangePasswordControl } from "./ChangePasswordControl";
 import { ProfilePhotoCard } from "./ProfilePhotoCard";
 import { SignOutEverywhereControl } from "./SignOutEverywhereControl";
 import { AccountSettingsNav, SecurityGlyph } from "./AccountSettingsNav";
+import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import { AccountSettingsStatusStrip, type AccountSettingsOverview } from "./AccountSettingsStatusStrip";
 import styles from "./account-security.module.css";
 
@@ -51,10 +52,11 @@ export function AccountSecurityDashboard({ displayName, initials, email, emailCo
   const signIn = formatDateTime(lastSignInAt);
 
   return <main className={styles.page}>
+    <AccountSettingsLandingScroll target="account-settings-intro" />
     <div className={styles.shell}>
       {overview ? <AccountSettingsStatusStrip overview={overview} /> : null}
 
-      <header className={styles.heading}>
+      <header id="account-settings-intro" className={styles.heading}>
         <h1>Account &amp; Security</h1>
         <p>Your account. Your control.</p>
       </header>

@@ -13,6 +13,7 @@ type Member = { id: string; name: string };
 type Pick = { id: string; title: string; retailer: string; image: string | null };
 type Props = {
   embedded?: boolean;
+  withinAccountSettings?: boolean;
   section?: "all" | "groups" | "privacy";
   available: boolean;
   initialDiscoverable: boolean;
@@ -57,7 +58,7 @@ function AudienceTargets({ rule, onChange, members, groups, prefix }: {
   </div>;
 }
 
-export function CrewDisplaySettings({ available, initialDiscoverable, initialDefaultRule, initialGroups, initialEntryRules, members, sharedPicks, embedded = false, section = "all" }: Props) {
+export function CrewDisplaySettings({ available, initialDiscoverable, initialDefaultRule, initialGroups, initialEntryRules, members, sharedPicks, embedded = false, withinAccountSettings = false, section = "all" }: Props) {
   const router = useRouter();
   const [discoverable, setDiscoverable] = useState(initialDiscoverable);
   const [defaultRule, setDefaultRule] = useState<CrewVisibilityRule>(initialDefaultRule);
@@ -184,11 +185,11 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDef
     });
   }
 
-  return <div className={embedded ? `${styles.page} ${styles.embedded}` : styles.page}>
+  return <div className={`${styles.page} ${embedded ? styles.embedded : withinAccountSettings ? styles.withinSettings : ""}`}>
     <div className={styles.shell}>
       {!embedded ? <>
-      <nav className={styles.crumbs} aria-label="Breadcrumb"><Link href="/account/crew">Your Crew</Link><span aria-hidden="true">›</span><span>How to display my picks</span></nav>
-      <header className={styles.heading}><span>YOUR CREW · SHARING CONTROLS</span><h1>How to display my picks</h1><p>Decide who can find you, then choose which approved Crew members see each pick.</p></header>
+      {!withinAccountSettings ? <nav className={styles.crumbs} aria-label="Breadcrumb"><Link href="/account/crew">Your Crew</Link><span aria-hidden="true">›</span><span>How to display my picks</span></nav> : null}
+      <header className={styles.heading}><span>YOUR CREW · SHARING CONTROLS</span>{withinAccountSettings ? <h2>How to display my picks</h2> : <h1>How to display my picks</h1>}<p>Decide who can find you, then choose which approved Crew members see each pick.</p></header>
       </> : null}
       {!available ? <p role="alert" className={styles.unavailable}>Sharing settings are temporarily unavailable. Nothing has been changed.</p> : null}
 

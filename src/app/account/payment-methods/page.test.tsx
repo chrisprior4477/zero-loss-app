@@ -19,7 +19,7 @@ test("payment ticket stays within Account & Security and preserves the saved tes
   expect(screen.getByRole("heading", { name: "Account & Security" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Payment Methods" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Payment Methods" }).getAttribute("aria-current")).toBe("page");
-  expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/account/profile");
+  expect(screen.getByRole("link", { name: "Profile" }).getAttribute("href")).toBe("/account/profile#account-settings-sections");
   expect(screen.getAllByText("Test card •••• 4242").length).toBeGreaterThan(0);
   expect(screen.getByRole("button", { name: /Update card/ })).toBeTruthy();
 });

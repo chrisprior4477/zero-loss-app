@@ -1,6 +1,8 @@
 .page { min-height: calc(100svh - 140px); padding: 18px clamp(12px, 2.4vw, 38px) 56px; color: #f8fbff; background: radial-gradient(ellipse at 55% 8%, #0a3564 0%, #061d3d 42%, #00152e 100%); }
 .shell { max-width: 1440px; margin-inline: auto; }
 .embedded { min-height: 0; padding: 0; background: none; }
+.page.withinSettings { min-height: 0; padding: 0; background: none; }
+.withinSettings .heading h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 850; line-height: 1.1; }
 .embedded .ticket:first-child { margin-top: 0; }
 .embedded .step { display: none; }
 .embedded .discoveryToggle, .embedded .audienceGrid, .embedded .audienceGrid + .targets, .embedded .groupArea, .embedded .pickGrid, .embedded .ticket > .emptyTargets { margin-left: 0; }

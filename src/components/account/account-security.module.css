@@ -1,5 +1,6 @@
 .page { min-height: calc(100svh - 140px); padding: 14px clamp(14px, 2.4vw, 38px) 48px; color: #f8fbff; background: radial-gradient(ellipse at 50% 8%, #0a3564 0%, #07254b 44%, #061a36 100%); }
 .shell { max-width: 1440px; margin-inline: auto; }
+.page [id] { scroll-margin-top: calc(var(--settings-header-bottom, var(--site-header-height, 64px)) + 12px); }
 .heading { margin: 17px 0 14px; }
 .heading h1 { font-size: clamp(40px, 4.5vw, 65px); font-weight: 850; line-height: .99; letter-spacing: -.052em; }
 .heading p { margin-top: 4px; color: #c8d9f4; font-size: clamp(17px, 1.7vw, 23px); line-height: 1.15; }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CrewDisplaySettings } from "@/components/account/CrewDisplaySettings";
+import { AccountSettingsFrame } from "@/components/account/AccountSettingsFrame";
 import { getAccountContext } from "@/lib/account/context";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { createClient } from "@/lib/supabase/server";
@@ -42,7 +43,8 @@ export default async function CrewDisplayPage() {
     return { id: entry.id, title: item?.title ?? entry.offering_slug.replaceAll("-", " "), retailer: item?.retailer ?? "Zero Loss", image: item?.image ?? null };
   });
 
-  return <CrewDisplaySettings
+  return <AccountSettingsFrame active="sharing" overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}><CrewDisplaySettings
+    withinAccountSettings
     available={available}
     initialDiscoverable={Boolean(profileResult.data?.crew_discoverable)}
     initialDefaultRule={normalizeRule(isCrewVisibilityRule(settings?.default_rule) ? settings.default_rule : defaultCrewVisibilityRule)}
@@ -50,5 +52,5 @@ export default async function CrewDisplayPage() {
     initialEntryRules={entryRules}
     members={members}
     sharedPicks={sharedPicks}
-  />;
+  /></AccountSettingsFrame>;
 }

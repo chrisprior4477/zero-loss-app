@@ -66,7 +66,7 @@ test("profile destination preserves stored name/photo and requires authenticatio
   expect(screen.getByTestId("profile-editor").textContent).toBe("O’Neill");
   expect(screen.getByTestId("profile-editor").getAttribute("data-avatar")).toBe("/saved-photo.webp");
   expect(screen.getByRole("link", { name: "Profile" }).getAttribute("aria-current")).toBe("page");
-  expect(screen.getByRole("link", { name: "Payment Methods" }).getAttribute("href")).toBe("/account/payment-methods");
+  expect(screen.getByRole("link", { name: "Payment Methods" }).getAttribute("href")).toBe("/account/payment-methods#account-settings-sections");
   mocks.account.mockResolvedValue(null);
   await expect(ProfilePage()).rejects.toThrow("redirect:/login");
 });

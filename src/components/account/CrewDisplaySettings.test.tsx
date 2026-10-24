@@ -12,6 +12,17 @@ const first = "11111111-1111-4111-8111-111111111111";
 const second = "22222222-2222-4222-8222-222222222222";
 const pick = "33333333-3333-4333-8333-333333333333";
 
+test("account settings framing keeps every existing sharing control available", () => {
+  render(<CrewDisplaySettings withinAccountSettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
+  expect(screen.getByRole("heading", { level: 2, name: "How to display my picks" })).toBeTruthy();
+  for (const name of ["Can people find me?", "Who sees my shared picks by default?", "Make your own groups", "Choose who sees what"]) {
+    expect(screen.getByRole("heading", { name })).toBeTruthy();
+  }
+  expect(screen.getByRole("button", { name: "OK · Save to my profile" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Back to Your Crew/ })).toBeTruthy();
+  expect(saveCrewDisplaySettings).not.toHaveBeenCalled();
+});
+
 test("creates multiple named groups and assigns a shared pick to a chosen group", async () => {
   saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Saved to your profile." });
   saveCrewGroup.mockResolvedValue({ ok: true, message: "Group saved." });
