@@ -4,18 +4,30 @@ import { NotificationProvider, useNotifications } from "./NotificationProvider";
 import { HeaderNotifications } from "./HeaderNotifications";
 import Link from "next/link";
 import type { AccountNotification } from "@/lib/account/notifications";
-const mock = vi.hoisted(() => ({ mark:vi.fn(), restore:vi.fn(), push:vi.fn() }));
-vi.mock("@/lib/account/notification-read-actions", () => ({ markNotificationsRead:mock.mark }));
+const mock = vi.hoisted(() => ({ mark:vi.fn(), restore:vi.fn(), push:vi.fn(), prefetch:vi.fn() }));
 vi.mock("@/lib/account/restore-banner-action", () => ({ restoreNotificationBanner:mock.restore }));
-vi.mock("next/navigation", () => ({ usePathname:()=>"/account/profile", useRouter:()=>({push:mock.push}), useSearchParams:()=>new URLSearchParams() }));
+vi.mock("next/navigation", () => ({ usePathname:()=>"/account/profile", useRouter:()=>({push:mock.push,prefetch:mock.prefetch}), useSearchParams:()=>new URLSearchParams() }));
 const make=(id:string,tone:AccountNotification["tone"]):AccountNotification=>({id,tone,category:"activity",title:id,itemTitle:id,body:"",meta:"",href:`/account/entries/${id}`,action:"View"});
 const notifications=[make("win","reward"),make("option","completion"),make("support-case","account"),make("shared-pick","crew")];
 const snapshot={notifications,readIds:[] as string[],readAvailable:true,preferences:{}};
 function Restore(){const value=useNotifications()!;return <button onClick={()=>void value.restoreBanner()}>Restore</button>;}
 beforeEach(()=>{
  vi.clearAllMocks();mock.mark.mockResolvedValue({ok:true});
- vi.stubGlobal("fetch",vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>snapshot}));
+ vi.stubGlobal("fetch",vi.fn().mockImplementation(async (_url,options)=>options?.method === "POST" ? {ok:true,status:200,json:()=>mock.mark(JSON.parse(options.body).ids)} : {ok:true,status:200,json:async()=>snapshot}));
  HTMLDialogElement.prototype.showModal=function(){this.setAttribute("open","");};HTMLDialogElement.prototype.close=function(){this.removeAttribute("open");};
+});
+test("navigation and local read state update before storage finishes, with rollback on failure",async()=>{
+ let finishRead!:(result:{ok:boolean,message:string})=>void;
+ mock.mark.mockReturnValue(new Promise(resolve=>{finishRead=resolve;}));
+ render(<App/>);
+ fireEvent.click(screen.getByRole("button",{name:/4 unread updates/}));
+ fireEvent.click(within(screen.getByRole("region",{name:"You won"})).getByRole("button",{name:/View my wins/}));
+ expect(mock.push).toHaveBeenCalledWith(expect.stringContaining("filter=prize"));
+ expect(screen.getByRole("button",{name:/3 unread updates/})).toBeTruthy();
+ await waitFor(()=>expect(mock.mark).toHaveBeenCalledWith(["win"]));
+ await act(async()=>finishRead({ok:false,message:"Offline"}));
+ expect(screen.getByRole("button",{name:/4 unread updates/})).toBeTruthy();
+ expect(await screen.findByRole("alert")).toHaveProperty("textContent",expect.stringContaining("could not be marked as read"));
 });
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 function App({readIds=[]}:{readIds?:string[]}) {return <NotificationProvider initial={{...snapshot,readIds}} initialStyle="capsule" initialEnabled><HeaderNotifications><Link href="/account/wallet">Balance</Link></HeaderNotifications><Restore/></NotificationProvider>;}

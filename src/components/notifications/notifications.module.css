@@ -65,3 +65,4 @@
 .entry[data-color="green"] { border-left:4px solid #49ed08; }.entry[data-color="orange"] { border-left:4px solid #ff8618; }.entry[data-color="purple"] { border-left:4px solid #b08aff; }
 .entry[data-color="green"] .ticketCount { background:#49ed08; color:#062044; }.entry[data-color="orange"] .ticketCount { background:#ff8618; color:#062044; }
 .entry > .itemIcon { flex:0 0 36px; width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:#0879ff; color:white; font-size:22px; font-weight:900; }.entry[data-color="purple"] > .itemIcon { background:#b08aff; color:#062044; }
+.readNotice { position:fixed; z-index:1000; top:calc(var(--site-header-height,60px) + 8px); right:12px; width:min(380px,calc(100vw - 24px)); padding:12px; border-radius:12px; background:#e4f4ff; color:#09264e; box-shadow:0 8px 24px #0004; display:flex; align-items:center; gap:10px; font-size:13px; }.readNotice button { color:#005dc8; font-weight:800; flex:none; }

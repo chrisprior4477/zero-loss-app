@@ -1,5 +1,4 @@
 "use server";
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { bannerStyles, type BannerStyle } from "./banner-style";
 export async function saveNotificationBanner(style: BannerStyle, enabled: boolean, speed = 5, displaySeconds = 6) {
@@ -10,6 +9,7 @@ export async function saveNotificationBanner(style: BannerStyle, enabled: boolea
   if (!user) return { ok: false, message: "Sign in to save your banner." };
   const { error } = await db.rpc("save_notification_banner_preferences", { p_style: style, p_enabled: enabled, p_speed: speed, p_display_seconds: displaySeconds });
   if (error) return { ok: false, message: "Your banner could not be saved. Please try again." };
-  revalidatePath("/", "layout");
+  // The provider applies this choice immediately. Account pages are read fresh
+  // from the signed-in session; rebuilding the whole layout delays every save.
   return { ok: true, message: "Notification banner saved." };
 }

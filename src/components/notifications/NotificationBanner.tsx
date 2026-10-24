@@ -16,12 +16,12 @@ export function NotificationBanner({ style, messages, speed = 5, displaySeconds 
     if (paused || !messages.length) return;
     const timer = window.setInterval(() => { setIndex(i => (i + 1) % messages.length); setCycle(i => i + 1); }, cycleMs);
     return () => window.clearInterval(timer);
-  }, [messages.length, paused, cycleMs]);
+  }, [messages.length, paused, cycleMs, style, speed, displaySeconds]);
   const message = messages[index % messages.length];
   useEffect(() => { onCategoryChange?.(message?.category ?? null); }, [message?.category, onCategoryChange]);
   if (!message) return null;
   return <span aria-hidden="true" className={styles.artwork} data-style={style} data-color={message.color} data-paused={paused} style={{ "--reveal-duration": `${revealMs}ms`, "--reveal-gap": `${gapMs}ms`, "--close-delay": `${gapMs + revealMs + holdMs}ms` } as CSSProperties}>
-    <span key={`${message.category ?? message.label}-${cycle}-${speed}-${displaySeconds}`} className={styles.reveal}>
+    <span key={`${message.category ?? message.label}-${cycle}-${style}-${speed}-${displaySeconds}`} className={styles.reveal}>
       <span className={styles.surface}><span className={styles.symbol}>{message.color === "green" ? "★" : message.color === "orange" ? "✓" : message.color === "blue" ? "↗" : "●"}</span><span className={styles.label}>{message.label}</span><span className={styles.count}>{message.count > 99 ? "99+" : message.count}</span></span>
     </span>
   </span>;

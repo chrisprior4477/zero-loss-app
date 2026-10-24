@@ -31,8 +31,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const selectedSlug = typeof query.item === "string" ? query.item : undefined;
   const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;
   const viewedEntryId = typeof query.viewed === "string" && account.activity.activity.some(item => item.entryId === query.viewed) ? query.viewed : undefined;
-  const availability = await getOfferingAvailability();
-  const metricsBySlug = activityOfferMetrics(account.activity.activity, availability);
+  const availabilityPromise = getOfferingAvailability();
   let pendingEntries: EntryRequest[] = [];
   if (isPreviewDataEnvironment() && account.activity.source !== "unavailable") {
     try {
@@ -49,6 +48,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
       if (!error) outcomeEmailPreference = data === true;
     } catch { /* The detail view remains usable when preferences are unavailable. */ }
   }
+  const metricsBySlug = activityOfferMetrics(account.activity.activity, await availabilityPromise);
   return <div className={styles.page}><div className={styles.pageContent}>
     <h1 id="my-activity-heading" className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>

@@ -3,8 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { HeaderNotifications } from "./HeaderNotifications";
 import type { AccountNotification } from "@/lib/account/notifications";
 import Link from "next/link";
-const mock = vi.hoisted(() => ({ push: vi.fn(), setOpen: vi.fn(), markRead: vi.fn(), enabled: true, unread: [] as AccountNotification[], notifications: [] as AccountNotification[] }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }), useSearchParams: () => new URLSearchParams() }));
+const mock = vi.hoisted(() => ({ push: vi.fn(), prefetch: vi.fn(), setOpen: vi.fn(), markRead: vi.fn(), enabled: true, unread: [] as AccountNotification[], notifications: [] as AccountNotification[] }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push, prefetch: mock.prefetch }), useSearchParams: () => new URLSearchParams() }));
 vi.mock("./NotificationProvider", () => ({ useNotifications: () => ({ style: "capsule", enabled: mock.enabled, open: true, setOpen: mock.setOpen, markRead: mock.markRead, unread: mock.unread, notifications: mock.notifications }) }));
 const make = (id: string, tone: AccountNotification["tone"], extra: Partial<AccountNotification> = {}): AccountNotification => ({ id, tone, category:"activity", title:id, body:"", meta:"", href:`/account/entries/${id}`, action:"View", ...extra });
 beforeEach(() => {
@@ -26,9 +26,9 @@ test("shared items open individually with a return path after their read status 
   await waitFor(() => expect(mock.push).toHaveBeenCalledWith(expect.stringContaining("&fromUpdates=1")));
   expect(mock.markRead).toHaveBeenCalledWith(["shared-1"]);
 });
-test("a failed save leaves the update available instead of navigating", async () => {
+test("a failed read save never blocks navigation and shows recovery feedback", async () => {
   mock.markRead.mockRejectedValue(new Error("Could not save")); render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Shared picks");
-  fireEvent.click(screen.getByRole("button", { name: /Chris shared/ })); expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Could not save"); expect(mock.push).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: /Chris shared/ })); expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Your alert could not be marked as read. It is still available in updates."); expect(mock.push).toHaveBeenCalled();
 });
 test("turning header notifications off restores balance links", () => {
   mock.enabled = false; render(<HeaderNotifications>{metrics}</HeaderNotifications>);

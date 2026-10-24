@@ -3,7 +3,6 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { usePathname } from "next/navigation";
 import type { BannerStyle } from "@/lib/account/banner-style";
 import { notificationIsEnabled, type AccountNotification, type NotificationPreferences } from "@/lib/account/notifications";
-import { markNotificationsRead } from "@/lib/account/notification-read-actions";
 import { restoreNotificationBanner } from "@/lib/account/restore-banner-action";
 type Snapshot = { notifications: AccountNotification[]; readIds: string[]; readAvailable: boolean; preferences: NotificationPreferences | null };
 type Value = { speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
@@ -17,6 +16,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   const [open, setOpen] = useState(false);
   const [bannerHidden, setBannerHidden] = useState(false);
   const readChanges = useRef(new Map<string, boolean>());
+  const readOperations = useRef(new Map<string, number>());
   const revision = useRef(0);
   const mergeReads = useCallback((next: Snapshot | null) => {
     if (!next) return null;
@@ -58,14 +58,29 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     return () => { controller.abort(); window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("zero-loss-notifications-read", refresh); };
   }, [pathname, Boolean(initial), mergeReads]); // eslint-disable-line react-hooks/exhaustive-deps
   const markRead = useCallback(async (ids: string[]) => {
-    revision.current++;
-    for (let offset = 0; offset < ids.length; offset += 500) {
-      const result = await markNotificationsRead(ids.slice(offset, offset + 500));
-      if (!result.ok) throw new Error(result.message);
-    }
-    revision.current++;
-    ids.forEach(id => readChanges.current.set(id, true));
+    const operation = ++revision.current;
+    ids.forEach(id => { readChanges.current.set(id, true); readOperations.current.set(id, operation); });
     setSnapshot(current => current ? { ...current, readIds: [...new Set([...current.readIds, ...ids])] } : null);
+    const remaining = new Set(ids);
+    try {
+      // Small keepalive requests can finish during navigation without holding up
+      // the destination or invalidating its prefetched page.
+      for (let offset = 0; offset < ids.length; offset += 200) {
+        const batch = ids.slice(offset, offset + 200);
+        const response = await fetch("/api/account/notifications/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: batch }), keepalive: true, cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.message ?? "Notification status could not be saved.");
+        batch.forEach(id => remaining.delete(id));
+      }
+    } catch (error) {
+      const rollback = [...remaining].filter(id => readOperations.current.get(id) === operation);
+      rollback.forEach(id => readChanges.current.delete(id));
+      setSnapshot(current => current ? { ...current, readIds: current.readIds.filter(id => !rollback.includes(id)) } : null);
+      throw error;
+    } finally {
+      revision.current++;
+      ids.forEach(id => { if (readOperations.current.get(id) === operation) readOperations.current.delete(id); });
+    }
   }, []);
   const restoreBanner = useCallback(async () => {
     revision.current++;

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NotificationBannerPicker } from "./NotificationBannerPicker";
-const mock=vi.hoisted(()=>({save:vi.fn(),setSpeed:vi.fn(),setDisplaySeconds:vi.fn(),setStyle:vi.fn(),setEnabled:vi.fn(),restoreBanner:vi.fn()}));
+const mock=vi.hoisted(()=>({save:vi.fn(),setSpeed:vi.fn(),setDisplaySeconds:vi.fn(),setStyle:vi.fn(),setEnabled:vi.fn(),setBannerHidden:vi.fn(),restoreBanner:vi.fn()}));
 vi.mock("@/lib/account/banner-actions",()=>({saveNotificationBanner:mock.save}));
 vi.mock("@/components/notifications/NotificationProvider",()=>({useNotifications:()=>mock}));
 beforeEach(()=>{vi.clearAllMocks();mock.save.mockResolvedValue({ok:true,message:"Notification banner saved."});});
@@ -31,7 +31,17 @@ test("a saved speed is restored and failed saves remain retryable",async()=>{
  render(<NotificationBannerPicker initialStyle="ticket" initialEnabled={false} initialSpeed={8}/>);
  expect(screen.getByRole('slider',{name:/Banner speed/})).toHaveProperty('value','8');
  fireEvent.change(screen.getByRole('slider',{name:/Banner speed/}),{target:{value:'2'}});fireEvent.click(screen.getByRole('button',{name:'Save banner'}));
- await screen.findByText('Please try again.'); expect(mock.setSpeed).not.toHaveBeenCalled(); expect(screen.getByRole('button',{name:'Save banner'}).hasAttribute('disabled')).toBe(false);
+ await screen.findByText('Please try again.'); expect(mock.setSpeed).toHaveBeenCalledWith(2); expect(screen.getByRole('button',{name:'Save banner'}).hasAttribute('disabled')).toBe(false);
+});
+test("style and timing preview in the header before Save, and unsaved trials revert on leaving",()=>{
+ const {unmount}=render(<NotificationBannerPicker initialStyle="capsule" initialEnabled initialSpeed={5} initialDisplaySeconds={6}/>);
+ fireEvent.click(screen.getByRole('radio',{name:'2. Folded ribbon'}));
+ expect(mock.setStyle).toHaveBeenLastCalledWith('ribbon');
+ fireEvent.change(screen.getByRole('slider',{name:/Banner speed/}),{target:{value:'10'}});
+ expect(mock.setSpeed).toHaveBeenLastCalledWith(10);
+ fireEvent.change(screen.getByRole('slider',{name:/Display time/}),{target:{value:'2'}});
+ expect(mock.setDisplaySeconds).toHaveBeenLastCalledWith(2);expect(mock.save).not.toHaveBeenCalled();
+ unmount();expect(mock.setStyle).toHaveBeenLastCalledWith('capsule');expect(mock.setSpeed).toHaveBeenLastCalledWith(5);expect(mock.setDisplaySeconds).toHaveBeenLastCalledWith(6);
 });
 test("Display time previews and saves separately from speed",async()=>{
  const {container}=render(<NotificationBannerPicker initialStyle="capsule" initialEnabled initialSpeed={10} initialDisplaySeconds={6}/>);

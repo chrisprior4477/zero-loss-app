@@ -22,8 +22,10 @@ type AppShellProps = {
 
 export async function AppShell({ children }: AppShellProps) {
   const account = await getAccountContext();
-  const favorites = account ? await getFavoriteSnapshot(account.userId) : { slugs: [], available: true };
-  const notifications = account ? await getNotificationSnapshot() : null;
+  const [favorites, notifications] = await Promise.all([
+    account ? getFavoriteSnapshot(account.userId) : Promise.resolve({ slugs: [], available: true }),
+    account ? getNotificationSnapshot() : Promise.resolve(null),
+  ]);
   return (
     <NotificationProvider key={account?.userId ?? "guest"} initial={notifications} initialSpeed={account?.notificationBannerSpeed ?? 5} initialDisplaySeconds={account?.notificationBannerDisplaySeconds ?? 6} initialEnabled={account?.headerNotificationsEnabled ?? true} initialStyle={account?.notificationBannerStyle ?? "capsule"}>
     <MobileLogoSizeProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialSize={account?.mobileLogoSize ?? 0}>
