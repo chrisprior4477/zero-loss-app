@@ -188,7 +188,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
           </div>
           <div className={styles.optionFacts}>
             <div className={styles.optionMath}><strong>{formatUsdFromCents(option.paidCents)} applied</strong><strong>{formatUsdFromCents(option.remainingCents)} remaining</strong></div>
-            <div className={styles.optionMeta}><p>Entry #{option.entryId.slice(-8)}</p>{option.completionExpiresAt ? <><p>Available until</p><time dateTime={option.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(option.completionExpiresAt))}</time></> : null}</div>
+            <div className={styles.optionMeta}><p>Entry #{option.entryId.slice(-8)}</p>{option.completionExpiresAt ? <><p>Available until</p><time dateTime={option.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" }).format(new Date(option.completionExpiresAt))} ET</time></> : null}</div>
           </div>
           <Link href={href} className={styles.reviewOption} aria-label={`Complete purchase for option ${index + 1} of ${count} for ${option.title}`}>Complete this purchase <span aria-hidden="true">→</span></Link>
         </article>;

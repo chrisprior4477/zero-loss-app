@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { PurchaseOptionRail } from "./PurchaseOptionRail";
 
@@ -11,6 +12,23 @@ vi.mock("@/lib/account/bulk-purchase-actions", () => ({ completeDemoPurchaseOpti
 afterEach(cleanup);
 
 const bulkOptions = (count = 8) => Array.from({ length: count }, (_, i) => ({ ...storedActivityFixture().activity[2], entryId: `ent_${String(i+1).padStart(32,"0")}`, completionOptionId: `${String(i+1).padStart(8,"0")}-1111-4111-8111-111111111111`, remainingCents: 14900 }));
+
+test("purchase deadlines match across server and browser time zones without replacing the controls during hydration", () => {
+  const options = [{ ...bulkOptions(1)[0], completionExpiresAt: "2026-11-24T05:00:00Z" }];
+  const DateTimeFormat = Intl.DateTimeFormat;
+  let defaultTimeZone = "UTC";
+  const formatter = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (locales, options) {
+    return new DateTimeFormat(locales, { timeZone: defaultTimeZone, ...options });
+  });
+  try {
+    const markup = () => renderToStaticMarkup(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline showSummary />);
+    const server = markup();
+    defaultTimeZone = "America/Los_Angeles";
+    expect(markup()).toBe(server);
+    expect(server).toContain("Nov 24, 2026, 12:00 AM");
+    expect(server).toContain(" ET</time>");
+  } finally { formatter.mockRestore(); }
+});
 test("top and lower quantities synchronize, show both number badges and confirm exact choices before saving", async () => {
   const options = bulkOptions();
   render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline showSummary />);
