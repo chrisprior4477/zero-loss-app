@@ -35,6 +35,13 @@ export function searchWordScore(token: string, document: ReadonlySet<string>, vo
   const alternatives = synonyms.get(token) ?? [token];
   if (document.has(token)) return 4;
   if (alternatives.some(word => document.has(word))) return 3;
+  // Correct toward a known shopping concept before fuzzy-matching descriptive
+  // prose: "atuo" means auto, not a TV's Atmos; "batery" means battery.
+  if (!vocabulary?.has(token) && !synonyms.has(token)) {
+    const concepts = [...synonyms].filter(([word]) => nearWord(token, word)).map(([, words]) => words);
+    const conceptKeys = new Set(concepts.map(words => words[0]));
+    if (conceptKeys.size === 1) return concepts[0].some(word => document.has(word)) ? 1 : 0;
+  }
   // A complete known word is never expanded into a different brand or topic.
   if (token.length >= 3 && !/\d/.test(token) && !vocabulary?.has(token) && !synonyms.has(token)
     && [...document].some(word => word.startsWith(token))) return 2;

@@ -6,6 +6,7 @@ describe("catalog search", () => {
   test.each(["auto", "atuo", "automot", "automotvie"])("finds every automotive vendor for %s", query => {
     const retailers = searchCatalog(demoProducts, query).map(product => product.retailer);
     expect(retailers).toEqual(expect.arrayContaining(["AutoZone®", "Jiffy Lube®", "Turo"]));
+    expect(searchCatalog(demoProducts, query).some(product => product.slug === "lg-oled-c6-65-tv")).toBe(false);
   });
 
   test.each(["car battery", "car batteries", "car batery", "spark plugs", "sparkplugs", "spark plgs", "brake pads", "windshield wipers", "cabin air filter", "oil change"])("finds automotive retailers for %s without matching a car-rental card", query => {
@@ -52,6 +53,10 @@ describe("catalog search", () => {
     const retailers = searchCatalog(demoProducts, "Vons").map(product => product.retailer);
     expect(retailers.length).toBeGreaterThan(0);
     expect(retailers.every(retailer => retailer === "Vons")).toBe(true);
+  });
+  test.each([["atuo", "auto"], ["car batery", "car battery"]])("corrects %s to its shopping concept rather than incidental product descriptions", (typo, intended) => {
+    expect(new Set(searchCatalog(demoProducts, typo).map(product => product.slug)))
+      .toEqual(new Set(searchCatalog(demoProducts, intended).map(product => product.slug)));
   });
   test("matches familiar product words and synonyms", () => {
     expect(searchCatalog(demoProducts, "TV").map(product => product.slug)).toEqual(expect.arrayContaining([
