@@ -57,15 +57,21 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     } catch { setError("Your alert could not be marked as read. It is still available in updates."); }
     finally { if (!href) setBusy(false); }
   }
-  function choose(category: HeaderCategory) {
+  function choose(category: HeaderCategory, acknowledge = false) {
     setSelected(category);
     if (list.current) list.current.scrollTop = 0;
+    if (acknowledge && value && (category === "wins" || category === "options" || category === "entries")) {
+      const ids = headerCategoryIds(unread, category);
+      setError("");
+      if (ids.length) void value.markRead(ids).catch(() => setError("Your alert could not be marked as read. It is still available in updates."));
+    }
   }
   const active = Boolean(value?.enabled && alertCount);
   const current = (selected && categories.some(c => c.key === selected) ? selected : null) ?? categories.find(c => counts[c.key] > 0)?.key ?? "wins";
   const categoryInfo = headerCategories.find(c => c.key === current)!;
   const activityCategory = current === "wins" || current === "options" || current === "entries" ? current : null;
-  const groups = activityCategory ? groupedActivityUpdates(all, unread, activityCategory) : [];
+  // Reading a category clears its badge, never the cards the member is viewing.
+  const groups = activityCategory ? groupedActivityUpdates(all, all, activityCategory) : [];
   const items = unread.filter(n => headerCategory(n) === current);
   const actions = { wins: "View my wins", options: "View purchase options", entries: "See my entries" };
   const preloadKey = (value?.open && activityCategory
@@ -83,10 +89,10 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
         {!value?.bannerHidden ? <NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={messages} paused={value?.open} onCategoryChange={setBannerCategory} /> : <span className={styles.dot} />}
       </button> : null}
     </div>
-    <dialog ref={dialog} className={styles.dialog} aria-labelledby="header-updates-title" onCancel={() => value?.setOpen(false)} onKeyDown={containDialogTab} onClick={e => { if (e.target === e.currentTarget) value?.setOpen(false); }}>
+    <dialog ref={dialog} className={styles.dialog} data-popup-style={value?.popupStyle ?? "rounded"} aria-labelledby="header-updates-title" onCancel={() => value?.setOpen(false)} onKeyDown={containDialogTab} onClick={e => { if (e.target === e.currentTarget) value?.setOpen(false); }}>
       <div className={styles.dialogHeading}><h2 id="header-updates-title">Your updates</h2><button type="button" aria-label="Close updates" onClick={() => value?.setOpen(false)}>×</button></div>
       <nav className={styles.categories} data-count={categories.length} aria-label="Update categories">
-        {categories.map(c => <button key={c.key} type="button" data-color={c.color} aria-pressed={current === c.key} aria-controls="header-update-sections" onClick={() => choose(c.key)}>{c.label}{counts[c.key] > 0 ? <span>{counts[c.key]}</span> : null}</button>)}
+        {categories.map(c => <button key={c.key} type="button" data-color={c.color} aria-pressed={current === c.key} aria-controls="header-update-sections" onClick={() => choose(c.key, true)}>{c.label}{counts[c.key] > 0 ? <span>{counts[c.key]}</span> : null}</button>)}
       </nav>
       <div ref={list} className={styles.items} id="header-update-sections">
         <section className={styles.section} aria-label={categoryInfo.label}>
@@ -94,7 +100,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
           {activityCategory ? (groups.length ? groups.map(group => <button key={group.slug} type="button" disabled={busy} className={styles.entry} data-color={categoryInfo.color} onPointerEnter={() => prefetch(group.href)} onFocus={() => prefetch(group.href)} onClick={() => void act(headerCategoryIds(unread, activityCategory), group.href)}>
               {group.image ? <Image src={group.image} alt="" width={44} height={44} unoptimized /> : null}
               <span><strong>{group.title}</strong><b>{actions[activityCategory]} →</b></span><span className={styles.ticketCount} aria-label={`${group.count} ${activityCategory === "entries" ? "tickets" : activityCategory === "wins" ? "wins" : "purchase options"}`}>{group.count}</span>
-            </button>) : <p className={styles.empty}>No unread alerts here. View all to see your activity, or use Restore banner in your profile to bring current alerts back.</p>) : items.length ? items.map(n => <button type="button" key={n.id} disabled={busy} onClick={() => void act([n.id], n.href)} className={styles.entry} data-color={categoryInfo.color}>
+            </button>) : <p className={styles.empty}>Nothing here yet. View all to see your activity.</p>) : items.length ? items.map(n => <button type="button" key={n.id} disabled={busy} onClick={() => void act([n.id], n.href)} className={styles.entry} data-color={categoryInfo.color}>
               {n.image ? <Image src={n.image} alt="" width={44} height={44} unoptimized /> : <span className={styles.itemIcon} aria-hidden="true">{current === "support" ? "?" : "↗"}</span>}
               <span><strong>{n.title}</strong><b>{n.action} →</b></span>
             </button>) : <p className={styles.empty}>No unread {current === "support" ? "support updates" : "shared picks"}. {current === "support" ? <Link href="/support#case-list" onClick={() => value?.setOpen(false)}>View my support cases →</Link> : null}</p>}

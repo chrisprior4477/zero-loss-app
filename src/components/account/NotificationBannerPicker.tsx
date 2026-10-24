@@ -2,14 +2,16 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { EntryTicket } from "@/components/layout/EntryTicket";
-import { bannerStyles, bannerStyleNames, type BannerStyle } from "@/lib/account/banner-style";
+import { bannerStyles, bannerStyleNames, type NotificationPopupStyle, type BannerStyle } from "@/lib/account/banner-style";
 import { saveNotificationBanner } from "@/lib/account/banner-actions";
 import { NotificationBanner, previewMessages } from "@/components/notifications/NotificationBanner";
 import { useNotifications } from "@/components/notifications/NotificationProvider";
 import ticket from "./menu-layout-picker.module.css";
 import styles from "./notification-banner-picker.module.css";
-export function NotificationBannerPicker({ initialStyle, initialEnabled, initialSpeed = 5, initialDisplaySeconds = 6 }: { initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number; initialDisplaySeconds?: number }) {
+export function NotificationBannerPicker({ initialStyle, initialEnabled, initialSpeed = 5, initialDisplaySeconds = 6, initialPopupStyle = "rounded" }: { initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number; initialDisplaySeconds?: number; initialPopupStyle?: NotificationPopupStyle }) {
   const notifications = useNotifications();
+  const [popupStyle, setPopupStyle] = useState(initialPopupStyle);
+  const [savedPopupStyle, setSavedPopupStyle] = useState(initialPopupStyle);
   const [speed, setSpeed] = useState(initialSpeed);
   const [savedSpeed, setSavedSpeed] = useState(initialSpeed);
   const [displaySeconds, setDisplaySeconds] = useState(initialDisplaySeconds);
@@ -21,17 +23,19 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [restoring, setRestoring] = useState(false);
-  const savedPreview = useRef({ style: initialStyle, enabled: initialEnabled, speed: initialSpeed, displaySeconds: initialDisplaySeconds });
+  const savedPreview = useRef({ style: initialStyle, enabled: initialEnabled, speed: initialSpeed, displaySeconds: initialDisplaySeconds, popupStyle: initialPopupStyle });
   const setHeaderStyle = notifications?.setStyle;
+  const setHeaderPopupStyle = notifications?.setPopupStyle;
   const setHeaderEnabled = notifications?.setEnabled;
   const setHeaderSpeed = notifications?.setSpeed;
   const setHeaderDisplaySeconds = notifications?.setDisplaySeconds;
   useEffect(() => () => {
     // Leaving the picker discards an unsaved trial, while successful saves stay.
     const saved = savedPreview.current;
+    setHeaderPopupStyle?.(saved.popupStyle);
     setHeaderStyle?.(saved.style); setHeaderEnabled?.(saved.enabled);
     setHeaderSpeed?.(saved.speed); setHeaderDisplaySeconds?.(saved.displaySeconds);
-  }, [setHeaderStyle, setHeaderEnabled, setHeaderSpeed, setHeaderDisplaySeconds]);
+  }, [setHeaderStyle, setHeaderEnabled, setHeaderSpeed, setHeaderDisplaySeconds, setHeaderPopupStyle]);
   async function restore() {
     if (!notifications) return;
     setBusy(true); setRestoring(true); setMessage("");
@@ -41,7 +45,7 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
   }
   async function save() {
     setBusy(true); setMessage("");
-    try { const result = await saveNotificationBanner(choice, enabled, speed, displaySeconds); setMessage(result.message); if (result.ok) { savedPreview.current = { style: choice, enabled, speed, displaySeconds }; setSaved(choice); setSavedEnabled(enabled); setSavedSpeed(speed); setSavedDisplaySeconds(displaySeconds); notifications?.setSpeed(speed); notifications?.setDisplaySeconds(displaySeconds); notifications?.setEnabled(enabled); notifications?.setStyle(choice); } }
+    try { const result = await saveNotificationBanner(choice, enabled, speed, displaySeconds, popupStyle); setMessage(result.message); if (result.ok) { savedPreview.current = { style: choice, enabled, speed, displaySeconds, popupStyle }; setSavedPopupStyle(popupStyle); setHeaderPopupStyle?.(popupStyle); setSaved(choice); setSavedEnabled(enabled); setSavedSpeed(speed); setSavedDisplaySeconds(displaySeconds); notifications?.setSpeed(speed); notifications?.setDisplaySeconds(displaySeconds); notifications?.setEnabled(enabled); notifications?.setStyle(choice); } }
     catch { setMessage("Your banner could not be saved. Please try again."); }
     finally { setBusy(false); }
   }
@@ -61,17 +65,22 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
       <label htmlFor="notification-banner-speed">Banner speed <output htmlFor="notification-banner-speed">{speed} / 10</output></label>
       <input id="notification-banner-speed" type="range" min="1" max="10" step="1" value={speed} disabled={busy} aria-valuetext={`Speed ${speed} of 10`} aria-describedby="banner-speed-help" onChange={e => { const next = Number(e.target.value); setSpeed(next); setHeaderSpeed?.(next); notifications?.setBannerHidden(false); setMessage(""); }} />
       <div className={styles.speedScale} aria-hidden="true"><span>1 · Slower</span><span>10 · Faster</span></div>
-      <p id="banner-speed-help">Choose how quickly the banner opens and closes.</p>
+      <p id="banner-speed-help">How quickly the banner opens and closes.</p>
     </div>
     <div className={styles.speedControl}>
       <label htmlFor="notification-banner-display-time">Display time <output htmlFor="notification-banner-display-time">{displaySeconds} {displaySeconds === 1 ? "second" : "seconds"}</output></label>
       <input id="notification-banner-display-time" type="range" min="1" max="10" step="1" value={displaySeconds} disabled={busy} aria-valuetext={`${displaySeconds} ${displaySeconds === 1 ? "second" : "seconds"}`} aria-describedby="banner-display-time-help" onChange={e => { const next = Number(e.target.value); setDisplaySeconds(next); setHeaderDisplaySeconds?.(next); notifications?.setBannerHidden(false); setMessage(""); }} />
       <div className={styles.speedScale} aria-hidden="true"><span>1 second</span><span>10 seconds</span></div>
-      <p id="banner-display-time-help">Choose how long each notification stays open before the next one appears.</p>
+      <p id="banner-display-time-help">How long each notification stays open.</p>
     </div>
+    <fieldset className={styles.popupChoices} disabled={busy}>
+      <legend>Popup style</legend>
+      <label data-selected={popupStyle === "rounded"}><input type="radio" name="notification-popup-style" value="rounded" checked={popupStyle === "rounded"} onChange={() => { setPopupStyle("rounded"); setHeaderPopupStyle?.("rounded"); setMessage(""); }} /><span>Rounded edges</span><span aria-hidden="true" className={styles.popupSwatch} data-shape="rounded"><i /><i /></span></label>
+      <label data-selected={popupStyle === "ticket"}><input type="radio" name="notification-popup-style" value="ticket" checked={popupStyle === "ticket"} onChange={() => { setPopupStyle("ticket"); setHeaderPopupStyle?.("ticket"); setMessage(""); }} /><span>Ticket</span><span aria-hidden="true" className={styles.popupSwatch} data-shape="ticket"><i /><i /></span></label>
+    </fieldset>
     <p className={styles.note}>Changes preview instantly in your top banner. Save banner keeps your choices. Preview counts are examples; your banner uses your unread updates.</p>
     <div className={styles.actions}>
-      <button className={ticket.quickSave} type="button" disabled={busy || (choice === saved && enabled === savedEnabled && speed === savedSpeed && displaySeconds === savedDisplaySeconds)} onClick={() => void save()}>{busy && !restoring ? "Saving…" : "Save banner"}</button>
+      <button className={ticket.quickSave} type="button" disabled={busy || (choice === saved && enabled === savedEnabled && speed === savedSpeed && displaySeconds === savedDisplaySeconds && popupStyle === savedPopupStyle)} onClick={() => void save()}>{busy && !restoring ? "Saving…" : "Save banner"}</button>
       <button className={`${ticket.quickSave} ${styles.restore}`} type="button" disabled={busy || !notifications} onClick={() => void restore()}>{restoring ? "Restoring…" : "Restore banner"}</button>
     </div>
     {message ? <p className={ticket.status} role="status">{message}</p> : null}

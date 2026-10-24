@@ -66,3 +66,23 @@
 .entry[data-color="green"] .ticketCount { background:#49ed08; color:#062044; }.entry[data-color="orange"] .ticketCount { background:#ff8618; color:#062044; }
 .entry > .itemIcon { flex:0 0 36px; width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:#0879ff; color:white; font-size:22px; font-weight:900; }.entry[data-color="purple"] > .itemIcon { background:#b08aff; color:#062044; }
 .readNotice { position:fixed; z-index:1000; top:calc(var(--site-header-height,60px) + 8px); right:12px; width:min(380px,calc(100vw - 24px)); padding:12px; border-radius:12px; background:#e4f4ff; color:#09264e; box-shadow:0 8px 24px #0004; display:flex; align-items:center; gap:10px; font-size:13px; }.readNotice button { color:#005dc8; font-weight:800; flex:none; }
+/* The popup shape is independent of the six animated banner designs. */
+.dialog[data-popup-style="ticket"] {
+  --corner:18px; --side:12px;
+  background:#fffdfa; color:#09264e; border:0; border-radius:0;
+  mask-image:radial-gradient(circle var(--corner) at 0 0,transparent 99%,#000 103%),radial-gradient(circle var(--corner) at 100% 0,transparent 99%,#000 103%),radial-gradient(circle var(--corner) at 0 100%,transparent 99%,#000 103%),radial-gradient(circle var(--corner) at 100% 100%,transparent 99%,#000 103%),radial-gradient(circle var(--side) at 0 50%,transparent 99%,#000 103%),radial-gradient(circle var(--side) at 100% 50%,transparent 99%,#000 103%);
+  mask-composite:intersect;
+}
+.dialog[data-popup-style="ticket"] .dialogHeading { padding:12px 20px 2px; }
+.dialog[data-popup-style="ticket"] .categories,.dialog[data-popup-style="ticket"] .items { padding-inline:20px; }
+.dialog[data-popup-style="ticket"] .categories { border-color:#ccdfec; }
+.dialog[data-popup-style="ticket"] .footer { border-color:#ccdfec; padding:10px 20px 18px; }
+.dialog[data-popup-style="ticket"] .sectionHeading button,.dialog[data-popup-style="ticket"] .footer a,.dialog[data-popup-style="ticket"] .footer button:not(:first-child) { color:#0064bc; }
+.dialog[data-popup-style="ticket"] .categories button[aria-pressed="true"] { box-shadow:inset 0 -4px #06204470; }
+.dialog[data-popup-style="ticket"] .error { color:#9d2800; }
+.dialog[data-popup-style="ticket"] button:focus-visible,.dialog[data-popup-style="ticket"] a:focus-visible { outline:2px solid #0064bc; outline-offset:2px; }
+.activityReadError { margin-bottom:12px; padding:10px 14px; border-radius:10px; background:#e4f4ff; color:#09264e; font-size:14px; }
+.activityReadError button { color:#005dc8; font-weight:800; text-decoration:underline; }
+.dialog[data-popup-style="ticket"] .entry[data-color="green"] { background:#e9ffdf; }
+.dialog[data-popup-style="ticket"] .entry[data-color="orange"] { background:#fff0df; }
+.dialog[data-popup-style="ticket"] .entry[data-color="purple"] { background:#f1eaff; }

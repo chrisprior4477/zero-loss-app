@@ -15,3 +15,12 @@ test("requires sign-in and reports storage failures",async()=>{
  mock.getUser.mockResolvedValue({data:{user:null}});expect((await saveNotificationBanner("capsule",true,5,6)).ok).toBe(false);expect(mock.rpc).not.toHaveBeenCalled();
  mock.getUser.mockResolvedValue({data:{user:{id:"owner"}}});mock.rpc.mockResolvedValue({error:{message:"offline"}});expect((await saveNotificationBanner("capsule",true,5,6)).ok).toBe(false);
 });
+
+test("saves popup shape without changing the account ownership contract",async()=>{
+ expect((await saveNotificationBanner("ribbon",true,9,2,"ticket")).ok).toBe(true);
+ expect(mock.rpc).toHaveBeenCalledWith("save_notification_banner_preferences",{p_style:"ribbon",p_enabled:true,p_speed:9,p_display_seconds:2,p_popup_style:"ticket"});
+});
+test("invalid popup shape is rejected before any write",async()=>{
+ expect((await saveNotificationBanner("ribbon",true,9,2,"other" as never)).ok).toBe(false);
+ expect(mock.rpc).not.toHaveBeenCalled();
+});

@@ -76,3 +76,14 @@ test("MVP dropdown keeps four useful categories and removes the Support button",
  expect(within(nav).getAllByRole("button")).toHaveLength(4);
  expect(within(nav).queryByRole("button",{name:/Support/})).toBeNull();
 });
+
+test("choosing a category clears only that badge and keeps its cards open",async()=>{
+ render(<App/>);
+ fireEvent.click(screen.getByRole('button',{name:/4 unread updates/}));
+ fireEvent.click(within(screen.getByRole('navigation',{name:'Update categories'})).getByRole('button',{name:/Purchase options/}));
+ await waitFor(()=>expect(mock.mark).toHaveBeenCalledWith(['option']));
+ expect(screen.getByRole('dialog',{name:'Your updates'}).hasAttribute('open')).toBe(true);
+ expect(within(screen.getByRole('region',{name:'Purchase options'})).getByRole('button',{name:/View purchase options/})).toBeTruthy();
+ expect(screen.getByRole('button',{name:/3 unread updates/})).toBeTruthy();
+ expect(mock.push).not.toHaveBeenCalled();
+});

@@ -1,13 +1,14 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import type { BannerStyle } from "@/lib/account/banner-style";
+import type { BannerStyle, NotificationPopupStyle } from "@/lib/account/banner-style";
 import { notificationIsEnabled, type AccountNotification, type NotificationPreferences } from "@/lib/account/notifications";
 import { restoreNotificationBanner } from "@/lib/account/restore-banner-action";
 type Snapshot = { notifications: AccountNotification[]; readIds: string[]; readAvailable: boolean; preferences: NotificationPreferences | null; supportEnabled?: boolean };
-type Value = { supportEnabled: boolean; clearAfterDemoReset: () => void; speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
+type Value = { popupStyle: NotificationPopupStyle; setPopupStyle: (style: NotificationPopupStyle) => void; supportEnabled: boolean; clearAfterDemoReset: () => void; speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
 const Context = createContext<Value | null>(null);
-export function NotificationProvider({ children, initial, initialStyle, initialEnabled, initialSpeed = 5, initialDisplaySeconds = 6 }: { children: ReactNode; initial: Snapshot | null; initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number; initialDisplaySeconds?: number }) {
+export function NotificationProvider({ children, initial, initialStyle, initialEnabled, initialSpeed = 5, initialDisplaySeconds = 6, initialPopupStyle = "rounded" }: { children: ReactNode; initial: Snapshot | null; initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number; initialDisplaySeconds?: number; initialPopupStyle?: NotificationPopupStyle }) {
+  const [popupStyle, setPopupStyle] = useState(initialPopupStyle);
   const [speed, setSpeed] = useState(initialSpeed);
   const [displaySeconds, setDisplaySeconds] = useState(initialDisplaySeconds);
   const [enabled, setEnabled] = useState(initialEnabled);
@@ -25,6 +26,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     return { ...next, readIds: [...reads] };
   }, []);
   const pathname = usePathname();
+  useEffect(() => { setPopupStyle(initialPopupStyle); }, [initialPopupStyle]); // eslint-disable-line react-hooks/set-state-in-effect
   useEffect(() => { setSpeed(initialSpeed); }, [initialSpeed]); // eslint-disable-line react-hooks/set-state-in-effect
   useEffect(() => { setDisplaySeconds(initialDisplaySeconds); }, [initialDisplaySeconds]); // eslint-disable-line react-hooks/set-state-in-effect
   useEffect(() => { setSnapshot(mergeReads(initial)); }, [initial, mergeReads]); // eslint-disable-line react-hooks/set-state-in-effect
@@ -105,6 +107,6 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   const read = new Set(snapshot?.readIds);
   const notifications = snapshot?.readAvailable && snapshot.preferences ? snapshot.notifications.filter(n => notificationIsEnabled(n, snapshot.preferences!)) : [];
   const unread = notifications.filter(n => !read.has(n.id));
-  return <Context.Provider value={{ supportEnabled: snapshot?.supportEnabled !== false, clearAfterDemoReset, speed, setSpeed, displaySeconds, setDisplaySeconds, enabled, setEnabled, style, setStyle, notifications, unread, open, setOpen, markRead, restoreBanner, bannerHidden, setBannerHidden }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ popupStyle, setPopupStyle, supportEnabled: snapshot?.supportEnabled !== false, clearAfterDemoReset, speed, setSpeed, displaySeconds, setDisplaySeconds, enabled, setEnabled, style, setStyle, notifications, unread, open, setOpen, markRead, restoreBanner, bannerHidden, setBannerHidden }}>{children}</Context.Provider>;
 }
 export function useNotifications() { return useContext(Context); }

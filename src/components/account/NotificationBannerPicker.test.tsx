@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NotificationBannerPicker } from "./NotificationBannerPicker";
-const mock=vi.hoisted(()=>({save:vi.fn(),setSpeed:vi.fn(),setDisplaySeconds:vi.fn(),setStyle:vi.fn(),setEnabled:vi.fn(),setBannerHidden:vi.fn(),restoreBanner:vi.fn()}));
+const mock=vi.hoisted(()=>({save:vi.fn(),setSpeed:vi.fn(),setDisplaySeconds:vi.fn(),setStyle:vi.fn(),setPopupStyle:vi.fn(),setEnabled:vi.fn(),setBannerHidden:vi.fn(),restoreBanner:vi.fn()}));
 vi.mock("@/lib/account/banner-actions",()=>({saveNotificationBanner:mock.save}));
 vi.mock("@/components/notifications/NotificationProvider",()=>({useNotifications:()=>mock}));
 beforeEach(()=>{vi.clearAllMocks();mock.save.mockResolvedValue({ok:true,message:"Notification banner saved."});});
@@ -18,12 +18,12 @@ test("Restore banner is beside Save and is usable without unsaved changes",async
 test("the speed slider follows all six choices, updates previews, and saves with style and visibility",async()=>{
  const {container}=render(<NotificationBannerPicker initialStyle="capsule" initialEnabled initialSpeed={5}/>);
  const slider=screen.getByRole('slider',{name:/Banner speed/});
- expect(slider).toHaveProperty('value','5'); expect(screen.getAllByRole('radio')).toHaveLength(6);
+ expect(slider).toHaveProperty('value','5'); expect(screen.getAllByRole('radio')).toHaveLength(8);
  expect(screen.getByRole('button',{name:'Save banner'}).hasAttribute('disabled')).toBe(true);
  fireEvent.change(slider,{target:{value:'9'}});
  expect(container.querySelector('[data-style="capsule"]')?.getAttribute('style')).toContain('--reveal-duration: 378ms');
  fireEvent.click(screen.getByRole('button',{name:'Save banner'}));
- await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('capsule',true,9,6));
+ await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('capsule',true,9,6,'rounded'));
  expect(mock.setSpeed).toHaveBeenCalledWith(9); expect(await screen.findByText('Notification banner saved.')).toHaveProperty('role','status');
 });
 test("a saved speed is restored and failed saves remain retryable",async()=>{
@@ -51,6 +51,17 @@ test("Display time previews and saves separately from speed",async()=>{
  const previewStyle=container.querySelector('[data-style="capsule"]')?.getAttribute('style');
  expect(previewStyle).toContain('--reveal-duration: 200ms');expect(previewStyle).toContain('--close-delay: 3400ms');
  fireEvent.click(screen.getByRole('button',{name:'Save banner'}));
- await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('capsule',true,10,3));
+ await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('capsule',true,10,3,'rounded'));
  expect(mock.setDisplaySeconds).toHaveBeenCalledWith(3);
+});
+
+test("popup shape previews immediately and saves independently of the animated style",async()=>{
+ const {unmount}=render(<NotificationBannerPicker initialStyle="ribbon" initialEnabled initialPopupStyle="rounded"/>);
+ fireEvent.click(screen.getByRole('radio',{name:'Ticket'}));
+ expect(mock.setPopupStyle).toHaveBeenLastCalledWith('ticket');
+ expect(mock.setStyle).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole('button',{name:'Save banner'}));
+ await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('ribbon',true,5,6,'ticket'));
+ await screen.findByText('Notification banner saved.');
+ unmount();expect(mock.setPopupStyle).toHaveBeenLastCalledWith('ticket');
 });

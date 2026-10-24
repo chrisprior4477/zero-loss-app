@@ -32,7 +32,7 @@ export default async function ProfilePage() {
     </section>
     <MenuLayoutPicker previewSearchResults={previewSearchResults} previewAccount={{ count: account.activity.activeCount, balance: account.balanceLabel, avatarUrl: account.avatarUrl, showPhoto: account.showPhotoInMenu }} />
     <MobileLogoSizePicker />
-    <NotificationBannerPicker initialSpeed={account.notificationBannerSpeed} initialDisplaySeconds={account.notificationBannerDisplaySeconds} initialEnabled={account.headerNotificationsEnabled} initialStyle={account.notificationBannerStyle} />
+    <NotificationBannerPicker initialPopupStyle={account.notificationPopupStyle} initialSpeed={account.notificationBannerSpeed} initialDisplaySeconds={account.notificationBannerDisplaySeconds} initialEnabled={account.headerNotificationsEnabled} initialStyle={account.notificationBannerStyle} />
     <ProfileDetailsForm ticket details={{
         displayName: account.displayName,
         legalFirstName: account.legalFirstName,
