@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { groupedOpenEntries, headerCategoryIds, headerCounts, headerDestinations, notificationMessages } from "./header-notifications";
+import { groupedOpenEntries, groupedActivityUpdates, headerCategories, headerCategoryIds, headerCounts, headerDestinations, notificationMessages } from "./header-notifications";
 import type { AccountNotification } from "./notifications";
 const make = (id: string, tone: AccountNotification["tone"], extra: Partial<AccountNotification> = {}): AccountNotification => ({ id, tone, category: "activity", title: id, body: "", meta: "", href: `/account/entries/${id}`, action: "View", ...extra });
 test("routine wallet records and open entries alone do not cover the normal ticket links", () => {
@@ -29,9 +29,21 @@ test("opening open entries acknowledges all entry notifications and their bookke
   const items = [make("active-1", "active"), make("active-2", "active"), make("wallet-hold", "wallet", { ledgerEntryType: "ENTRY_HOLD" }), make("support-1", "account")];
   expect(headerCategoryIds(items,"entries")).toEqual(["active-1","active-2","wallet-hold"]);
 });
-test("purchased gift cards are purchases, and each activity category opens its matching view", () => {
-  expect(headerCounts([make("reward-paid", "reward", { rewardSource: "purchase" })])).toMatchObject({ purchases:1,wins:0 });
-  expect(headerDestinations).toEqual({ wins:"/account/entries?filter=prize#my-activity-filters", purchases:"/account/entries?filter=completed#my-activity-filters", options:"/account/entries?filter=completion#my-activity-filters", entries:"/account/entries?filter=active#my-activity-filters" });
+test("exactly five categories exclude purchased cards and completed purchases", () => {
+  expect(headerCategories.map(c=>c.label)).toEqual(["You won","Purchase options","See open entries","Support","Shared picks"]);
+  expect(notificationMessages([make("reward-paid", "reward", { rewardSource: "purchase" }),make("order-one","order")])).toEqual([]);
+  expect(headerDestinations).toEqual({ wins:"/account/entries?filter=prize#my-activity-filters", options:"/account/entries?filter=completion#my-activity-filters", entries:"/account/entries?filter=active#my-activity-filters" });
+});
+test("clearing wins leaves options, support, and shared picks available in the banner", () => {
+ const items=[make("win","reward"),make("option","completion"),make("support-one","account"),make("shared-one","crew")];
+ const ids=headerCategoryIds(items,"wins");
+ expect(notificationMessages(items.filter(n=>!ids.includes(n.id))).map(m=>m.category)).toEqual(["options","support","shared"]);
+});
+test("win cards group products and deduplicate deadline alerts", () => {
+ const a=make("reward-1","reward",{itemTitle:"TV",itemSlug:"tv",entryId:"one",image:"/tv.png"});
+ const deadline=make("deadline-1","reward",{...a,id:"deadline-1"});
+ const b=make("reward-2","reward",{itemTitle:"TV",itemSlug:"tv",entryId:"two"});
+ expect(groupedActivityUpdates([a,b,deadline],[a,b,deadline],"wins")).toEqual([expect.objectContaining({title:"TV",count:2,image:"/tv.png",href:expect.stringContaining("filter=prize&viewed=one")})]);
 });
 test("the same gift card across different offerings shows one total without changing its records", () => {
   const a=make("active-1","active",{itemSlug:"publix-100",itemTitle:"$100 Publix Gift Card",visualLabel:"Publix"});

@@ -1,16 +1,14 @@
 import { openEntriesHref } from "./activity";
 import type { AccountNotification } from "./notifications";
 export type BannerMessage = { label: string; count: number; color: "green" | "orange" | "blue" | "purple"; category?: HeaderCategory };
-export type HeaderCategory = "wins" | "purchases" | "options" | "entries" | "support" | "shared";
+export type HeaderCategory = "wins" | "options" | "entries" | "support" | "shared";
 export const headerDestinations = {
   wins: "/account/entries?filter=prize#my-activity-filters",
-  purchases: "/account/entries?filter=completed#my-activity-filters",
   options: "/account/entries?filter=completion#my-activity-filters",
   entries: openEntriesHref,
 } as const;
 export const headerCategories: { key: HeaderCategory; label: string; color: BannerMessage["color"] }[] = [
   { key: "wins", label: "You won", color: "green" },
-  { key: "purchases", label: "Purchase", color: "orange" },
   { key: "options", label: "Purchase options", color: "orange" },
   { key: "entries", label: "See open entries", color: "blue" },
   { key: "support", label: "Support", color: "purple" },
@@ -21,11 +19,10 @@ export function headerCategory(n: AccountNotification): HeaderCategory | null {
   if (n.id.startsWith("shared-") || n.crewRequestId) return "shared";
   // Wallet bookkeeping belongs to transaction history, not the header inbox.
   if (n.tone === "wallet" || n.tone === "account") return null;
-  if (n.rewardSource === "purchase") return "purchases";
+  if (n.rewardSource === "purchase") return null;
   if (n.tone === "reward") return "wins";
   if (n.tone === "completion") return "options";
   if (n.tone === "active") return "entries";
-  if (n.tone === "order") return "purchases";
   return null;
 }
 function distinctCount(items: AccountNotification[]) {
@@ -51,19 +48,24 @@ function productKey(n: AccountNotification) {
   // Combine their display totals without merging the underlying ticket records.
   return n.itemTitle ? `${n.visualLabel ?? ""}:${n.itemTitle}`.toLowerCase() : n.itemSlug ?? n.id;
 }
-export function groupedOpenEntries(all: AccountNotification[], unread: AccountNotification[]): HeaderEntryGroup[] {
-  const unreadSlugs = new Set(unread.filter(n => n.tone === "active").map(productKey));
+export function groupedActivityUpdates(all: AccountNotification[], unread: AccountNotification[], category: "wins" | "options" | "entries"): HeaderEntryGroup[] {
+  const unreadSlugs = new Set(unread.filter(n => headerCategory(n) === category).map(productKey));
   const groups = new Map<string, HeaderEntryGroup>();
+  const seen = new Set<string>();
   for (const n of all) {
-    if (n.tone !== "active") continue;
+    if (headerCategory(n) !== category || seen.has(n.href)) continue;
+    seen.add(n.href);
     const slug = productKey(n);
     if (!unreadSlugs.has(slug)) continue;
     const group = groups.get(slug);
     if (group) group.count++;
     else groups.set(slug, { slug, title: n.itemTitle ?? n.title.replace(/ is still open$/, ""), image: n.image, count: 1,
-      href: n.entryId ? `/account/entries?filter=active&viewed=${encodeURIComponent(n.entryId)}#my-activity-filters` : openEntriesHref });
+      href: n.entryId ? headerDestinations[category].replace("#", `&viewed=${encodeURIComponent(n.entryId)}#`) : headerDestinations[category] });
   }
   return [...groups.values()];
+}
+export function groupedOpenEntries(all: AccountNotification[], unread: AccountNotification[]) {
+  return groupedActivityUpdates(all, unread, "entries");
 }
 export function notificationDestination(href: string): string {
   if (!href.startsWith("/") || href.startsWith("//")) return "/account/notifications";

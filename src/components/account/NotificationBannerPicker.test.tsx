@@ -1,11 +1,20 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NotificationBannerPicker } from "./NotificationBannerPicker";
-const mock=vi.hoisted(()=>({save:vi.fn(),setSpeed:vi.fn(),setStyle:vi.fn(),setEnabled:vi.fn()}));
+const mock=vi.hoisted(()=>({save:vi.fn(),setSpeed:vi.fn(),setStyle:vi.fn(),setEnabled:vi.fn(),restoreBanner:vi.fn()}));
 vi.mock("@/lib/account/banner-actions",()=>({saveNotificationBanner:mock.save}));
 vi.mock("@/components/notifications/NotificationProvider",()=>({useNotifications:()=>mock}));
 beforeEach(()=>{vi.clearAllMocks();mock.save.mockResolvedValue({ok:true,message:"Notification banner saved."});});
 afterEach(cleanup);
+test("Restore banner is beside Save and is usable without unsaved changes",async()=>{
+ mock.restoreBanner.mockResolvedValue("Banner restored. Your current alerts are available again.");
+ render(<NotificationBannerPicker initialStyle="capsule" initialEnabled/>);
+ const restore=screen.getByRole("button",{name:"Restore banner"});
+ expect(restore.parentElement).toBe(screen.getByRole("button",{name:"Save banner"}).parentElement);
+ expect(restore.hasAttribute("disabled")).toBe(false);fireEvent.click(restore);
+ await screen.findByText("Banner restored. Your current alerts are available again.");
+ expect(mock.restoreBanner).toHaveBeenCalledOnce();expect(mock.save).not.toHaveBeenCalled();
+});
 test("the speed slider follows all six choices, updates previews, and saves with style and visibility",async()=>{
  const {container}=render(<NotificationBannerPicker initialStyle="capsule" initialEnabled initialSpeed={5}/>);
  const slider=screen.getByRole('slider',{name:/Banner speed/});

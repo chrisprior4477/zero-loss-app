@@ -18,6 +18,14 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
   const [saved, setSaved] = useState(initialStyle);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [restoring, setRestoring] = useState(false);
+  async function restore() {
+    if (!notifications) return;
+    setBusy(true); setRestoring(true); setMessage("");
+    try { setMessage(await notifications.restoreBanner()); setEnabled(true); setSavedEnabled(true); }
+    catch (reason) { setMessage(reason instanceof Error ? reason.message : "Your banner could not be restored. Please try again."); }
+    finally { setBusy(false); setRestoring(false); }
+  }
   async function save() {
     setBusy(true); setMessage("");
     try { const result = await saveNotificationBanner(choice, enabled, speed); setMessage(result.message); if (result.ok) { setSaved(choice); setSavedEnabled(enabled); setSavedSpeed(speed); notifications?.setSpeed(speed); notifications?.setEnabled(enabled); notifications?.setStyle(choice); } }
@@ -43,7 +51,10 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
       <p id="banner-speed-help">Choose how quickly the banner opens and closes. It stays open for 6 seconds so you can read and tap it.</p>
     </div>
     <p className={styles.note}>Preview counts are examples. Your banner shows your own unread updates.</p>
-    <button className={ticket.quickSave} type="button" disabled={busy || (choice === saved && enabled === savedEnabled && speed === savedSpeed)} onClick={() => void save()}>{busy ? "Saving…" : "Save banner"}</button>
+    <div className={styles.actions}>
+      <button className={ticket.quickSave} type="button" disabled={busy || (choice === saved && enabled === savedEnabled && speed === savedSpeed)} onClick={() => void save()}>{busy && !restoring ? "Saving…" : "Save banner"}</button>
+      <button className={styles.restore} type="button" disabled={busy || !notifications} onClick={() => void restore()}>{restoring ? "Restoring…" : "Restore banner"}</button>
+    </div>
     {message ? <p className={ticket.status} role="status">{message}</p> : null}
   </section>;
 }

@@ -21,7 +21,7 @@ export function NotificationBanner({ style, messages, speed = 5, paused = false,
   useEffect(() => { onCategoryChange?.(message?.category ?? null); }, [message?.category, onCategoryChange]);
   if (!message) return null;
   return <span aria-hidden="true" className={styles.artwork} data-style={style} data-color={message.color} data-paused={paused} style={{ "--reveal-duration": `${revealMs}ms`, "--reveal-gap": `${gapMs}ms`, "--close-delay": `${gapMs + revealMs + holdMs}ms` } as CSSProperties}>
-    <span key={`${cycle}-${speed}`} className={styles.reveal}>
+    <span key={`${message.category ?? message.label}-${cycle}-${speed}`} className={styles.reveal}>
       <span className={styles.surface}><span className={styles.symbol}>{message.color === "green" ? "★" : message.color === "orange" ? "✓" : message.color === "blue" ? "↗" : "●"}</span><span className={styles.label}>{message.label}</span><span className={styles.count}>{message.count > 99 ? "99+" : message.count}</span></span>
     </span>
   </span>;

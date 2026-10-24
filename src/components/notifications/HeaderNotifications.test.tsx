@@ -34,20 +34,23 @@ test("turning header notifications off restores balance links", () => {
   mock.enabled = false; render(<HeaderNotifications>{metrics}</HeaderNotifications>);
   expect(screen.getByText("Balance").parentElement?.hasAttribute("inert")).toBe(false); expect(screen.queryByRole("button", { name: /unread updates/ })).toBeNull();
 });
-test("wins and options lead; choosing support moves it first without prematurely clearing anything", () => {
+test("only the chosen category is shown, with exactly five color-matched buttons", () => {
   mock.unread = [make("reward-1","reward"),make("completion-1","completion"),make("support-1","account")]; mock.notifications=mock.unread;
   const {container}=render(<HeaderNotifications>{metrics}</HeaderNotifications>);
   expect(container.querySelector('#header-update-sections > section')?.getAttribute('aria-label')).toBe("You won");
+  const buttons=within(screen.getByRole("navigation",{name:"Update categories"})).getAllByRole("button");
+  expect(buttons).toHaveLength(5); expect(buttons.map(b=>b.getAttribute("data-color"))).toEqual(["green","orange","blue","purple","blue"]);
+  expect(container.querySelectorAll('#header-update-sections > section')).toHaveLength(1);
   choose("Support");
   expect(container.querySelector('#header-update-sections > section')?.getAttribute('aria-label')).toBe("Support");
   expect(mock.markRead).not.toHaveBeenCalled(); expect(mock.push).not.toHaveBeenCalled();
 });
 test.each([
-  ["reward","View my wins","prize"], ["completion","View purchase options","completion"], ["order","View my purchases","completed"],
+  ["reward","View my wins","prize"], ["completion","View purchase options","completion"],
 ] as const)("opening %s clears all its current alerts and opens the matching activity section", async (tone,button,filter) => {
-  mock.unread = [make("one",tone),make("two",tone),make("support-1","account")]; mock.notifications=mock.unread;
+  mock.unread = [make("one",tone,{itemTitle:"One product"}),make("two",tone,{itemTitle:"Another product"}),make("support-1","account")]; mock.notifications=mock.unread;
   render(<HeaderNotifications>{metrics}</HeaderNotifications>);
-  fireEvent.click(screen.getByRole("button",{name:new RegExp(button)}));
+  fireEvent.click(screen.getByRole("button",{name:new RegExp(`One product.*${button}`)}));
   await waitFor(()=>expect(mock.push).toHaveBeenCalledWith(`/account/entries?filter=${filter}&fromUpdates=1#my-activity-filters`));
   expect(mock.markRead).toHaveBeenCalledWith(["one","two"]);
 });
