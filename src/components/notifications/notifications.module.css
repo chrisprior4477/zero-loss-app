@@ -47,7 +47,7 @@
 .categories { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:7px; padding:8px 12px 12px; border-bottom:1px solid #ffffff20; }
 .categories button { min-width:0; min-height:44px; border-radius:9px; padding:7px 5px; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px; font-size:12px; font-weight:800; line-height:1.15; background:#153c62; color:#d7efff; }
 .categories button { grid-column:span 2; background:#0879ff; color:#fff; }
-.categories button:nth-last-child(-n+2) { grid-column:span 3; }
+.categories button:nth-last-child(-n+2),.categories[data-count="4"] button { grid-column:span 3; }
 .categories button[data-color="green"] { background:#49ed08; color:#062044; }.categories button[data-color="orange"] { background:#ff8618; color:#062044; }.categories button[data-color="purple"] { background:#b08aff; color:#062044; }
 .categories button[aria-pressed="true"] { box-shadow:0 0 0 2px #fff,inset 0 -3px #00142e45; }
 .categories button span { display:grid; place-items:center; min-width:19px; height:19px; border-radius:50%; padding:0 3px; background:#fff; color:#09264e; font-size:10px; }
