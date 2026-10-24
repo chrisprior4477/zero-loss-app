@@ -33,3 +33,9 @@ test("purchased gift cards are purchases, and each activity category opens its m
   expect(headerCounts([make("reward-paid", "reward", { rewardSource: "purchase" })])).toMatchObject({ purchases:1,wins:0 });
   expect(headerDestinations).toEqual({ wins:"/account/entries?filter=prize#my-activity-filters", purchases:"/account/entries?filter=completed#my-activity-filters", options:"/account/entries?filter=completion#my-activity-filters", entries:"/account/entries?filter=active#my-activity-filters" });
 });
+test("the same gift card across different offerings shows one total without changing its records", () => {
+  const a=make("active-1","active",{itemSlug:"publix-100",itemTitle:"$100 Publix Gift Card",visualLabel:"Publix"});
+  const b=make("active-2","active",{itemSlug:"publix-100-ending-soon",itemTitle:a.itemTitle,visualLabel:"Publix"});
+  expect(groupedOpenEntries([a,b],[a,b])).toEqual([expect.objectContaining({title:a.itemTitle,count:2})]);
+  expect(headerCategoryIds([a,b],"entries")).toEqual([a.id,b.id]);
+});

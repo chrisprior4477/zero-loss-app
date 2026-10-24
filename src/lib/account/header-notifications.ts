@@ -46,12 +46,17 @@ export function notificationMessages(notifications: AccountNotification[]): Bann
   return headerCategories.filter(c => counts[c.key] > 0).map(c => ({ label: c.label === "You won" ? "You won!" : c.label, count: counts[c.key], color: c.color, category: c.key }));
 }
 export type HeaderEntryGroup = { slug: string; title: string; image?: string; count: number; href: string };
+function productKey(n: AccountNotification) {
+  // The same gift card can have multiple offerings (for example Ending Soon).
+  // Combine their display totals without merging the underlying ticket records.
+  return n.itemTitle ? `${n.visualLabel ?? ""}:${n.itemTitle}`.toLowerCase() : n.itemSlug ?? n.id;
+}
 export function groupedOpenEntries(all: AccountNotification[], unread: AccountNotification[]): HeaderEntryGroup[] {
-  const unreadSlugs = new Set(unread.filter(n => n.tone === "active").map(n => n.itemSlug ?? n.id));
+  const unreadSlugs = new Set(unread.filter(n => n.tone === "active").map(productKey));
   const groups = new Map<string, HeaderEntryGroup>();
   for (const n of all) {
     if (n.tone !== "active") continue;
-    const slug = n.itemSlug ?? n.id;
+    const slug = productKey(n);
     if (!unreadSlugs.has(slug)) continue;
     const group = groups.get(slug);
     if (group) group.count++;
