@@ -78,6 +78,16 @@ test("header settling corrects the landing until the user starts scrolling", () 
   expect(scrollTo).toHaveBeenCalledTimes(2);
 });
 
+test("reopening the current account page from any plain link returns to its heading", () => {
+  const { scrollTo, flush } = setup({ hash: "#security-controls" });
+  render(<AccountSettingsLandingScroll target="account-settings-intro" />); flush();
+  const anchor = document.createElement("a"); anchor.href = "/account/security";
+  anchor.addEventListener("click", event => event.preventDefault());
+  document.querySelector("main")!.append(anchor);
+  scrollTo.mockClear(); fireEvent.pointerDown(anchor); fireEvent.click(anchor); flush();
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 308, behavior: "instant" });
+});
+
 test("rerenders and viewport changes do not interrupt reading, but another settings page lands again", () => {
   const { scrollTo, flush } = setup();
   const view = render(<AccountSettingsLandingScroll target="account-settings-sections" visitKey="profile" />); flush();

@@ -48,7 +48,7 @@ export function AccountSettingsLandingScroll({ target, visitKey = target }: { ta
       const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
       if (!(anchor instanceof HTMLAnchorElement) || anchor.target === "_blank") return;
       const url = new URL(anchor.href);
-      if (url.origin === window.location.origin && url.pathname === window.location.pathname && url.search === window.location.search && url.hash) reveal(url.hash.slice(1));
+      if (url.origin === window.location.origin && url.pathname === window.location.pathname && url.search === window.location.search) reveal(url.hash.slice(1));
     };
     const onResize = () => { measure(); };
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
