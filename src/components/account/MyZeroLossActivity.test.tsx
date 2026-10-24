@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { drawerState } from "@/lib/account/drawer-state";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { activityFilter, activityHref, activityPresentation, filterActivity, findActivityItem } from "@/lib/account/activity";
@@ -20,6 +21,26 @@ beforeEach(() => {
   Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: function(this: HTMLDialogElement) { this.open = false; } });
 });
 afterEach(() => { cleanup(); document.body.style.overflow = ""; });
+
+test("a saved purchase-option result renders the same deadline in different server and browser time zones", () => {
+  const state = storedActivityFixture();
+  const option = { ...state.activity[2], completionExpiresAt: "2026-11-19T05:00:00Z" };
+  state.activity = [option];
+  const DateTimeFormat = Intl.DateTimeFormat;
+  let defaultTimeZone = "UTC";
+  const formatter = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (locales, options) {
+    return new DateTimeFormat(locales, { timeZone: defaultTimeZone, ...options });
+  });
+  try {
+    const markup = () => renderToStaticMarkup(<ActivitySelection state={state} selectedSlug={option.slug} destination="/account/entries" />);
+    const server = markup();
+    defaultTimeZone = "America/New_York";
+    expect(markup()).toBe(server);
+    expect(server).toContain("November 19, 2026 at 5:00 AM UTC");
+  } finally {
+    formatter.mockRestore();
+  }
+});
 
 test.each([
   ["all", "This is all of your activity"],

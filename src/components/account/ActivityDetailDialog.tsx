@@ -99,7 +99,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
               <p className={styles.purchaseNotice}>Pay the remaining amount to receive a retailer gift card for the advertised value. You decide whether to continue.</p>
               {item.completionOptionId ? <PurchaseOptionControls key={item.completionOptionId} item={{ ...item, completionOptionId: item.completionOptionId }} resumePurchase={resumePurchase} /> : <div className={styles.detailFooter}><button disabled type="button">Continue with option — not enabled</button><p role="status" className={styles.purchaseUnavailable}>This option is not available to complete yet.</p></div>}
               <p className={styles.purchaseNotice}>This credit applies only to this product and cannot be stacked or transferred.</p>
-              {item.completionExpiresAt ? <p className={styles.purchaseNotice}><strong>Available until:</strong> <time dateTime={item.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short" }).format(new Date(item.completionExpiresAt))}</time></p> : null}
+              {item.completionExpiresAt ? <p className={styles.purchaseNotice}><strong>Available until:</strong> <time dateTime={item.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short", timeZone: "UTC" }).format(new Date(item.completionExpiresAt))} UTC</time></p> : null}
             </div>
           </section>
           <aside className={styles.purchaseSteps} aria-labelledby="purchase-steps-title">
