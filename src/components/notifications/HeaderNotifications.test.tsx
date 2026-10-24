@@ -1,36 +1,73 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { HeaderNotifications } from "./HeaderNotifications";
+import type { AccountNotification } from "@/lib/account/notifications";
 import Link from "next/link";
-const mock = vi.hoisted(() => ({ push: vi.fn(), setOpen: vi.fn(), markRead: vi.fn(), enabled: true }));
+const mock = vi.hoisted(() => ({ push: vi.fn(), setOpen: vi.fn(), markRead: vi.fn(), enabled: true, unread: [] as AccountNotification[], notifications: [] as AccountNotification[] }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }), useSearchParams: () => new URLSearchParams() }));
-vi.mock("./NotificationProvider", () => ({ useNotifications: () => ({ style: "capsule", enabled: mock.enabled, open: true, setOpen: mock.setOpen, markRead: mock.markRead, unread: [{ id: "shared-1", title: "Chris shared a TV", body: "A shared pick", href: "/items/tv?share=11111111-1111-4111-8111-111111111111", action: "View item", tone: "crew" }] }) }));
-beforeEach(() => { vi.clearAllMocks(); mock.enabled = true; mock.markRead.mockResolvedValue(undefined); HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); }; HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); }; });
+vi.mock("./NotificationProvider", () => ({ useNotifications: () => ({ style: "capsule", enabled: mock.enabled, open: true, setOpen: mock.setOpen, markRead: mock.markRead, unread: mock.unread, notifications: mock.notifications }) }));
+const make = (id: string, tone: AccountNotification["tone"], extra: Partial<AccountNotification> = {}): AccountNotification => ({ id, tone, category:"activity", title:id, body:"", meta:"", href:`/account/entries/${id}`, action:"View", ...extra });
+beforeEach(() => {
+  vi.clearAllMocks(); mock.enabled = true; mock.markRead.mockResolvedValue(undefined);
+  mock.unread = [make("shared-1", "crew", {title:"Chris shared a TV",href:"/items/tv?share=11111111-1111-4111-8111-111111111111"})]; mock.notifications = mock.unread;
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); }; HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+});
 afterEach(cleanup);
 const metrics = <><Link href="/account/entries">Tickets</Link><Link href="/account/wallet">Balance</Link></>;
-test("unread updates keep the balance links inert during the entire animation", () => {
+function choose(name:string) { fireEvent.click(within(screen.getByRole("navigation",{name:"Update categories"})).getByRole("button",{name:new RegExp(name)})); }
+test("unread important updates keep balance links inert throughout the animation", () => {
   render(<HeaderNotifications>{metrics}</HeaderNotifications>);
   expect(screen.getByText("Balance").parentElement?.hasAttribute("inert")).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: /unread updates/ }));
-  expect(mock.setOpen).toHaveBeenCalledWith(true);
-  expect(mock.push).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: /unread updates/ })); expect(mock.setOpen).toHaveBeenCalledWith(true); expect(mock.push).not.toHaveBeenCalled();
 });
-test("opening one update saves its read status before navigating with a return path", async () => {
-  render(<HeaderNotifications>{metrics}</HeaderNotifications>);
+test("shared items open individually with a return path after their read status is saved", async () => {
+  render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Shared picks");
   fireEvent.click(screen.getByRole("button", { name: /Chris shared/ }));
   await waitFor(() => expect(mock.push).toHaveBeenCalledWith(expect.stringContaining("&fromUpdates=1")));
   expect(mock.markRead).toHaveBeenCalledWith(["shared-1"]);
 });
 test("a failed save leaves the update available instead of navigating", async () => {
-  mock.markRead.mockRejectedValue(new Error("Could not save"));
-  render(<HeaderNotifications>{metrics}</HeaderNotifications>);
-  fireEvent.click(screen.getByRole("button", { name: /Chris shared/ }));
-  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Could not save");
-  expect(mock.push).not.toHaveBeenCalled();
+  mock.markRead.mockRejectedValue(new Error("Could not save")); render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Shared picks");
+  fireEvent.click(screen.getByRole("button", { name: /Chris shared/ })); expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Could not save"); expect(mock.push).not.toHaveBeenCalled();
 });
-test("turning header notifications off restores the balance links", () => {
-  mock.enabled = false;
+test("turning header notifications off restores balance links", () => {
+  mock.enabled = false; render(<HeaderNotifications>{metrics}</HeaderNotifications>);
+  expect(screen.getByText("Balance").parentElement?.hasAttribute("inert")).toBe(false); expect(screen.queryByRole("button", { name: /unread updates/ })).toBeNull();
+});
+test("wins and options lead; choosing support moves it first without prematurely clearing anything", () => {
+  mock.unread = [make("reward-1","reward"),make("completion-1","completion"),make("support-1","account")]; mock.notifications=mock.unread;
+  const {container}=render(<HeaderNotifications>{metrics}</HeaderNotifications>);
+  expect(container.querySelector('#header-update-sections > section')?.getAttribute('aria-label')).toBe("You won");
+  choose("Support");
+  expect(container.querySelector('#header-update-sections > section')?.getAttribute('aria-label')).toBe("Support");
+  expect(mock.markRead).not.toHaveBeenCalled(); expect(mock.push).not.toHaveBeenCalled();
+});
+test.each([
+  ["reward","View my wins","prize"], ["completion","View purchase options","completion"], ["order","View my purchases","completed"],
+] as const)("opening %s clears all its current alerts and opens the matching activity section", async (tone,button,filter) => {
+  mock.unread = [make("one",tone),make("two",tone),make("support-1","account")]; mock.notifications=mock.unread;
   render(<HeaderNotifications>{metrics}</HeaderNotifications>);
-  expect(screen.getByText("Balance").parentElement?.hasAttribute("inert")).toBe(false);
-  expect(screen.queryByRole("button", { name: /unread updates/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button",{name:new RegExp(button)}));
+  await waitFor(()=>expect(mock.push).toHaveBeenCalledWith(`/account/entries?filter=${filter}&fromUpdates=1#my-activity-filters`));
+  expect(mock.markRead).toHaveBeenCalledWith(["one","two"]);
+});
+test("open products consolidate into ticket totals and a click clears the open-entry batch", async () => {
+  const a=make("active-1","active",{itemSlug:"lowes",itemTitle:"Lowe's Card",entryId:"one"}); const b=make("active-2","active",{itemSlug:"lowes",itemTitle:"Lowe's Card",entryId:"two"});
+  mock.unread=[b,make("support-1","account")]; mock.notifications=[a,...mock.unread];
+  render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("See open entries");
+  expect(screen.getAllByText("Lowe's Card")).toHaveLength(1); expect(screen.getByLabelText("2 tickets")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:/Lowe's Card/}));
+  await waitFor(()=>expect(mock.push).toHaveBeenCalledWith(expect.stringContaining("filter=active&viewed=one")));
+  expect(mock.markRead).toHaveBeenCalledWith(["active-2"]);
+});
+test("open entries alone never intercept the normal ticket link", () => {
+  mock.unread=[make("active-1","active"),make("wallet-1","wallet")]; mock.notifications=mock.unread;
+  render(<HeaderNotifications>{metrics}</HeaderNotifications>);
+  expect(screen.queryByRole("button",{name:/unread updates/})).toBeNull(); expect(screen.getByText("Balance").parentElement?.hasAttribute("inert")).toBe(false);
+});
+test("support goes to the exact conversation and uses purple", async () => {
+  mock.unread=[make("support-1","account",{title:"Reply to your case",href:"/support?case=one#conversation"})]; mock.notifications=mock.unread;
+  render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Support");
+  const item=screen.getByRole("button",{name:/Reply to your case/}); expect(item.getAttribute("data-color")).toBe("purple"); fireEvent.click(item);
+  await waitFor(()=>expect(mock.push).toHaveBeenCalledWith("/support?case=one&fromUpdates=1#conversation"));
 });

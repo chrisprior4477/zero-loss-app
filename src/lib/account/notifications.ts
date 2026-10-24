@@ -21,6 +21,11 @@ export type AccountNotification = {
   crewRequestId?: string;
   tone: "reward" | "active" | "completion" | "wallet" | "account" | "order" | "crew";
   preferenceKey?: NotificationPreferenceKey;
+  itemSlug?: string;
+  itemTitle?: string;
+  entryId?: string | null;
+  rewardSource?: "winner" | "purchase" | null;
+  ledgerEntryType?: string;
 };
 
 export function parseNotificationPreferences(value: unknown): NotificationPreferences {
@@ -176,9 +181,9 @@ function ledgerBody(entryType: string, amount: number, balanceCents: number) {
 /** Builds display-only notifications from the authenticated account snapshot. */
 export function buildAccountNotifications(activity: AccountActivity, wallet: WalletSnapshot | null, emailConfirmed: boolean, hiddenWalletIds: readonly string[] = []): AccountNotification[] {
   const activityPriority = { prize: 0, completion: 1, active: 2, completed: 3 } as const;
-  const notifications = activity.source === "unavailable" ? [] : [...activity.activity]
+  const notifications: AccountNotification[] = activity.source === "unavailable" ? [] : [...activity.activity]
     .sort((left, right) => activityPriority[left.status] - activityPriority[right.status])
-    .map(activityNotification);
+    .map(item => ({ ...activityNotification(item), itemSlug: item.slug, itemTitle: item.title, entryId: item.entryId, rewardSource: item.rewardSource }));
   if (activity.source !== "unavailable") {
     const now = Date.now();
     for (const item of activity.activity) {
@@ -190,7 +195,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
         category: "action", title: `Claim your ${item.retailer} reward soon`,
         body: "Your claim deadline is approaching. Open the reward for the exact date and next step.",
         meta: new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(deadline)),
-        href: walletRewardHref(item), action: "View reward deadline", image: item.image,
+        href: walletRewardHref(item), action: "View reward deadline", image: item.image, itemSlug: item.slug, itemTitle: item.title, rewardSource: item.rewardSource,
         visualLabel: item.retailer, tone: "reward", preferenceKey: "reward_deadline",
       });
     }
@@ -209,6 +214,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
       visualValue: `${entry.amount > 0 ? "+" : ""}${formatUsdFromCents(entry.amount)}`,
       tone: "wallet",
       preferenceKey: "wallet_updates",
+      ledgerEntryType: entry.entry_type,
     });
   }
   notifications.push({

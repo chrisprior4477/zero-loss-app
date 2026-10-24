@@ -1,5 +1,5 @@
 import "server-only";
-import { bannerStyleOrDefault } from "./banner-style";
+import { bannerStyleOrDefault, bannerSpeedOrDefault } from "./banner-style";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getWalletSnapshot } from "@/lib/wallet/balance";
@@ -28,7 +28,7 @@ export const getAccountContext = cache(async () => {
     }
   }
   const [profileResult, wallet] = await Promise.all([
-    supabase.from("customer_profiles").select("display_name, legal_first_name, legal_last_name, date_of_birth, preferred_locale, timezone, avatar_reference, show_photo_in_menu, show_photo_to_crew, menu_layout, tablet_menu_layout, desktop_menu_layout, mobile_logo_size, notification_banner_style, header_notifications_enabled, phone_number, address_line_1, address_line_2, city, region, postal_code, country, extra_entry_explainer_acknowledged_at").eq("customer_id", user.id).maybeSingle(),
+    supabase.from("customer_profiles").select("display_name, legal_first_name, legal_last_name, date_of_birth, preferred_locale, timezone, avatar_reference, show_photo_in_menu, show_photo_to_crew, menu_layout, tablet_menu_layout, desktop_menu_layout, mobile_logo_size, notification_banner_style, notification_banner_speed, header_notifications_enabled, phone_number, address_line_1, address_line_2, city, region, postal_code, country, extra_entry_explainer_acknowledged_at").eq("customer_id", user.id).maybeSingle(),
     provisioningAvailable ? getWalletSnapshot(user.id).catch(() => null) : Promise.resolve(null),
   ]);
   const activity = wallet
@@ -69,6 +69,7 @@ export const getAccountContext = cache(async () => {
     mobileLogoSize: mobileLogoSizeOrOriginal(profile?.mobile_logo_size),
     headerNotificationsEnabled: profile?.header_notifications_enabled ?? true,
     notificationBannerStyle: bannerStyleOrDefault(profile?.notification_banner_style),
+    notificationBannerSpeed: bannerSpeedOrDefault(profile?.notification_banner_speed),
     wallet,
     balanceLabel: wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable",
     fundingEnabled: demoFundingAllowed(wallet, Boolean(user.email_confirmed_at)),

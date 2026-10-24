@@ -8,8 +8,10 @@ import { NotificationBanner, previewMessages } from "@/components/notifications/
 import { useNotifications } from "@/components/notifications/NotificationProvider";
 import ticket from "./menu-layout-picker.module.css";
 import styles from "./notification-banner-picker.module.css";
-export function NotificationBannerPicker({ initialStyle, initialEnabled }: { initialStyle: BannerStyle; initialEnabled: boolean }) {
+export function NotificationBannerPicker({ initialStyle, initialEnabled, initialSpeed = 5 }: { initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number }) {
   const notifications = useNotifications();
+  const [speed, setSpeed] = useState(initialSpeed);
+  const [savedSpeed, setSavedSpeed] = useState(initialSpeed);
   const [enabled, setEnabled] = useState(initialEnabled);
   const [savedEnabled, setSavedEnabled] = useState(initialEnabled);
   const [choice, setChoice] = useState(initialStyle);
@@ -18,7 +20,7 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled }: { ini
   const [message, setMessage] = useState("");
   async function save() {
     setBusy(true); setMessage("");
-    try { const result = await saveNotificationBanner(choice, enabled); setMessage(result.message); if (result.ok) { setSaved(choice); setSavedEnabled(enabled); notifications?.setEnabled(enabled); notifications?.setStyle(choice); } }
+    try { const result = await saveNotificationBanner(choice, enabled, speed); setMessage(result.message); if (result.ok) { setSaved(choice); setSavedEnabled(enabled); setSavedSpeed(speed); notifications?.setSpeed(speed); notifications?.setEnabled(enabled); notifications?.setStyle(choice); } }
     catch { setMessage("Your banner could not be saved. Please try again."); }
     finally { setBusy(false); }
   }
@@ -31,11 +33,17 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled }: { ini
       {bannerStyles.map((style, i) => <label className={styles.option} data-selected={choice === style} key={style}>
         <input type="radio" name="notification-banner-style" value={style} checked={choice === style} onChange={() => { setChoice(style); setMessage(""); }} />
         <span className={styles.name}>{i + 1}. {bannerStyleNames[style]}</span>
-        <span className={styles.preview} aria-hidden="true"><span className={styles.logo}><Image src="/zeroloss-logo.svg" width={82} height={16} alt="" /></span><span className={styles.region}><span className={styles.balance}><EntryTicket count={59} /><span>◉ $978</span></span><NotificationBanner style={style} messages={previewMessages} /></span><span className={styles.avatar}>CP</span></span>
+        <span className={styles.preview} aria-hidden="true"><span className={styles.logo}><Image src="/zeroloss-logo.svg" width={82} height={16} alt="" /></span><span className={styles.region}><span className={styles.balance}><EntryTicket count={59} /><span>◉ $978</span></span><NotificationBanner style={style} speed={speed} messages={previewMessages} /></span><span className={styles.avatar}>CP</span></span>
       </label>)}
     </fieldset>
+    <div className={styles.speedControl}>
+      <label htmlFor="notification-banner-speed">Banner speed <output htmlFor="notification-banner-speed">{speed} / 10</output></label>
+      <input id="notification-banner-speed" type="range" min="1" max="10" step="1" value={speed} disabled={busy} aria-valuetext={`Speed ${speed} of 10`} aria-describedby="banner-speed-help" onChange={e => { setSpeed(Number(e.target.value)); setMessage(""); }} />
+      <div className={styles.speedScale} aria-hidden="true"><span>1 · Slower</span><span>10 · Faster</span></div>
+      <p id="banner-speed-help">Choose how quickly the banner opens and closes. It stays open for 6 seconds so you can read and tap it.</p>
+    </div>
     <p className={styles.note}>Preview counts are examples. Your banner shows your own unread updates.</p>
-    <button className={ticket.quickSave} type="button" disabled={busy || (choice === saved && enabled === savedEnabled)} onClick={() => void save()}>{busy ? "Saving…" : "Save banner"}</button>
+    <button className={ticket.quickSave} type="button" disabled={busy || (choice === saved && enabled === savedEnabled && speed === savedSpeed)} onClick={() => void save()}>{busy ? "Saving…" : "Save banner"}</button>
     {message ? <p className={ticket.status} role="status">{message}</p> : null}
   </section>;
 }
