@@ -1,5 +1,6 @@
 "use client";
 
+import { prepareProductShareLink } from "@/lib/sharing/receiving-actions";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
@@ -48,7 +49,13 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const emailRecipientPanel = useRef<HTMLDetailsElement>(null);
   const previousStep = useRef<Step | null>(null);
   const id = useId();
-  const url = origin ? productShareUrl(origin, item.slug) : `/items/${item.slug}`;
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void prepareProductShareLink(item.slug, audience || null).then(token => { if (!cancelled) { setShareToken(token); } }).catch(() => { if (!cancelled) { setShareToken(null); } });
+    return () => { cancelled = true; };
+  }, [item.slug, audience]);
+  const url = origin ? productShareUrl(origin, item.slug, shareToken) : `/items/${item.slug}`;
   const text = productShareText(item.title);
   const body = `${text}\n${url}`;
   const members = options?.members ?? [];
@@ -142,7 +149,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     // Invoke directly from the tap: a preceding server read would lose activation.
     busyRef.current = true; setBusy(true); feedback("");
     try {
-      await navigator.share(nativeProductShareData(item, window.location.origin, navigator.userAgent));
+      await navigator.share(nativeProductShareData(item, window.location.origin, navigator.userAgent, shareToken));
       // Handoff is not proof of delivery. Never report "sent" here.
     } catch (reason) {
       if ((reason as { name?: string })?.name !== "AbortError" && alive.current) {
@@ -153,7 +160,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(productShareUrl(window.location.origin, item.slug));
+      await navigator.clipboard.writeText(productShareUrl(window.location.origin, item.slug, shareToken));
       if (alive.current) feedback("Link copied. Paste it into your conversation.");
     } catch {
       if (alive.current) { if (step !== "copy") go("copy"); feedback("Select and copy the link below. Automatic copying isn’t available in this browser."); }

@@ -29,6 +29,7 @@ type Props = {
   invitations: CrewInvitation[];
   members: CrewMember[];
   discoverable: boolean;
+  discovery?: { real: boolean; email: boolean; phone: boolean };
   entries: OwnCrewEntry[];
   selectedMemberId: string | null;
   selectedPicks: SharedCrewPick[];
@@ -44,7 +45,7 @@ const subscribeToOrigin = () => () => {};
 const getBrowserOrigin = () => window.location.origin;
 const getServerOrigin = () => "";
 
-export function CrewHub({ currentUserId, invitations, members, discoverable, entries, selectedMemberId, selectedPicks, available, initialTab, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
+export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, available, initialTab, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab);
   const [message, setMessage] = useState("");
@@ -189,7 +190,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, ent
       </section> : null}
 
       <div className={firstStyles.content} hidden={tab !== "groups" && tab !== "privacy"}>
-        <CrewDisplaySettings embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />
+        <CrewDisplaySettings embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />
       </div>
 
       {tab === "requests" ? <section className={styles.utilityGrid}>

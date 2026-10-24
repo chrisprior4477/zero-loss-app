@@ -98,13 +98,14 @@ function refreshCrew() {
 
 export async function saveCrewDisplaySettings(input: {
   discoverable: boolean;
+  discovery?: { real: boolean; email: boolean; phone: boolean };
   defaultRule: CrewVisibilityRule;
   groups: CrewVisibilityGroup[];
   entryRules: Record<string, CrewVisibilityRule>;
 }): Promise<CrewActionResult> {
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to save your Crew sharing settings." };
-  if (!input || typeof input.discoverable !== "boolean" || !isCrewVisibilityRule(input.defaultRule)
+  if (!input || (input.discovery && ![input.discovery.real, input.discovery.email, input.discovery.phone].every(value => typeof value === "boolean")) || typeof input.discoverable !== "boolean" || !isCrewVisibilityRule(input.defaultRule)
     || !Array.isArray(input.groups) || input.groups.length > 500 || !input.groups.every(isCrewVisibilityGroup)
     || !input.entryRules || typeof input.entryRules !== "object" || Array.isArray(input.entryRules)
     || Object.keys(input.entryRules).length > 500
@@ -115,11 +116,12 @@ export async function saveCrewDisplaySettings(input: {
   if (new Set(names).size !== names.length || new Set(input.groups.map((group) => group.id)).size !== input.groups.length) {
     return { ok: false, message: "Give every group a different name." };
   }
-  const { error } = await session.db.rpc("save_crew_visibility_settings", {
+  const { error } = await session.db.rpc("save_crew_display_preferences", {
     p_default_rule: { audience: input.defaultRule.audience, memberIds: input.defaultRule.memberIds, groupIds: input.defaultRule.groupIds },
     p_groups: input.groups.map((group) => ({ id: group.id, name: group.name.trim(), memberIds: group.memberIds, contacts: group.contacts ?? [] })),
     p_entry_rules: Object.fromEntries(Object.entries(input.entryRules).map(([id, rule]) => [id, { audience: rule.audience, memberIds: rule.memberIds, groupIds: rule.groupIds }])),
     p_discoverable: input.discoverable,
+    p_real: input.discovery?.real ?? true, p_email: input.discovery?.email ?? true, p_phone: input.discovery?.phone ?? true,
   });
   if (error) return { ok: false, message: "We couldn’t save those settings. Check that each person is still in your approved Crew, then try again." };
   refreshCrew();

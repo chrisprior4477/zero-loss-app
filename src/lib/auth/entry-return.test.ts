@@ -1,6 +1,13 @@
 import { expect, test } from "vitest";
 import { entryReturnPath, productReturnFromReferer, signInReturnPath } from "./entry-return";
 
+test("shared items survive signup without allowing arbitrary redirects", () => {
+  const shared = "/items/tv?share=11111111-1111-4111-8111-111111111111";
+  expect(signInReturnPath(shared)).toBe(shared);
+  expect(signInReturnPath("/items/tv?shared=1")).toBe("/items/tv?shared=1");
+  for (const invalid of ["https://evil.test" + shared, "/items/tv?share=not-a-token", shared + "&next=https://evil.test", "/items/../account?shared=1"]) expect(signInReturnPath(invalid)).toBeNull();
+});
+
 test("keeps a product entry destination after sign-in", () => {
   expect(entryReturnPath("/items/playstation-5-slim#enter-entry")).toBe(
     "/items/playstation-5-slim#enter-entry",

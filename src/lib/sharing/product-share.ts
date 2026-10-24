@@ -10,11 +10,13 @@ export function isProductShareItem(value: unknown): value is ProductShareItem {
 }
 
 /** Share only the public listing, never the current account/entry URL or query. */
-export function productShareUrl(origin: string, slug: string): string {
+export function productShareUrl(origin: string, slug: string, token?: string | null): string {
   if (!slugPattern.test(slug)) throw new Error("Invalid product");
   const site = new URL(origin);
   if (!["https:", "http:"].includes(site.protocol)) throw new Error("Invalid site");
-  return new URL(`/items/${slug}`, site.origin).href;
+  const url = new URL(`/items/${slug}`, site.origin);
+  if (token && /^[0-9a-f-]{36}$/i.test(token)) url.searchParams.set("share", token);
+  return url.href;
 }
 
 export function productShareText(title: string): string {
@@ -22,8 +24,8 @@ export function productShareText(title: string): string {
 }
 
 /** Windows targets can drop the separate URL field. Keep it in the text too. */
-export function nativeProductShareData(item: ProductShareItem, origin: string, userAgent: string): ShareData {
-  const url = productShareUrl(origin, item.slug);
+export function nativeProductShareData(item: ProductShareItem, origin: string, userAgent: string, token?: string | null): ShareData {
+  const url = productShareUrl(origin, item.slug, token);
   const text = productShareText(item.title);
   return { title: item.title, text: /Windows NT/i.test(userAgent) ? `${text}\n${url}` : text, url };
 }

@@ -1,3 +1,5 @@
+import { SharedProductControls } from "@/components/product/SharedProductControls";
+import { getSharedProductContext } from "@/lib/sharing/receiving-reader";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -18,7 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 
-type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ quantity?: string | string[]; from?: string | string[]; funded?: string | string[] }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[] }> };
 
 export function generateStaticParams() {
   return demoProducts.map((product) => ({ id: product.slug }));
@@ -40,6 +42,8 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const product = getDemoProduct(id);
   if (!product) notFound();
   const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
+  const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
+  const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={sharedContext?.token ?? product.slug} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} /> : null;
   const alreadyResolved = resolvedCatalogSlugs(account?.activity).includes(product.slug);
   const declinedOutcome = account?.activity.activity.some(item => item.slug === product.slug && item.completionOptionStatus === "declined");
   const requestHead: EntryRequestHead = !alreadyResolved && account?.wallet?.scope === "demo" && isPreviewDataEnvironment()
@@ -100,7 +104,8 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
 
         {account ? <div className="mt-3 flex flex-col gap-4 sm:mt-6 sm:gap-8 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)] lg:items-start">
           <div className="contents lg:block">
-            <ProductGallery gallery={product.gallery} title={product.title} slug={product.slug} />
+            {sharedControls}
+          <ProductGallery gallery={product.gallery} title={product.title} slug={product.slug} />
             <div className="order-3 lg:mt-8">{productDetails}</div>
           </div>
 
@@ -114,6 +119,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
             {isPreviewDataEnvironment() && account.wallet?.scope === "demo" && current?.remaining === 0 && !current.repeatableScenario ? <ResetDemoPoolButton slug={product.slug} /> : null}
           </div>
         </div> : <div className="mt-3 grid min-w-0 gap-4 sm:mt-6 sm:gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)] lg:items-start lg:gap-8">
+          {sharedControls}
           <ProductGallery gallery={product.gallery} title={product.title} slug={product.slug} signedOutCompact />
           <div className="min-w-0 space-y-3">
             <div>

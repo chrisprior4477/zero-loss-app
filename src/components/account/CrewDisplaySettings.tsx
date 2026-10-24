@@ -17,6 +17,7 @@ type Props = {
   section?: "all" | "groups" | "privacy";
   available: boolean;
   initialDiscoverable: boolean;
+  initialDiscovery?: { real: boolean; email: boolean; phone: boolean };
   initialDefaultRule: CrewVisibilityRule;
   initialGroups: CrewVisibilityGroup[];
   initialEntryRules: Record<string, CrewVisibilityRule>;
@@ -58,9 +59,10 @@ function AudienceTargets({ rule, onChange, members, groups, prefix }: {
   </div>;
 }
 
-export function CrewDisplaySettings({ available, initialDiscoverable, initialDefaultRule, initialGroups, initialEntryRules, members, sharedPicks, embedded = false, withinAccountSettings = false, section = "all" }: Props) {
+export function CrewDisplaySettings({ available, initialDiscoverable, initialDiscovery, initialDefaultRule, initialGroups, initialEntryRules, members, sharedPicks, embedded = false, withinAccountSettings = false, section = "all" }: Props) {
   const router = useRouter();
   const [discoverable, setDiscoverable] = useState(initialDiscoverable);
+  const [discovery, setDiscovery] = useState(initialDiscovery ?? { real: true, email: true, phone: true });
   const [defaultRule, setDefaultRule] = useState<CrewVisibilityRule>(initialDefaultRule);
   const [groups, setGroups] = useState<CrewVisibilityGroup[]>(initialGroups);
   const [entryRules, setEntryRules] = useState<Record<string, CrewVisibilityRule>>(initialEntryRules);
@@ -81,6 +83,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDef
     groupToReveal.current = null;
   }, [groups]);
 
+  const discoveryFields = <div>{(["display", "real", "email", "phone"] as const).map(key => <label className={styles.discoveryToggle} key={key}><input type="checkbox" disabled={!available || pending} checked={key === "display" ? discoverable : discovery[key]} onChange={e => { if (key === "display") setDiscoverable(e.target.checked); else setDiscovery(current => ({ ...current, [key]: e.target.checked })); setSaved(false); }} /><span><strong>Find me by {({ display: "display name", real: "real name", email: "email address", phone: "phone number" })[key]}</strong><small>{key === "email" || key === "phone" ? "They must enter the full address or number. It is never shown in results." : "Allow matching names in Crew search."}</small></span></label>)}</div>;
   function updateEntryRule(id: string, rule: CrewVisibilityRule | null) {
     setSaved(false);
     setEntryRules((current) => {
@@ -175,7 +178,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDef
     const problem = validate();
     if (problem) { setMessage(problem); setSaved(false); return; }
     startTransition(async () => {
-      const result = await saveCrewDisplaySettings({ discoverable, defaultRule, groups, entryRules }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again." }));
+      const result = await saveCrewDisplaySettings({ discoverable, discovery, defaultRule, groups, entryRules }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again." }));
       setMessage(result.message);
       setSaved(result.ok);
       if (result.ok) {
@@ -194,8 +197,8 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDef
       {!available ? <p role="alert" className={styles.unavailable}>Sharing settings are temporarily unavailable. Nothing has been changed.</p> : null}
 
       {(!embedded || section === "privacy") && section !== "groups" ? <section className={styles.ticket} aria-labelledby="discover-title">
-        <div className={styles.sectionHead}><span className={styles.step}>01</span><div><h2 id="discover-title">Can people find me?</h2><p>This only controls whether your display name appears in Crew search. It never shares your picks or wallet.</p></div></div>
-        <label className={styles.discoveryToggle}><input type="checkbox" checked={discoverable} disabled={!available || pending} onChange={(event) => { setDiscoverable(event.target.checked); setSaved(false); }} /><span><strong>Let other members find my display name in Crew search.</strong><small>Off by default. They still need your approval to join your Crew.</small></span></label>
+        <div className={styles.sectionHead}><span className={styles.step}>01</span><div><h2 id="discover-title">Can people find me?</h2><p>Choose how other members can find you. These are on by default. Search never displays your email or phone number, or shares your picks or wallet.</p></div></div>
+        {discoveryFields}
       </section> : null}
 
       {section !== "groups" ? <section className={styles.ticket} aria-labelledby="default-title">
@@ -257,7 +260,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDef
       </section> : null}
 
       {section !== "groups" ? <section className={styles.ticket} aria-label="Save Crew settings">
-        {embedded && section === "all" ? <label className={styles.inlineDiscovery}><input type="checkbox" checked={discoverable} disabled={!available || pending} onChange={event => { setDiscoverable(event.target.checked); setSaved(false); }} /><span>Let other members find my display name in Crew search.<small>Off by default. This never shares your entries or wallet.</small></span></label> : null}
+        {embedded && section === "all" ? discoveryFields : null}
         <div className={styles.saveRow}><div><h2>Ready to save?</h2><p>Changes take effect when you save to your profile. Removing someone from your Crew ends their access immediately.</p></div><div className={styles.saveActions}>{!embedded ? <Link href="/account/crew#crew-intro">Back to Your Crew</Link> : null}<button type="button" disabled={!available || pending} onClick={save}>{pending ? "Saving…" : "OK · Save to my profile"}</button></div></div>{message ? <p role={saved ? "status" : "alert"} className={saved ? styles.success : styles.error}>{message}</p> : null}</section> : null}
     </div>
   </div>;

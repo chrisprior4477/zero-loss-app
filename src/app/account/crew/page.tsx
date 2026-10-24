@@ -34,7 +34,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     db.from("customer_entries").select("id,offering_slug,created_at").eq("customer_id", account.userId).order("created_at", { ascending: false }).limit(40),
     db.from("crew_entry_shares").select("entry_id").eq("owner_id", account.userId),
     db.rpc("get_crew_member_profiles"),
-    db.from("customer_profiles").select("crew_discoverable").eq("customer_id", account.userId).maybeSingle(),
+    db.from("customer_profiles").select("crew_discoverable,crew_find_real_name,crew_find_email,crew_find_phone").eq("customer_id", account.userId).maybeSingle(),
     db.rpc("get_or_create_crew_invite_link"),
     db.from("crew_visibility_settings").select("default_rule,groups,entry_rules").eq("owner_id", account.userId).maybeSingle(),
   ]);
@@ -83,7 +83,8 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
       name: member.name,
       avatarUrl: member.avatar_reference ? db.storage.from("profile-photos").getPublicUrl(member.avatar_reference).data.publicUrl : null,
     }))}
-    discoverable={Boolean(profileResult.data?.crew_discoverable)}
+    discoverable={profileResult.data?.crew_discoverable ?? true}
+    discovery={{ real: profileResult.data?.crew_find_real_name ?? true, email: profileResult.data?.crew_find_email ?? true, phone: profileResult.data?.crew_find_phone ?? true }}
     entries={entries}
     selectedMemberId={selectedMemberId}
     selectedPicks={(picksResult?.data ?? []) as SharedCrewPick[]}

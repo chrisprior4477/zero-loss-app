@@ -1,3 +1,6 @@
+import { getNotificationSnapshot } from "@/lib/account/notification-snapshot";
+import { NotificationProvider } from "@/components/notifications/NotificationProvider";
+import { ReturnToUpdates } from "@/components/notifications/HeaderNotifications";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -20,7 +23,9 @@ type AppShellProps = {
 export async function AppShell({ children }: AppShellProps) {
   const account = await getAccountContext();
   const favorites = account ? await getFavoriteSnapshot(account.userId) : { slugs: [], available: true };
+  const notifications = account ? await getNotificationSnapshot() : null;
   return (
+    <NotificationProvider key={account?.userId ?? "guest"} initial={notifications} initialEnabled={account?.headerNotificationsEnabled ?? true} initialStyle={account?.notificationBannerStyle ?? "capsule"}>
     <MobileLogoSizeProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialSize={account?.mobileLogoSize ?? 0}>
     <MenuLayoutProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialLayout={account?.menuLayout ?? "classic"} initialTabletLayout={account?.tabletMenuLayout ?? "classic"} initialDesktopLayout={account?.desktopMenuLayout ?? "classic"}>
     <FavoritesProvider initialSlugs={favorites.slugs} isSignedIn={Boolean(account)} available={favorites.available}>
@@ -33,6 +38,7 @@ export async function AppShell({ children }: AppShellProps) {
       </a>
       <SiteHeader />
       <Suspense fallback={null}><SiteBreadcrumbs /></Suspense>
+      <Suspense fallback={null}><ReturnToUpdates /></Suspense>
       <main id="main-content" className="flex-1">
         {children}
       </main>
@@ -45,5 +51,6 @@ export async function AppShell({ children }: AppShellProps) {
     </FavoritesProvider>
     </MenuLayoutProvider>
     </MobileLogoSizeProvider>
+    </NotificationProvider>
   );
 }

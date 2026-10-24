@@ -24,7 +24,12 @@ export function productReturnFromReferer(referer: unknown, requestHost: unknown)
 
 /** Resume only known in-site destinations, never an arbitrary redirect URL. */
 export function signInReturnPath(value: unknown): string | null {
-  return entryReturnPath(value) ?? fundingReturnPath(value) ?? accountReturnPath(value);
+  return sharedProductReturnPath(value) ?? entryReturnPath(value) ?? fundingReturnPath(value) ?? accountReturnPath(value);
+}
+
+export function sharedProductReturnPath(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  return /^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*\?(?:share=[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}|shared=1)$/i.test(value) ? value : null;
 }
 
 /** Carry the same allowlisted destination between account forms. */

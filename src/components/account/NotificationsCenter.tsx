@@ -70,7 +70,7 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
   }
 
   async function saveRead(ids: string[]) {
-    try { return await markNotificationsRead(ids); }
+    try { const result = await markNotificationsRead(ids); if (result.ok) window.dispatchEvent(new Event("zero-loss-notifications-read")); return result; }
     catch { return { ok: false, message: "We couldn’t save your notification status. Please try again." }; }
   }
 

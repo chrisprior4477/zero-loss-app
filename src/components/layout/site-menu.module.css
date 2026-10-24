@@ -3,7 +3,7 @@
 .logo { --mobile-logo-fitted-scale: var(--mobile-logo-scale, 1); flex: 0 1 calc(108.75px * var(--mobile-logo-fitted-scale)); width: calc(108.75px * var(--mobile-logo-fitted-scale)); min-width: 0; }
 /* Cap only the mobile logo in single-row styles, including their phone previews.
    Wide headers use fixed image heights below; the saved size is never changed. */
-.header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"]):has(.accountControls > [data-header-large-balance="true"]) .logo { --mobile-logo-fitted-scale: min(var(--mobile-logo-scale, 1), 1.2); }
+.header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"]):has(.accountControls [data-header-large-balance="true"]) .logo { --mobile-logo-fitted-scale: min(var(--mobile-logo-scale, 1), 1.2); }
 .logo a { display: flex; min-height: 44px; align-items: center; }
 .logo img { display: block; width: 100%; height: auto; }
 .desktopSearch { display: flex; flex: 1; min-width: 0; max-width: 700px; }
@@ -15,11 +15,11 @@
   .header:not([data-menu-layout="search-over"]) .topRow { height: 45px; }
   .accountControls { gap: 6px; }
   /* Scale only the header artwork; retain its space, count and full link target. */
-  .accountControls > a [data-entry-ticket-icon] { transform: scale(.9); transform-origin: center; }
+  .accountControls a [data-entry-ticket-icon] { transform: scale(.9); transform-origin: center; }
   /* Approved 40% reduction of the 10.392px visible gap, including SVG inset. */
-  .accountControls > a [data-entry-ticket-group] { gap: calc(6px - 10.392px * .4); }
-  .accountControls > a [data-entry-ticket-outline="standard"] { display: none; }
-  .accountControls > a [data-entry-ticket-outline="narrow"] { display: inline; }
+  .accountControls a [data-entry-ticket-group] { gap: calc(6px - 10.392px * .4); }
+  .accountControls a [data-entry-ticket-outline="standard"] { display: none; }
+  .accountControls a [data-entry-ticket-outline="narrow"] { display: inline; }
   .desktopSearch { display: none; }
   .mobileSearchRow { display: flex; align-items: center; height: 43px; padding: 1px 10px 6px; gap: 0; border-top: 1px solid #ffffff0a; }
   .header[data-menu-layout="classic"] .mobileSearchRow { height: 40px; padding-bottom: 3px; }
@@ -83,10 +83,10 @@
 @media (min-width: 768px) {
   .header:not([data-menu-preview]) .topRow { height: 60px; gap: 16px; padding: 0 16px; }
   .header:not([data-menu-preview]) .accountControls { gap: 16px; }
-  .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-icon] { transform: none; }
-  .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-group] { gap: 6px; }
-  .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="standard"] { display: inline; }
-  .header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="narrow"] { display: none; }
+  .header:not([data-menu-preview]) .accountControls a [data-entry-ticket-icon] { transform: none; }
+  .header:not([data-menu-preview]) .accountControls a [data-entry-ticket-group] { gap: 6px; }
+  .header:not([data-menu-preview]) .accountControls a [data-entry-ticket-outline="standard"] { display: inline; }
+  .header:not([data-menu-preview]) .accountControls a [data-entry-ticket-outline="narrow"] { display: none; }
   /* Keep the existing wide header during hydration, before viewport size is known. */
   .header:not([data-menu-preview]):is([data-menu-layout="classic"], :not([data-menu-viewport])) .desktopSearch { display: flex; }
   .header:not([data-menu-preview]) .logo { flex: none; width: auto; }

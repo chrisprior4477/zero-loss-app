@@ -67,7 +67,7 @@ test("removes a saved group from the profile within the inline editor", async ()
 test("search discoverability remains separate from pick audience", async () => {
   saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Saved to your profile." });
   render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
-  fireEvent.click(screen.getByLabelText(/Let other members find my display name in Crew search/i));
+  fireEvent.click(screen.getByLabelText(/Find me by display name/i));
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledWith(expect.objectContaining({ discoverable: true, defaultRule: { audience: "everyone", memberIds: [], groupIds: [] } })));
 });

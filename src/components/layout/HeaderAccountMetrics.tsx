@@ -1,5 +1,6 @@
 "use client";
 
+import { HeaderNotifications } from "@/components/notifications/HeaderNotifications";
 import Link from "next/link";
 import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
 import { EntryTicket } from "@/components/layout/EntryTicket";
@@ -37,7 +38,7 @@ export function HeaderAccountMetrics({
   const largeBalance = Number(balance.replace(/[$,]/g, "")) >= 1000;
 
   return (
-    <>
+    <HeaderNotifications>
       <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex min-h-11 min-w-11 items-center text-white hover:opacity-80">
         <EntryTicket count={ticketCount} />
       </Link>
@@ -45,6 +46,6 @@ export function HeaderAccountMetrics({
         <CreditIcon />
         <span className="text-sm font-bold tabular-nums sm:text-xl">{balance}</span>
       </Link>
-    </>
+    </HeaderNotifications>
   );
 }
