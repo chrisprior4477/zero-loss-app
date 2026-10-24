@@ -10,6 +10,7 @@ import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountAc
 import { accountRoutes } from "@/lib/account/navigation";
 import { AccountIcon, type AccountIconName } from "./AccountIcon";
 import { StatusTicket } from "./StatusTicket";
+import { NotificationsLandingScroll } from "./NotificationsLandingScroll";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { FavoriteAlertEmailPreference } from "./FavoriteAlertEmailPreference";
 import { PurchaseOptionEmailPreference } from "./PurchaseOptionEmailPreference";
@@ -114,13 +115,14 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
   }
 
   return <div className={styles.page}>
+    <NotificationsLandingScroll />
     <div className={styles.pageContent}>
       {overview ? <div className={stripStyles.row} aria-label="Your account overview">
         <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
         <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
-      <header ref={headingRef} className={styles.header}>
+      <header id="notifications-intro" ref={headingRef} className={styles.header}>
         <div><h1>Notifications</h1><p>The updates that need your attention.</p></div>
         <div className={styles.headerActions}>
           <button type="button" onClick={markAllRead} disabled={enabledNotifications.length === 0 || enabledNotifications.every((notification) => read.has(notification.id)) || savingRead || !readAvailable}>

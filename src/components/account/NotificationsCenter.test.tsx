@@ -69,6 +69,8 @@ test("mobile filter changes reveal the Notifications section below the sticky si
     render(<NotificationsCenter notifications={[]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
     const heading = screen.getByRole("heading", { name: "Notifications" }).closest("header")!;
     heading.getBoundingClientRect = vi.fn(() => new DOMRect(0, 520, 360, 120));
+    while (frames.length) frames.shift()?.(0);
+    scrollTo.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /Action needed0/ }));
     expect(screen.getByText("No action needed updates")).toBeTruthy();
     frames.shift()?.(0);
