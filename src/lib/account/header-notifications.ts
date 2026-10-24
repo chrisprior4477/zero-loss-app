@@ -1,7 +1,7 @@
 import { openEntriesHref } from "./activity";
 import type { AccountNotification } from "./notifications";
-export type BannerMessage = { label: string; count: number; color: "green" | "orange" | "blue" | "purple"; category?: HeaderCategory };
-export type HeaderCategory = "wins" | "options" | "entries" | "support" | "shared";
+export type BannerMessage = { label: string; count: number; color: "green" | "orange" | "blue" | "purple" | "teal"; category?: HeaderCategory };
+export type HeaderCategory = "wins" | "options" | "entries" | "support" | "shared" | "saved";
 export const headerDestinations = {
   wins: "/account/entries?filter=prize#my-activity-filters",
   options: "/account/entries?filter=completion#my-activity-filters",
@@ -11,8 +11,9 @@ export const headerCategories: { key: HeaderCategory; label: string; color: Bann
   { key: "wins", label: "You won", color: "green" },
   { key: "options", label: "Purchase options", color: "orange" },
   { key: "entries", label: "See open entries", color: "blue" },
-  { key: "support", label: "Support", color: "purple" },
   { key: "shared", label: "Shared picks", color: "blue" },
+  { key: "support", label: "Support tickets", color: "purple" },
+  { key: "saved", label: "Saved items", color: "teal" },
 ];
 export function headerCategory(n: AccountNotification): HeaderCategory | null {
   if (n.id.startsWith("support-")) return "support";
@@ -38,7 +39,7 @@ export function headerCounts(items: AccountNotification[]) {
 export function notificationMessages(notifications: AccountNotification[]): BannerMessage[] {
   const counts = headerCounts(notifications);
   // Open entries remain in the dropdown and ticket link, never in the rotation.
-  return headerCategories.filter(c => c.key !== "entries" && counts[c.key] > 0).map(c => ({ label: c.label === "You won" ? "You won!" : c.label, count: counts[c.key], color: c.color, category: c.key }));
+  return headerCategories.filter(c => c.key !== "entries" && c.key !== "saved" && counts[c.key] > 0).map(c => ({ label: c.label === "You won" ? "You won!" : c.label, count: counts[c.key], color: c.color, category: c.key }));
 }
 export type HeaderEntryGroup = { slug: string; title: string; image?: string; count: number; href: string };
 function productKey(n: AccountNotification) {

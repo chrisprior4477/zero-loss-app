@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveSupportCase, type SupportActionState } from "@/lib/support/actions";
 import styles from "@/components/help/help-tickets.module.css";
+import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 
 const field = `${styles.ticket} ${styles.field}`;
 export function SupportForm({ requestKey, caseId, transactionId, staff = false }: { requestKey: string; caseId?: string; transactionId?: string; staff?: boolean }) {
@@ -22,7 +23,7 @@ export function SupportForm({ requestKey, caseId, transactionId, staff = false }
   const uncertain = state.status === "error" && state.uncertain;
   const locked = pending || uncertain;
   useEffect(() => {
-    if (state.status === "saved") { router.replace(`/support?case=${state.caseId}#conversation`); router.refresh(); }
+    if (state.status === "saved") { window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(`/support?case=${state.caseId}#conversation`); router.refresh(); }
   }, [state, router]);
   if (state.status === "saved") return <div role="status" className={`${styles.ticket} ${styles.note}`}>Your message is saved. <Link className="font-bold underline" href={`/support?case=${state.caseId}#conversation`}>View your case →</Link></div>;
   return <form action={action} className="space-y-4">

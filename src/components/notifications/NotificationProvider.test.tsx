@@ -5,6 +5,8 @@ import { NotificationProvider, useNotifications } from "./NotificationProvider";
 import { HeaderNotifications } from "./HeaderNotifications";
 import Link from "next/link";
 import type { AccountNotification } from "@/lib/account/notifications";
+import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
+import { ENTRY_REQUEST_EVENT } from "@/lib/entries/request";
 const mock = vi.hoisted(() => ({ mark:vi.fn(), restore:vi.fn(), push:vi.fn(), prefetch:vi.fn() }));
 vi.mock("@/lib/account/restore-banner-action", () => ({ restoreNotificationBanner:mock.restore }));
 vi.mock("next/navigation", () => ({ usePathname:()=>"/account/profile", useRouter:()=>({push:mock.push,prefetch:mock.prefetch}), useSearchParams:()=>new URLSearchParams() }));
@@ -70,11 +72,11 @@ test("a completed demo reset immediately removes notifications and ignores an ol
  expect(screen.queryByRole("button",{name:/unread updates/})).toBeNull();
 });
 
-test("MVP dropdown keeps four useful categories and removes the Support button",()=>{
+test("a deployment with support explicitly disabled retains the Saved items shortcut",()=>{
  render(<NotificationProvider initial={{...snapshot,supportEnabled:false,notifications:notifications.filter(n=>!n.id.startsWith("support-"))}} initialStyle="capsule" initialEnabled><HeaderNotifications><Link href="/account/wallet">Balance</Link></HeaderNotifications></NotificationProvider>);
  fireEvent.click(screen.getByRole("button",{name:/3 unread updates/}));
  const nav=screen.getByRole("navigation",{name:"Update categories"});
- expect(within(nav).getAllByRole("button")).toHaveLength(4);
+ expect(within(nav).getAllByRole("button")).toHaveLength(5);
  expect(within(nav).queryByRole("button",{name:/Support/})).toBeNull();
 });
 
@@ -101,4 +103,14 @@ test('an account refresh cannot overwrite the popup currently being tried in set
  fireEvent.click(screen.getByRole('button',{name:'Try ticket'}));
  rerender(app('rounded'));
  expect(screen.getByRole('status').textContent).toBe('ticket');
+});
+test.each(['support','shared','entry'])('a confirmed %s update refreshes immediately without reading it',async(kind)=>{
+ let latest={...snapshot,notifications:[] as AccountNotification[]};
+ const fetcher=vi.fn(async()=>({ok:true,status:200,json:async()=>latest}));vi.stubGlobal('fetch',fetcher);
+ render(<NotificationProvider initial={latest} initialStyle="capsule" initialEnabled><HeaderNotifications><span>Balance</span></HeaderNotifications></NotificationProvider>);
+ await act(async()=>{});
+ latest={...snapshot,notifications:[make(kind==='entry'?'option':kind+'-new',kind==='entry'?'completion':kind==='support'?'account':'crew')]};
+ await act(async()=>{window.dispatchEvent(kind==='entry'?new CustomEvent(ENTRY_REQUEST_EVENT,{detail:{requestId:'new-request',status:'accepted'}}):new Event(NOTIFICATIONS_CHANGED_EVENT));});
+ expect(await screen.findByRole('button',{name:/1 unread updates/})).toBeTruthy();
+ expect(fetcher).toHaveBeenCalledTimes(2);expect(mock.mark).not.toHaveBeenCalled();
 });

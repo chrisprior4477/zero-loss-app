@@ -23,6 +23,17 @@ test('server rendering and prefetching never acknowledge notifications',()=>{
  renderToStaticMarkup(<ActivityNotificationRead filter="completion" available/>);
  expect(mock.markRead).not.toHaveBeenCalled();
 });
+test.each(['prize','completion','active'] as const)('automatic %s receipts never consume the category alerts',filter=>{
+ const {rerender}=render(<ActivityNotificationRead filter={filter} available detailOpen/>);
+ expect(mock.markRead).not.toHaveBeenCalled();
+ rerender(<ActivityNotificationRead filter={filter} available detailOpen={false}/>);
+ expect(mock.markRead).toHaveBeenCalledTimes(1);
+});
+test('a newly arrived outcome is not read before it appears in the activity list',()=>{
+ mock.unread.push(make('new-option','completion'));
+ render(<ActivityNotificationRead filter="completion" available visibleIds={['option']}/>);
+ expect(mock.markRead).toHaveBeenCalledWith(['option']);
+});
 test('an unavailable view and a background tab do not acknowledge unseen content',()=>{
  vi.spyOn(document,'visibilityState','get').mockReturnValue('hidden');
  const {rerender}=render(<ActivityNotificationRead filter="completion" available={false}/>);

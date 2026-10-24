@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PrefetchKind } from "next/dist/client/components/router-reducer/router-reducer-types";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useNotifications } from "./NotificationProvider";
-import { NotificationBanner } from "./NotificationBanner";
+import { NotificationBanner, previewMessages } from "./NotificationBanner";
 import { groupedActivityUpdates, headerCategories, headerCategory, headerCategoryIds, headerCounts, headerDestinations, notificationMessages, notificationDestination, type HeaderCategory } from "@/lib/account/header-notifications";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import styles from "./notifications.module.css";
@@ -14,6 +14,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const keyboardOpened = useRef(false);
   const list = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -37,7 +38,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     element.showModal();
     const before = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { element.close(); document.body.style.overflow = before; opener?.focus({ preventScroll: true }); };
+    return () => { element.close(); document.body.style.overflow = before; if (keyboardOpened.current) opener?.focus({ preventScroll: true }); else opener?.blur(); };
   }, [value?.open]);
   const unread = value?.unread ?? [];
   const all = value?.notifications ?? unread;
@@ -58,6 +59,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     finally { if (!href) setBusy(false); }
   }
   function choose(category: HeaderCategory, acknowledge = false) {
+    if (category === "saved") { void act([], "/account/favorites"); return; }
     setSelected(category);
     if (list.current) list.current.scrollTop = 0;
     if (acknowledge && value && (category === "wins" || category === "options" || category === "entries")) {
@@ -67,6 +69,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     }
   }
   const active = Boolean(value?.enabled && alertCount);
+  const previewing = Boolean(value?.enabled && value.preferencesPreviewActive && !alertCount);
   const current = (selected && categories.some(c => c.key === selected) ? selected : null) ?? categories.find(c => counts[c.key] > 0)?.key ?? "wins";
   const categoryInfo = headerCategories.find(c => c.key === current)!;
   const activityCategory = current === "wins" || current === "options" || current === "entries" ? current : null;
@@ -84,8 +87,9 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   }, [active, preloadKey, prefetch, value?.open]);
   return <>
     <div className={styles.metrics} data-header-metrics>
-      <div className={styles.balances} inert={active ? true : undefined} aria-hidden={active ? true : undefined}>{children}</div>
-      {active ? <button ref={trigger} type="button" className={styles.trigger} aria-label={`${alertCount} unread updates. Open notifications`} aria-haspopup="dialog" aria-expanded={value?.open} onClick={() => { if (bannerCategory) choose(bannerCategory); value?.setOpen(true); }}>
+      <div className={styles.balances} inert={active || previewing ? true : undefined} aria-hidden={active || previewing ? true : undefined}>{children}</div>
+      {previewing ? <div className={styles.samplePreview} role="img" aria-label="Sample notification banner preview. These examples are not account alerts."><NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={previewMessages} /></div> : null}
+      {active ? <button ref={trigger} type="button" className={styles.trigger} aria-label={`${alertCount} unread updates. Open notifications`} aria-haspopup="dialog" aria-expanded={value?.open} onPointerDown={() => { keyboardOpened.current = false; }} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") keyboardOpened.current = true; }} onClick={() => { if (bannerCategory) choose(bannerCategory); value?.setOpen(true); }}>
         {!value?.bannerHidden ? <NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={messages} paused={value?.open} onCategoryChange={setBannerCategory} /> : <span className={styles.dot} />}
       </button> : null}
     </div>

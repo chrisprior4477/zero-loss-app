@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { footerLinkGroups } from "@/lib/navigation";
+import { SendDemoShare } from "@/components/notifications/SendDemoShare";
 
-export function SiteFooter() {
+export function SiteFooter({ demoSharing = false }: { demoSharing?: boolean }) {
   const year = new Date().getFullYear();
 
   return (
@@ -46,6 +47,7 @@ export function SiteFooter() {
                     </Link>
                   </li>
                 ))}
+                {demoSharing && group.title === "Support" ? <li><SendDemoShare /></li> : null}
               </ul>
             </div>
           ))}

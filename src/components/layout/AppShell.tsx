@@ -15,6 +15,7 @@ import { MenuLayoutProvider } from "./MenuLayoutProvider";
 import { MenuLayoutTrialBar } from "./MenuLayoutTrialBar";
 import { MobileLogoSizeProvider } from "./MobileLogoSizeProvider";
 import { MobileLogoSizeTrialBar } from "./MobileLogoSizeTrialBar";
+import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 
 type AppShellProps = {
   children: ReactNode;
@@ -44,7 +45,7 @@ export async function AppShell({ children }: AppShellProps) {
       <main id="main-content" className="flex-1">
         {children}
       </main>
-      <SiteFooter />
+      <SiteFooter demoSharing={isPreviewDataEnvironment() && account?.wallet?.scope === "demo"} />
       <InstallAppPrompt />
       {account ? <Suspense fallback={null}><PendingEntryNotice accountId={account.userId} /></Suspense> : null}
       <MenuLayoutTrialBar />

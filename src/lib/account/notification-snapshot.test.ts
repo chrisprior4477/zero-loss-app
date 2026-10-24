@@ -15,11 +15,11 @@ beforeEach(() => {
    return chain;
  });
 });
-test("MVP omits support notices and skips querying cases entirely", async () => {
+test("MVP includes real support cases without inventing sample cases", async () => {
  const snapshot=await getNotificationSnapshot();
- expect(snapshot?.supportEnabled).toBe(false);
- expect(snapshot?.notifications.some(n=>n.id.startsWith("support-"))).toBe(false);
- expect(mock.from).not.toHaveBeenCalledWith("support_cases");
+ expect(snapshot?.supportEnabled).toBe(true);
+ expect(snapshot?.notifications.some(n=>n.id.startsWith("support-"))).toBe(true);
+ expect(mock.from).toHaveBeenCalledWith("support_cases");
 });
 test("full reset leaves zero notifications including old account, shared and Crew notices", async () => {
  mock.resetAt="2026-10-24T20:00:00Z";

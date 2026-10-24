@@ -5,8 +5,8 @@ import { bannerTiming } from "@/lib/account/banner-style";
 import type { BannerMessage, HeaderCategory } from "@/lib/account/header-notifications";
 import styles from "./notifications.module.css";
 export const previewMessages: BannerMessage[] = [
-  { label: "You won!", count: 2, color: "green" }, { label: "Purchase options", count: 3, color: "orange" },
-  { label: "Shared picks", count: 4, color: "blue" }, { label: "Support", count: 1, color: "purple" },
+  { label: "You won!", count: 1, color: "green" }, { label: "Purchase options", count: 1, color: "orange" },
+  { label: "Shared picks", count: 1, color: "blue" }, { label: "Support tickets", count: 1, color: "purple" },
 ];
 export function NotificationBanner({ style, messages, speed = 5, displaySeconds = 6, paused = false, onCategoryChange }: { style: BannerStyle; messages: BannerMessage[]; speed?: number; displaySeconds?: number; paused?: boolean; onCategoryChange?: (category: HeaderCategory | null) => void }) {
   const [index, setIndex] = useState(0);

@@ -6,16 +6,15 @@ import { getAccountOrders } from "./orders";
 import { createClient } from "@/lib/supabase/server";
 import { supportNotifications } from "@/lib/support/notifications";
 import { parseDemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
-import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 export const getNotificationSnapshot = cache(async () => {
   const account = await getAccountContext();
   if (!account) return null;
   const db = await createClient();
-  const supportEnabled = !isPreviewDataEnvironment();
+  const supportEnabled = true;
   const [crew, support, visibility, alertPreferences, shares, orders] = await Promise.all([
     db.from("crew_invitations").select("id,requester_name,created_at").eq("recipient_id", account.userId).eq("status", "pending").order("created_at", { ascending: false }),
     // Keep explicit ownership even for members who can staff the support inbox.
-    supportEnabled ? db.from("support_cases").select("id,subject,status,updated_at").eq("customer_id", account.userId).order("updated_at", { ascending: false }).limit(50) : Promise.resolve({ data: [], error: null }),
+    db.from("support_cases").select("id,subject,status,updated_at").eq("customer_id", account.userId).order("updated_at", { ascending: false }).limit(50),
     account.wallet?.scope === "demo" ? db.rpc("get_demo_wallet_history_visibility") : Promise.resolve(null),
     db.rpc("get_in_app_alert_preferences"),
     db.rpc("get_received_product_shares"),
@@ -47,7 +46,7 @@ export const getNotificationSnapshot = cache(async () => {
     preferenceKey: "crew_updates" as const,
   }));
   const sharedNotifications = (Array.isArray(shares.data) ? shares.data : []).filter(share => afterReset(share.createdAt)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "A pick shared with you.", meta: "Shared pick", href: `/items/${encodeURIComponent(share.slug)}?share=${encodeURIComponent(share.token)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
-  const notifications = [...sharedNotifications, ...supportNotifications(support.data), ...crewNotifications,
+  const notifications = [...sharedNotifications, ...supportNotifications((support.data ?? []).filter(row => afterReset(row.updated_at))), ...crewNotifications,
     ...buildOrderNotifications(orders?.orders ?? []),
     ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed, hiddenWalletIds)
       // The reset already archives entries, orders and ledger records atomically.

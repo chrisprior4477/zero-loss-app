@@ -6,6 +6,7 @@ import { AccountIcon } from "./AccountIcon";
 import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
 import { MyActivityLandingScroll } from "./MyActivityLandingScroll";
 import { ActivityNotificationRead } from "@/components/notifications/ActivityNotificationRead";
+import { buildAccountNotifications } from "@/lib/account/notifications";
 import styles from "./my-activity.module.css";
 import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 import type { EntryRequest } from "@/lib/entries/request";
@@ -36,7 +37,7 @@ export function MyZeroLossActivity({ state, filter, metricsBySlug = {}, pendingE
   const items = winnerFirst(filterActivity(verifiedState.activity, filter));
   const pendingOnly = pendingEntries.length > 0 && allItems.length === 0 && (filter === "all" || filter === "active");
   return <section data-activity-source={state.source}>
-    <ActivityNotificationRead filter={filter} available={state.source !== "unavailable"} />
+    <ActivityNotificationRead filter={filter} available={state.source !== "unavailable"} detailOpen={Boolean(selectedSlug || selectedEntryId || resumePurchase)} visibleIds={buildAccountNotifications({ ...verifiedState, activity: items }, null, false).map(notification => notification.id)} />
     <MyActivityLandingScroll filter={filter} revealControls={items.length === 0 && !pendingOnly} enabled={!selectedSlug && !selectedEntryId && !viewedEntryId && !returnToOptions && !resumePurchase} />
     <nav id={openEntriesAnchorId} aria-label="Filter My Activity" className={styles.filters}>
       {activityFilters.map(([key, label]) => <Link key={key} href={key === "active" ? openEntriesHref : key === "all" ? "/account/entries" : `/account/entries?filter=${key}`} scroll={key === "active"} aria-current={filter === key ? "page" : undefined} data-filter={key} className={styles.filter}><AccountIcon name={key} /><span>{label}</span><span className={styles.filterCount}>{state.source === "unavailable" ? "—" : filterActivity(state.activity, key).length}</span></Link>)}

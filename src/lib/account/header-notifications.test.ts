@@ -7,7 +7,7 @@ test("routine wallet records and open entries alone do not cover the normal tick
 });
 test("open entries stay in the dropdown but never rotate, even alongside support", () => {
   expect(notificationMessages([make("active-1", "active"), make("support-case", "account"), make("wallet-debit", "wallet")])).toEqual([
-    { label: "Support", count: 1, color: "purple", category:"support" },
+    { label: "Support tickets", count: 1, color: "purple", category:"support" },
   ]);
   expect(headerCounts([make("active-1","active")]).entries).toBe(1);
 });
@@ -30,15 +30,15 @@ test("opening open entries acknowledges all entry notifications and their bookke
   const items = [make("active-1", "active"), make("active-2", "active"), make("wallet-hold", "wallet", { ledgerEntryType: "ENTRY_HOLD" }), make("support-1", "account")];
   expect(headerCategoryIds(items,"entries")).toEqual(["active-1","active-2","wallet-hold"]);
 });
-test("exactly five categories exclude purchased cards and completed purchases", () => {
-  expect(headerCategories.map(c=>c.label)).toEqual(["You won","Purchase options","See open entries","Support","Shared picks"]);
+test("exactly six categories exclude purchased cards and completed purchases", () => {
+  expect(headerCategories.map(c=>c.label)).toEqual(["You won","Purchase options","See open entries","Shared picks","Support tickets","Saved items"]);
   expect(notificationMessages([make("reward-paid", "reward", { rewardSource: "purchase" }),make("order-one","order")])).toEqual([]);
   expect(headerDestinations).toEqual({ wins:"/account/entries?filter=prize#my-activity-filters", options:"/account/entries?filter=completion#my-activity-filters", entries:"/account/entries?filter=active#my-activity-filters" });
 });
 test("clearing wins leaves options, support, and shared picks available in the banner", () => {
  const items=[make("win","reward"),make("option","completion"),make("support-one","account"),make("shared-one","crew")];
  const ids=headerCategoryIds(items,"wins");
- expect(notificationMessages(items.filter(n=>!ids.includes(n.id))).map(m=>m.category)).toEqual(["options","support","shared"]);
+ expect(notificationMessages(items.filter(n=>!ids.includes(n.id))).map(m=>m.category)).toEqual(["options","shared","support"]);
 });
 test("win cards group products and deduplicate deadline alerts", () => {
  const a=make("reward-1","reward",{itemTitle:"TV",itemSlug:"tv",entryId:"one",image:"/tv.png"});
