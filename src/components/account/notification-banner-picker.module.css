@@ -3,3 +3,5 @@
 @media(max-width:390px) { .preview { gap:4px; padding-inline:5px; }.logo { font-size:11px; }.avatar { display:none; }.region { width:160px; } }
 
 .toggle { display:flex; gap:12px; align-items:flex-start; margin-top:20px; padding:16px; background:#e8f5ff; border-radius:14px; color:#102b4d; }.toggle input { width:22px; height:22px; margin-top:2px; accent-color:#057fff; flex:none; }.toggle strong,.toggle small { display:block; }.toggle small { margin-top:5px; color:#4b6c86; line-height:1.5; }
+
+.region { flex:0 1 165px; min-width:0; }.balance { gap:5px; }.balance svg { width:34px; height:22px; }.logo img { display:block; width:72px; height:auto; }.preview { pointer-events:none; }

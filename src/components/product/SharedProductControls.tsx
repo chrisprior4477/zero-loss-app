@@ -50,7 +50,7 @@ export function SharedProductControls({ slug, initial, signedIn }: { slug: strin
     {context ? <p>Shared by <strong>{context.sender}</strong>{context.isGroup ? ` · ${context.scope}` : ""}</p> : <p>A pick shared with you</p>}
     <div className={styles.buttons}>
       <button type="button" disabled={favorites.busySlug === slug} onClick={() => { if (!signedIn) signIn(); else favorites.toggle(slug); }}>{favorites.slugs.includes(slug) ? "✓ Saved item" : "♡ Save item"}</button>
-      <button type="button" disabled={busy} onClick={() => { if (!signedIn) signIn(); else if (context) setDialogKind("membership"); else setMessage("This older link doesn’t identify a Crew. Manage your memberships in Your Crew."); }}>{context?.receiving ? `Leave ${scope}` : `Join${context?.hasChoice ? " again:" : ""} ${scope}`}</button>
+      <button type="button" disabled={busy} onClick={() => { if (!signedIn) signIn(); else if (context) setDialogKind("membership"); else setMessage("This older link doesn’t identify a Crew. Manage your memberships in Your Crew."); }}>{context?.receiving ? `Leave ${scope}` : `${context?.hasChoice ? "Rejoin" : "Join"} ${scope}`}</button>
       <button type="button" onClick={() => { if (!signedIn) signIn(); else { setReceive(context?.receiving ?? true); setShareBack(context?.shareBack ?? false); setDialogKind("options"); } }}>Sharing options</button>
     </div>
     {message && !dialogKind ? <p role="status" className={styles.status}>{message}</p> : null}

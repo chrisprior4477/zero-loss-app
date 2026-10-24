@@ -9,7 +9,7 @@
 .reveal { display:block; height:100%; animation:center-reveal 8.2s linear both; }
 .surface { height:100%; display:flex; align-items:center; justify-content:center; gap:5px; padding:0 7px; background:var(--color); color:var(--ink); font-weight:900; font-size:clamp(10px,7cqi,14px); white-space:nowrap; }
 .symbol { font-size:1.1em; }
-.label { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.label { min-width:0; white-space:normal; line-height:1.05; text-align:center; }
 .count { display:grid; place-items:center; flex:none; width:22px; height:22px; border-radius:50%; color:#000; background:#fff; font-size:12px; font-variant-numeric:tabular-nums; }
 .artwork[data-style="capsule"] .surface { border-radius:99px; box-shadow:inset 0 1px 2px #ffffffb0,0 0 9px color-mix(in srgb,var(--color) 65%,transparent); background:linear-gradient(110deg,color-mix(in srgb,var(--color) 75%,white),var(--color) 70%); }
 .artwork[data-style="ribbon"] .surface { clip-path:polygon(0 12%,6% 12%,6% 0,94% 0,94% 12%,100% 12%,96% 50%,100% 88%,94% 88%,94% 100%,6% 100%,6% 88%,0 88%,4% 50%); padding-inline:10px; background:linear-gradient(0deg,color-mix(in srgb,var(--color) 75%,#082143) 0 12%,var(--color) 12% 87%,color-mix(in srgb,var(--color) 70%,white) 87%); }

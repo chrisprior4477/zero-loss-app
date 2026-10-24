@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
+import { EntryTicket } from "@/components/layout/EntryTicket";
 import { bannerStyles, bannerStyleNames, type BannerStyle } from "@/lib/account/banner-style";
 import { saveNotificationBanner } from "@/lib/account/banner-actions";
 import { NotificationBanner, previewMessages } from "@/components/notifications/NotificationBanner";
@@ -29,7 +31,7 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled }: { ini
       {bannerStyles.map((style, i) => <label className={styles.option} data-selected={choice === style} key={style}>
         <input type="radio" name="notification-banner-style" value={style} checked={choice === style} onChange={() => { setChoice(style); setMessage(""); }} />
         <span className={styles.name}>{i + 1}. {bannerStyleNames[style]}</span>
-        <span className={styles.preview}><span className={styles.logo}>ZERØ<span>LØSS</span></span><span className={styles.region}><span className={styles.balance}>▱ 59 ◉ $978</span><NotificationBanner style={style} messages={previewMessages} /></span><span className={styles.avatar}>CP</span></span>
+        <span className={styles.preview} aria-hidden="true"><span className={styles.logo}><Image src="/zeroloss-logo.svg" width={82} height={16} alt="" /></span><span className={styles.region}><span className={styles.balance}><EntryTicket count={59} /><span>◉ $978</span></span><NotificationBanner style={style} messages={previewMessages} /></span><span className={styles.avatar}>CP</span></span>
       </label>)}
     </fieldset>
     <p className={styles.note}>Preview counts are examples. Your banner shows your own unread updates.</p>

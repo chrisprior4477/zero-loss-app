@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { HeaderAccountMetrics } from "./HeaderAccountMetrics";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 afterEach(cleanup);
 const activityState = { activeCount: 17, activity: [], source: "stored" as const, isPreview: false };

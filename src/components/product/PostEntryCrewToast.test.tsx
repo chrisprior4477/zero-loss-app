@@ -213,7 +213,16 @@ test("manual item sharing uses approved recipient ids without creating an entry"
   mocks.prize.mockResolvedValue({ ok: true, message: "Saved for email delivery." });
   render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />); await audiences();
   fireEvent.click(screen.getByRole("button", { name: "Send item to Crew" }));
-  await waitFor(() => expect(mocks.prize).toHaveBeenCalledWith(request.slug, [memberId])); expect(mocks.share).not.toHaveBeenCalled();
+  await waitFor(() => expect(mocks.prize).toHaveBeenCalledWith(request.slug, [memberId], null)); expect(mocks.share).not.toHaveBeenCalled();
+});
+
+test("manual group shares keep their group identity in the recipient link", async () => {
+  mocks.prize.mockResolvedValue({ ok: true, message: "Saved for email delivery." });
+  render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />);
+  await audiences();
+  fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" }));
+  fireEvent.click(screen.getByRole("button", { name: "Send item to Crew" }));
+  await waitFor(() => expect(mocks.prize).toHaveBeenCalledWith(request.slug, [memberId], groupId));
 });
 
 test("server failure remains retryable without claiming success", async () => {

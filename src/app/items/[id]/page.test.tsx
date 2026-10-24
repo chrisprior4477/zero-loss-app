@@ -7,6 +7,7 @@ vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
 vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailability: mocks.availability }));
 vi.mock("@/lib/entries/request-head", () => ({ getEntryRequestHead: mocks.requestHead }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/sharing/receiving-reader", () => ({ getSharedProductContext: vi.fn(async () => null) }));
 vi.mock("@/components/product/DemoParticipationPanel", () => ({ DemoParticipationPanel: () => <div>Entry form</div> }));
 vi.mock("@/components/product/ProductGallery", () => ({ ProductGallery: () => <div>Product gallery</div> }));
 vi.mock("@/components/product/GiftCardFulfillmentNotice", () => ({ GiftCardFulfillmentNotice: () => null, SignedOutRewardSummary: () => null }));

@@ -241,7 +241,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     await run(async () => {
       const recipients = audience ? selectedGroup?.memberIds ?? [] : members.map(member => member.id);
       if (!request && recipients.length > 20) { feedback("For email sharing, choose a group of 20 or fewer approved members.", true); return; }
-      const result = request ? await shareConfirmedEntryWithCrew(request.requestId, audience || null) : await sharePrizeWithCrew(item.slug, recipients);
+      const result = request ? await shareConfirmedEntryWithCrew(request.requestId, audience || null) : await sharePrizeWithCrew(item.slug, recipients, audience || null);
       if (alive.current) { feedback(result.message, !result.ok); setShared(result.ok); }
     });
   }

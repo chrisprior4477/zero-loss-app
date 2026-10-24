@@ -5,7 +5,7 @@ import { parse } from "postcss";
 const css = readFileSync("src/components/layout/site-menu.module.css", "utf8");
 
 test("only single-row headers cap the displayed mobile logo for a large balance", () => {
-  const selector = '.header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"]):has(.accountControls > [data-header-large-balance="true"]) .logo';
+  const selector = '.header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"]):has(.accountControls [data-header-large-balance="true"]) .logo';
   expect(declarations(selector)["--mobile-logo-fitted-scale"]).toBe("min(var(--mobile-logo-scale, 1), 1.2)");
   expect(declarations(".logo")["--mobile-logo-fitted-scale"]).toBe("var(--mobile-logo-scale, 1)");
   expect(declarations(".logo").width).toBe("calc(108.75px * var(--mobile-logo-fitted-scale))");
@@ -95,7 +95,7 @@ test("the header shortcut stays orange and wide screens retain Classic until vie
 });
 
 test("all mobile header styles scale only the ticket artwork without changing its layout box", () => {
-  expect(declarations(".accountControls > a [data-entry-ticket-icon]")).toEqual({
+  expect(declarations(".accountControls a [data-entry-ticket-icon]")).toEqual({
     transform: "scale(.9)",
     "transform-origin": "center",
   });
@@ -103,22 +103,22 @@ test("all mobile header styles scale only the ticket artwork without changing it
 
 test("desktop keeps the original ticket size while mobile previews keep the reduction", () => {
   const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
-  expect(desktop?.toString()).toContain(".header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-icon] { transform: none; }");
+  expect(desktop?.toString()).toContain(".header:not([data-menu-preview]) .accountControls a [data-entry-ticket-icon] { transform: none; }");
 });
 
 test("all mobile headers select the narrower outline without affecting drawer tickets", () => {
-  expect(declarations('.accountControls > a [data-entry-ticket-outline="standard"]')).toEqual({ display: "none" });
-  expect(declarations('.accountControls > a [data-entry-ticket-outline="narrow"]')).toEqual({ display: "inline" });
+  expect(declarations('.accountControls a [data-entry-ticket-outline="standard"]')).toEqual({ display: "none" });
+  expect(declarations('.accountControls a [data-entry-ticket-outline="narrow"]')).toEqual({ display: "inline" });
 });
 
 test("mobile tickets use the approved 40 percent closer gap and desktop retains its spacing", () => {
-  expect(declarations('.accountControls > a [data-entry-ticket-group]')).toEqual({ gap: "calc(6px - 10.392px * .4)" });
+  expect(declarations('.accountControls a [data-entry-ticket-group]')).toEqual({ gap: "calc(6px - 10.392px * .4)" });
   const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
-  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-group] { gap: 6px; }');
+  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls a [data-entry-ticket-group] { gap: 6px; }');
 });
 
 test("desktop restores the standard outline while mobile previews remain narrow", () => {
   const desktop = parse(css).nodes.find(node => node.type === "atrule" && node.name === "media" && node.params === "(min-width: 768px)");
-  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="standard"] { display: inline; }');
-  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls > a [data-entry-ticket-outline="narrow"] { display: none; }');
+  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls a [data-entry-ticket-outline="standard"] { display: inline; }');
+  expect(desktop?.toString()).toContain('.header:not([data-menu-preview]) .accountControls a [data-entry-ticket-outline="narrow"] { display: none; }');
 });

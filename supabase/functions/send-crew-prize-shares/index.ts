@@ -114,6 +114,7 @@ Deno.serve(async request => {
         continue;
       }
       const offerUrl = new URL(`/items/${encodeURIComponent(String(payload.slug))}`, origin);
+      if (typeof payload.shareToken === "string" && /^[0-9a-f-]{36}$/i.test(payload.shareToken)) offerUrl.searchParams.set("share", payload.shareToken);
       const message = renderCrewPrizeShareEmail({
         senderName: String(payload.senderName), title: String(payload.title), offerHref: offerUrl.toString(),
       });
