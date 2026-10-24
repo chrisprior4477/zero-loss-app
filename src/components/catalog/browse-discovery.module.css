@@ -30,8 +30,10 @@
 .pickerSearch input:focus { background: #fff; color: #0a1741; }
 .pickerSearch input::placeholder { color: #536d8b; }
 .pickerSearch input:focus::placeholder { color: #536d8b; }
-.wheel { flex: 1; min-height: 120px; height: min(390px, 48dvh); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; scroll-snap-type: y proximity; scrollbar-width: thin; scrollbar-color: #8bdfff #123d65; padding: 2px 5px 8px 2px; }
-.choice { display: flex; width: 100%; min-height: 66px; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; padding: 12px 22px; border: 0; border-radius: 12px; background: #bfeeff; color: #0a1741; text-align: left; font-size: 17px; font-weight: 850; cursor: pointer; scroll-snap-align: start; }
+/* Both pickers use native momentum scrolling. Row snapping pulls against a
+   finger swipe and prevents the free glide of a long retailer list. */
+.wheel { flex: 1; min-height: 120px; height: min(390px, 48dvh); overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scroll-snap-type: none; scroll-behavior: auto; scrollbar-width: thin; scrollbar-color: #8bdfff #123d65; padding: 2px 5px 8px 2px; }
+.choice { display: flex; width: 100%; min-height: 66px; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; padding: 12px 22px; border: 0; border-radius: 12px; background: #bfeeff; color: #0a1741; text-align: left; font-size: 17px; font-weight: 850; cursor: pointer; }
 .choice[aria-current="true"] { background: #31e800; }
 .choice:hover { filter: brightness(1.08); }
 .choice small { display: block; margin-top: 3px; color: #244e70; font-size: 12px; font-weight: 550; }
