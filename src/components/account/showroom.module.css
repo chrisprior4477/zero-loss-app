@@ -340,6 +340,8 @@
 .purchaseSummary .optionControls button[data-primary="true"]:hover:not(:disabled) { background: #ff9a40; }
 .purchaseSummary .optionControls button:hover:not(:disabled) { background: #fff0e2; }
 .purchaseSummary .optionControls button[data-confirm-purchase="true"] { border-color: #31e800; background: #31e800; color: #062218; }
+.optionControls button[data-decline-option="true"], .purchaseSummary .optionControls button[data-decline-option="true"] { border-color: #087bff; background: #087bff; color: #fff; }
+.optionControls button[data-decline-option="true"]:hover:not(:disabled), .purchaseSummary .optionControls button[data-decline-option="true"]:hover:not(:disabled) { background: #0064df; }
 .purchaseSummary .optionControls button[data-confirm-purchase="true"]:hover:not(:disabled) { background: #65f33d; }
 .purchaseSummary .optionControls section { padding: 14px; border: 1px solid #f5c39c; border-radius: 10px; background: #fff6ed; }
 .purchaseSummary .optionControls h3, .purchaseSummary .optionControls p { color: #101b4e; }

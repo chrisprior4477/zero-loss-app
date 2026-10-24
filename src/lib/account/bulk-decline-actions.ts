@@ -44,7 +44,7 @@ export async function declineAllDemoPurchaseOptions(slug: string): Promise<BulkD
   }
   const options = account.activity.activity.filter(item => item.slug === slug && item.status === "completion" && item.completionOptionStatus !== "declined");
   if (options.length === 0) return { status: "error", message: "There are no available demo offers to decline.", optionIds: [] };
-  if (options.length > 500 || options.some(item => !item.completionOptionId || !uuidPattern.test(item.completionOptionId))) {
+  if (options.some(item => !item.completionOptionId || !uuidPattern.test(item.completionOptionId))) {
     return { status: "error", message: "These offers could not all be verified. Refresh and check their current status.", optionIds: [] };
   }
   const optionIds = options.map(item => item.completionOptionId!);
@@ -56,7 +56,7 @@ export async function declineAllDemoPurchaseOptions(slug: string): Promise<BulkD
 }
 
 export async function undoBulkDemoPurchaseOptions(optionIds: string[]): Promise<BulkDeclineResult> {
-  if (!isPreviewDataEnvironment() || !Array.isArray(optionIds) || optionIds.length === 0 || optionIds.length > 500 || optionIds.some(id => typeof id !== "string" || !uuidPattern.test(id))) {
+  if (!isPreviewDataEnvironment() || !Array.isArray(optionIds) || optionIds.length === 0 || optionIds.some(id => typeof id !== "string" || !uuidPattern.test(id))) {
     return { status: "error", message: "These demo offers could not be restored. Check Declined Offers.", optionIds: [] };
   }
   const { confirmed, failed } = await runOptionAction([...new Set(optionIds)], "revive");

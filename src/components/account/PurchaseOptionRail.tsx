@@ -3,14 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
 import { declineAllDemoPurchaseOptions, undoBulkDemoPurchaseOptions } from "@/lib/account/bulk-decline-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
+import { PurchaseQuantityPicker } from "./PurchaseQuantityPicker";
+import { completeDemoPurchaseOptions, type BulkPurchaseRequest, type BulkPurchaseResult } from "@/lib/account/bulk-purchase-actions";
+import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
+import { fundingHref } from "@/lib/wallet/funding-navigation";
 import styles from "./purchase-options.module.css";
 
-export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, initiallyConfirmDecline = false, canBulkDecline = false }: { title: string; options: ActivityItem[]; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean; canBulkDecline?: boolean }) {
+export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, initiallyConfirmDecline = false, canBulkDecline = false, showSummary = false }: { title: string; options: ActivityItem[]; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean; canBulkDecline?: boolean; showSummary?: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set([initiallySelectedEntryId && options.some(option => option.entryId === initiallySelectedEntryId) ? initiallySelectedEntryId : options[0]?.entryId].filter((id): id is string => Boolean(id))));
   const [bulkPhase, setBulkPhase] = useState<"idle" | "confirm" | "working" | "undo" | "undoing" | "error">(initiallyConfirmDecline && canBulkDecline ? "confirm" : "idle");
@@ -19,6 +23,60 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   const [undoUntil, setUndoUntil] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(30);
   const count = options.length;
+  const [declineRest, setDeclineRest] = useState(true);
+  const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
+  const [purchaseResult, setPurchaseResult] = useState<BulkPurchaseResult | null>(null);
+  const [purchasePending, startPurchase] = useTransition();
+  const purchaseInFlight = useRef(false);
+  const reviewRef = useRef<HTMLDivElement>(null);
+  const selectedOptions = options.filter(option => option.entryId && selected.has(option.entryId));
+  const totalCents = selectedOptions.reduce((total, option) => total + option.remainingCents, 0);
+  const canPurchase = canBulkDecline && options.every(option => Boolean(option.completionOptionId));
+  const purchaseLocked = purchasePending || purchaseResult?.status === "succeeded" || (purchaseResult?.status === "error" && purchaseResult.recovery === "check");
+  const item = options[0];
+
+  useEffect(() => {
+    if (purchaseRequest) { reviewRef.current?.focus(); reviewRef.current?.scrollIntoView?.({ block: "center" }); }
+  }, [purchaseRequest]);
+
+  function changeQuantity(quantity: number) {
+    if (purchaseLocked) return;
+    setSelected(previous => {
+      const ids = options.filter(option => option.entryId && previous.has(option.entryId)).map(option => option.entryId!).slice(0, quantity);
+      for (const option of options) { if (ids.length >= quantity) break; if (option.entryId && !ids.includes(option.entryId)) ids.push(option.entryId); }
+      return new Set(ids);
+    });
+  }
+
+  function reviewPurchases() {
+    if (!canPurchase || purchaseLocked || !selectedOptions.length) return;
+    setPurchaseResult(null);
+    setPurchaseRequest({ slug: item.slug, purchaseIds: selectedOptions.map(option => option.completionOptionId!),
+      declineIds: declineRest ? options.filter(option => !selected.has(option.entryId!)).map(option => option.completionOptionId!) : [],
+      totalCents, requestId: crypto.randomUUID(), confirmed: true });
+  }
+
+  function confirmPurchases() {
+    if (!purchaseRequest || purchaseInFlight.current || purchaseLocked) return;
+    purchaseInFlight.current = true;
+    startPurchase(async () => {
+      try {
+        const result = await completeDemoPurchaseOptions(purchaseRequest);
+        setPurchaseResult(result);
+        if (result.status === "succeeded") {
+          window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+          router.replace(result.href);
+          router.refresh();
+        }
+      } catch {
+        setPurchaseResult({ status: "error", recovery: "check", message: "The connection was interrupted. Check your purchases before trying again; they may already be saved." });
+      } finally { purchaseInFlight.current = false; }
+    });
+  }
+
+  const quantityPicker = canPurchase && selected.size > 0 ? <PurchaseQuantityPicker quantity={selected.size} count={count} totalCents={totalCents}
+    declineRest={declineRest} disabled={purchaseLocked || bulkPhase !== "idle" || Boolean(purchaseRequest)} onQuantity={changeQuantity}
+    onDeclineRest={setDeclineRest} onContinue={reviewPurchases} /> : null;
 
   useEffect(() => {
     if (undoUntil === null) return;
@@ -36,8 +94,10 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   }, [undoUntil, router]);
 
   function toggle(entryId: string) {
+    if (purchaseLocked || purchaseRequest) return;
     setSelected(previous => {
       const next = new Set(previous);
+      if (canPurchase && next.size === 1 && next.has(entryId)) return previous;
       if (next.has(entryId)) next.delete(entryId);
       else next.add(entryId);
       return next;
@@ -81,18 +141,40 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
     }
   }
 
-  return <section id="purchase-option-rail" className={styles.rail} aria-label={`Your separate purchase options for ${title}`}>
+  return <>
+    {showSummary ? <section className={styles.hero} aria-label="Purchase option summary">
+      <div className={styles.heroImage}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100px, (max-width: 900px) 150px, 190px" /></div>
+      <div className={styles.heroCopy}><p className={styles.retailer}>{item.retailer}</p><h2>{title}</h2><span className={styles.status}>Purchase options available</span>
+        <p className={styles.heroNote}>Each entry’s credit applies only to its own purchase option.</p></div>
+      <div className={styles.heroBulkControls}>
+        <a href="#purchase-option-rail" className={styles.heroCount}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></a>
+        {quantityPicker}
+        {canBulkDecline ? <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked || bulkPhase !== "idle" || Boolean(purchaseRequest)} onClick={() => { setBulkPhase("confirm"); document.getElementById("purchase-option-rail")?.scrollIntoView({ block: "center" }); }}>Decline all offers</button> : null}
+      </div>
+    </section> : null}
+    <section id="purchase-option-rail" className={styles.rail} aria-label={`Your separate purchase options for ${title}`}>
     <div className={styles.railHeading}>
       <h2>Your {count} purchase {count === 1 ? "option" : "options"}</h2>
-      <p>Tap any numbered ticket to see its own purchase details. You can open more than one.</p>
+      <p>{canPurchase ? "Choose a quantity or tap the exact tickets you want to purchase." : "Tap any numbered ticket to see its own purchase details. You can open more than one."}</p>
     </div>
+    {bulkPhase === "idle" ? <div className={styles.railQuantity}>{quantityPicker}</div> : null}
+    {purchaseRequest ? <div ref={reviewRef} tabIndex={-1} className={styles.purchaseConfirmation} role="group" aria-label="Confirm selected purchases" onKeyDown={event => { if (event.key === "Escape" && !purchaseLocked) { setPurchaseRequest(null); setPurchaseResult(null); } }}>
+      <h3>Confirm your purchases</h3>
+      <p>{purchaseRequest.purchaseIds.length} separate retailer gift {purchaseRequest.purchaseIds.length === 1 ? "card" : "cards"} for {title}.</p>
+      <p><strong>{formatUsdFromCents(purchaseRequest.totalCents)} from your playable wallet.</strong> Each entry’s credit applies only to its own option.</p>
+      <p>{purchaseRequest.declineIds.length ? `The other ${purchaseRequest.declineIds.length} offers will be declined only after all selected purchases succeed.` : "Your other offers stay available until their original deadlines."}</p>
+      <p>Sample — not redeemable. No real payment or product shipment.</p>
+      <button type="button" className={styles.makePurchases} disabled={purchaseLocked} onClick={confirmPurchases}>{purchasePending ? "Saving your purchases…" : `Confirm ${formatUsdFromCents(purchaseRequest.totalCents)} purchase${purchaseRequest.purchaseIds.length === 1 ? "" : "s"}`}</button>
+      <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked} onClick={() => { setPurchaseRequest(null); setPurchaseResult(null); }}>Cancel</button>
+      {purchaseResult?.status === "error" ? <div role="alert"><p>{purchaseResult.message}</p>{purchaseResult.recovery === "balance" ? <Link href={fundingHref(item.slug, selectedOptions[0]?.entryId ?? undefined)}>Add funds →</Link> : null}{purchaseResult.recovery === "check" ? <a href={`/account/purchase-options/${encodeURIComponent(item.slug)}`}>Reload purchase status →</a> : null}<Link href="/account/wallet">Check Gift Cards & Rewards →</Link></div> : null}
+    </div> : null}
     {bulkPhase === "confirm" ? <div className={styles.bulkPanel} role="group" aria-label="Confirm declining all offers"><strong>Decline all {count} offers for {title}?</strong><p>They will leave your active purchase options. Your original entries and wallet history will not be refunded or removed.</p><div className={styles.bulkButtons}><button type="button" onClick={() => void declineAll()}>Confirm decline all</button><button type="button" onClick={() => { setBulkPhase("idle"); router.replace(`/account/purchase-options/${encodeURIComponent(options[0].slug)}`); }}>Keep my offers</button></div></div> : null}
     {bulkPhase === "working" || bulkPhase === "undo" || bulkPhase === "undoing" || bulkPhase === "error" ? <div className={styles.bulkPanel} role="status"><div className={styles.bulkStatus}><div><strong>{bulkPhase === "working" ? "Declining your offers…" : bulkPhase === "undoing" ? "Restoring your offers…" : bulkPhase === "undo" ? "Offers declined · Undo available" : "Check your offers"}</strong><p>{bulkMessage}</p></div>{bulkPhase === "undo" ? <EntryUndoCountdown seconds={secondsLeft} /> : null}</div>{bulkPhase === "undo" ? <button type="button" className={styles.undoAll} onClick={() => void undoAll()} disabled={secondsLeft === 0}>Undo decline all</button> : null}{bulkPhase === "error" ? <Link href="/account/declined-offers">Check Declined Offers →</Link> : null}</div> : null}
     {bulkPhase === "idle" ? <div className={styles.compactTickets} aria-label="Choose purchase options">
       {options.map((option, index) => {
         const entryId = option.entryId!;
         const isSelected = selected.has(entryId);
-        return <button key={entryId} type="button" className={styles.compactTicket} data-selected={isSelected} aria-expanded={isSelected} aria-label={`${isSelected ? "Hide" : "Show"} purchase option ${index + 1} of ${count}`} onClick={() => toggle(entryId)}><small>OPTION</small><strong>{index + 1}</strong></button>;
+        return <button key={entryId} type="button" className={styles.compactTicket} data-selected={isSelected} aria-expanded={isSelected} disabled={purchaseLocked || Boolean(purchaseRequest)} aria-label={`${isSelected ? "Hide" : "Show"} purchase option ${index + 1} of ${count}`} onClick={() => toggle(entryId)}><small>OPTION</small><strong>{index + 1}</strong></button>;
       })}
     </div> : null}
     {bulkPhase === "idle" && selected.size > 0 ? <div className={`${styles.optionList} ${selected.size === 1 ? styles.singleOptionList : ""}`} aria-label="Selected purchase option details">
@@ -112,5 +194,5 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
         </article>;
       })}
     </div> : null}
-  </section>;
+  </section></>;
 }

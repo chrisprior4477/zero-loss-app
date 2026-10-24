@@ -4,10 +4,51 @@ import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { PurchaseOptionRail } from "./PurchaseOptionRail";
 
 vi.mock("next/image", () => ({ default: () => <span /> }));
-const mocks = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), decline: vi.fn(), undo: vi.fn() }));
+const mocks = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), decline: vi.fn(), undo: vi.fn(), purchase: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
 vi.mock("@/lib/account/bulk-decline-actions", () => ({ declineAllDemoPurchaseOptions: mocks.decline, undoBulkDemoPurchaseOptions: mocks.undo }));
+vi.mock("@/lib/account/bulk-purchase-actions", () => ({ completeDemoPurchaseOptions: mocks.purchase }));
 afterEach(cleanup);
+
+const bulkOptions = (count = 8) => Array.from({ length: count }, (_, i) => ({ ...storedActivityFixture().activity[2], entryId: `ent_${String(i+1).padStart(32,"0")}`, completionOptionId: `${String(i+1).padStart(8,"0")}-1111-4111-8111-111111111111`, remainingCents: 14900 }));
+test("top and lower quantities synchronize, show both number badges and confirm exact choices before saving", async () => {
+  const options = bulkOptions();
+  render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline showSummary />);
+  fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "2" } });
+  const buttons = screen.getAllByRole("button", { name: "Make 2 purchases, decline 6" });
+  expect(buttons).toHaveLength(2);
+  expect(within(buttons[0]).getByText("2").className).toContain("quantityBadge");
+  expect(within(buttons[0]).getByText("6").className).toContain("quantityBadge");
+  expect((screen.getAllByRole("combobox")[1] as HTMLSelectElement).value).toBe("2");
+  fireEvent.click(buttons[0]); expect(mocks.purchase).not.toHaveBeenCalled();
+  expect(screen.getByRole("group",{name:"Confirm selected purchases"}).textContent).toContain("$298");
+  mocks.purchase.mockResolvedValueOnce({ status:"succeeded", purchasedCount:2, declinedCount:6, href:"/account/wallet" });
+  fireEvent.click(screen.getByRole("button",{name:"Confirm $298 purchases"}));
+  await waitFor(()=>expect(mocks.purchase).toHaveBeenCalledWith(expect.objectContaining({ purchaseIds:options.slice(0,2).map(x=>x.completionOptionId), declineIds:options.slice(2).map(x=>x.completionOptionId), totalCents:29800, confirmed:true })));
+  await waitFor(()=>expect(mocks.replace).toHaveBeenCalledWith("/account/wallet"));
+});
+test("scrolling changes both wheels, keeping the rest works, and choices are not capped at 100", () => {
+  const options=bulkOptions(101);
+  render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline showSummary />);
+  const wheel=screen.getAllByRole("listbox")[0]; Object.defineProperty(wheel,"clientHeight",{value:132});
+  fireEvent.scroll(wheel,{target:{scrollTop:132}});
+  expect(screen.getAllByRole("button",{name:"Make 4 purchases, decline 97"})).toHaveLength(2);
+  fireEvent.click(screen.getAllByRole("checkbox",{name:"Decline the other 97 after purchase"})[0]);
+  expect(screen.getAllByRole("button",{name:"Make 4 purchases"})).toHaveLength(2);
+  fireEvent.change(screen.getAllByRole("combobox")[1],{target:{value:"101"}});
+  expect(screen.getAllByRole("button",{name:"Make 101 purchases"})).toHaveLength(2);
+});
+test("cancel submits nothing and an uncertain purchase result prevents a second submission", async () => {
+  mocks.purchase.mockClear(); mocks.purchase.mockRejectedValueOnce(new Error("connection lost"));
+  render(<PurchaseOptionRail title="Gift card" options={bulkOptions()} canBulkDecline />);
+  fireEvent.click(screen.getByRole("button",{name:"Make 1 purchase, decline 7"}));
+  fireEvent.click(screen.getByRole("button",{name:"Cancel"})); expect(mocks.purchase).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button",{name:"Make 1 purchase, decline 7"}));
+  fireEvent.click(screen.getByRole("button",{name:"Confirm $149 purchase"}));
+  await waitFor(()=>expect(screen.getByRole("alert").textContent).toContain("may already be saved"));
+  await waitFor(()=>expect((screen.getByRole("button",{name:"Confirm $149 purchase"}) as HTMLButtonElement).disabled).toBe(true));
+  expect(mocks.purchase).toHaveBeenCalledTimes(1);
+});
 
 test("option one opens automatically and each numbered ticket independently toggles its own option", () => {
   const base = storedActivityFixture().activity[2];

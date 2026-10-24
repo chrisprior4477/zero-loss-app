@@ -15,6 +15,44 @@
 .heroImage img, .optionImage img { object-fit: contain; padding: 10px; }
 .retailer { margin: 0 0 3px; color: #bb5306; font-size: 13px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .heroCopy h2 { margin: 0; font-size: clamp(24px, 2.7vw, 35px); line-height: 1.09; letter-spacing: -.035em; }
+.heroBulkControls { grid-column: 1 / -1; min-width: 0; }
+.heroBulkControls > .heroDeclineAll { display: flex; margin: 14px 0 0 auto; }
+.heroBulkControls .heroCount { background: #dff2ff; }
+.heroImage { background: #e2f3ff; }
+.railHeading, .railQuantity, .compactTickets { grid-column: 1 / -1; }
+.railQuantity:empty { display: none; }
+.railQuantity { background: #fff5e9; border-radius: 14px; padding: 16px; }
+.quantityPicker { min-width: 0; border: 0; padding: 0; margin: 16px 0 0; }
+.quantityPicker legend { margin-bottom: 8px; padding: 0; color: #122b4f; font-size: 16px; font-weight: 850; }
+.railQuantity .quantityPicker { margin: 0; }
+.quantityRow { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 14px; align-items: center; }
+.desktopQuantity { width: 100%; height: 48px; border: 1px solid #96b6d1; border-radius: 9px; padding: 8px; background: #fff; color: #10234a; font-size: 18px; font-weight: 800; }
+.mobileWheel { display: none; }
+.wheelShell { position: relative; isolation: isolate; width: 88px; height: 132px; border-radius: 13px; background: #f0f8ff; overflow: hidden; }
+.wheelShell::before { content: ""; position: absolute; z-index: -1; inset: 44px 5px; background: #cceaff; border-radius: 8px; }
+.wheelShell::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(#f0f8ffee, transparent 28%, transparent 72%, #f0f8ffee); }
+.numberWheel { height: 132px; width: 100%; box-sizing: border-box; padding: 44px 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; scroll-snap-type: y mandatory; overscroll-behavior: contain; touch-action: pan-y; }
+.numberWheel::-webkit-scrollbar { display: none; }
+.wheelNumber { display: block; width: 100%; height: 44px; min-height: 44px; border: 0; margin: 0; padding: 0; scroll-snap-align: center; background: transparent; color: #718aa3; font-size: 20px; line-height: 44px; font-weight: 650; cursor: pointer; }
+.wheelNumber[aria-selected="true"] { color: #075da8; font-size: 28px; font-weight: 900; }
+.wheelHint { display: block; margin-top: 5px; text-align: center; color: #536d86; font-size: 11px; }
+.quantityAction { min-width: 0; }
+.makePurchases { display: grid; width: 100%; min-height: 62px; align-content: center; gap: 3px; border: 0; border-radius: 10px; padding: 10px; background: #31e800; color: #082514; font-size: 16px; line-height: 1.3; font-weight: 850; text-align: center; cursor: pointer; }
+.makePurchases > span { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
+.quantityBadge { display: inline-grid; flex: none; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: #fff; color: #000; font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
+.quantityTotal { margin: 7px 0 0; color: #315a7f; font-size: 13px; font-weight: 800; text-align: center; }
+.declineRest { display: flex; align-items: center; gap: 9px; margin-top: 10px; min-height: 30px; color: #23466c; font-size: 13px; line-height: 1.4; }
+.declineRest input { width: 20px; height: 20px; flex: none; accent-color: #087bff; }
+.purchaseConfirmation { grid-column: 1 / -1; display: grid; gap: 12px; border-radius: 14px; padding: 22px; background: #fffefa; color: #10234a; scroll-margin-top: 120px; }
+.purchaseConfirmation h3, .purchaseConfirmation p { margin: 0; }
+.purchaseConfirmation a { display: block; color: #0065ce; margin-top: 10px; font-weight: 800; }
+.numberWheel:focus-visible, .desktopQuantity:focus-visible, .makePurchases:focus-visible, .purchaseConfirmation:focus-visible { outline: 3px solid #0058c2; outline-offset: 3px; }
+.heroDeclineAll:disabled, .makePurchases:disabled, .compactTicket:disabled, .quantityPicker:disabled { opacity: .6; cursor: default; }
+.quantityPicker:disabled .numberWheel { overflow: hidden; }
+.bulkPanel .bulkButtons button:first-child { background: #087bff; color: #fff; }
+@media (min-width: 1000px) { .hero { grid-template-columns: 150px minmax(0, 1fr) minmax(300px, 390px); } .heroBulkControls { grid-column: auto; } }
+@media (max-width: 600px) { .mobileWheel { display: block; } .desktopQuantity { display: none; } .heroBulkControls { grid-column: 1 / -1; } .quantityPicker legend { font-size: 15px; } .makePurchases { font-size: 14px; } }
+@media (max-width: 380px) { .quantityRow { grid-template-columns: 72px minmax(0, 1fr); gap: 9px; } .wheelShell { width: 72px; } .railQuantity { padding: 12px; } .quantityBadge { width: 28px; height: 28px; font-size: 14px; } .makePurchases { padding: 9px 6px; font-size: 13px; } }
 .status { display: inline-flex; margin-top: 10px; border-radius: 8px; background: #ffac57; padding: 5px 11px; color: #34200c; font-size: 12px; font-weight: 900; text-transform: uppercase; }
 .heroNote { margin: 14px 0 0; color: #4d6179; font-size: 14px; line-height: 1.45; }
 .heroActionRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 18px; margin-top: 14px; }
@@ -23,8 +61,8 @@
 .heroCount { display: inline-flex; align-items: center; gap: 9px; border-radius: 11px; background: #ffe6c9; padding: 5px 13px 5px 5px; color: #10234a; font-size: 13px; font-weight: 900; text-decoration: none; }
 .heroCount:hover { background: #ffd4a8; }
 .heroCount:focus-visible { outline: 3px solid #16baff; outline-offset: 3px; }
-.heroDeclineAll { display: inline-flex; min-height: 38px; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: 8px; background: #a9430a; padding: 8px 13px; color: #fff; font-size: 13px; font-weight: 900; text-align: center; text-decoration: none; }
-.heroDeclineAll:hover { background: #762f06; }
+.heroDeclineAll { display: inline-flex; min-height: 44px; flex: 0 0 auto; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: #087bff; padding: 8px 13px; color: #fff; font-size: 13px; font-weight: 900; text-align: center; text-decoration: none; cursor: pointer; }
+.heroDeclineAll:hover:not(:disabled) { background: #0064df; }
 .heroDeclineAll:focus-visible { outline: 3px solid #16baff; outline-offset: 3px; }
 .heroCircle, .numberCircle { display: grid; width: 35px; height: 35px; flex: none; place-items: center; border-radius: 50%; background: #fff; color: #ad4408; font-size: 19px; font-weight: 950; font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px #8b3a1c24; }
 .rail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: 12px 20px; align-items: center; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #ff992f; padding: 24px 36px; color: #10234a; scroll-margin-top: 126px; }
@@ -42,10 +80,10 @@
 .bulkStatus { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .bulkButtons button:focus-visible, .undoAll:focus-visible { outline: 3px solid #0b376a; outline-offset: 3px; }
 .compactTickets { display: flex; min-height: 78px; flex-wrap: wrap; align-items: center; gap: 8px; border-radius: 14px; background: #fff0de; padding: 10px; }
-.compactTicket { --ticket-side-notch: 5px; --ticket-corner-notch: 7px; display: flex; width: 48px; height: 40px; flex: 0 0 48px; align-items: center; flex-direction: column; justify-content: center; border: 0; background: #a9430a; color: #fff; line-height: 1; cursor: pointer; }
-.compactTicket:hover { background: #762f06; }
+.compactTicket { --ticket-side-notch: 6px; --ticket-corner-notch: 10px; display: flex; width: 60px; height: 56px; flex: 0 0 60px; align-items: center; flex-direction: column; justify-content: center; border: 0; background: #cceeff; color: #10234a; line-height: 1; cursor: pointer; }
+.compactTicket:hover { background: #aee3ff; }
 .compactTicket[data-selected="true"], .compactTicket[data-selected="true"]:hover { background: #31e800; color: #082514; }
-.compactTicket small { font-size: 8px; font-weight: 800; letter-spacing: .03em; }
+.compactTicket small { font-size: 10px; font-weight: 800; letter-spacing: .03em; }
 .compactTicket strong { font-size: 17px; font-weight: 950; font-variant-numeric: tabular-nums; }
 .optionList { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 8px; border-radius: 14px; background: #fff0de; padding: 13px; }
 .singleOptionList { grid-template-columns: 1fr; }

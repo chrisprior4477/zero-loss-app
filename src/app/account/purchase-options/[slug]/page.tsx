@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PurchaseOptionRail } from "@/components/account/PurchaseOptionRail";
@@ -39,18 +38,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
         </div>
       </div>
 
-      <section className={styles.hero} aria-label="Purchase option summary">
-        <div className={styles.heroImage}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100px, (max-width: 900px) 150px, 190px" /></div>
-        <div className={styles.heroCopy}>
-          <p className={styles.retailer}>{item.retailer}</p>
-          <h2>{item.title}</h2>
-          <span className={styles.status}>Purchase options available</span>
-          <p className={styles.heroNote}>Each entry’s credit applies only to its own purchase option.</p>
-          <div className={styles.heroActionRow}><div className={styles.heroCountRow}><Link href={`${returnPath}?option=${encodeURIComponent(item.entryId!)}#purchase-option-rail`} className={styles.heroCount} aria-label={`Open purchase option 1 of ${count}`}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></Link><p>Choose as many or as few as you would like to complete.</p></div>{canBulkDecline ? <Link href={`${returnPath}?decline=confirm#purchase-option-rail`} className={styles.heroDeclineAll}>Decline all offers</Link> : null}</div>
-        </div>
-      </section>
-
-      <PurchaseOptionRail key={`${selectedEntryId ?? "first"}:${decline ?? "view"}`} title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={canBulkDecline && decline === "confirm"} canBulkDecline={canBulkDecline} />
+      <PurchaseOptionRail key={`${selectedEntryId ?? "first"}:${decline ?? "view"}`} title={item.title} options={options} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={canBulkDecline && decline === "confirm"} canBulkDecline={canBulkDecline} showSummary />
 
       <section className={styles.explanation} aria-labelledby="option-explanation-heading">
         <p className={styles.eyebrow}>YOUR CHOICE</p>

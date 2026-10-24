@@ -67,7 +67,7 @@ export function PurchaseOptionControls({ item, resumePurchase = false }: { item:
   }}>
     {!confirmation ? <>
       <button ref={purchaseRef} type="button" data-primary="true" disabled={pending || finished || needsCheck} onClick={() => setConfirmation("purchase")}>Complete gift-card purchase</button>
-      <button type="button" disabled={pending || finished || needsCheck} onClick={() => setConfirmation("decline")}>Decline option</button>
+      <button type="button" data-decline-option="true" disabled={pending || finished || needsCheck} onClick={() => setConfirmation("decline")}>Decline option</button>
     </> : <section ref={confirmationRef} aria-labelledby={titleId}>
       <h3 id={titleId} ref={headingRef} tabIndex={-1}>{confirmation === "purchase" ? "Confirm your purchase" : "Decline this option?"}</h3>
       {confirmation === "purchase" ? <>
@@ -81,7 +81,7 @@ export function PurchaseOptionControls({ item, resumePurchase = false }: { item:
       }}>
         <input type="hidden" name="completionOptionId" value={item.completionOptionId} />
         <input type="hidden" name="intent" value={confirmation} />
-        <button type="submit" data-primary={confirmation === "purchase"} data-confirm-purchase={confirmation === "purchase"} disabled={pending || finished || needsCheck}>
+        <button type="submit" data-primary={confirmation === "purchase"} data-confirm-purchase={confirmation === "purchase"} data-decline-option={confirmation === "decline"} disabled={pending || finished || needsCheck}>
           {pending ? "Saving…" : finished ? "Saved" : confirmation === "purchase" ? `Confirm ${formatUsdFromCents(item.remainingCents)} purchase` : "Confirm decline"}
         </button>
       </form>
