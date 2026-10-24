@@ -7,9 +7,11 @@ export function transactionLinks(entry: LedgerEntryRow, activity: readonly Activ
   return [...new Set(entry.entryIds ?? [])].flatMap(id => {
     const item = byId.get(id);
     if (!item) return [];
-    const href = item.status === "completion" && item.completionOptionStatus !== "declined"
+    const href = item.status === "active"
+      ? `${activityHref(item)}?entries=open#saved-entry-rail`
+      : item.status === "completion" && item.completionOptionStatus !== "declined"
       ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(id)}#purchase-option-rail`
       : activityHref(item);
-    return [{ id, href, label: item.status === "active" ? "View entry" : item.status === "completion" ? "View purchase option" : "View result" }];
+    return [{ id, href, label: item.status === "active" ? "View entry" : item.completionOptionStatus === "declined" ? "Review declined offer" : item.status === "completion" ? "View purchase option" : "View result" }];
   });
 }

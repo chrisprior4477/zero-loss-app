@@ -9,7 +9,7 @@ const row = { id: "ledger", entry_type: "ENTRY_DEBIT", amount: -100, created_at:
 test("a debit opens its recorded entry, not another entry for the same product", () => {
   const duplicate = { ...active, entryId: `ent_${"3".repeat(32)}` };
   expect(transactionLinks({ ...row, entryIds: [active.entryId] }, [duplicate, active]))
-    .toEqual([{ id: active.entryId, href: `/account/entries/${active.entryId}`, label: "View entry" }]);
+    .toEqual([{ id: active.entryId, href: `/account/entries/${active.entryId}?entries=open#saved-entry-rail`, label: "View entry" }]);
 });
 
 test("a batch reservation retains each entry and its current outcome", () => {
