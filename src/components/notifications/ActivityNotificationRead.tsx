@@ -29,6 +29,10 @@ export function ActivityNotificationRead({ filter, available, detailOpen = false
     if (!available || detailOpen || !markRead) return;
     const acknowledge = () => {
       if (document.visibilityState !== "visible") return;
+      // Next may retain a previously visited screen while refreshing layouts.
+      // Only the actual activity-list URL can acknowledge the visible category.
+      const query = new URLSearchParams(window.location.search);
+      if (window.location.pathname !== "/account/entries" || query.has("entry") || query.has("item") || query.get("resume") === "purchase") return;
       const unreadIds = (JSON.parse(key) as string[]).filter(id => !attempted.current.has(id));
       if (!unreadIds.length) return;
       unreadIds.forEach(id => attempted.current.add(id));

@@ -90,3 +90,4 @@
 .dialog[data-popup-style="ticket"] .entry[data-color="green"] { background:#e9ffdf; }
 .dialog[data-popup-style="ticket"] .entry[data-color="orange"] { background:#fff0df; }
 .dialog[data-popup-style="ticket"] .entry[data-color="purple"] { background:#f1eaff; }
+.entry > span.itemIcon { flex:0 0 36px; }

@@ -6,7 +6,7 @@ const mock=vi.hoisted(()=>({markRead:vi.fn(),unread:[] as AccountNotification[]}
 vi.mock("./NotificationProvider",()=>({useNotifications:()=>mock}));
 import { ActivityNotificationRead } from "./ActivityNotificationRead";
 const make=(id:string,tone:AccountNotification['tone'],extra:Partial<AccountNotification>={}):AccountNotification=>({id,tone,category:'activity',title:id,body:'',meta:'',action:'View',href:'/account/entries',...extra});
-beforeEach(()=>{vi.clearAllMocks();mock.markRead.mockResolvedValue(undefined);mock.unread=[make('win','reward'),make('option','completion'),make('entry','active'),make('wallet-entry','wallet',{ledgerEntryType:'ENTRY_DEBIT'}),make('wallet-deposit','wallet',{ledgerEntryType:'DEPOSIT'}),make('shared-one','crew')];});
+beforeEach(()=>{window.history.replaceState({},'', '/account/entries');vi.clearAllMocks();mock.markRead.mockResolvedValue(undefined);mock.unread=[make('win','reward'),make('option','completion'),make('entry','active'),make('wallet-entry','wallet',{ledgerEntryType:'ENTRY_DEBIT'}),make('wallet-deposit','wallet',{ledgerEntryType:'DEPOSIT'}),make('shared-one','crew')];});
 afterEach(()=>{cleanup();vi.restoreAllMocks();});
 test('moving from wins to purchase options acknowledges only the section actually viewed',()=>{
  const {rerender}=render(<ActivityNotificationRead filter="prize" available/>);
@@ -33,6 +33,12 @@ test('a newly arrived outcome is not read before it appears in the activity list
  mock.unread.push(make('new-option','completion'));
  render(<ActivityNotificationRead filter="completion" available visibleIds={['option']}/>);
  expect(mock.markRead).toHaveBeenCalledWith(['option']);
+});
+test.each(['/account/profile','/account/wallet','/items/walmart-100-gift-card','/account/entries?entry=receipt'])('a retained activity screen cannot read alerts at %s',path=>{
+ window.history.replaceState({},'',path);
+ render(<ActivityNotificationRead filter="all" available/>);
+ fireEvent(document,new Event('visibilitychange'));
+ expect(mock.markRead).not.toHaveBeenCalled();
 });
 test('an unavailable view and a background tab do not acknowledge unseen content',()=>{
  vi.spyOn(document,'visibilityState','get').mockReturnValue('hidden');
