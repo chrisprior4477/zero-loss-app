@@ -68,19 +68,28 @@
 .message[data-staff="true"] { background: #c5f0ff; }
 .note { background: #e3f4fc; }
 .error { background: #fff0d5; color: #6c3710; }
-.field { display: block; margin-top: 8px; background: #e3f4fc; padding: 4px; }
+.field {
+  --field-fill: #e3f4fc;
+  --field-ink: #0a1741;
+  display: block; margin-top: 8px; background: var(--field-fill); padding: 4px;
+}
 .field input, .field select, .field textarea {
   display: block; width: 100%; min-width: 0; min-height: 52px;
   padding: 12px 20px; border: 0; border-radius: 0;
-  background: transparent; color: #0a1741; font: inherit;
+  background: transparent; color: var(--field-ink); caret-color: var(--field-ink); font: inherit;
   outline: none;
+}
+/* Browser autofill paints above background-color. Keep that paint inside the
+   same solid ticket fill, including on hover, focus, and after leaving a field. */
+.field :is(input, select, textarea):is(:autofill, :-webkit-autofill) {
+  box-shadow: inset 0 0 0 1000px var(--field-fill);
+  -webkit-text-fill-color: var(--field-ink);
 }
 .field textarea { resize: vertical; min-height: 160px; }
 .field input::placeholder { color: #536b86; opacity: 1; }
 .field select { padding-right: 28px; }
 .field select option { color: #0a1741; background: #fff; }
-.field:focus-within { background: #123d65; }
-.field:focus-within input, .field:focus-within textarea, .field:focus-within select { color: #fff; }
+.field:focus-within { --field-fill: #123d65; --field-ink: #fff; }
 .field:focus-within input::placeholder { color: #c4d8ed; }
 .field:focus-within select option { background: #123d65; color: #fff; }
 .searchRow { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; }
