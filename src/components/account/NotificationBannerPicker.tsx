@@ -25,17 +25,22 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
   const [restoring, setRestoring] = useState(false);
   const savedPreview = useRef({ style: initialStyle, enabled: initialEnabled, speed: initialSpeed, displaySeconds: initialDisplaySeconds, popupStyle: initialPopupStyle });
   const setHeaderStyle = notifications?.setStyle;
+  const setPreviewActive = notifications?.setPreferencesPreviewActive;
   const setHeaderPopupStyle = notifications?.setPopupStyle;
   const setHeaderEnabled = notifications?.setEnabled;
   const setHeaderSpeed = notifications?.setSpeed;
   const setHeaderDisplaySeconds = notifications?.setDisplaySeconds;
-  useEffect(() => () => {
-    // Leaving the picker discards an unsaved trial, while successful saves stay.
-    const saved = savedPreview.current;
-    setHeaderPopupStyle?.(saved.popupStyle);
-    setHeaderStyle?.(saved.style); setHeaderEnabled?.(saved.enabled);
-    setHeaderSpeed?.(saved.speed); setHeaderDisplaySeconds?.(saved.displaySeconds);
-  }, [setHeaderStyle, setHeaderEnabled, setHeaderSpeed, setHeaderDisplaySeconds, setHeaderPopupStyle]);
+  useEffect(() => {
+    setPreviewActive?.(true);
+    return () => {
+      // Leaving the picker discards an unsaved trial, while successful saves stay.
+      const saved = savedPreview.current;
+      setHeaderPopupStyle?.(saved.popupStyle);
+      setHeaderStyle?.(saved.style); setHeaderEnabled?.(saved.enabled);
+      setHeaderSpeed?.(saved.speed); setHeaderDisplaySeconds?.(saved.displaySeconds);
+      setPreviewActive?.(false);
+    };
+  }, [setPreviewActive, setHeaderStyle, setHeaderEnabled, setHeaderSpeed, setHeaderDisplaySeconds, setHeaderPopupStyle]);
   async function restore() {
     if (!notifications) return;
     setBusy(true); setRestoring(true); setMessage("");

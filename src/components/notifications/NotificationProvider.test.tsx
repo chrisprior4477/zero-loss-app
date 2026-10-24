@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { NotificationProvider, useNotifications } from "./NotificationProvider";
@@ -86,4 +87,18 @@ test("choosing a category clears only that badge and keeps its cards open",async
  expect(within(screen.getByRole('region',{name:'Purchase options'})).getByRole('button',{name:/View purchase options/})).toBeTruthy();
  expect(screen.getByRole('button',{name:/3 unread updates/})).toBeTruthy();
  expect(mock.push).not.toHaveBeenCalled();
+});
+
+function LivePopupTrial(){
+ const value=useNotifications()!;
+ const setPreviewActive=value.setPreferencesPreviewActive;
+ useEffect(()=>{setPreviewActive(true);return()=>setPreviewActive(false);},[setPreviewActive]);
+ return <><button onClick={()=>value.setPopupStyle('ticket')}>Try ticket</button><output>{value.popupStyle}</output></>;
+}
+test('an account refresh cannot overwrite the popup currently being tried in settings',()=>{
+ const app=(initialPopupStyle:'ticket'|'rounded')=><NotificationProvider initial={snapshot} initialStyle="capsule" initialEnabled initialPopupStyle={initialPopupStyle}><LivePopupTrial/></NotificationProvider>;
+ const {rerender}=render(app('ticket'));
+ fireEvent.click(screen.getByRole('button',{name:'Try ticket'}));
+ rerender(app('rounded'));
+ expect(screen.getByRole('status').textContent).toBe('ticket');
 });

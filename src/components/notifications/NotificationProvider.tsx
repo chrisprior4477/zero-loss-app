@@ -5,9 +5,12 @@ import type { BannerStyle, NotificationPopupStyle } from "@/lib/account/banner-s
 import { notificationIsEnabled, type AccountNotification, type NotificationPreferences } from "@/lib/account/notifications";
 import { restoreNotificationBanner } from "@/lib/account/restore-banner-action";
 type Snapshot = { notifications: AccountNotification[]; readIds: string[]; readAvailable: boolean; preferences: NotificationPreferences | null; supportEnabled?: boolean };
-type Value = { popupStyle: NotificationPopupStyle; setPopupStyle: (style: NotificationPopupStyle) => void; supportEnabled: boolean; clearAfterDemoReset: () => void; speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
+type Value = { setPreferencesPreviewActive: (active: boolean) => void; popupStyle: NotificationPopupStyle; setPopupStyle: (style: NotificationPopupStyle) => void; supportEnabled: boolean; clearAfterDemoReset: () => void; speed: number; setSpeed: (speed: number) => void; displaySeconds: number; setDisplaySeconds: (seconds: number) => void; enabled: boolean; setEnabled: (enabled: boolean) => void; style: BannerStyle; setStyle: (style: BannerStyle) => void; notifications: AccountNotification[]; unread: AccountNotification[]; open: boolean; setOpen: (open: boolean) => void; markRead: (ids: string[]) => Promise<void>; restoreBanner: () => Promise<string>; bannerHidden: boolean; setBannerHidden: (hidden: boolean) => void };
 const Context = createContext<Value | null>(null);
 export function NotificationProvider({ children, initial, initialStyle, initialEnabled, initialSpeed = 5, initialDisplaySeconds = 6, initialPopupStyle = "rounded" }: { children: ReactNode; initial: Snapshot | null; initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number; initialDisplaySeconds?: number; initialPopupStyle?: NotificationPopupStyle }) {
+  // Keep incoming account refreshes from replacing an unsaved live preview.
+  const previewActive = useRef(false);
+  const setPreferencesPreviewActive = useCallback((active: boolean) => { previewActive.current = active; }, []);
   const [popupStyle, setPopupStyle] = useState(initialPopupStyle);
   const [speed, setSpeed] = useState(initialSpeed);
   const [displaySeconds, setDisplaySeconds] = useState(initialDisplaySeconds);
@@ -26,12 +29,12 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
     return { ...next, readIds: [...reads] };
   }, []);
   const pathname = usePathname();
-  useEffect(() => { setPopupStyle(initialPopupStyle); }, [initialPopupStyle]); // eslint-disable-line react-hooks/set-state-in-effect
-  useEffect(() => { setSpeed(initialSpeed); }, [initialSpeed]); // eslint-disable-line react-hooks/set-state-in-effect
-  useEffect(() => { setDisplaySeconds(initialDisplaySeconds); }, [initialDisplaySeconds]); // eslint-disable-line react-hooks/set-state-in-effect
+  useEffect(() => { if (!previewActive.current) setPopupStyle(initialPopupStyle); }, [initialPopupStyle]);
+  useEffect(() => { if (!previewActive.current) setSpeed(initialSpeed); }, [initialSpeed]);
+  useEffect(() => { if (!previewActive.current) setDisplaySeconds(initialDisplaySeconds); }, [initialDisplaySeconds]);
   useEffect(() => { setSnapshot(mergeReads(initial)); }, [initial, mergeReads]); // eslint-disable-line react-hooks/set-state-in-effect
-  useEffect(() => { setEnabled(initialEnabled); }, [initialEnabled]); // eslint-disable-line react-hooks/set-state-in-effect
-  useEffect(() => { setStyle(initialStyle); }, [initialStyle]); // eslint-disable-line react-hooks/set-state-in-effect
+  useEffect(() => { if (!previewActive.current) setEnabled(initialEnabled); }, [initialEnabled]);
+  useEffect(() => { if (!previewActive.current) setStyle(initialStyle); }, [initialStyle]);
   useEffect(() => {
     if (!initial) return;
     const controller = new AbortController();
@@ -107,6 +110,6 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   const read = new Set(snapshot?.readIds);
   const notifications = snapshot?.readAvailable && snapshot.preferences ? snapshot.notifications.filter(n => notificationIsEnabled(n, snapshot.preferences!)) : [];
   const unread = notifications.filter(n => !read.has(n.id));
-  return <Context.Provider value={{ popupStyle, setPopupStyle, supportEnabled: snapshot?.supportEnabled !== false, clearAfterDemoReset, speed, setSpeed, displaySeconds, setDisplaySeconds, enabled, setEnabled, style, setStyle, notifications, unread, open, setOpen, markRead, restoreBanner, bannerHidden, setBannerHidden }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ setPreferencesPreviewActive, popupStyle, setPopupStyle, supportEnabled: snapshot?.supportEnabled !== false, clearAfterDemoReset, speed, setSpeed, displaySeconds, setDisplaySeconds, enabled, setEnabled, style, setStyle, notifications, unread, open, setOpen, markRead, restoreBanner, bannerHidden, setBannerHidden }}>{children}</Context.Provider>;
 }
 export function useNotifications() { return useContext(Context); }
