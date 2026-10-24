@@ -99,6 +99,18 @@
 .posted { justify-self: center; min-width: 82px; padding: 5px 9px; border-radius: 8px; background: #bbf6cd; color: #0a5b34; font-size: 11px; font-weight: 850; text-align: center; text-transform: uppercase; }
 .reportLink { display: flex; align-items: center; justify-content: center; color: #0a1940; }
 .reportLink svg { width: 25px; height: 25px; }
+.transactionActions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 20px; min-width: 0; border-top: 1px dotted #b9cfdf; padding-top: 3px; }
+.transactionActions a, .relatedEntries summary { display: inline-flex; min-height: 40px; align-items: center; gap: 7px; color: #075fae; font-size: 13px; font-weight: 850; text-decoration: none; }
+.transactionActions svg { width: 17px; height: 17px; flex: none; }
+.transactionActions .supportAction { margin-left: auto; color: #4c6686; font-size: 12px; font-weight: 650; }
+.transactionActions a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.transactionActions a:focus-visible, .relatedEntries summary:focus-visible { outline: 2px solid #0872fb; outline-offset: 2px; }
+.relatedEntries { min-width: 0; }
+.relatedEntries[open] { flex-basis: 100%; }
+.relatedEntries summary { cursor: pointer; }
+.relatedEntries summary::after { content: "+"; font-size: 20px; }
+.relatedEntries[open] summary::after { content: "−"; }
+.relatedEntries > div { display: grid; gap: 3px; max-height: 210px; overflow-y: auto; overscroll-behavior: contain; padding: 3px 6px; }
 .showAllTicket { --corner-scoop: 10px; --side-scoop: 10px; display: flex; grid-column: 1 / -1; width: 100%; min-height: 68px; align-items: center; justify-content: center; gap: 12px; margin-top: 13px; padding: 14px 38px; border: 0; background: #0872fb; color: #fff; font-size: 16px; font-weight: 850; cursor: pointer; }
 .showAllTicket:hover { background: #0869e6; }
 .showAllTicket:focus-visible { outline: 3px solid #b4edff; outline-offset: 2px; filter: drop-shadow(0 0 6px #b4edff); }

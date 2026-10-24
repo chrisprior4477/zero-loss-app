@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import BrowsePage from "./page";
 // Full-directory integration renders hundreds of cards in jsdom.
 vi.setConfig({ testTimeout: 20000 });
@@ -8,22 +8,30 @@ const account = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue(null) }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: account.get }));
 
 vi.mock("@/components/ui/FavoriteButton", () => ({ FavoriteButton: () => null }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const navigation = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
+beforeEach(() => {
+  navigation.push.mockClear();
+  Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function(this: HTMLDialogElement) { this.open = true; } });
+  Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: function(this: HTMLDialogElement) { this.open = false; } });
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+});
 
 afterEach(() => { cleanup(); account.get.mockResolvedValue(null); });
 
 describe("Browse search results", () => {
-  test("keeps the full retailer layout on All but collapses both controls on category pages", async () => {
+  test("lands at two compact discovery controls on All and Ending Soon", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByRole("heading", { name: "Browse every product" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Shop by retailer category" }).closest("details")?.open).toBe(true);
-    expect(screen.getByRole("complementary", { name: "Filter products" })).toBeTruthy();
+    expect(document.getElementById("search-results")?.contains(screen.getByRole("button", { name: "Categories" }))).toBe(true);
+    expect(screen.getByRole("button", { name: "Filter & sort" })).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
     cleanup();
 
     render(await BrowsePage({ searchParams: Promise.resolve({ sort: "ending-soon" }) }));
     expect(screen.getByRole("heading", { name: "Ending Soon" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Shop by retailer category" }).closest("details")?.open).toBe(false);
-    expect(screen.getByText("Filter & sort").closest("details")?.open).toBe(false);
+    expect(document.getElementById("search-results")?.contains(screen.getByRole("button", { name: "Categories" }))).toBe(true);
+    expect(screen.getByRole("button", { name: "Filter & sort" })).toBeTruthy();
     expect(screen.queryByRole("complementary", { name: "Filter products" })).toBeNull();
     expect(screen.getAllByRole("article").length).toBeGreaterThan(0);
   });
@@ -117,15 +125,16 @@ describe("Browse search results", () => {
     expect(screen.queryByRole("heading", { name: "Reciprocating Saw" })).toBeNull();
   });
 
-  test("keeps a search term when browsing retailer categories without a duplicate product-category row", async () => {
+  test("opens a searchable scrolling directory and switches departments without a conflicting search", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels" }) }));
     expect(screen.queryByRole("navigation", { name: "Browse categories" })).toBeNull();
-    const categories = within(screen.getByRole("navigation", { name: "Retailer categories" }));
-    fireEvent.click(categories.getByRole("button", { name: "Groceries" }));
-    const panel = within(document.getElementById("retailer-category-panel")!);
-    const publix = new URL(panel.getByRole("link", { name: /Publix/ }).getAttribute("href") ?? "", "https://example.test");
-    expect(publix.searchParams.get("partnerCategory")).toBe("groceries");
-    expect(publix.searchParams.get("q")).toBe("paper towels");
+    fireEvent.click(screen.getByRole("button", { name: "Categories" }));
+    const panel = within(screen.getByRole("dialog"));
+    expect(panel.getByRole("region", { name: "Scrollable categories" })).toBeTruthy();
+    expect(panel.queryByRole("combobox")).toBeNull();
+    fireEvent.change(panel.getByRole("searchbox", { name: "Find a category or retailer" }), { target: { value: "spark plugs" } });
+    fireEvent.click(panel.getByRole("button", { name: /Automotive/ }));
+    expect(navigation.push).toHaveBeenCalledWith("/browse?partnerCategory=automotive#search-results", { scroll: false });
     expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.")).toHaveLength(9);
   });
 
@@ -140,7 +149,7 @@ describe("Browse search results", () => {
     expect(screen.getByText("1 product shown")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i })).toBeTruthy();
     expect(screen.getByText(/Showing Walmart/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "View all in this category" }).getAttribute("href")).toBe("/browse?category=everyday-items&type=pictured");
+    expect(screen.getByRole("link", { name: "View all in this category" }).getAttribute("href")).toBe("/browse?category=everyday-items&type=pictured#search-results");
   });
 
   test("product links preserve the chosen category and filters for a return trip", async () => {
@@ -157,8 +166,7 @@ describe("Browse search results", () => {
 
   test("drills from a partner category into only its current offers", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy" }) }));
-    const retailerNav = within(screen.getByRole("navigation", { name: "Retailer categories" }));
-    expect(retailerNav.getByRole("button", { name: "Pharmacy" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Pharmacy" }).getAttribute("aria-haspopup")).toBe("dialog");
     expect(screen.getByText("5 products shown")).toBeTruthy();
     expect(screen.getAllByRole("article")).toHaveLength(5);
     expect(screen.queryByRole("link", { name: /Walmart Gift Card/i })).toBeNull();
@@ -175,6 +183,6 @@ describe("Browse search results", () => {
     const cards = screen.getAllByRole("article");
     expect(cards.length).toBeGreaterThan(0);
     expect(cards.every(card => /\$25 value/.test(card.textContent ?? ""))).toBe(true);
-    expect(screen.getAllByRole("searchbox", { name: "Search products & categories" })).toHaveLength(2);
+    expect(screen.getAllByRole("searchbox", { name: "Search products, brands, and categories" })).toHaveLength(1);
   });
 });

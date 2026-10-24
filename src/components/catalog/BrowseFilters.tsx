@@ -9,7 +9,7 @@ import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search
 import type { MarketplaceCategoryId } from "@/lib/catalog/navigation";
 import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
 
-type Props = {
+export type BrowseFilterProps = {
   filters: BrowseFilterState;
   retailerGroups: RetailerFilterGroup[];
   selectedRetailerGroup: RetailerFilterGroup | null;
@@ -18,9 +18,10 @@ type Props = {
   subcategory: string;
   clearHref: string;
   collapseOnDesktop?: boolean;
+  onNavigate?: () => void;
 };
 
-function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, searchTerm, subcategory, clearHref, id }: Props & { id: string }) {
+export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, searchTerm, subcategory, clearHref, id, onNavigate }: BrowseFilterProps & { id: string }) {
   const router = useRouter();
   const [searchDraft, setSearchDraft] = useState(searchTerm);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -53,7 +54,8 @@ function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCa
     }
     const mobileDrawer = form.closest("details");
     if (mobileDrawer) mobileDrawer.open = false;
-    router.push(`/browse${params.size ? `?${params}` : ""}`, { scroll: false });
+    onNavigate?.();
+    router.push(`/browse${params.size ? `?${params}` : ""}#search-results`, { scroll: false });
   };
 
   return (
@@ -130,22 +132,22 @@ function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCa
         </div>
       </fieldset>
       {filters.retailer ? <p className="rounded-xl border border-cyan-300/35 bg-[#061e3d] px-3 py-2 text-xs text-white/75">Retailer: <strong className="text-white">{filters.retailer}</strong></p> : null}
-      <div>
-        <label htmlFor={`${id}-sort`} className="mb-2 block text-xs font-black uppercase tracking-[.1em] text-cyan-200">Sort by</label>
-        <select id={`${id}-sort`} name="sort" defaultValue={filters.sort} className="min-h-11 w-full rounded-xl border border-white/30 bg-white px-3 text-sm font-bold text-[#00132e] focus-visible:outline-2 focus-visible:outline-cyan-300">
-          <option value="featured">Featured</option>
-          <option value="fewest-left">Fewest tickets left</option>
-          <option value="price-low">Lowest entry price</option>
-          <option value="value-high">Highest prize value</option>
-        </select>
-      </div>
+      <fieldset>
+        <legend className="mb-2 text-xs font-black uppercase tracking-[.1em] text-cyan-200">Sort by</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {([["featured", "Featured"], ["fewest-left", "Fewest tickets left"], ["price-low", "Lowest entry price"], ["value-high", "Highest prize value"]] as const).map(([value, label]) => <label key={value} className="cursor-pointer">
+            <input className="peer sr-only" type="radio" name="sort" value={value} defaultChecked={filters.sort === value} />
+            <span className="flex min-h-11 h-full items-center justify-center rounded-xl border border-white/25 px-3 py-2 text-center text-xs font-bold peer-checked:bg-cyan-300 peer-checked:text-[#00132e] peer-focus-visible:outline-2 peer-focus-visible:outline-cyan-300">{label}</span>
+          </label>)}
+        </div>
+      </fieldset>
       <button type="submit" className="min-h-11 w-full rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">Apply filters</button>
       <Link href={clearHref} className="block text-center text-sm font-bold text-cyan-200 underline-offset-4 hover:underline">Clear filters</Link>
     </form>
   );
 }
 
-export function BrowseFilters(props: Props) {
+export function BrowseFilters(props: BrowseFilterProps) {
   const sortActive = props.filters.sort !== "featured" && !(props.selectedCategory === "ending-soon" && props.filters.sort === "fewest-left");
   const activeCount = Number(props.filters.type !== "all") + Number(Boolean(props.selectedRetailerGroup))
     + Number(Boolean(props.filters.retailer)) + Number(props.filters.availableOnly) + Number(sortActive)

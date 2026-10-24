@@ -67,5 +67,7 @@ export type LedgerEntryRow = {
   entry_type: string;
   amount: number;
   created_at: string;
-  product?: { title: string; image: string };
+  product?: { title: string; image: string; slug?: string };
+  /** Public entry IDs resolved from owner-scoped ledger relationships. */
+  entryIds?: string[];
 };

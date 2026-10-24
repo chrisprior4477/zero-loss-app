@@ -11,6 +11,7 @@ import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
 import { RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
+import { PurchaseOptionSummary } from "./PurchaseOptionSummary";
 
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
 type GalleryGroup = { key: string; entries: ActivityItem[] };
@@ -180,6 +181,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
       onScroll={syncSwipe}
       role="region"
       aria-label="Your products"
+      data-has-options={groups.some(group => group.entries[0]?.status === "completion") ? "true" : undefined}
       data-desktop-rows={Math.min(3, Math.ceil(groups.length / 2))}
       data-stacked-rows={Math.min(2, groups.length)}
       data-multiple={groups.length > 1 ? "true" : undefined}
@@ -197,7 +199,6 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
           ? group.entries.reduce((total, entry) => total + entry.paidCents, 0)
           : item.paidCents;
         const purchaseOption = item.status === "completion" && group.entries.every(entry => entry.entryId);
-        const sameOptionCredit = group.entries.every(entry => entry.paidCents === item.paidCents);
         const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}` : activityHref(item, "/account/entries", filter);
         const featured = item.status === "prize" && index === 0;
         const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
@@ -224,11 +225,9 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
                 {viewedEntry === item.entryId || isRecent ? <span className={styles.newEntryLabel} aria-label={viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}><span className={styles.newEntryLong}>{viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}</span><span className={styles.newEntryShort}>{viewedEntry === item.entryId ? "Viewing" : "New"}</span></span> : null}
               </div>
               <div className={styles.cardFoot}>
-                <div className={styles.noteStack}><p className={styles.productNote}>{purchaseOption
-                  ? <>{group.entries.length > 1 ? `${group.entries.length} separate options · ` : ""}{sameOptionCredit ? `${formatUsdFromCents(item.paidCents)} applied to each` : "Review each option’s credit"}</>
-                  : item.status === "completion" ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
+                <div className={styles.noteStack}>{purchaseOption ? <PurchaseOptionSummary options={group.entries} /> : <p className={styles.productNote}>{item.status === "completion" ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? <><span><strong>{formatUsdFromCents(enteredCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left<span className={styles.forPrize}> for prize</span></>) : "Still in play"}</span></>
-                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? "Your purchased reward is ready." : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p></div>
+                  : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? "Your purchased reward is ready." : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p>}</div>
                 <span className={styles.cardAction} data-activity-click>{item.status === "active"
                   ? <><span>See My</span><span className={styles.entryActionTicket} aria-hidden="true">{group.entries.length}</span><span className={styles.srOnly}>{group.entries.length}</span><span>{group.entries.length === 1 ? "Entry" : "Entries"}</span></>
                   : purchaseOption ? <><span>See My</span><span className={styles.optionActionCount} aria-hidden="true">{group.entries.length}</span><span>{group.entries.length === 1 ? "Purchase Option" : "Purchase Options"}</span><AccountIcon name="arrow" /></>

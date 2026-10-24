@@ -10,8 +10,7 @@ import {
 import { searchCatalogMatches } from "@/lib/catalog/search";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { availabilityStatus } from "@/lib/catalog/availability";
-import { RetailerCategoryNav } from "@/components/catalog/RetailerCategoryNav";
-import { BrowseFilters } from "@/components/catalog/BrowseFilters";
+import { BrowseDiscoveryBar } from "@/components/catalog/BrowseDiscoveryBar";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups } from "@/lib/catalog/browse-filters";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
@@ -46,7 +45,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
   const directoryMatches = searchTerm ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
-  const showAllLayout = !selectedCategory && !selectedRetailerGroup && !searchTerm && !filters.retailer;
+  const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts);
   const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
   const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
@@ -89,7 +88,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <Link href="/" className="font-bold text-cyan-300 hover:text-white">← Marketplace home</Link>
         </div>
 
-        <RetailerCategoryNav key={`${selectedCategory}-${selectedRetailerGroup?.id}-${searchTerm}-${filters.retailer}-${filters.type}-${filters.availableOnly}-${filters.sort}-${filters.minValue}-${filters.maxValue}`} groups={retailerGroups} selectedGroupId={selectedRetailerGroup?.id ?? ""} selectedCategory={selectedCategory} filters={filters} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} collapseByDefault={!showAllLayout} />
+        <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
+          <BrowseDiscoveryBar key={browseReturnHref} browseHref={browseReturnHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
+          <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} />
 
         {directoryMatches.length ? (
           <section aria-label="Matching retailer categories" className="mt-5 rounded-2xl border border-cyan-300/35 bg-[#061e3d] p-4 sm:p-5">
@@ -105,11 +106,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
-        <div className={showAllLayout ? "mt-5 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-6" : "mt-3"}>
-          <BrowseFilters filters={filters} retailerGroups={retailerGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} collapseOnDesktop={!showAllLayout} />
-          <div id="search-results" className="min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
-            <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} />
-            <p aria-live="polite" className={`mt-4 text-sm font-bold text-white/75 ${showAllLayout ? "lg:mt-0" : ""}`}>{products.length} {products.length === 1 ? "product" : "products"} shown</p>
+            <p aria-live="polite" className="mt-4 text-sm font-bold text-white/75">{products.length} {products.length === 1 ? "product" : "products"} shown</p>
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {products.map((product) => {
@@ -169,7 +166,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <Link href="/browse" className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">View all products</Link>
           </section>
         )}
-          </div>
         </div>
       </div>
     </main>

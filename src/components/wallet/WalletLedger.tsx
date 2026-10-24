@@ -8,6 +8,8 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon, type AccountIconName } from "@/components/account/AccountIcon";
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
+import type { ActivityItem } from "@/lib/account/activity";
+import { transactionLinks } from "@/lib/wallet/transaction-links";
 
 type LedgerFilter = "all" | "funding" | "entries" | "refunds";
 const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["refunds", "Refunds"]];
@@ -38,7 +40,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, selectedId, compact = false, totalCount, hiddenIds = [], canResetDemoHistory = false, hideArchived = false }: { entries: LedgerEntryRow[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = [], canResetDemoHistory = false, hideArchived = false }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean }) {
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
@@ -71,7 +73,11 @@ export function WalletLedger({ entries, selectedId, compact = false, totalCount,
     {!compact ? <nav aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { setFilter(key); setShowAll(false); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? dated.length : dated.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
     {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       <div className={styles.ledgerHeader} aria-hidden="true"><span>Date</span><span>Description</span><span>Status</span><span>Amount</span></div>
-      <ul>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry); return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={entry.id === selectedId}>
+      <ul>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
+        const links = transactionLinks(entry, activity);
+        const productHref = entry.product?.slug ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
+          const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}`;
+        return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={entry.id === selectedId}>
         <span className={styles.ledgerVisuals}>
           {entry.product ? <span className={styles.ledgerProduct}><Image src={entry.product.image} alt={entry.product.title} width={43} height={43} sizes="43px" /></span> : null}
           <span className={styles.ledgerIcon} data-tone={artwork.tone}><AccountIcon name={artwork.name} /></span>
@@ -83,7 +89,13 @@ export function WalletLedger({ entries, selectedId, compact = false, totalCount,
         <span className={styles.ledgerDivider} aria-hidden="true" />
         <strong className={entry.amount > 0 ? styles.positive : styles.amount}>{entry.amount > 0 ? "+" : ""}{formatUsdFromCents(entry.amount)}</strong>
         <span className={styles.posted}>Posted</span>
-        <Link href={`/support?transaction=${encodeURIComponent(entry.id)}`} className={styles.reportLink} aria-label="Report a problem" title="Report a problem"><AccountIcon name="chevron" /></Link>
+        {links.length === 1 ? <Link href={links[0].href} className={styles.reportLink} aria-label={`${links[0].label} for ${detail}`} title={links[0].label}><AccountIcon name="chevron" /></Link> : null}
+        <div className={styles.transactionActions}>
+          {links.length === 1 ? <Link href={links[0].href}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
+          {links.length > 1 ? <details className={styles.relatedEntries}><summary>View {links.length} entries and results</summary><div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div></details> : null}
+          {productHref ? <Link href={productHref}>View product</Link> : null}
+          <Link href={supportHref} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
+        </div>
       </li>; })}</ul>
     </div>}
     {!compact && canResetDemoHistory && entries.some(entry => !archived.has(entry.id)) ? <DemoHistoryClearButton kind="transactions" /> : null}

@@ -284,7 +284,7 @@ test("ten purchase options for one product consolidate without combining their i
   expect(within(gallery).getAllByRole("link")).toHaveLength(1);
   expect(card.getAttribute("href")).toBe("/account/purchase-options/nike-court-shot-shoes");
   expect(within(card).getByText("10", { selector: "[class*='optionActionCount']" })).toBeTruthy();
-  expect(within(card).getByText(/10 separate options/)).toBeTruthy();
+  expect(within(card).getByText("remaining per option")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Purchase Options10" })).toBeTruthy();
 });
 
@@ -355,7 +355,8 @@ test("grouped options still open the exact entry by ID, while ambiguous old link
   const { rerender } = render(<MyZeroLossActivity state={state} filter="completion" selectedSlug={first.slug} selectedEntryId="entry-two" />);
   const cards = screen.getAllByRole("link", { name: /Nike Men's Court Shot Shoes/ });
   expect(cards.map(card => card.getAttribute("href"))).toEqual(["/account/purchase-options/nike-court-shot-shoes"]);
-  expect(within(cards[0]).getByText(/Review each option’s credit/)).toBeTruthy();
+  expect(within(cards[0]).getByText("applied to each")).toBeTruthy();
+  expect(within(cards[0]).getByText("$1–$2")).toBeTruthy();
   expect(within(screen.getByRole("dialog")).getByText("$73")).toBeTruthy();
   rerender(<MyZeroLossActivity state={state} filter="completion" selectedSlug={first.slug} />);
   expect(screen.queryByRole("dialog")).toBeNull();

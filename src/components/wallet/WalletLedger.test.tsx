@@ -2,7 +2,16 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { WalletLedger } from "./WalletLedger";
+import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 afterEach(cleanup);
+test("transaction actions separate the exact entry, its product, and support", () => {
+  const item = { ...storedActivityFixture().activity[0], entryId: `ent_${"1".repeat(32)}` };
+  const entry = { id: "ledger-1", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-10-24T12:00:00Z", entryIds: [item.entryId], product: { title: item.title, image: item.image, slug: item.slug } };
+  render(<WalletLedger entries={[entry]} activity={[item]} />);
+  expect(screen.getByRole("link", { name: "View entry" }).getAttribute("href")).toBe(`/account/entries/${item.entryId}`);
+  expect(screen.getByRole("link", { name: "View product" }).getAttribute("href")).toBe(`/items/${item.slug}`);
+  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=ledger-1");
+});
 test("each transaction's support shortcut preserves its identity through filtering", () => {
   render(<WalletLedger entries={[
     { id: "11111111-1111-4111-8111-111111111111", entry_type: "DEPOSIT", amount: 500, created_at: "2026-09-21T12:00:00Z" },
