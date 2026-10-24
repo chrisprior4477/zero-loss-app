@@ -54,7 +54,7 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
       {bannerStyles.map((style, i) => <label className={styles.option} data-selected={choice === style} key={style}>
         <input type="radio" name="notification-banner-style" value={style} checked={choice === style} onChange={() => { setChoice(style); setHeaderStyle?.(style); notifications?.setBannerHidden(false); setMessage(""); }} />
         <span className={styles.name}>{i + 1}. {bannerStyleNames[style]}</span>
-        <span className={styles.preview} aria-hidden="true"><span className={styles.logo}><Image src="/zeroloss-logo.svg" width={82} height={16} alt="" /></span><span className={styles.region}><span className={styles.balance}><EntryTicket count={59} /><span>◉ $978</span></span><NotificationBanner style={style} speed={speed} displaySeconds={displaySeconds} messages={previewMessages} /></span><span className={styles.avatar}>CP</span></span>
+        <span className={styles.preview} aria-hidden="true"><span className={styles.logo}><Image src="/zeroloss-logo.svg" width={82} height={16} alt="" /></span><span className={styles.region}><span className={styles.balance}><EntryTicket count={59} /><span>◉ $978</span></span><NotificationBanner style={style} speed={speed} displaySeconds={displaySeconds} messages={previewMessages.filter(message => notifications?.supportEnabled !== false || message.label !== "Support")} /></span><span className={styles.avatar}>CP</span></span>
       </label>)}
     </fieldset>
     <div className={styles.speedControl}>

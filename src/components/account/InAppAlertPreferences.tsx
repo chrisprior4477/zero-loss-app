@@ -16,7 +16,7 @@ const choices: readonly { key: NotificationPreferenceKey; label: string; descrip
   { key: "pool_progress", label: "Open entries and pools", description: "Your active entries and pool progress." },
 ];
 
-export function InAppAlertPreferences({ initialPreferences, onSaved }: { initialPreferences: NotificationPreferences | null; onSaved: (key: NotificationPreferenceKey, enabled: boolean) => void }) {
+export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnabled = true }: { supportEnabled?: boolean; initialPreferences: NotificationPreferences | null; onSaved: (key: NotificationPreferenceKey, enabled: boolean) => void }) {
   const [preferences, setPreferences] = useState<NotificationPreferences>(initialPreferences ?? {});
   const [pendingKey, setPendingKey] = useState<NotificationPreferenceKey | null>(null);
   const [message, setMessage] = useState("");
@@ -40,7 +40,7 @@ export function InAppAlertPreferences({ initialPreferences, onSaved }: { initial
     <h2 id="in-app-alert-heading">In-app alert choices</h2>
     <p>Choose which optional updates appear here. Your records remain in their account sections. Account and security notices stay on.</p>
     <div className={styles.preferenceGrid}>
-      {choices.map(choice => <label key={choice.key} className={styles.preferenceChoice}>
+      {choices.filter(choice => supportEnabled || choice.key !== "support_replies").map(choice => <label key={choice.key} className={styles.preferenceChoice}>
         <span><strong>{choice.label}</strong><small>{choice.description}</small></span>
         <input type="checkbox" checked={preferences[choice.key] !== false} onChange={event => change(choice.key, event.target.checked)} disabled={initialPreferences === null || saving} aria-label={`${choice.label} in-app alerts`} />
       </label>)}

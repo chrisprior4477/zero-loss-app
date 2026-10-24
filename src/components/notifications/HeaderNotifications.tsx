@@ -41,6 +41,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
   }, [value?.open]);
   const unread = value?.unread ?? [];
   const all = value?.notifications ?? unread;
+  const categories = headerCategories.filter(c => c.key !== "support" || value?.supportEnabled !== false);
   const counts = headerCounts(unread);
   const messages = notificationMessages(unread);
   const alertCount = messages.reduce((sum, m) => sum + m.count, 0);
@@ -61,7 +62,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     if (list.current) list.current.scrollTop = 0;
   }
   const active = Boolean(value?.enabled && alertCount);
-  const current = selected ?? headerCategories.find(c => counts[c.key] > 0)?.key ?? "wins";
+  const current = (selected && categories.some(c => c.key === selected) ? selected : null) ?? categories.find(c => counts[c.key] > 0)?.key ?? "wins";
   const categoryInfo = headerCategories.find(c => c.key === current)!;
   const activityCategory = current === "wins" || current === "options" || current === "entries" ? current : null;
   const groups = activityCategory ? groupedActivityUpdates(all, unread, activityCategory) : [];
@@ -85,7 +86,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
     <dialog ref={dialog} className={styles.dialog} aria-labelledby="header-updates-title" onCancel={() => value?.setOpen(false)} onKeyDown={containDialogTab} onClick={e => { if (e.target === e.currentTarget) value?.setOpen(false); }}>
       <div className={styles.dialogHeading}><h2 id="header-updates-title">Your updates</h2><button type="button" aria-label="Close updates" onClick={() => value?.setOpen(false)}>×</button></div>
       <nav className={styles.categories} aria-label="Update categories">
-        {headerCategories.map(c => <button key={c.key} type="button" data-color={c.color} aria-pressed={current === c.key} aria-controls="header-update-sections" onClick={() => choose(c.key)}>{c.label}{counts[c.key] > 0 ? <span>{counts[c.key]}</span> : null}</button>)}
+        {categories.map(c => <button key={c.key} type="button" data-color={c.color} aria-pressed={current === c.key} aria-controls="header-update-sections" onClick={() => choose(c.key)}>{c.label}{counts[c.key] > 0 ? <span>{counts[c.key]}</span> : null}</button>)}
       </nav>
       <div ref={list} className={styles.items} id="header-update-sections">
         <section className={styles.section} aria-label={categoryInfo.label}>

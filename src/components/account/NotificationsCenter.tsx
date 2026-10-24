@@ -33,7 +33,7 @@ const filters = [
 
 type NotificationOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function NotificationsCenter({ notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable, initialAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ supportEnabled = true, notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable, initialAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [alertPreferences, setAlertPreferences] = useState<NotificationPreferences>(initialAlertPreferences ?? {});
   const router = useRouter();
@@ -172,7 +172,7 @@ export function NotificationsCenter({ notifications, initialReadIds, activityAva
         </section>
       </div>
       <div id="alert-settings" className={styles.settingsBlock}>
-        <InAppAlertPreferences initialPreferences={initialAlertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setAlertPreferences(current => ({ ...current, [key]: enabled }))} />
+        <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setAlertPreferences(current => ({ ...current, [key]: enabled }))} />
         <Link href="/account/crew?tab=picks#sharing" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>
         <h2>Email choices</h2>
         <p>These controls affect email only; the in-app choices above affect this notification list.</p>

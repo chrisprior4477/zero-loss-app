@@ -56,3 +56,23 @@ test("restoring restores read alerts and reveals a hidden banner without saving 
  fireEvent.click(screen.getByRole("button",{name:/4 unread updates/}));
  expect(screen.getByRole("button",{name:"Show tickets & balance"})).toBeTruthy();
 });
+
+function ClearDemo(){const value=useNotifications()!;return <button onClick={value.clearAfterDemoReset}>Clear demo</button>;}
+test("a completed demo reset immediately removes notifications and ignores an older in-flight refresh",async()=>{
+ let finishRefresh!:(value:unknown)=>void;
+ vi.stubGlobal("fetch",vi.fn(()=>new Promise(resolve=>{finishRefresh=resolve;})));
+ render(<NotificationProvider initial={snapshot} initialStyle="capsule" initialEnabled><HeaderNotifications><Link href="/account/wallet">Balance</Link></HeaderNotifications><ClearDemo/></NotificationProvider>);
+ expect(screen.getByRole("button",{name:/4 unread updates/})).toBeTruthy();
+ fireEvent.click(screen.getByRole("button",{name:"Clear demo"}));
+ expect(screen.queryByRole("button",{name:/unread updates/})).toBeNull();
+ await act(async()=>finishRefresh({ok:true,status:200,json:async()=>snapshot}));
+ expect(screen.queryByRole("button",{name:/unread updates/})).toBeNull();
+});
+
+test("MVP dropdown keeps four useful categories and removes the Support button",()=>{
+ render(<NotificationProvider initial={{...snapshot,supportEnabled:false,notifications:notifications.filter(n=>!n.id.startsWith("support-"))}} initialStyle="capsule" initialEnabled><HeaderNotifications><Link href="/account/wallet">Balance</Link></HeaderNotifications></NotificationProvider>);
+ fireEvent.click(screen.getByRole("button",{name:/3 unread updates/}));
+ const nav=screen.getByRole("navigation",{name:"Update categories"});
+ expect(within(nav).getAllByRole("button")).toHaveLength(4);
+ expect(within(nav).queryByRole("button",{name:/Support/})).toBeNull();
+});

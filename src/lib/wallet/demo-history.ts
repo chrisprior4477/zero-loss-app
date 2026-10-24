@@ -2,6 +2,7 @@ export type DemoWalletHistoryVisibility = {
   ledgerEntryIds: string[];
   fundingSessionIds: string[];
   fullReset: boolean;
+  notificationResetAt?: string | null;
 };
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -14,5 +15,6 @@ export function parseDemoWalletHistoryVisibility(value: unknown): DemoWalletHist
     throw new Error("Invalid demo history state");
   }
   if (row.fullReset !== undefined && typeof row.fullReset !== "boolean") throw new Error("Invalid demo reset state");
-  return { ledgerEntryIds: row.ledgerEntryIds, fundingSessionIds: row.fundingSessionIds, fullReset: row.fullReset === true };
+  if (row.notificationResetAt != null && (typeof row.notificationResetAt !== "string" || !Number.isFinite(Date.parse(row.notificationResetAt)))) throw new Error("Invalid notification reset time");
+  return { ledgerEntryIds: row.ledgerEntryIds, fundingSessionIds: row.fundingSessionIds, fullReset: row.fullReset === true, notificationResetAt: row.notificationResetAt as string | null | undefined };
 }

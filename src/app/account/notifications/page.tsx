@@ -18,6 +18,7 @@ export default async function NotificationsPage() {
   const { data: purchaseOptionEmailEnabled, error: purchaseOptionEmailError } = await db.rpc("get_purchase_option_email_enabled");
   const { data: crewWinEmailEnabled, error: crewWinEmailError } = await db.rpc("get_crew_win_email_enabled");
   return <>{!snapshot.supportAvailable ? <p role="status" className="mx-auto max-w-6xl rounded-xl border border-cyan-300/30 bg-[#001b3d] p-4 text-sm">Support updates couldn’t be loaded. Your other notifications are still available.</p> : null}<NotificationsCenter
+    supportEnabled={snapshot.supportEnabled}
     notifications={snapshot.notifications}
     initialReadIds={snapshot.readIds}
     activityAvailable={account.activity.source !== "unavailable"}
