@@ -14,10 +14,13 @@ function show(props: Partial<React.ComponentProps<typeof FavoritesView>> = {}) {
 beforeEach(() => { vi.clearAllMocks(); mocks.state.mockImplementation(async (_id, state) => ({ ok: true, viewedAt: "2026-10-25", declinedAt: state === "declined" ? "2026-10-25" : null, message: state === "declined" ? "Declined. This item stays in Shared with You." : "" })); });
 afterEach(() => { cleanup(); window.history.replaceState({}, "", "/"); });
 test("personal favorites are the default and the two tabs replace the introductory copy", () => {
+  window.history.replaceState({ __NA: true }, "", "/account/favorites");
+  const replace = vi.spyOn(window.history, "replaceState");
   show(); expect(screen.getByRole("tab", { name: "Your Favorites 1" }).getAttribute("aria-selected")).toBe("true");
   expect(screen.queryByText(/Want a heads-up/)).toBeNull(); expect(screen.queryByRole("button", { name: "Try an email share" })).toBeNull();
   fireEvent.click(screen.getByRole("tab", { name: "Shared with You 1" }));
   expect(screen.getByText("From Alex")).toBeTruthy(); expect(window.location.search).toBe("?tab=shared"); expect(mocks.toggle).not.toHaveBeenCalled();
+  expect(replace).toHaveBeenLastCalledWith(null, "", "/account/favorites?tab=shared"); replace.mockRestore();
 });
 test("declining keeps the shared card and never changes personal favorites", async () => {
   show({ initialTab: "shared" }); fireEvent.click(screen.getByRole("button", { name: /View prize/ }));

@@ -32,7 +32,8 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const tabs = useRef<HTMLDivElement>(null);
-  function location(href: string) { window.history.replaceState(window.history.state, "", href); }
+  // Let Next.js copy its internal state so a server action keeps the active tab URL.
+  function location(href: string) { window.history.replaceState(null, "", href); }
   function revealHeading() { requestAnimationFrame(() => document.getElementById("saved-items-heading")?.scrollIntoView?.({ block: "start", behavior: "instant" })); }
   function chooseTab(next: "favorites" | "shared") {
     setTab(next); setSelected(null); setMessage(""); location(next === "shared" ? sharedWithYouHref : "/account/favorites");
