@@ -82,10 +82,11 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
     const product = getDemoProduct(slug), current = availability?.[slug];
     return { product, current, status: product ? availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold) : null };
   }
-  function art(slug: string, large = false) {
+  function art(slug: string, large = false, shareId?: string) {
     const product = getDemoProduct(slug);
+    const artwork = product ? <Image src={product.gallery[0].src} alt={product.title} fill sizes={large ? "(max-width: 640px) 90vw, 420px" : "(max-width: 640px) 50vw, 25vw"} className="object-contain p-2" /> : <span>Product unavailable</span>;
     return <div className={`${styles.art} ${large ? styles.largeArt : ""}`}>
-      {product ? <Image src={product.gallery[0].src} alt={product.title} fill sizes={large ? "(max-width: 640px) 90vw, 420px" : "(max-width: 640px) 50vw, 25vw"} className="object-contain p-2" /> : <span>Product unavailable</span>}
+      {large ? artwork : <button type="button" className={styles.artButton} aria-label={`View ${product?.title ?? "shared product"}`} onClick={() => openItem(slug, shareId)}>{artwork}</button>}
       <FavoriteButton itemName={product?.title ?? "this product"} itemHref={`/items/${slug}`} size="large" className={styles.heart} />
     </div>;
   }
@@ -100,7 +101,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
   }
   const selectedShare = selected?.shareId ? shares.find(s => s.id === selected.shareId) : null;
   const detailProduct = selected ? getDemoProduct(selected.slug) : null;
-  return <main className={styles.page}>
+  return <section className={styles.page} aria-labelledby="saved-items-heading">
     <FavoritesLandingScroll enabled />
     <div className={styles.container}>
       <h1 id="saved-items-heading" className={styles.heading}>Favorites &amp; Sent to You</h1>
@@ -149,10 +150,10 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
             : !shares.length ? <div className={styles.empty}><h2>Nothing shared with you yet</h2><p>Items people send you will appear here.</p></div>
               : <div aria-label="Items shared with you" className={styles.grid}>{shares.map(share => {
                 const product = getDemoProduct(share.slug);
-                return <article key={share.id} className={styles.card}>{art(share.slug)}<div className={styles.cardBody}>{sender(share)}<span className={`${styles.badge} ${share.declinedAt ? styles.declined : ""}`}>{savedShareStatus(share)}</span><p className={styles.merchant}>{product?.retailer ?? "Zero Loss"}</p><h2>{product?.title ?? share.title}</h2><button type="button" className={styles.viewButton} data-saved-item={share.id} onClick={() => openItem(share.slug, share.id)}>View prize <span aria-hidden="true">→</span></button></div></article>;
+                return <article key={share.id} className={styles.card}>{art(share.slug, false, share.id)}<div className={styles.cardBody}>{sender(share)}<span className={`${styles.badge} ${share.declinedAt ? styles.declined : ""}`}>{savedShareStatus(share)}</span><p className={styles.merchant}>{product?.retailer ?? "Zero Loss"}</p><h2>{product?.title ?? share.title}</h2><button type="button" className={styles.viewButton} data-saved-item={share.id} onClick={() => openItem(share.slug, share.id)}>View prize <span aria-hidden="true">→</span></button></div></article>;
               })}</div>}
         </>}
       </section>
     </div>
-  </main>;
+  </section>;
 }

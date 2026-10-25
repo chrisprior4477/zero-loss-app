@@ -8,6 +8,7 @@
 .grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;align-items:start; }
 .card { display:flex;flex-direction:column;overflow:hidden;min-width:0;height:100%;border-radius:17px;background:white;color:#102947; }
 .art { position:relative;aspect-ratio:1.28;margin:10px 10px 0;border-radius:12px;background:#f1f4f7; }
+.artButton { position:absolute;inset:0;width:100%;height:100%;border-radius:inherit;cursor:pointer; }
 .heart { position:absolute;top:6px;right:6px;z-index:1; }
 .cardBody { display:flex;flex:1;flex-direction:column;padding:12px 11px 11px; }
 .merchant { margin-bottom:6px;min-height:27px;font-size:10px;line-height:1.35;font-weight:900;letter-spacing:.85px;color:#0875dc; }

@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { SavedProductShare } from "@/lib/sharing/saved-shares";
+import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
 const mocks = vi.hoisted(() => ({ toggle: vi.fn(), state: vi.fn(), alert: vi.fn() }));
 vi.mock("./FavoritesProvider", () => ({ useFavorites: () => ({ slugs: ["nike-court-shot-shoes"], available: true, isSignedIn: true, busySlug: null, toggle: mocks.toggle }) }));
 vi.mock("./FavoritesLandingScroll", () => ({ FavoritesLandingScroll: () => null }));
@@ -42,4 +43,14 @@ test("favorites capacity alerts retain their own saved preference", async () => 
 test("unavailable shared history does not hide personal favorites", () => {
   show({ initialShares: null }); expect(screen.getByRole("button", { name: "Nike Men's Court Shot Shoes" })).toBeTruthy();
   fireEvent.click(screen.getByRole("tab", { name: /Shared with You/ })); expect(screen.getByRole("alert").textContent).toMatch(/couldn’t be loaded/);
+});
+test("product artwork opens the inline detail and Share retains the existing sharing flow", () => {
+  const shareEvent = vi.fn(); window.addEventListener(PRODUCT_SHARE_EVENT, shareEvent);
+  show(); fireEvent.click(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" }));
+  expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy();
+  expect(window.location.search).toBe("?item=nike-court-shot-shoes");
+  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  expect(shareEvent).toHaveBeenCalledOnce();
+  expect((shareEvent.mock.calls[0][0] as CustomEvent).detail.slug).toBe("nike-court-shot-shoes");
+  window.removeEventListener(PRODUCT_SHARE_EVENT, shareEvent);
 });
