@@ -1,6 +1,6 @@
-.toast { position:fixed; z-index:180; inset:auto 20px max(20px,env(safe-area-inset-bottom)) auto; width:min(420px,calc(100vw - 24px)); max-width:none; max-height:none; margin:0; padding:0; border:0; overflow:visible; background:transparent; filter:drop-shadow(0 12px 24px #0006); color:#112644; }
+.toast { position:fixed; z-index:180; inset:50% auto auto 50%; transform:translate(-50%,-50%); width:min(420px,calc(100vw - 24px)); max-width:none; max-height:none; margin:0; padding:0; border:0; overflow:visible; background:transparent; filter:drop-shadow(0 12px 24px #0006); color:#112644; }
 .toast::backdrop { background:#04152c80; }
-@media(min-width:601px) { .toast { inset:50% auto auto 50%; transform:translate(-50%,-50%); width:min(460px,calc(100vw - 48px)); } }
+@media(min-width:601px) { .toast { width:min(460px,calc(100vw - 48px)); } }
 .paper { background:#fffefa; padding:22px; max-height:calc(100dvh - 44px - env(safe-area-inset-bottom)); overflow-y:auto; overscroll-behavior:contain; --scoop:14px; mask:radial-gradient(circle at 0 0,transparent var(--scoop),#000 calc(var(--scoop) + .5px)),radial-gradient(circle at 100% 0,transparent var(--scoop),#000 calc(var(--scoop) + .5px)),radial-gradient(circle at 0 100%,transparent var(--scoop),#000 calc(var(--scoop) + .5px)),radial-gradient(circle at 100% 100%,transparent var(--scoop),#000 calc(var(--scoop) + .5px)); mask-composite:intersect; }
 .toast h2 { font-size:25px; font-weight:800; line-height:1.2; letter-spacing:-.5px; margin:14px 0 18px; }
 .toast h3 { font-size:16px; font-weight:800; line-height:1.4; margin-bottom:10px; }
@@ -91,5 +91,5 @@
 .ready { color:#087a3f; font-size:12px; font-weight:750; margin:14px 0 0; }
 .publicUrl { overflow-wrap:anywhere; color:#0066ad; }
 .toast h2:focus { outline:none; }
-@media(max-width:600px) { .toast { right:12px; bottom:max(12px,env(safe-area-inset-bottom)); } .paper { padding:20px; max-height:calc(100dvh - 24px - env(safe-area-inset-bottom)); } }
+@media(max-width:600px) { .paper { padding:20px; max-height:calc(100dvh - 24px - env(safe-area-inset-bottom)); } }
 @media(max-width:360px) { .paper { padding:20px 16px; } .toast h2 { font-size:23px; } .thumb { width:56px; height:50px; } .duo button { font-size:13px; padding-inline:8px; } }
