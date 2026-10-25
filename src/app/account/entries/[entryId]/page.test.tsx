@@ -36,7 +36,7 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-test("entry numbers independently reveal pictured entry details and keep the saved ID copy action", async () => {
+test("entry browser reveals pictured entry details and keeps the saved ID copy action", async () => {
   const scrollIntoView = vi.fn();
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: scrollIntoView });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
@@ -55,8 +55,6 @@ test("entry numbers independently reveal pictured entry details and keep the sav
   expect(rail.querySelector("[class*='entryRailCount']")?.textContent).toBe("5");
   expect(within(rail).queryByRole("button", { name: "Hide 5 entries" })).toBeNull();
   expect(within(rail).getByRole("article", { name: "Entry 1 of 5" })).toBeTruthy();
-  fireEvent.click(within(rail).getByRole("button", { name: "Show entry 3 of 5" }));
-  expect(within(rail).getAllByRole("article")).toHaveLength(2);
   const first = within(rail).getByRole("article", { name: "Entry 1 of 5" });
   expect(within(first).getByRole("img", { name: "PlayStation 5 Slim Model" }).getAttribute("data-src")).toBe("/playstation.png");
   expect(within(first).getByText("$1 entered")).toBeTruthy();
@@ -64,7 +62,7 @@ test("entry numbers independently reveal pictured entry details and keep the sav
   fireEvent.click(within(first).getByRole("button", { name: `Copy full entry number ${ids[0]}` }));
   await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(ids[0]));
   expect(within(first).getByRole("button", { name: `Copied full entry number ${ids[0]}` })).toBeTruthy();
-  fireEvent.click(within(rail).getByRole("button", { name: "Hide entry 1 of 5" }));
+  fireEvent.click(within(rail).getByRole("button", { name: "View entry 3 of 5" }));
   expect(within(rail).queryAllByRole("article")).toHaveLength(1);
   expect(within(rail).getByRole("article", { name: "Entry 3 of 5" })).toBeTruthy();
   expect(rail.querySelector(`a[href*="${"a".repeat(32)}"]`)).toBeNull();

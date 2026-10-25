@@ -55,7 +55,6 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
       || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
   const entryCount = relatedEntries.length;
   const entryView = (await searchParams)?.entries;
-  const expandEntries = true;
   const savedTickets = relatedEntries.map((entry, index) => ({
     entryId: entry.entryId!,
     number: index + 1,
@@ -115,7 +114,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <ProductShareButton product={shareItem} className={styles.desktopShare} />
         </div>
       </section>
-      <EntryTicketRail key={`${entryId}:${entryView}`} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} initiallyExpanded={expandEntries} />
+      <EntryTicketRail key={`${entryId}:${entryView}`} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>

@@ -1,0 +1,57 @@
+.rail { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); align-items: center; gap: 14px 24px; margin-top: 18px; border-radius: 20px; background: #55caff; padding: 24px; color: #10234a; container-type: inline-size; scroll-margin-top: calc(var(--site-header-height, 114px) + 12px); }
+.header { grid-column: 1 / -1; }
+.header h2 { margin: 0; font-size: 20px; font-weight: 900; line-height: 1.65; letter-spacing: -.3px; }
+.header p { margin: 4px 0 0; color: #173c63; font-size: 13px; line-height: 1.4; }
+.entryRailCount { display: inline-grid; width: 35px; height: 35px; vertical-align: middle; margin: 0 3px; place-items: center; border-radius: 50%; background: #fff; color: #087bc7; font-size: 19px; font-weight: 950; font-variant-numeric: tabular-nums; }
+.browser { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0; }
+.wheelWrap { display: grid; gap: 4px; text-align: center; }
+.wheelLabel { font-size: 11px; font-weight: 750; line-height: 1.25; color: #17476d; }
+.wheel { height: 132px; padding: 44px 4px; border-radius: 12px; overflow-y: auto; overscroll-behavior: contain; scroll-snap-type: y mandatory; scrollbar-width: none; background: #e8f6ff; }
+.wheel::-webkit-scrollbar { display: none; }
+.wheelNumber { display: block; width: 100%; height: 44px; min-height: 44px; border: 0; border-radius: 8px; padding: 0; background: transparent; color: #668ba7; font: inherit; font-size: 23px; font-weight: 800; line-height: 44px; scroll-snap-align: center; cursor: pointer; font-variant-numeric: tabular-nums; }
+.wheelNumber[aria-selected="true"] { background: #b8e6ff; color: #00599c; font-size: 29px; font-weight: 950; }
+.nearby { min-width: 0; }
+.current { margin: 0 0 7px; text-align: center; color: #123e63; font-size: 12px; font-weight: 900; line-height: 1.3; }
+.navigator { display: grid; grid-template-columns: 38px minmax(0, 1fr) 38px; align-items: center; gap: 5px; }
+.arrow { display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 50%; background: #fff; padding: 0; color: #075181; cursor: pointer; }
+.arrow svg { width: 19px; height: 19px; }
+.arrow:disabled { color: #9eb9ca; cursor: default; }
+.ticketWindow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; min-width: 0; }
+.smallTicket, .entryCard, .countTicket { --corner: 14px; --side: 10px; --cutouts: radial-gradient(circle at left top, transparent var(--corner), #000 calc(var(--corner) + .8px)), radial-gradient(circle at right top, transparent var(--corner), #000 calc(var(--corner) + .8px)), radial-gradient(circle at left bottom, transparent var(--corner), #000 calc(var(--corner) + .8px)), radial-gradient(circle at right bottom, transparent var(--corner), #000 calc(var(--corner) + .8px)), radial-gradient(circle at left center, transparent var(--side), #000 calc(var(--side) + .8px)), radial-gradient(circle at right center, transparent var(--side), #000 calc(var(--side) + .8px)); -webkit-mask-image: var(--cutouts); mask-image: var(--cutouts); -webkit-mask-composite: source-in, source-in, source-in, source-in, source-in; mask-composite: intersect; }
+.smallTicket { --corner: 8px; --side: 5px; display: flex; min-width: 0; width: 100%; height: 42px; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: 0; background: #b7e7ff; padding: 5px 3px; color: #103a65; font: inherit; font-size: 19px; font-weight: 950; line-height: 1; cursor: pointer; font-variant-numeric: tabular-nums; }
+.smallTicket small { font-size: 8px; font-weight: 800; }
+.smallTicket[aria-pressed="true"] { background: #36e600; color: #0b3214; }
+.smallTicket:hover { background: #daf4ff; }
+.smallTicket[aria-pressed="true"]:hover { background: #63f13b; }
+.smallTicket:focus-visible { outline: 2px solid #075181; outline-offset: -6px; }
+.entryCard { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 10px 14px; min-width: 0; margin: 0; padding: 20px; background: #fffefa; color: #10234a; scroll-margin-top: calc(var(--site-header-height, 114px) + 12px); }
+.singleCard { grid-column: 1 / -1; }
+.image { position: relative; width: 100%; height: 104px; overflow: hidden; border-radius: 12px; background: #e4f4ff; }
+.image img { object-fit: contain; padding: 6px; }
+.details { min-width: 0; }
+.kicker { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: #006ea8; font-size: 10px; font-weight: 900; line-height: 1.2; letter-spacing: .3px; }
+.number { display: grid; min-width: 32px; height: 32px; flex-shrink: 0; place-items: center; border-radius: 50%; background: #087fff; padding: 0 5px; color: #fff; font-size: 18px; font-weight: 950; font-variant-numeric: tabular-nums; }
+.details h3 { margin: 0 0 7px; font-size: 16px; font-weight: 900; line-height: 1.2; }
+.amount, .date { margin: 0; font-size: 12px; line-height: 1.4; }
+.amount { font-weight: 850; }
+.date { color: #466886; }
+.cardFooter { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 7px; }
+.entryIdRow { display: flex; align-items: center; gap: 5px; color: #12365d; font-size: 13px; font-weight: 900; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.copyButton { display: grid; width: 30px; height: 30px; flex-shrink: 0; place-items: center; border: 1px solid #8ec8eb; border-radius: 6px; background: #e4f6ff; padding: 5px; color: #0b376a; cursor: pointer; }
+.copyButton svg { width: 16px; height: 16px; }
+.status { display: inline-flex; align-items: center; min-height: 25px; border-radius: 6px; background: #c6efff; padding: 4px 7px; color: #00658d; font-size: 12px; font-weight: 900; line-height: 1.2; text-transform: uppercase; white-space: nowrap; }
+.entryLink { display: inline-flex; width: 100%; gap: 7px; color: #0068ae; font-size: 12px; font-weight: 850; line-height: 1.4; }
+.expand { position: relative; display: flex; grid-column: 1 / -1; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 38px; border: 0; border-radius: 9px; background: #d9f4ff; padding: 4px 30px; color: #0b376a; font: inherit; font-size: 13px; font-weight: 900; cursor: pointer; }
+.countTicket { --corner: 5px; --side: 3px; display: grid; min-width: 34px; height: 26px; place-items: center; background: #0789ef; padding: 0 8px; color: #fff; font-size: 17px; font-weight: 950; font-variant-numeric: tabular-nums; }
+.expandArrow { position: absolute; right: 12px; font-size: 20px; }
+.allEntries { grid-column: 1 / -1; min-width: 0; border-radius: 13px; background: #e6f6ff; padding: 12px; }
+.allEntries > p { margin: 0 0 9px; font-size: 12px; color: #1a496e; line-height: 1.4; }
+.allGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; }
+.allGrid .smallTicket { height: 44px; }
+.collapse { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 36px; margin-top: 10px; border: 0; border-radius: 7px; background: #c6ecff; padding: 7px; color: #103a65; font: inherit; font-size: 12px; font-weight: 850; cursor: pointer; }
+.bottom { display: flex; justify-content: center; margin-top: 12px; }
+.shopping { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; border-radius: 10px; background: #35e500; padding: 10px 20px; color: #073017; font-size: 14px; font-weight: 900; text-decoration: none; }
+:is(.wheel, .arrow, .copyButton, .entryLink, .expand, .collapse, .shopping):focus-visible { outline: 3px solid #0069b5; outline-offset: 3px; }
+@media (max-width: 800px) { .rail { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 18px; } .browser { max-width: 380px; width: 100%; justify-self: center; } .entryCard { grid-template-columns: 60px minmax(0, 1fr); padding: 18px 16px; gap: 10px; } .image { height: 90px; } .details h3 { font-size: 15px; } }
+@media (max-width: 600px) { .rail { margin-top: 12px; padding: 14px; border-radius: 18px; scroll-margin-top: calc(var(--site-header-height, 163px) + 7px); } .header h2 { font-size: 18px; } .header p { font-size: 12px; } .entryRailCount { width: 32px; height: 32px; font-size: 18px; } .browser { grid-template-columns: 52px minmax(0, 1fr); gap: 8px; } }
+@container (max-width: 280px) { .browser { grid-template-columns: 44px minmax(0, 1fr); gap: 5px; } .navigator { grid-template-columns: 32px minmax(0, 1fr) 32px; gap: 3px; } .arrow { width: 32px; height: 32px; } .ticketWindow { gap: 3px; } .smallTicket { font-size: 17px; } .smallTicket small { font-size: 7px; } .wheelNumber { font-size: 21px; } .wheelNumber[aria-selected="true"] { font-size: 25px; } .wheelLabel { font-size: 10px; } .entryCard { padding: 17px 14px; gap: 8px; } .details h3 { font-size: 14px; } .header h2 { font-size: 17px; } }
