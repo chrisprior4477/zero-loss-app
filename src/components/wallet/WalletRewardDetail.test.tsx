@@ -36,6 +36,8 @@ test("a valid claimed reward uses its saved number and keeps the demo disclosure
   expect(screen.getByText("Sample — not redeemable")).toBeTruthy();
   expect((screen.getByRole("button", { name: /Copy number/ }) as HTMLButtonElement).disabled).toBe(false);
   expect(screen.getByText("Claimed — ready to use")).toBeTruthy();
+  expect(screen.getByText("Claimed on")).toBeTruthy();
+  expect(screen.queryByText("Claim by")).toBeNull();
   expect(screen.getByRole("button", { name: "Preview identity check" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Remove sample reward & restart demo" })).toBeTruthy();
   expect(screen.getAllByRole("link", { name: "Continue shopping" }).map(link => link.getAttribute("href"))).toEqual(["/", "/"]);
@@ -67,6 +69,7 @@ test.each<RewardStatus>(["expired", "cancelled", "redeemed", "issuance_pending",
 test("a ready unclaimed demo reward shows an illustrative barcode above the unchanged claim step", () => {
   render(<WalletRewardDetail item={{ ...item, rewardClaimedAt: null }} isPreview />);
   expect(screen.getByRole("button", { name: "Claim reward" })).toBeTruthy();
+  expect(screen.getByText("Claim by")).toBeTruthy();
   expect(screen.getByLabelText("Sample reward barcode")).toBeTruthy();
   expect(screen.getByText("Demo preview · Not claimed")).toBeTruthy();
   expect(screen.getByText("Illustrative number only · Not redeemable")).toBeTruthy();

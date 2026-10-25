@@ -18,6 +18,7 @@ import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { getAccountContext } from "@/lib/account/context";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
+import { resolvedProductDestination } from "@/lib/catalog/resolved-destination";
 import { SearchResultsAutoScroll } from "@/components/catalog/SearchResultsAutoScroll";
 
 export const metadata: Metadata = {
@@ -47,6 +48,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts);
   const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm) : [];
+  const savedMatches = searchTerm ? searchCatalogMatches(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), searchTerm) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
   const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
   const allowedRetailers = selectedRetailerGroup
@@ -129,6 +131,19 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 </article>
               );
             })}
+          </section>
+        ) : savedMatches.length ? (
+          <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Already in your activity</p>
+            <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">No open offers match “{searchTerm}” here.</h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">You have saved results for this search. Open your reward or purchase option below.</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              {savedMatches.map(({ product }) => {
+                const result = resolvedProductDestination(account?.activity, product.slug);
+                return result ? <Link key={product.slug} href={result.href} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">{result.label}: {product.title} →</Link> : null;
+              })}
+              <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
+            </div>
           </section>
         ) : searchTerm && !selectedCategory && !selectedRetailerGroup && directoryMatches.length && matchedProducts.length === 0 ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">

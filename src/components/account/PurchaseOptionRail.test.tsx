@@ -13,11 +13,22 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const bulkOptions = (count = 8) => Array.from({ length: count }, (_, i) => ({ ...storedActivityFixture().activity[2], entryId: `ent_${String(i+1).padStart(32,"0")}`, completionOptionId: `${String(i+1).padStart(8,"0")}-1111-4111-8111-111111111111`, remainingCents: 14900 }));
 
+test("selecting all options hides the unnecessary decline control without losing the saved preference", () => {
+  render(<PurchaseOptionRail title="Gift card" options={bulkOptions(2)} canBulkDecline showSummary />);
+  fireEvent.click(screen.getByRole("checkbox", { name: "Decline the other 1 after purchase" }));
+  fireEvent.change(screen.getByRole("combobox"), { target: { value: "2" } });
+  expect(screen.queryByRole("checkbox", { name: /Decline the other/ })).toBeNull();
+  expect(screen.getByRole("button", { name: "Complete 2 purchases" })).toBeTruthy();
+  fireEvent.change(screen.getByRole("combobox"), { target: { value: "1" } });
+  expect((screen.getByRole("checkbox", { name: "Decline the other 1 after purchase" }) as HTMLInputElement).checked).toBe(false);
+});
+
 test("insufficient grouped purchase funds open Add funds for the selected option without declining anything", async () => {
   mocks.push.mockClear(); mocks.purchase.mockClear(); mocks.decline.mockClear();
   const options = bulkOptions(1);
   mocks.purchase.mockResolvedValueOnce({ status: "error", recovery: "balance", message: "Add funds. No purchases or declines were made." });
   render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline showSummary />);
+  expect(screen.queryByRole("checkbox", { name: /Decline the other/ })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Complete 1 purchase" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $149 purchase" }));
   await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/account/wallet?view=history&from=${options[0].slug}&entry=${options[0].entryId}#add-funds`));

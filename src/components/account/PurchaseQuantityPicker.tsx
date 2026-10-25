@@ -66,9 +66,9 @@ export function PurchaseQuantityPicker({ quantity, count, totalCents, declineRes
           <span className={styles.completeStrip}>Complete {quantity === 1 ? "purchase" : "purchases"} <span aria-hidden="true">→</span></span>
         </button>
         <div className={styles.quantityFooter}>
-          <label className={styles.declineRest}><input type="checkbox" checked={declineRest} disabled={disabled || rest === 0} onChange={event => onDeclineRest(event.target.checked)} />
+          {rest > 0 ? <label className={styles.declineRest}><input type="checkbox" checked={declineRest} disabled={disabled} onChange={event => onDeclineRest(event.target.checked)} />
             <span>Decline the other {rest}{" "}<br />after purchase</span>
-          </label>
+          </label> : null}
           <p className={styles.quantityTotal} aria-live="polite">{formatUsdFromCents(totalCents)}<small>total</small></p>
         </div>
       </div>

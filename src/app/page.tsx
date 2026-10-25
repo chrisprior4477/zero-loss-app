@@ -29,7 +29,7 @@ export default async function HomePage() {
   const [availability, account] = await Promise.all([getOfferingAvailability(), getAccountContext()]);
   return (
     <>
-      <LivePulseTicker items={livePulseItems(availability)} />
+      <LivePulseTicker items={livePulseItems(availability, account?.activity)} />
 
       <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0 md:pb-4">
         <ContinueEntryBanner />

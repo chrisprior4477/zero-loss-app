@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import BrowsePage from "./page";
+import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 // Full-directory integration renders hundreds of cards in jsdom.
 vi.setConfig({ testTimeout: 20000 });
 
@@ -20,6 +21,23 @@ beforeEach(() => {
 afterEach(() => { cleanup(); account.get.mockResolvedValue(null); });
 
 describe("Browse search results", () => {
+  test("finds a completed Samsung result in this account without offering another entry or claiming it is missing", async () => {
+    const activity = storedActivityFixture();
+    Object.assign(activity.activity[1], { rewardId: "samsung-reward", rewardStatus: "ready", rewardClaimedAt: "2026-10-25T12:00:00Z" });
+    account.get.mockResolvedValue({ activity });
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "Samsung" }) }));
+    expect(screen.getByRole("heading", { name: "No open offers match “Samsung” here." })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /View your reward: Samsung/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=samsung-reward");
+    expect(screen.queryByRole("heading", { name: /in the catalog yet/ })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Products" })).toBeNull();
+  });
+
+  test("search returns an existing purchase option without reopening the offer", async () => {
+    account.get.mockResolvedValue({ activity: storedActivityFixture() });
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "nike court shot" }) }));
+    expect(screen.getByRole("link", { name: /View your purchase option: Nike/ }).getAttribute("href")).toBe("/account/purchase-options/nike-court-shot-shoes");
+  });
+
   test("lands at two compact discovery controls on All and Ending Soon", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByRole("heading", { name: "Browse every product" })).toBeTruthy();

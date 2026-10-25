@@ -16,6 +16,21 @@ const wallet: WalletSnapshot = { walletAccountId: null, scope: "production", cur
 beforeEach(() => { vi.clearAllMocks(); mocks.account.mockResolvedValue({ activity: storedActivityFixture(), wallet }); mocks.rpc.mockResolvedValue({ data: [], error: null }); });
 afterEach(cleanup);
 
+test("unclaimed and claimed rewards keep their own labels, actions, and reward IDs", async () => {
+  const state = storedActivityFixture();
+  Object.assign(state.activity[1], { rewardId: "unclaimed-win", rewardStatus: "ready" });
+  state.activity.push({ ...state.activity[1], entryId: "purchased-entry", rewardId: "claimed-purchase", status: "completed", rewardSource: "purchase", completionOptionStatus: "purchased", rewardClaimedAt: "2026-10-25T12:00:00Z" });
+  mocks.account.mockResolvedValue({ activity: state, wallet });
+  render(await WalletPage({ searchParams: Promise.resolve({}) }));
+  const cards = within(screen.getByRole("region", { name: "Available rewards" }));
+  expect(cards.getByRole("link", { name: /Ready to claim/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=unclaimed-win");
+  expect(cards.getByRole("link", { name: /Ready to claim/ }).textContent).toContain("Claim reward");
+  expect(cards.getByRole("link", { name: /Ready to use/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=claimed-purchase");
+  expect(cards.getByRole("link", { name: /Ready to use/ }).textContent).toContain("Open reward");
+  expect(screen.queryByText("Delivered to wallet")).toBeNull();
+  expect(screen.getByRole("link", { name: /Prize Ready: 2/ })).toBeTruthy();
+});
+
 test("wallet shortcut count comes only from digital prize activity, not entries or dollars", () => {
   const state = storedActivityFixture();
   expect(walletRewards(state)).toHaveLength(1);
@@ -56,13 +71,13 @@ test.each(["all", "ready"])("summary and history controls target the right ticke
   expect(filters.getByRole("link", { name: "All" }).getAttribute("href")).toBe("/account/wallet#ready-rewards");
   expect(filters.getByRole("link", { name: "Ready" }).getAttribute("href")).toBe("/account/wallet?rewards=ready#ready-rewards");
   expect(filters.getByRole("link", { name: "Used" }).getAttribute("href")).toBe("/account/wallet?rewards=used#reward-history");
-  expect(screen.getByRole("link", { name: /Ready.*Available to use/ }).getAttribute("href")).toBe(filters.getByRole("link", { name: "Ready" }).getAttribute("href"));
-  expect(screen.getByRole("region", { name: "Ready to use" }).id).toBe("ready-rewards");
+  expect(screen.getByRole("link", { name: /Ready.*To claim or use/ }).getAttribute("href")).toBe(filters.getByRole("link", { name: "Ready" }).getAttribute("href"));
+  expect(screen.getByRole("region", { name: "Available rewards" }).id).toBe("ready-rewards");
 });
 
 test("empty Used is its own ticket with shopping and a return to the ready ticket", async () => {
   render(await WalletPage({ searchParams: Promise.resolve({ rewards: "used" }) }));
-  expect(screen.queryByRole("region", { name: "Ready to use" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "Available rewards" })).toBeNull();
   expect(screen.queryByRole("complementary", { name: "Reward summary" })).toBeNull();
   expect(screen.getByRole("region", { name: "Used rewards" }).id).toBe("reward-history");
   expect(screen.getByText(/You haven’t used or transferred any prizes/)).toBeTruthy();
@@ -73,7 +88,7 @@ test("empty Used is its own ticket with shopping and a return to the ready ticke
 
 test("empty Expired has the requested reminder and both working destinations", async () => {
   render(await WalletPage({ searchParams: Promise.resolve({ rewards: "expired" }) }));
-  expect(screen.queryByRole("region", { name: "Ready to use" })).toBeNull();
+  expect(screen.queryByRole("region", { name: "Available rewards" })).toBeNull();
   expect(screen.getByText("You do not have any expired purchase options yet.")).toBeTruthy();
   expect(screen.getByText("Remember to check your Declined Offers page.")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Declined Offers" }).getAttribute("href")).toBe("/account/declined-offers");

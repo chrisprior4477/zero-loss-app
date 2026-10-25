@@ -34,9 +34,9 @@ function rewardState(item: ActivityItem) {
   return item.rewardStatus ?? "ready";
 }
 
-function rewardLabel(item: ActivityItem) {
+function rewardLabel(item: ActivityItem, isPreview: boolean) {
   switch (rewardState(item)) {
-    case "ready": return "Ready";
+    case "ready": return !item.rewardId ? (isPreview ? "Demo ready" : "Not issued yet") : item.rewardClaimedAt ? "Ready to use" : "Ready to claim";
     case "redeemed": return "Used";
     case "expired": return "Expired";
     case "cancelled": return "Cancelled";
@@ -81,25 +81,25 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       </section>
       {!focusedHistory ? <div className={overview.mainGrid}>
         <section id="ready-rewards" className={`${overview.ticketPanel} ${overview.readySection}`} aria-labelledby="ready-heading">
-          <div className={overview.sectionHeading}><h2 id="ready-heading">Ready to use</h2><p>Your available rewards are ready to open and use.</p></div>
+          <div className={overview.sectionHeading}><h2 id="ready-heading">Available rewards</h2><p>Claim a new reward or open one you’ve already claimed.</p></div>
           {state.source === "unavailable" ? <p role="status" className={overview.message}>Rewards unavailable. We can’t verify your account activity right now.</p> : ready.length === 0 ? <div className={overview.empty}>
             <h3>No ready gift cards yet</h3><p>Won and purchased retailer gift cards will appear here when they are ready.</p><Link href="/account/entries">View My Activity <AccountIcon name="arrow" /></Link>
           </div> : <div className={overview.readyGrid}>
             {ready.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={walletRewardHref(item)} className={overview.rewardCard}>
-              <span className={overview.readyBadge}><AccountIcon name="prize" />Ready</span>
+              <span className={overview.readyBadge}><AccountIcon name="prize" />{rewardLabel(item, state.isPreview)}</span>
               <span className={overview.rewardImage}><Image src={item.image} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1000px) 45vw, 20vw" /></span>
               <span className={overview.rewardTitle}>{item.title}</span>
               <span className={overview.rewardMeta}>{item.retailer} · {formatUsdFromCents(item.priceCents)}</span>
-              <span className={overview.delivered}>Delivered to wallet</span>
+              <span className={overview.delivered}>{item.rewardId && !item.rewardClaimedAt ? "Claim to open your gift card" : item.rewardClaimedAt ? "Saved in your wallet" : state.isPreview ? "Sample reward preview" : "Awaiting gift-card issuance"}</span>
               {state.isPreview ? <span className={overview.sample}>Sample · Not redeemable</span> : null}
-              <span className={overview.openReward}>Open reward <AccountIcon name="arrow" /></span>
+              <span className={overview.openReward}>{item.rewardId && !item.rewardClaimedAt ? "Claim reward" : "Open reward"} <AccountIcon name="arrow" /></span>
             </Link>)}
           </div>}
         </section>
         <aside className={`${overview.ticketPanel} ${overview.summary}`} aria-labelledby="summary-heading">
           <div className={overview.sectionHeading}><h2 id="summary-heading">Reward summary</h2><p>A quick look at your rewards activity.</p></div>
           <div className={overview.summaryRows}>
-            <WalletRewardLink href={rewardViewHrefs.ready} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="ready"><AccountIcon name="gift" /></span><span><strong>Ready</strong><small>Available to use</small></span><b>{readyCount === null ? "—" : ready.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
+            <WalletRewardLink href={rewardViewHrefs.ready} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="ready"><AccountIcon name="gift" /></span><span><strong>Ready</strong><small>To claim or use</small></span><b>{readyCount === null ? "—" : ready.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
             <WalletRewardLink href={rewardViewHrefs.used} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="used"><AccountIcon name="active" /></span><span><strong>Used</strong><small>Already redeemed</small></span><b>{state.source === "unavailable" ? "—" : used.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
             <WalletRewardLink href={rewardViewHrefs.expired} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="expired"><AccountIcon name="completion" /></span><span><strong>Expired</strong><small>No longer available</small></span><b>{state.source === "unavailable" ? "—" : expired.length}</b><AccountIcon name="chevron" /></WalletRewardLink>
             {other.length > 0 ? <WalletRewardLink href={rewardViewHrefs.history} className={overview.summaryRow}><span className={overview.summaryIcon} data-tone="other"><AccountIcon name="bell" /></span><span><strong>Other updates</strong><small>See reward status</small></span><b>{other.length}</b><AccountIcon name="chevron" /></WalletRewardLink> : null}
@@ -122,9 +122,9 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe or drag to browse rewards</p> : null}
           <RewardHistoryCarousel key={view}>
           <div className={overview.tableHeader} aria-hidden="true"><span>Date</span><span>Reward</span><span>Type</span><span>Status</span><span>Value</span><span className={overview.visuallyHidden}>Open</span></div>
-          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={isWalletReward(item) ? walletRewardHref(item) : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item)}, ${formatUsdFromCents(item.priceCents)}`} className={overview.historyRow}>
+          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={isWalletReward(item) ? walletRewardHref(item) : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}`} className={overview.historyRow}>
             <span>{claimedDate(item.rewardClaimedAt)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><strong>{item.title}</strong></span>
-            <span>{isWalletReward(item) ? "Gift Card" : "Purchase Option"}</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
+            <span>{isWalletReward(item) ? "Gift Card" : "Purchase Option"}</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item, state.isPreview)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
           </Link>)}
           </RewardHistoryCarousel>
         </>}
@@ -206,7 +206,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
     ["Retailer", item.retailer],
     ["Value", formatUsdFromCents(item.priceCents)],
     ["Status", statusLabel],
-    ["Claim by", claimDeadline],
+    item.rewardClaimedAt ? ["Claimed on", claimedDate(item.rewardClaimedAt)] : ["Claim by", claimDeadline],
   ];
   const ready = accountOverview ? readyWalletRewards(accountOverview.activity) : [];
   const optionCount = accountOverview?.activity.source === "unavailable" ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;

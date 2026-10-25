@@ -4,6 +4,17 @@ import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { endingSoonProducts } from "@/lib/catalog/ending-soon-products";
 import { placeholderDiscoveryOpportunities } from "./placeholder-data";
 import { livePulseItems } from "./live-pulse";
+import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
+
+test("a saved ticker outcome opens its reward and keeps every sample statistic", () => {
+  const activity = storedActivityFixture();
+  Object.assign(activity.activity[1], { slug: "dunkin-25-gift-card", rewardId: "dunkin-reward", rewardStatus: "ready" });
+  const items = livePulseItems(null, activity);
+  expect(items.find(item => item.label === "Dunkin' Donuts $25 card")).toMatchObject({ value: "Ready to claim", href: "/account/wallet?reward=dunkin-25-gift-card&rewardId=dunkin-reward" });
+  expect(items).toHaveLength(livePulseItems(null).length);
+  expect(items.find(item => item.label === "193 winners")).toEqual(livePulseItems(null).find(item => item.label === "193 winners"));
+  expect(livePulseItems(null, { ...activity, source: "unavailable" })).toEqual(livePulseItems(null));
+});
 
 test("each ticker product opens a real catalog listing, with the requested starting counts", () => {
   const items = livePulseItems(null);
