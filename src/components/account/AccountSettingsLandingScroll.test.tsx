@@ -104,6 +104,33 @@ test("desktop retains normal page positioning", () => {
   expect(scrollTo).not.toHaveBeenCalled();
 });
 
+test("purchase landing corrects late browser restoration without pulling back a user scroll", () => {
+  const { scrollTo, flush } = setup();
+  render(<AccountSettingsLandingScroll target="account-settings-intro" settleAfterNavigation />); flush();
+  scrollTo({ top: 0 }); scrollTo.mockClear();
+  fireEvent.scroll(window); flush();
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 308, behavior: "instant" });
+  fireEvent.touchStart(window);
+  scrollTo({ top: 900 }); scrollTo.mockClear();
+  fireEvent.scroll(window); flush();
+  expect(scrollTo).not.toHaveBeenCalled();
+});
+
+test("settling timers also leave the user's choice and position alone", () => {
+  vi.useFakeTimers();
+  try {
+    const { scrollTo, flush } = setup();
+    const view = render(<AccountSettingsLandingScroll target="account-settings-intro" settleAfterNavigation />); flush();
+    scrollTo({ top: 0 }); scrollTo.mockClear();
+    act(() => vi.advanceTimersByTime(150)); flush();
+    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 308, behavior: "instant" });
+    fireEvent.pointerDown(window); scrollTo.mockClear();
+    act(() => vi.advanceTimersByTime(1000)); flush();
+    expect(scrollTo).not.toHaveBeenCalled();
+    view.unmount();
+  } finally { vi.useRealTimers(); }
+});
+
 test.each(["ready", "unmount", "touch"])("waits for fonts without stealing a later interaction: %s", async outcome => {
   const { scrollTo, flush, container } = setup(); let ready!: () => void;
   Object.defineProperty(document, "fonts", { configurable: true, value: { ready: new Promise<void>(resolve => { ready = resolve; }) } });

@@ -29,7 +29,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const count = options.length;
   const canBulkDecline = account.wallet?.scope === "demo" && isPreviewDataEnvironment();
   return <main className={styles.page}>
-    <AccountSettingsLandingScroll target={canBulkDecline && decline === "confirm" ? "purchase-option-rail" : "purchase-options-intro"} visitKey={`${slug}:${selectedEntryId ?? "first"}:${decline ?? "view"}`} />
+    <AccountSettingsLandingScroll target={canBulkDecline && decline === "confirm" ? "purchase-option-rail" : "purchase-options-intro"} visitKey={`${slug}:${selectedEntryId ?? "first"}:${decline ?? "view"}`} settleAfterNavigation />
     <div className={styles.shell}>
       <div className={styles.topline}>
         <div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Purchase Options</h1><p className={styles.subtitle}>These are your {count} separate purchase {count === 1 ? "option" : "options"}.</p></div>

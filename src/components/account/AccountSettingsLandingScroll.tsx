@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
-export function AccountSettingsLandingScroll({ target, visitKey = target }: { target: string; visitKey?: string }) {
+export function AccountSettingsLandingScroll({ target, visitKey = target, settleAfterNavigation = false }: { target: string; visitKey?: string; settleAfterNavigation?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -11,6 +11,7 @@ export function AccountSettingsLandingScroll({ target, visitKey = target }: { ta
     let interrupted = false;
     let settlingUntil = 0;
     let requestedId = "";
+    const settlingTimers: number[] = [];
     const header = document.querySelector<HTMLElement>("header.sticky");
     const scope = document.getElementById(target)?.closest("main");
     const cancel = () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
@@ -38,7 +39,7 @@ export function AccountSettingsLandingScroll({ target, visitKey = target }: { ta
       if (disposed) return;
       requestedId = id;
       interrupted = false;
-      settlingUntil = Date.now() + 1000;
+      settlingUntil = Date.now() + (settleAfterNavigation ? 1500 : 1000);
       align();
     };
     const interrupt = () => { interrupted = true; cancel(); };
@@ -59,11 +60,19 @@ export function AccountSettingsLandingScroll({ target, visitKey = target }: { ta
     });
     if (header) observer?.observe(header);
     measure();
-    const ready = () => { if (!interrupted) reveal(); };
+    const onScroll = () => { if (settleAfterNavigation && Date.now() < settlingUntil) align(); };
+    const ready = () => {
+      if (disposed || interrupted) return;
+      reveal();
+      // Router/browser restoration can run after hydration and font readiness.
+      // Settle this visit briefly, and stop immediately on any user interaction.
+      if (settleAfterNavigation) for (const delay of [150, 400, 900]) settlingTimers.push(window.setTimeout(align, delay));
+    };
     if (document.fonts) void document.fonts.ready.then(ready);
     else ready();
     window.addEventListener("hashchange", onHash);
     window.addEventListener("resize", onResize);
+    if (settleAfterNavigation) window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("pointerdown", interrupt, { passive: true });
     window.addEventListener("touchstart", interrupt, { passive: true });
     window.addEventListener("wheel", interrupt, { passive: true });
@@ -71,8 +80,10 @@ export function AccountSettingsLandingScroll({ target, visitKey = target }: { ta
     document.addEventListener("click", onAnchor, true);
     return () => {
       disposed = true; cancel(); observer?.disconnect();
+      settlingTimers.forEach(timer => window.clearTimeout(timer));
       window.removeEventListener("hashchange", onHash);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pointerdown", interrupt);
       window.removeEventListener("touchstart", interrupt);
       window.removeEventListener("wheel", interrupt);
@@ -80,6 +91,6 @@ export function AccountSettingsLandingScroll({ target, visitKey = target }: { ta
       document.removeEventListener("click", onAnchor, true);
       scope?.style.removeProperty("--settings-header-bottom");
     };
-  }, [target, visitKey]);
+  }, [target, visitKey, settleAfterNavigation]);
   return null;
 }
