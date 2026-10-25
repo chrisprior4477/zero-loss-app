@@ -116,7 +116,7 @@ test("specific reward opens its redemption destination without another dialog or
   expect(screen.getByRole("heading", { name: "$400 Best Buy gift card" })).toBeTruthy();
   expect(screen.getByText("$400")).toBeTruthy();
   expect((screen.getByRole("button", { name: "Add to Apple Wallet" }) as HTMLButtonElement).disabled).toBe(true);
-  expect((screen.getByRole("button", { name: "Save to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Add to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByRole("link", { name: "Back to Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet");
   expect(screen.queryByRole("dialog")).toBeNull();
 });
@@ -148,9 +148,9 @@ test("preview reward renders a responsive sample redemption without pretending i
   expect(screen.getByText(/Use it on anything Best Buy sells/)).toBeTruthy();
   expect(screen.getByText(/not a restriction on your reward/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Copy number" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Show barcode" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Show barcode" })).toBeNull();
   expect((screen.getByRole("button", { name: "Add to Apple Wallet" }) as HTMLButtonElement).disabled).toBe(true);
-  expect((screen.getByRole("button", { name: "Save to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Add to Google Wallet" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
 test.each(["samsung-m70h-tv", "another-customer-reward"])("normal account cannot obtain sample or other customer's reward via URL: %s", async reward => {

@@ -8,6 +8,7 @@ import { activityHref, type ActivityItem } from "@/lib/account/activity";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./showroom.module.css";
+import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 
 const initialState: PurchaseOptionActionState = { status: "idle" };
 
@@ -29,6 +30,7 @@ export function PurchaseOptionControls({ item, resumePurchase = false }: { item:
       }
       // Navigate before the refreshed activity can unmount this completed option.
       if (result.status === "succeeded") {
+        window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
         const destination = result.href ?? (intent === "purchase" ? "/account/wallet" : "/account/entries");
         router.replace(intent === "purchase" && destination.startsWith("/account/wallet?") ? `${destination}#reward-pass` : destination);
       }

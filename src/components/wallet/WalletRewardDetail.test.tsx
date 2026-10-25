@@ -23,9 +23,10 @@ test.each(["prize", "completed"] as const)("%s reward sharing is a manual compac
   try {
     render(<WalletRewardDetail item={{ ...item, status }} isPreview claimedCode="123456789012" />);
     expect(share).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Share" }));
+    fireEvent.click(screen.getByRole("button", { name: status === "prize" ? "Share your win" : "Share" }));
     expect(share).toHaveBeenCalledOnce();
-    expect(share.mock.calls[0][0].detail).toEqual({ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: 50 });
+    expect(share.mock.calls[0][0].detail).toEqual({ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: 50, ...(status === "prize" ? { win: { rewardId: item.rewardId, demo: true } } : {}) });
+    expect(screen.getAllByText(status === "prize" ? "Your prize is ready!" : "Your gift card is ready.").length).toBeGreaterThan(0);
   } finally { window.removeEventListener(PRODUCT_SHARE_EVENT, share); }
 });
 
@@ -58,7 +59,7 @@ test.each<RewardStatus>(["expired", "cancelled", "redeemed", "issuance_pending",
     expect(screen.queryByText("1234 5678 9012")).toBeNull();
     expect(screen.queryByText("Claimed — ready to use")).toBeNull();
     expect(screen.queryByRole("button", { name: "Claim reward" })).toBeNull();
-    expect((screen.getByRole("button", { name: /Show barcode/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: /Show barcode/ })).toBeNull();
     expect(screen.getByRole("status")).toBeTruthy();
   }
 });

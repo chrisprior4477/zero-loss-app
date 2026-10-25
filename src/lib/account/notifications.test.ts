@@ -2,6 +2,26 @@ import { expect, test } from "vitest";
 import { storedActivityFixture } from "./activity.test-fixture";
 import { buildAccountNotifications, buildOrderNotifications, notificationIsEnabled, parseNotificationPreferences } from "./notifications";
 import type { RewardStatus, CompletionOptionStatus } from "./activity";
+import { headerCounts } from "./header-notifications";
+
+test("claiming one reward resolves its alert and deadline without hiding another win", () => {
+  const state = storedActivityFixture();
+  state.activity[1] = { ...state.activity[1], rewardId: "claimed", rewardSource: "winner", rewardStatus: "ready", rewardClaimedAt: "2026-10-25T12:00:00Z", rewardClaimExpiresAt: new Date(Date.now() + 86400000).toISOString() };
+  state.activity.push({ ...state.activity[1], rewardId: "unclaimed", rewardClaimedAt: null });
+  const notices = buildAccountNotifications(state, null, true);
+  expect(notices.find(n => n.id === "reward-claimed")).toMatchObject({ resolved: true, action: "View gift card" });
+  expect(notices.some(n => n.id === "reward-deadline-claimed")).toBe(false);
+  expect(notices.some(n => n.id === "reward-deadline-unclaimed")).toBe(true);
+  expect(headerCounts(notices).wins).toBe(1);
+});
+
+test("a purchased card stays in history without generating another header alert", () => {
+  const state = storedActivityFixture();
+  state.activity[2] = { ...state.activity[2], status: "completed", completionOptionStatus: "purchased", rewardId: "purchase", rewardSource: "purchase", rewardStatus: "ready", rewardClaimedAt: "2026-10-25T12:00:00Z" };
+  const notices = buildAccountNotifications(state, null, true);
+  expect(notices.find(n => n.id === "reward-purchase")).toMatchObject({ resolved: true, action: "View gift card" });
+  expect(headerCounts(notices).options).toBe(1);
+});
 
 test("same-product purchase options have distinct notifications and exact entry links", () => {
   const state = storedActivityFixture();

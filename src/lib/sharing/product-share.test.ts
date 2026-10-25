@@ -6,6 +6,15 @@ test("public exact listing excludes private account path, query and fragments", 
   expect(() => productShareUrl("https://example.test", "../account")).toThrow();
   expect(() => productShareUrl("javascript:alert(1)", "nike-court-shot")).toThrow();
 });
+
+test("win sharing announces the gift card and exposes only the public listing", () => {
+  const item = { slug: "samsung-m70h-tv", title: "Samsung TV", retailer: "Best Buy", value: 400, win: { rewardId: "private-reward-id", demo: false } };
+  const data = nativeProductShareData(item, "https://example.test/account/wallet?rewardId=private-reward-id", "Android");
+  expect(data.text).toBe("I won a $400 Best Buy gift card on Zero Loss! Take a look:");
+  expect(JSON.stringify(data)).not.toContain("private-reward-id");
+  expect(data.url).toBe("https://example.test/items/samsung-m70h-tv");
+  expect(nativeProductShareData({ ...item, win: { ...item.win, demo: true } }, "https://example.test", "Android").text).toContain("demo and got a sample");
+});
 test("SMS handoff encodes one body and supports choosing recipient in phone app", () => {
   expect(messageHref("+1 (202) 555-0123", "Shoes & baby\nhttps://example.test/items/shoes", true)).toBe("sms:+12025550123&body=Shoes%20%26%20baby%0Ahttps%3A%2F%2Fexample.test%2Fitems%2Fshoes");
   expect(messageHref("", "Look", false)).toBe("sms:?body=Look");

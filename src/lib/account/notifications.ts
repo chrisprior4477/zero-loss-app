@@ -26,6 +26,8 @@ export type AccountNotification = {
   entryId?: string | null;
   rewardSource?: "winner" | "purchase" | null;
   ledgerEntryType?: string;
+  /** Completed account actions remain in history but need no acknowledgement. */
+  resolved?: boolean;
 };
 
 export function parseNotificationPreferences(value: unknown): NotificationPreferences {
@@ -61,12 +63,12 @@ function activityNotification(item: ActivityItem): AccountNotification {
   }
   if (item.status === "prize" || (item.rewardStatus === "ready" && item.rewardId)) return {
     id: `reward-${item.rewardId ?? item.entryId ?? item.slug}`,
-    category: "action",
+    category: item.rewardClaimedAt || item.rewardSource === "purchase" || item.status === "completed" ? "activity" : "action",
     title: `Your ${formatUsdFromCents(item.priceCents)} reward is ready`,
     body: `Your ${item.retailer} digital reward for ${item.title} is ready to view.`,
     meta: item.availability,
     href: walletRewardHref(item),
-    action: "Show barcode",
+    action: item.rewardClaimedAt || item.rewardSource === "purchase" || item.status === "completed" ? "View gift card" : "Claim reward",
     image: item.image,
     visualLabel: item.retailer,
     visualValue: formatUsdFromCents(item.priceCents),
@@ -183,12 +185,13 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
   const activityPriority = { prize: 0, completion: 1, active: 2, completed: 3 } as const;
   const notifications: AccountNotification[] = activity.source === "unavailable" ? [] : [...activity.activity]
     .sort((left, right) => activityPriority[left.status] - activityPriority[right.status])
-    .map(item => ({ ...activityNotification(item), itemSlug: item.slug, itemTitle: item.title, entryId: item.entryId, rewardSource: item.rewardSource }));
+    .map(item => ({ ...activityNotification(item), itemSlug: item.slug, itemTitle: item.title, entryId: item.entryId, rewardSource: item.rewardSource,
+      resolved: (item.rewardStatus === "ready" && Boolean(item.rewardClaimedAt || item.rewardSource === "purchase" || item.status === "completed")) || item.completionOptionStatus === "purchased" }));
   if (activity.source !== "unavailable") {
     const now = Date.now();
     for (const item of activity.activity) {
       const deadline = item.rewardClaimExpiresAt ? Date.parse(item.rewardClaimExpiresAt) : NaN;
-      if (!item.rewardId || item.rewardStatus !== "ready" || !Number.isFinite(deadline)
+      if (!item.rewardId || item.rewardStatus !== "ready" || item.rewardClaimedAt || item.rewardSource === "purchase" || item.status === "completed" || !Number.isFinite(deadline)
         || deadline <= now || deadline > now + 7 * 24 * 60 * 60 * 1000) continue;
       notifications.push({
         id: `reward-deadline-${item.rewardId}`,

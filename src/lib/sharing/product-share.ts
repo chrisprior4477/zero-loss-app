@@ -1,4 +1,4 @@
-export type ProductShareItem = { slug: string; title: string; image?: string; retailer?: string; value?: number };
+export type ProductShareItem = { slug: string; title: string; image?: string; retailer?: string; value?: number; win?: { rewardId: string; demo: boolean } };
 export const PRODUCT_SHARE_EVENT = "zero-loss-open-product-share";
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -6,7 +6,9 @@ export function isProductShareItem(value: unknown): value is ProductShareItem {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<ProductShareItem>;
   return typeof item.slug === "string" && item.slug.length <= 150 && slugPattern.test(item.slug)
-    && typeof item.title === "string" && item.title.length > 0 && item.title.length <= 300;
+    && typeof item.title === "string" && item.title.length > 0 && item.title.length <= 300
+    && (item.win === undefined || (typeof item.win === "object" && item.win !== null && typeof item.win.demo === "boolean"
+      && typeof item.win.rewardId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.win.rewardId)));
 }
 
 /** Share only the public listing, never the current account/entry URL or query. */
@@ -19,14 +21,19 @@ export function productShareUrl(origin: string, slug: string, token?: string | n
   return url.href;
 }
 
-export function productShareText(title: string): string {
+export function productShareText(title: string, item?: ProductShareItem): string {
+  if (item?.win) {
+    const value = typeof item.value === "number" ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(item.value).replace(/\.00$/, "") : "";
+    const reward = [value, item.retailer, "gift card"].filter(Boolean).join(" ");
+    return item.win.demo ? `I tried the Zero Loss demo and got a sample ${reward}! Take a look:` : `I won a ${reward} on Zero Loss! Take a look:`;
+  }
   return `Thought you might like ${title} on Zero Loss. Take a look:`;
 }
 
 /** Windows targets can drop the separate URL field. Keep it in the text too. */
 export function nativeProductShareData(item: ProductShareItem, origin: string, userAgent: string, token?: string | null): ShareData {
   const url = productShareUrl(origin, item.slug, token);
-  const text = productShareText(item.title);
+  const text = productShareText(item.title, item);
   return { title: item.title, text: /Windows NT/i.test(userAgent) ? `${text}\n${url}` : text, url };
 }
 

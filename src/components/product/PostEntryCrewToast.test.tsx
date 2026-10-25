@@ -3,8 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { PostEntryCrewToast } from "./PostEntryCrewToast";
 import type { EntryRequest } from "@/lib/entries/request";
 
-const mocks = vi.hoisted(() => ({ options: vi.fn(), share: vi.fn(), prize: vi.fn(), search: vi.fn(), invite: vi.fn(), phone: vi.fn(), email: vi.fn(), save: vi.fn(), item: vi.fn() }));
-vi.mock("@/lib/crew/actions", () => ({ getCrewShareOptions: mocks.options, shareConfirmedEntryWithCrew: mocks.share, sharePrizeWithCrew: mocks.prize, searchCrewByName: mocks.search, inviteToCrewById: mocks.invite, inviteToCrewByPhone: mocks.phone, inviteToCrew: mocks.email, saveCrewGroup: mocks.save }));
+const mocks = vi.hoisted(() => ({ options: vi.fn(), share: vi.fn(), prize: vi.fn(), win: vi.fn(), search: vi.fn(), invite: vi.fn(), phone: vi.fn(), email: vi.fn(), save: vi.fn(), item: vi.fn() }));
+vi.mock("@/lib/crew/actions", () => ({ getCrewShareOptions: mocks.options, shareConfirmedEntryWithCrew: mocks.share, sharePrizeWithCrew: mocks.prize, shareWinWithCrew: mocks.win, searchCrewByName: mocks.search, inviteToCrewById: mocks.invite, inviteToCrewByPhone: mocks.phone, inviteToCrew: mocks.email, saveCrewGroup: mocks.save }));
 vi.mock("@/lib/sharing/receiving-actions", () => ({ prepareProductShareLink: vi.fn(async () => null) }));
 vi.mock("@/lib/sharing/actions", () => ({ getProductShareItem: mocks.item }));
 const request: EntryRequest = { requestId: "11111111-1111-4111-8111-111111111111", slug: "test-prize", title: "Test prize", quantity: 1, amountCents: 100, status: "accepted", duplicate: false, undoUntil: "2026-10-22T12:00:30Z", serverNow: "2026-10-22T12:01:00Z", href: "/account/entries" };
@@ -145,6 +145,18 @@ test("group audience shares only on explicit confirmation", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Share this pick" }));
   await waitFor(() => expect(mocks.share).toHaveBeenCalledWith(request.requestId, groupId));
   expect(await screen.findByRole("button", { name: "Done" })).toBeTruthy();
+});
+
+test("manual win sharing uses the existing owner-checked win action for the selected Crew", async () => {
+  mocks.win.mockResolvedValue({ ok: true, message: "Win update shared." });
+  render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title, image: "/test.png", retailer: "Best Buy", value: 400, win: { rewardId: request.requestId, demo: true } }} onClose={vi.fn()} />);
+  expect(screen.getByRole("heading", { name: "Share your win" })).toBeTruthy();
+  expect(mocks.win).not.toHaveBeenCalled();
+  await audiences();
+  fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share your win" }));
+  await waitFor(() => expect(mocks.win).toHaveBeenCalledWith(request.requestId, [memberId]));
+  expect(mocks.prize).not.toHaveBeenCalled();
 });
 
 test("empty groups cannot expose an entry and offer real creation", async () => {

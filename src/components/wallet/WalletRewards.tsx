@@ -181,6 +181,8 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
   const rawCode = available && claimed ? (claimedCode?.trim() || fallbackSample?.raw || null) : null;
   const displayCode = rawCode?.replaceAll(/\s/g, "").match(/.{1,4}/g)?.join(" ") ?? rawCode;
   const rewardReady = available && claimed && Boolean(rawCode);
+  const isWin = item.rewardSource === "winner" || (item.rewardSource !== "purchase" && item.status === "prize");
+  const readyMessage = isWin ? "Your prize is ready!" : "Your gift card is ready.";
   const canClaim = available && !claimed && Boolean(item.rewardId);
   const unclaimedDemoPreview = isPreview && canClaim;
   const previewCode = unclaimedDemoPreview ? sampleRewardNumber(item.slug) : null;
@@ -228,7 +230,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
 
       <div className={styles.rewardSplit}>
         <article className={styles.rewardTicket}>
-          <p className={styles.ticketBadge}><AccountIcon name="prize" />{rewardReady ? "Your prize is ready" : canClaim ? "Ready to claim" : notice.title}</p>
+          <p className={styles.ticketBadge}><AccountIcon name="prize" />{rewardReady ? readyMessage : canClaim ? "Ready to claim" : notice.title}</p>
           <div className={styles.rewardContent}>
             <div className={styles.featuredProduct}>
               <div className={styles.featuredImage}><Image src={item.image} alt={item.title} fill priority sizes="(max-width: 760px) 85vw, 34vw" /></div>
@@ -239,8 +241,8 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
             <div id="reward-pass" className={styles.rewardPass}>
               <h2>{formatUsdFromCents(item.priceCents)} {item.retailer} gift card</h2>
               <div className={styles.rewardIntroRow}>
-                <p className={styles.rewardIntro}>Your digital reward {rewardReady ? "is ready to use." : unclaimedDemoPreview ? "is shown in this sample preview. Claim it to open your saved reward." : canClaim ? "is ready to claim." : "is shown below."}</p>
-                <ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" className={styles.rewardShare} />
+                <p className={styles.rewardIntro}>{rewardReady ? readyMessage : `Your digital reward ${unclaimedDemoPreview ? "is shown in this sample preview. Claim it to open your saved reward." : canClaim ? "is ready to claim." : "is shown below."}`}</p>
+                <ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100, ...(rewardReady && isWin && item.rewardId ? { win: { rewardId: item.rewardId, demo: isPreview } } : {}) }} label={rewardReady && isWin ? "Share your win" : "Share"} className={styles.rewardShare} />
               </div>
               {rewardReady || previewCode ? <div id="reward-barcode" className={styles.codePanel}>
                 {previewCode ? <p className={styles.previewCodeNotice}>Demo preview · Not claimed</p> : null}

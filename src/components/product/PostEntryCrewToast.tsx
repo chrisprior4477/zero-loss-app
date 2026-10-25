@@ -4,7 +4,7 @@ import { prepareProductShareLink } from "@/lib/sharing/receiving-actions";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, saveCrewGroup, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
+import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, saveCrewGroup, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, shareWinWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
 import { getProductShareItem } from "@/lib/sharing/actions";
 import { crewLookupKind, emailHref, isAppleMobile, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
 import type { CrewGroupContact } from "@/lib/crew/visibility";
@@ -57,7 +57,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     return () => { cancelled = true; };
   }, [item.slug, audience]);
   const url = origin ? productShareUrl(origin, item.slug, shareToken) : `/items/${item.slug}`;
-  const text = productShareText(item.title);
+  const text = productShareText(item.title, item);
   const body = `${text}\n${url}`;
   const members = options?.members ?? [];
   const selectedGroup = options?.groups.find(group => group.id === audience);
@@ -231,7 +231,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     await run(async () => {
       const recipients = audience ? selectedGroup?.memberIds ?? [] : members.map(member => member.id);
       if (!request && recipients.length > 20) { feedback("For email sharing, choose a group of 20 or fewer approved members.", true); return; }
-      const result = request ? await shareConfirmedEntryWithCrew(request.requestId, audience || null) : await sharePrizeWithCrew(item.slug, recipients, audience || null);
+      const result = item.win ? await shareWinWithCrew(item.win.rewardId, recipients) : request ? await shareConfirmedEntryWithCrew(request.requestId, audience || null) : await sharePrizeWithCrew(item.slug, recipients, audience || null);
       if (alive.current) { feedback(result.message, !result.ok); setShared(result.ok); }
     });
   }
@@ -266,7 +266,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!externalHref) { event.preventDefault(); invalidEmail(); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
-  const titles: Record<Step, string> = { home: "Share this find", send: "Send to anyone", messages: "Send a text", email: "Email this item", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link" };
+  const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link" };
   const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{titles[step]}</h2>;
   const compact = step === "home" || step === "email";
 
@@ -367,8 +367,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
             {!options.groups.length ? <p className={styles.note}>No groups yet. Create one whenever you’re ready.</p> : null}
           </section>
           {!recipientCount ? <p className={styles.note}>No approved members in this audience yet. They need to accept your Crew request first.</p> : null}
-          <button type="button" className={styles.crewButton} disabled={busy || !recipientCount || shared} onClick={() => void shareCrew()}>{busy ? "Saving…" : shared ? "Shared with Crew" : request ? "Share this pick" : "Send item to Crew"}</button>
-          {!request ? <p className={styles.note}>Sends the product link by email to your selected approved Crew members. No purchase required.</p> : null}
+          <button type="button" className={styles.crewButton} disabled={busy || !recipientCount || shared} onClick={() => void shareCrew()}>{busy ? "Saving…" : shared ? "Shared with Crew" : item.win ? "Share your win" : request ? "Share this pick" : "Send item to Crew"}</button>
+          {!request ? <p className={styles.note}>{item.win ? "Shares your win with your selected approved Crew members. Email goes only to members who allow win updates." : "Sends the product link by email to your selected approved Crew members. No purchase required."}</p> : null}
         </> : <button type="button" disabled={busy} onClick={() => void loadAudiences()}>{busy ? "Loading Crew…" : "Retry loading Crew"}</button>}
       </> : null}
 

@@ -116,6 +116,18 @@ test.each(['support','shared','entry'])('a confirmed %s update refreshes immedia
 });
 
 function ReceiveShare(){const value=useNotifications()!;return <button onClick={()=>value.receiveConfirmed(make('shared-pick','crew'),false)}>Receive confirmed share</button>;}
+
+test('a saved claim refresh removes only its completed alert without another read action',async()=>{
+ let latest={...snapshot,notifications:[make('claimed-win','reward'),make('other-win','reward'),make('option','completion')]};
+ vi.stubGlobal('fetch',vi.fn(async()=>({ok:true,status:200,json:async()=>latest})));
+ render(<NotificationProvider initial={latest} initialStyle="capsule" initialEnabled><HeaderNotifications><span>Balance</span></HeaderNotifications></NotificationProvider>);
+ await act(async()=>{});
+ expect(screen.getByRole('button',{name:/3 unread updates/})).toBeTruthy();
+ latest={...latest,notifications:latest.notifications.map(n=>n.id==='claimed-win'?{...n,resolved:true}:n)};
+ await act(async()=>{window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));});
+ expect(await screen.findByRole('button',{name:/2 unread updates/})).toBeTruthy();
+ expect(mock.mark).not.toHaveBeenCalled();
+});
 test('a confirmed share appears before refresh and survives stale data without duplication',async()=>{
  let finishRefresh!:(value:unknown)=>void;
  vi.stubGlobal('fetch',vi.fn(()=>new Promise(resolve=>{finishRefresh=resolve;})));

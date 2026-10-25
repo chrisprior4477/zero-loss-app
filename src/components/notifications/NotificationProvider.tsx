@@ -133,7 +133,7 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   }, []);
   const read = new Set(snapshot?.readIds);
   const notifications = snapshot?.readAvailable && snapshot.preferences ? snapshot.notifications.filter(n => notificationIsEnabled(n, snapshot.preferences!)) : [];
-  const unread = notifications.filter(n => !read.has(n.id));
+  const unread = notifications.filter(n => !n.resolved && !read.has(n.id));
   return <Context.Provider value={{ receiveConfirmed, preferencesPreviewActive, setPreferencesPreviewActive, popupStyle, setPopupStyle, supportEnabled: snapshot?.supportEnabled !== false, clearAfterDemoReset, speed, setSpeed, displaySeconds, setDisplaySeconds, enabled, setEnabled, style, setStyle, notifications, unread, open, setOpen, markRead, restoreBanner, bannerHidden, setBannerHidden }}>{children}</Context.Provider>;
 }
 export function useNotifications() { return useContext(Context); }

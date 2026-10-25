@@ -16,6 +16,7 @@ export const headerCategories: { key: HeaderCategory; label: string; color: Bann
   { key: "saved", label: "Saved items", color: "teal" },
 ];
 export function headerCategory(n: AccountNotification): HeaderCategory | null {
+  if (n.resolved) return null;
   if (n.id.startsWith("support-")) return "support";
   if (n.id.startsWith("shared-") || n.crewRequestId) return "shared";
   // Wallet bookkeeping belongs to transaction history, not the header inbox.

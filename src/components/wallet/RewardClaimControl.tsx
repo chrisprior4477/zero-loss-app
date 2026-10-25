@@ -6,6 +6,7 @@ import { claimReward, type RewardClaimActionState } from "@/lib/account/lifecycl
 import { DemoVerificationDialog } from "@/components/identity/DemoVerificationDialog";
 import { ClaimIdentityIntro } from "./ClaimIdentityIntro";
 import { beginDemoVerification, skipDemoVerificationForPresentation } from "@/lib/identity/demo-verification-actions";
+import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 
 const initialState: RewardClaimActionState = { status: "idle" };
 
@@ -19,7 +20,7 @@ export function RewardClaimControl({ rewardId, previewShown = false }: { rewardI
   const skipInFlight = useRef(false);
   const form = useRef<HTMLFormElement>(null);
   const claimButton = useRef<HTMLButtonElement>(null);
-  useEffect(() => { if (state.status === "succeeded") router.refresh(); }, [router, state.status]);
+  useEffect(() => { if (state.status === "succeeded") { window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.refresh(); } }, [router, state.status]);
   useEffect(() => {
     // The server, not the client, decides whether this claim needs verification.
     // eslint-disable-next-line react-hooks/set-state-in-effect

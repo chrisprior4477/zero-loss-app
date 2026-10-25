@@ -6,6 +6,7 @@ vi.mock("./context", () => ({ getAccountContext: mock.getAccount }));
 vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: () => mock.preview }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: mock.from, rpc: async (name: string) => ({error:null,data: name === "get_demo_wallet_history_visibility" ? {ledgerEntryIds:[],fundingSessionIds:[],fullReset:!!mock.resetAt,notificationResetAt:mock.resetAt} : name === "get_received_product_shares" ? mock.shares : {}}) }) }));
 import { getNotificationSnapshot } from "./notification-snapshot";
+import { storedActivityFixture } from "./activity.test-fixture";
 beforeEach(() => {
  vi.clearAllMocks(); mock.preview=true; mock.resetAt=null;mock.shares=[];mock.crew=[];
  mock.getAccount.mockResolvedValue({userId:"owner",emailConfirmed:true,wallet:{scope:"demo",entries:[],balanceCents:0},activity:{source:"customer-empty",activity:[]},orders:{source:"customer-empty",orders:[]}});
@@ -41,4 +42,15 @@ test("support and existing account notices stay available outside the MVP", asyn
  expect(snapshot?.supportEnabled).toBe(true);
  expect(snapshot?.notifications.map(n=>n.id)).toContain("account-email-confirmed");
  expect(snapshot?.notifications.some(n=>n.id.startsWith("support-"))).toBe(true);
+});
+
+test("saved claim completion acknowledges its alert without a separate read click", async () => {
+ const activity = storedActivityFixture();
+ activity.activity[1] = { ...activity.activity[1], rewardId: "claimed", rewardStatus: "ready", rewardClaimedAt: "2026-10-25T12:00:00Z" };
+ activity.activity.push({ ...activity.activity[1], rewardId: "still-open", rewardClaimedAt: null });
+ mock.getAccount.mockResolvedValue({userId:"owner",emailConfirmed:true,wallet:null,activity,orders:{source:"customer-empty",orders:[]}});
+ const snapshot = await getNotificationSnapshot();
+ expect(snapshot?.readIds).toContain("reward-claimed");
+ expect(snapshot?.readIds).not.toContain("reward-still-open");
+ expect(snapshot?.notifications.some(n => n.id === "reward-claimed")).toBe(true);
 });
