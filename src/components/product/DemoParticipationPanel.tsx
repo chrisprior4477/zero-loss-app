@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -392,10 +394,10 @@ export function DemoParticipationPanel({
       }} /> : null}
 
       {additionalEntryNoticeOpen ? createPortal((
-        <div className="fixed inset-0 z-[200] grid place-items-end bg-[#000914]/75 p-2 backdrop-blur-sm sm:place-items-center sm:p-4" role="presentation" onMouseDown={(event) => {
+        <div className={`${popupStyles.overlay} fixed inset-0 z-[200] grid place-items-end bg-[#000914]/75 p-2 backdrop-blur-sm sm:place-items-center sm:p-4`} role="presentation" onMouseDown={(event) => {
           if (event.currentTarget === event.target) setAdditionalEntryNoticeOpen(false);
         }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className="max-h-[94dvh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border border-cyan-300/55 bg-[#001b3d] text-left shadow-[0_28px_90px_rgba(0,0,0,.68),0_0_30px_rgba(0,185,255,.24)] md:grid md:max-h-[90dvh] md:max-w-[1220px] md:grid-cols-[minmax(0,30%)_minmax(0,1fr)] md:items-center md:gap-6 md:p-6 lg:grid-cols-[minmax(0,35%)_minmax(0,1fr)]">
+          <section role="dialog" aria-modal="true" aria-labelledby="additional-entry-title" className={`${popupStyles.surface} max-h-[94dvh] w-full max-w-xl overflow-y-auto rounded-[1.75rem] border border-cyan-300/55 bg-[#001b3d] text-left shadow-[0_28px_90px_rgba(0,0,0,.68),0_0_30px_rgba(0,185,255,.24)] md:grid md:max-h-[90dvh] md:max-w-[1220px] md:grid-cols-[minmax(0,30%)_minmax(0,1fr)] md:items-center md:gap-6 md:p-6 lg:grid-cols-[minmax(0,35%)_minmax(0,1fr)]`}>
             <h2 id="additional-entry-title" className="sr-only">How Extra Chances Work</h2>
             <div className="relative md:self-stretch">
               <Image src="/account/extra-entry-explainer-seamless-neon.jpg" alt="How extra chances work: each entry is a separate chance and never combines into one discount" width={2286} height={2922} className="h-auto w-full md:h-full md:object-contain" priority sizes="(max-width: 767px) calc(100vw - 16px), (max-width: 1023px) 280px, 425px" />

@@ -137,7 +137,7 @@ export function InstallAppPrompt() {
         : "Open your browser menu and choose Install Zero Loss or Add to Home Screen.";
 
   return (
-    <aside aria-label="Install Zero Loss" aria-live="polite" className={`${popupStyles.notice} ${popupStyles.installNotice} fixed inset-x-3 bottom-3 z-[110] mx-auto max-w-[430px] rounded-2xl border border-cyan-200/35 bg-[#03172f]/95 p-4 shadow-[0_18px_55px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl sm:inset-x-auto sm:bottom-5 sm:right-5 sm:mx-0`}>
+    <aside aria-label="Install Zero Loss" aria-live="polite" className={`${popupStyles.notice} fixed inset-x-3 bottom-3 z-[110] mx-auto max-w-[430px] rounded-2xl border border-cyan-200/35 bg-[#03172f]/95 p-4 shadow-[0_18px_55px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl sm:inset-x-auto sm:bottom-5 sm:right-5 sm:mx-0`}>
       <div className="flex items-start gap-3">
         <Image src="/icons/zeroloss-icon-64.png" alt="" width={44} height={44} className="h-11 w-11 shrink-0" />
         <div className="min-w-0 flex-1">

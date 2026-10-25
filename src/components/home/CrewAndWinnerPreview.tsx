@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { type MouseEvent, type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./CrewAndWinnerPreview.module.css";
+import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { SharedPicksConcept } from "./SharedPicksConcept";
 import { CrewDiscoveryPanel } from "./CrewDiscoveryDialog";
 import { addSampleCrewPreview, featuredCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
@@ -288,8 +289,8 @@ export function CrewAndWinnerPreview() {
       </section>
 
       {selectedStory !== null && (
-        <div className={styles.modalBackdrop} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedStory(null); }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="sample-story-title" className={styles.modal}>
+        <div className={`${styles.modalBackdrop} ${popupStyles.overlay}`} onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedStory(null); }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="sample-story-title" className={`${styles.modal} ${popupStyles.surface}`}>
             <button type="button" className={styles.closeButton} aria-label="Close preview" onClick={() => setSelectedStory(null)}>×</button>
             <div className={styles.modalImage}>
               <Image src={storyPreviews[selectedStory].photo} alt="Fictional lifestyle scene" fill sizes="(max-width: 640px) 90vw, 480px" className={styles.storyImage} />

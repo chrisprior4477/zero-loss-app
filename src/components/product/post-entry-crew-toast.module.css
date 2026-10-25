@@ -91,9 +91,9 @@
 .ready { color:#087a3f; font-size:12px; font-weight:750; margin:14px 0 0; }
 .publicUrl { overflow-wrap:anywhere; color:#0066ad; }
 .toast h2:focus { outline:none; }
+.toast .paper { max-height:var(--popup-max-height,calc(100dvh - 48px)); }
 @media(max-width:600px) { .paper { padding:20px; max-height:calc(100dvh - 24px - env(safe-area-inset-bottom)); } }
 @media(max-width:360px) { .paper { padding:20px 16px; } .toast h2 { font-size:23px; } .thumb { width:56px; height:50px; } .duo button { font-size:13px; padding-inline:8px; } }
 @media (max-width:1024px), (hover:none) and (pointer:coarse) {
-  .paper { max-height:calc(var(--sharing-viewport-height,100dvh) - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
   .compact .later { background:#e7edf2; color:#344e66; min-height:44px; padding:10px; margin-top:12px; }
 }

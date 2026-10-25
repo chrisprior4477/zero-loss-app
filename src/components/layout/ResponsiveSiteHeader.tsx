@@ -28,7 +28,6 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
   const { size: logoSize } = useMobileLogoSize();
   const pathname = usePathname();
   const headerRef = useRef<HTMLElement>(null);
-  const mainRowRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -54,13 +53,11 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
       // Equal desktop gutters keep search centered even when balance/count widths change.
       const sideWidth = Math.max(logoRef.current?.getBoundingClientRect().width ?? 0, accountRef.current?.getBoundingClientRect().width ?? 0);
       document.documentElement.style.setProperty("--site-header-height", `${headerHeight}px`);
-      document.documentElement.style.setProperty("--site-header-main-height", `${mainRowRef.current?.getBoundingClientRect().height ?? headerHeight}px`);
       header.style.setProperty("--desktop-header-side-width", `${sideWidth}px`);
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(header);
-    if (mainRowRef.current) observer.observe(mainRowRef.current);
     if (logoRef.current) observer.observe(logoRef.current);
     if (accountRef.current) observer.observe(accountRef.current);
     return () => observer.disconnect();
@@ -93,7 +90,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
 
   return <>
     <header ref={headerRef} data-menu-layout={layout} data-menu-viewport={viewport ?? undefined} data-search-open={expanded} data-menu-preview={preview ? "true" : undefined} style={{ "--mobile-logo-scale": 1 + logoSize / 100 } as CSSProperties} className={`${preview ? "" : "sticky"} ${styles.header}`}>
-      <div ref={mainRowRef} className={styles.topRow}>
+      <div className={styles.topRow}>
         <div ref={logoRef} className={styles.logo}>{logo}</div>
         <button ref={toggleRef} type="button" className={styles.searchToggle} aria-label="Open search" aria-expanded={expanded} aria-controls={preview ? "preview-menu-search" : "mobile-menu-search"} onClick={openSearch}>
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="10" cy="10" r="6.5" /><path d="m15 15 6 6" /></svg>

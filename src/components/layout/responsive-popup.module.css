@@ -1,42 +1,75 @@
-/* Opt in per popup: drawers, hover hints and inline status messages stay separate. */
-.installNotice { margin-bottom:var(--menu-trial-height,0px); }
+/* Shared popup placement. Navigation drawers, hover hints and inline status stay separate. */
 .balanceNotice { --popup-width:512px; }
 .errorNotice { --popup-width:380px; }
+.favoriteNotice { --popup-width:384px; }
+
+/* Extra specificity keeps these bounds independent of CSS chunk order. */
+dialog.dialog.dialog,
+.notice.notice {
+  --popup-max-height:calc(100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  position:fixed;
+  inset:50% auto auto 50%;
+  transform:translate(-50%,-50%);
+  margin:0;
+  max-width:calc(100% - 48px - env(safe-area-inset-left) - env(safe-area-inset-right));
+  max-height:var(--popup-max-height);
+  overscroll-behavior:contain;
+}
+
+dialog.dialog.dialog::backdrop {
+  background:#09294b66;
+  backdrop-filter:blur(2px);
+}
+
+/* Nonmodal notices retain their existing outside-click and dismissal behavior. */
+.notice.notice {
+  width:min(var(--popup-width,430px),calc(100vw - 48px));
+  overflow-y:auto;
+  box-shadow:0 18px 55px #09294b60,0 0 0 100vmax #09294b66;
+}
+
+.overlay.overlay {
+  --popup-max-height:calc(100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  position:fixed;
+  inset:0;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  overflow-y:auto;
+  background:#09294b66;
+  backdrop-filter:blur(2px);
+}
+
+.surface.surface {
+  min-height:0;
+  max-height:var(--popup-max-height);
+  margin:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+
+.overlayClose.overlayClose {
+  top:calc(var(--popup-top,16px) + 8px);
+  right:24px;
+}
 
 @media (max-width:1024px), (hover:none) and (pointer:coarse) {
-  /* Extra specificity keeps these bounds independent of CSS chunk order. */
+  dialog.dialog.dialog,
+  .notice.notice,
+  .overlay.overlay {
+    --popup-top:max(24px,calc(var(--site-header-height,60px) + 8px));
+    --popup-max-height:calc(100dvh - var(--popup-top) - 24px - env(safe-area-inset-bottom));
+  }
+
   dialog.dialog.dialog,
   .notice.notice {
-    position:fixed;
-    inset:50% auto auto 50%;
-    transform:translate(-50%,-50%);
-    margin:0;
-    max-width:calc(100% - 48px - env(safe-area-inset-left) - env(safe-area-inset-right));
-    max-height:calc(100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    overscroll-behavior:contain;
-  }
-
-  dialog.dialog.dialog::backdrop {
-    background:#09294b66;
-    backdrop-filter:blur(2px);
-  }
-
-  dialog.dialog.dialog.belowHeading {
-    top:var(--sharing-top,96px);
+    top:var(--popup-top);
     transform:translateX(-50%);
   }
 
-  dialog.dialog.dialog.belowHeader {
-    --notification-top:max(24px,calc(var(--site-header-main-height,var(--site-header-height,60px)) + 8px));
-    top:var(--notification-top);
-    transform:translateX(-50%);
-    max-height:calc(100dvh - var(--notification-top) - 24px - env(safe-area-inset-bottom));
-  }
-
-  /* Nonmodal notices retain their existing outside-click and dismissal behavior. */
-  .notice.notice {
-    width:min(var(--popup-width,430px),calc(100vw - 48px));
-    overflow-y:auto;
-    box-shadow:0 18px 55px #09294b60,0 0 0 100vmax #09294b66;
+  .overlay.overlay {
+    align-items:start;
+    padding-top:var(--popup-top);
+    padding-inline:max(24px,env(safe-area-inset-left)) max(24px,env(safe-area-inset-right));
   }
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createContext, startTransition, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { setFavorite } from "@/lib/favorites/actions";
 import { accountRoutes } from "@/lib/account/navigation";
+import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 const pendingKey = "zero-loss-pending-favorite-v1";
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -97,7 +98,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
 
   return <FavoritesContext.Provider value={{ slugs, isSignedIn, available, busySlug, toggle }}>
     {children}
-    {message ? <div role="status" className="fixed bottom-4 left-4 right-4 z-[250] mx-auto flex max-w-sm items-center justify-between gap-3 rounded-xl border border-cyan-300/50 bg-[#052b4c] px-4 py-3 text-sm font-bold text-white shadow-2xl sm:left-auto sm:right-5">
+    {message ? <div role="status" className={`${popupStyles.notice} ${popupStyles.favoriteNotice} fixed bottom-4 left-4 right-4 z-[250] mx-auto flex max-w-sm items-center justify-between gap-3 rounded-xl border border-cyan-300/50 bg-[#052b4c] px-4 py-3 text-sm font-bold text-white shadow-2xl sm:left-auto sm:right-5`}>
       <span>{message}</span>{message === "Saved to Favorites." ? <Link href={accountRoutes.favorites} className="shrink-0 text-cyan-300 underline">View</Link> : null}
     </div> : null}
   </FavoritesContext.Provider>;

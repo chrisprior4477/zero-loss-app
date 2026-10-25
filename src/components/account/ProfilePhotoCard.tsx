@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import Image from "next/image";
 import { ChangeEvent, PointerEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -262,8 +264,8 @@ export function ProfilePhotoCard({
       </article>
 
       {editing && draftPhoto ? createPortal(
-        <div className="fixed inset-0 z-[160] grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="photo-editor-title">
-          <div className="w-full max-w-md rounded-[28px] border border-cyan-300/25 bg-[#052447] p-6 shadow-2xl">
+        <div className={`${popupStyles.overlay} fixed inset-0 z-[160] grid place-items-center bg-black/75 p-4`} role="dialog" aria-modal="true" aria-labelledby="photo-editor-title">
+          <div className={`${popupStyles.surface} w-full max-w-md rounded-[28px] border border-cyan-300/25 bg-[#052447] p-6 shadow-2xl`}>
             <h2 id="photo-editor-title" className="text-2xl font-black text-white">Adjust your photo</h2>
             <p className="mt-2 text-sm text-white/60">Drag to reposition it, then use the slider to resize it.</p>
             <div

@@ -32,7 +32,6 @@ test("desktop centering reserves the wider side and remeasures changing account 
   const { header } = setup("classic");
   expect(header.style.getPropertyValue("--desktop-header-side-width")).toBe("245px");
   expect(document.documentElement.style.getPropertyValue("--site-header-height")).toBe("111px");
-  expect(document.documentElement.style.getPropertyValue("--site-header-main-height")).toBe("44px");
   accountWidth = 310;
   act(() => resized());
   expect(header.style.getPropertyValue("--desktop-header-side-width")).toBe("310px");

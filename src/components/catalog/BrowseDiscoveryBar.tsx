@@ -10,6 +10,7 @@ import { searchTextMatches } from "@/lib/catalog/search-text";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
 import styles from "./browse-discovery.module.css";
+import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: string }) {
   const router = useRouter();
@@ -95,7 +96,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
       {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
       <Link href={`${props.clearHref}#search-results`}>Clear filters</Link>
     </div> : null}
-    {panel ? <dialog ref={dialog} className={styles.dialog} aria-labelledby={`${id}-title`} onCancel={() => setPanel(null)} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) setPanel(null); }}>
+    {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onCancel={() => setPanel(null)} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) setPanel(null); }}>
       <div className={styles.sheet}>
         <header className={styles.sheetHeader}><div><h2 id={`${id}-title`}>{panel === "categories" ? "Find your category" : "Filter & sort"}</h2><p>{panel === "categories" ? "Scroll or search, then tap to see the products." : "Choose what you’d like to see."}</p></div><button type="button" aria-label="Close browse options" onClick={() => setPanel(null)}>×</button></header>
         {panel === "categories" ? <>

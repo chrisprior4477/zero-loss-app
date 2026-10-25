@@ -211,32 +211,6 @@ test("Not now remains after every sharing option in the home action order", () =
   ]);
 });
 
-test("mobile sharing follows the entry heading even when navigation renders it after the popup", async () => {
-  vi.stubGlobal("innerHeight", 900);
-  const bounds = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
-    return { top: 140, bottom: 180, height: this.tagName === "DIALOG" ? 480 : 40 } as DOMRect;
-  });
-  const { unmount } = render(<PostEntryCrewToast request={request} onClose={vi.fn()} />);
-  const popup = screen.getByRole("dialog");
-  expect(popup.style.getPropertyValue("--sharing-top")).toBe("96px");
-  const anchor = document.createElement("h1");
-  anchor.setAttribute("data-share-popup-anchor", "");
-  anchor.textContent = "Your Entry Details";
-  document.body.append(anchor);
-  await waitFor(() => expect(popup.style.getPropertyValue("--sharing-top")).toBe("192px"));
-  // On a short screen the ticket moves up enough to keep its bottom on screen.
-  vi.stubGlobal("innerHeight", 568);
-  fireEvent(window, new Event("resize"));
-  expect(popup.style.getPropertyValue("--sharing-top")).toBe("64px");
-  unmount(); anchor.remove(); bounds.mockRestore();
-});
-
-test("desktop sharing does not receive the mobile heading offset", () => {
-  vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
-  open();
-  expect(screen.getByRole("dialog").style.getPropertyValue("--sharing-top")).toBe("");
-});
-
 test("private email lookup does not enumerate accounts or send until Add to Crew", async () => {
   mocks.email.mockResolvedValue({ ok: true, message: "If a confirmed account matches, they can approve your request." });
   open(); fireEvent.click(screen.getByRole("button", { name: "Share with your Crew" })); fireEvent.click(screen.getByRole("button", { name: /Find someone on Zero Loss/ }));

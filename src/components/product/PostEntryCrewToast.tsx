@@ -72,44 +72,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     element.showModal();
     document.body.style.overflow = "hidden";
     heading.current?.focus({ preventScroll: true });
-    const compactScreen = window.matchMedia("(max-width:1024px), (hover:none) and (pointer:coarse)");
-    const position = () => {
-      if (!compactScreen.matches) {
-        element.style.removeProperty("--sharing-top");
-        element.style.removeProperty("--sharing-viewport-height");
-        return;
-      }
-      const viewport = window.visualViewport;
-      const viewportTop = viewport?.offsetTop ?? 0;
-      const viewportHeight = viewport?.height ?? window.innerHeight;
-      element.style.setProperty("--sharing-viewport-height", `${viewportHeight}px`);
-      const anchor = document.querySelector("[data-share-popup-anchor]")?.getBoundingClientRect();
-      const visibleHeading = anchor && anchor.bottom > viewportTop && anchor.top < viewportTop + viewportHeight;
-      const preferredTop = visibleHeading ? anchor.bottom + 12 : viewportTop + 96;
-      // Stay just below the page heading, moving upward only when a short screen needs it.
-      const latestTop = viewportTop + viewportHeight - element.getBoundingClientRect().height - 24;
-      element.style.setProperty("--sharing-top", `${Math.max(viewportTop + 24, Math.min(preferredTop, latestTop))}px`);
-    };
-    const resize = typeof ResizeObserver !== "undefined" ? new ResizeObserver(position) : null;
-    if (paper.current) resize?.observe(paper.current);
-    resize?.observe(document.body);
-    // A confirmed entry can open sharing before its destination page finishes rendering.
-    const pageChanges = new MutationObserver(position);
-    pageChanges.observe(document.body, { childList: true, subtree: true });
-    compactScreen.addEventListener("change", position);
-    window.addEventListener("resize", position);
-    window.addEventListener("scroll", position, { passive: true });
-    window.visualViewport?.addEventListener("resize", position);
-    window.visualViewport?.addEventListener("scroll", position);
-    position();
     return () => {
-      resize?.disconnect();
-      pageChanges.disconnect();
-      compactScreen.removeEventListener("change", position);
-      window.removeEventListener("resize", position);
-      window.removeEventListener("scroll", position);
-      window.visualViewport?.removeEventListener("resize", position);
-      window.visualViewport?.removeEventListener("scroll", position);
       element.close();
       document.body.style.overflow = previousOverflow;
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
@@ -307,7 +270,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{titles[step]}</h2>;
   const compact = step === "home" || step === "email";
 
-  return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog} ${popupStyles.belowHeading}`} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
+  return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className={`${styles.paper} ${compact ? styles.compact : ""} ${step === "home" ? styles.perforated : ""} ${step === "email" ? styles.emailPaper : ""}`} ref={paper}>
       <div className={styles.top}>
         {step === "home" ? <div>{request ? <p className={styles.eyebrow} role="status">✓ Entry confirmed</p> : null}{titleHeading}</div> : <button type="button" className={styles.back} onClick={back} disabled={busy}>← Back</button>}
