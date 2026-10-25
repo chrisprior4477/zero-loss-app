@@ -88,7 +88,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   return <main className={styles.page}>
     <div className={styles.shell}>
       <div className={styles.topline}>
-        <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>{entryCount === 1 ? "Your saved entry" : `Your ${entryCount} saved entries`} for the prize below.</p></div>
+        <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1 data-share-popup-anchor>Your Entry Details</h1><p className={styles.pageSubtitle}>{entryCount === 1 ? "Your saved entry" : `Your ${entryCount} saved entries`} for the prize below.</p></div>
         <div className={styles.toplineActions}>
           <Link href="/" className={styles.topShoppingButton}>Continue shopping</Link>
           <Link href={returnHref} className={styles.topReturnButton}>Go to My Activity</Link>

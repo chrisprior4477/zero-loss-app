@@ -21,6 +21,11 @@
     backdrop-filter:blur(2px);
   }
 
+  dialog.dialog.dialog.belowHeading {
+    top:var(--sharing-top,96px);
+    transform:translateX(-50%);
+  }
+
   /* Nonmodal notices retain their existing outside-click and dismissal behavior. */
   .notice.notice {
     width:min(var(--popup-width,430px),calc(100vw - 48px));
