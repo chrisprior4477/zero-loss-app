@@ -17,6 +17,7 @@ import { DemoIdentityPreviewButton } from "@/components/identity/DemoVerificatio
 import { ShareWinWithCrew, type WinShareCrewMember } from "./ShareWinWithCrew";
 import styles from "./wallet-rewards.module.css";
 import overview from "./gift-rewards-overview.module.css";
+import { ProductShareButton } from "@/components/product/ProductShareButton";
 
 type RewardView = "all" | "ready" | "used" | "expired" | "history";
 
@@ -237,7 +238,10 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
             </div>
             <div id="reward-pass" className={styles.rewardPass}>
               <h2>{formatUsdFromCents(item.priceCents)} {item.retailer} gift card</h2>
-              <p className={styles.rewardIntro}>Your digital reward {rewardReady ? "is ready to use." : unclaimedDemoPreview ? "is shown in this sample preview. Claim it to open your saved reward." : canClaim ? "is ready to claim." : "is shown below."}</p>
+              <div className={styles.rewardIntroRow}>
+                <p className={styles.rewardIntro}>Your digital reward {rewardReady ? "is ready to use." : unclaimedDemoPreview ? "is shown in this sample preview. Claim it to open your saved reward." : canClaim ? "is ready to claim." : "is shown below."}</p>
+                <ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" className={styles.rewardShare} />
+              </div>
               {rewardReady || previewCode ? <div id="reward-barcode" className={styles.codePanel}>
                 {previewCode ? <p className={styles.previewCodeNotice}>Demo preview · Not claimed</p> : null}
                 {/^[0-9]+$/.test((visibleCode ?? "").replaceAll(/\s/g, "")) ? <SampleRewardBarcode value={visibleCode!.replaceAll(/\s/g, "")} /> : null}

@@ -5,6 +5,9 @@
    Wide headers use fixed image heights below; the saved size is never changed. */
 .header:is([data-menu-layout="search-down"], [data-menu-layout="search-down-browse"], [data-menu-layout="search-over"]):has(.accountControls [data-header-large-balance="true"]) .logo { --mobile-logo-fitted-scale: min(var(--mobile-logo-scale, 1), 1.2); }
 .logo a { display: flex; min-height: 44px; align-items: center; }
+.logo a:focus:not(:focus-visible) { outline: none; }
+.logo a { -webkit-tap-highlight-color: transparent; }
+.logo a:focus-visible { outline: 2px solid #6feaff; outline-offset: 3px; }
 .logo img { display: block; width: 100%; height: auto; }
 .desktopSearch { display: flex; flex: 1; min-width: 0; max-width: 700px; }
 .accountControls { margin-left: auto; display: flex; flex: none; align-items: center; gap: 16px; }

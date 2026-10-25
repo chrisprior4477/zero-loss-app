@@ -42,7 +42,12 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     routed.current.add(request.requestId);
     let muted = dismissed.current.has(request.requestId);
     try { muted ||= sessionStorage.getItem(shareDismissalKey(accountId, request.requestId)) === "1"; } catch { /* In-memory dismissal still works. */ }
-    if (!muted) { setManualProduct(null); setShareRequest(request); }
+    const destination = new URL(request.href ?? "/account/entries", window.location.origin);
+    const openEntry = destination.pathname === "/account/entries" && (destination.searchParams.get("filter") ?? "active") === "active"
+      || destination.pathname.startsWith("/account/entries/");
+    // A resolved win or purchase option should open its next step without an entry-share interruption.
+    if (!muted && openEntry) { setManualProduct(null); setShareRequest(request); }
+    else setShareRequest(null);
     if (routedInActivity.current.has(request.requestId)) return true;
     try {
       const entryId = request.href ? new URL(request.href, window.location.origin).searchParams.get("entry") : null;
@@ -62,6 +67,13 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     if (shareTrigger.current?.isConnected) shareTrigger.current.focus({ preventScroll: true });
     shareTrigger.current = null;
   }, [accountId, shareRequest]);
+
+  useEffect(() => {
+    if (pathname?.startsWith("/items/") || pathname?.startsWith("/account/entries")) return;
+    // Automatic entry prompts must not follow the customer into checkout or reward claims.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShareRequest(null);
+  }, [pathname]);
 
   useEffect(() => {
     const openSharing = (event: Event) => {
@@ -154,6 +166,7 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     }
   }, [requests, routeAccepted]);
 
-  return shareRequest ? <PostEntryCrewToast key={shareRequest.requestId} request={shareRequest} onClose={closeSharing} />
+  const entryScreen = pathname?.startsWith("/items/") || pathname?.startsWith("/account/entries");
+  return shareRequest && entryScreen ? <PostEntryCrewToast key={shareRequest.requestId} request={shareRequest} onClose={closeSharing} />
     : manualProduct ? <PostEntryCrewToast key={`manual-${manualProduct.slug}`} product={manualProduct} onClose={closeSharing} focusOnOpen /> : null;
 }

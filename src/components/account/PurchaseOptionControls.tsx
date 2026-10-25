@@ -24,6 +24,9 @@ export function PurchaseOptionControls({ item, resumePurchase = false }: { item:
     try {
       const intent = form.get("intent");
       const result = await (intent === "decline" ? declinePurchaseOption : purchaseGiftCard)(initialState, form);
+      if (intent === "purchase" && result.status === "error" && result.recovery === "balance") {
+        router.push(fundingHref(item.slug, item.entryId ?? undefined));
+      }
       // Navigate before the refreshed activity can unmount this completed option.
       if (result.status === "succeeded") {
         const destination = result.href ?? (intent === "purchase" ? "/account/wallet" : "/account/entries");

@@ -1,4 +1,5 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
 import { afterEach, expect, test, vi } from "vitest";
 import type { ActivityItem, RewardStatus } from "@/lib/account/activity";
 import { WalletRewardDetail } from "./WalletRewards";
@@ -15,6 +16,18 @@ const item: ActivityItem = {
   availability: "Reward ready", rewardId: "11111111-1111-4111-8111-111111111111",
   rewardStatus: "ready", rewardClaimedAt: "2026-09-21T12:00:00Z",
 };
+
+test.each(["prize", "completed"] as const)("%s reward sharing is a manual compact button and never includes the gift-card number", status => {
+  const share = vi.fn();
+  window.addEventListener(PRODUCT_SHARE_EVENT, share);
+  try {
+    render(<WalletRewardDetail item={{ ...item, status }} isPreview claimedCode="123456789012" />);
+    expect(share).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Share" }));
+    expect(share).toHaveBeenCalledOnce();
+    expect(share.mock.calls[0][0].detail).toEqual({ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: 50 });
+  } finally { window.removeEventListener(PRODUCT_SHARE_EVENT, share); }
+});
 
 test("a valid claimed reward uses its saved number and keeps the demo disclosure", () => {
   render(<WalletRewardDetail item={item} isPreview claimedCode="123456789012" />);

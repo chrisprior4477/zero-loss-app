@@ -161,6 +161,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
       <div className={styles.deleteCardActions}><button type="button" disabled={deletingCard} onClick={closeDeleteDialog}>Keep Card</button><button type="button" disabled={deletingCard} onClick={() => void confirmDeleteCard()}>{deletingCard ? "Removing…" : "Delete Card"}</button></div>
     </dialog> : null}
     <div id="add-funds" className={styles.fundingAmountSection}>
+      {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
       {!recoveryOnly ? <a href="#add-card" className={styles.addCardShortcut}>Add Card</a> : null}
       <div className={styles.fundingAmounts}>
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-amount">Amount (USD)

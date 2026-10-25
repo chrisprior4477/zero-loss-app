@@ -2,9 +2,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { ActivityItem } from "@/lib/account/activity";
 import type { PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
-const mocks = vi.hoisted(() => ({ purchase: vi.fn(), decline: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ purchase: vi.fn(), decline: vi.fn(), push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("@/lib/account/lifecycle-actions", () => ({ purchaseGiftCard: mocks.purchase, declinePurchaseOption: mocks.decline }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push, replace: mocks.replace, refresh: mocks.refresh }) }));
 import { PurchaseOptionControls } from "./PurchaseOptionControls";
 const item: ActivityItem & { completionOptionId: string } = {
   entryId: "ent_11111111111111111111111111111111", completionOptionId: "11111111-1111-4111-8111-111111111111",
@@ -59,6 +59,7 @@ test("insufficient balance carries this exact entry into Add funds", async () =>
   const link = await screen.findByRole("link", { name: "Add funds →" });
   expect(link.getAttribute("href")).toBe(`/account/wallet?view=history&from=${item.slug}&entry=${item.entryId}#add-funds`);
   expect(link.getAttribute("data-funding-action")).toBe("true");
+  expect(mocks.push).toHaveBeenCalledWith(link.getAttribute("href"));
   expect(screen.getByRole("status").textContent).toContain("Sorry, you do not have enough funds in your wallet. Please add more funds to complete the purchase.");
   expect(mocks.replace).not.toHaveBeenCalled();
 });

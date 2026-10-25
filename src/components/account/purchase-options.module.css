@@ -65,7 +65,11 @@
 @media (max-width: 600px) { .mobileWheel { display: block; } .desktopQuantity { display: none; } .heroBulkControls { grid-column: 1 / -1; } .quantityPicker legend { font-size: 15px; } .makePurchases { font-size: 14px; } }
 @media (max-width: 380px) { .quantityRow { grid-template-columns: 54px minmax(0, 1fr); gap: 7px; } .railQuantity { padding: 12px; } .quantityBadge { font-size: 14px; } .makePurchases { padding: 9px 6px; font-size: 13px; } .quantityFooter { gap: 5px; } .quantityTotal { font-size: 20px; } .declineRest { font-size: 11px; } }
 .status { display: inline-flex; margin-top: 10px; border-radius: 8px; background: #ffac57; padding: 5px 11px; color: #34200c; font-size: 12px; font-weight: 900; text-transform: uppercase; }
-.heroNote { grid-column: 1 / -1; margin: 0; color: #4d6179; font-size: 14px; line-height: 1.45; }
+.heroNote { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0; color: #4d6179; font-size: 14px; line-height: 1.45; }
+.heroNote p { margin: 0; }
+.heroNote .optionShare { position: relative; flex: none; min-height: 32px; margin: 0; padding: 6px 9px; border-radius: 8px; gap: 5px; font-size: 12px; line-height: 20px; }
+.optionShare::before { content: ""; position: absolute; inset: -6px 0; }
+.optionShare svg { width: 15px; height: 15px; }
 .heroActionRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 18px; margin-top: 14px; }
 .heroCountRow { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 8px; }
 .heroCountRow p { margin: 0; color: #334f6c; font-size: 14px; font-weight: 750; }

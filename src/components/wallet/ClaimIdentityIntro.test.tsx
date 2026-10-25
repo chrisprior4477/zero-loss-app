@@ -30,3 +30,14 @@ test("the customer can defer without entering the sample check", () => {
   expect(onClose).toHaveBeenCalledOnce();
   expect(onContinue).not.toHaveBeenCalled();
 });
+
+test("the MVP shortcut replaces Not now and stays disabled while saving", () => {
+  const onSkipDemo = vi.fn();
+  const props = { onContinue: vi.fn(), onClose: vi.fn(), onSkipDemo };
+  const { rerender } = render(<ClaimIdentityIntro {...props} />);
+  expect(screen.queryByRole("button", { name: "Not now" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Skip check & claim demo reward" }));
+  expect(onSkipDemo).toHaveBeenCalledOnce();
+  rerender(<ClaimIdentityIntro {...props} busy />);
+  expect((screen.getByRole("button", { name: "Opening your demo reward…" }) as HTMLButtonElement).disabled).toBe(true);
+});

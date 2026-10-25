@@ -5,13 +5,25 @@ import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { PurchaseOptionRail } from "./PurchaseOptionRail";
 
 vi.mock("next/image", () => ({ default: () => <span /> }));
-const mocks = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), decline: vi.fn(), undo: vi.fn(), purchase: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
+const mocks = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), decline: vi.fn(), undo: vi.fn(), purchase: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push, replace: mocks.replace, refresh: mocks.refresh }) }));
 vi.mock("@/lib/account/bulk-decline-actions", () => ({ declineAllDemoPurchaseOptions: mocks.decline, undoBulkDemoPurchaseOptions: mocks.undo }));
 vi.mock("@/lib/account/bulk-purchase-actions", () => ({ completeDemoPurchaseOptions: mocks.purchase }));
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const bulkOptions = (count = 8) => Array.from({ length: count }, (_, i) => ({ ...storedActivityFixture().activity[2], entryId: `ent_${String(i+1).padStart(32,"0")}`, completionOptionId: `${String(i+1).padStart(8,"0")}-1111-4111-8111-111111111111`, remainingCents: 14900 }));
+
+test("insufficient grouped purchase funds open Add funds for the selected option without declining anything", async () => {
+  mocks.push.mockClear(); mocks.purchase.mockClear(); mocks.decline.mockClear();
+  const options = bulkOptions(1);
+  mocks.purchase.mockResolvedValueOnce({ status: "error", recovery: "balance", message: "Add funds. No purchases or declines were made." });
+  render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline showSummary />);
+  fireEvent.click(screen.getByRole("button", { name: "Complete 1 purchase" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $149 purchase" }));
+  await waitFor(() => expect(mocks.push).toHaveBeenCalledWith(`/account/wallet?view=history&from=${options[0].slug}&entry=${options[0].entryId}#add-funds`));
+  expect(mocks.purchase).toHaveBeenCalledOnce();
+  expect(mocks.decline).not.toHaveBeenCalled();
+});
 
 test("purchase deadlines match across server and browser time zones without replacing the controls during hydration", () => {
   const options = [{ ...bulkOptions(1)[0], completionExpiresAt: "2026-11-24T05:00:00Z" }];

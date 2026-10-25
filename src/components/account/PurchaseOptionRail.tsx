@@ -13,6 +13,7 @@ import { completeDemoPurchaseOptions, type BulkPurchaseRequest, type BulkPurchas
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import styles from "./purchase-options.module.css";
+import { ProductShareButton } from "@/components/product/ProductShareButton";
 
 export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, initiallyConfirmDecline = false, canBulkDecline = false, showSummary = false }: { title: string; options: ActivityItem[]; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean; canBulkDecline?: boolean; showSummary?: boolean }) {
   const router = useRouter();
@@ -29,6 +30,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   const [purchasePending, startPurchase] = useTransition();
   const purchaseInFlight = useRef(false);
   const reviewRef = useRef<HTMLDivElement>(null);
+  const purchaseErrorRef = useRef<HTMLDivElement>(null);
   const selectedOptions = options.filter(option => option.entryId && selected.has(option.entryId));
   const totalCents = selectedOptions.reduce((total, option) => total + option.remainingCents, 0);
   const canPurchase = canBulkDecline && options.every(option => Boolean(option.completionOptionId));
@@ -38,6 +40,10 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   useEffect(() => {
     if (purchaseRequest) { reviewRef.current?.focus(); reviewRef.current?.scrollIntoView?.({ block: "center" }); }
   }, [purchaseRequest]);
+
+  useEffect(() => {
+    if (purchaseResult?.status === "error") purchaseErrorRef.current?.scrollIntoView?.({ block: "center", behavior: "auto" });
+  }, [purchaseResult]);
 
   function changeQuantity(quantity: number) {
     if (purchaseLocked) return;
@@ -63,6 +69,9 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
       try {
         const result = await completeDemoPurchaseOptions(purchaseRequest);
         setPurchaseResult(result);
+        if (result.status === "error" && result.recovery === "balance") {
+          router.push(fundingHref(item.slug, selectedOptions[0]?.entryId ?? undefined));
+        }
         if (result.status === "succeeded") {
           window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
           router.replace(result.href);
@@ -145,7 +154,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
     {showSummary ? <section id="purchase-options-intro" className={styles.hero} aria-label="Purchase option summary">
       <div className={styles.heroImage}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100px, (max-width: 900px) 150px, 190px" /></div>
       <div className={styles.heroCopy}><p className={styles.retailer}>{item.retailer}</p><h2>{title}</h2><span className={styles.status}>Purchase options available</span></div>
-      <p className={styles.heroNote}>Each entry’s credit applies only to its own purchase option.</p>
+      <div className={styles.heroNote}><p>Each entry’s credit applies only to its own purchase option.</p><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" className={styles.optionShare} /></div>
       <div className={styles.heroBulkControls}>
         <div className={styles.heroChoiceHeading}>
           <a href="#purchase-option-rail" className={styles.heroCount}><span className={styles.heroCircle}>{count}</span><span>Purchase {count === 1 ? "option" : "options"}</span></a>
@@ -168,7 +177,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
       <p>Sample — not redeemable. No real payment or product shipment.</p>
       <button type="button" className={styles.makePurchases} disabled={purchaseLocked} onClick={confirmPurchases}>{purchasePending ? "Saving your purchases…" : `Confirm ${formatUsdFromCents(purchaseRequest.totalCents)} purchase${purchaseRequest.purchaseIds.length === 1 ? "" : "s"}`}</button>
       <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked} onClick={() => { setPurchaseRequest(null); setPurchaseResult(null); }}>Cancel</button>
-      {purchaseResult?.status === "error" ? <div role="alert"><p>{purchaseResult.message}</p>{purchaseResult.recovery === "balance" ? <Link href={fundingHref(item.slug, selectedOptions[0]?.entryId ?? undefined)}>Add funds →</Link> : null}{purchaseResult.recovery === "check" ? <a href={`/account/purchase-options/${encodeURIComponent(item.slug)}`}>Reload purchase status →</a> : null}<Link href="/account/wallet">Check Gift Cards & Rewards →</Link></div> : null}
+      {purchaseResult?.status === "error" ? <div ref={purchaseErrorRef} role="alert"><p>{purchaseResult.message}</p>{purchaseResult.recovery === "balance" ? <Link href={fundingHref(item.slug, selectedOptions[0]?.entryId ?? undefined)}>Add funds →</Link> : null}{purchaseResult.recovery === "check" ? <a href={`/account/purchase-options/${encodeURIComponent(item.slug)}`}>Reload purchase status →</a> : null}<Link href="/account/wallet">Check Gift Cards & Rewards →</Link></div> : null}
     </div> : null}
     {bulkPhase === "confirm" ? <div className={styles.bulkPanel} role="group" aria-label="Confirm declining all offers"><strong>Decline all {count} offers for {title}?</strong><p>They will leave your active purchase options. Your original entries and wallet history will not be refunded or removed.</p><div className={styles.bulkButtons}><button type="button" onClick={() => void declineAll()}>Confirm decline all</button><button type="button" onClick={() => { setBulkPhase("idle"); router.replace(`/account/purchase-options/${encodeURIComponent(options[0].slug)}`); }}>Keep my offers</button></div></div> : null}
     {bulkPhase === "working" || bulkPhase === "undo" || bulkPhase === "undoing" || bulkPhase === "error" ? <div className={styles.bulkPanel} role="status"><div className={styles.bulkStatus}><div><strong>{bulkPhase === "working" ? "Declining your offers…" : bulkPhase === "undoing" ? "Restoring your offers…" : bulkPhase === "undo" ? "Offers declined · Undo available" : "Check your offers"}</strong><p>{bulkMessage}</p></div>{bulkPhase === "undo" ? <EntryUndoCountdown seconds={secondsLeft} /> : null}</div>{bulkPhase === "undo" ? <button type="button" className={styles.undoAll} onClick={() => void undoAll()} disabled={secondsLeft === 0}>Undo decline all</button> : null}{bulkPhase === "error" ? <Link href="/account/declined-offers">Check Declined Offers →</Link> : null}</div> : null}

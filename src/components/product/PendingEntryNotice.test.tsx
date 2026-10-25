@@ -96,6 +96,7 @@ test("an accepted close-out goes straight to its purchase option", async () => {
       href: "/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd" } }));
   });
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd"));
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
 });
 
 test("an accepted scripted winner goes straight to its wallet reward", async () => {
@@ -108,6 +109,22 @@ test("an accepted scripted winner goes straight to its wallet reward", async () 
       href: "/account/wallet?reward=dunkin-25-gift-card&rewardId=11111111-1111-4111-8111-111111111111" } }));
   });
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/wallet?reward=dunkin-25-gift-card&rewardId=11111111-1111-4111-8111-111111111111"));
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
+});
+
+test("automatic sharing clears on the reward page, where manual Share still works", async () => {
+  const { rerender } = render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => {
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted" } }));
+  });
+  expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
+  mocks.path = "/account/wallet";
+  rerender(<PendingEntryNotice />);
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
+  act(() => window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: { slug: request.slug, title: request.title } })));
+  expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
 });
 
 test("restored older receipt is acknowledged without redirecting", async () => {
