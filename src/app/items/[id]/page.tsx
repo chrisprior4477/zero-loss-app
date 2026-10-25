@@ -20,7 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 
-type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[] }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; saveShared?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[] }> };
 
 export function generateStaticParams() {
   return demoProducts.map((product) => ({ id: product.slug }));
@@ -43,7 +43,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   if (!product) notFound();
   const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
   const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
-  const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={sharedContext?.token ?? product.slug} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} /> : null;
+  const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={sharedContext?.token ?? product.slug} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} /> : null;
   const alreadyResolved = resolvedCatalogSlugs(account?.activity).includes(product.slug);
   const declinedOutcome = account?.activity.activity.some(item => item.slug === product.slug && item.completionOptionStatus === "declined");
   const requestHead: EntryRequestHead = !alreadyResolved && account?.wallet?.scope === "demo" && isPreviewDataEnvironment()

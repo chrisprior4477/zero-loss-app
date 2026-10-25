@@ -31,7 +31,7 @@ test("opening open entries acknowledges all entry notifications and their bookke
   expect(headerCategoryIds(items,"entries")).toEqual(["active-1","active-2","wallet-hold"]);
 });
 test("exactly six categories exclude purchased cards and completed purchases", () => {
-  expect(headerCategories.map(c=>c.label)).toEqual(["You won","Purchase options","See open entries","Shared picks","Support tickets","Saved items"]);
+  expect(headerCategories.map(c=>c.label)).toEqual(["You won","Purchase options","See open entries","Shared with You","Support tickets","Saved items"]);
   expect(notificationMessages([make("reward-paid", "reward", { rewardSource: "purchase" }),make("order-one","order")])).toEqual([]);
   expect(headerDestinations).toEqual({ wins:"/account/entries?filter=prize#my-activity-filters", options:"/account/entries?filter=completion#my-activity-filters", entries:"/account/entries?filter=active#my-activity-filters" });
 });

@@ -29,7 +29,7 @@ export function signInReturnPath(value: unknown): string | null {
 
 export function sharedProductReturnPath(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  return /^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*\?(?:share=[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}|shared=1)$/i.test(value) ? value : null;
+  return /^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*\?(?:share=[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}|shared=1)(?:&saveShared=1)?$/i.test(value) ? value : null;
 }
 
 /** Carry the same allowlisted destination between account forms. */

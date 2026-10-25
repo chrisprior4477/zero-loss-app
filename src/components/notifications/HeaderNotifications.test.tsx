@@ -21,13 +21,13 @@ test("unread important updates keep balance links inert throughout the animation
   fireEvent.click(screen.getByRole("button", { name: /unread updates/ })); expect(mock.setOpen).toHaveBeenCalledWith(true); expect(mock.push).not.toHaveBeenCalled();
 });
 test("shared items open individually with a return path after their read status is saved", async () => {
-  render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Shared picks");
+  render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Shared with You");
   fireEvent.click(screen.getByRole("button", { name: /Chris shared/ }));
   await waitFor(() => expect(mock.push).toHaveBeenCalledWith(expect.stringContaining("&fromUpdates=1")));
   expect(mock.markRead).toHaveBeenCalledWith(["shared-1"]);
 });
 test("a failed read save never blocks navigation and shows recovery feedback", async () => {
-  mock.markRead.mockRejectedValue(new Error("Could not save")); render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Shared picks");
+  mock.markRead.mockRejectedValue(new Error("Could not save")); render(<HeaderNotifications>{metrics}</HeaderNotifications>); choose("Shared with You");
   fireEvent.click(screen.getByRole("button", { name: /Chris shared/ })); expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Your alert could not be marked as read. It is still available in updates."); expect(mock.push).toHaveBeenCalled();
 });
 test("turning header notifications off restores balance links", () => {

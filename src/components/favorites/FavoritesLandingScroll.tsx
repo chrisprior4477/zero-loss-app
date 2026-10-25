@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-/** Mobile visits land on the saved products, beneath the customer's chosen header. */
+/** Mobile visits keep the heading and both collection controls in view. */
 export function FavoritesLandingScroll({ enabled }: { enabled: boolean }) {
   useEffect(() => {
     if (!enabled) return;
@@ -13,14 +13,14 @@ export function FavoritesLandingScroll({ enabled }: { enabled: boolean }) {
       window.cancelAnimationFrame(secondFrame);
     };
     const canScroll = () => window.matchMedia?.("(max-width: 767px)").matches
-      && (!window.location.hash || window.location.hash === "#favorite-products");
+      && (!window.location.hash || window.location.hash === "#favorite-products" || window.location.hash === "#saved-items-heading");
     const revealProducts = () => {
       cancel();
       if (!canScroll()) return;
       firstFrame = window.requestAnimationFrame(() => {
         secondFrame = window.requestAnimationFrame(() => {
           if (!canScroll()) return;
-          const products = document.getElementById("favorite-products");
+          const products = document.getElementById("saved-items-heading");
           if (!products) return;
           const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
           const top = window.scrollY + products.getBoundingClientRect().top - headerBottom - 20;

@@ -46,7 +46,7 @@ export const getNotificationSnapshot = cache(async () => {
     crewRequestId: request.id,
     preferenceKey: "crew_updates" as const,
   }));
-  const sharedNotifications = (Array.isArray(shares.data) ? shares.data : []).filter(share => afterReset(share.createdAt)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "A pick shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared pick", href: `/items/${encodeURIComponent(share.slug)}?share=${encodeURIComponent(share.token)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
+  const sharedNotifications = (Array.isArray(shares.data) ? shares.data : []).filter(share => afterReset(share.createdAt)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "An item shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared with You", href: `/account/favorites?tab=shared&share=${encodeURIComponent(share.id)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
   const notifications = [...sharedNotifications, ...supportNotifications((support.data ?? []).filter(row => afterReset(row.updated_at))), ...crewNotifications,
     ...buildOrderNotifications(orders?.orders ?? []),
     ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed, hiddenWalletIds)

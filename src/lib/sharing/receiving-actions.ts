@@ -19,6 +19,6 @@ export async function updateSharedProductReceiving(token: string, receiving: boo
   const { data, error } = await db.rpc("set_product_share_receiving", { p_token: token, p_receiving: receiving, p_share_back: shareBack, p_only_if_new: onlyIfNew });
   const context = parseSharedProductContext(data);
   if (error || !context) return { ok: false, message: "Your sharing choices could not be saved. Please try again.", context: null };
-  revalidatePath("/account/crew"); revalidatePath("/account/notifications");
+  revalidatePath("/account/crew"); revalidatePath("/account/notifications"); revalidatePath("/account/favorites");
   return { ok: true, message: receiving ? "Your receiving choice is saved. Your own picks stay private unless you choose to share them." : `You left ${context.scope}. You can rejoin here.`, context };
 }

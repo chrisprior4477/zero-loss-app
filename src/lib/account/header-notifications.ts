@@ -11,7 +11,7 @@ export const headerCategories: { key: HeaderCategory; label: string; color: Bann
   { key: "wins", label: "You won", color: "green" },
   { key: "options", label: "Purchase options", color: "orange" },
   { key: "entries", label: "See open entries", color: "blue" },
-  { key: "shared", label: "Shared picks", color: "blue" },
+  { key: "shared", label: "Shared with You", color: "blue" },
   { key: "support", label: "Support tickets", color: "purple" },
   { key: "saved", label: "Saved items", color: "teal" },
 ];

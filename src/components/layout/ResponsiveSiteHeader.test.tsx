@@ -190,14 +190,14 @@ test.each(["ending-search", "home-ending-search"] as const)("%s Ending Soon targ
   expect(within(mobile).getByRole("link", { name: "Ending Soon" }).getAttribute("href")).toBe("/browse?sort=ending-soon#search-results");
 });
 
-test.each(["Favorites", "Ending Soon", "Browse"])("new push-down reveals ordered shopping shortcuts and closes after %s navigation", label => {
+test.each(["Favorites & Sent to You", "Ending Soon", "Browse"])("new push-down reveals ordered shopping shortcuts and closes after %s navigation", label => {
   const { mobile, header } = setup("search-down-browse");
   const shortcuts = mobile.querySelector<HTMLElement>('[aria-label="Search shopping shortcuts"]')!;
   expect(shortcuts.hasAttribute("inert")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Open search" }));
   expect(shortcuts.hasAttribute("inert")).toBe(false);
-  expect(within(shortcuts).getAllByRole("link").map(link => link.textContent)).toEqual(["Favorites", "Ending Soon", "Browse"]);
-  expect(within(shortcuts).getByRole("link", { name: "Favorites" }).getAttribute("href")).toBe("/account/favorites");
+  expect(within(shortcuts).getAllByRole("link").map(link => link.textContent)).toEqual(["Favorites & Sent to You", "Ending Soon", "Browse"]);
+  expect(within(shortcuts).getByRole("link", { name: "Favorites & Sent to You" }).getAttribute("href")).toBe("/account/favorites");
   expect(within(shortcuts).getByRole("link", { name: "Ending Soon" }).getAttribute("href")).toBe("/browse?sort=ending-soon#search-results");
   const browse = within(shortcuts).getByRole("link", { name: "Browse" });
   expect(browse.getAttribute("href")).toBe("/browse#retailer-categories-heading");

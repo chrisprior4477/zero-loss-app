@@ -22,7 +22,7 @@ function setup({ mobile = true, hash = "", headerHeight = 48 } = {}) {
   });
   const header = document.createElement("header"); header.dataset.scrollFixture = ""; header.className = "sticky";
   header.getBoundingClientRect = () => new DOMRect(0, 0, 390, headerHeight);
-  const products = document.createElement("section"); products.id = "favorite-products"; products.dataset.scrollFixture = "";
+  const products = document.createElement("h1"); products.id = "saved-items-heading"; products.dataset.scrollFixture = "";
   products.getBoundingClientRect = () => new DOMRect(0, 500, 390, 800);
   document.body.append(header, products);
   return { scrollTo, flush, frames, products };
@@ -65,7 +65,7 @@ test("navigation away cancels queued scrolling and its listener", () => {
   expect(scrollTo).not.toHaveBeenCalled(); expect(frames.size).toBe(0);
 });
 
-test("a missing products grid is safe", () => {
+test("a missing page heading is safe", () => {
   const { scrollTo, flush, products } = setup(); products.remove();
   render(<FavoritesLandingScroll enabled />); flush(); expect(scrollTo).not.toHaveBeenCalled();
 });

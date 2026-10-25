@@ -47,6 +47,7 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams)
     if (second === "security") return [accountRoot, { label: "Account & Security" }];
     if (second === "orders") return [accountRoot, { label: "Orders & Fulfillment" }];
     if (second === "crew") return [accountRoot, { label: "Your Crew" }];
+    if (second === "favorites") return [accountRoot, { label: "Favorites & Sent to You" }];
     if (second === "notifications") return [accountRoot, { label: "Notifications" }];
     if (second === "preview") return [accountRoot, { label: third ? humanize(third) : "Preview" }];
     return [accountRoot, { label: humanize(second) }];

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -163,6 +164,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <div><h1>Your Crew</h1><p>The people you brought with you.</p><p><span>{connected.length} connected</span>{samples.length ? <span>{samples.length} sample previews</span> : null}</p></div>
         <button type="button" className={firstStyles.addButton} onClick={focusCrewSearch}>Add people</button>
       </header>
+
+      <Link href="/account/favorites?tab=shared" className="mb-4 inline-flex min-h-10 items-center text-sm font-bold text-cyan-200">Shared with You →</Link>
 
       {incomingInviteToken ? <section className={styles.incomingInvite} aria-label="Crew invite request"><div><strong>Someone invited you to connect</strong><p>Send a request from your account. They’ll approve it before either of you can see shared picks.</p></div><button type="button" disabled={pending || incomingRequestSent} onClick={requestFromInviteLink}>{incomingRequestSent ? "Request sent" : "Request to join"}</button></section> : null}
 

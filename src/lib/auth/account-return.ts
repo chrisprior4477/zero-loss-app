@@ -10,7 +10,7 @@ const routes: Record<string, { query: Record<string, (value: string) => boolean>
   "/contact": { query: {}, hash: /^#message$/ },
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), viewed: matches(identifier), filter: oneOf("all", "active", "prize", "completion", "completed") } },
   "/account/declined-offers": { query: {} },
-  "/account/favorites": { query: {} },
+  "/account/favorites": { query: { tab: oneOf("favorites", "shared"), share: matches(uuid), item: matches(slug) }, hash: /^#(?:saved-items-heading|favorite-products)$/ },
   "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid) }, hash: /^#(?:add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
   "/account/crew": { query: { member: matches(uuid), tab: oneOf("crew", "requests", "picks"), request: matches(uuid), invite: matches(uuid) }, hash: /^#(?:sharing|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {} },

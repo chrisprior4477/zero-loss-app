@@ -100,7 +100,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
       </nav>
       <div ref={list} className={styles.items} id="header-update-sections">
         <section className={styles.section} aria-label={categoryInfo.label}>
-          <div className={styles.sectionHeading}><h3>{categoryInfo.label}</h3>{activityCategory ? <button type="button" disabled={busy} onClick={() => void act(headerCategoryIds(unread, activityCategory), headerDestinations[activityCategory])}>View all →</button> : null}</div>
+          <div className={styles.sectionHeading}><h3>{categoryInfo.label}</h3>{activityCategory ? <button type="button" disabled={busy} onClick={() => void act(headerCategoryIds(unread, activityCategory), headerDestinations[activityCategory])}>View all →</button> : current === "shared" ? <button type="button" onClick={() => void act([], "/account/favorites?tab=shared")}>View all →</button> : null}</div>
           {activityCategory ? (groups.length ? groups.map(group => <button key={group.slug} type="button" disabled={busy} className={styles.entry} data-color={categoryInfo.color} onPointerEnter={() => prefetch(group.href)} onFocus={() => prefetch(group.href)} onClick={() => void act(headerCategoryIds(unread, activityCategory), group.href)}>
               {group.image ? <Image src={group.image} alt="" width={44} height={44} unoptimized /> : null}
               <span><strong>{group.title}</strong><b>{actions[activityCategory]} →</b></span><span className={styles.ticketCount} aria-label={`${group.count} ${activityCategory === "entries" ? "tickets" : activityCategory === "wins" ? "wins" : "purchase options"}`}>{group.count}</span>

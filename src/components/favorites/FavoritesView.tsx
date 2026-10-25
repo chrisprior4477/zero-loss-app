@@ -1,73 +1,158 @@
 "use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { useFavorites } from "./FavoritesProvider";
 import { FavoritesLandingScroll } from "./FavoritesLandingScroll";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { availabilityStatus, type AvailabilitySnapshot } from "@/lib/catalog/availability";
 import { setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
+import { savedShareHref, savedShareStatus, sharedWithYouHref, type SavedProductShare } from "@/lib/sharing/saved-shares";
+import { setReceivedProductState } from "@/lib/sharing/saved-share-actions";
+import styles from "./favorites.module.css";
 
-export function FavoritesView({ availability, initialAlerts, emailEnabled }: { availability: AvailabilitySnapshot | null; initialAlerts: Record<string, boolean> | null; emailEnabled: boolean | null }) {
-  const { slugs, available } = useFavorites();
+type Props = {
+  availability: AvailabilitySnapshot | null; initialAlerts: Record<string, boolean> | null; emailEnabled: boolean | null;
+  initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
+};
+type Selection = { slug: string; shareId?: string } | null;
+export function FavoritesView({ availability, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem }: Props) {
+  const { slugs, available, toggle, busySlug: favoriteBusy } = useFavorites();
+  const [tab, setTab] = useState(initialTab);
+  const [shares, setShares] = useState(initialShares ?? []);
+  const [selected, setSelected] = useState<Selection>(() => {
+    const share = initialShares?.find(s => s.id === initialShareId);
+    return share ? { slug: share.slug, shareId: share.id } : initialTab === "favorites" && initialItem && slugs.includes(initialItem) ? { slug: initialItem } : null;
+  });
   const [alerts, setAlerts] = useState(initialAlerts ?? {});
   const [busySlug, setBusySlug] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
-
+  const tabs = useRef<HTMLDivElement>(null);
+  function location(href: string) { window.history.replaceState(window.history.state, "", href); }
+  function revealHeading() { requestAnimationFrame(() => document.getElementById("saved-items-heading")?.scrollIntoView?.({ block: "start", behavior: "instant" })); }
+  function chooseTab(next: "favorites" | "shared") {
+    setTab(next); setSelected(null); setMessage(""); location(next === "shared" ? sharedWithYouHref : "/account/favorites");
+    revealHeading();
+  }
+  function applyShareResult(id: string, result: Awaited<ReturnType<typeof setReceivedProductState>>, viewedOnly = false) {
+    if (!result.ok) { setMessage(result.message); return; }
+    setShares(current => current.map(s => s.id === id ? { ...s, viewedAt: result.viewedAt, declinedAt: viewedOnly ? s.declinedAt : result.declinedAt } : s));
+    window.dispatchEvent(new Event("zero-loss-notifications-read"));
+  }
+  useEffect(() => {
+    if (!initialShareId || !initialShares?.some(s => s.id === initialShareId)) return;
+    let active = true;
+    void setReceivedProductState(initialShareId, "viewed").then(result => { if (active) applyShareResult(initialShareId, result, true); })
+      .catch(() => { if (active) setMessage("The item is available, but its viewed status could not be saved."); });
+    return () => { active = false; };
+  }, [initialShareId]); // eslint-disable-line react-hooks/exhaustive-deps
+  function openItem(slug: string, shareId?: string) {
+    setSelected({ slug, shareId }); setMessage("");
+    location(shareId ? savedShareHref(shareId) : `/account/favorites?item=${encodeURIComponent(slug)}`);
+    revealHeading();
+    if (shareId) void setReceivedProductState(shareId, "viewed").then(result => applyShareResult(shareId, result, true))
+      .catch(() => setMessage("The item is available, but its viewed status could not be saved."));
+  }
+  function back() {
+    const target = selected?.shareId ?? selected?.slug;
+    setSelected(null); location(tab === "shared" ? sharedWithYouHref : "/account/favorites");
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-saved-item="${target}"]`)?.focus({ preventScroll: true }));
+  }
+  async function changeShare(share: SavedProductShare, state: "declined" | "restore") {
+    if (shareBusy) return;
+    setShareBusy(share.id); setMessage("");
+    try { const result = await setReceivedProductState(share.id, state); applyShareResult(share.id, result); if (result.ok) { setMessage(result.message); back(); } }
+    catch { setMessage("We couldn’t confirm this change. Please try again."); }
+    finally { setShareBusy(null); }
+  }
   function toggleAlert(slug: string) {
     if (busySlug || !initialAlerts || emailEnabled === null) return;
-    const enabled = !alerts[slug];
-    setBusySlug(slug);
-    setMessage("");
+    const enabled = !alerts[slug]; setBusySlug(slug); setMessage("");
     startTransition(async () => {
-      try {
-        const result = await setFavoriteCapacityAlert(slug, enabled);
-        if (result.ok) setAlerts(current => ({ ...current, [slug]: enabled }));
-        setMessage(result.message);
-      } catch {
-        setMessage("We couldn't confirm this change. Refresh and try again.");
-      } finally {
-        setBusySlug(null);
-      }
+      try { const result = await setFavoriteCapacityAlert(slug, enabled); if (result.ok) setAlerts(current => ({ ...current, [slug]: enabled })); setMessage(result.message); }
+      catch { setMessage("We couldn’t confirm this change. Refresh and try again."); }
+      finally { setBusySlug(null); }
     });
   }
-
-  return <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
-    <FavoritesLandingScroll enabled={available && slugs.length > 0} />
-    <div className="mx-auto max-w-7xl">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Saved for later</p>
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">Favorites</h1><p className="mt-2 text-white/70">The products you picked out, together in one place.</p></div><Link href="/browse" className="text-sm font-bold text-cyan-300 hover:text-white">Browse all products →</Link></div>
-      <p className="mt-3 text-sm text-white/75">Want a heads-up? Turn on an email for a saved item when its entry pool reaches 90% full. One email per item, not a reservation.</p>
-      {emailEnabled === false ? <p className="mt-2 text-sm text-amber-200">Favorite emails are paused in <Link href="/account/notifications#favorite-alert-preference" className="underline">Notifications</Link>.</p> : null}
-      {initialAlerts === null || emailEnabled === null ? <p role="status" className="mt-2 text-sm text-amber-200">Alert choices are unavailable right now. Your saved items are unchanged.</p> : null}
-      {message ? <p role="status" className="mt-3 text-sm font-bold text-cyan-200">{message}</p> : null}
-
-      {!available ? <section role="alert" className="mt-8 rounded-2xl border border-amber-300/40 bg-[#30251b] p-5 text-sm leading-6">Favorites couldn’t be loaded right now. Refresh to try again; nothing has been removed.</section>
-        : slugs.length === 0 ? <section className="mt-8 rounded-2xl border border-cyan-300/30 bg-[#082848] p-7 sm:p-10"><span aria-hidden="true" className="text-4xl text-[#31e800]">♡</span><h2 className="mt-3 text-2xl font-black">Nothing saved yet</h2><p className="mt-2 max-w-lg text-sm leading-6 text-white/70">Tap the heart on any product to keep it here. Favorites save items to revisit; they don’t place an entry or reserve a prize.</p><Link href="/browse" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-extrabold text-[#002719]">Find a product →</Link></section>
-        : <section id="favorite-products" aria-label="Favorite products" className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
-          {slugs.map(slug => {
-            const product = getDemoProduct(slug);
-            const current = availability?.[slug];
-            const status = product ? availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold) : null;
-            return <article key={slug} className="relative flex flex-col overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
-              {product ? <Link href={`/items/${slug}`} className="group flex flex-1 flex-col p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan-500 sm:p-4">
-                <div className="relative aspect-[1.28/1] overflow-hidden rounded-xl bg-[#f1f4f7]"><Image src={product.gallery[0].src} alt="" fill sizes="(max-width: 640px) 50vw, 25vw" className="object-contain p-2 transition-transform group-hover:scale-105" /></div>
-                <p className="mt-3 text-[10px] font-black uppercase tracking-[.1em] text-[#087feb] sm:text-xs">{product.retailer}</p><h2 className="mt-1 line-clamp-2 text-sm font-extrabold leading-5 sm:text-base">{product.title}</h2>
-                <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs"><span><strong className="block text-sm">${((current?.entryPriceCents ?? product.entryPrice * 100) / 100).toFixed(2)}</strong>per entry</span><span className="text-right font-bold" style={{ color: status?.color }}>{status?.remaining === 0 ? "Pool full" : `${status?.remaining.toLocaleString()} left`}</span></div>
-              </Link> : <div className="flex min-h-48 flex-col justify-center p-5"><h2 className="pr-8 font-bold">Product unavailable</h2><p className="mt-2 text-xs text-slate-600">This saved item is no longer in the current catalog. You can remove it from Favorites.</p></div>}
-              {product && status?.remaining !== 0 ? <div className="border-t border-slate-200 px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
-                <label className="flex cursor-pointer items-start gap-2 text-xs font-bold leading-4 sm:text-sm">
-                  <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-[#007fba]" checked={Boolean(alerts[slug])} disabled={!initialAlerts || emailEnabled === null || pending || busySlug !== null} onChange={() => toggleAlert(slug)} aria-label={`Email me when ${product.title} is almost full`} />
-                  <span>Email me at 90% full</span>
-                </label>
-              </div> : product ? <p className="border-t border-slate-200 px-3 py-3 text-xs font-bold text-slate-600 sm:px-4">This pool is full; watchlist email unavailable.</p> : null}
-              <FavoriteButton itemName={product?.title ?? "this product"} itemHref={`/items/${slug}`} size="large" className="absolute right-5 top-5 z-10" />
-            </article>;
-          })}
-        </section>}
+  function productState(slug: string) {
+    const product = getDemoProduct(slug), current = availability?.[slug];
+    return { product, current, status: product ? availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold) : null };
+  }
+  function art(slug: string, large = false) {
+    const product = getDemoProduct(slug);
+    return <div className={`${styles.art} ${large ? styles.largeArt : ""}`}>
+      {product ? <Image src={product.gallery[0].src} alt={product.title} fill sizes={large ? "(max-width: 640px) 90vw, 420px" : "(max-width: 640px) 50vw, 25vw"} className="object-contain p-2" /> : <span>Product unavailable</span>}
+      <FavoriteButton itemName={product?.title ?? "this product"} itemHref={`/items/${slug}`} size="large" className={styles.heart} />
+    </div>;
+  }
+  function price(slug: string, large = false) {
+    const { product, current, status } = productState(slug);
+    if (!product) return null;
+    return <div className={`${styles.price} ${large ? styles.detailPrice : ""}`}><span><strong>${((current?.entryPriceCents ?? product.entryPrice * 100) / 100).toFixed(2)}</strong>per entry</span>
+      <span className={styles.remaining} style={{ color: status?.color }}>{status?.remaining === 0 ? "Pool full" : <><strong>{status?.remaining.toLocaleString()}</strong> left</>}</span></div>;
+  }
+  function sender(share: SavedProductShare) {
+    return <div className={styles.sender}><span aria-hidden="true">{share.sender[0]?.toUpperCase() ?? "?"}</span><div>From {share.sender}<small>{share.demo ? "Demo share · " : ""}{new Date(share.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}</small></div></div>;
+  }
+  const selectedShare = selected?.shareId ? shares.find(s => s.id === selected.shareId) : null;
+  const detailProduct = selected ? getDemoProduct(selected.slug) : null;
+  return <main className={styles.page}>
+    <FavoritesLandingScroll enabled />
+    <div className={styles.container}>
+      <h1 id="saved-items-heading" className={styles.heading}>Favorites &amp; Sent to You</h1>
+      <div ref={tabs} className={styles.tabs} role="tablist" aria-label="Saved items" onKeyDown={event => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+        event.preventDefault(); const next = event.key === "Home" ? "favorites" : event.key === "End" ? "shared" : tab === "favorites" ? "shared" : "favorites";
+        chooseTab(next); tabs.current?.querySelector<HTMLButtonElement>(`[data-tab="${next}"]`)?.focus();
+      }}>
+        <button type="button" id="your-favorites-tab" role="tab" data-tab="favorites" aria-controls="saved-products-panel" aria-selected={tab === "favorites"} tabIndex={tab === "favorites" ? 0 : -1} onClick={() => chooseTab("favorites")}>Your Favorites <span>{available ? slugs.length : "–"}</span></button>
+        <button type="button" id="shared-with-you-tab" role="tab" data-tab="shared" aria-controls="saved-products-panel" aria-selected={tab === "shared"} tabIndex={tab === "shared" ? 0 : -1} onClick={() => chooseTab("shared")}>Shared with You <span>{initialShares ? shares.length : "–"}</span></button>
+      </div>
+      {message ? <p role="status" className={styles.message}>{message}</p> : null}
+      <section id="saved-products-panel" role="tabpanel" aria-labelledby={tab === "favorites" ? "your-favorites-tab" : "shared-with-you-tab"}>
+        {selected ? <>
+          <button type="button" className={styles.back} onClick={back}>← {tab === "shared" ? "Shared with You" : "Your Favorites"}</button>
+          <article className={styles.detail}>
+            {selectedShare ? sender(selectedShare) : null}{art(selected.slug, true)}
+            <div className={styles.detailBody}>
+              <p className={styles.merchant}>{detailProduct?.retailer ?? "Zero Loss"}</p><h2>{detailProduct?.title ?? selectedShare?.title ?? "Product unavailable"}</h2>
+              {selectedShare ? <span className={`${styles.badge} ${selectedShare.declinedAt ? styles.declined : ""}`}>{savedShareStatus(selectedShare)}</span> : null}
+              {price(selected.slug, true)}
+              {detailProduct ? <Link className={styles.productLink} href={`/items/${detailProduct.slug}${selectedShare?.token ? `?share=${selectedShare.token}` : ""}`}>Open prize details →</Link> : <p>This product is no longer available in the current catalog.</p>}
+              <div className={styles.detailActions}>
+                <button type="button" className={styles.saveFavorite} disabled={favoriteBusy === selected.slug || !detailProduct || !available} onClick={() => toggle(selected.slug)}>{slugs.includes(selected.slug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
+                <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={back}>Back to list</button></div>
+              </div>
+              {selectedShare ? <><button type="button" className={styles.declineButton} disabled={shareBusy !== null} onClick={() => void changeShare(selectedShare, selectedShare.declinedAt ? "restore" : "declined")}>{shareBusy === selectedShare.id ? "Saving…" : selectedShare.declinedAt ? "Undo decline" : "Decline this share"}</button><p className={styles.kept}>{selectedShare.declinedAt ? "Declined. This item stays in Shared with You." : "Declining keeps this item here to revisit."}</p></> : null}
+            </div>
+          </article>
+        </> : tab === "favorites" ? <>
+          {emailEnabled === false ? <p className={styles.notice}>Favorite emails are paused in <Link href="/account/notifications#favorite-alert-preference">Notifications</Link>.</p> : null}
+          {initialAlerts === null || emailEnabled === null ? <p role="status" className={styles.notice}>Alert choices are unavailable. Your saved items are unchanged.</p> : null}
+          {!available ? <p role="alert" className={styles.empty}>Favorites couldn’t be loaded. Refresh to try again; nothing has been removed.</p>
+            : !slugs.length ? <div className={styles.empty}><h2>No favorites yet</h2><p>Tap a product’s heart to keep it here.</p><Link href="/browse">Browse products →</Link></div>
+              : <div id="favorite-products" aria-label="Favorite products" className={styles.grid}>{slugs.map(slug => {
+                const { product, status } = productState(slug);
+                return <article key={slug} className={styles.card}>{art(slug)}
+                  <div className={styles.cardBody}><p className={styles.merchant}>{product?.retailer ?? "Zero Loss"}</p><h2><button type="button" data-saved-item={slug} onClick={() => openItem(slug)}>{product?.title ?? "Product unavailable"}</button></h2>{price(slug)}</div>
+                  {product && status?.remaining !== 0 ? <label className={styles.alert}><input type="checkbox" checked={Boolean(alerts[slug])} disabled={!initialAlerts || emailEnabled === null || pending || busySlug !== null} onChange={() => toggleAlert(slug)} aria-label={`Email me when ${product.title} is almost full`} />Email me at 90% full</label>
+                    : product ? <p className={styles.alert}>This pool is full; watchlist email unavailable.</p> : null}
+                </article>;
+              })}</div>}
+        </> : <>
+          <p className={styles.note}>Includes items you’ve declined.</p>
+          {initialShares === null ? <p role="alert" className={styles.empty}>Shared items couldn’t be loaded. Refresh to try again; nothing has been removed.</p>
+            : !shares.length ? <div className={styles.empty}><h2>Nothing shared with you yet</h2><p>Items people send you will appear here.</p></div>
+              : <div aria-label="Items shared with you" className={styles.grid}>{shares.map(share => {
+                const product = getDemoProduct(share.slug);
+                return <article key={share.id} className={styles.card}>{art(share.slug)}<div className={styles.cardBody}>{sender(share)}<span className={`${styles.badge} ${share.declinedAt ? styles.declined : ""}`}>{savedShareStatus(share)}</span><p className={styles.merchant}>{product?.retailer ?? "Zero Loss"}</p><h2>{product?.title ?? share.title}</h2><button type="button" className={styles.viewButton} data-saved-item={share.id} onClick={() => openItem(share.slug, share.id)}>View prize <span aria-hidden="true">→</span></button></div></article>;
+              })}</div>}
+        </>}
+      </section>
     </div>
   </main>;
 }

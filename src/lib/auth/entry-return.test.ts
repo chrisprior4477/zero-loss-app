@@ -1,5 +1,15 @@
 import { expect, test } from "vitest";
-import { entryReturnPath, productReturnFromReferer, signInReturnPath } from "./entry-return";
+import { authNavigationHref, entryReturnPath, productReturnFromReferer, signInReturnPath, signupVerificationPath } from "./entry-return";
+
+test("saving an email share preserves its intent through sign-in and verification", () => {
+  for (const path of ["/items/tv?share=11111111-1111-4111-8111-111111111111&saveShared=1", "/items/tv?shared=1&saveShared=1"]) {
+    expect(signInReturnPath(path)).toBe(path);
+    for (const href of [authNavigationHref("/signup", path), authNavigationHref("/login", path), signupVerificationPath(path)]) {
+      expect(new URL(href, "https://example.test").searchParams.get("next")).toBe(path);
+    }
+  }
+  for (const path of ["/items/tv?saveShared=1", "/items/tv?shared=1&saveShared=evil", "/items/tv?shared=1&saveShared=1&next=https://evil.test"]) expect(signInReturnPath(path)).toBeNull();
+});
 
 test("shared items survive signup without allowing arbitrary redirects", () => {
   const shared = "/items/tv?share=11111111-1111-4111-8111-111111111111";
