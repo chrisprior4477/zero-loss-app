@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { buildAccountNotifications, type AccountNotification } from "@/lib/account/notifications";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
@@ -41,7 +41,7 @@ test("notification filters, links, and read controls remain functional", () => {
   render(<NotificationsCenter notifications={notifications} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
   expect(screen.getByRole("heading", { name: "Notifications" })).toBeTruthy();
   expect(screen.queryByText("Ø")).toBeNull();
-  expect(screen.getByRole("link", { name: /Show barcode/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
+  expect(screen.getByRole("link", { name: /Claim reward/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
   fireEvent.click(screen.getByRole("button", { name: /Orders0/ }));
   expect(screen.getByText("No order updates")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: /All6/ }));
@@ -167,9 +167,9 @@ test("a failed save restores unread status and explains the failure", async () =
 
 test("following an unread notification saves its status before opening its destination", async () => {
   const notifications = buildAccountNotifications(storedActivityFixture(), wallet, true);
-  const reward = notifications.find((notification) => notification.action === "Show barcode")!;
+  const reward = notifications.find((notification) => notification.action === "Claim reward")!;
   render(<NotificationsCenter notifications={[reward]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
-  fireEvent.click(screen.getByRole("link", { name: /Show barcode/ }));
+  fireEvent.click(screen.getByRole("link", { name: /Claim reward/ }));
   await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith([reward.id]));
   await waitFor(() => expect(actionMocks.push).toHaveBeenCalledWith(reward.href));
 });
@@ -178,7 +178,62 @@ test("a failed read receipt never blocks opening the reward", async () => {
   readMocks.mark.mockRejectedValue(new Error("offline"));
   const reward = buildAccountNotifications(storedActivityFixture(), wallet, true)[0];
   render(<NotificationsCenter notifications={[reward]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
-  fireEvent.click(screen.getByRole("link", { name: /Show barcode/ }));
+  fireEvent.click(screen.getByRole("link", { name: /Claim reward/ }));
   await waitFor(() => expect(actionMocks.push).toHaveBeenCalledWith(reward.href));
   expect(document.querySelector('[data-read="false"]')).not.toBeNull();
+});
+
+function openEntries(count: number): AccountNotification[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `active-${index}`, entryId: `entry-${index}`, itemSlug: "bundle", itemTitle: "Gift-card bundle",
+    title: "Gift-card bundle is still open", body: "Your $1 entry is still active. We’ll keep the latest status here.",
+    meta: "Entry recorded", href: `/account/entries/entry-${index}`, action: "See My Entry", category: "activity", tone: "active",
+    preferenceKey: "pool_progress",
+  }));
+}
+
+test("a stack expands every entry without marking it read, and follows only the selected entry", async () => {
+  const entries = openEntries(3);
+  render(<NotificationsCenter notifications={entries} initialReadIds={[entries[0].id]} activityAvailable walletAvailable crewAvailable readAvailable />);
+  expect(screen.getAllByRole("article")).toHaveLength(1);
+  expect(screen.getByRole("button", { name: /All3/ })).toBeTruthy();
+  const expand = screen.getByRole("button", { name: "See all 3 entries for Gift-card bundle" });
+  expect(expand.getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(expand);
+  expect(readMocks.mark).not.toHaveBeenCalled();
+  const list = screen.getByRole("list", { name: "Entries for Gift-card bundle" });
+  expect(list.id).toBe(expand.getAttribute("aria-controls"));
+  expect(within(list).getAllByRole("listitem")).toHaveLength(3);
+  entries.forEach((entry, index) => expect(screen.getByRole("link", { name: `See entry ${index + 1} for Gift-card bundle` }).getAttribute("href")).toBe(entry.href));
+  fireEvent.click(screen.getByRole("link", { name: "See entry 2 for Gift-card bundle" }));
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith([entries[1].id]));
+  await waitFor(() => expect(actionMocks.push).toHaveBeenCalledWith(entries[1].href));
+  expect(screen.getByRole("article").getAttribute("data-read")).toBe("false");
+  fireEvent.click(screen.getByRole("button", { name: "Collapse entries for Gift-card bundle" }));
+  expect(screen.queryByRole("list", { name: "Entries for Gift-card bundle" })).toBeNull();
+});
+
+test("mark all read includes collapsed entries and updates their stack marker", async () => {
+  const entries = openEntries(5);
+  render(<NotificationsCenter notifications={entries} initialReadIds={[entries[0].id]} activityAvailable walletAvailable crewAvailable readAvailable />);
+  fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(entries.slice(1).map(item => item.id)));
+  expect(screen.getByRole("article").getAttribute("data-read")).toBe("true");
+});
+
+test("show more reveals the remaining records and filters retain their full counts", async () => {
+  const transactions = Array.from({ length: 15 }, (_, index): AccountNotification => ({
+    id: `wallet-${index}`, category: "activity", tone: "wallet", title: `Transaction ${index}`, body: "Funds posted.",
+    meta: "Wallet activity", href: `/account/wallet?transaction=${index}`, action: "View transaction",
+  }));
+  render(<NotificationsCenter notifications={transactions} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+  expect(screen.getAllByRole("article")).toHaveLength(12);
+  expect(screen.getByRole("button", { name: /All15/ })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(transactions.map(item => item.id)));
+  fireEvent.click(screen.getByRole("button", { name: /Show more updates/ }));
+  expect(screen.getAllByRole("article")).toHaveLength(15);
+  expect(screen.queryByRole("button", { name: /Show more updates/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /Activity15/ }));
+  expect(screen.getAllByRole("article")).toHaveLength(12);
 });
