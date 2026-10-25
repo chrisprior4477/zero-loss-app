@@ -91,3 +91,8 @@
 .dialog[data-popup-style="ticket"] .entry[data-color="orange"] { background:#fff0df; }
 .dialog[data-popup-style="ticket"] .entry[data-color="purple"] { background:#f1eaff; }
 .entry > span.itemIcon { flex:0 0 36px; }
+@media (max-height:480px) and (max-width:1024px), (max-height:480px) and (hover:none) and (pointer:coarse) {
+  /* Short landscape screens scroll the complete panel so every action stays reachable. */
+  .dialog { overflow-y:auto; }
+  .dialog .items { overflow-y:visible; flex-shrink:0; }
+}
