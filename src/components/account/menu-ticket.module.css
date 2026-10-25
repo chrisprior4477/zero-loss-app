@@ -114,6 +114,8 @@
   line-height: 1.14;
 }
 
+.copy[data-wrap-title="true"] strong { white-space: normal; text-overflow: clip; }
+
 .chevron {
   width: 18px;
   height: 18px;

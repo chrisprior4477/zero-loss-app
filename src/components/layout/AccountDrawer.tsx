@@ -39,7 +39,7 @@ const secondaryLinks = [
 
 const navigationVisuals: Record<(typeof accountNavigation)[number][0], { description: string; imageSrc: string; artworkTreatment?: "zoom" | "full" | "fit-wallet" | "fill-panel" | "declined" }> = {
   "My Activity": { description: "Track your entries and results.", imageSrc: "/account/drawer/my-activity-324x180.png" },
-  "Favorites & Sent to You": { description: "Your favorites and items shared with you.", imageSrc: "/account/drawer/favorites-324x180.svg", artworkTreatment: "full" },
+  "Favorites & Sent to You": { description: "Saved and shared items.", imageSrc: "/account/drawer/favorites-324x180.svg", artworkTreatment: "full" },
   "Gift Cards & Rewards": { description: "Browse prizes and claim rewards.", imageSrc: "/account/drawer/gift-cards-rewards-324x180.png" },
   "Wallet & Transactions": { description: "Manage your balance and view transactions.", imageSrc: "/account/drawer/wallet-transactions-324x180.png", artworkTreatment: "fit-wallet" },
   "Orders & Fulfillment": { description: "Track your orders and delivery updates.", imageSrc: "/account/drawer/orders-fulfillment-324x180.png", artworkTreatment: "fill-panel" },
@@ -205,7 +205,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
                   {accountNavigation.map(([label, href]) => {
                     const active = href.startsWith("/account/wallet") ? pathname === "/account/wallet" && (href === walletHistoryHref) === walletHistoryOpen : pathname === href || pathname?.startsWith(href + "/");
                     const visual = navigationVisuals[label];
-                    return <MenuTicket key={href} title={label} description={visual.description} href={href === accountRoutes.crew ? `${href}#crew-intro` : href} imageSrc={visual.imageSrc} artworkTreatment={visual.artworkTreatment} onNavigate={close} active={active} />;
+                    return <MenuTicket key={href} title={label} description={visual.description} href={href === accountRoutes.crew ? `${href}#crew-intro` : href} imageSrc={visual.imageSrc} artworkTreatment={visual.artworkTreatment} onNavigate={close} active={active} wrapTitle={href === accountRoutes.favorites} />;
                   })}
                 </nav>
                 <div className={styles.promoWrap}>
