@@ -191,12 +191,24 @@ test("empty groups stay editable and Crew Add People opens private discovery", a
   expect(screen.getByRole("heading", { name: "Find someone on Zero Loss" })).toBeTruthy();
 });
 
-test("desktop dialog restores page scroll and focus after unmount", () => {
+test.each([false, true])("sharing uses a modal and restores scroll/focus at either breakpoint (desktop: %s)", desktop => {
+  vi.stubGlobal("matchMedia", () => ({ matches: desktop, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  const showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal");
+  const show = vi.spyOn(HTMLDialogElement.prototype, "show");
   const trigger = document.createElement("button"); document.body.append(trigger); trigger.focus();
   const { unmount } = render(<PostEntryCrewToast request={request} onClose={vi.fn()} />);
+  expect(showModal).toHaveBeenCalledOnce();
+  expect(show).not.toHaveBeenCalled();
   expect(document.body.style.overflow).toBe("hidden");
   expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Share this find" }));
   unmount(); expect(document.body.style.overflow).not.toBe("hidden"); expect(document.activeElement).toBe(trigger); trigger.remove();
+});
+
+test("Not now remains after every sharing option in the home action order", () => {
+  open();
+  expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual([
+    "×", "Share…", "Copy link", "Share with your Crew", "Text", "Email", "Not now",
+  ]);
 });
 
 test("private email lookup does not enumerate accounts or send until Add to Crew", async () => {

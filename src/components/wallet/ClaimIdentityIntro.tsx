@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import { useEffect, useRef } from "react";
 import styles from "./claim-identity-intro.module.css";
 
@@ -12,7 +14,7 @@ export function ClaimIdentityIntro({ onContinue, onClose }: { onContinue: () => 
     return () => { if (modal?.open) modal.close(); };
   }, []);
 
-  return <dialog ref={dialog} className={styles.dialog} aria-labelledby="claim-identity-intro-title" onCancel={event => { event.preventDefault(); onClose(); }}>
+  return <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-labelledby="claim-identity-intro-title" onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className={styles.handle} aria-hidden="true" />
     <div className={styles.content}>
       <span className={styles.eyebrow}>BEFORE YOU CLAIM</span>

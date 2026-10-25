@@ -1,4 +1,6 @@
 "use client";
+
+import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -73,7 +75,7 @@ export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = 
       <button type="button" onClick={() => { if (!signedIn) signIn(); else { setReceive(context?.receiving ?? true); setShareBack(context?.shareBack ?? false); setDialogKind("options"); } }}>Sharing options</button>
     </div>
     {message && !dialogKind ? <p role="status" className={styles.status}>{message}</p> : null}
-    <dialog ref={dialog} className={styles.dialog} onCancel={() => setDialogKind(null)} onKeyDown={containDialogTab} aria-labelledby="shared-choice-heading">
+    <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={() => setDialogKind(null)} onKeyDown={containDialogTab} aria-labelledby="shared-choice-heading">
       <div className={styles.heading}><h2 id="shared-choice-heading">{dialogKind === "membership" ? `${context?.receiving ? "Leave" : "Rejoin"} ${scope}?` : "Sharing options"}</h2><button type="button" aria-label="Close sharing options" onClick={() => setDialogKind(null)}>×</button></div>
       {context?.demo ? <p>This demo saves your choices for this sample share only. It does not contact anyone or share your picks.</p> : null}
       {dialogKind === "membership" ? <><p>{context?.receiving ? "Stop receiving shares from this Crew or group. Items already sent to you stay in Shared with You, and you can rejoin from this link." : "Receive the picks they share with you again. This does not share your own picks."}</p><button className={styles.save} type="button" disabled={busy} onClick={() => void save(!context?.receiving, null)}>{busy ? "Saving…" : context?.receiving ? "Leave" : "Rejoin"}</button></> : context ? <>

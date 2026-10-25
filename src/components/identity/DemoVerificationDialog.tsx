@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { beginDemoVerification, advanceDemoVerification, restartDemoVerification, skipDemoVerificationForPresentation } from "@/lib/identity/demo-verification-actions";
@@ -133,7 +135,7 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
   const titles: Record<DemoVerificationStep, string> = { start: "Confirm your identity", consent: "Review your details", details: "Photograph the front of your ID", document_front: "Now, the back of your ID", document_back: "Record a short headshot video", selfie: "Review before submitting", submitted: "Ready for the demo check", demo_passed: "Demo identity check complete", demo_skipped: "Demo walkthrough skipped", requires_input: "Let’s try that photo again" };
   const canSkipForPresentation = !previewOnly && step && !["demo_passed", "demo_skipped", "requires_input"].includes(step);
 
-  return <dialog ref={dialog} aria-labelledby="identity-demo-title" className={styles.dialog} onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>
+  return <dialog ref={dialog} aria-labelledby="identity-demo-title" className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>
     <header className={styles.header}>
       <span className={styles.headerIcon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4.5 5v6.1c0 5.2 3.2 8.7 7.5 10.9 4.3-2.2 7.5-5.7 7.5-10.9V5L12 2Z" /><path d="m8.5 11.7 2.3 2.3 4.8-4.9" /></svg></span>
       <div className={styles.headingBlock}><p className={styles.eyebrow}>PRIZE CLAIM · IDENTITY CHECK</p><h2 ref={heading} tabIndex={-1} id="identity-demo-title">{step ? titles[step] : error ? "Couldn’t open the demo check" : "Opening your saved check…"}</h2></div>

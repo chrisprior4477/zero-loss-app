@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
@@ -78,7 +80,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
       const box = event.currentTarget.getBoundingClientRect();
       if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) close();
     }}
-    className={styles.detailDialog} data-status={item.status}>
+    className={`${styles.detailDialog} ${popupStyles.dialog}`} data-status={item.status}>
     <header className={styles.detailHeader}>
       <div><p className={styles.detailEyebrow}>MY ACTIVITY</p><p className={styles.detailHeaderLabel}>{item.status === "completion" ? "Purchase option" : item.status === "prize" ? "Winning outcome" : item.status === "active" ? "Entry details" : "Activity history"}</p></div>
       <button ref={closeRef} type="button" onClick={close} aria-label="Close activity details" className={styles.detailClose}>×</button>

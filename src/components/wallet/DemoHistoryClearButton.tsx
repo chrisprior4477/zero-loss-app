@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -61,7 +63,7 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
       {notice && balanceCents === null ? <p role="status" className={styles.notice}>{notice}</p> : null}
     </div>
     {balanceCents !== null && typeof document !== "undefined" ? createPortal(
-      <dialog ref={dialog} className={styles.dialog} onCancel={event => { event.preventDefault(); if (!pending) close(); }}
+      <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!pending) close(); }}
         aria-labelledby={`demo-${kind}-clear-title`} aria-describedby={`demo-${kind}-clear-description`}>
         <h2 id={`demo-${kind}-clear-title`}>{label}?</h2>
         <p id={`demo-${kind}-clear-description`}>{kind === "transactions"

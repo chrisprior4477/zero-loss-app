@@ -12,6 +12,7 @@ import { containDialogTab } from "@/components/account/dialog-keyboard";
 import type { EntryRequest } from "@/lib/entries/request";
 import { ShareIcon } from "./ShareIcon";
 import styles from "./post-entry-crew-toast.module.css";
+import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy";
 type Props = { onClose: () => void; focusOnOpen?: boolean } & ({ request: EntryRequest; product?: ProductShareItem } | { request?: undefined; product: ProductShareItem });
@@ -66,23 +67,12 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     const element = dialog.current;
     if (!element) return;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const desktop = window.matchMedia("(min-width: 601px)");
     const previousOverflow = document.body.style.overflow;
-    const show = () => {
-      if (element.open) element.close();
-      if (desktop.matches) {
-        element.showModal();
-        document.body.style.overflow = "hidden";
-        heading.current?.focus({ preventScroll: true });
-      } else {
-        element.show();
-        document.body.style.overflow = previousOverflow;
-      }
-    };
-    show();
-    desktop.addEventListener("change", show);
+    // The top layer keeps phone/tablet dialogs centered above transformed page content.
+    element.showModal();
+    document.body.style.overflow = "hidden";
+    heading.current?.focus({ preventScroll: true });
     return () => {
-      desktop.removeEventListener("change", show);
       element.close();
       document.body.style.overflow = previousOverflow;
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
@@ -280,7 +270,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{titles[step]}</h2>;
   const compact = step === "home" || step === "email";
 
-  return <dialog ref={dialog} className={styles.toast} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
+  return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className={`${styles.paper} ${compact ? styles.compact : ""} ${step === "home" ? styles.perforated : ""} ${step === "email" ? styles.emailPaper : ""}`} ref={paper}>
       <div className={styles.top}>
         {step === "home" ? <div>{request ? <p className={styles.eyebrow} role="status">✓ Entry confirmed</p> : null}{titleHeading}</div> : <button type="button" className={styles.back} onClick={back} disabled={busy}>← Back</button>}

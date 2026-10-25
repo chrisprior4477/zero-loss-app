@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
@@ -39,7 +41,7 @@ export function CrewInvitationPrompt({ invitation, unavailable = false }: { invi
   }
   if (!open) return null;
   const canRespond = request?.status === "pending" && !result?.ok;
-  return <dialog ref={dialog} className={styles.toast} aria-labelledby={`${id}-title`} onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); close(); }}>
+  return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); close(); }}>
     <div className={styles.paper}>
       <div className={styles.top}><p className={styles.eyebrow}>PRIVATE CREW INVITATION</p><button type="button" className={styles.close} aria-label="Close Crew invitation" onClick={close} disabled={busy}>×</button></div>
       <h2 ref={heading} tabIndex={-1} id={`${id}-title`}>{result?.ok ? "Crew request updated" : request?.status === "pending" ? `Join ${request.name}’s Crew?` : request?.status === "accepted" ? "You’re already connected" : "Review your Crew invitation"}</h2>

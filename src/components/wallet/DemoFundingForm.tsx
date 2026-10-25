@@ -1,4 +1,6 @@
 "use client";
+
+import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -152,7 +154,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
       {cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       <p className={styles.cardMessage}>Only safe sample-card references are saved. You’ll confirm each deposit separately.</p>
     </section> : null}
-    {deleteToken ? <dialog ref={deleteDialog} aria-labelledby="delete-demo-card-title" onCancel={event => { event.preventDefault(); if (!deletingCard) closeDeleteDialog(); }} className={styles.deleteCardDialog}>
+    {deleteToken ? <dialog ref={deleteDialog} aria-labelledby="delete-demo-card-title" onCancel={event => { event.preventDefault(); if (!deletingCard) closeDeleteDialog(); }} className={`${styles.deleteCardDialog} ${popupStyles.dialog}`}>
       <h2 id="delete-demo-card-title">Delete this card?</h2>
       <p>Remove test card •••• {demoCardFixture(deleteToken)?.lastFour} from your saved cards? Past deposits and wallet history will stay as they are.</p>
       {cardMessage ? <p role="alert">{cardMessage}</p> : null}
@@ -178,7 +180,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     </div>
     {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter a whole-dollar amount of at least $1 that can be represented safely.</p> : null}
     <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
-    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
+    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
       <p className="mt-2 text-sm text-[#b5cce4]">Test card •••• {demoCardFixture(selectedToken)?.lastFour} · USD · Simulation only</p>

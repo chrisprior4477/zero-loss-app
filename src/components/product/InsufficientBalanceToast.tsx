@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 type Props = {
   quantity: number;
@@ -35,7 +36,7 @@ export function InsufficientBalanceToast({ quantity, totalCents, balanceCents, f
   }, [onClose]);
 
   return createPortal(
-    <section aria-label="Insufficient playable balance" className="fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-[220] mx-auto max-h-[calc(100dvh-24px)] max-w-lg overflow-y-auto rounded-2xl border border-cyan-300/60 bg-[#001b3d] p-5 text-white shadow-[0_16px_60px_#0009,0_0_25px_#00b9ff26] sm:bottom-6 sm:p-6">
+    <section aria-label="Insufficient playable balance" className={`${popupStyles.notice} ${popupStyles.balanceNotice} fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-[220] mx-auto max-h-[calc(100dvh-24px)] max-w-lg overflow-y-auto rounded-2xl border border-cyan-300/60 bg-[#001b3d] p-5 text-white shadow-[0_16px_60px_#0009,0_0_25px_#00b9ff26] sm:bottom-6 sm:p-6`}>
       <button type="button" onClick={onClose} aria-label="Dismiss balance notice" className="absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-full text-2xl text-cyan-200 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cyan-300">×</button>
       <div role="status" aria-live="polite" aria-atomic="true" className="pr-7">
         <p className="text-xs font-extrabold uppercase tracking-[.14em] text-[#ff8a45]">Playable balance</p>

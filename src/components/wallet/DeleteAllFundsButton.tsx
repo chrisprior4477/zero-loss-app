@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { clearDemoBalance, previewDemoBalanceClear } from "@/lib/wallet/demo-balance-actions";
@@ -52,7 +54,7 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
       {notice && balanceCents === null ? <span className={styles.notice} role="status">{notice}</span> : null}
     </div>
     {balanceCents !== null && typeof document !== "undefined" ? createPortal(
-      <dialog ref={dialogRef} className={styles.dialog} onCancel={event => { event.preventDefault(); if (!pending) closeDialog(); }} aria-labelledby="demo-balance-clear-title" aria-describedby="demo-balance-clear-description">
+      <dialog ref={dialogRef} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!pending) closeDialog(); }} aria-labelledby="demo-balance-clear-title" aria-describedby="demo-balance-clear-description">
         <h2 id="demo-balance-clear-title">Delete demo funds?</h2>
         <p id="demo-balance-clear-description">This will clear <strong>{formatUsdFromCents(balanceCents)}</strong> from your demo Playable Balance. It will not delete your entries, gift cards, rewards, or wallet history. This does not charge or refund a card.</p>
         <p className={styles.caution}>Funds added or returned after this reset will appear in your wallet normally.</p>

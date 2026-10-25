@@ -1,4 +1,6 @@
 "use client";
+
+import popupStyles from "@/components/layout/responsive-popup.module.css";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -93,7 +95,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
         {!value?.bannerHidden ? <NotificationBanner style={value!.style} speed={value?.speed} displaySeconds={value?.displaySeconds} messages={messages} paused={value?.open} onCategoryChange={setBannerCategory} /> : <span className={styles.dot} />}
       </button> : null}
     </div>
-    <dialog ref={dialog} className={styles.dialog} data-popup-style={value?.popupStyle ?? "rounded"} aria-labelledby="header-updates-title" onCancel={() => value?.setOpen(false)} onKeyDown={containDialogTab} onClick={e => { if (e.target === e.currentTarget) value?.setOpen(false); }}>
+    <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} data-popup-style={value?.popupStyle ?? "rounded"} aria-labelledby="header-updates-title" onCancel={() => value?.setOpen(false)} onKeyDown={containDialogTab} onClick={e => { if (e.target === e.currentTarget) value?.setOpen(false); }}>
       <div className={styles.dialogHeading}><h2 id="header-updates-title">Your updates</h2><button type="button" aria-label="Close updates" onClick={() => value?.setOpen(false)}>×</button></div>
       <nav className={styles.categories} data-count={categories.length} aria-label="Update categories">
         {categories.map(c => <button key={c.key} type="button" data-color={c.color} aria-pressed={current === c.key} aria-controls="header-update-sections" onClick={() => choose(c.key, true)}>{c.label}{counts[c.key] > 0 ? <span>{counts[c.key]}</span> : null}</button>)}
@@ -117,7 +119,7 @@ export function HeaderNotifications({ children }: { children: ReactNode }) {
         {active ? <button type="button" onClick={() => { value?.setBannerHidden(!value.bannerHidden); value?.setOpen(false); }}>{value?.bannerHidden ? "Show notification banner" : "Show tickets & balance"}</button> : null}
       </div>
     </dialog>
-    {error && !value?.open ? <div className={styles.readNotice} role="alert"><span>{error}</span><button type="button" onClick={() => value?.setOpen(true)}>Open updates</button><button type="button" aria-label="Dismiss notification message" onClick={() => setError("")}>×</button></div> : null}
+    {error && !value?.open ? <div className={`${styles.readNotice} ${popupStyles.notice} ${popupStyles.errorNotice}`} role="alert"><span>{error}</span><button type="button" onClick={() => value?.setOpen(true)}>Open updates</button><button type="button" aria-label="Dismiss notification message" onClick={() => setError("")}>×</button></div> : null}
   </>;
 }
 export function ReturnToUpdates() {

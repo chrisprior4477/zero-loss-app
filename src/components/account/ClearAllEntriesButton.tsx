@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { clearOwnDemoEntries, previewDemoEntryReset } from "@/lib/account/demo-entry-reset-actions";
@@ -51,7 +53,7 @@ export function ClearAllEntriesButton() {
       {notice && entryCount === null ? <span className={styles.notice} role="status">{notice}</span> : null}
     </div>
     {entryCount !== null && typeof document !== "undefined" ? createPortal(
-      <dialog ref={dialogRef} className={styles.dialog} onCancel={event => { event.preventDefault(); if (!pending) closeDialog(); }} aria-labelledby="demo-entry-reset-title" aria-describedby="demo-entry-reset-description">
+      <dialog ref={dialogRef} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!pending) closeDialog(); }} aria-labelledby="demo-entry-reset-title" aria-describedby="demo-entry-reset-description">
         <h2 id="demo-entry-reset-title">Clear your demo entries?</h2>
         <p id="demo-entry-reset-description">This clears <strong>{entryCount} {entryCount === 1 ? "entry" : "entries"}</strong> from this signed-in account&apos;s current demo activity, including any sample win or purchase option. Their demo slots become available again across the marketplace, including Ending Soon when an offer qualifies.</p>
         <p className={styles.caution}>Only this account is affected. Your demo balance and transaction records stay intact, but old sample reward and order cards leave the current views. This does not refund an entry or charge a card. This action cannot be undone.</p>

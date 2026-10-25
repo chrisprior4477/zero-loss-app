@@ -1,0 +1,30 @@
+/* Opt in per popup: drawers, hover hints and inline status messages stay separate. */
+.installNotice { margin-bottom:var(--menu-trial-height,0px); }
+.balanceNotice { --popup-width:512px; }
+.errorNotice { --popup-width:380px; }
+
+@media (max-width:1024px), (hover:none) and (pointer:coarse) {
+  /* Extra specificity keeps these bounds independent of CSS chunk order. */
+  dialog.dialog.dialog,
+  .notice.notice {
+    position:fixed;
+    inset:50% auto auto 50%;
+    transform:translate(-50%,-50%);
+    margin:0;
+    max-width:calc(100vw - 48px - env(safe-area-inset-left) - env(safe-area-inset-right));
+    max-height:calc(100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overscroll-behavior:contain;
+  }
+
+  dialog.dialog.dialog::backdrop {
+    background:#09294b66;
+    backdrop-filter:blur(2px);
+  }
+
+  /* Nonmodal notices retain their existing outside-click and dismissal behavior. */
+  .notice.notice {
+    width:min(var(--popup-width,430px),calc(100vw - 48px));
+    overflow-y:auto;
+    box-shadow:0 18px 55px #09294b60,0 0 0 100vmax #09294b66;
+  }
+}

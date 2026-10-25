@@ -1,5 +1,7 @@
 "use client";
 
+import popupStyles from "@/components/layout/responsive-popup.module.css";
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -57,7 +59,7 @@ export function ResetAllDemoActivityButton() {
     </button>
     {notice && !preview ? <p role="status" className={styles.notice}>{notice}</p> : null}
     {preview && typeof document !== "undefined" ? createPortal(
-      <dialog ref={dialog} className={styles.dialog} onCancel={event => { event.preventDefault(); if (!pending) close(); }}
+      <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!pending) close(); }}
         aria-labelledby="reset-all-demo-title" aria-describedby="reset-all-demo-description">
         <h2 id="reset-all-demo-title">Reset all demo activity?</h2>
         <p id="reset-all-demo-description">This clears your <strong>{preview.entryCount} current demo {preview.entryCount === 1 ? "entry" : "entries"}</strong>, including demo wins, purchase options and orders. Your notifications will reset to zero. Your transaction and payment-deposit lists will look empty, and your <strong>{formatUsdFromCents(preview.balanceCents)}</strong> playable balance will become $0.</p>
