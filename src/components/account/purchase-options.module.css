@@ -16,19 +16,22 @@
 .retailer { margin: 0 0 3px; color: #bb5306; font-size: 13px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .heroCopy h2 { margin: 0; font-size: clamp(24px, 2.7vw, 35px); line-height: 1.09; letter-spacing: -.035em; }
 .heroBulkControls { grid-column: 1 / -1; min-width: 0; }
-.heroBulkControls > .heroDeclineAll { display: flex; margin: 14px 0 0 auto; }
+.heroChoiceHeading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.heroChoiceHeading .heroCount { min-width: 0; background: transparent; padding: 0; }
+.heroChoiceHeading .heroCircle { background: #dff2ff; color: #0a5fa7; box-shadow: none; }
+.hero { scroll-margin-top: calc(var(--site-header-height, 88px) + 12px); }
 .heroBulkControls .heroCount { background: #dff2ff; }
 .heroImage { background: #e2f3ff; }
 .railHeading, .railQuantity, .compactTickets { grid-column: 1 / -1; }
 .railQuantity:empty { display: none; }
 .railQuantity { background: #fff5e9; border-radius: 14px; padding: 16px; }
-.quantityPicker { min-width: 0; border: 0; padding: 0; margin: 16px 0 0; }
-.quantityPicker legend { margin-bottom: 8px; padding: 0; color: #122b4f; font-size: 16px; font-weight: 850; }
+.quantityPicker { min-width: 0; border: 0; padding: 0; margin: 8px 0 0; }
+.quantityPicker legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .railQuantity .quantityPicker { margin: 0; }
-.quantityRow { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 14px; align-items: center; }
+.quantityRow { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: center; }
 .desktopQuantity { width: 100%; height: 48px; border: 1px solid #96b6d1; border-radius: 9px; padding: 8px; background: #fff; color: #10234a; font-size: 18px; font-weight: 800; }
 .mobileWheel { display: none; }
-.wheelShell { position: relative; isolation: isolate; width: 88px; height: 132px; border-radius: 13px; background: #f0f8ff; overflow: hidden; }
+.wheelShell { position: relative; isolation: isolate; width: 100%; height: 132px; border-radius: 11px; background: #f0f8ff; overflow: hidden; }
 .wheelShell::before { content: ""; position: absolute; z-index: -1; inset: 44px 5px; background: #cceaff; border-radius: 8px; }
 .wheelShell::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(#f0f8ffee, transparent 28%, transparent 72%, #f0f8ffee); }
 .numberWheel { height: 132px; width: 100%; box-sizing: border-box; padding: 44px 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; scroll-snap-type: y mandatory; overscroll-behavior: contain; touch-action: pan-y; }
@@ -39,9 +42,17 @@
 .quantityAction { min-width: 0; }
 .makePurchases { display: grid; width: 100%; min-height: 62px; align-content: center; gap: 3px; border: 0; border-radius: 10px; padding: 10px; background: #31e800; color: #082514; font-size: 16px; line-height: 1.3; font-weight: 850; text-align: center; cursor: pointer; }
 .makePurchases > span { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
+.purchaseActionStrip { display: flex; flex-direction: column; padding: 0 !important; gap: 0; overflow: hidden; }
+.purchaseActionStrip > .purchasePlan { display: flex; flex-direction: column; gap: 3px; width: 100%; padding: 8px 6px; }
+.purchasePlan > span { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; }
+.purchasePlan .declinePhrase { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.purchasePlan > span > span:last-child { white-space: nowrap; }
+.purchaseActionStrip > .completeStrip { width: 100%; min-height: 38px; padding: 7px 5px; background: #086627; color: #fff; }
+.quantityFooter { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 6px; }
 .quantityBadge { display: inline-grid; flex: none; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: #fff; color: #000; font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
-.quantityTotal { margin: 7px 0 0; color: #315a7f; font-size: 13px; font-weight: 800; text-align: center; }
-.declineRest { display: flex; align-items: center; gap: 9px; margin-top: 10px; min-height: 30px; color: #23466c; font-size: 13px; line-height: 1.4; }
+.quantityTotal { margin: 0; color: #173c61; font-size: 22px; line-height: 1.1; font-weight: 900; text-align: right; white-space: nowrap; }
+.quantityTotal small { display: block; margin-top: 2px; font-size: 11px; font-weight: 700; }
+.declineRest { display: flex; align-items: center; gap: 6px; min-height: 44px; color: #23466c; font-size: 12px; line-height: 1.3; }
 .declineRest input { width: 20px; height: 20px; flex: none; accent-color: #087bff; }
 .purchaseConfirmation { grid-column: 1 / -1; display: grid; gap: 12px; border-radius: 14px; padding: 22px; background: #fffefa; color: #10234a; scroll-margin-top: 120px; }
 .purchaseConfirmation h3, .purchaseConfirmation p { margin: 0; }
@@ -50,11 +61,11 @@
 .heroDeclineAll:disabled, .makePurchases:disabled, .compactTicket:disabled, .quantityPicker:disabled { opacity: .6; cursor: default; }
 .quantityPicker:disabled .numberWheel { overflow: hidden; }
 .bulkPanel .bulkButtons button:first-child { background: #087bff; color: #fff; }
-@media (min-width: 1000px) { .hero { grid-template-columns: 150px minmax(0, 1fr) minmax(300px, 390px); } .heroBulkControls { grid-column: auto; } }
+@media (min-width: 1000px) { .hero { grid-template-columns: 150px minmax(0, 1fr) minmax(300px, 390px); } .heroImage { grid-row: 1 / 3; } .heroBulkControls { grid-column: 3; grid-row: 1 / 3; } .hero .heroNote { grid-column: 2; } }
 @media (max-width: 600px) { .mobileWheel { display: block; } .desktopQuantity { display: none; } .heroBulkControls { grid-column: 1 / -1; } .quantityPicker legend { font-size: 15px; } .makePurchases { font-size: 14px; } }
-@media (max-width: 380px) { .quantityRow { grid-template-columns: 72px minmax(0, 1fr); gap: 9px; } .wheelShell { width: 72px; } .railQuantity { padding: 12px; } .quantityBadge { width: 28px; height: 28px; font-size: 14px; } .makePurchases { padding: 9px 6px; font-size: 13px; } }
+@media (max-width: 380px) { .quantityRow { grid-template-columns: 54px minmax(0, 1fr); gap: 7px; } .railQuantity { padding: 12px; } .quantityBadge { font-size: 14px; } .makePurchases { padding: 9px 6px; font-size: 13px; } .quantityFooter { gap: 5px; } .quantityTotal { font-size: 20px; } .declineRest { font-size: 11px; } }
 .status { display: inline-flex; margin-top: 10px; border-radius: 8px; background: #ffac57; padding: 5px 11px; color: #34200c; font-size: 12px; font-weight: 900; text-transform: uppercase; }
-.heroNote { margin: 14px 0 0; color: #4d6179; font-size: 14px; line-height: 1.45; }
+.heroNote { grid-column: 1 / -1; margin: 0; color: #4d6179; font-size: 14px; line-height: 1.45; }
 .heroActionRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 18px; margin-top: 14px; }
 .heroCountRow { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 8px; }
 .heroCountRow p { margin: 0; color: #334f6c; font-size: 14px; font-weight: 750; }
@@ -65,7 +76,7 @@
 .heroDeclineAll:hover:not(:disabled) { background: #0064df; }
 .heroDeclineAll:focus-visible { outline: 3px solid #16baff; outline-offset: 3px; }
 .heroCircle, .numberCircle { display: grid; width: 35px; height: 35px; flex: none; place-items: center; border-radius: 50%; background: #fff; color: #ad4408; font-size: 19px; font-weight: 950; font-variant-numeric: tabular-nums; box-shadow: 0 2px 6px #8b3a1c24; }
-.rail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: 12px 20px; align-items: center; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #ff992f; padding: 24px 36px; color: #10234a; scroll-margin-top: 126px; }
+.rail { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: 12px 20px; align-items: center; min-height: 132px; margin-top: 18px; border-radius: 20px; background: #ff992f; padding: 24px 36px; color: #10234a; scroll-margin-top: calc(var(--site-header-height, 88px) + 12px); }
 .railHeading h2 { margin: 0; font-size: 20px; line-height: 1.2; }
 .railHeading p { margin: 6px 0 0; font-size: 13px; line-height: 1.4; }
 .bulkPanel { display: grid; gap: 10px; align-self: stretch; border-radius: 12px; background: #ff6a00; padding: 16px; color: #00132e; }
@@ -85,9 +96,17 @@
 .compactTicket[data-selected="true"], .compactTicket[data-selected="true"]:hover { background: #31e800; color: #082514; }
 .compactTicket small { font-size: 10px; font-weight: 800; letter-spacing: .03em; }
 .compactTicket strong { font-size: 17px; font-weight: 950; font-variant-numeric: tabular-nums; }
-.optionList { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 8px; border-radius: 14px; background: #fff0de; padding: 13px; }
+.selectionCount { grid-column: 1 / -1; margin: 0; font-size: 12px; font-weight: 750; }
+.optionList { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .singleOptionList { grid-template-columns: 1fr; }
-.optionTicket { --ticket-side-notch: 10px; --ticket-corner-notch: 14px; display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: 12px 16px; min-width: 0; background: #fffefa; padding: 22px 26px; color: #10234a; }
+.optionTicket { --ticket-side-notch: 7px; --ticket-corner-notch: 10px; min-width: 0; background: #fffefa; color: #10234a; }
+.optionSummary { display: flex; min-height: 70px; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 18px; list-style: none; cursor: pointer; font-size: 14px; }
+.optionSummary::-webkit-details-marker { display: none; }
+.optionSummary strong { font-weight: 750; }
+.optionSummary small { display: block; margin-top: 4px; color: #4c6884; font-size: 12px; }
+.detailsLabel { flex: none; color: #0065ce; font-weight: 800; }
+.optionSummary:focus-visible { outline: 3px solid #0065ce; outline-offset: -7px; }
+.optionExpanded { display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: 12px 16px; padding: 8px 22px 22px; }
 .optionImage { position: relative; grid-column: 1; grid-row: 1; width: 100%; min-height: 100px; overflow: hidden; border-radius: 12px; background: #ffe8d2; }
 .optionCopy { min-width: 0; }
 .optionHeading { display: flex; align-items: center; gap: 9px; }
@@ -107,5 +126,31 @@
 .explanation p:last-child { margin: 0; color: #526e8a; line-height: 1.5; }
 .shopping:focus-visible, .return:focus-visible, .close:focus-visible, .compactTicket:focus-visible, .reviewOption:focus-visible { outline: 3px solid #16baff; outline-offset: 3px; }
 @media (max-width: 800px) { .topline { align-items: start; flex-direction: column; } .hero { grid-template-columns: 140px minmax(0, 1fr); } .optionList { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .topActions { width: 100%; flex-wrap: wrap; } .shopping, .return { flex: 1 1 auto; } .hero { grid-template-columns: 90px minmax(0, 1fr); gap: 14px; min-height: 190px; padding: 20px 19px; } .heroImage { height: 100px; } .heroCopy h2 { font-size: 21px; } .heroNote { font-size: 12px; } .heroActionRow { grid-template-columns: 1fr; } .heroCountRow p { font-size: 12px; } .heroDeclineAll { justify-self: start; } .rail { grid-template-columns: 1fr; padding: 20px; } .optionList { grid-column: 1; padding: 8px; } .optionTicket { grid-template-columns: 75px minmax(0, 1fr); gap: 8px; padding: 18px 16px; } .optionImage { min-height: 84px; } .optionMath, .optionMeta { font-size: 11px; } .reviewOption { font-size: 11px; } .explanation { padding: 24px; } }
-@media (max-width: 380px) { .optionTicket { grid-template-columns: 68px minmax(0, 1fr); padding: 16px 14px; } .optionImage { height: 94px; min-height: 0; align-self: start; } .optionHeading { align-items: flex-start; flex-direction: column; gap: 4px; } .numberCircle { width: 31px; height: 31px; font-size: 16px; } .optionHeading h3 { font-size: 14px; } }
+@media (max-width: 600px) {
+  .page { padding-inline: 12px; }
+  .topActions { width: 100%; flex-wrap: wrap; }
+  .shopping, .return { flex: 1 1 auto; }
+  .hero { grid-template-columns: 64px minmax(0, 1fr); gap: 10px; min-height: 0; padding: 16px; }
+  .heroImage { height: 82px; border-radius: 12px; }
+  .heroImage img { padding: 5px; }
+  .retailer { font-size: 11px; letter-spacing: .08em; }
+  .heroCopy h2 { font-size: 17px; line-height: 1.18; }
+  .status { margin-top: 6px; font-size: 10px; padding: 4px 6px; }
+  .heroNote { font-size: 11px; }
+  .heroChoiceHeading .heroCount { font-size: 12px; gap: 5px; }
+  .heroCircle { width: 28px; height: 28px; font-size: 15px; }
+  .heroChoiceHeading .heroDeclineAll { max-width: 103px; font-size: 12px; padding: 6px 9px; line-height: 1.15; }
+  .rail { grid-template-columns: 1fr; gap: 10px; padding: 14px; margin-top: 10px; border-radius: 16px; }
+  .railHeading h2 { font-size: 17px; }
+  .railHeading p { font-size: 11px; margin-top: 4px; }
+  .compactTickets { gap: 6px; padding: 7px; }
+  .compactTicket { flex: 1 0 calc(25% - 6px); width: auto; max-width: calc(25% - 3px); height: 52px; }
+  .optionList { grid-column: 1; }
+  .optionSummary { font-size: 13px; }
+  .optionSummary small { font-size: 11px; }
+  .optionExpanded { grid-template-columns: 75px minmax(0, 1fr); gap: 8px; padding: 8px 16px 18px; }
+  .optionImage { min-height: 84px; }
+  .optionMath, .optionMeta, .reviewOption { font-size: 11px; }
+  .explanation { padding: 24px; }
+}
+@media (max-width: 380px) { .hero { padding: 16px 12px; gap: 8px; } .optionExpanded { grid-template-columns: 68px minmax(0, 1fr); } .optionImage { height: 94px; min-height: 0; align-self: start; } .optionHeading { align-items: flex-start; flex-direction: column; gap: 4px; } .numberCircle { width: 31px; height: 31px; font-size: 16px; } .optionHeading h3 { font-size: 14px; } }

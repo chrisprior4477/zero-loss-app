@@ -29,15 +29,17 @@ test("purchase deadlines match across server and browser time zones without repl
     expect(server).toContain(" ET</time>");
   } finally { formatter.mockRestore(); }
 });
-test("top and lower quantities synchronize, show both number badges and confirm exact choices before saving", async () => {
+test("one compact chooser shows both number badges and confirms exact choices before saving", async () => {
   const options = bulkOptions();
   render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline showSummary />);
   fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "2" } });
-  const buttons = screen.getAllByRole("button", { name: "Make 2 purchases, decline 6" });
-  expect(buttons).toHaveLength(2);
+  const buttons = screen.getAllByRole("button", { name: "Complete 2 purchases and decline the 6 other offers" });
+  expect(buttons).toHaveLength(1);
+  expect(within(buttons[0]).getByText("Complete purchases")).toBeTruthy();
   expect(within(buttons[0]).getByText("2").className).toContain("quantityBadge");
   expect(within(buttons[0]).getByText("6").className).toContain("quantityBadge");
-  expect((screen.getAllByRole("combobox")[1] as HTMLSelectElement).value).toBe("2");
+  expect(screen.getAllByRole("combobox")).toHaveLength(1);
+  expect((screen.getByRole("combobox") as HTMLSelectElement).value).toBe("2");
   fireEvent.click(buttons[0]); expect(mocks.purchase).not.toHaveBeenCalled();
   expect(screen.getByRole("group",{name:"Confirm selected purchases"}).textContent).toContain("$298");
   mocks.purchase.mockResolvedValueOnce({ status:"succeeded", purchasedCount:2, declinedCount:6, href:"/account/wallet" });
@@ -45,23 +47,23 @@ test("top and lower quantities synchronize, show both number badges and confirm 
   await waitFor(()=>expect(mocks.purchase).toHaveBeenCalledWith(expect.objectContaining({ purchaseIds:options.slice(0,2).map(x=>x.completionOptionId), declineIds:options.slice(2).map(x=>x.completionOptionId), totalCents:29800, confirmed:true })));
   await waitFor(()=>expect(mocks.replace).toHaveBeenCalledWith("/account/wallet"));
 });
-test("scrolling changes both wheels, keeping the rest works, and choices are not capped at 100", () => {
+test("scrolling changes the quantity, keeping the rest works, and choices are not capped at 100", () => {
   const options=bulkOptions(101);
   render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline showSummary />);
   const wheel=screen.getAllByRole("listbox")[0]; Object.defineProperty(wheel,"clientHeight",{value:132});
   fireEvent.scroll(wheel,{target:{scrollTop:132}});
-  expect(screen.getAllByRole("button",{name:"Make 4 purchases, decline 97"})).toHaveLength(2);
+  expect(screen.getAllByRole("button",{name:"Complete 4 purchases and decline the 97 other offers"})).toHaveLength(1);
   fireEvent.click(screen.getAllByRole("checkbox",{name:"Decline the other 97 after purchase"})[0]);
-  expect(screen.getAllByRole("button",{name:"Make 4 purchases"})).toHaveLength(2);
-  fireEvent.change(screen.getAllByRole("combobox")[1],{target:{value:"101"}});
-  expect(screen.getAllByRole("button",{name:"Make 101 purchases"})).toHaveLength(2);
+  expect(screen.getAllByRole("button",{name:"Complete 4 purchases"})).toHaveLength(1);
+  fireEvent.change(screen.getByRole("combobox"),{target:{value:"101"}});
+  expect(screen.getAllByRole("button",{name:"Complete 101 purchases"})).toHaveLength(1);
 });
 test("cancel submits nothing and an uncertain purchase result prevents a second submission", async () => {
   mocks.purchase.mockClear(); mocks.purchase.mockRejectedValueOnce(new Error("connection lost"));
   render(<PurchaseOptionRail title="Gift card" options={bulkOptions()} canBulkDecline />);
-  fireEvent.click(screen.getByRole("button",{name:"Make 1 purchase, decline 7"}));
+  fireEvent.click(screen.getByRole("button",{name:"Complete 1 purchase and decline the 7 other offers"}));
   fireEvent.click(screen.getByRole("button",{name:"Cancel"})); expect(mocks.purchase).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button",{name:"Make 1 purchase, decline 7"}));
+  fireEvent.click(screen.getByRole("button",{name:"Complete 1 purchase and decline the 7 other offers"}));
   fireEvent.click(screen.getByRole("button",{name:"Confirm $149 purchase"}));
   await waitFor(()=>expect(screen.getByRole("alert").textContent).toContain("may already be saved"));
   await waitFor(()=>expect((screen.getByRole("button",{name:"Confirm $149 purchase"}) as HTMLButtonElement).disabled).toBe(true));
@@ -82,6 +84,8 @@ test("option one opens automatically and each numbered ticket independently togg
   fireEvent.click(screen.getByRole("button", { name: "Show purchase option 10 of 10" }));
   expect(screen.getAllByRole("article")).toHaveLength(2);
   const last = screen.getByRole("article", { name: "Purchase option 10 of 10" });
+  expect(last.querySelector("details")?.open).toBe(false);
+  fireEvent.click(last.querySelector("summary")!);
   expect(within(last).getByText("PURCHASE OPTION 10 OF 10")).toBeTruthy();
   expect(within(last).getByText("$1 applied")).toBeTruthy();
   expect(within(last).getByRole("link", { name: /Complete purchase for option 10 of 10/ }).getAttribute("href"))
@@ -98,6 +102,7 @@ test("returning from a review opens only that entry and preserves its recorded c
   expect(screen.getByRole("button", { name: "Hide purchase option 1 of 2" }).getAttribute("aria-expanded")).toBe("true");
   expect(screen.getByRole("button", { name: "Show purchase option 2 of 2" }).getAttribute("aria-expanded")).toBe("false");
   const ticket = screen.getByRole("article", { name: "Purchase option 1 of 2" });
+  fireEvent.click(ticket.querySelector("summary")!);
   expect(within(ticket).getByText("$2 applied")).toBeTruthy();
   expect(within(ticket).getByText("$148 remaining")).toBeTruthy();
   expect(within(ticket).getByRole("link", { name: /Complete purchase for option 1 of 2/ })).toBeTruthy();

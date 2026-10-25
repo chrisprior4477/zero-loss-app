@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PurchaseOptionRail } from "@/components/account/PurchaseOptionRail";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { getAccountContext } from "@/lib/account/context";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
@@ -28,6 +29,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const count = options.length;
   const canBulkDecline = account.wallet?.scope === "demo" && isPreviewDataEnvironment();
   return <main className={styles.page}>
+    <AccountSettingsLandingScroll target={canBulkDecline && decline === "confirm" ? "purchase-option-rail" : "purchase-options-intro"} visitKey={`${slug}:${selectedEntryId ?? "first"}:${decline ?? "view"}`} />
     <div className={styles.shell}>
       <div className={styles.topline}>
         <div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Purchase Options</h1><p className={styles.subtitle}>These are your {count} separate purchase {count === 1 ? "option" : "options"}.</p></div>

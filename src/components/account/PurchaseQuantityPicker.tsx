@@ -53,21 +53,25 @@ export function PurchaseQuantityPicker({ quantity, count, totalCents, declineRes
               tabIndex={-1} className={styles.wheelNumber} onClick={() => choose(value)}>{value}</button>)}
           </div>
         </div>
-        <span className={styles.wheelHint}>Swipe or scroll</span>
       </div>
       <select className={styles.desktopQuantity} aria-labelledby={`${id}-label`} value={quantity} onChange={event => onQuantity(Number(event.target.value))}>
         {values.map(value => <option key={value} value={value}>{value}</option>)}
       </select>
       <div className={styles.quantityAction}>
-        <button type="button" className={styles.makePurchases} onClick={onContinue} aria-label={`Make ${quantity} purchase${quantity === 1 ? "" : "s"}${declineRest && rest ? `, decline ${rest}` : ""}`}>
+        <button type="button" className={`${styles.makePurchases} ${styles.purchaseActionStrip}`} onClick={onContinue} aria-label={`Complete ${quantity} purchase${quantity === 1 ? "" : "s"}${declineRest && rest ? ` and decline the ${rest} other ${rest === 1 ? "offer" : "offers"}` : ""}`}>
+          <span className={styles.purchasePlan}>
           <span>Make <b className={styles.quantityBadge} style={{ width: Math.max(30, String(quantity).length * 9 + 12), height: Math.max(30, String(quantity).length * 9 + 12) }}>{quantity}</b> {quantity === 1 ? "purchase" : "purchases"}{declineRest && rest ? "," : ""}</span>
-          {declineRest && rest ? <span>decline <b className={styles.quantityBadge} style={{ width: Math.max(30, String(rest).length * 9 + 12), height: Math.max(30, String(rest).length * 9 + 12) }}>{rest}</b></span> : null}
+          {declineRest && rest ? <span><span className={styles.declinePhrase}>decline the <b className={styles.quantityBadge} style={{ width: Math.max(30, String(rest).length * 9 + 12), height: Math.max(30, String(rest).length * 9 + 12) }}>{rest}</b></span><span>other {rest === 1 ? "offer" : "offers"}</span></span> : null}
+          </span>
+          <span className={styles.completeStrip}>Complete {quantity === 1 ? "purchase" : "purchases"} <span aria-hidden="true">→</span></span>
         </button>
-        <p className={styles.quantityTotal}>{formatUsdFromCents(totalCents)} total</p>
+        <div className={styles.quantityFooter}>
+          <label className={styles.declineRest}><input type="checkbox" checked={declineRest} disabled={disabled || rest === 0} onChange={event => onDeclineRest(event.target.checked)} />
+            <span>Decline the other {rest}{" "}<br />after purchase</span>
+          </label>
+          <p className={styles.quantityTotal} aria-live="polite">{formatUsdFromCents(totalCents)}<small>total</small></p>
+        </div>
       </div>
     </div>
-    <label className={styles.declineRest}><input type="checkbox" checked={declineRest} disabled={disabled || rest === 0} onChange={event => onDeclineRest(event.target.checked)} />
-      <span>Decline the other {rest} after purchase</span>
-    </label>
   </fieldset>;
 }

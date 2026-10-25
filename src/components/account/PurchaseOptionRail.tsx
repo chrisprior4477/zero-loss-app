@@ -142,14 +142,16 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   }
 
   return <>
-    {showSummary ? <section className={styles.hero} aria-label="Purchase option summary">
+    {showSummary ? <section id="purchase-options-intro" className={styles.hero} aria-label="Purchase option summary">
       <div className={styles.heroImage}><Image src={item.image} alt={item.title} fill sizes="(max-width: 640px) 100px, (max-width: 900px) 150px, 190px" /></div>
-      <div className={styles.heroCopy}><p className={styles.retailer}>{item.retailer}</p><h2>{title}</h2><span className={styles.status}>Purchase options available</span>
-        <p className={styles.heroNote}>Each entry’s credit applies only to its own purchase option.</p></div>
+      <div className={styles.heroCopy}><p className={styles.retailer}>{item.retailer}</p><h2>{title}</h2><span className={styles.status}>Purchase options available</span></div>
+      <p className={styles.heroNote}>Each entry’s credit applies only to its own purchase option.</p>
       <div className={styles.heroBulkControls}>
-        <a href="#purchase-option-rail" className={styles.heroCount}><span className={styles.heroCircle}>{count}</span><span>Separate purchase {count === 1 ? "option" : "options"}</span></a>
+        <div className={styles.heroChoiceHeading}>
+          <a href="#purchase-option-rail" className={styles.heroCount}><span className={styles.heroCircle}>{count}</span><span>Purchase {count === 1 ? "option" : "options"}</span></a>
+          {canBulkDecline ? <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked || bulkPhase !== "idle" || Boolean(purchaseRequest)} onClick={() => { setBulkPhase("confirm"); document.getElementById("purchase-option-rail")?.scrollIntoView({ block: "start" }); }}>Decline all offers</button> : null}
+        </div>
         {quantityPicker}
-        {canBulkDecline ? <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked || bulkPhase !== "idle" || Boolean(purchaseRequest)} onClick={() => { setBulkPhase("confirm"); document.getElementById("purchase-option-rail")?.scrollIntoView({ block: "center" }); }}>Decline all offers</button> : null}
       </div>
     </section> : null}
     <section id="purchase-option-rail" className={styles.rail} aria-label={`Your separate purchase options for ${title}`}>
@@ -157,7 +159,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
       <h2>Your {count} purchase {count === 1 ? "option" : "options"}</h2>
       <p>{canPurchase ? "Choose a quantity or tap the exact tickets you want to purchase." : "Tap any numbered ticket to see its own purchase details. You can open more than one."}</p>
     </div>
-    {bulkPhase === "idle" ? <div className={styles.railQuantity}>{quantityPicker}</div> : null}
+    {bulkPhase === "idle" && !showSummary ? <div className={styles.railQuantity}>{quantityPicker}</div> : null}
     {purchaseRequest ? <div ref={reviewRef} tabIndex={-1} className={styles.purchaseConfirmation} role="group" aria-label="Confirm selected purchases" onKeyDown={event => { if (event.key === "Escape" && !purchaseLocked) { setPurchaseRequest(null); setPurchaseResult(null); } }}>
       <h3>Confirm your purchases</h3>
       <p>{purchaseRequest.purchaseIds.length} separate retailer gift {purchaseRequest.purchaseIds.length === 1 ? "card" : "cards"} for {title}.</p>
@@ -177,11 +179,17 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
         return <button key={entryId} type="button" className={styles.compactTicket} data-selected={isSelected} aria-expanded={isSelected} disabled={purchaseLocked || Boolean(purchaseRequest)} aria-label={`${isSelected ? "Hide" : "Show"} purchase option ${index + 1} of ${count}`} onClick={() => toggle(entryId)}><small>OPTION</small><strong>{index + 1}</strong></button>;
       })}
     </div> : null}
-    {bulkPhase === "idle" && selected.size > 0 ? <div className={`${styles.optionList} ${selected.size === 1 ? styles.singleOptionList : ""}`} aria-label="Selected purchase option details">
+    {bulkPhase === "idle" && selected.size > 0 ? <><p className={styles.selectionCount}>{selected.size} selected</p><div className={`${styles.optionList} ${selected.size === 1 ? styles.singleOptionList : ""}`} aria-label="Selected purchase option details">
       {options.map((option, index) => {
         if (!option.entryId || !selected.has(option.entryId)) return null;
         const href = `/account/entries?item=${encodeURIComponent(option.slug)}&entry=${encodeURIComponent(option.entryId)}&filter=completion&from=purchase-options`;
         return <article key={option.entryId} className={styles.optionTicket} aria-label={`Purchase option ${index + 1} of ${count}`}>
+          <details>
+            <summary className={styles.optionSummary}>
+              <span><strong>Purchase option {index + 1}</strong><small>{formatUsdFromCents(option.paidCents)} applied · {formatUsdFromCents(option.remainingCents)} remaining</small></span>
+              <span className={styles.detailsLabel}>Details <span aria-hidden="true">→</span></span>
+            </summary>
+            <div className={styles.optionExpanded}>
           <div className={styles.optionImage}><Image src={option.image} alt={option.title} fill sizes="(max-width: 640px) 75px, 110px" /></div>
           <div className={styles.optionCopy}>
             <div className={styles.optionHeading}><span className={styles.numberCircle}>{index + 1}</span><div><p className={styles.optionKicker}>PURCHASE OPTION {index + 1} OF {count}</p><h3>{option.title}</h3></div></div>
@@ -191,8 +199,10 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
             <div className={styles.optionMeta}><p>Entry #{option.entryId.slice(-8)}</p>{option.completionExpiresAt ? <><p>Available until</p><time dateTime={option.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" }).format(new Date(option.completionExpiresAt))} ET</time></> : null}</div>
           </div>
           <Link href={href} className={styles.reviewOption} aria-label={`Complete purchase for option ${index + 1} of ${count} for ${option.title}`}>Complete this purchase <span aria-hidden="true">→</span></Link>
+            </div>
+          </details>
         </article>;
       })}
-    </div> : null}
+    </div></> : null}
   </section></>;
 }
