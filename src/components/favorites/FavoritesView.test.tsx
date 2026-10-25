@@ -52,7 +52,7 @@ test("product artwork opens the inline detail and Share retains the existing sha
   show(); fireEvent.click(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" }));
   expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy();
   expect(window.location.search).toBe("?item=nike-court-shot-shoes");
-  fireEvent.click(screen.getByRole("button", { name: "Share", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Share" }));
   expect(shareEvent).toHaveBeenCalledOnce();
   expect((shareEvent.mock.calls[0][0] as CustomEvent).detail.slug).toBe("nike-court-shot-shoes");
   window.removeEventListener(PRODUCT_SHARE_EVENT, shareEvent);
