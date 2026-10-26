@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { completeDemoFunding, deleteDemoPaymentMethod, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { isFundingAmount } from "@/lib/payments/provider";
+import { parseFundingDollars } from "@/lib/payments/funding-amount";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken, type DemoCardArtwork } from "@/lib/payments/demo-card";
 import { DemoFundingCard } from "./DemoFundingCard";
@@ -186,15 +187,16 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
         </select>
       </label>
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-custom-amount">Add specific amount (USD)
-        <input id="demo-funding-custom-amount" type="text" inputMode="numeric" autoComplete="off" placeholder="Enter the amount you want to deposit" value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
-          const dollars = event.target.value.replace(/\D/g, "");
+        <input id="demo-funding-custom-amount" type="text" inputMode="decimal" autoComplete="off" placeholder="Enter the amount you want to deposit" value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
+          const dollars = event.target.value.replace(/^\$/, "");
           setCustomAmount(dollars);
-          setAmount(dollars ? String(Number(dollars) * 100) : "");
+          const cents = parseFundingDollars(dollars);
+          setAmount(cents === null ? "" : String(cents));
         }} disabled={locked} className={styles.fundingAmountControl} />
       </label>
       </div>
     </div>
-    {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter a whole-dollar amount of at least $1 that can be represented safely.</p> : null}
+    {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter at least $1, using no more than two decimal places and an amount that can be represented safely.</p> : null}
     <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
@@ -231,7 +233,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     try {
       const value = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
       if (value && typeof value.key === "string" && /^[A-Za-z0-9_-]{16,128}$/.test(value.key)
-        && isFundingAmount(Number(value.amount)) && Number(value.amount) % 100 === 0) saved = {
+        && isFundingAmount(Number(value.amount))) saved = {
           key: value.key, amount: value.amount,
           initialDefault: typeof value.makeDefault === "boolean" ? value.makeDefault : undefined,
           initialToken: demoCardFixture(value.paymentMethod)?.token,

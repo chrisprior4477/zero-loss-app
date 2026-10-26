@@ -197,3 +197,11 @@ test("deleting a card rejects real or unknown card details before database acces
   expect((await deleteDemoPaymentMethod("4111111111111111")).status).toBe("error");
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
+
+
+test("a confirmed $50.50 deposit reaches the provider as exactly 5050 cents", async () => {
+  const data = form(); data.set("amountCents", "5050");
+  expect((await completeDemoFunding({ status: "idle" }, data)).status).toBe("succeeded");
+  expect(authorization.confirmDemoFunding).toHaveBeenCalledWith(expect.anything(), data, 5050, "funding_review_check_001");
+  expect(mocks.rpc).toHaveBeenCalledWith("create_demo_card_funding_session", { p_amount: 5050, p_idempotency_key: "funding_review_check_001", p_payment_method: "demo_card_4242", p_make_default: true });
+});

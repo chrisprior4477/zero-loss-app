@@ -119,7 +119,7 @@ test("custom whole-dollar amounts replace the preset and use the same confirmati
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
-  expect(custom.inputMode).toBe("numeric");
+  expect(custom.inputMode).toBe("decimal");
   expect(custom.placeholder).toBe("Enter the amount you want to deposit");
   fireEvent.change(custom, { target: { value: "500" } });
   expect(custom.value).toBe("$500");
@@ -186,11 +186,11 @@ test("failed request list is unavailable, not empty", () => {
   expect(screen.getByRole("alert").textContent).toContain("unavailable");
   expect(screen.queryByText("No payment deposits yet.")).toBeNull();
 });
-test("unavailable payment history keeps the original request and amount locked for safety", () => {
-  sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount: "1000" }));
+test.each(["1000", "5050"])("unavailable payment history keeps the original request and %s cents locked for safety", amount => {
+  sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount }));
   const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" requests={null} blocked={false} />);
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("original_request_key_01");
-  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("1000");
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe(amount);
   expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy();
   expect((screen.getByLabelText("Amount (USD)") as HTMLSelectElement).disabled).toBe(true);
   expect(container.querySelector<HTMLInputElement>('[name="recoveryOnly"]')?.value).toBe("true");
@@ -380,4 +380,32 @@ test("payment deposits return to their heading when the full list is collapsed",
   } finally {
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   }
+});
+
+
+test("typing the decimal point keeps $50.50 through confirmation and submission", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
+  const { container } = render(<DemoFundingForm requestKey="decimal_amount_check_001" />);
+  const input = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
+  expect(input.inputMode).toBe("decimal");
+  for (const value of ["5", "$50", "$50.", "$50.5", "$50.50"]) {
+    fireEvent.change(input, { target: { value } });
+    expect(input.value).toBe(value.startsWith("$") ? value : `$${value}`);
+  }
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("5050");
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  expect(screen.getByRole("dialog", { name: "Add $50.50 to your balance?" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $50.50 deposit" }));
+  await waitFor(() => expect(completeDemoFunding).toHaveBeenCalledOnce());
+  expect(vi.mocked(completeDemoFunding).mock.calls[0][1].get("amountCents")).toBe("5050");
+});
+
+test.each(["50.505", "50,50", "-50", "1e3"])("invalid %s is not changed into a larger deposit", value => {
+  render(<DemoFundingForm requestKey="decimal_amount_check_002" />);
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value } });
+  expect(screen.getByLabelText("Add specific amount (USD)")).toHaveProperty("value", `$${value}`);
+  expect(screen.getByRole("button", { name: "Add funds" })).toHaveProperty("disabled", true);
+  expect(screen.getByRole("alert").textContent).toContain("two decimal places");
 });
