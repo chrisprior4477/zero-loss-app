@@ -5,10 +5,12 @@ vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
-test("funding links land on the amount controls, with a shortcut back to sample cards", () => {
+test("the lower Add Card control adds and selects another sample card", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   expect(container.querySelector("#add-funds")?.contains(screen.getByLabelText("Amount (USD)"))).toBe(true);
-  expect(screen.getByRole("link", { name: "Add Card" }).getAttribute("href")).toBe("#add-card");
+  fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
+  expect(screen.getByText("Test card •••• 5556")).toBeTruthy();
+  expect(container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_5556");
   expect(container.querySelector("#add-card")?.contains(screen.getByRole("heading", { name: "Add a card" }))).toBe(true);
 });
 test("deposit confirmation stays on the page and requires an unchecked acknowledgment, not a password", () => {
@@ -267,7 +269,7 @@ test("an already credited purchase-option deposit offers a safe return without c
 test("supplied test-card details are display-only and never submitted", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   expect(screen.getByRole("region", { name: "Add Credit Card" })).toBeTruthy();
-  expect(screen.getByText("4242 4242 4242 4242")).toBeTruthy();
+  expect(screen.getAllByText("4242 4242 4242 4242").length).toBeGreaterThan(0);
   const form = new FormData(container.querySelector("form")!);
   expect(form.get("paymentMethod")).toBe("demo_card_4242");
   expect(form.get("makeDefault")).toBe("false");

@@ -7,6 +7,23 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "./actions";
 import { FundingFailure } from "./demo-provider";
+
+test.each(['"data:image/png;base64,private-photo"', '{"number":"4111111111111111"}', '[0,1,2,3]', '[0,1,2,3,4,5,6,99]'])("camera artwork rejects non-palette payload %s before database access", async artwork => {
+  const value = form(); value.set("artwork", artwork);
+  expect((await saveDemoPaymentMethod({ status: "idle" }, value)).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
+test("camera save submits only eight color indices with the existing sample token", async () => {
+  const artwork = [0, 1, 2, 3, 4, 5, 6, 7];
+  mocks.rpc.mockResolvedValue({ data: { token: "demo_card_4242", lastFour: "4242", isDefault: true, artwork } });
+  const value = form(); value.set("artwork", JSON.stringify(artwork));
+  // Use the normal account setup responses before the artwork RPC.
+  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "ensure_preview_customer" ? { walletAccountId: sid, scope: "demo", fundingAvailable: true }
+    : name === "get_wallet_snapshot" ? snapshot : { token: "demo_card_4242", lastFour: "4242", isDefault: true, artwork } }));
+  expect((await saveDemoPaymentMethod({ status: "idle" }, value)).status).toBe("succeeded");
+  expect(mocks.rpc).toHaveBeenCalledWith("save_demo_card_artwork", { p_payment_method: "demo_card_4242", p_make_default: true, p_artwork: artwork });
+});
 const sid = "99999999-9999-4999-8999-999999999999";
 const snapshot = { walletAccountId: sid, scope: "demo", currency: "USD", balanceCents: "0", transactionCount: "0", entries: [], fundingAvailable: true };
 function form() {

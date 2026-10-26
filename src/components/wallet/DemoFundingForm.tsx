@@ -8,7 +8,9 @@ import { completeDemoFunding, deleteDemoPaymentMethod, reconcileDemoFunding, sav
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { isFundingAmount } from "@/lib/payments/provider";
 import { formatUsdFromCents } from "@/lib/wallet/money";
-import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken } from "@/lib/payments/demo-card";
+import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken, type DemoCardArtwork } from "@/lib/payments/demo-card";
+import { DemoFundingCard } from "./DemoFundingCard";
+import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
@@ -37,6 +39,26 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   const [cardMessage, setCardMessage] = useState("");
   const [deleteToken, setDeleteToken] = useState<DemoCardToken | null>(null);
   const [deletingCard, setDeletingCard] = useState(false);
+  const [artwork, setArtwork] = useState<Partial<Record<DemoCardToken, DemoCardArtwork>>>(() => Object.fromEntries(cards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
+  const revealCard = useRef<DemoCardToken | null>(null);
+  const nextCard = DEMO_CARD_FIXTURES.find(card => !visibleTokens.includes(card.token));
+  function addCard(token = nextCard?.token, sampleArtwork?: DemoCardArtwork) {
+    if (!token || locked || cardUnavailable) return;
+    revealCard.current = token;
+    setVisibleTokens(current => current.includes(token) ? [...current] : [...current, token]);
+    setSelectedToken(token);
+    if (sampleArtwork) setArtwork(current => ({ ...current, [token]: sampleArtwork }));
+    setCardMessage(sampleArtwork ? "Sample artwork ready. Save this card to keep it in your account." : "");
+  }
+  useLayoutEffect(() => {
+    if (!revealCard.current) return;
+    const card = document.getElementById(`sample-payment-${revealCard.current}`);
+    revealCard.current = null;
+    if (!card) return;
+    const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+    card.focus({ preventScroll: true });
+    window.scrollTo({ top: Math.max(0, window.scrollY + card.getBoundingClientRect().top - header - 12), behavior: "auto" });
+  }, [visibleTokens]);
   const deleteDialog = useRef<HTMLDialogElement>(null);
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
@@ -84,6 +106,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     const data = new FormData();
     data.set("paymentMethod", token);
     data.set("makeDefault", String(asDefault));
+    if (artwork[token]) data.set("artwork", JSON.stringify(artwork[token]));
     try {
       const result = await saveDemoPaymentMethod({ status: "idle" }, data);
       setCardMessage(result.status === "idle" ? "The sample card was not saved." : result.message);
@@ -91,7 +114,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
         const fixture = demoCardFixture(token)!;
         const effectiveDefault = asDefault;
         setCards(previous => [...previous.filter(card => card.token !== token).map(card => ({ ...card, isDefault: effectiveDefault ? false : card.isDefault })),
-          { token, lastFour: fixture.lastFour, isDefault: effectiveDefault }]);
+          { token, lastFour: fixture.lastFour, isDefault: effectiveDefault, ...(artwork[token] ? { artwork: artwork[token] } : {}) }]);
         if (effectiveDefault) setDefaultToken(token);
         else if (defaultToken === token) setDefaultToken(null);
       }
@@ -126,28 +149,20 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     {!recoveryOnly ? <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel}>
       <div className={styles.demoCardsHeading}><div><h3>Add a card</h3><p>Choose a supplied sample card. No real card details are accepted.</p></div>
-        <button type="button" disabled={locked || cardUnavailable || visibleTokens.length === DEMO_CARD_FIXTURES.length} onClick={() => {
-          const next = DEMO_CARD_FIXTURES.find(card => !visibleTokens.includes(card.token));
-          if (next) {
-            setVisibleTokens(current => [...current, next.token]);
-            setSelectedToken(current => current ?? next.token);
-          }
-        }}>+ Add another card</button></div>
+        <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable || !nextCard} onClick={() => addCard()}>+ Add another card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} disabled={locked || cardUnavailable} onUse={colors => addCard(nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, colors)} /></div></div>
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
-        const fixture = demoCardFixture(token)!;
         const saved = cards.some(card => card.token === token);
-        return <article key={token} className={styles.demoCard} data-selected={selectedToken === token}>
-          <div className={styles.demoCardTop}><strong>Test card •••• {fixture.lastFour}</strong><span>{saved ? "SAVED" : "NEW SAMPLE"}</span></div>
-          <p className={styles.demoCardNumber}>{fixture.number}</p>
-          <p className={styles.demoCardMeta}>Expires {fixture.expiry} · Sample security code {fixture.code}</p>
+        const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
+        return <DemoFundingCard key={token} token={token} selected={selectedToken === token} saved={saved} artwork={artwork[token]} actions={<>
+          {!saved || artChanged ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : artChanged ? "Save artwork" : "Save this card"}</button> : null}
+          {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); setDeleteToken(token); }}>Delete Card</button> : null}
+        </>}>
           <label className={styles.cardChoice}><input type="radio" name="cardChoice" checked={selectedToken === token} onChange={() => setSelectedToken(token)} disabled={locked || cardUnavailable} />Use for this deposit</label>
           <label className={styles.cardChoice}><input type="checkbox" checked={defaultToken === token} onChange={() => {
             if (defaultToken === token) { if (saved) void persistCard(token, false); else setDefaultToken(null); }
             else { if (saved) void persistCard(token, true); else setDefaultToken(token); }
           }} disabled={locked || cardUnavailable || savingCard !== null} />Use as my default payment method</label>
-          {!saved ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : "Save this card"}</button> : null}
-          {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); setDeleteToken(token); }}>Delete Card</button> : null}
-        </article>;
+        </DemoFundingCard>;
       })}</div>
       {visibleTokens.length === 0 ? <p className={styles.cardMessage}>No card selected. Add a sample card above to continue.</p> : null}
       {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
@@ -162,7 +177,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     </dialog> : null}
     <div id="add-funds" className={styles.fundingAmountSection}>
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
-      {!recoveryOnly ? <a href="#add-card" className={styles.addCardShortcut}>Add Card</a> : null}
+      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable || !nextCard} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} disabled={locked || cardUnavailable} onUse={colors => addCard(nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, colors)} /></div> : null}
       <div className={styles.fundingAmounts}>
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-amount">Amount (USD)
         <select id="demo-funding-amount" value={selectedPreset} onChange={event => { setAmount(event.target.value); setCustomAmount(""); }} disabled={locked} className={styles.fundingAmountControl}>

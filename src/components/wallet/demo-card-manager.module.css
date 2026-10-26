@@ -1,7 +1,7 @@
 .page { position: relative; isolation: isolate; min-height: calc(100svh - 140px); overflow: hidden; padding: 24px clamp(14px, 2.4vw, 38px) 48px; color: #f7fbff; background: #00172b; }
 .page::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, #001326ed, #00182bc4 58%, #001426f2), url('/account/showroom-v1.webp') center / cover fixed; }
 .page::after { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(circle at 18% 46%, #00dcff1c, transparent 30%), radial-gradient(circle at 82% 30%, #1aff6720, transparent 25%); pointer-events: none; }
-.shell { max-width: 1240px; margin: 0 auto; }
+.shell { min-width: 0; max-width: 1240px; margin: 0 auto; }
 .breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #b9cede; font-size: 12px; }
 .breadcrumb a:hover { color: #4ceaff; }
 .header { display: flex; align-items: end; justify-content: space-between; gap: 30px; padding: 34px 2px 28px; border-bottom: 1px solid #19c8e955; }
@@ -12,7 +12,7 @@
 .headerNote strong { color: #4dff79; font-size: 11px; letter-spacing: .16em; }
 .headerNote span { color: #b5cce0; font-size: 12px; }
 .contentGrid { display: grid; grid-template-columns: minmax(320px, .8fr) minmax(480px, 1.2fr); gap: 18px; margin-top: 18px; }
-.cardPreview, .formPanel { border: 1px solid #18c6eb; border-radius: 12px; background: linear-gradient(145deg, #00213bee, #001426f2); box-shadow: inset 0 0 26px #00bff326, 0 12px 34px #0007; }
+.cardPreview, .formPanel { min-width: 0; border: 1px solid #18c6eb; border-radius: 12px; background: linear-gradient(145deg, #00213bee, #001426f2); box-shadow: inset 0 0 26px #00bff326, 0 12px 34px #0007; }
 .cardPreview { display: flex; min-height: 520px; flex-direction: column; justify-content: center; padding: clamp(22px, 3vw, 42px); }
 .cardGlow { position: relative; aspect-ratio: 1.58; overflow: hidden; padding: 28px; border: 1px solid #5eeeff; border-radius: 20px; background: radial-gradient(circle at 80% 10%, #18eaff4d, transparent 29%), linear-gradient(135deg, #075178, #001a33 56%, #063050); box-shadow: inset 0 0 30px #33dff63b, 0 0 23px #08cfff66, 0 28px 45px #0009; }
 .cardGlow::after { content: ""; position: absolute; width: 240px; height: 240px; right: -85px; bottom: -130px; border: 28px solid #34e9f526; border-radius: 50%; }
@@ -30,13 +30,18 @@
 .statusIcon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border: 1px solid #33ea65; border-radius: 8px; color: #69ff91; background: #0a5035; }
 .statusIcon svg { width: 23px; height: 23px; }
 .savedStatus strong { font-size: 13px; }
+.artworkSide { min-height: 40px; align-self: center; padding: 5px 16px; font-size: 12px; font-weight: 850; color: #0875a1; }
+.cameraRow { display: none; }
+@media (max-width: 767px) { .cameraRow { display: flex; justify-content: flex-end; } }
 .savedStatus p { margin-top: 3px; color: #a9c2d5; font-size: 10px; }
 .addFundsLink { display: flex; min-height: 44px; align-items: center; justify-content: center; margin-top: 12px; padding: 9px 13px; border: 2px solid #31e800; border-radius: 9px; color: #fff; background: #087a1e; box-shadow: 0 0 14px #31e80055; font-size: 13px; font-weight: 850; line-height: 1.2; text-align: center; text-decoration: none; }
 .addFundsLink:hover { background: #0b9225; box-shadow: 0 0 18px #31e80077; }
 .addFundsLink:focus-visible { outline: 3px solid #83ff80; outline-offset: 3px; }
 .formPanel { padding: clamp(22px, 3vw, 38px); }
 .panelHeading, .panelHeading > div { display: flex; align-items: center; gap: 12px; }
-.panelHeading { justify-content: space-between; }
+.panelHeading { justify-content: space-between; flex-wrap: wrap; }
+.panelHeading > div { min-width: 0; }
+.step { flex-shrink: 0; }
 .step { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #29e6f1; border-radius: 50%; color: #46f3fa; font-size: 11px; font-weight: 900; box-shadow: 0 0 14px #17e4f45c; }
 .panelHeading h2 { font-size: 23px; font-weight: 850; }
 .testBadge { padding: 6px 10px; border: 1px solid #3ef26e; border-radius: 999px; color: #78ff9b; background: #0b4c31; font-size: 9px; font-weight: 900; letter-spacing: .11em; }
@@ -46,7 +51,8 @@
 .formPanel input:not([type="checkbox"]) { display: block; width: 100%; min-height: 50px; margin-top: 7px; padding: 0 14px; border: 1px solid #197ba4; border-radius: 7px; outline: none; background: #00192edb; color: #fff; font-size: 14px; }
 .formPanel input:not([type="checkbox"]):focus { border-color: #55f5ff; box-shadow: 0 0 0 2px #18e6f32b, 0 0 13px #00dff747; }
 .formPanel input:disabled { cursor: not-allowed; opacity: .55; }
-.fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.fieldRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 13px; }
+.formPanel label, .formPanel input { min-width: 0; }
 .cardCheck { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid #13688a; border-radius: 8px; background: #001a30; }
 .cardCheck > span { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border: 1px solid #25dff0; border-radius: 8px; color: #4df3fa; }
 .cardCheck svg { width: 22px; height: 22px; }
@@ -67,7 +73,7 @@
 .disclaimer { margin-top: 18px; color: #87a8bf; font-size: 9px; line-height: 1.5; text-align: center; }
 .page a:focus-visible, .page button:focus-visible, .page input:focus-visible { outline: 2px solid #9cfcff; outline-offset: 3px; }
 @media (max-width: 900px) {
-  .contentGrid { grid-template-columns: 1fr; }
+  .contentGrid { grid-template-columns: minmax(0, 1fr); }
   .cardPreview { min-height: 0; }
   .cardGlow { width: min(100%, 520px); margin: 0 auto; }
 }
@@ -137,7 +143,7 @@
 .embedded .actions a { border-color: #93c0dd; color: #075083; background: #fff; }
 .embedded .error { border-color: #efba9c; color: #9c342d; background: #fff0e7; }
 .embedded .success { border-color: #b1e7bf; color: #085c26; background: #e3f9e9; }
-@media (max-width: 1150px) { .embedded .contentGrid { grid-template-columns: 1fr; } }
+@media (max-width: 1150px) { .embedded .contentGrid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 700px) {
   .embedded .header, .embedded .cardPreview, .embedded .formPanel { --corner-scoop: 14px; }
   .embedded .header { display: block; }

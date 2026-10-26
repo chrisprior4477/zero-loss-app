@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { saveDemoPaymentMethod } from "@/lib/payments/actions";
-import { DEMO_CARD_TOKEN, type DemoCard } from "@/lib/payments/demo-card";
+import { DEMO_CARD_TOKEN, DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
+import { DemoCardArtwork } from "./DemoCardArtwork";
+import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./demo-card-manager.module.css";
 
 const TEST_CARD = "4242 4242 4242 4242";
@@ -26,7 +28,11 @@ export function DemoCardManager({ displayName, savedCard = null, savedCards, car
   const [cardNumber, setCardNumber] = useState(TEST_CARD);
   const [expiry, setExpiry] = useState(TEST_EXPIRY);
   const [securityCode, setSecurityCode] = useState(TEST_CODE);
-  const firstCard = savedCards?.find(card => card.token === DEMO_CARD_TOKEN) ?? (savedCard?.token === DEMO_CARD_TOKEN ? savedCard : null);
+  const [token, setToken] = useState<DemoCardToken>(DEMO_CARD_TOKEN);
+  const [artwork, setArtwork] = useState<Artwork | undefined>(savedCards?.find(card => card.token === DEMO_CARD_TOKEN)?.artwork ?? (savedCard?.token === DEMO_CARD_TOKEN ? savedCard.artwork : undefined));
+  const [showBack, setShowBack] = useState(false);
+  const fixture = demoCardFixture(token)!;
+  const firstCard = savedCards?.find(card => card.token === token) ?? (savedCard?.token === token ? savedCard : null);
   const [makeDefault, setMakeDefault] = useState(firstCard?.isDefault ?? !savedCard);
   const [clientError, setClientError] = useState("");
 
@@ -40,12 +46,8 @@ export function DemoCardManager({ displayName, savedCard = null, savedCards, car
 
       <div className={styles.contentGrid}>
         <aside className={styles.cardPreview} aria-label="Card preview">
-          <div className={styles.cardGlow}>
-            <div className={styles.cardTop}><span>ZERO LOSS</span><AccountIcon name="wallet" /></div>
-            <span className={styles.chip} aria-hidden="true" />
-            <p className={styles.previewNumber}>{cardNumber || "•••• •••• •••• ••••"}</p>
-            <div className={styles.cardBottom}><span><small>Cardholder</small>{cardholder || "Preview customer"}</span><span><small>Expires</small>{expiry || "MM/YY"}</span></div>
-          </div>
+          <DemoCardArtwork token={token} artwork={artwork} back={showBack} cardholder={artwork ? "DEMO CUSTOMER" : cardholder || "Preview customer"} />
+          <button type="button" className={styles.artworkSide} onClick={() => setShowBack(value => !value)}>See {showBack ? "front" : "back"}</button>
           <div className={styles.savedStatus}>
             <span className={styles.statusIcon}><AccountIcon name="completed" /></span>
             <div><strong>{savedCard ? `Test card •••• ${savedCard.lastFour}` : "No saved card yet"}</strong><p>{savedCard?.isDefault ? "Current default payment method" : "Add the supplied test card below"}</p></div>
@@ -58,13 +60,18 @@ export function DemoCardManager({ displayName, savedCard = null, savedCards, car
           <p className={styles.intro}>Use the supplied preview card. The visible number, expiry and security code are checked in your browser, then discarded. Only the safe test-card reference is saved.</p>
           <form action={action} noValidate aria-label="Add card" onSubmit={event => {
             setClientError("");
-            if (!cardholder.trim() || digits(cardNumber) !== "4242424242424242" || expiry.trim() !== TEST_EXPIRY || digits(securityCode) !== TEST_CODE) {
+            if (!cardholder.trim() || digits(cardNumber) !== digits(fixture.number) || expiry.trim() !== fixture.expiry || digits(securityCode) !== fixture.code) {
               event.preventDefault();
               setClientError("Use the supplied test card details to continue. Real card details are not accepted in this preview.");
             }
           }}>
-            <input type="hidden" name="paymentMethod" value={DEMO_CARD_TOKEN} />
+            <input type="hidden" name="paymentMethod" value={token} />
             <input type="hidden" name="makeDefault" value={String(makeDefault)} />
+            {artwork ? <input type="hidden" name="artwork" value={JSON.stringify(artwork)} /> : null}
+            <div className={styles.cameraRow}><MobileCardCamera token={DEMO_CARD_FIXTURES.find(card => !savedCards?.some(saved => saved.token === card.token))?.token ?? token} disabled={pending || !enabled || cardUnavailable} onUse={colors => {
+              const next = DEMO_CARD_FIXTURES.find(card => !savedCards?.some(saved => saved.token === card.token)) ?? fixture;
+              setToken(next.token); setCardNumber(next.number); setExpiry(next.expiry); setSecurityCode(next.code); setCardholder("DEMO CUSTOMER"); setArtwork(colors); setClientError("");
+            }} /></div>
             <label>Cardholder name<input aria-label="Cardholder name" autoComplete="off" value={cardholder} onChange={event => setCardholder(event.target.value)} disabled={pending || !enabled} /></label>
             <label>Card number<input aria-label="Card number" inputMode="numeric" autoComplete="off" value={cardNumber} onChange={event => setCardNumber(event.target.value)} disabled={pending || !enabled} /></label>
             <div className={styles.fieldRow}>

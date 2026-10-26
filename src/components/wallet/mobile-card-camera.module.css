@@ -1,0 +1,35 @@
+.trigger { display: none; }
+@media (max-width: 767px) {
+  .trigger { display: grid; grid-template-areas: "content"; flex: 0 0 106px; min-width: 106px; min-height: 48px; align-items: center; justify-items: center; padding: 8px; border: 0; border-radius: 9px; color: #081b3d; background: #ff7900; cursor: pointer; font-size: 12px; font-weight: 850; }
+  .trigger:disabled { opacity: .55; cursor: not-allowed; }
+  .camera, .label { grid-area: content; }
+  .camera { display: grid; place-items: center; animation: cameraPhase 2s infinite; }
+  .camera svg { width: 25px; height: 25px; }
+  .label { animation: labelPhase 2s infinite; }
+}
+@keyframes cameraPhase { 0%, 40%, 100% { opacity: 1; transform: rotateY(0); } 45%, 95% { opacity: 0; transform: rotateY(90deg); } }
+@keyframes labelPhase { 0%, 45%, 95%, 100% { opacity: 0; transform: rotateY(-90deg); } 50%, 90% { opacity: 1; transform: rotateY(0); } }
+.dialog { --corner-scoop: 18px; --side-scoop: 12px; width: min(440px, calc(100% - 24px)); max-height: 88dvh; margin: auto; padding: 27px 24px; border: 0; background: #fffdfa; color: #0b1940; overflow-y: auto;  }
+.dialog::backdrop { background: #001027c9; backdrop-filter: blur(4px); }
+.dialog .eyebrow { margin: 0 40px 8px 0; color: #075e89; font-size: 11px; font-weight: 900; letter-spacing: .12em; }
+.dialog h2 { font-size: 26px; line-height: 1.1; font-weight: 850; }
+.dialog > p { margin: 12px 0 18px; color: #526b87; font-size: 14px; line-height: 1.45; }
+.close { position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 50%; background: #e8f5fc; color: #12375a; font-size: 28px; }
+.captureGuide { display: grid; justify-items: center; gap: 12px; padding: 26px 18px; border: 2px dashed #22a2c6; border-radius: 15px; background: #ecf8ff; text-align: center; }
+.captureGuide span { font-size: 38px; color: #0077c7; font-weight: 850; }
+.captureGuide small { color: #526b87; font-size: 12px; }
+.file { display: none; }
+.primary, .cancel, .flip { width: 100%; min-height: 45px; margin-top: 12px; border-radius: 9px; font-size: 14px; font-weight: 850; }
+.dialog .primary { color: #082915; background: #48ff00; }
+.primary:disabled { opacity: .6; }
+.cancel, .flip { color: #12436e; background: #e2f3ff; }
+.dialog .note { margin: 16px 0 0; font-size: 11px; }
+.dialog .error { color: #a33028; }
+.trigger:focus-visible, .dialog button:focus-visible { outline: 3px solid #168cff; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .camera { display: none; animation: none; } .label { animation: none; opacity: 1; transform: none; } }
+.dialog {
+  -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  -webkit-mask-composite: source-in;
+  mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
+  mask-composite: intersect;
+}

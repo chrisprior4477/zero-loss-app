@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isFundingAmount } from "./provider";
-import { DEMO_CARD_TOKEN, demoCardFixture, parseDemoCard, parseDemoCards, type DemoCard, type DemoCardToken } from "./demo-card";
+import { DEMO_CARD_TOKEN, demoCardFixture, parseDemoCard, parseDemoCards, parseDemoCardArtwork, type DemoCard, type DemoCardToken, type DemoCardArtwork } from "./demo-card";
 
 export type DemoFundingRequest = {
   id: string; amount: number; currency: "USD"; status: string; created_at: string; idempotencyKey: string;
@@ -41,11 +41,13 @@ export class DemoPaymentProvider {
     return parseDemoCards(data);
   }
 
-  async savePaymentMethod(makeDefault: boolean, paymentMethod: DemoCardToken = DEMO_CARD_TOKEN): Promise<DemoCard> {
+  async savePaymentMethod(makeDefault: boolean, paymentMethod: DemoCardToken = DEMO_CARD_TOKEN, artwork?: DemoCardArtwork): Promise<DemoCard> {
     if (!demoCardFixture(paymentMethod)) throw new Error("Unsupported test card");
-    const { data, error } = await this.db.rpc("save_demo_payment_method", {
+    if (artwork && !parseDemoCardArtwork(artwork)) throw new Error("Invalid sample artwork");
+    const { data, error } = await this.db.rpc(artwork ? "save_demo_card_artwork" : "save_demo_payment_method", {
       p_payment_method: paymentMethod,
       p_make_default: makeDefault,
+      ...(artwork ? { p_artwork: artwork } : {}),
     });
     if (error) throw new FundingFailure(error.code, error.message);
     const card = parseDemoCard(data);

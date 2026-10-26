@@ -8,7 +8,7 @@ import { DemoPaymentProvider, FundingFailure } from "./demo-provider";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
-import { demoCardFixture } from "./demo-card";
+import { demoCardFixture, parseDemoCardArtwork, type DemoCardArtwork } from "./demo-card";
 import { confirmDemoFunding } from "./funding-authorization";
 import { entryReturnPath } from "@/lib/auth/entry-return";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
@@ -103,13 +103,23 @@ export async function saveDemoPaymentMethod(
   formData: FormData,
 ): Promise<DemoFundingActionState> {
   const fixture = demoCardFixture(formData.get("paymentMethod"));
+  let artwork: DemoCardArtwork | undefined;
+  const artworkInput = formData.get("artwork");
+  if (artworkInput !== null) {
+    try {
+      if (typeof artworkInput !== "string" || artworkInput.length > 64) throw new Error("Invalid artwork");
+      const parsed = parseDemoCardArtwork(JSON.parse(artworkInput));
+      if (!parsed) throw new Error("Invalid artwork");
+      artwork = parsed;
+    } catch { return { status: "error", message: "Use the sample camera colors. Photos and card details cannot be saved." }; }
+  }
   if (!fixture
     || !["true", "false"].includes(String(formData.get("makeDefault")))) {
     return { status: "error", message: "Use the supplied preview test card. Real card details are not accepted." };
   }
   let result: DemoFundingActionState;
   try {
-    const card = await (await fundingProvider()).savePaymentMethod(formData.get("makeDefault") === "true", fixture.token);
+    const card = await (await fundingProvider()).savePaymentMethod(formData.get("makeDefault") === "true", fixture.token, artwork);
     result = {
       status: "succeeded",
       message: `Test card •••• ${card.lastFour} saved${card.isDefault ? " as your default" : ""}. No real card details were stored.`,
