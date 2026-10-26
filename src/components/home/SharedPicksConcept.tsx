@@ -6,7 +6,7 @@ import { type MouseEvent, type PointerEvent, type RefObject, useRef } from "reac
 import { sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import styles from "./SharedPicksConcept.module.css";
 
-const samplePicks = {
+export const samplePicks = {
   Maya: [
     { title: 'Samsung 50" M70H Mini LED TV', retailer: "Best Buy", image: "/catalog/samsung-m70h-tv-real.png", slug: "samsung-m70h-tv", note: "A living-room upgrade" },
     { title: "Nike Court Shot Shoes", retailer: "Dick’s Sporting Goods", image: "/catalog/nike-court-shot-side-cutout.png", slug: "nike-court-shot-shoes", note: "Everyday style" },

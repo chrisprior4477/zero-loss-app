@@ -48,3 +48,11 @@ test("ticket count is carried only with a specific funding return", () => {
     expect(signInReturnPath(invalid)).toBeNull();
   }
 });
+
+test("Crew review links survive sign-in only for one of the eight known designs", () => {
+  expect(accountPageReturnPath("/account/crew", { design: "8" })).toBe("/account/crew?design=8");
+  expect(accountReturnPath("/account/crew?design=1")).toBe("/account/crew?design=1");
+  expect(accountReturnPath("/account/crew?design=9")).toBeNull();
+  expect(accountReturnPath("/account/crew?design=1&design=8")).toBeNull();
+  expect(accountReturnPath("/account/crew?design=https://outside.test")).toBeNull();
+});
