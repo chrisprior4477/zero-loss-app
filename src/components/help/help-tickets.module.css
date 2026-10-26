@@ -46,8 +46,8 @@
   align-items: center;
   justify-content: center;
   padding: 14px 20px;
-  background: #c5f0ff;
-  color: #0a1741;
+  background: var(--help-button-fill, #c5f0ff);
+  color: var(--help-button-ink, #0a1741);
   font-size: 14px;
   font-weight: 800;
   line-height: 1.3;
@@ -60,8 +60,14 @@
 .shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-block: 24px; }
 .shortcut { position: relative; justify-content: center; min-height: 64px; padding: 10px 32px; text-align: center; }
 .shortcut > span[aria-hidden] { position: absolute; right: 14px; }
-.shortcut[data-tone="reward"] { background: #e1fbd3; }
-.shortcut[data-tone="purchase"] { background: #ffe1c7; }
+.button[data-tone="support"] { --help-button-fill: #b18aff; }
+.button[data-tone="reward"] { --help-button-fill: #48ff00; }
+.button[data-tone="purchase"] { --help-button-fill: #ff7900; }
+.button[data-tone="wallet"] { --help-button-fill: #006be6; --help-button-ink: #fff; }
+.button[data-tone]:hover { background: var(--help-button-fill); filter: brightness(.96); }
+.button[data-tone]:focus-visible { outline-color: #0a1741; }
+.button[data-tone="wallet"]:focus-visible { outline-color: #fff; }
+.shortcut[data-tone] .detail { color: inherit; }
 .detail { margin-top: 6px; display: block; color: #4e6784; font-size: 13px; font-weight: 500; line-height: 1.4; }
 .caseLink, .message, .note { display: block; padding: 20px 24px; background: #e3f4fc; color: #0a1741; overflow-wrap: anywhere; }
 .message { --corner: 14px; --side: 8px; }
