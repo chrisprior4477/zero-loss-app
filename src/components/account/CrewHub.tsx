@@ -101,6 +101,11 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     setFinding(current => !current);
   }
 
+  function openCrewSearch() {
+    setFinding(true);
+    requestAnimationFrame(() => document.getElementById("crew-query")?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
+  }
+
   useEffect(() => {
     if (finding) document.getElementById("crew-query")?.focus({ preventScroll: true });
   }, [finding]);
@@ -195,8 +200,8 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
           loading={Boolean(activeMember) && memberPicksLoading} error={Boolean(activeMember) && memberPicksError} pending={pending}
           onMember={selectMember} onSample={selectSample} onRetry={() => { if (activeMember) selectMember(activeMember.memberId, true); }}
           onShareBack={(id, enabled) => run(() => setCrewShareBack(id, enabled))} onRemove={id => run(() => removeCrewConnection(id))} onSampleRemove={name => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(samples.find(other => other !== name) ?? null); }}
-          onShare={() => setSharing(true)} onAdd={focusCrewSearch} />
-        <section className={connectedStyles.inviteStrip}><div><h2>Good finds are better shared.</h2><p>Bring someone along. Give them a reason to come back.</p></div><button type="button" onClick={focusCrewSearch}>Add people +</button></section>
+          onShare={() => setSharing(true)} onAdd={openCrewSearch} />
+        <section className={connectedStyles.inviteStrip}><div><h2>Good finds are better shared.</h2><p>Bring someone along. Give them a reason to come back.</p></div><button type="button" onClick={openCrewSearch}>Add people +</button></section>
       </> : null}
       {sharing ? <CrewSharePicker products={[...new Map([...memberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(false)} /> : null}
 
