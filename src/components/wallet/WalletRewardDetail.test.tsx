@@ -96,6 +96,14 @@ test("an unknown stored status fails closed", () => {
   expect(screen.getByRole("status")).toBeTruthy();
 });
 
+test("a used card says Already used and never offers its former code", () => {
+  render(<WalletRewardDetail item={{ ...item, rewardStatus: "redeemed" }} isPreview claimedCode="123456789012" />);
+  expect(screen.getAllByText("Already used").length).toBeGreaterThan(0);
+  expect(screen.getByRole("status").textContent).toContain("already been used");
+  expect(screen.queryByText("1234 5678 9012")).toBeNull();
+  expect((screen.getByRole("button", { name: /Copy number/ }) as HTMLButtonElement).disabled).toBe(true);
+});
+
 test("the intentional illustrative sample remains available when there is no stored reward", () => {
   render(<WalletRewardDetail item={{ ...item, rewardId: null, rewardStatus: null, rewardClaimedAt: null }} isPreview />);
   expect(screen.getByLabelText("Sample reward barcode")).toBeTruthy();

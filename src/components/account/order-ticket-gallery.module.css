@@ -1,0 +1,81 @@
+.gallery { min-width: 0; container-type: inline-size; }
+.galleryBody { position: relative; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.card { --corner: 14px; --side: 11px; display: grid; position: relative; height: 244px; min-width: 0; grid-template-columns: 28% minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 49px 44px; gap: 12px 16px; padding: 16px; color: #101f42; background: #fffefa;
+  mask-image: radial-gradient(circle var(--corner) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side) at 100% 50%, transparent 99%, #000 103%); mask-composite: intersect;
+}
+.art { position: relative; grid-column: 1; grid-row: 1/4; min-width: 0; min-height: 0; overflow: hidden; border-radius: 12px; background: #e1f1fc; }
+.art img { object-fit: contain; padding: 8px; }
+.copy { grid-column: 2; grid-row: 1; min-width: 0; }
+.retailer { color: #526d88; font-size: 11px; line-height: 13px; letter-spacing: .06em; font-weight: 800; text-transform: uppercase; }
+.copy h3 { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 17px; line-height: 20px; font-weight: 850; letter-spacing: -.3px; margin: 4px 0 6px; }
+.copy h3 a { color: inherit; text-decoration: none; }
+.statuses { display: flex; align-items: center; gap: 6px; }
+.source { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; padding: 3px 6px; color: #623509; background: #ffe1bd; border-radius: 5px; font-size: 11px; line-height: 14px; font-weight: 800; }
+.source[data-source="winner"] { color: #10512d; background: #c8f6d3; }
+.source svg { width: 13px; height: 13px; }
+.status { color: #16723f; font-size: 12px; line-height: 14px; font-weight: 750; }
+.card[data-tone="complete"] .status { color: #526078; }
+.card[data-tone="action"] .status { color: #974300; }
+.money { display: grid; grid-column: 2; grid-row: 2; grid-template-columns: 1fr 1fr; align-content: center; gap: 12px; }
+.money dt { color: #526d88; font-size: 11px; line-height: 14px; }
+.money dd { margin-top: 2px; font-size: 22px; line-height: 24px; font-weight: 850; letter-spacing: -.4px; overflow-wrap: anywhere; }
+.actions { display: flex; grid-column: 2; grid-row: 3; align-items: stretch; justify-content: space-between; gap: 8px; }
+.detailsButton, .open { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; gap: 5px; border: 0; border-radius: 7px; padding: 8px 10px; font-size: 12px; line-height: 15px; font-weight: 800; cursor: pointer; text-decoration: none; }
+.detailsButton { background: #e7f0f7; color: #2c5b7d; }
+.open { margin-left: auto; background: #49f500; color: #102a1d; }
+.open svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.card[data-tone="complete"] .open { background: #dde8f0; color: #254660; }
+.card[data-tone="action"] .open { background: #ffbd81; }
+.paging { display: flex; justify-content: space-between; align-items: center; min-height: 44px; gap: 10px; margin-top: 10px; color: #c4dff2; font-size: 12px; }
+.paging > div { display: flex; gap: 8px; }
+.paging button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #c8efff; color: #163c5c; cursor: pointer; }
+.paging button:disabled { opacity: .35; cursor: default; }
+.paging button:first-child svg { transform: rotate(180deg); }
+.paging svg { width: 19px; height: 19px; }
+.detailsLayer { position: absolute; inset: 0; z-index: 5; background: #09274944; }
+.detailsPanel { position: absolute; top: 0; left: 0; width: min(100%, 450px); height: auto; max-height: calc(100dvh - 160px); overflow-y: auto; padding: 18px 22px; background: #fffefa; color: #101f42; border-radius: 14px; box-shadow: 0 12px 32px #00102850; animation: rise .18s ease-out; }
+.detailsHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.detailsHeading h2 { font-size: 21px; line-height: 25px; font-weight: 850; letter-spacing: -.4px; }
+.close { display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; border: 0; border-radius: 50%; font-size: 26px; line-height: 1; color: #315d7c; background: #e8f1f7; cursor: pointer; }
+.detailsProduct { margin: 5px 0 10px; color: #526d88; font-size: 13px; line-height: 18px; }
+.detailsNotice { margin-bottom: 10px; color: #526078; font-size: 13px; line-height: 18px; }
+.references > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; border-top: 1px solid #dce6ee; }
+.references dt { color: #526d88; font-size: 12px; }
+.references dd { display: flex; align-items: center; gap: 8px; min-height: 30px; color: #183752; font-size: 14px; font-weight: 800; }
+.references button { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; border: 0; border-radius: 6px; background: #e5f1fa; color: #20658e; cursor: pointer; }
+.references svg, .copySupport svg { width: 17px; height: 17px; }
+.copySupport { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin-top: 12px; padding: 10px; border: 0; border-radius: 8px; background: #ff7900; color: #122842; font-size: 14px; font-weight: 800; cursor: pointer; }
+.copyStatus { color: #1d7047; font-size: 12px; line-height: 17px; text-align: center; }
+.copyStatus:not(:empty) { margin-top: 7px; }
+.manualCopy { display: block; width: 100%; margin-top: 8px; min-height: 90px; padding: 8px; border: 1px solid #9abbd0; border-radius: 6px; color: #183752; background: white; font-size: 16px; }
+@keyframes rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@container (max-width: 850px) {
+  .art { grid-row: 1/3; }
+  .actions { grid-column: 1/3; }
+  .copy h3 { font-size: 15px; line-height: 18px; }
+  .statuses { gap: 3px; }
+}
+@media (max-width: 700px) {
+  .grid { grid-template-columns: 1fr; gap: 10px; }
+  .card { --corner: 12px; --side: 8px; height: 176px; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: 64px 32px 44px; gap: 6px 10px; padding: 12px; }
+  .art { grid-column: 1; grid-row: 1; border-radius: 9px; }
+  .art img { padding: 4px; }
+  .retailer { font-size: 11px; line-height: 12px; }
+  .copy h3 { font-size: 14px; line-height: 16px; margin: 1px 0; }
+  .source { padding: 2px 5px; font-size: 11px; line-height: 13px; }
+  .source svg { display: none; }
+  .status { font-size: 11px; line-height: 13px; }
+  .statuses { gap: 6px; }
+  .money { grid-column: 1/3; grid-row: 2; gap: 10px; }
+  .money dt { font-size: 11px; line-height: 12px; }
+  .money dd { margin: 0; font-size: 19px; line-height: 20px; }
+  .actions { grid-column: 1/3; grid-row: 3; }
+  .detailsPanel { width: 100%; padding: 13px 16px 16px; }
+  .detailsProduct { font-size: 12px; line-height: 16px; }
+  .references dd { font-size: 13px; gap: 7px; }
+}
+@media (max-width: 360px) {
+  .detailsButton, .open { padding-inline: 8px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { .detailsPanel { animation: none; } }

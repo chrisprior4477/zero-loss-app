@@ -192,7 +192,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
     : status === "cancelled"
       ? { title: "Reward cancelled", message: "This reward was cancelled and is no longer available to use. Its history is preserved." }
       : status === "redeemed"
-        ? { title: "Reward redeemed", message: "This reward has already been redeemed. Its record remains here for your reference." }
+        ? { title: "Already used", message: "This gift card has already been used. Its record remains here for your reference." }
         : status === "issuance_pending"
           ? { title: "Reward being issued", message: "Your gift card is still being issued. Its number will be available once issuance is complete." }
           : status === "issuance_failed"

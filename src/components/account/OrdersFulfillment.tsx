@@ -1,9 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { AccountIcon } from "./AccountIcon";
 import type { AccountOrders } from "@/lib/account/orders";
-import { accountFulfillment, fulfillmentActivityHref, fulfillmentHref, matchesFulfillmentFilter, type FulfillmentFilter, type FulfillmentRecord } from "@/lib/account/fulfillment";
-import { formatUsdFromCents } from "@/lib/wallet/money";
+import { accountFulfillment, fulfillmentHref, matchesFulfillmentFilter, type FulfillmentFilter } from "@/lib/account/fulfillment";
+import { OrderTicketGallery } from "./OrderTicketGallery";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
 import { StatusTicket } from "./StatusTicket";
@@ -11,17 +10,6 @@ import stripStyles from "./account-status-strip.module.css";
 import styles from "./orders-fulfillment.module.css";
 
 type OrdersOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
-
-function presentation(order: FulfillmentRecord) {
-  switch (order.status) {
-    case "fulfilled": return { eyebrow: order.rewardStatus === "redeemed" ? "Gift card used" : order.source === "winner" && !order.claimedAt ? "Prize ready to claim" : "Gift card issued", copy: order.rewardStatus === "redeemed" ? "This gift card has been marked used. Its reward record remains in your wallet history." : order.source === "winner" && !order.claimedAt ? "Your winning reward is ready. Open it in your wallet to review and claim it." : "Your retailer gift card is ready to open in your reward wallet.", tone: "reward" } as const;
-    case "exception": return { eyebrow: "Action needed", title: "Issuance exception", copy: "The gift-card provider needs attention. Your entitlement remains recorded while support resolves it.", tone: "action" } as const;
-    case "cancelled": return { eyebrow: "Cancelled", copy: "This fulfillment record was cancelled and remains in your account history.", tone: "complete" } as const;
-    case "expired": return { eyebrow: "Expired", copy: "The reward claim period has expired. Open the saved reward for its status and support options.", tone: "complete" } as const;
-    case "corrected": return { eyebrow: "Order corrected", copy: "A correction is recorded for this order. Review your wallet history or contact support for details.", tone: "complete" } as const;
-    default: return { eyebrow: order.status === "payment_confirmed" ? "Payment confirmed" : "Issuance pending", copy: order.orderNumber ? "Your checkout is recorded. Gift-card issuance is in progress." : "Your reward is recorded. Check its wallet status for the next step.", tone: "action" } as const;
-  }
-}
 
 export function OrdersFulfillment({ state, overview, filter = "all", selectedRewardId }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; selectedRewardId?: string }) {
   const fulfillment = accountFulfillment(state, overview?.activity ?? { source: "unavailable", isPreview: false, activeCount: null, activity: [] });
@@ -70,33 +58,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
         <section className={styles.orders} aria-labelledby="your-orders-heading">
           {filter !== "all" || selectedRewardId ? <Link href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</Link> : null}
           {filter === "payment" ? <p className={styles.filterNote}>Recorded Purchase Option checkouts. Winning prizes do not require a gift-card purchase.</p> : filter === "exceptions" ? <p className={styles.filterNote}>Issuance problems, expired or cancelled rewards, and corrected orders. Open a record for its current status.</p> : null}
-          {visibleOrders.length ? <div className={styles.orderList}>
-            {visibleOrders.map(order => {
-              const detail = presentation(order);
-              return <article key={order.rewardId} id={`reward-${order.rewardId}`} className={styles.orderCard} data-tone={detail.tone}>
-                <Link href={walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId })} aria-label={`View ${order.title} reward`} className={styles.productStage}><Image src={order.image} alt="" fill sizes="(max-width: 650px) 120px, 350px" className={styles.productImage} /></Link>
-                <div className={styles.orderCopy}>
-                  <p className={styles.orderEyebrow}><AccountIcon name={order.status === "fulfilled" ? "gift" : "orders"} />{detail.eyebrow}</p>
-                  <h3><Link href={walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId })}>{order.title}</Link></h3>
-                  <p className={styles.retailer}>{order.retailer} · {order.source === "winner" ? "Prize won" : order.source === "purchase" ? "Purchase Option" : "Reward"}</p>
-                  <p className={styles.description}>{detail.copy}</p>
-                  <dl className={styles.orderFacts}>
-                    <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>
-                    {order.source === "winner" ? <div><dt>Gift-card purchase</dt><dd>No purchase required</dd></div> : <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div>}
-                    <div><dt>{order.orderNumber ? "Order" : "Reward"}</dt><dd>{(order.orderNumber ?? order.rewardId).slice(-8).toUpperCase()}</dd></div>
-                    {order.entryId ? <div><dt>Entry</dt><dd>{order.entryId.slice(-8).toUpperCase()}</dd></div> : null}
-                    {Number.isFinite(Date.parse(order.createdAt)) ? <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd><time dateTime={order.createdAt}>{new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(order.createdAt))}</time></dd></div> : null}
-                  </dl>
-                </div>
-                <div className={styles.orderActions}>
-                  <Link href={walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId })} className={styles.primaryAction}>{order.status === "fulfilled" ? order.source === "winner" && !order.claimedAt && order.rewardStatus !== "redeemed" ? "View winning reward" : "Open gift card" : "View reward status"}<AccountIcon name="arrow" /></Link>
-                  <Link href={fulfillmentActivityHref(order)} className={styles.secondaryAction}>View in My Activity<AccountIcon name="chevron" /></Link>
-                  <Link href={walletHistoryHref} className={styles.secondaryAction}>Wallet history<AccountIcon name="chevron" /></Link>
-                  {matchesFulfillmentFilter(order, "exceptions") ? <Link href="/support" className={styles.secondaryAction}>Get help<AccountIcon name="chevron" /></Link> : null}
-                </div>
-              </article>;
-            })}
-          </div> : records.length || selectedRewardId || filter !== "all" ? <div className={styles.empty}>
+          {visibleOrders.length ? <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}`} orders={visibleOrders} /> : records.length || selectedRewardId || filter !== "all" ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span><h3>{selectedRewardId ? "That reward is not available here" : "No records in this status"}</h3><p>{selectedRewardId ? "Only records saved to your account can be opened here." : "Your other orders and rewards remain available in the full list."}</p>
             <Link href={fulfillmentHref()}>Show all records<AccountIcon name="arrow" /></Link>
           </div> : <div className={styles.empty}>

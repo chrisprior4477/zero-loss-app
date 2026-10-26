@@ -34,7 +34,8 @@ test("shows only real retailer gift-card orders", () => {
 test("connects orders to rewards, activity and support", () => {
   render(<OrdersFulfillment state={{ source: "stored", orders: [order("fulfilled", "ready")] }} />);
   expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id");
-  expect(screen.getByRole("link", { name: /View in My Activity/ }).getAttribute("href")).toBe("/account/entries");
+  const card = screen.getByRole("link", { name: /Open gift card/ }).closest("article")!;
+  expect(within(card).queryByRole("link", { name: /My Activity|Wallet history/ })).toBeNull();
   expect(screen.getByRole("link", { name: /Visit support/ }).getAttribute("href")).toBe("/support");
 });
 
@@ -80,9 +81,9 @@ test("winning rewards appear without a purchase order and link to the exact acti
   activity.activity = [{ ...activity.activity[1], entryId: "ent_winner", rewardId: "winner-id", rewardSource: "winner", rewardStatus: "ready" }];
   render(<OrdersFulfillment state={{ source: "customer-empty", orders: [] }} overview={{ balanceLabel: "$17", fundingEnabled: true, activity }} />);
   expect(screen.getByRole("link", { name: "Issued: 1 record" })).toBeTruthy();
-  expect(screen.getByText("Prize ready to claim")).toBeTruthy();
-  expect(screen.getByText("No purchase required")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "View in My Activity" }).getAttribute("href")).toBe("/account/entries?viewed=ent_winner");
+  expect(screen.getByText("Ready to claim")).toBeTruthy();
+  expect(screen.getByText("You won")).toBeTruthy();
+  expect(screen.queryByText("No purchase required")).toBeNull();
   expect(screen.getByRole("link", { name: "View winning reward" }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=winner-id");
   const journey = within(screen.getByRole("list", { name: "Gift-card fulfillment journey" }));
   expect(journey.getByRole("link", { name: /Payment confirmed/ }).getAttribute("href")).toBe("/account/orders?filter=payment#fulfillment-records");

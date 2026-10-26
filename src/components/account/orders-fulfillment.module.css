@@ -63,7 +63,7 @@
 .summary a > strong { display: grid; min-width: 35px; min-height: 35px; flex: 0 0 auto; place-items: center; margin-left: auto; padding: 4px 7px; border-radius: 9px; background: #072c60; color: #fff; font-size: 20px; font-variant-numeric: tabular-nums; }
 .warning { margin-top: 12px; padding: 17px 22px; background: #fff0d5; color: #6c3710; font-size: 13px; }
 
-.contentGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(225px, 250px); grid-template-areas: "heading ." "orders rail"; align-items: start; column-gap: 10px; row-gap: 0; margin-top: 12px; }
+.contentGrid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "heading" "orders" "rail"; align-items: start; column-gap: 10px; row-gap: 0; margin-top: 12px; }
 .orders { grid-area: orders; min-width: 0; }
 .contentGrid { scroll-margin-top: 150px; }
 .showAll { display: inline-flex; align-items: center; min-height: 44px; color: #91e5ff; font-weight: 800; text-decoration: underline; }
@@ -141,7 +141,7 @@
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #075fce; outline-offset: -4px; }
 
 @media (max-width: 1180px) {
-  .contentGrid { grid-template-columns: minmax(0, 1fr) 220px; }
+
   .orderCard { grid-template-columns: minmax(110px, 31%) minmax(0, 1fr); }
   .orderCopy { padding-inline: 12px; }
   .orderActions { padding-inline: 10px; }
