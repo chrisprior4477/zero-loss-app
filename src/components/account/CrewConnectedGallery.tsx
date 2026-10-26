@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { samplePicks, type CrewActivityPick } from "@/components/home/SharedPicksConcept";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
@@ -10,14 +10,11 @@ import { ShareIcon } from "@/components/product/ShareIcon";
 import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
 import type { CrewPersonCard } from "./CrewPeopleCarousel";
 import styles from "./crew-connected.module.css";
+import { useCrewCarousel } from "./useCrewCarousel";
 
-type Drag = { pointerId: number; x: number; y: number; left: number; moved: boolean };
-
-/** Touch uses the browser's momentum; mouse dragging settles smoothly to a card. */
+/** Both rails share free-gliding movement and a spring at their edges. */
 export function CrewRail({ label, children, tools, kind, count }: { label: string; children: ReactNode; tools?: ReactNode; kind: "people" | "picks"; count: number }) {
-  const rail = useRef<HTMLDivElement>(null);
-  const drag = useRef<Drag | null>(null);
-  const suppressClick = useRef(false);
+  const { rail, move, ...gestures } = useCrewCarousel();
   const [position, setPosition] = useState({ first: 1, start: true, end: true });
   useEffect(() => {
     const element = rail.current;
@@ -30,49 +27,16 @@ export function CrewRail({ label, children, tools, kind, count }: { label: strin
     update(); element.addEventListener("scroll", update, { passive: true });
     const observer = new ResizeObserver(update); observer.observe(element);
     return () => { observer.disconnect(); element.removeEventListener("scroll", update); };
-  }, [count]);
-  const behavior = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" as const : "smooth" as const;
-  function move(direction: number) {
-    const element = rail.current; if (!element) return;
-    const width = element.firstElementChild?.getBoundingClientRect().width ?? 150;
-    element.scrollBy({ left: direction * (width + (parseFloat(getComputedStyle(element).columnGap) || 0)), behavior: behavior() });
-  }
-  function finish(event: PointerEvent<HTMLDivElement>, cancelled = false) {
-    const current = drag.current; if (!current || current.pointerId !== event.pointerId) return;
-    const element = event.currentTarget; drag.current = null;
-    if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
-    delete element.dataset.dragging;
-    if (cancelled) { suppressClick.current = false; return; }
-    if (!current.moved) return;
-    const width = element.firstElementChild?.getBoundingClientRect().width ?? 150;
-    const step = width + (parseFloat(getComputedStyle(element).columnGap) || 0);
-    element.scrollTo({ left: Math.round(element.scrollLeft / step) * step, behavior: behavior() });
-  }
+  }, [count, rail]);
   const controls = <div className={styles.railControls}>{tools}<span className={styles.railCount}>{count ? `${position.first} / ${count}` : "0"}</span><button type="button" aria-label={`Previous ${kind === "people" ? "Crew member" : "shared pick"}`} disabled={position.start} onClick={() => move(-1)}>←</button><button type="button" aria-label={`Next ${kind === "people" ? "Crew member" : "shared pick"}`} disabled={position.end} onClick={() => move(1)}>→</button></div>;
   return <div className={`${styles.carousel} ${kind === "people" ? styles.peopleCarousel : styles.picksCarousel}`}>
     {kind === "people" ? <div className={styles.peopleHeading}><h2>People in your Crew</h2>{controls}</div> : null}
-    <div ref={rail} className={kind === "people" ? styles.peopleRail : styles.picksRail} role="group" aria-roledescription="carousel" aria-label={label} tabIndex={0}
-      onPointerDown={event => {
-        suppressClick.current = false;
-        if (event.pointerType === "mouse" && event.button === 0 && event.currentTarget.scrollWidth > event.currentTarget.clientWidth + 1) drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: event.currentTarget.scrollLeft, moved: false };
-      }}
-      onPointerMove={event => {
-        const current = drag.current; if (!current || current.pointerId !== event.pointerId) return;
-        const distance = event.clientX - current.x;
-        if (!current.moved) {
-          if (Math.abs(distance) < 6) return;
-          if (Math.abs(event.clientY - current.y) > Math.abs(distance)) { drag.current = null; return; }
-          current.moved = true; suppressClick.current = true; event.currentTarget.dataset.dragging = "true"; event.currentTarget.setPointerCapture(event.pointerId);
-        }
-        event.preventDefault(); event.currentTarget.scrollLeft = current.left - distance;
-      }}
-      onPointerUp={event => finish(event)} onPointerCancel={event => finish(event, true)} onLostPointerCapture={event => finish(event, true)}
-      onPointerLeave={event => { if (drag.current && !drag.current.moved) finish(event, true); }}
+    <div className={styles.railWindow}><div ref={rail} className={kind === "people" ? styles.peopleRail : styles.picksRail} role="group" aria-roledescription="carousel" aria-label={label} tabIndex={0}
+      {...gestures}
       onDragStart={event => event.preventDefault()}
-      onClickCapture={event => { if (!suppressClick.current) return; suppressClick.current = false; if (event.detail === 0) return; event.preventDefault(); event.stopPropagation(); }}
       onKeyDown={event => { if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); move(event.key === "ArrowLeft" ? -1 : 1); } }}>
       {children}
-    </div>
+    </div></div>
     {kind === "picks" ? <div className={styles.picksFooter}><span>Swipe for more picks</span>{controls}</div> : null}
   </div>;
 }

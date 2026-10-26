@@ -27,7 +27,9 @@
 .manage summary::-webkit-details-marker { display:none; }
 .manage > div { position:absolute; z-index:3; right:0; top:100%; min-width:200px; padding:8px; background:#fffefa; border-radius:9px; box-shadow:0 8px 20px #001b3d44; }
 .manage button { border:0; border-radius:6px; padding:10px!important; background:#e7f4fd; color:#163a57; font-size:12px!important; text-align:left; }
-.peopleRail, .picksRail { display:flex; overflow-x:auto; overscroll-behavior-inline:contain; scrollbar-width:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; cursor:grab; min-width:0; }
+.peopleRail, .picksRail { display:flex; overflow-x:auto; overscroll-behavior-inline:contain; scrollbar-width:none; -webkit-overflow-scrolling:touch; scroll-snap-type:none; touch-action:pan-y pinch-zoom; cursor:grab; min-width:0; }
+.railWindow { overflow:hidden; min-width:0; }
+.peopleRail, .picksRail { translate:var(--crew-overhang,0px) 0; }
 .peopleRail::-webkit-scrollbar, .picksRail::-webkit-scrollbar { display:none; }
 .peopleRail[data-dragging=true], .picksRail[data-dragging=true] { scroll-snap-type:none; cursor:grabbing; user-select:none; }
 .peopleRail { gap:10px; align-items:stretch; padding:0; }
@@ -37,8 +39,8 @@
 .avatar { display:grid; place-items:center; position:relative; width:84px; height:84px; flex:none; border-radius:50%; background:#196384; overflow:hidden; color:#fff; font-size:36px; font-weight:850; box-shadow:0 0 0 3px #8bd9ec66; }
 .avatar img { object-fit:cover; }
 .personCard[data-selected=true] .avatar { box-shadow:0 0 0 3px #fff; }
-.personCard strong { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:1; overflow:hidden; max-width:100%; margin-top:11px; font-size:17px; font-weight:850; }
-.personCard small { margin-top:4px; font-size:11px; opacity:.75; }
+.personCard strong { display:block; flex:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; margin-top:11px; font-size:17px; line-height:22px; min-height:22px; font-weight:850; }
+.personCard small { flex:none; margin-top:4px; font-size:11px; line-height:14px; opacity:.75; }
 .selectedMark { position:absolute; top:10px; right:10px; display:grid; place-items:center; width:21px; height:21px; border-radius:50%; background:#48f000; color:#064311; font-size:13px; }
 .addPerson { gap:12px; font-size:13px!important; font-weight:750!important; }
 .addPerson > span { display:grid; place-items:center; width:64px; height:64px; border-radius:50%; background:#215a79; color:#a5eaff; font-size:34px; }
@@ -51,21 +53,23 @@
 .headingShare { display:flex; align-items:center; gap:8px; flex:none; border:0; border-radius:8px; background:#ff8a18; padding:11px 14px; color:#092744; font-size:13px!important; font-weight:850!important; }
 .headingShare svg { width:19px; height:19px; }
 .picksRail { gap:14px; align-items:stretch; }
-.pickCard { --corner:14px; --notch:8px; mask-image:radial-gradient(circle at 0 0,transparent var(--corner),#000 calc(var(--corner) + .7px)),radial-gradient(circle at 100% 0,transparent var(--corner),#000 calc(var(--corner) + .7px)),radial-gradient(circle at 0 100%,transparent var(--corner),#000 calc(var(--corner) + .7px)),radial-gradient(circle at 100% 100%,transparent var(--corner),#000 calc(var(--corner) + .7px)),radial-gradient(circle at 0 60%,transparent var(--notch),#000 calc(var(--notch) + .7px)),radial-gradient(circle at 100% 60%,transparent var(--notch),#000 calc(var(--notch) + .7px)); mask-composite:intersect; display:flex; flex:0 0 calc((100% - 28px) / 2.3); min-width:0; flex-direction:column; padding:14px; background:#fffefa; color:#10234a; scroll-snap-align:start; }
-.pickArt { display:block; position:relative; height:210px; width:100%; background:#e8f5fd; border-radius:10px; flex:none; }
+.pickCard { --corner:14px; --notch:8px; mask-image:radial-gradient(circle at 0 0,transparent var(--corner),#000 calc(var(--corner) + .7px)),radial-gradient(circle at 100% 0,transparent var(--corner),#000 calc(var(--corner) + .7px)),radial-gradient(circle at 0 100%,transparent var(--corner),#000 calc(var(--corner) + .7px)),radial-gradient(circle at 100% 100%,transparent var(--corner),#000 calc(var(--corner) + .7px)),radial-gradient(circle at 0 60%,transparent var(--notch),#000 calc(var(--notch) + .7px)),radial-gradient(circle at 100% 60%,transparent var(--notch),#000 calc(var(--notch) + .7px)); mask-composite:intersect; display:flex; flex:0 0 clamp(210px,23vw,280px); min-width:0; flex-direction:column; padding:12px; background:#fffefa; color:#10234a; scroll-snap-align:start; }
+.pickArt { display:block; position:relative; height:144px; width:100%; background:#e8f5fd; border-radius:10px; flex:none; }
 .pickArt img { object-fit:contain; padding:12px; }
-.pickCopy { display:flex; flex-direction:column; min-height:106px; padding:12px 2px; }
+.pickCopy { display:flex; flex-direction:column; min-height:88px; padding:8px 2px; }
 .pickCopy small { color:#527389; font-size:11px; font-weight:800; }
-.pickCopy h3 { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; margin-top:5px; font-size:19px; font-weight:850; line-height:1.2; letter-spacing:-.025em; }
-.pickCopy p { margin-top:6px; color:#59758c; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pickCopy h3 { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; margin-top:4px; font-size:16px; font-weight:850; line-height:1.2; letter-spacing:-.025em; }
+.pickCopy p { margin-top:4px; color:#59758c; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .pickActions { display:flex; gap:8px; margin-top:auto; }
 .pickActions > a { display:flex; flex:1; align-items:center; justify-content:space-between; gap:8px; min-height:40px; padding:10px 12px; border-radius:8px; background:#d9f4e1; color:#124b30; font-size:13px; font-weight:850; text-decoration:none; }
 .pickActions .shareButton, .shareDialog .shareButton { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-width:0; width:auto; min-height:40px; margin:0; border:0; border-radius:8px; box-shadow:none; background:#ff8a18; color:#10234a; padding:10px 12px; font-size:13px; font-weight:850; }
 .shareButton svg { width:17px; height:17px; }
+.pickActions .shareButton { flex:none; width:40px; padding:10px; font-size:0; }
+.pickActions > a { white-space:nowrap; }
 .picksFooter { display:flex; align-items:center; justify-content:space-between; min-height:46px; color:#385d78; gap:10px; }
 .picksFooter > span { font-size:11px; }
 .picksFooter .railControls > button { background:#acdff3; color:#113d5b; }
-.emptyPicks { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:16px; min-height:360px; color:#446984; padding:20px; }
+.emptyPicks { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:16px; min-height:296px; color:#446984; padding:20px; }
 .emptyPicks button { border:0; border-radius:8px; background:#ff8a18; color:#10234a; padding:12px; font-weight:800; }
 .inviteStrip { display:flex; align-items:center; gap:18px; margin-top:22px; padding:22px; border-radius:15px; background:#123d59; color:#edf9ff; }
 .inviteStrip > span { display:grid; place-items:center; flex:none; width:44px; height:44px; border-radius:12px; background:#ff8a18; color:#10234a; }
@@ -132,10 +136,10 @@
   .railCount { font-size:10px; min-width:26px; }
   .manage summary { padding:6px; font-size:10px; }
   .peopleRail { gap:9px; }
-  .personCard,.addPerson { flex-basis:calc((100% - 18px) / 2.55); height:134px; padding:12px 8px 15px; }
+  .personCard,.addPerson { flex-basis:calc((100% - 18px) / 2.55); height:134px; padding:12px 8px 10px; }
   .avatar { width:64px; height:64px; font-size:28px; }
-  .personCard strong { font-size:15px; margin-top:9px; }
-  .personCard small { font-size:10px; }
+  .personCard strong { font-size:15px; line-height:20px; min-height:20px; margin-top:8px; }
+  .personCard small { font-size:10px; margin-top:3px; }
   .selectedMark { width:17px; height:17px; font-size:11px; top:7px; right:7px; }
   .addPerson > span { width:45px; height:45px; font-size:27px; }
   .activityPanel { padding:0 10px; }
@@ -146,17 +150,17 @@
   .headingShare { padding:10px; min-width:40px; min-height:40px; }
   .headingShare > span { display:none; }
   .picksRail { gap:12px; }
-  .pickCard { flex-basis:84%; padding:12px; --corner:12px; --notch:7px; }
-  .pickArt { height:154px; }
+  .pickCard { flex-basis:min(72%,240px); padding:12px; --corner:12px; --notch:7px; }
+  .pickArt { height:120px; }
   .pickArt img { padding:10px; }
-  .pickCopy { min-height:94px; padding:10px 1px; }
-  .pickCopy h3 { font-size:17px; }
+  .pickCopy { min-height:86px; padding:8px 1px; }
+  .pickCopy h3 { font-size:15px; }
   .pickCopy small,.pickCopy p { font-size:11px; }
   .pickActions > a { font-size:12px; min-height:40px; padding:10px; }
   .pickActions .shareButton { font-size:0; padding:10px; width:40px; }
   .picksFooter { min-height:42px; }
   .picksFooter > span { font-size:10px; }
-  .emptyPicks { min-height:312px; font-size:14px; }
+  .emptyPicks { min-height:266px; font-size:14px; }
   .inviteStrip { padding:16px; gap:12px; flex-wrap:wrap; margin-top:16px; }
   .inviteStrip h2 { font-size:15px; }
   .inviteStrip p { font-size:11px; }
@@ -186,9 +190,9 @@
 @media(max-width:767px) and (max-height:760px) {
   .personCard,.addPerson { height:118px; padding:10px 8px; }
   .avatar { width:52px; height:52px; }
-  .personCard strong { flex:none; margin-top:7px; font-size:14px; line-height:17px; }
+  .personCard strong { flex:none; margin-top:7px; font-size:14px; line-height:18px; min-height:18px; }
   .personCard small { flex:none; margin-top:3px; line-height:12px; }
-  .pickArt { height:118px; }
+  .pickArt { height:108px; }
   .personHeading { padding:11px 0; }
-  .pickCopy { min-height:88px; }
+  .pickCopy { min-height:86px; }
 }
