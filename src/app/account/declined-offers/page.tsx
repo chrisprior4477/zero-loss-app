@@ -39,12 +39,12 @@ export default async function DeclinedOffersPage() {
       <div className={styles.declinedIntro}>
         <Link href="/account/entries" className={styles.declinedBack}>← My Activity</Link>
         <p className={styles.eyebrow}>DECLINED OFFERS</p>
-        <h1 className={styles.heading}>Changed your mind?</h1>
+        <h1 className={styles.heading}>If you change your mind</h1>
         <p className={styles.subtitle}>Revive a declined offer before its original deadline.</p>
       </div>
       <nav className={styles.declinedActions} aria-label="Declined offers navigation">
         <Link href="/account/entries">Return to My Activity</Link>
-        <Link href="/browse">Return to Marketplace</Link>
+        <Link href="/browse">Continue shopping</Link>
       </nav>
     </div>
     {account.activity.source === "unavailable" ? <div className={styles.empty}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p></div>

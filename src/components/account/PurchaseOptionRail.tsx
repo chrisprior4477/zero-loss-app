@@ -131,6 +131,12 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
     }
   }
 
+  function finishDecline() {
+    if (bulkPhase !== "undo" || undoUntil === null) return;
+    setUndoUntil(null);
+    router.replace("/account/declined-offers");
+  }
+
   async function undoAll() {
     if (bulkPhase !== "undo" || undoUntil === null || Date.now() >= undoUntil) return;
     setBulkPhase("undoing");
@@ -180,7 +186,17 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
       {purchaseResult?.status === "error" ? <div ref={purchaseErrorRef} role="alert"><p>{purchaseResult.message}</p>{purchaseResult.recovery === "balance" ? <Link href={fundingHref(item.slug, selectedOptions[0]?.entryId ?? undefined)}>Add funds →</Link> : null}{purchaseResult.recovery === "check" ? <a href={`/account/purchase-options/${encodeURIComponent(item.slug)}`}>Reload purchase status →</a> : null}<Link href="/account/wallet">Check Gift Cards & Rewards →</Link></div> : null}
     </div> : null}
     {bulkPhase === "confirm" ? <div className={styles.bulkPanel} role="group" aria-label="Confirm declining all offers"><strong>Decline all {count} offers for {title}?</strong><p>They will leave your active purchase options. Your original entries and wallet history will not be refunded or removed.</p><div className={styles.bulkButtons}><button type="button" onClick={() => void declineAll()}>Confirm decline all</button><button type="button" onClick={() => { setBulkPhase("idle"); router.replace(`/account/purchase-options/${encodeURIComponent(options[0].slug)}`); }}>Keep my offers</button></div></div> : null}
-    {bulkPhase === "working" || bulkPhase === "undo" || bulkPhase === "undoing" || bulkPhase === "error" ? <div className={styles.bulkPanel} role="status"><div className={styles.bulkStatus}><div><strong>{bulkPhase === "working" ? "Declining your offers…" : bulkPhase === "undoing" ? "Restoring your offers…" : bulkPhase === "undo" ? "Offers declined · Undo available" : "Check your offers"}</strong><p>{bulkMessage}</p></div>{bulkPhase === "undo" ? <EntryUndoCountdown seconds={secondsLeft} /> : null}</div>{bulkPhase === "undo" ? <button type="button" className={styles.undoAll} onClick={() => void undoAll()} disabled={secondsLeft === 0}>Undo decline all</button> : null}{bulkPhase === "error" ? <Link href="/account/declined-offers">Check Declined Offers →</Link> : null}</div> : null}
+    {bulkPhase === "working" || bulkPhase === "undo" || bulkPhase === "undoing" || bulkPhase === "error" ? <div className={styles.bulkPanel} role="status">
+      <div className={styles.bulkStatus}>
+        <div><strong>{bulkPhase === "working" ? "Declining your offers…" : bulkPhase === "undoing" ? "Restoring your offers…" : bulkPhase === "undo" ? "Offers declined · Undo available" : "Check your offers"}</strong><p>{bulkMessage}</p></div>
+        {bulkPhase === "undo" && undoUntil !== null ? <EntryUndoCountdown seconds={secondsLeft} /> : null}
+      </div>
+      {bulkPhase === "undo" ? <>
+        <button type="button" className={`${styles.undoAll} ${styles.confirmDecline}`} onClick={finishDecline} disabled={undoUntil === null}>Confirm decline</button>
+        <button type="button" className={styles.undoAll} onClick={() => void undoAll()} disabled={secondsLeft === 0 || undoUntil === null}>Undo decline all</button>
+      </> : null}
+      {bulkPhase === "error" ? <Link href="/account/declined-offers">Check Declined Offers →</Link> : null}
+    </div> : null}
     {bulkPhase === "idle" ? <div className={styles.compactTickets} aria-label="Choose purchase options">
       {options.map((option, index) => {
         const entryId = option.entryId!;

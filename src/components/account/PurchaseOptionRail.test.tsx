@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { PurchaseOptionRail } from "./PurchaseOptionRail";
@@ -148,6 +148,24 @@ test("bulk decline confirms the current item's offers and offers a 30-second und
   await waitFor(() => expect(mocks.undo).toHaveBeenCalledWith(optionIds));
   expect(mocks.replace).toHaveBeenCalledWith(`/account/purchase-options/${encodeURIComponent(base.slug)}`);
   expect(mocks.refresh).toHaveBeenCalled();
+});
+
+test("confirming a saved decline leaves immediately without another write or countdown navigation", async () => {
+  vi.useFakeTimers();
+  try {
+    const options = bulkOptions(1);
+    mocks.decline.mockResolvedValueOnce({ status: "succeeded", message: "1 offer declined.", optionIds: [options[0].completionOptionId] });
+    render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline initiallyConfirmDecline />);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm decline all" })); });
+    expect(mocks.replace).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm decline" }));
+    expect(mocks.replace).toHaveBeenCalledExactlyOnceWith("/account/declined-offers");
+    expect((screen.getByRole("button", { name: "Undo decline all" }) as HTMLButtonElement).disabled).toBe(true);
+    act(() => { vi.advanceTimersByTime(31_000); });
+    expect(mocks.replace).toHaveBeenCalledTimes(1);
+    expect(mocks.decline).toHaveBeenCalledTimes(1);
+    expect(mocks.undo).not.toHaveBeenCalled();
+  } finally { cleanup(); vi.useRealTimers(); }
 });
 
 test("keeping offers dismisses confirmation and clears the confirmation link", () => {

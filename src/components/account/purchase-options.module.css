@@ -93,6 +93,8 @@
 .bulkButtons button:first-child { background: #bcecff; }
 .bulkButtons button:last-child { background: #fff3e8; }
 .undoAll { width: 100%; background: #bcecff; }
+.confirmDecline { background: #087bff; color: #fff; }
+.undoAll:disabled { opacity: .6; cursor: default; }
 .bulkStatus { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .bulkButtons button:focus-visible, .undoAll:focus-visible { outline: 3px solid #0b376a; outline-offset: 3px; }
 .compactTickets { display: flex; min-height: 78px; flex-wrap: wrap; align-items: center; gap: 8px; border-radius: 14px; background: #fff0de; padding: 10px; }

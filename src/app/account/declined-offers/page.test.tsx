@@ -32,10 +32,10 @@ test("declined entries retain their own credit, original deadline and free reviv
     entryId: "ent_two", completionOptionStatus: "available", title: "Unrelated purchase option",
   }] } });
   render(await DeclinedOffersPage());
-  expect(screen.getByRole("heading", { name: "Changed your mind?" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "If you change your mind" })).toBeTruthy();
   const exits = within(screen.getByRole("navigation", { name: "Declined offers navigation" }));
   expect(exits.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe("/account/entries");
-  expect(exits.getByRole("link", { name: "Return to Marketplace" }).getAttribute("href")).toBe("/browse");
+  expect(exits.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/browse");
   expect(screen.getByText("$100 Walmart Gift Card")).toBeTruthy();
   expect(screen.queryByText("Unrelated purchase option")).toBeNull();
   expect(screen.getByText("$0.00")).toBeTruthy();
