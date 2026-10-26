@@ -1,8 +1,5 @@
 "use client";
 
-import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
-
-
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 import Image from "next/image";
@@ -153,7 +150,7 @@ export function ActivityDetailDialog({ item, destination, filter = "all", offerM
       <div className={styles.detailFooter}><button disabled type="button">{disabledAction} — not enabled</button><p>This action is not available yet.</p></div>
       </>}
       <nav aria-label="Activity detail exits" className={styles.detailExits}>
-        <ContinueShoppingLink >Continue shopping</ContinueShoppingLink>
+        <Link href="/">Continue shopping</Link>
         <Link href={returnHref}>{returnToOptions ? "Return to Purchase Options" : "Return to My Activity"}</Link>
       </nav>
     </div>

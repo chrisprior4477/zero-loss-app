@@ -1,4 +1,3 @@
-import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -45,7 +44,7 @@ export default async function DeclinedOffersPage() {
       </div>
       <nav className={styles.declinedActions} aria-label="Declined offers navigation">
         <Link href="/account/entries">Return to My Activity</Link>
-        <ContinueShoppingLink >Continue shopping</ContinueShoppingLink>
+        <Link href="/browse">Continue shopping</Link>
       </nav>
     </div>
     {account.activity.source === "unavailable" ? <div className={styles.empty}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p></div>

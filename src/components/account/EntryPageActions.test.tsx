@@ -16,7 +16,6 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
 const props = {
   itemTitle: "PlayStation 5 Slim Model",
   slug: "playstation-5-slim",
-  entryId: "ent_11111111111111111111111111111111",
   remaining: 6,
   entryPriceCents: 100,
   balanceCents: 2400,
@@ -60,15 +59,6 @@ test("larger quantities still stop at actual capacity and cannot spend unavailab
   expect(confirm.hasAttribute("disabled")).toBe(true);
   fireEvent.click(confirm);
   expect(screen.getByText(/Not enough demo funds for this quantity/)).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(`/account/wallet?view=history&from=playstation-5-slim&entry=${props.entryId}&quantity=101&resume=extra-entries#add-funds`);
-  expect(createPreviewEntry).not.toHaveBeenCalled();
-});
-
-test("returning from funding restores the exact extra quantity without approving or submitting", () => {
-  render(<EntryPageActions {...props} remaining={150} balanceCents={20000} initialQuantity={21} />);
-  expect(screen.getByText("Review additional entries")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Confirm 21 entries for $21" }).hasAttribute("disabled")).toBe(true);
-  expect((screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }) as HTMLInputElement).checked).toBe(false);
   expect(createPreviewEntry).not.toHaveBeenCalled();
 });
 
@@ -121,7 +111,7 @@ test("additional entries are reviewed and confirmed on the same page", async () 
   expect(screen.queryByRole("link", { name: /Review 2 more entries/ })).toBeNull();
   expect(screen.getByTestId("outcome-email-preference").closest("section")?.getAttribute("aria-labelledby")).toBe("add-entries-title");
   expect(screen.getByRole("link", { name: /Return to My Activity/ }).getAttribute("href")).toBe(props.returnHref);
-  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/browse");
+  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
   fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm 2 entries for $2" }));
   await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledOnce());

@@ -1,4 +1,3 @@
-import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
 import type { Metadata } from "next";
 import { randomUUID } from "node:crypto";
 import Image from "next/image";
@@ -20,19 +19,15 @@ import { EntryTicketRail } from "@/components/account/EntryTicketRail";
 import { PrizeNumberCopy } from "@/components/account/PrizeNumberCopy";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
-import { parseEntryQuantity } from "@/lib/entries/quantity";
-import { extraEntryReturnHref } from "@/lib/wallet/funding-navigation";
 import styles from "@/components/account/entry-page.module.css";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
 
-export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string }> }) {
+export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string }> }) {
   const { entryId } = await params;
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
-  const query = await searchParams;
-  const quantity = parseEntryQuantity(query?.quantity) ?? undefined;
   const account = await getAccountContext();
-  if (!account) redirect(authNavigationHref("/login", quantity ? extraEntryReturnHref(entryId, quantity) : `/account/entries/${entryId}`));
+  if (!account) redirect(authNavigationHref("/login", `/account/entries/${entryId}`));
   if (account.activity.source === "unavailable") {
     console.warn("[entry-details] Account activity unavailable; showing retry instead of not found.");
     return <main className={styles.page}><div className={styles.shell}>
@@ -54,7 +49,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     .filter(entry => entry.status === "active" && entry.slug === item.slug && entry.entryId)
     .sort(compareSavedEntries);
   const entryCount = relatedEntries.length;
-  const entryView = query?.entries;
+  const entryView = (await searchParams)?.entries;
   const savedTickets = relatedEntries.map((entry, index) => ({
     entryId: entry.entryId!,
     number: index + 1,
@@ -90,7 +85,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
       <div className={styles.topline}>
         <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>{entryCount === 1 ? "Your saved entry" : `Your ${entryCount} saved entries`} for the prize below.</p></div>
         <div className={styles.toplineActions}>
-          <ContinueShoppingLink  className={styles.topShoppingButton}>Continue shopping</ContinueShoppingLink>
+          <Link href="/" className={styles.topShoppingButton}>Continue shopping</Link>
           <Link href={returnHref} className={styles.topReturnButton}>Go to My Activity</Link>
           <Link href={returnHref} className={styles.closePage} aria-label="Close entry details and return to My Activity"><span aria-hidden="true">×</span></Link>
         </div>
@@ -119,7 +114,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
         <p>{entryCount === 1 ? "Your saved entry is one chance" : `Your ${entryCount} saved entries are ${entryCount} separate chances`} in this pool. {metrics ? `${metrics.sold.toLocaleString("en-US")} of ${metrics.capacity.toLocaleString("en-US")} places are filled.` : "Check back for verified pool progress."}</p>
-        <EntryPageActions key={`${entryId}:${quantity ?? "new"}`} itemTitle={item.title} slug={item.slug} entryId={entryId} initialQuantity={quantity} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={requestHead} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
+        <EntryPageActions itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={requestHead} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
       </section>
     </div>
   </main>;

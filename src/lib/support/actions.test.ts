@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn(), orders: vi.fn(), activity: vi.fn() }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-vi.mock("@/lib/account/orders", () => ({ getAccountOrders: mocks.orders }));
-vi.mock("@/lib/account/activity-reader", () => ({ getStoredAccountActivity: mocks.activity }));
 import { saveSupportCase } from "./actions";
 const caseId = "11111111-1111-4111-8111-111111111111";
 const transactionId = "22222222-2222-4222-8222-222222222222";
@@ -58,23 +56,4 @@ test("an ambiguous transport failure preserves an exact-retry state", async () =
 test("malformed success cannot redirect to an arbitrary URL", async () => {
   mocks.rpc.mockResolvedValue({ data: "https://attacker.example" });
   expect(await saveSupportCase({ status: "idle" }, form())).toMatchObject({ status: "error", uncertain: true });
-});
-
-const rewardId = "33333333-3333-4333-8333-333333333333";
-function orderForm() { const data = form(); data.delete("transactionId"); data.set("rewardId", rewardId); data.set("orderNumber", "spoofed"); return data; }
-test("support resolves an owned order on the server instead of accepting a posted reference", async () => {
-  mocks.orders.mockResolvedValue({ source: "stored", orders: [{ rewardId, orderNumber: "ord_verified", rewardSlug: "gift-card", title: "Gift card", retailer: "Shop", image: "/gift.png", faceValueCents: 10000, amountPaidCents: 9900, status: "fulfilled", createdAt: "2026-10-26" }] });
-  mocks.activity.mockResolvedValue({ source: "customer-empty", activity: [] });
-  expect(await saveSupportCase({ status: "idle" }, orderForm())).toEqual({ status: "saved", caseId });
-  const args = mocks.rpc.mock.calls[0][1];
-  expect(args.p_body).toContain("ord_verified");
-  expect(args.p_body).toContain(rewardId);
-  expect(args.p_body).not.toContain("spoofed");
-  expect(args.p_ledger_entry_id).toBeNull();
-});
-test("foreign or unavailable orders never create a support case", async () => {
-  mocks.orders.mockResolvedValue({ source: "stored", orders: [] });
-  mocks.activity.mockResolvedValue({ source: "customer-empty", activity: [] });
-  expect(await saveSupportCase({ status: "idle" }, orderForm())).toMatchObject({ status: "error", message: expect.stringContaining("unavailable for this account") });
-  expect(mocks.rpc).not.toHaveBeenCalled();
 });

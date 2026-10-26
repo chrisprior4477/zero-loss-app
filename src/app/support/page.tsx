@@ -1,4 +1,3 @@
-import { accountFulfillment, fulfillmentHref } from "@/lib/account/fulfillment";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { randomUUID } from "node:crypto";
@@ -43,15 +42,13 @@ function transactionLabel(value: unknown) {
   return `${r.amount > 0 ? "+" : ""}${formatUsdFromCents(r.amount)} · ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(r.created_at))} UTC`;
 }
 
-export default async function SupportPage({ searchParams }: { searchParams: Promise<{ rewardId?: string; case?: string; transaction?: string; view?: string; page?: string; messages?: string }> }) {
+export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; view?: string; page?: string; messages?: string }> }) {
   const query = await searchParams;
   const account = await getAccountContext();
-  const validReward = typeof query.rewardId === "string" && uuid.test(query.rewardId) ? query.rewardId : null;
-  const order = validReward && account ? accountFulfillment(account.orders, account.activity).records.find(record => record.rewardId === validReward) : undefined;
   const validCase = typeof query.case === "string" && uuid.test(query.case) ? query.case : null;
   const validTransaction = typeof query.transaction === "string" && uuid.test(query.transaction) ? query.transaction : null;
-  const next = accountPageReturnPath("/support", query, validCase ? "#conversation" : query.page ? "#case-list" : validReward ? "#report-problem" : "");
-  const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header></>;
+  const next = accountPageReturnPath("/support", query, validCase ? "#conversation" : query.page ? "#case-list" : "");
+  const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header></>;
   if (!account) return <PageContainer>{heading}<div className={styles.navigation}><Link className={button} href="/faq#faq-intro">Search frequently asked questions →</Link><Link className={button} href="/forgot-password">Reset your password →</Link></div><div className={card}><p>Sign in to report a problem or view your private support cases.</p><Link href={authNavigationHref("/login", next)} className={`${button} mt-4`}>Sign in to get help</Link></div></PageContainer>;
   if (!isPreviewDataEnvironment()) return <PageContainer>{heading}<p role="status">Support submission is unavailable in this environment.</p></PageContainer>;
   const db = await createClient();
@@ -59,7 +56,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const staff = access.data === true;
   const inbox = query.view === "inbox" && staff;
   const navigation = <nav aria-label="Support navigation" className={styles.navigation}><Link className={button} data-tone="support" href="/support#case-list">My support cases</Link><Link className={button} data-tone="wallet" href="/account/wallet?view=history">Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href="/support?view=inbox#case-list">Private support inbox</Link> : null}</nav>;
-  if ((query.rewardId && !validReward) || (validReward && (validCase || validTransaction)) || (query.case && !validCase) || (query.transaction && !validTransaction) || (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;
+  if ((query.case && !validCase) || (query.transaction && !validTransaction) || (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;
   if (validCase) {
     const result = await db.from("support_cases").select("id,case_number,subject,status,customer_id,ledger_entry_id").eq("id", validCase).maybeSingle();
     if (result.error || !result.data) return <PageContainer>{heading}{navigation}<p role="alert">This case is unavailable for your account. Return to My support cases to try again.</p></PageContainer>;
@@ -91,13 +88,12 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   if (!inbox) casesQuery = casesQuery.eq("customer_id", account.userId);
   const cases = await casesQuery;
   return <PageContainer>{heading}{navigation}{inbox ? <p className={`${note} mb-5 text-sm`}>Private case review and replies only. This inbox cannot issue refunds, adjust balances, or change prizes.</p> : null}
-    {!inbox && !validTransaction && !validReward ? <HelpShortcuts activity={account.activity} /> : null}
+    {!inbox && !validTransaction ? <HelpShortcuts activity={account.activity} /> : null}
     <div className="grid gap-6 lg:grid-cols-2">
       {!inbox ? <section id="report-problem" className={`${card} ${styles.anchor}`}><h2 className="mb-4 text-xl font-black">Report a problem</h2>
-        {validReward && !order ? <p role="alert">That order is unavailable for your account. Open it from Orders &amp; Fulfillment.</p> : validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again.</p> : <>
+        {validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again.</p> : <>
           {transactionLabel(transaction?.data) ? <p className={`${note} mb-4 text-sm`}>Linked wallet transaction: {transactionLabel(transaction?.data)}</p> : null}
-          {order ? <p className={`${note} mb-4 text-sm`}>Attached {order.orderNumber ? `order ${order.orderNumber.slice(-8).toUpperCase()}` : "reward"}: <strong>{order.title}</strong>. <Link href={fulfillmentHref(order.rewardId)}>View order →</Link></p> : null}
-          <SupportForm order={order} key={validReward ?? validTransaction ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} />
+          <SupportForm key={validTransaction ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} />
         </>}
       </section> : null}
       <section id="case-list" className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>

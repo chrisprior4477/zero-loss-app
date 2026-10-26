@@ -18,7 +18,7 @@ test("card screen is editable but submits only the safe preview token", () => {
   expect(form.get("makeDefault")).toBe("true");
   expect([...form.values()]).not.toContain("4242 4242 4242 4242");
   expect([...form.values()]).not.toContain("123");
-  expect(screen.getByRole("link", { name: "Back to payment methods" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=cards#wallet-content");
+  expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("/account/wallet?view=history#add-funds");
 });
 
 test("real card details are stopped in the browser and never sent", () => {
@@ -37,9 +37,9 @@ test("existing method can update its explicit default preference", () => {
   expect(screen.getByRole("button", { name: /Update card/ })).toBeTruthy();
 });
 
-test("saved sample cards link directly to wallet payment methods", () => {
+test("saved sample cards link directly to the card area in Add funds", () => {
   render(<DemoCardManager displayName="Chris Prior" enabled embedded savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
-  const link = screen.getByRole("link", { name: "Manage saved cards" });
-  expect(link.getAttribute("href")).toBe("/account/wallet?view=history&panel=cards#wallet-content");
+  const link = screen.getByRole("link", { name: "Add another sample card in Add funds" });
+  expect(link.getAttribute("href")).toBe("/account/wallet?view=history#add-card");
   expect(link.textContent).not.toContain("→");
 });

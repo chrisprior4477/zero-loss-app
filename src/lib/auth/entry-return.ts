@@ -1,10 +1,14 @@
 import { fundingReturnPath } from "@/lib/wallet/funding-navigation";
-import { currentProductEntryHref, safeProductEntryReturn } from "@/lib/entries/return-intent";
+import { currentProductEntryHref } from "@/lib/entries/return-intent";
 import { accountReturnPath } from "./account-return";
+import { parseEntryQuantity } from "@/lib/entries/quantity";
 
 /** Only allow a sign-in return to a product's entry section on this site. */
 export function entryReturnPath(value: unknown): string | null {
-  return safeProductEntryReturn(value);
+  if (typeof value !== "string") return null;
+  if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?quantity=[1-9]\d*)?#enter-entry$/.test(value)) return null;
+  const selected = new URL(value, "https://navigation.invalid").searchParams.get("quantity");
+  return selected === null || parseEntryQuantity(selected) !== null ? value : null;
 }
 
 /** Referrer is only a fallback when a sign-out form could not send its return path. */

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { drawerState } from "@/lib/account/drawer-state";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { walletRewards, activityHref } from "@/lib/account/activity";
@@ -13,9 +13,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: mock
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} /> }));
 const wallet: WalletSnapshot = { walletAccountId: null, scope: "production", currency: "USD", balanceCents: 0, transactionCount: 0, fundingAvailable: false, entries: [] };
-beforeEach(() => {
-  window.history.replaceState(null, "", "/account/wallet?view=history");
-  HTMLElement.prototype.scrollIntoView = vi.fn(); vi.clearAllMocks(); mocks.account.mockResolvedValue({ activity: storedActivityFixture(), wallet }); mocks.rpc.mockResolvedValue({ data: [], error: null }); });
+beforeEach(() => { vi.clearAllMocks(); mocks.account.mockResolvedValue({ activity: storedActivityFixture(), wallet }); mocks.rpc.mockResolvedValue({ data: [], error: null }); });
 afterEach(cleanup);
 
 test("unclaimed and claimed rewards keep their own labels, actions, and reward IDs", async () => {
@@ -85,7 +83,7 @@ test("empty Used is its own ticket with shopping and a return to the ready ticke
   expect(screen.getByText(/You haven’t used or transferred any prizes/)).toBeTruthy();
   expect(screen.getByText(/Please check back after/)).toBeTruthy();
   expect(screen.getByRole("link", { name: "Return to Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet#ready-rewards");
-  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/browse");
+  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
 });
 
 test("empty Expired has the requested reminder and both working destinations", async () => {
@@ -94,7 +92,7 @@ test("empty Expired has the requested reminder and both working destinations", a
   expect(screen.getByText("You do not have any expired purchase options yet.")).toBeTruthy();
   expect(screen.getByText("Remember to check your Declined Offers page.")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Declined Offers" }).getAttribute("href")).toBe("/account/declined-offers");
-  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/browse");
+  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
 });
 
 test.each(["used", "expired"])("the %s view shows real records instead of the empty message", async rewards => {
@@ -199,17 +197,17 @@ test("history link opens authoritative balance and existing history directly; fa
   const { rerender } = render(await WalletPage({ searchParams: Promise.resolve({ view: "history" }) }));
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$0.00");
   expect(screen.getByText("No transactions yet")).toBeTruthy();
-  fireEvent.click(screen.getAllByRole("button", { name: "Add funds" }).find(button => !(button as HTMLButtonElement).disabled)!);
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
   expect((screen.getByRole("button", { name: "Add funds unavailable" }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByRole("link", { name: "Balance" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("link", { name: "Funds & history" }).getAttribute("aria-current")).toBe("page");
   mocks.account.mockResolvedValue({ activity: drawerState(false), wallet: null });
   rerender(await WalletPage({ searchParams: Promise.resolve({ view: "history" }) }));
   expect(screen.getByTestId("wallet-balance").textContent).toBe("Unavailable");
   expect(screen.queryByText("$0.00")).toBeNull();
 });
 
-test("old card links move into the wallet payment methods tab", async () => {
-  await expect(WalletPage({ searchParams: Promise.resolve({ view: "card" }) })).rejects.toThrow("redirect:/account/wallet?view=history&panel=cards#wallet-content");
+test("old card links move to the Account & Security payment destination", async () => {
+  await expect(WalletPage({ searchParams: Promise.resolve({ view: "card" }) })).rejects.toThrow("redirect:/account/payment-methods");
 });
 
 test("anonymous reward request redirects to sign-in before displaying account data", async () => {

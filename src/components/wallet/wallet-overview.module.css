@@ -323,21 +323,3 @@
   .ledger li { gap: 3px 7px; padding-inline: 12px; }
   .ledger li .amount, .ledger li .positive { font-size: 16px; }
 }
-.workspaceTabs { display:flex; gap:8px; margin:0 0 22px; }
-.workspaceTabs a { display:flex; flex:1; align-items:center; justify-content:center; padding:14px 8px; min-height:48px; border-radius:6px; background:#c5efff; color:#101c42; font-weight:900; text-align:center; text-decoration:none; }
-.workspaceTabs a[aria-current=page] { background:#31e800; color:#092318; }
-.hero { scroll-margin-top:calc(var(--site-header-height, 100px) + 12px); }
-.methods { padding:26px; }
-.methods .demoCardsGrid { margin-top:18px; }
-.methodNotice { background:#e0f5ed; border-radius:8px; padding:14px; margin:12px 0; color:#134d39; font-size:14px; line-height:1.5; }
-.methodNotice button { margin-top:10px; }
-.page [hidden] { display:none !important; }
-@media(max-width:600px) { .workspaceTabs { gap:6px; } .workspaceTabs a { font-size:13px; padding:12px 5px; } .methods { padding:22px 18px; } }
-
-.methods .sectionHeading p { color: #526e8a; }
-
-.methods .cardFlip:not([data-flipped="true"]) .cardArtFace { display:none; }
-.methods .cardFlip[data-flipped="true"] .cardInfoFace { display:none; }
-.methods .cardFlip[data-flipped="true"] .cardArtFace { transform:none; }
-.methods .cardInfoFace { padding:6px 0; }
-.methods .cardFooter button { background:#dff2ff; color:#075187; border-radius:8px; }

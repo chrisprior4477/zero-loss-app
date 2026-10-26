@@ -1,4 +1,3 @@
-import { ShoppingContextRecorder } from "@/components/catalog/ContinueShoppingLink";
 import { getNotificationSnapshot } from "@/lib/account/notification-snapshot";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import { ReturnToUpdates } from "@/components/notifications/HeaderNotifications";
@@ -41,7 +40,7 @@ export async function AppShell({ children }: AppShellProps) {
         Skip to content
       </a>
       <SiteHeader />
-      <Suspense fallback={null}><SiteBreadcrumbs /><ShoppingContextRecorder /></Suspense>
+      <Suspense fallback={null}><SiteBreadcrumbs /></Suspense>
       <Suspense fallback={null}><ReturnToUpdates /></Suspense>
       <main id="main-content" className="flex-1">
         {children}

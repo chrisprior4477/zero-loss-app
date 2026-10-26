@@ -1,8 +1,5 @@
 "use client";
 
-import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
-
-
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,7 +10,6 @@ import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { isEntryQuantity } from "@/lib/entries/quantity";
 import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } from "@/lib/crew/sample-preview";
 import { formatUsdFromCents } from "@/lib/wallet/money";
-import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { sharePrizeWithCrew } from "@/lib/crew/actions";
@@ -40,15 +36,14 @@ function resultInActivity(href: string | null, fillsPool: boolean, entryId?: str
   return exactEntry ? `/account/entries?${new URLSearchParams({ viewed: exactEntry })}` : "/account/entries";
 }
 
-export function EntryPageActions({ itemTitle, slug, entryId, initialQuantity, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref }: {
+export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref }: {
   itemTitle: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
-  entryId?: string; initialQuantity?: number;
   requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
 }) {
   const router = useRouter();
   const [nextOpen, setNextOpen] = useState(false);
-  const [quantity, setQuantity] = useState(isEntryQuantity(initialQuantity) ? initialQuantity : 1);
-  const [checkoutOpen, setCheckoutOpen] = useState(isEntryQuantity(initialQuantity));
+  const [quantity, setQuantity] = useState(1);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [approved, setApproved] = useState(false);
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -219,7 +214,7 @@ export function EntryPageActions({ itemTitle, slug, entryId, initialQuantity, re
     <button type="button" className={styles.nextButton} aria-expanded={nextOpen} onClick={() => setNextOpen(open => !open)}>What happens next <span aria-hidden="true">{nextOpen ? "−" : "+"}</span></button>
     {nextOpen ? <div className={styles.nextPanel}><p>The pool stays open until its available tickets are filled. Once the result is posted, your outcome will appear in My Activity and Notifications. If your entry is not selected, any optional purchase offer and its deadline will be shown separately.</p></div> : null}
     <div className={styles.actionGrid}>
-      <section id="additional-entry-checkout" style={{ scrollMarginTop: "180px" }} className={`${styles.actionPanel} ${styles.entryActionPanel}`} aria-labelledby="add-entries-title">
+      <section className={`${styles.actionPanel} ${styles.entryActionPanel}`} aria-labelledby="add-entries-title">
         <h3 id="add-entries-title">Want to help this pool close faster?</h3>
         <p>Add more separate chances for {itemTitle}, right here on this page.</p>
         {maxQuantity > 0 ? <>
@@ -237,7 +232,7 @@ export function EntryPageActions({ itemTitle, slug, entryId, initialQuantity, re
             <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>
             <p>Demo Playable Balance: <strong>{balanceCents === null ? "Unavailable" : formatUsdFromCents(balanceCents)}</strong></p>
             {!quantityAvailable && !uncertain ? <p className={styles.checkoutError}>Only {maxQuantity} additional {maxQuantity === 1 ? "ticket is" : "tickets are"} available now. Reduce the quantity before confirming.</p> : null}
-            {insufficientBalance ? <p className={styles.checkoutError}>Not enough demo funds for this quantity. <Link href={fundingHref(slug, entryId, quantity, true)}>Add funds</Link></p> : null}
+            {insufficientBalance ? <p className={styles.checkoutError}>Not enough demo funds for this quantity. <Link href="/account/wallet">Add funds</Link></p> : null}
             {!requestHead.ready ? <p className={styles.checkoutError}>We couldn’t check your latest saved submission. Refresh before entering; your balance has not been charged.</p> : !canEnter ? <p className={styles.checkoutError}>This demo checkout is unavailable for this account right now.</p> : null}
             {receipt?.status === "pending" ? <div className={styles.receiptBox} role="status"><div className={styles.receiptHeader}><div className={styles.receiptCopy}><strong>{createdHereRequestId === receipt.requestId ? "Entry submitted · Undo available" : "An earlier submission is still pending"}</strong><span>{createdHereRequestId === receipt.requestId ? `${receipt.quantity} ${receipt.quantity === 1 ? "entry" : "entries"} · ${formatUsdFromCents(receipt.amountCents)} reserved from your demo balance.` : "No second reservation or charge was made."}</span><small>The header counts active entries after confirmation. Undo releases this hold.</small></div><EntryUndoCountdown seconds={secondsLeft} /></div><div className={styles.receiptActions}><button type="button" onClick={() => void resolveEntry(true)} disabled={working || secondsLeft === 0}>Undo entry</button><button type="button" onClick={() => void resolveEntry(false)} disabled={working}>Confirm entry</button></div></div> : null}
             {receipt?.status === "accepted" ? <p role="status" className={styles.checkoutSuccess}>{createdHereRequestId === receipt.requestId ? `Your ${receipt.quantity === 1 ? "new entry is" : `${receipt.quantity} new entries are`} confirmed and saved in My Activity. You can stay on this page.` : "That earlier submission was already saved. No additional entries were added or charged by this attempt. Refresh to review your entries."}</p> : null}
@@ -278,7 +273,7 @@ export function EntryPageActions({ itemTitle, slug, entryId, initialQuantity, re
       </section>
     </div>
     <nav aria-label="Entry detail exits" className={styles.bottomActions}>
-      <ContinueShoppingLink  className={styles.shoppingButton}>Continue shopping</ContinueShoppingLink>
+      <Link href="/" className={styles.shoppingButton}>Continue shopping</Link>
       <Link href={returnHref} className={styles.returnButton}>Return to My Activity →</Link>
     </nav>
   </>;

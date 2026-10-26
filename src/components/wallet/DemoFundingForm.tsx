@@ -1,6 +1,4 @@
 "use client";
-import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
-
 
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -9,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { completeDemoFunding, deleteDemoPaymentMethod, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { isFundingAmount } from "@/lib/payments/provider";
-import { parseFundingDollars } from "@/lib/payments/funding-amount";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken, type DemoCardArtwork } from "@/lib/payments/demo-card";
 import { DemoFundingCard } from "./DemoFundingCard";
@@ -18,12 +15,11 @@ import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 
-type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" | "Back to your entries" };
-type CardSelection = { selectedCard?: DemoCardToken | null; onSelectCard?: (token: DemoCardToken | null) => void; onManageCards?: () => void };
+type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" };
 const noRequests: DemoFundingRequest[] = [];
 const presetAmounts = ["100", "1000", "2500", "10000"];
 
-function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, selectedCard, onSelectCard, onManageCards }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination } & CardSelection) {
+function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof completeDemoFunding>>, form: FormData) => {
     const result = await completeDemoFunding(previous, form);
@@ -37,12 +33,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   const amountIsValid = isFundingAmount(Number(amount));
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
   const [visibleTokens, setVisibleTokens] = useState<DemoCardToken[]>(() => cards.length ? cards.map(card => card.token) : [DEMO_CARD_TOKEN]);
-  const [localToken, setLocalToken] = useState<DemoCardToken | null>(initialToken ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
-  const selectedToken = initialToken ?? (selectedCard === undefined ? localToken : selectedCard);
-  function setSelectedToken(value: DemoCardToken | null | ((token: DemoCardToken | null) => DemoCardToken | null)) {
-    const next = typeof value === "function" ? value(selectedToken) : value;
-    setLocalToken(next); onSelectCard?.(next);
-  }
+  const [selectedToken, setSelectedToken] = useState<DemoCardToken | null>(initialToken ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
   const [defaultToken, setDefaultToken] = useState<DemoCardToken | null>(() => initialDefault === false ? null : initialDefault === true ? (initialToken ?? cards.find(card => card.isDefault)?.token ?? DEMO_CARD_TOKEN) : cards.find(card => card.isDefault)?.token ?? null);
   const [savingCard, setSavingCard] = useState<DemoCardToken | null>(null);
   const [cardMessage, setCardMessage] = useState("");
@@ -68,16 +59,6 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     card.focus({ preventScroll: true });
     window.scrollTo({ top: Math.max(0, window.scrollY + card.getBoundingClientRect().top - header - 12), behavior: "auto" });
   }, [visibleTokens]);
-  const [previousSavedCards, setPreviousSavedCards] = useState(savedCards);
-  if (savedCards !== previousSavedCards) {
-    setPreviousSavedCards(savedCards);
-    if (savedCards) {
-      setCards(savedCards);
-      setDefaultToken(savedCards.find(card => card.isDefault)?.token ?? null);
-      setVisibleTokens(previous => [...new Set([...previous, ...savedCards.map(card => card.token)])]);
-      setArtwork(previous => ({ ...previous, ...Object.fromEntries(savedCards.filter(card => card.artwork).map(card => [card.token, card.artwork])) }));
-    }
-  }
   const deleteDialog = useRef<HTMLDialogElement>(null);
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
@@ -136,7 +117,6 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
           { token, lastFour: fixture.lastFour, isDefault: effectiveDefault, ...(artwork[token] ? { artwork: artwork[token] } : {}) }]);
         if (effectiveDefault) setDefaultToken(token);
         else if (defaultToken === token) setDefaultToken(null);
-        router.refresh();
       }
     } catch { setCardMessage("The sample card could not be saved. Please try again."); }
     finally { setSavingCard(null); }
@@ -170,7 +150,6 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {!recoveryOnly ? <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel}>
       <div className={styles.demoCardsHeading}><div><h3>Add a card</h3><p>Choose a supplied sample card. No real card details are accepted.</p></div>
         <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable || !nextCard} onClick={() => addCard()}>+ Add another card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} disabled={locked || cardUnavailable} onUse={colors => addCard(nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, colors)} /></div></div>
-      {!nextCard ? <div className={styles.methodNotice}><p>All four sample cards are available. Choose a saved card below. Use Camera updates the selected sample card’s artwork.</p>{onManageCards ? <button type="button" className={styles.cardAction} disabled={locked} onClick={onManageCards}>Edit sample artwork</button> : null}</div> : null}
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const saved = cards.some(card => card.token === token);
         const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
@@ -207,16 +186,15 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
         </select>
       </label>
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-custom-amount">Add specific amount (USD)
-        <input id="demo-funding-custom-amount" type="text" inputMode="decimal" autoComplete="off" placeholder="Enter the amount you want to deposit" value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
-          const dollars = event.target.value.replace(/^\$/, "");
+        <input id="demo-funding-custom-amount" type="text" inputMode="numeric" autoComplete="off" placeholder="Enter the amount you want to deposit" value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
+          const dollars = event.target.value.replace(/\D/g, "");
           setCustomAmount(dollars);
-          const cents = parseFundingDollars(dollars);
-          setAmount(cents === null ? "" : String(cents));
+          setAmount(dollars ? String(Number(dollars) * 100) : "");
         }} disabled={locked} className={styles.fundingAmountControl} />
       </label>
       </div>
     </div>
-    {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter at least $1, using no more than two decimal places and an amount that can be represented safely.</p> : null}
+    {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter a whole-dollar amount of at least $1 that can be represented safely.</p> : null}
     <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
@@ -235,7 +213,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   </form>;
 }
 
-export function DemoFundingForm({ requestKey, blocked = false, requests = noRequests, walletId = "test", savedCard = null, savedCards, cardUnavailable = false, continueTo, selectedCard, onSelectCard, onManageCards }: { requestKey: string; blocked?: boolean; requests?: DemoFundingRequest[] | null; walletId?: string; savedCard?: DemoCard | null; savedCards?: DemoCard[]; cardUnavailable?: boolean; continueTo?: ContinueDestination } & CardSelection) {
+export function DemoFundingForm({ requestKey, blocked = false, requests = noRequests, walletId = "test", savedCard = null, savedCards, cardUnavailable = false, continueTo }: { requestKey: string; blocked?: boolean; requests?: DemoFundingRequest[] | null; walletId?: string; savedCard?: DemoCard | null; savedCards?: DemoCard[]; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
   const router = useRouter();
   const storageKey = `zero-loss-demo-request:${walletId}`;
   const [successMessage, setSuccessMessage] = useState("");
@@ -253,7 +231,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     try {
       const value = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
       if (value && typeof value.key === "string" && /^[A-Za-z0-9_-]{16,128}$/.test(value.key)
-        && isFundingAmount(Number(value.amount))) saved = {
+        && isFundingAmount(Number(value.amount)) && Number(value.amount) % 100 === 0) saved = {
           key: value.key, amount: value.amount,
           initialDefault: typeof value.makeDefault === "boolean" ? value.makeDefault : undefined,
           initialToken: demoCardFixture(value.paymentMethod)?.token,
@@ -280,14 +258,13 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   return <>
     {successMessage ? <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-green-400/40 bg-green-50 px-4 py-3 text-sm font-bold text-green-800"><p role="status" className="flex-1">{successMessage}</p>{continueTo ? <Link href={continueTo.href} className="flex min-h-11 items-center rounded-lg bg-[#31e800] px-4 font-extrabold text-[#062218]">{continueTo.label ?? "Continue your entry"} →</Link> : null}<button type="button" onClick={() => document.getElementById("demo-funding-amount")?.focus()} className="min-h-11 rounded-lg border border-green-600 px-3 text-green-800">Add more funds</button></div> : null}
     <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
-    selectedCard={selectedCard} onSelectCard={onSelectCard} onManageCards={onManageCards}
     savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly} cardUnavailable={cardUnavailable}
     blocked={!attempt.ready || ((blocked || requests === null || requests.some(request => request.reconciliation !== "reconciled")) && !attempt.canRetry)} continueTo={continueTo}
     onNew={newAttempt} onSuccess={onSuccess} onStart={() => setSuccessMessage("")} />
   </>;
 }
 
-function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: ContinueDestination } & CardSelection) {
+function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: ContinueDestination }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof reconcileDemoFunding>>, form: FormData) => {
     const result = await reconcileDemoFunding(previous, form);
@@ -314,7 +291,7 @@ export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hidd
   }, [showAll]);
   const hidden = new Set(hiddenIds);
   const displayRequests = showArchived && !hideArchived ? requests : requests?.filter(request => !hidden.has(request.id));
-  return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><ContinueShoppingLink  className={styles.depositShoppingButton}>Continue shopping</ContinueShoppingLink></div>
+  return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
       : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>

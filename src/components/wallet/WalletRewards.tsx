@@ -1,4 +1,3 @@
-import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
 import Image from "next/image";
 import Link from "next/link";
 import { activityHref, isWalletReward, readyWalletRewards, walletHistoryHref, walletRewardHref, walletRewards, type AccountActivity, type ActivityItem } from "@/lib/account/activity";
@@ -135,7 +134,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           {view === "expired" ? <p className={overview.message}>Remember to check your Declined Offers page.</p> : null}
           <div className={overview.returnActions}>
             <WalletRewardLink href={view === "expired" ? accountRoutes.declinedOffers : rewardViewHrefs.all}>{view === "expired" ? "Declined Offers" : "Return to Gift Cards & Rewards"}<AccountIcon name="arrow" /></WalletRewardLink>
-            <ContinueShoppingLink>Continue Shopping<AccountIcon name="arrow" /></ContinueShoppingLink>
+            <Link href="/">Continue Shopping<AccountIcon name="arrow" /></Link>
           </div>
         </> : null}
       </section>
@@ -228,7 +227,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
           <p className={styles.readyLabel} data-unavailable={!available || (!rewardReady && !canClaim)}><span aria-hidden="true">{rewardReady || canClaim ? "✓" : "!"}</span>{rewardReady ? "Ready to use" : canClaim ? "Reward earned" : notice.title}</p>
           <h1>Your {formatUsdFromCents(item.priceCents)} {item.retailer} reward</h1>
         </div>
-        <ContinueShoppingLink  className={styles.detailShoppingButton}>Continue shopping</ContinueShoppingLink>
+        <Link href="/" className={styles.detailShoppingButton}>Continue shopping</Link>
       </header>
 
       <div className={styles.rewardSplit}>
@@ -286,7 +285,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
       </div> : null}
       <nav aria-label="Reward detail exits" className={styles.detailExitActions}>
         {item.rewardId ? <Link href={fulfillmentHref(item.rewardId)} className={styles.backToRewards}>View fulfillment status</Link> : null}
-        <ContinueShoppingLink  className={styles.detailShoppingButton}>Continue shopping</ContinueShoppingLink>
+        <Link href="/" className={styles.detailShoppingButton}>Continue shopping</Link>
         <Link href="/account/wallet" className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>
       </nav>
     </section>

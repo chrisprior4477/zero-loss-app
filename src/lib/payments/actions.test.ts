@@ -29,13 +29,6 @@ const snapshot = { walletAccountId: sid, scope: "demo", currency: "USD", balance
 function form() {
   const value = new FormData(); value.set("amountCents", "2500"); value.set("currency", "USD"); value.set("idempotencyKey", "funding_review_check_001"); value.set("paymentMethod", "demo_card_4242"); value.set("makeDefault", "true"); value.set("fundingPolicy", "funding-confirmation-v1"); return value;
 }
-
-test("confirmed funding returns to saved extra-entry checkout while rejecting foreign continuations", async () => {
-  const destination = "/account/entries/ent_11111111111111111111111111111111?quantity=21#additional-entry-checkout";
-  const f = form(); f.set("returnTo", destination);
-  await completeDemoFunding({ status: "idle" }, f);
-  expect(mocks.redirect).toHaveBeenCalledWith(destination);
-});
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubEnv("APP_DATA_ENVIRONMENT", "development-test");

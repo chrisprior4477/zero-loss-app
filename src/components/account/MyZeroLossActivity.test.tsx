@@ -59,7 +59,7 @@ test.each([
   expect(screen.getByRole("link", { name: /Purchase Options/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
   expect(screen.queryByText("Swipe or use the arrows to explore.")).toBeNull();
   expect(screen.queryByText("Every choice. Your next step, all in one place.")).toBeNull();
-  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/browse");
+  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
   rerender(<MyZeroLossActivity state={drawerState(true)} filter={filter} />);
   expect(screen.queryByRole("heading", { name: label })).toBeNull();
 });
@@ -226,12 +226,12 @@ test("demo entry reset stays available once in every activity filter, including 
   for (const filter of ["all", "active", "prize", "completion", "completed"] as const) {
     const { unmount } = render(<MyZeroLossActivity state={state} filter={filter} canClearDemoEntries />);
     expect(screen.getAllByRole("button", { name: "Clear All Entries" })).toHaveLength(1);
-    expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/browse");
+    expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
     unmount();
   }
   render(<MyZeroLossActivity state={drawerState(true)} filter="completed" canClearDemoEntries />);
   expect(screen.getByRole("button", { name: "Clear All Entries" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/browse");
+  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
 });
 
 test("Completed contains purchased options and wins, with an orange purchase label and green reward action", () => {
@@ -470,7 +470,7 @@ test("Tab and Shift+Tab wrap through the last activity exit in entry details", (
   expect(document.activeElement).toBe(returnLink);
   fireEvent.keyDown(returnLink, { key: "Tab" });
   expect(document.activeElement).toBe(close);
-  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/browse");
+  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
 });
 
 test("desktop gallery retains complete catalog names, purchase math and existing filter counts", () => {

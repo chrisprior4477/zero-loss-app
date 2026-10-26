@@ -1,16 +1,5 @@
 import { expect, test } from "vitest";
 import { accountPageReturnPath, accountReturnPath } from "./account-return";
-
-test("only a validated saved-entry quantity and funding context can survive authentication", () => {
-  const entry = "ent_11111111111111111111111111111111";
-  const saved = `/account/entries/${entry}?quantity=21#additional-entry-checkout`;
-  const funding = `/account/wallet?view=history&from=playstation-5-slim&entry=${entry}&quantity=21&resume=extra-entries#add-funds`;
-  expect(accountReturnPath(saved)).toBe(saved);
-  expect(accountReturnPath(funding)).toBe(funding);
-  expect(accountReturnPath(saved.replace("21", "0"))).toBeNull();
-  expect(accountReturnPath(`${saved}&next=https://evil.test`)).toBeNull();
-  expect(accountReturnPath(funding.replace(`&entry=${entry}`, ""))).toBeNull();
-});
 import { authNavigationHref, signInReturnPath, signupVerificationPath } from "./entry-return";
 const id = "11111111-1111-4111-8111-111111111111";
 const destinations = [

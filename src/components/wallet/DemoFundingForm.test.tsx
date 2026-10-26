@@ -5,29 +5,6 @@ vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
-test("a decimal deposit keeps its cents in the field, confirmation and submitted form", async () => {
-  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
-  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
-  const { container } = render(<DemoFundingForm requestKey="decimal_amount_check_001" />);
-  const input = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
-  fireEvent.change(input, { target: { value: "25.50" } });
-  expect(input.value).toBe("$25.50");
-  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("2550");
-  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
-  expect(screen.getByRole("dialog", { name: "Add $25.50 to your balance?" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Confirm $25.50 deposit" }));
-  await waitFor(() => expect(completeDemoFunding).toHaveBeenCalledOnce());
-  expect(vi.mocked(completeDemoFunding).mock.calls[0][1].get("amountCents")).toBe("2550");
-});
-
-test.each(["25.505", "25,50", "-25", "1e3"])("invalid amount %s remains visible and cannot open confirmation", value => {
-  render(<DemoFundingForm requestKey="decimal_amount_check_002" />);
-  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value } });
-  expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe(`$${value}`);
-  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByRole("alert").textContent).toContain("two decimal places");
-});
 test("the lower Add Card control adds and selects another sample card", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   expect(container.querySelector("#add-funds")?.contains(screen.getByLabelText("Amount (USD)"))).toBe(true);
@@ -142,7 +119,7 @@ test("custom whole-dollar amounts replace the preset and use the same confirmati
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
-  expect(custom.inputMode).toBe("decimal");
+  expect(custom.inputMode).toBe("numeric");
   expect(custom.placeholder).toBe("Enter the amount you want to deposit");
   fireEvent.change(custom, { target: { value: "500" } });
   expect(custom.value).toBe("$500");
@@ -209,11 +186,11 @@ test("failed request list is unavailable, not empty", () => {
   expect(screen.getByRole("alert").textContent).toContain("unavailable");
   expect(screen.queryByText("No payment deposits yet.")).toBeNull();
 });
-test.each(["1000", "2550"])("unavailable payment history keeps the original request and %s cents locked for safety", (amount) => {
-  sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount }));
+test("unavailable payment history keeps the original request and amount locked for safety", () => {
+  sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key: "original_request_key_01", amount: "1000" }));
   const { container } = render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" requests={null} blocked={false} />);
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("original_request_key_01");
-  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe(amount);
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("1000");
   expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy();
   expect((screen.getByLabelText("Amount (USD)") as HTMLSelectElement).disabled).toBe(true);
   expect(container.querySelector<HTMLInputElement>('[name="recoveryOnly"]')?.value).toBe("true");
@@ -389,7 +366,7 @@ test("payment deposits return to their heading when the full list is collapsed",
     render(<DemoFundingRequests fundingEnabled requests={requests} />);
     const section = screen.getByRole("region", { name: "Payment deposits" });
     const heading = screen.getByRole("heading", { name: "Payment deposits" });
-    expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/browse");
+    expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
     expect(screen.getAllByText("Payment & credit matched")).toHaveLength(5);
     fireEvent.click(screen.getByRole("button", { name: /See all 7 payment deposits/ }));
     expect(screen.getAllByText("Payment & credit matched")).toHaveLength(7);
