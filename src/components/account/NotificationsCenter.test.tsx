@@ -221,6 +221,21 @@ test("mark all read includes collapsed entries and updates their stack marker", 
   expect(screen.getByRole("article").getAttribute("data-read")).toBe("true");
 });
 
+test("stack numbers use saved entry order even when activity arrives newest first", async () => {
+  const state = storedActivityFixture();
+  const product = state.activity[0];
+  const ids = ["ent_a", "ent_b", "ent_c", "ent_d", "ent_e"];
+  const dates = ["2026-10-23T21:48:00Z", "2026-10-23T21:48:00Z", "2026-10-24T12:00:00Z", "invalid", null];
+  state.activity = ids.map((entryId, index) => ({ ...product, entryId, enteredAt: dates[index] })).reverse();
+  const notifications = buildAccountNotifications(state, null, true);
+  render(<NotificationsCenter notifications={notifications} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+  fireEvent.click(screen.getByRole("button", { name: `See all 5 entries for ${product.title}` }));
+  ids.forEach((id, index) => expect(screen.getByRole("link", { name: `See entry ${index + 1} for ${product.title}` }).getAttribute("href")).toBe(`/account/entries/${id}`));
+  fireEvent.click(screen.getByRole("link", { name: `See entry 2 for ${product.title}` }));
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["active-ent_b"]));
+  await waitFor(() => expect(actionMocks.push).toHaveBeenCalledWith("/account/entries/ent_b"));
+});
+
 test("show more reveals the remaining records and filters retain their full counts", async () => {
   const transactions = Array.from({ length: 15 }, (_, index): AccountNotification => ({
     id: `wallet-${index}`, category: "activity", tone: "wallet", title: `Transaction ${index}`, body: "Funds posted.",

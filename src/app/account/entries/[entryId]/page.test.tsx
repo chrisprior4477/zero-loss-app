@@ -2,6 +2,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import EntryPage from "./page";
 import { prizeNumberForSlug } from "@/lib/catalog/prize-number";
+import { buildAccountNotifications } from "@/lib/account/notifications";
+import { groupNotifications } from "@/lib/account/notification-groups";
 
 const mocks = vi.hoisted(() => ({
   account: vi.fn(), availability: vi.fn(), progress: vi.fn(), createClient: vi.fn(),
@@ -86,6 +88,20 @@ test("a bookmarked entry opens its own numbered ticket without extra query param
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }) }));
   expect(screen.getByRole("article", { name: "Entry 3 of 5" })).toBeTruthy();
   expect(screen.queryByRole("article", { name: "Entry 1 of 5" })).toBeNull();
+});
+
+test("a numbered notification entry opens the same numbered saved ticket", async () => {
+  const account = await mocks.account();
+  // Same-time entries are common in multi-entry purchases; source order is newest first.
+  account.activity.activity = [...activity].reverse().map(entry => ({ ...entry, enteredAt: activity[0].enteredAt }));
+  mocks.account.mockResolvedValue(account);
+  const notifications = buildAccountNotifications(account.activity, null, true);
+  const stack = groupNotifications(notifications).find(group => group.key === "entries:playstation-5-slim")!;
+  const second = stack.notifications[1];
+  expect(second.entryId).toBe(ids[1]);
+  render(await EntryPage({ params: Promise.resolve({ entryId: second.entryId! }) }));
+  const selected = screen.getByRole("article", { name: "Entry 2 of 5" });
+  expect(within(selected).getByRole("button", { name: `Copy full entry number ${ids[1]}` })).toBeTruthy();
 });
 
 test("an unavailable account read offers a full retry instead of falsely reporting a missing entry", async () => {

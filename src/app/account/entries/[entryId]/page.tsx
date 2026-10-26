@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
 import { activityHref } from "@/lib/account/activity";
+import { compareSavedEntries } from "@/lib/account/entry-order";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { activityOfferMetrics } from "@/lib/account/activity-progress";
@@ -21,11 +22,6 @@ import { getEntryRequestHead } from "@/lib/entries/request-head";
 import styles from "@/components/account/entry-page.module.css";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
-
-function enteredTime(value: string | null | undefined): number {
-  const time = value ? Date.parse(value) : NaN;
-  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
-}
 
 export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string }> }) {
   const { entryId } = await params;
@@ -51,8 +47,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   if (item.status !== "active") redirect(activityHref(item));
   const relatedEntries = account.activity.activity
     .filter(entry => entry.status === "active" && entry.slug === item.slug && entry.entryId)
-    .sort((left, right) => enteredTime(left.enteredAt) - enteredTime(right.enteredAt)
-      || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
+    .sort(compareSavedEntries);
   const entryCount = relatedEntries.length;
   const entryView = (await searchParams)?.entries;
   const savedTickets = relatedEntries.map((entry, index) => ({

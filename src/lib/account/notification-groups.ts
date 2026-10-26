@@ -1,4 +1,5 @@
 import type { AccountNotification } from "./notifications";
+import { compareSavedEntries } from "./entry-order";
 
 export type NotificationGroup = {
   key: string;
@@ -16,5 +17,8 @@ export function groupNotifications(notifications: readonly AccountNotification[]
     if (group) group.notifications.push(notification);
     else groups.set(key, { key, notifications: [notification] });
   }
-  return [...groups.values()];
+  return [...groups.values()].map(group => {
+    if (group.key.startsWith("entries:")) group.notifications.sort(compareSavedEntries);
+    return group;
+  });
 }

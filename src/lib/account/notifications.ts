@@ -24,6 +24,7 @@ export type AccountNotification = {
   itemSlug?: string;
   itemTitle?: string;
   entryId?: string | null;
+  enteredAt?: string | null;
   rewardSource?: "winner" | "purchase" | null;
   ledgerEntryType?: string;
   /** Completed account actions remain in history but need no acknowledgement. */
@@ -185,7 +186,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
   const activityPriority = { prize: 0, completion: 1, active: 2, completed: 3 } as const;
   const notifications: AccountNotification[] = activity.source === "unavailable" ? [] : [...activity.activity]
     .sort((left, right) => activityPriority[left.status] - activityPriority[right.status])
-    .map(item => ({ ...activityNotification(item), itemSlug: item.slug, itemTitle: item.title, entryId: item.entryId, rewardSource: item.rewardSource,
+    .map(item => ({ ...activityNotification(item), itemSlug: item.slug, itemTitle: item.title, entryId: item.entryId, enteredAt: item.enteredAt, rewardSource: item.rewardSource,
       resolved: (item.rewardStatus === "ready" && Boolean(item.rewardClaimedAt || item.rewardSource === "purchase" || item.status === "completed")) || item.completionOptionStatus === "purchased" }));
   if (activity.source !== "unavailable") {
     const now = Date.now();
