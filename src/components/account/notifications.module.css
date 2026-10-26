@@ -50,11 +50,12 @@
 .sharingLink svg { width: 18px; height: 18px; }
 .settingsBlock > h2 { margin-top: 22px; font-size: clamp(23px, 2.5vw, 32px); font-weight: 850; }
 .settingsBlock > p { margin: 4px 0 16px; color: #c8d8f5; font-size: 14px; }
-.preferenceSection { padding: clamp(16px, 2vw, 26px); border: 1px solid #4e94c6; border-radius: 18px; background: #092d56; }
+.preferenceSection { padding: clamp(20px, 2vw, 26px); border: 0; border-radius: 0; background: #092d56; }
+.settingsBlock > section[data-placement="account"] { border: 0; border-radius: 0; }
 .preferenceSection h2 { font-size: clamp(23px, 2.5vw, 32px); font-weight: 850; }
 .preferenceSection > p { margin: 5px 0 16px; color: #c8d8f5; font-size: 14px; line-height: 1.4; }
 .preferenceGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.preferenceChoice { display: flex; min-height: 78px; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 17px; border: 1px solid #a6d6ef; border-radius: 12px; color: #0b1c4d; background: #fffdfa; cursor: pointer; }
+.preferenceChoice { display: flex; min-height: 78px; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 17px; border: 0; border-radius: 0; color: #0b1c4d; background: #fffdfa; cursor: pointer; }
 .preferenceChoice span { display: grid; gap: 3px; }
 .preferenceChoice strong { font-size: 16px; line-height: 1.2; }
 .preferenceChoice small { color: #486288; font-size: 12px; line-height: 1.25; }
@@ -95,7 +96,7 @@
 .stack[data-stacked="true"] { padding-bottom: 9px; }
 .stack[data-stacked="true"]::before, .stack[data-stacked="true"]::after { content: ""; position: absolute; inset: 5px 8px 4px; background: #a9c8db; pointer-events: none; }
 .stack[data-stacked="true"]::before { inset: 9px 15px 0; background: #5788ac; }
-.notification, .empty, .stack::before, .stack::after {
+.notification, .empty, .stack::before, .stack::after, .preferenceSection, .preferenceChoice, .settingsBlock > section[data-placement="account"] {
   --corner-scoop: 14px;
   --side-scoop: 12px;
   -webkit-mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
@@ -103,6 +104,7 @@
   mask-image: radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side-scoop) at 100% 50%, transparent 99%, #000 103%);
   mask-composite: intersect;
 }
+.preferenceSection, .settingsBlock > section[data-placement="account"] { --corner-scoop: 18px; }
 .notification { position: relative; z-index: 1; padding: 16px 22px; color: #0b1c4d; background: #fffdfa; }
 .notification[data-read="true"] { background: #eaf1f6; }
 .notification[data-emphasis="email"] { background: #e3f4fc; }
@@ -148,8 +150,8 @@
 .entryCopy span, .entryCopy small { color: #486288; font-size: 11px; overflow-wrap: anywhere; }
 .entryLink { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; min-height: 44px; color: #005fc2; font-size: 12px; font-weight: 800; text-decoration: none; }
 .entryLink:hover { text-decoration: underline; }
-.showMore { display: flex; justify-content: center; align-items: center; gap: 9px; min-height: 48px; margin-top: 5px; padding: 10px; border: 1px solid #70c7f5; border-radius: 9px; color: #dcf7ff; background: #0b4168; font-size: 14px; font-weight: 750; }
-.showMore:hover { background: #125479; }
+.showMore { display: flex; justify-content: center; align-items: center; gap: 9px; min-height: 48px; margin-top: 5px; padding: 10px; border: 1px solid #ff7900; border-radius: 9px; color: #071c38; background: #ff7900; font-size: 14px; font-weight: 750; }
+.showMore:hover { background: #ff9638; }
 .empty { display: grid; min-height: 240px; place-items: center; align-content: center; padding: 30px; color: #112254; background: #fffdfa; text-align: center; }
 .empty > span { display: grid; width: 56px; height: 56px; place-items: center; border-radius: 14px; color: #006dff; background: #dcf0ff; }
 .empty h2 { margin-top: 14px; font-size: 22px; font-weight: 850; }
