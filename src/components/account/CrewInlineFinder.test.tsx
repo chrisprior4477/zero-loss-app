@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 const actions = vi.hoisted(() => ({ searchCrewByName: vi.fn(), inviteToCrew: vi.fn(), inviteToCrewByPhone: vi.fn(), inviteToCrewById: vi.fn() }));
 vi.mock("@/lib/crew/actions", () => actions);
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} /> }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { CrewInlineFinder } from "./CrewInlineFinder";
 
 beforeEach(() => {
@@ -31,8 +32,8 @@ test("only explicit Add to Crew sends the request and locks the form while sendi
   expect((screen.getByLabelText("Name, email, or phone") as HTMLInputElement).disabled).toBe(true);
   expect(actions.inviteToCrewByPhone).toHaveBeenCalledExactlyOnceWith("+1 239 555 0123");
   finish({ ok: true, message: "Request saved." });
-  await screen.findByRole("button", { name: "Requested" });
-  expect((screen.getByRole("button", { name: "Requested" }) as HTMLButtonElement).disabled).toBe(true);
+  await screen.findByRole("button", { name: "Saved" });
+  expect((screen.getByRole("button", { name: "Saved" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
 test("invalid contact input does not create a request target", () => {

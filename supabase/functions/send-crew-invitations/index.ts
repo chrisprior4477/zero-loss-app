@@ -122,7 +122,7 @@ Deno.serve(async request => {
         continue;
       }
       const message = renderCrewInvitationEmail({
-        senderName: String(payload.requesterName), reviewHref: crewInvitationReviewHref(origin, delivery.invitation_id),
+        senderName: String(payload.requesterName), automatic: payload.automatic === true, reviewHref: crewInvitationReviewHref(origin, delivery.invitation_id),
       });
       const providerMessageId = await sendMessage(account.user.email, message.subject, message.html, message.text,
         `zero-loss-crew-invitation-${delivery.id}`);

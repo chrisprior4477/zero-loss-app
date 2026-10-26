@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CrewInvitationPrompt } from "./CrewInvitationPrompt";
-const mocks = vi.hoisted(() => ({ respond: vi.fn(), refresh: vi.fn() }));
-vi.mock("@/lib/crew/actions", () => ({ respondToCrewRequest: mocks.respond }));
+const mocks = vi.hoisted(() => ({ respond: vi.fn(), leave: vi.fn(), shareBack: vi.fn(), refresh: vi.fn() }));
+vi.mock("@/lib/crew/actions", () => ({ respondToCrewRequest: mocks.respond, removeCrewConnection: mocks.leave, setCrewShareBack: mocks.shareBack }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
 const invitation = { id: "11111111-1111-4111-8111-111111111111", name: "Alex", status: "pending" as const };
 beforeEach(() => {
@@ -37,6 +37,16 @@ test("missing or already handled invitations cannot be accepted", () => {
   expect(screen.queryByRole("button", { name: "Join Crew" })).toBeNull();
   expect(screen.getByText(/account that received the email/)).toBeTruthy();
   rerender(<CrewInvitationPrompt key="accepted" invitation={{ ...invitation, status: "accepted" }} />);
-  expect(screen.getByRole("heading", { name: "You’re already connected" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "You’re connected" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Join Crew" })).toBeNull();
+});
+
+test("an automatic connection can be left without approving or sharing back", async () => {
+ mocks.leave.mockResolvedValue({ok:true,message:"Connection removed."});
+ render(<CrewInvitationPrompt invitation={{...invitation,status:"accepted"}} />);
+ expect(mocks.shareBack).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByRole("button",{name:"Leave connection"}));
+ await waitFor(()=>expect(mocks.leave).toHaveBeenCalledExactlyOnceWith(invitation.id));
+ expect(await screen.findByRole("status")).toHaveProperty("textContent","Connection removed.");
+ expect(mocks.respond).not.toHaveBeenCalled();
 });

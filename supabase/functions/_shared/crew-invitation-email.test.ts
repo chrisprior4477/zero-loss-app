@@ -25,3 +25,11 @@ describe("Crew invitation email", () => {
     expect(() => crewInvitationReviewHref("https://mvp.getzeroloss.com", "not-an-id")).toThrow();
   });
 });
+
+it("automatic connection email explains leaving and never asks for approval", () => {
+ const mail=renderCrewInvitationEmail({senderName:"Alex",reviewHref:"https://mvp.getzeroloss.com/account/crew",automatic:true});
+ expect(mail.subject).toBe("Alex is now in your Zero Loss Crew");
+ expect(mail.text).toContain("leave the connection at any time");
+ expect(mail.html).toContain("Manage Crew connection");
+ expect(mail.text).not.toContain("approve or decline");
+});

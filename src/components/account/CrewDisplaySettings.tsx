@@ -135,7 +135,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
         setGroupMessage("");
         setPersistedGroupIds(current => new Set([...current, group.id]));
         setExpandedGroupId(null);
-        setGroupMessage(`${name} saved to your profile · ${group.memberIds.length} approved members · ${group.contacts?.length ?? 0} saved contacts.`);
+        setGroupMessage(`${name} saved to your profile · ${group.memberIds.length} connected members · ${group.contacts?.length ?? 0} saved contacts.`);
         setGroupMessageError(false);
         router.refresh();
       }
@@ -192,7 +192,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     <div className={styles.shell}>
       {!embedded ? <>
       {!withinAccountSettings ? <nav className={styles.crumbs} aria-label="Breadcrumb"><Link href="/account/crew">Your Crew</Link><span aria-hidden="true">›</span><span>How to display my picks</span></nav> : null}
-      <header className={styles.heading}><span>YOUR CREW · SHARING CONTROLS</span>{withinAccountSettings ? <h2>How to display my picks</h2> : <h1>How to display my picks</h1>}<p>Decide who can find you, then choose which approved Crew members see each pick.</p></header>
+      <header className={styles.heading}><span>YOUR CREW · SHARING CONTROLS</span>{withinAccountSettings ? <h2>How to display my picks</h2> : <h1>How to display my picks</h1>}<p>Decide who can find you, then choose which connected Crew members see each pick.</p></header>
       </> : null}
       {!available ? <p role="alert" className={styles.unavailable}>Sharing settings are temporarily unavailable. Nothing has been changed.</p> : null}
 
@@ -202,25 +202,25 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
       </section> : null}
 
       {section !== "groups" ? <section className={styles.ticket} aria-labelledby="default-title">
-        <div className={styles.sectionHead}><span className={styles.step}>02</span><div><h2 id="default-title">Who sees my shared picks by default?</h2><p>This applies to picks you share unless you make a different choice for an individual pick below. Nobody outside your approved Crew can see them.</p></div></div>
+        <div className={styles.sectionHead}><span className={styles.step}>02</span><div><h2 id="default-title">Who sees my shared picks by default?</h2><p>This applies to picks you share unless you make a different choice for an individual pick below. Nobody outside your connected Crew can see them.</p></div></div>
         <div className={styles.audienceGrid} role="radiogroup" aria-label="Default pick audience">
           {(["everyone", "people", "groups"] as const).map((audience) => <label key={audience} className={styles.audienceOption} data-selected={defaultRule.audience === audience}>
             <input type="radio" name="default-audience" checked={defaultRule.audience === audience} onChange={() => { setDefaultRule(withAudience(defaultRule, audience)); setSaved(false); }} />
             <strong>{audienceLabels[audience]}</strong>
-            <small>{audience === "everyone" ? "Every approved Crew connection" : audience === "people" ? "Choose individual connections" : "Use your custom groups"}</small>
+            <small>{audience === "everyone" ? "Every connected Crew connection" : audience === "people" ? "Choose individual connections" : "Use your custom groups"}</small>
           </label>)}
         </div>
         <AudienceTargets rule={defaultRule} onChange={(rule) => { setDefaultRule(rule); setSaved(false); }} members={members} groups={groups} prefix="default" />
       </section> : null}
 
       {section !== "privacy" ? <section id="crew-groups" className={styles.ticket} aria-labelledby="groups-title">
-        <div className={styles.sectionHead}><span className={styles.step}>03</span><div><h2 id="groups-title">Make your own groups</h2><p>Create several groups—Family, Friends, or any name you choose—and decide which approved Crew members belong in each.</p></div></div>
+        <div className={styles.sectionHead}><span className={styles.step}>03</span><div><h2 id="groups-title">Make your own groups</h2><p>Create several groups—Family, Friends, or any name you choose—and decide which connected Crew members belong in each.</p></div></div>
         <div className={styles.groupArea}>
           <div className={styles.groupListHeading}><strong>Your groups</strong><span>{groups.length} {groups.length === 1 ? "group" : "groups"}</span></div>
           {groups.length ? <div className={styles.groupList}>{groups.map((group) => {
             const expanded = expandedGroupId === group.id;
             return <div id={`crew-group-${group.id}`} key={group.id} className={styles.groupRow}>
-              <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} approved members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={`crew-group-editor-${group.id}`} onClick={() => setExpandedGroupId(expanded ? null : group.id)}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
+              <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={`crew-group-editor-${group.id}`} onClick={() => setExpandedGroupId(expanded ? null : group.id)}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
               {expanded ? <div id={`crew-group-editor-${group.id}`} className={styles.groupEditor}>
                 <label className={styles.groupName}>Group name<input value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setSaved(false); }} /></label>
                 <div className={styles.memberEditor}>
@@ -229,8 +229,8 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
                     const member = members.find((item) => item.id === id);
                     return <span className={styles.memberChip} key={id}>{member?.name ?? "Former member"}<button type="button" disabled={!available || pending} onClick={() => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, memberIds: item.memberIds.filter((value) => value !== id) } : item)); setSaved(false); }} aria-label={`Remove ${member?.name ?? "former member"} from ${group.name}`}>Remove</button></span>;
                   })}</div> : null}
-                  <div className={styles.memberPickerHeading}><strong>Add people</strong><span>Choose approved Crew members.</span></div>
-                  <div className={styles.targets}>{members.length ? members.filter((member) => !group.memberIds.includes(member.id)).map((member) => <button type="button" key={member.id} className={styles.addMember} disabled={!available || pending} onClick={() => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, memberIds: [...item.memberIds, member.id] } : item)); setSaved(false); }}>+ Add {member.name}</button>) : <span className={styles.emptyTargets}>No approved Crew members yet. Add a contact below to get started.</span>}</div>
+                  <div className={styles.memberPickerHeading}><strong>Add people</strong><span>Choose connected Crew members.</span></div>
+                  <div className={styles.targets}>{members.length ? members.filter((member) => !group.memberIds.includes(member.id)).map((member) => <button type="button" key={member.id} className={styles.addMember} disabled={!available || pending} onClick={() => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, memberIds: [...item.memberIds, member.id] } : item)); setSaved(false); }}>+ Add {member.name}</button>) : <span className={styles.emptyTargets}>No connected Crew members yet. Add a contact below to get started.</span>}</div>
                 </div>
                 <CrewGroupContacts contacts={group.contacts ?? []} disabled={!available || pending} onChange={contacts => { setGroups(current => current.map(item => item.id === group.id ? { ...item, contacts } : item)); setSaved(false); setEditorMessage(null); }} />
                 <div className={styles.groupActions}><button type="button" className={styles.removeGroup} onClick={() => removeGroup(group)} disabled={!available || pending}>Remove group</button><button type="button" className={styles.saveGroup} onClick={() => saveGroup(group)} disabled={!available || pending}>{pending ? "Saving…" : "Save group"}</button></div>

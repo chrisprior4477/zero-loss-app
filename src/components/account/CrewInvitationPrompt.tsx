@@ -5,7 +5,7 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { respondToCrewRequest } from "@/lib/crew/actions";
+import { respondToCrewRequest, removeCrewConnection, setCrewShareBack } from "@/lib/crew/actions";
 import { containDialogTab } from "./dialog-keyboard";
 import styles from "@/components/product/post-entry-crew-toast.module.css";
 
@@ -39,20 +39,28 @@ export function CrewInvitationPrompt({ invitation, unavailable = false }: { invi
     catch { setResult({ ok: false, message: "We couldn’t confirm your response. Please try again or review your Crew requests." }); }
     finally { pending.current = false; setBusy(false); }
   }
+  async function changeConnection(leave: boolean) {
+    if (!request || pending.current) return;
+    pending.current = true; setBusy(true); setResult(null);
+    try { setResult(await (leave ? removeCrewConnection(request.id) : setCrewShareBack(request.id, true))); }
+    catch { setResult({ ok: false, message: "We couldn’t confirm that change. Please try again." }); }
+    finally { pending.current = false; setBusy(false); }
+  }
   if (!open) return null;
   const canRespond = request?.status === "pending" && !result?.ok;
   return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); close(); }}>
     <div className={styles.paper}>
       <div className={styles.top}><p className={styles.eyebrow}>PRIVATE CREW INVITATION</p><button type="button" className={styles.close} aria-label="Close Crew invitation" onClick={close} disabled={busy}>×</button></div>
-      <h2 ref={heading} tabIndex={-1} id={`${id}-title`}>{result?.ok ? "Crew request updated" : request?.status === "pending" ? `Join ${request.name}’s Crew?` : request?.status === "accepted" ? "You’re already connected" : "Review your Crew invitation"}</h2>
+      <h2 ref={heading} tabIndex={-1} id={`${id}-title`}>{result?.ok ? "Crew updated" : request?.status === "pending" ? `Join ${request.name}’s Crew?` : request?.status === "accepted" ? "You’re connected" : "Review your Crew invitation"}</h2>
       {canRespond ? <>
         <p className={styles.messagePreview}>{request.name} invited you to connect on Zero Loss. Your past entries, wallet, and payment details won’t be shared.</p>
         <button type="button" className={styles.primary} disabled={busy} onClick={() => void respond(true)}>{busy ? "Saving…" : "Join Crew"}</button>
         <button type="button" disabled={busy} onClick={() => void respond(false)}>Decline invitation</button>
       </> : !result?.ok ? <p className={styles.note}>{request?.status === "accepted" ? `You and ${request.name} are already in each other’s Crew.` : "This invitation isn’t available for this account. Sign in with the account that received the email, or check your Crew requests."}</p> : null}
+      {request?.status === "accepted" && !result?.ok ? <><p className={styles.note}>Choose whether to share your own picks back, or leave this connection at any time.</p><button type="button" disabled={busy} onClick={() => void changeConnection(false)}>Allow my shared picks</button><button type="button" disabled={busy} onClick={() => void changeConnection(true)}>Leave connection</button></> : null}
       {result ? <p role={result.ok ? "status" : "alert"} className={`${styles.feedback} ${result.ok ? "" : styles.error}`}>{result.message}</p> : null}
       <button type="button" className={styles.later} onClick={close} disabled={busy}>{result?.ok || !canRespond ? "Done" : "Not now"}</button>
-      <Link className={styles.manage} href="/account/crew?tab=requests" onClick={event => { if (busy) event.preventDefault(); else close(); }}>View all Crew requests →</Link>
+      <Link className={styles.manage} href={request?.status === "pending" ? "/account/crew?tab=requests" : "/account/crew"} onClick={event => { if (busy) event.preventDefault(); else close(); }}>View your Crew →</Link>
       <p className={styles.privacy}>Only picks you choose to share become visible to your Crew.</p>
     </div>
   </dialog>;

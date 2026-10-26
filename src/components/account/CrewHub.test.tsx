@@ -16,6 +16,7 @@ const actions = vi.hoisted(() => ({
   setCrewDiscoverable: vi.fn(),
   setEntryCrewSharing: vi.fn(),
   getCrewSharedPicks: vi.fn(),
+  setCrewShareBack: vi.fn(),
   requestCrewInvitationFromLink: vi.fn(),
   saveCrewGroup: vi.fn(),
   saveCrewDisplaySettings: vi.fn(),
@@ -26,6 +27,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role={alt ? "img" : undefined} aria-label={alt || undefined} /> }));
 
 beforeEach(() => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   localStorage.clear();
   vi.clearAllMocks();
   actions.searchCrewByName.mockResolvedValue({ ok: true, message: "Choose someone to send a Crew request.", people: [{ memberId: "33333333-3333-4333-8333-333333333333", name: "Sam Test", avatarUrl: null }] });
@@ -75,7 +77,7 @@ test.each([false, true])("Add to Your Crew opens one focused search without send
   render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
   expect(screen.queryByRole("searchbox")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Add to Your Crew" }));
-  expect(document.activeElement).toBe(screen.getByRole("searchbox", { name: "Name, email address, or phone number" }));
+  expect(document.activeElement).toBe(screen.getByRole("searchbox", { name: "Name, email, or phone" }));
   expect(screen.queryByRole("region", { name: "Approved Crew" })).toBeNull();
   expect(screen.queryByRole("textbox", { name: "Invite by email" })).toBeNull();
   expect(actions.inviteToCrew).not.toHaveBeenCalled();
@@ -90,10 +92,10 @@ test("the four legacy homepage sample additions appear in the account carousel, 
   }
   expect(screen.getByText("4 sample previews")).toBeTruthy();
   expect(screen.getByText("0 connected")).toBeTruthy();
-  expect(screen.getByText(/fictional.*no invitations sent/i)).toBeTruthy();
+  expect(screen.getByText("SAMPLE PROFILE")).toBeTruthy();
   expect(await screen.findByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "See Maya's sample shared activity" }));
-  expect(screen.queryByRole("region", { name: "Maya's shared activity" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "See Maya's sample shared activity" }));
   expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
@@ -125,22 +127,22 @@ test("every sample clearly highlights the selected person and matches the shared
     const personButton = await screen.findByRole("button", { name: `See ${name}'s sample shared activity` });
     if (personButton.getAttribute("aria-expanded") !== "true") fireEvent.click(personButton);
     const panel = screen.getByRole("region", { name: `${name}'s shared activity` });
-    expect(panel.className).toContain("connectedOutline");
-    expect(panel.textContent).toContain(`Viewing ${name}'s picks`);
+    expect(panel.className).toContain("activityPanel");
+    expect(panel.textContent).toContain(`${name}’s shared picks`);
     expect(personButton.getAttribute("aria-expanded")).toBe("true");
-    expect(personButton.parentElement?.className).toContain("personSelected");
+    expect(personButton.getAttribute("data-selected")).toBe("true");
   }
-  fireEvent.click(screen.getByRole("button", { name: "Requests" }));
+  fireEvent.click(screen.getByRole("button", { name: "Groups" }));
   expect(screen.queryByRole("region", { name: "Leo's shared activity" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Your Crew" }));
+  fireEvent.click(screen.getByRole("button", { name: "Your People" }));
   expect(screen.getByRole("region", { name: "Leo's shared activity" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: /Close/ }));
-  expect(screen.queryByRole("region", { name: "Leo's shared activity" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "See Leo's sample shared activity" }));
+  expect(screen.getByRole("region", { name: "Leo's shared activity" })).toBeTruthy();
   expect(actions.removeCrewConnection).not.toHaveBeenCalled();
   expect(actions.setEntryCrewSharing).not.toHaveBeenCalled();
 });
 
-test("a personal invite link is copyable and an incoming link sends an approval request", async () => {
+test("a personal invite link is copyable and an incoming link joins through the saved action", async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
   render(<CrewHub currentUserId="11111111-1111-4111-8111-111111111111" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" ownInviteToken="11111111-2222-4333-8444-555555555555" incomingInviteToken="22222222-3333-4444-8555-666666666666" />);
@@ -148,9 +150,9 @@ test("a personal invite link is copyable and an incoming link sends an approval 
   fireEvent.click(screen.getByText("Invite with your personal link"));
   fireEvent.click(screen.getByRole("button", { name: "Copy invite link" }));
   await waitFor(() => expect(writeText).toHaveBeenCalledWith("http://localhost:3000/account/crew?invite=11111111-2222-4333-8444-555555555555"));
-  fireEvent.click(screen.getByRole("button", { name: "Request to join" }));
+  fireEvent.click(screen.getByRole("button", { name: "Join Crew" }));
   await waitFor(() => expect(actions.requestCrewInvitationFromLink).toHaveBeenCalledWith("22222222-3333-4444-8555-666666666666"));
-  expect(await screen.findByRole("button", { name: "Request sent" })).toBeTruthy();
+  expect(await screen.findByRole("button", { name: "Joined" })).toBeTruthy();
   Reflect.deleteProperty(navigator, "clipboard");
 });
 
@@ -176,7 +178,7 @@ test("the account Crew section expands approved people's activity in place", asy
   expect(screen.getByRole("button", { name: "Add to Your Crew" })).toBeTruthy();
   expect(screen.queryByRole("searchbox")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Add people" }));
-  expect(screen.getByRole("searchbox", { name: "Name, email address, or phone number" })).toBeTruthy();
+  expect(screen.getByRole("searchbox", { name: "Name, email, or phone" })).toBeTruthy();
   expect(screen.queryByText(/fictional click-through/i)).toBeNull();
   expect(screen.queryByText(/Maya’s shared picks|Daniel’s shared picks/)).toBeNull();
   expect(screen.queryByRole("button", { name: /find people/i })).toBeNull();
@@ -190,7 +192,7 @@ test("name search requests an actual database-backed invitation", async () => {
   expect(await screen.findByText("Sam Test")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Add to Crew" }));
   await waitFor(() => expect(actions.inviteToCrewById).toHaveBeenCalledWith("33333333-3333-4333-8333-333333333333"));
-  expect(await screen.findByRole("button", { name: "Requested" })).toBeTruthy();
+  expect(await screen.findByRole("button", { name: "Added" })).toBeTruthy();
 });
 
 test("phone contacts fill the fields only after selection; sending still needs a separate click", async () => {
@@ -203,7 +205,7 @@ test("phone contacts fill the fields only after selection; sending still needs a
   expect((screen.getByRole("textbox", { name: "Invite by verified phone" }) as HTMLInputElement).value).toBe("+1 555 123 4567");
   expect(actions.inviteToCrew).not.toHaveBeenCalled();
   expect(actions.inviteToCrewByPhone).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Send Crew request by email" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add to Crew by email" }));
   await waitFor(() => expect(actions.inviteToCrew).toHaveBeenCalledWith("pat@example.com"));
   Reflect.deleteProperty(navigator, "contacts");
 });
@@ -230,9 +232,9 @@ test.each([["pat@example.test", "inviteToCrew"], ["+1 (202) 555-0123", "inviteTo
   expect(actions[action]).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Add to Crew" }));
   await waitFor(() => expect(actions[action]).toHaveBeenCalledExactlyOnceWith(value));
-  expect((await screen.findByRole("button", { name: "Requested" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((await screen.findByRole("button", { name: "Added" }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(input, { target: { value: "someone-else@example.test" } });
-  expect(screen.queryByRole("button", { name: "Requested" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Added" })).toBeNull();
 });
 
 test("groups and privacy share the same editor state across compact navigation", async () => {
@@ -246,12 +248,14 @@ test("groups and privacy share the same editor state across compact navigation",
   fireEvent.click(screen.getByRole("button", { name: /Create group/ }));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await screen.findByText(/Family saved to your profile/);
-  fireEvent.click(nav.getByRole("button", { name: "Privacy" }));
+  if (!screen.queryByRole("button", { name: "Privacy Settings" })) fireEvent.click(nav.getByRole("button", { name: "More" }));
+  fireEvent.click(nav.getByRole("button", { name: "Privacy Settings" }));
   expect(screen.queryByRole("heading", { name: "Make your own groups" })).toBeNull();
   fireEvent.click(screen.getByRole("radio", { name: /Only selected groups/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Family" }));
-  fireEvent.click(nav.getByRole("button", { name: "Your Crew" }));
-  fireEvent.click(nav.getByRole("button", { name: "Privacy" }));
+  fireEvent.click(nav.getByRole("button", { name: "Your People" }));
+  if (!screen.queryByRole("button", { name: "Privacy Settings" })) fireEvent.click(nav.getByRole("button", { name: "More" }));
+  fireEvent.click(nav.getByRole("button", { name: "Privacy Settings" }));
   expect((screen.getByRole("checkbox", { name: "Family" }) as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(actions.saveCrewDisplaySettings).toHaveBeenCalledOnce());
@@ -276,7 +280,7 @@ test("sample lookup reopens the same person rather than toggling their picks off
   await screen.findByRole("region", { name: "Maya's shared activity" });
   fireEvent.click(screen.getByRole("button", { name: "Add people" }));
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Maya" } });
-  fireEvent.click(screen.getByRole("button", { name: "Find person" }));
-  fireEvent.click(await screen.findByRole("button", { name: "View sample picks" }));
+  fireEvent.click(screen.getByRole("button", { name: "Find" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Add sample" }));
   expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
 });

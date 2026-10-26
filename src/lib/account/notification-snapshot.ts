@@ -13,7 +13,7 @@ export const getNotificationSnapshot = cache(async () => {
   const db = await createClient();
   const supportEnabled = true;
   const [crew, support, visibility, alertPreferences, shares, orders] = await Promise.all([
-    db.from("crew_invitations").select("id,requester_name,created_at").eq("recipient_id", account.userId).eq("status", "pending").order("created_at", { ascending: false }),
+    db.from("crew_invitations").select("id,requester_name,created_at,status,automatic_connection").eq("recipient_id", account.userId).or("status.eq.pending,and(status.eq.accepted,automatic_connection.eq.true)").order("created_at", { ascending: false }),
     // Keep explicit ownership even for members who can staff the support inbox.
     db.from("support_cases").select("id,subject,status,updated_at").eq("customer_id", account.userId).order("updated_at", { ascending: false }).limit(50),
     account.wallet?.scope === "demo" ? db.rpc("get_demo_wallet_history_visibility") : Promise.resolve(null),
@@ -35,15 +35,15 @@ export const getNotificationSnapshot = cache(async () => {
   const crewNotifications = (crewRequests ?? []).filter(request => afterReset(request.created_at)).map((request) => ({
     id: `crew-${request.id}`,
     category: "crew" as const,
-    title: `${request.requester_name} wants to join your Crew`,
-    body: "Approve or decline this request. Accepting never shares your past entries automatically.",
-    meta: "Crew request",
-    href: `/account/crew?tab=requests&request=${request.id}#crew-request-${request.id}`,
-    action: "Review request",
+    title: request.automatic_connection ? `${request.requester_name} is now in your Crew` : `${request.requester_name} wants to join your Crew`,
+    body: request.automatic_connection ? "Receive shared finds, choose whether to share back, or leave this connection." : "Approve or decline this request. Accepting never shares your past entries automatically.",
+    meta: request.automatic_connection ? "Crew connection" : "Crew request",
+    href: request.automatic_connection ? `/account/crew?request=${request.id}` : `/account/crew?tab=requests&request=${request.id}#crew-request-${request.id}`,
+    action: request.automatic_connection ? "Manage connection" : "Review request",
     visualLabel: "Your Crew",
-    visualValue: "Approval needed",
+    visualValue: request.automatic_connection ? "Connected" : "Approval needed",
     tone: "crew" as const,
-    crewRequestId: request.id,
+    crewRequestId: request.automatic_connection ? undefined : request.id,
     preferenceKey: "crew_updates" as const,
   }));
   const sharedNotifications = (Array.isArray(shares.data) ? shares.data : []).filter(share => afterReset(share.createdAt)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "An item shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared with You", href: `/account/favorites?tab=shared&share=${encodeURIComponent(share.id)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));

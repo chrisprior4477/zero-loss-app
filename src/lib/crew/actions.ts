@@ -153,9 +153,9 @@ export async function inviteToCrew(email: string): Promise<CrewActionResult> {
     return { ok: false, message: "That’s the email for your current account. Choose someone else to add to your Crew; no invitation was sent." };
   }
   const { error } = await session.db.rpc("request_crew_invitation", { p_email: cleanEmail });
-  if (error) return { ok: false, message: error.code === "P0001" ? "You’ve reached today’s Crew invitation limit." : "We couldn’t send that request. Please try again." };
+  if (error) return { ok: false, message: error.code === "P0001" ? "You’ve reached today’s Crew invitation limit." : "We couldn’t save that connection. Please try again." };
   refreshCrew();
-  return { ok: true, message: "Request submitted. New requests to confirmed Zero Loss accounts appear in Notifications and are queued for email. Allow a few minutes and check Junk or Spam. Existing pending requests or Crew connections do not send another email." };
+  return { ok: true, message: "Added where a matching account allows connections. They can leave at any time. Existing connections and opt-outs are unchanged." };
 }
 
 export async function inviteToCrewByPhone(phone: string): Promise<CrewActionResult> {
@@ -164,9 +164,9 @@ export async function inviteToCrewByPhone(phone: string): Promise<CrewActionResu
   const digits = phone.replace(/\D/g, "");
   if (digits.length < 10 || digits.length > 15) return { ok: false, message: "Enter a phone number with its country code." };
   const { error } = await session.db.rpc("request_crew_invitation_by_phone", { p_phone: phone });
-  if (error) return { ok: false, message: error.code === "P0001" ? "You’ve reached today’s Crew invitation limit." : "We couldn’t send that request. Please try again." };
+  if (error) return { ok: false, message: error.code === "P0001" ? "You’ve reached today’s Crew invitation limit." : "We couldn’t save that connection. Please try again." };
   refreshCrew();
-  return { ok: true, message: "Request saved. If this is a verified phone on a Zero Loss account, that person can approve it in Notifications." };
+  return { ok: true, message: "Added where a matching account allows connections. They can leave at any time. Existing connections and opt-outs are unchanged." };
 }
 
 export async function searchCrewByName(name: string): Promise<CrewSearchResult> {
@@ -181,7 +181,7 @@ export async function searchCrewByName(name: string): Promise<CrewSearchResult> 
     name: person.name,
     avatarUrl: person.avatar_reference ? session.db.storage.from("profile-photos").getPublicUrl(person.avatar_reference).data.publicUrl : null,
   }));
-  return { ok: true, message: people.length ? "Choose someone to send a Crew request." : "No discoverable members match that name. You can invite someone by email or verified phone.", people };
+  return { ok: true, message: people.length ? "Choose someone to add to your Crew." : "No discoverable members match that name. You can invite someone by email or verified phone.", people };
 }
 
 export async function getCrewSharedPicks(memberId: string): Promise<{ ok: boolean; picks: CrewSharedPick[] }> {
@@ -198,10 +198,11 @@ export async function inviteToCrewById(memberId: string): Promise<CrewActionResu
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to invite someone to your Crew." };
   if (!/^[0-9a-f-]{36}$/i.test(memberId)) return { ok: false, message: "That Crew member is invalid." };
-  const { error } = await session.db.rpc("request_crew_invitation_by_id", { p_member_id: memberId });
-  if (error) return { ok: false, message: error.code === "P0001" ? "You’ve reached today’s Crew invitation limit." : "We couldn’t send that request. Please try again." };
+  const { data, error } = await session.db.rpc("request_crew_invitation_by_id", { p_member_id: memberId });
+  if (error) return { ok: false, message: error.code === "P0001" ? "You’ve reached today’s Crew invitation limit." : "We couldn’t save that connection. Please try again." };
   refreshCrew();
-  return { ok: true, message: "Crew request sent. They can approve it in Notifications; no picks are shared yet." };
+  if (data !== "connected") return { ok: false, message: "This connection is unavailable. Their privacy or opt-out settings are unchanged." };
+  return { ok: true, message: "Added to your Crew. They can receive your shared finds and leave at any time. Their own picks stay private until they share back." };
 }
 
 export async function requestCrewInvitationFromLink(token: string): Promise<CrewActionResult> {
@@ -213,10 +214,9 @@ export async function requestCrewInvitationFromLink(token: string): Promise<Crew
   if (data === "invalid") return { ok: false, message: "This Crew invite link is no longer available." };
   if (data === "self") return { ok: false, message: "This is your own Crew invite link." };
   if (data === "unavailable") return { ok: false, message: "Your account isn’t ready to send Crew requests yet." };
-  if (data === "already_requested") return { ok: true, message: "You’re already connected or a request is waiting for approval." };
-  if (data !== "request_sent") return { ok: false, message: "We couldn’t verify this Crew request." };
+  if (data !== "connected") return { ok: false, message: "This connection is unavailable. Existing privacy and opt-out settings are unchanged." };
   refreshCrew();
-  return { ok: true, message: "Crew request sent. The link owner can approve it in Notifications; no picks are shared yet." };
+  return { ok: true, message: "You’re connected. You can leave through Manage at any time. Your own picks stay private until you choose to share back." };
 }
 
 export async function setCrewDiscoverable(enabled: boolean): Promise<CrewActionResult> {
@@ -258,4 +258,14 @@ export async function setEntryCrewSharing(entryId: string, share: boolean): Prom
   if (error) return { ok: false, message: "We couldn’t change this pick’s visibility. Please try again." };
   refreshCrew();
   return { ok: true, message: share ? "This pick is visible to your approved Crew." : "This pick is private now." };
+}
+
+export async function setCrewShareBack(id: string, enabled: boolean): Promise<CrewActionResult> {
+  if (!crewUuid.test(id) || typeof enabled !== "boolean") return { ok: false, message: "Choose a Crew connection." };
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in to change sharing." };
+  const { error } = await session.db.rpc("set_crew_share_back", { p_invitation_id: id, p_enabled: enabled });
+  if (error) return { ok: false, message: "We couldn’t save that sharing choice. Please try again." };
+  refreshCrew();
+  return { ok: true, message: enabled ? "Sharing back is allowed. Only picks you mark as shared, for this audience, are visible." : "Sharing back is off for this person." };
 }

@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-const mock = vi.hoisted(() => ({ preview: true, resetAt: null as string | null, getAccount: vi.fn(), from: vi.fn(), shares: [] as {id:string;createdAt:string}[], crew: [] as {id:string;created_at:string;requester_name:string}[] }));
+const mock = vi.hoisted(() => ({ preview: true, resetAt: null as string | null, getAccount: vi.fn(), from: vi.fn(), shares: [] as {id:string;createdAt:string}[], crew: [] as {id:string;created_at:string;requester_name:string;automatic_connection?:boolean;status?:string}[] }));
 vi.mock("server-only", () => ({}));
 vi.mock("react", () => ({ cache: (fn: unknown) => fn }));
 vi.mock("./context", () => ({ getAccountContext: mock.getAccount }));
@@ -12,7 +12,7 @@ beforeEach(() => {
  mock.getAccount.mockResolvedValue({userId:"owner",emailConfirmed:true,wallet:{scope:"demo",entries:[],balanceCents:0},activity:{source:"customer-empty",activity:[]},orders:{source:"customer-empty",orders:[]}});
  mock.from.mockImplementation((table: string) => {
    const result={error:null,data:table === "crew_invitations" ? mock.crew : table === "support_cases" ? [{id:"11111111-1111-4111-8111-111111111111",subject:"Old support case",status:"open",updated_at:"2026-01-01"}] : []};
-   const chain={select:()=>chain,eq:vi.fn(()=>chain),order:()=>chain,limit:()=>Promise.resolve(result),in:()=>Promise.resolve(result),then:(resolve:(value:unknown)=>unknown)=>Promise.resolve(result).then(resolve)};
+   const chain={select:()=>chain,or:()=>chain,eq:vi.fn(()=>chain),order:()=>chain,limit:()=>Promise.resolve(result),in:()=>Promise.resolve(result),then:(resolve:(value:unknown)=>unknown)=>Promise.resolve(result).then(resolve)};
    return chain;
  });
 });
@@ -53,4 +53,11 @@ test("saved claim completion acknowledges its alert without a separate read clic
  expect(snapshot?.readIds).toContain("reward-claimed");
  expect(snapshot?.readIds).not.toContain("reward-still-open");
  expect(snapshot?.notifications.some(n => n.id === "reward-claimed")).toBe(true);
+});
+
+test("automatic connections offer opt-out management instead of approval", async () => {
+ mock.crew=[{id:"auto",requester_name:"Alex",created_at:"2026-10-26T20:00:00Z",status:"accepted",automatic_connection:true}];
+ const item=(await getNotificationSnapshot())?.notifications.find(n=>n.id==="crew-auto");
+ expect(item?.title).toContain("is now in your Crew"); expect(item?.action).toBe("Manage connection");
+ expect(item?.href).toBe("/account/crew?request=auto"); expect(item?.crewRequestId).toBeUndefined();
 });

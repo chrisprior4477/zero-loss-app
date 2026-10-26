@@ -29,7 +29,7 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
   const [results, setResults] = useState<CrewSearchPerson[]>([]);
   const [sampleResults, setSampleResults] = useState<(typeof sampleCrewPeople)[number][]>([]);
   const [searched, setSearched] = useState(false);
-  const [message, setMessage] = useState("Search for members who chose to be found by name, or send a private request by email or verified phone.");
+  const [message, setMessage] = useState("Search for members who chose to be found by name, or add a contact by email or phone.");
   const [pending, setPending] = useState(false);
   const [requestedIds, setRequestedIds] = useState<string[]>([]);
   const [contactTarget, setContactTarget] = useState<{ value: string; method: "email" | "phone" } | null>(null);
@@ -44,7 +44,7 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
         const valid = method === "email" ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(query) : query.replace(/\D/g, "").length >= 10 && query.replace(/\D/g, "").length <= 15;
         if (!valid) { setMessage(method === "email" ? "Enter a valid email address." : "Enter a phone number with its country code."); return; }
         setContactTarget({ value: query, method }); setSearched(true);
-        setMessage("This is a private request—we don’t reveal whether an account exists. They must approve before sharing begins.");
+        setMessage("We don’t reveal whether an account exists. Matching members are connected automatically and can leave at any time.");
         return;
       }
     }
@@ -71,7 +71,7 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
         router.refresh();
       }
     } catch {
-      setMessage("The request couldn’t be saved right now. Please try again.");
+      setMessage("The connection couldn’t be saved right now. Please try again.");
     } finally { setPending(false); }
   }
 
@@ -88,7 +88,7 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
       if (contact.email?.[0]) setEmail(contact.email[0]);
       if (contact.tel?.[0]) setPhone(contact.tel[0]);
       if (compact) { setName(contact.email?.[0] || contact.tel?.[0] || contact.name?.[0] || ""); setContactTarget(null); }
-      setMessage("Contact selected. Review the details, then choose whether to send a request. Your address book was not uploaded.");
+      setMessage("Contact selected. Review the details, then choose whether to add them to Crew. Your address book was not uploaded.");
     } catch {
       setMessage("No contact was selected. You can enter an email or verified phone number manually.");
     }
@@ -96,7 +96,7 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
 
   return <section id="crew-search" aria-labelledby="crew-search-title" className={`${styles.panel} ${compact ? styles.compact : ""}`}>
       <div className={styles.header}><span className={styles.headerIcon}><PersonPlusIcon /></span><div><p>FRIENDS &amp; FAMILY</p><h2 id="crew-search-title">Add to Your Crew</h2></div></div>
-      <p className={styles.intro}>{compact ? "Find someone by name, email, or phone. They approve before sharing begins." : "Search here—no extra screen. A real person must approve your request before either of you can see shared picks."}</p>
+      <p className={styles.intro}>{compact ? "Find someone by name, email, or phone. They can leave your Crew at any time." : "Find someone and add them here. Connections are automatic; sharing back is their choice."}</p>
 
       <div className={styles.fields}>
         <form onSubmit={search} className={styles.field}>
@@ -108,28 +108,28 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
         {!compact ? <><form onSubmit={(event) => { event.preventDefault(); void sendRequest(() => inviteToCrewByPhone(phone)); }} className={styles.field}>
           <label htmlFor="crew-search-phone">Invite by verified phone</label>
           <div className={styles.row}><input id="crew-search-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Phone with country code" autoComplete="tel" disabled={disabled} />
-          <button type="submit" disabled={pending || disabled} aria-label="Send Crew request by phone"><span>Send request</span></button></div>
+          <button type="submit" disabled={pending || disabled} aria-label="Add to Crew by phone"><span>Add to Crew</span></button></div>
           <small>Works only if that number is verified on a Zero Loss account.</small>
         </form>
         <form onSubmit={(event) => { event.preventDefault(); void sendRequest(() => inviteToCrew(email)); }} className={styles.field}>
           <label htmlFor="crew-search-email">Invite by email</label>
           <div className={styles.row}><input id="crew-search-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email address" autoComplete="email" disabled={disabled} />
-          <button type="submit" disabled={pending || disabled} aria-label="Send Crew request by email"><span>Send request</span></button></div>
-          <small>They’ll see the request if they have a confirmed account.</small>
+          <button type="submit" disabled={pending || disabled} aria-label="Add to Crew by email"><span>Add to Crew</span></button></div>
+          <small>Matching accounts receive a connection notice and can opt out.</small>
         </form></> : null}
       </div>
 
       <button type="button" onClick={() => void chooseContact()} disabled={disabled} className={styles.contactButton}>Choose from phone contacts</button>
-      <p className={styles.contactNote}>On supported phones, you choose which contact to share. Nothing is sent until you press a request button.</p>
+      <p className={styles.contactNote}>On supported phones, you choose which contact to share. Nothing is sent until you press Add to Crew.</p>
       {compact && (email || phone) ? <div className={styles.contactChoices}>{email ? <button type="button" onClick={() => { setName(email); setContactTarget(null); }}>Use contact’s email</button> : null}{phone ? <button type="button" onClick={() => { setName(phone); setContactTarget(null); }}>Use contact’s phone</button> : null}</div> : null}
 
       <div className={styles.results} aria-live="polite">
         <p role="status">{message}</p>
-        {compact && contactTarget ? <div className={styles.result}><div><strong>{contactTarget.value}</strong><small>Approval required · private lookup</small></div><button type="button" disabled={pending || disabled || requestedIds.includes(contactTarget.value)} onClick={() => void sendRequest(() => contactTarget.method === "email" ? inviteToCrew(contactTarget.value) : inviteToCrewByPhone(contactTarget.value), contactTarget.value)}>{requestedIds.includes(contactTarget.value) ? "Requested" : "Add to Crew"}</button></div> : null}
+        {compact && contactTarget ? <div className={styles.result}><div><strong>{contactTarget.value}</strong><small>Private contact lookup</small></div><button type="button" disabled={pending || disabled || requestedIds.includes(contactTarget.value)} onClick={() => void sendRequest(() => contactTarget.method === "email" ? inviteToCrew(contactTarget.value) : inviteToCrewByPhone(contactTarget.value), contactTarget.value)}>{requestedIds.includes(contactTarget.value) ? "Added" : "Add to Crew"}</button></div> : null}
         {searched && results.length ? <div className={styles.resultList}>{results.map((person) => <div key={person.memberId} className={styles.result}>
           <span className={styles.avatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="48px" unoptimized className={styles.avatarImage} /> : person.name.slice(0, 1).toUpperCase()}</span>
           <div><strong>{person.name}</strong><small>Discoverable Zero Loss member</small></div>
-          <button type="button" disabled={pending || requestedIds.includes(person.memberId)} onClick={() => void sendRequest(() => inviteToCrewById(person.memberId), person.memberId)}>{requestedIds.includes(person.memberId) ? "Requested" : "Add to Crew"}</button>
+          <button type="button" disabled={pending || requestedIds.includes(person.memberId)} onClick={() => void sendRequest(() => inviteToCrewById(person.memberId), person.memberId)}>{requestedIds.includes(person.memberId) ? "Added" : "Add to Crew"}</button>
         </div>)}</div> : null}
         {searched && sampleResults.length ? <div className={styles.resultList}><strong className={styles.sampleHeading}>Sample profiles—not real invitations</strong>{sampleResults.map((person) => <div key={person.name} className={styles.result}>
           <span className={styles.avatar}><Image src={person.photo} alt="" fill sizes="48px" className={styles.avatarImage} /></span>
@@ -137,6 +137,6 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
           <button type="button" onClick={() => onSamplePicks(person.name)}>View sample picks</button>
         </div>)}</div> : null}
       </div>
-      <p className={styles.footer}>Your picks stay private until you explicitly share them. A request is not a connection until the other person approves it.</p>
+      <p className={styles.footer}>Your picks stay private until you explicitly share them. Connections can be left at any time. Being added does not turn on sharing back.</p>
     </section>;
 }

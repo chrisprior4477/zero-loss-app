@@ -7,9 +7,6 @@ import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { crewVisibilitySnapshot } from "@/lib/crew/visibility";
-import { CrewDesignLab } from "@/components/account/crew-designs/CrewDesignLab";
-import { demoProducts } from "@/lib/catalog/demo-products";
-import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 
 export const metadata: Metadata = { title: "Your Crew" };
 
@@ -72,24 +69,6 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   // requests there too, while an exact request link must never reveal another's.
   const incoming = invitations.find(invitation => invitation.recipient_id === account.userId
     && (params.request ? invitation.id === params.request : invitation.status === "pending"));
-  const design = Number(params.design);
-  if (isPreviewDataEnvironment() && Number.isInteger(design) && design >= 1 && design <= 8) {
-    const profiles = new Map<string, { member_id: string; name: string; avatar_reference: string | null }>((membersResult.data ?? []).map((member: { member_id: string; name: string; avatar_reference: string | null }) => [member.member_id, member] as const));
-    const people = connected.map(invitation => {
-      const id = invitation.requester_id === account.userId ? invitation.recipient_id : invitation.requester_id;
-      const profile = profiles.get(id);
-      return { id, name: profile?.name ?? (invitation.requester_id === account.userId ? invitation.recipient_name : invitation.requester_name),
-        photo: profile?.avatar_reference ? db.storage.from("profile-photos").getPublicUrl(profile.avatar_reference).data.publicUrl : null };
-    });
-    const ownSlugs = [...new Set((entriesResult.data ?? []).map(entry => entry.offering_slug))];
-    const ownProducts = demoProducts.filter(product => ownSlugs.includes(product.slug)).map(product => ({
-      slug: product.slug, title: product.title, retailer: product.retailer, image: product.gallery[0].src, value: product.value,
-    }));
-    const automotive = demoProducts.find(product => product.slug === "directory-autozone-100-gift-card");
-    return <CrewDesignLab initialDesign={design} members={people} ownProducts={ownProducts} available={available}
-      pendingRequests={invitations.filter(invitation => invitation.status === "pending" && invitation.recipient_id === account.userId).length}
-      automotive={automotive ? { slug: automotive.slug, title: automotive.title, retailer: automotive.retailer, image: automotive.gallery[0].src, value: automotive.value } : null} />;
-  }
   return <><CrewInvitationPrompt key={`${account.userId}:${params.request ?? "incoming"}`}
     invitation={incoming ? { id: incoming.id, name: incoming.requester_name, status: incoming.status } : null}
     unavailable={Boolean(params.request) && (!incoming || Boolean(invitationsResult.error))} />

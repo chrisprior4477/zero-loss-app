@@ -87,7 +87,7 @@ test("Mom contact details save and reappear without silently inviting or grantin
   const group = saveCrewGroup.mock.calls[0][0].group;
   expect(group.memberIds).toEqual([]);
   expect(group.contacts).toEqual([expect.objectContaining({ name: "Mom Contact", phone: "+12025550123", email: "mom@example.test" })]);
-  expect(await screen.findByText(/Mom saved to your profile · 0 approved members · 1 saved contacts/)).toBeTruthy();
+  expect(await screen.findByText(/Mom saved to your profile · 0 connected members · 1 saved contacts/)).toBeTruthy();
   expect(inviteToCrew).not.toHaveBeenCalled(); expect(inviteToCrewByPhone).not.toHaveBeenCalled();
   view.unmount();
   render(<CrewDisplaySettings {...props} initialGroups={[group]} />);

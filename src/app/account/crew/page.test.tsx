@@ -27,16 +27,13 @@ test("a request link cannot show an invitation to its sender or another recipien
   expect(page.props.children[0].props.invitation).toBeNull(); expect(page.props.children[0].props.unavailable).toBe(true);
 });
 
-test("design review exposes approved connections only and keeps pending requests separate", async () => {
-  mocks.preview.mockReturnValue(true);
+test("old design bookmarks now open the normal Crew page with real connections", async () => {
   const accepted = { id, requester_id: "friend", recipient_id: "recipient", requester_name: "Friend", status: "accepted" };
-  const pending = { ...accepted, id: "pending", requester_id: "not-connected", status: "pending" };
-  mocks.from.mockImplementation(table => query(table === "crew_invitations" ? [accepted, pending] : []));
+  mocks.from.mockImplementation(table => query(table === "crew_invitations" ? [accepted] : []));
   mocks.rpc.mockImplementation(name => Promise.resolve({ data: name === "get_crew_member_profiles" ? [{ member_id: "friend", name: "Chosen name", avatar_reference: null }] : [] }));
   const page = await CrewPage({ searchParams: Promise.resolve({ design: "8" }) });
-  expect(page.props.initialDesign).toBe(8);
-  expect(page.props.members).toEqual([{ id: "friend", name: "Chosen name", photo: null }]);
-  expect(page.props.pendingRequests).toBe(1);
+  expect(page.props.children[1].props.members).toEqual([{ memberId: "friend", name: "Chosen name", avatarUrl: null }]);
+  expect(page.props.children[1].props.invitations).toEqual([accepted]);
 });
 
 test("design review is unavailable outside the preview environment", async () => {

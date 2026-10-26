@@ -5,17 +5,19 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
-  getCrewSharedPicks, removeCrewConnection, requestCrewInvitationFromLink, respondToCrewRequest, setEntryCrewSharing,
+  getCrewSharedPicks, setCrewShareBack, removeCrewConnection, requestCrewInvitationFromLink, respondToCrewRequest, setEntryCrewSharing,
 } from "@/lib/crew/actions";
 import type { CrewInvitation, CrewMember, OwnCrewEntry, SharedCrewPick } from "@/app/account/crew/page";
-import { CrewPeopleFirst } from "./CrewPeopleFirst";
+import { CrewConnectedGallery, CrewSharePicker } from "./CrewConnectedGallery";
+import { CrewInlineFinder } from "./CrewInlineFinder";
+import connectedStyles from "./crew-connected.module.css";
 import { CrewLandingScroll } from "./CrewLandingScroll";
 import { StatusTicket } from "./StatusTicket";
 import stripStyles from "./account-status-strip.module.css";
 import styles from "./crew-dashboard.module.css";
 import firstStyles from "./crew-people-first.module.css";
-import { CrewSearchPanel } from "./CrewSearchDialog";
-import { SharedPicksConcept } from "@/components/home/SharedPicksConcept";
+
+import { samplePicks } from "@/components/home/SharedPicksConcept";
 import { initializeSampleCrewPreview, removeSampleCrewPreview, useSampleCrewPreviews, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
@@ -48,7 +50,10 @@ const getServerOrigin = () => "";
 
 export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, available, initialTab, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>(initialTab);
+  const [tab, setTab] = useState<Tab>(initialTab === "add" ? "crew" : initialTab);
+  const [finding, setFinding] = useState(initialTab === "add");
+  const [moreOpen, setMoreOpen] = useState(initialTab === "picks" || initialTab === "privacy");
+  const [sharing, setSharing] = useState(false);
   const [message, setMessage] = useState("");
   const [samplePerson, setSamplePerson] = useState<SampleCrewName | null>(null);
   const [openMemberId, setOpenMemberId] = useState<string | null>(selectedMemberId);
@@ -60,7 +65,6 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const [copyMessage, setCopyMessage] = useState("");
   const [incomingRequestSent, setIncomingRequestSent] = useState(false);
   const pickRequest = useRef(0);
-  const activityPanelRef = useRef<HTMLElement>(null);
   const initialSampleSelected = useRef(false);
   const [pending, startTransition] = useTransition();
   const samples = useSampleCrewPreviews();
@@ -94,19 +98,19 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   }
 
   function focusCrewSearch() {
-    setTab("add");
+    setFinding(current => !current);
   }
 
   useEffect(() => {
-    if (tab === "add") document.getElementById("crew-search-name")?.focus({ preventScroll: true });
-  }, [tab]);
+    if (finding) document.getElementById("crew-query")?.focus({ preventScroll: true });
+  }, [finding]);
 
   async function copyInviteLink() {
     if (!ownInviteToken) { setCopyMessage("Invite links are unavailable right now. Use name, email, or verified phone below."); return; }
     const url = inviteUrl || `${window.location.origin}/account/crew?invite=${ownInviteToken}`;
     try {
       await navigator.clipboard.writeText(url);
-      setCopyMessage("Invite link copied. Anyone who opens it can request to join; you still approve the request.");
+      setCopyMessage("Invite link copied. Anyone who opens it can join your Crew and leave at any time.");
     } catch {
       setCopyMessage("Copy was blocked by your browser. Select the link above and copy it manually.");
     }
@@ -121,18 +125,19 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     });
   }
 
-  function selectSample(name: SampleCrewName, forceOpen = false) {
+  function selectSample(name: SampleCrewName) {
     pickRequest.current += 1;
     setOpenMemberId(null);
     setMemberPicksLoading(false);
-    setSamplePerson((current) => current === name && !forceOpen ? null : name);
+    setSamplePerson(name);
+    setMemberPicksError(false);
   }
 
   function selectMember(id: string, retry = false) {
+    if (openMemberId === id && !retry) return;
     pickRequest.current += 1;
     const request = pickRequest.current;
     setSamplePerson(null);
-    if (openMemberId === id && !retry) { setOpenMemberId(null); setMemberPicksLoading(false); return; }
     setOpenMemberId(id);
     setMemberPicks([]);
     setMemberPicksError(false);
@@ -160,37 +165,40 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
     <CrewLandingScroll enabled={initialTab === "crew" && !selectedMemberId && !incomingInviteToken} />
-    <header id="crew-intro" className={firstStyles.heading}>
+    <header id="crew-intro" className={connectedStyles.heading}>
         <div><h1>Your Crew</h1><p>The people you brought with you.</p><p><span>{connected.length} connected</span>{samples.length ? <span>{samples.length} sample previews</span> : null}</p></div>
-        <button type="button" className={firstStyles.addButton} onClick={focusCrewSearch}>Add people</button>
+        <button type="button" aria-expanded={finding} onClick={focusCrewSearch}>Add people</button>
       </header>
 
-      <Link href="/account/favorites?tab=shared" className="mb-4 inline-flex min-h-10 items-center text-sm font-bold text-cyan-200">Shared with You →</Link>
+      {finding ? <div>
+        <CrewInlineFinder available={available} onSample={name => { selectSample(name); setTab("crew"); setFinding(false); }} onClose={() => setFinding(false)} />
+        <details className={connectedStyles.inviteLink}><summary>Invite with your personal link</summary><p>They can join your Crew and leave whenever they like.</p><input aria-label="Your Crew invite link" value={inviteUrl} placeholder={ownInviteToken ? "Preparing invite link…" : "Invite link unavailable"} readOnly onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => void copyInviteLink()} disabled={!ownInviteToken}>Copy invite link</button>{copyMessage ? <p role="status">{copyMessage}</p> : null}</details>
+      </div> : null}
 
-      {incomingInviteToken ? <section className={styles.incomingInvite} aria-label="Crew invite request"><div><strong>Someone invited you to connect</strong><p>Send a request from your account. They’ll approve it before either of you can see shared picks.</p></div><button type="button" disabled={pending || incomingRequestSent} onClick={requestFromInviteLink}>{incomingRequestSent ? "Request sent" : "Request to join"}</button></section> : null}
+      {incomingInviteToken ? <section className={styles.incomingInvite} aria-label="Crew invite request"><div><strong>Someone invited you to connect</strong><p>Join to receive their shared finds. Your own picks stay private until you choose to share back, and you can leave at any time.</p></div><button type="button" disabled={pending || incomingRequestSent} onClick={requestFromInviteLink}>{incomingRequestSent ? "Joined" : "Join Crew"}</button></section> : null}
 
       {!available ? <p role="alert" className="mt-5 rounded-xl border border-amber-400/45 bg-amber-500/10 p-4 text-sm">Crew sharing is temporarily unavailable. No picks were exposed or changed.</p> : null}
       {message ? <p role="status" className="mt-5 rounded-xl border border-cyan-300/45 bg-[#0c3657] p-4 text-sm">{message}</p> : null}
 
-      <nav className={firstStyles.tabs} aria-label="Your Crew sections">
-        {([["crew", "Your Crew"], ["requests", `Requests${received.length ? ` (${received.length})` : ""}`], ["picks", "My shared picks"], ["groups", "Groups"], ["privacy", "Privacy"]] as const).map(([key, label]) =>
-          <button key={key} type="button" aria-label={label} aria-pressed={tab === key} onClick={() => setTab(key)}>{key === "picks" ? <span>My shared<br />picks</span> : key === "crew" ? <span>Your<span className={firstStyles.crewTabSecondLine}> Crew</span></span> : label}</button>) }
+      <nav className={connectedStyles.navigation} aria-label="Your Crew sections">
+        <div className={connectedStyles.mainButtons}>
+          <button type="button" aria-pressed={tab === "crew"} onClick={() => setTab("crew")}>Your People</button>
+          <button type="button" aria-pressed={tab === "groups"} onClick={() => setTab("groups")}>Groups</button>
+          <Link href="/account/favorites?tab=shared">Shared with You</Link>
+        </div>
+        <button type="button" className={connectedStyles.moreButton} aria-expanded={moreOpen} onClick={() => setMoreOpen(open => !open)}>More <span aria-hidden="true">{moreOpen ? "⌃" : "⌄"}</span></button>
+        {moreOpen ? <div className={connectedStyles.moreOptions}><button type="button" aria-pressed={tab === "picks"} onClick={() => setTab("picks")}>My Shared Picks</button><button type="button" aria-pressed={tab === "privacy"} onClick={() => setTab("privacy")}>Privacy Settings</button></div> : null}
       </nav>
-
-      {tab === "crew" ? <section className={styles.crewSection} aria-label="Approved Crew">
-          <CrewPeopleFirst people={people} samples={samples} selectedKey={activeKey} onAdd={focusCrewSearch} onRemove={(id) => run(() => removeCrewConnection(id))} onSampleRemove={(name) => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(null); }} onSamplePicks={selectSample} onMemberPicks={selectMember} pending={pending} />
-              {samplePerson ? <SharedPicksConcept key={samplePerson} person={samplePerson} onClose={() => setSamplePerson(null)} peopleFirst connectedOutline accountMode panelRef={activityPanelRef} /> : null}
-              {activeMember ? <div id="shared-picks">
-                {memberPicksError ? <section ref={activityPanelRef}><p role="alert">We couldn’t load this Crew member’s activity. Please try again.</p><button type="button" className={firstStyles.retry} onClick={() => selectMember(activeMember.memberId, true)}>Retry shared activity</button></section> :
-                  <SharedPicksConcept key={activeMember.memberId} person={activeMember.name} avatarUrl={activeMember.avatarUrl} loading={memberPicksLoading} picks={memberPicks.map((pick) => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `${pick.shareKind === "win" ? "Shared win update" : "Shared"} ${formatDate(pick.sharedAt)}` }))} onClose={() => setOpenMemberId(null)} peopleFirst connectedOutline accountMode panelRef={activityPanelRef} />}
-              </div> : null}
-              {!samplePerson && !activeMember ? <section className={styles.activityPlaceholder} aria-label="Crew member activity"><span>YOUR CREW · SHARED ACTIVITY</span><h2>Choose someone to explore</h2><p>Select a person above to see the picks they’ve chosen to share.</p></section> : null}
-      </section> : null}
-
-      {tab === "add" ? <section className={firstStyles.addPanel} aria-label="Add people"><button type="button" className={firstStyles.back} onClick={() => setTab("crew")}>← Back to your people</button>
-        <CrewSearchPanel compact onSamplePicks={name => { selectSample(name, true); setTab("crew"); }} disabled={!available} />
-        <details className={firstStyles.invite}><summary>Invite with your personal link</summary><p>They can request to join. You approve before sharing begins.</p><input aria-label="Your Crew invite link" value={inviteUrl} placeholder={ownInviteToken ? "Preparing invite link…" : "Invite link unavailable"} readOnly onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => void copyInviteLink()} disabled={!ownInviteToken}>Copy invite link</button>{copyMessage ? <p role="status">{copyMessage}</p> : null}</details>
-      </section> : null}
+      {tab === "crew" ? <>
+        <CrewConnectedGallery people={people} samples={samples} selectedKey={activeKey}
+          picks={memberPicks.map(pick => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `${pick.shareKind === "win" ? "Shared win" : "Shared"} ${formatDate(pick.sharedAt)}` }))}
+          loading={Boolean(activeMember) && memberPicksLoading} error={Boolean(activeMember) && memberPicksError} pending={pending}
+          onMember={selectMember} onSample={selectSample} onRetry={() => { if (activeMember) selectMember(activeMember.memberId, true); }}
+          onShareBack={(id, enabled) => run(() => setCrewShareBack(id, enabled))} onRemove={id => run(() => removeCrewConnection(id))} onSampleRemove={name => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(samples.find(other => other !== name) ?? null); }}
+          onShare={() => setSharing(true)} onAdd={focusCrewSearch} />
+        <section className={connectedStyles.inviteStrip}><div><h2>Good finds are better shared.</h2><p>Bring someone along. Give them a reason to come back.</p></div><button type="button" onClick={focusCrewSearch}>Add people +</button></section>
+      </> : null}
+      {sharing ? <CrewSharePicker products={[...new Map([...memberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(false)} /> : null}
 
       <div className={firstStyles.content} hidden={tab !== "groups" && tab !== "privacy"}>
         <CrewDisplaySettings embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />
@@ -201,7 +209,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <div className={styles.utilityPanel}><h2>Requests you sent</h2>{sent.length ? <div className={styles.utilityList}>{sent.map((item) => <article key={item.id} className={styles.utilityItem}><strong>{item.recipient_name}</strong><p>Waiting for approval since {formatDate(item.created_at)}.</p><button type="button" disabled={pending} onClick={() => run(() => removeCrewConnection(item.id))} className={styles.cancelButton}>Cancel request</button></article>)}</div> : <p className={styles.emptyUtility}>No outgoing requests.</p>}</div>
       </section> : null}
 
-      {tab === "picks" ? <section className={styles.utilityPanelWide} id="sharing"><h2>Choose what your Crew can see</h2><p className={styles.utilityIntro}>Sharing is off by default. You can change each entry here at any time. Turning sharing off removes it immediately from approved Crew views; it does not retract your entry or change your purchase options.</p>
+      {tab === "picks" ? <section className={styles.utilityPanelWide} id="sharing"><h2>Choose what your Crew can see</h2><p className={styles.utilityIntro}>Sharing is off by default. You can change each entry here at any time. Turning sharing off removes it immediately from Crew views; it does not retract your entry or change your purchase options.</p>
         <button type="button" className={firstStyles.privacyLink} onClick={() => setTab("privacy")}>How to display my picks · choose who sees them</button>
         {entries.length ? <div className={styles.shareGrid}>{entries.map((entry) => <article key={entry.id} className={styles.shareItem}>{entry.image ? <div className={styles.shareImage}><Image src={entry.image} alt="" fill sizes="80px" className="object-contain p-1" /></div> : null}<div className={styles.shareDetails}><strong>{entry.title}</strong><small>{entry.retailer} · {formatDate(entry.createdAt)}</small><button type="button" disabled={pending || !available} onClick={() => run(() => setEntryCrewSharing(entry.id, !entry.shared))} aria-pressed={entry.shared} className={entry.shared ? styles.sharedToggle : styles.privateToggle}>{entry.shared ? "Shared with Crew · turn off" : "Private · share with Crew"}</button></div></article>)}</div> : <p className={styles.emptyUtility}>You don’t have entries to share yet.</p>}
       </section> : null}

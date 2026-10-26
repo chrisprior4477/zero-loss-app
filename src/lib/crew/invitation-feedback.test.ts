@@ -15,9 +15,9 @@ test("self-invites explain that no email is sent, using only the authenticated u
 test("private recipient feedback does not promise delivery or disclose account existence", async () => {
   const result = await inviteToCrew("friend@example.test");
   expect(result.ok).toBe(true);
-  expect(result.message).toContain("New requests to confirmed");
-  expect(result.message).toContain("Junk or Spam");
-  expect(result.message).toContain("do not send another email");
+  expect(result.message).toContain("matching account");
+  expect(result.message).toContain("leave at any time");
+  expect(result.message).toContain("opt-outs are unchanged");
   expect(mocks.rpc).toHaveBeenCalledWith("request_crew_invitation", { p_email: "friend@example.test" });
 });
 test("failed or signed-out invitations never claim success", async () => {
