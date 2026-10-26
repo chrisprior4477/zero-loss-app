@@ -10,6 +10,7 @@ import { fulfillmentHref } from "@/lib/account/fulfillment";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
 import { RewardPassAutoScroll } from "./RewardPassAutoScroll";
 import { WalletRewardLink } from "./WalletRewardLink";
+import { WalletLandingScroll } from "./WalletLandingScroll";
 import { RewardHistoryCarousel } from "./RewardHistoryCarousel";
 import { RewardClaimControl } from "./RewardClaimControl";
 import { DemoRewardRestartControl } from "./DemoRewardRestartControl";
@@ -69,6 +70,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const readyCount = state.source === "unavailable" ? null : ready.length;
   const singleReady = ready.length === 1 ? ready[0] : null;
   return <main className={overview.page} data-activity-source={state.source}>
+    <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />
     <div className={overview.shell}>
       <header className={overview.heading}>
         <div><h1>Gift Cards &amp; Rewards</h1><p>Everything you’ve earned, ready when you are.</p></div>

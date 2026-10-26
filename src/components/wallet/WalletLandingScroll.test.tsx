@@ -1,4 +1,5 @@
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import Link from "next/link";
 import { afterEach, expect, test, vi } from "vitest";
 import { WalletLandingScroll } from "./WalletLandingScroll";
 import { menuLayouts } from "@/lib/navigation/menu-layout";
@@ -116,4 +117,46 @@ test("missing targets do not scroll or throw", () => {
   render(<WalletLandingScroll />);
   flush();
   expect(scrollTo).not.toHaveBeenCalled();
+});
+
+test.each(["", "#ready-rewards"])("mobile gift-card collection lands at Available rewards with hash '%s'", hash => {
+  const { scrollTo, flush, balance } = setup({ hash });
+  window.history.replaceState({}, "", "/account/wallet" + hash);
+  balance.id = "ready-rewards";
+  render(<WalletLandingScroll target="ready-rewards" />);
+  flush();
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 707, behavior: "auto" });
+});
+
+test("reward history links retain their destination instead of jumping to available rewards", () => {
+  const { scrollTo, flush, balance } = setup({ hash: "#reward-history" });
+  balance.id = "ready-rewards";
+  render(<WalletLandingScroll target="ready-rewards" />);
+  flush();
+  expect(scrollTo).not.toHaveBeenCalled();
+});
+
+test("desktop gift-card collection keeps its existing landing", () => {
+  const { scrollTo, flush, balance } = setup({ mobile: false });
+  balance.id = "ready-rewards";
+  render(<WalletLandingScroll target="ready-rewards" />);
+  flush();
+  expect(scrollTo).not.toHaveBeenCalled();
+});
+
+test.each(["", "#reward-history"])("reselecting Gift Cards & Rewards from '%s' reveals the collection again", hash => {
+  const { scrollTo, flush, balance } = setup();
+  window.history.replaceState({}, "", "/account/wallet" + hash);
+  balance.id = "ready-rewards";
+  const view = render(<><WalletLandingScroll target="ready-rewards" /><Link href="/account/wallet" onClick={event => event.preventDefault()}>Gift Cards &amp; Rewards</Link></>);
+  flush();
+  scrollTo.mockClear();
+  const link = view.getByRole("link");
+  fireEvent.click(link, { ctrlKey: true });
+  flush();
+  expect(scrollTo).not.toHaveBeenCalled();
+  fireEvent.click(link);
+  flush();
+  expect(window.location.hash).toBe("");
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 707, behavior: "auto" });
 });
