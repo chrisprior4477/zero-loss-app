@@ -1,6 +1,15 @@
 import { expect, test } from "vitest";
 import { fundingHref, fundingReturnPath } from "./funding-navigation";
 
+test("extra-entry funding keeps the saved entry and quantity through sign-in", () => {
+  const entry = "ent_11111111111111111111111111111111";
+  const href = fundingHref("playstation-5-slim", entry, 101, true);
+  expect(href).toBe(`/account/wallet?view=history&from=playstation-5-slim&entry=${entry}&quantity=101&resume=extra-entries#add-funds`);
+  expect(fundingReturnPath(href)).toBe(href);
+  expect(fundingReturnPath(href.replace("101", "2147483648"))).toBeNull();
+  expect(fundingReturnPath(href.replace("resume=extra-entries", "resume=https://evil.test"))).toBeNull();
+});
+
 test("funding retains one exact purchase entry, never an arbitrary return URL", () => {
   const entry = "ent_11111111111111111111111111111111";
   const destination = `/account/wallet?view=history&from=babys-essentials-bundle&entry=${entry}#add-funds`;

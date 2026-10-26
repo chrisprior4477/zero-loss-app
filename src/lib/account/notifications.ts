@@ -2,6 +2,7 @@ import { activityHref, walletRewardHref, type AccountActivity, type ActivityItem
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import type { AccountOrder } from "./orders";
+import { fulfillmentHref } from "./fulfillment";
 
 export type NotificationCategory = "action" | "account" | "activity" | "orders" | "crew";
 export const notificationPreferenceKeys = ["purchase_options", "reward_ready", "reward_deadline", "order_updates", "wallet_updates", "crew_updates", "support_replies", "pool_progress"] as const;
@@ -145,7 +146,7 @@ export function buildOrderNotifications(orders: readonly AccountOrder[]): Accoun
       title: issued ? `${order.retailer} gift card issued` : exception ? `${order.retailer} order needs attention` : `${order.retailer} order ${order.status === "cancelled" ? "cancelled" : "is processing"}`,
       body: issued ? "Your retailer gift card is ready to open." : exception ? "Your order is saved, but its issuance needs attention." : order.status === "cancelled" ? "This order is closed. Its history remains available." : "Payment is confirmed. We’ll show the issued card when it is ready.",
       meta: `Order ${order.orderNumber.slice(-8).toUpperCase()}`,
-      href: `/account/orders?order=${encodeURIComponent(order.orderNumber)}#order-${encodeURIComponent(order.orderNumber)}`,
+      href: fulfillmentHref(order.rewardId),
       action: "View exact order",
       image: order.image,
       visualLabel: order.retailer,

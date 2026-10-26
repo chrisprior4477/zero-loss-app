@@ -29,7 +29,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   savedCard?: DemoCard | null;
   savedCards?: DemoCard[];
   cardUnavailable?: boolean;
-  returnToProduct?: { title: string; href: string; label?: "Back to purchase option" };
+  returnToProduct?: { title: string; href: string; label?: "Back to purchase option" | "Back to your entries" };
   returnUnavailable?: boolean;
 }) {
   const demo = wallet?.scope === "demo";

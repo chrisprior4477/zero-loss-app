@@ -13,6 +13,12 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const purchaseEntry = "ent_11111111111111111111111111111111";
 const purchaseActivity = { entryId: purchaseEntry, slug: "babys-essentials-bundle", title: "Baby bundle", retailer: "Walmart", image: "/test.png", status: "completion", rewardKind: "digital", priceCents: 10000, paidCents: 100, remainingCents: 9900, completionOptionId: "11111111-1111-4111-8111-111111111111" };
+
+test("extra-entry funding returns to the authorized saved checkout with its exact quantity", async () => {
+  mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, status: "active" }] } });
+  render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: purchaseActivity.slug, entry: purchaseEntry, quantity: "21", resume: "extra-entries" }) }));
+  expect(screen.getByRole("link", { name: "Back to your entries" }).getAttribute("href")).toBe(`/account/entries/${purchaseEntry}?quantity=21#additional-entry-checkout`);
+});
 test("funding returns to the exact authorized option even with another entry for the same product", async () => {
   mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, entryId: "ent_22222222222222222222222222222222" }, purchaseActivity] } });
   render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: purchaseActivity.slug, entry: purchaseEntry }) }));
