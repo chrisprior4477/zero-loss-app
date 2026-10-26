@@ -16,6 +16,9 @@
 .retailer { margin: 0 0 3px; color: #bb5306; font-size: 13px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .heroCopy h2 { margin: 0; font-size: clamp(24px, 2.7vw, 35px); line-height: 1.09; letter-spacing: -.035em; }
 .heroBulkControls { grid-column: 1 / -1; min-width: 0; }
+.activityExit { display: flex; min-height: 40px; align-items: center; justify-content: center; margin-top: 10px; border-radius: 8px; background: #bfeeff; padding: 7px 12px; color: #08274b; font-size: 13px; font-weight: 850; text-align: center; text-decoration: none; }
+.activityExit:hover { background: #a9e4ff; }
+.activityExit:focus-visible { outline: 3px solid #0058c2; outline-offset: 3px; }
 .heroChoiceHeading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .heroChoiceHeading .heroCount { min-width: 0; background: transparent; padding: 0; }
 .heroChoiceHeading .heroCircle { background: #dff2ff; color: #0a5fa7; box-shadow: none; }

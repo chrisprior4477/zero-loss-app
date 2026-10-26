@@ -1,13 +1,11 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { revivePurchaseOption, type PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
 
 const initialState: PurchaseOptionActionState = { status: "idle" };
 
 export function ReviveOptionButton({ optionId, expiresAt }: { optionId: string; expiresAt: string | null }) {
-  const router = useRouter();
   const [state, action, pending] = useActionState(revivePurchaseOption, initialState);
   const [expired, setExpired] = useState<boolean | null>(null);
   useEffect(() => {
@@ -23,9 +21,6 @@ export function ReviveOptionButton({ optionId, expiresAt }: { optionId: string; 
       if (timer !== undefined) window.clearTimeout(timer);
     };
   }, [expiresAt]);
-  useEffect(() => {
-    if (state.status === "succeeded" && state.href) router.replace(state.href);
-  }, [router, state]);
   return <form action={action} className="flex flex-col items-end gap-2">
     <input type="hidden" name="completionOptionId" value={optionId} />
     <button type="submit" disabled={expired !== false || pending || state.status === "succeeded"} className="min-h-11 min-w-24 rounded-lg bg-[#31e800] px-5 font-extrabold text-[#052515] disabled:cursor-not-allowed disabled:opacity-50">{expired === null ? "Checking…" : expired ? "Expired" : pending ? "Reviving…" : "Revive"}</button>

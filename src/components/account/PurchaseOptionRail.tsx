@@ -167,6 +167,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
           {canBulkDecline ? <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked || bulkPhase !== "idle" || Boolean(purchaseRequest)} onClick={() => { setBulkPhase("confirm"); document.getElementById("purchase-option-rail")?.scrollIntoView({ block: "start" }); }}>Decline all offers</button> : null}
         </div>
         {quantityPicker}
+        <Link href="/account/entries?filter=completion" className={styles.activityExit}>Go to My Activity</Link>
       </div>
     </section> : null}
     <section id="purchase-option-rail" className={styles.rail} aria-label={`Your separate purchase options for ${title}`}>
