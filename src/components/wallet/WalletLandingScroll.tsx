@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Ordinary mobile wallet visits start at the relevant section, below the fixed header. */
-export function WalletLandingScroll({ enabled = true, target = "balance" }: { enabled?: boolean; target?: "balance" | "ready-rewards" }) {
+export function WalletLandingScroll({ enabled = true, target = "balance" }: { enabled?: boolean; target?: "balance" | "ready-rewards" | "wallet-content" }) {
   useEffect(() => {
     if (!enabled) return;
 
@@ -14,7 +14,7 @@ export function WalletLandingScroll({ enabled = true, target = "balance" }: { en
       window.cancelAnimationFrame(secondFrame);
     };
     const shouldReveal = (hash = window.location.hash) => window.matchMedia?.("(max-width: 767px)").matches
-      && (!hash || hash === `#${target}`);
+      && (target === "wallet-content" || !hash || hash === `#${target}`);
     const revealSection = () => {
       cancelFrames();
       if (!shouldReveal()) return;
@@ -40,7 +40,10 @@ export function WalletLandingScroll({ enabled = true, target = "balance" }: { en
       if (destination.origin !== window.location.origin || destination.pathname !== window.location.pathname || destination.search !== window.location.search || !shouldReveal(destination.hash)) return;
       event.preventDefault();
       // Only the hash changes: preserve Back navigation without a competing router scroll.
-      if (destination.href !== window.location.href) window.history.pushState(null, "", destination.href);
+      if (destination.href !== window.location.href) {
+        window.history.pushState(null, "", destination.href);
+        window.dispatchEvent(new Event("hashchange"));
+      }
       revealSection();
     };
     const onHash = () => revealSection();

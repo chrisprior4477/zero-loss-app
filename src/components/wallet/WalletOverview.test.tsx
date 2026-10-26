@@ -1,19 +1,21 @@
-import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { WalletOverview } from "./WalletOverview";
 const empty: WalletSnapshot = { walletAccountId: null, scope: "production", currency: "USD", balanceCents: 0, transactionCount: 0, fundingAvailable: false, entries: [] };
+beforeEach(() => { window.history.replaceState(null, "", "/account/wallet?view=history"); HTMLElement.prototype.scrollIntoView = vi.fn(); });
 afterEach(cleanup);
 test("verified empty snapshot displays zero and no fabricated transactions", () => {
   render(<WalletOverview wallet={empty} />);
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$0.00");
   expect(screen.getByText("No transactions yet")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
+  expect(screen.getAllByRole("button", { name: "Add funds" }).find(button => !(button as HTMLButtonElement).disabled)!).toBeTruthy();
+  fireEvent.click(screen.getAllByRole("button", { name: "Add funds" }).find(button => !(button as HTMLButtonElement).disabled)!);
   expect((screen.getByRole("button", { name: "Add funds unavailable" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByRole("heading", { name: "Add funds is unavailable" })).toBeTruthy();
-  expect((screen.getByRole("button", { name: "Add Card" }) as HTMLButtonElement).disabled).toBe(true);
+
   expect(screen.queryByText("Pending funding")).toBeNull();
 });
 test("read failure shows Unavailable, not zero or no-transactions claim", () => {
@@ -26,25 +28,25 @@ test("only existing ledger records are rendered, funding remains disabled even w
   render(<WalletOverview wallet={{ ...empty, fundingAvailable: true, balanceCents: 2500, transactionCount: 2, entries: [{ id: "existing-funding", entry_type: "DEPOSIT", amount: 3000, created_at: "2026-09-14T12:00:00Z" }, { id: "existing-refund", entry_type: "REFUND", amount: -500, created_at: "2026-09-14T13:00:00Z" }] }} />);
   expect(screen.getByText("Refund")).toBeTruthy();
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$25");
-  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
+  expect(screen.getAllByRole("button", { name: "Add funds" }).find(button => !(button as HTMLButtonElement).disabled)!).toBeTruthy();
 });
 test("wallet layout exposes responsive transaction filters without replacing ledger data", () => {
   render(<WalletOverview wallet={{ ...empty, balanceCents: 2500, transactionCount: 2, entries: [{ id: "funding", entry_type: "DEPOSIT", amount: 3000, created_at: "2026-09-14T12:00:00Z" }, { id: "entry", entry_type: "ENTRY_DEBIT", amount: -500, created_at: "2026-09-14T13:00:00Z" }] }} />);
   expect(screen.getByRole("heading", { name: "Playable Wallet" })).toBeTruthy();
   expect(screen.getByAltText("Zero Loss leather wallet")).toBeTruthy();
+  fireEvent.click(screen.getByRole("link", { name: "Transactions" }));
   expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByText("Entry purchase")).toBeTruthy();
 });
 
 test("enabled preview wallet puts Add Card beside Add funds", () => {
   render(<WalletOverview wallet={{ ...empty, walletAccountId: "wallet-a", scope: "demo", fundingAvailable: true }} fundingEnabled requests={[]} requestKey="stable_demo_request_001" />);
-  expect(screen.getAllByRole("link", { name: "Add funds" }).map(link => link.getAttribute("href"))).toEqual(expect.arrayContaining(["#add-funds", "/account/wallet?view=history#add-funds"]));
-  expect(screen.getByRole("article", { name: "Current balance" }).querySelector<HTMLAnchorElement>('a[href="/account/payment-methods"]')?.textContent).toBe("Add Card");
-  expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("/account/payment-methods");
+  expect(screen.getByRole("button", { name: "View payment methods" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Add Card" })).toBeTruthy();
+  fireEvent.click(screen.getAllByRole("button", { name: "Add funds" }).find(button => !(button as HTMLButtonElement).disabled)!);
   expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy();
-  expect(screen.getByRole("form", { name: "Add funds" }).querySelector("#add-funds")).toBeTruthy();
   expect(document.querySelectorAll("#add-funds")).toHaveLength(1);
-  expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("link", { name: "Balance" }));
   expect(screen.getByRole("article", { name: "Current balance" }).querySelector("button")?.textContent).toBe("Delete Funds");
   expect(screen.getByRole("navigation", { name: "Account wallet overview" }).querySelector("button")?.textContent).not.toBe("Delete Funds");
 });
@@ -59,6 +61,7 @@ test("wallet tickets reuse real account counts and direct destinations", () => {
 test("funding from a prize has a direct return to its entry controls", () => {
   render(<WalletOverview wallet={empty} returnToProduct={{ title: "Samsung TV", href: "/items/samsung-m70h-tv#enter-entry" }} />);
   expect(screen.getByText("Samsung TV")).toBeTruthy();
+  fireEvent.click(screen.getAllByRole("button", { name: "Add funds" }).find(button => !(button as HTMLButtonElement).disabled)!);
   expect(screen.getByRole("link", { name: "Back to this prize" }).getAttribute("href")).toBe("/items/samsung-m70h-tv#enter-entry");
 });
 

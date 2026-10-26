@@ -1,5 +1,8 @@
 "use client";
 
+import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
+
+
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
@@ -146,6 +149,6 @@ export function EntryTicketRail({ title, tickets, selectedEntryId }: {
       </div> : null}
     </> : null}
   </section>
-  <div className={styles.bottom}><Link href="/" className={styles.shopping}>Continue shopping</Link></div>
+  <div className={styles.bottom}><ContinueShoppingLink  className={styles.shopping}>Continue shopping</ContinueShoppingLink></div>
   </>;
 }

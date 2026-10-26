@@ -10,7 +10,7 @@ test("every preview reward offers a green shopping exit before the wallet-pass n
   const shopping = screen.getByRole("link", { name: "Continue Shopping" });
   const note = screen.getByText("Wallet passes are not connected in this preview yet.");
 
-  expect(shopping.getAttribute("href")).toBe("/");
+  expect(shopping.getAttribute("href")).toBe("/browse");
   expect(shopping.className).toContain("bg-[#31e800]");
   expect(container.textContent!.indexOf(googleWallet.textContent!)).toBeLessThan(container.textContent!.indexOf(shopping.textContent!));
   expect(container.textContent!.indexOf(shopping.textContent!)).toBeLessThan(container.textContent!.indexOf(note.textContent!));
@@ -19,7 +19,7 @@ test("every preview reward offers a green shopping exit before the wallet-pass n
 test("the shopping exit remains available when wallet pass links are connected", () => {
   render(<RewardRedemptionActions displayCode="123456789012" isPreview={false} appleWalletUrl="/apple-pass" googleWalletUrl="/google-pass" />);
 
-  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
+  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/browse");
   expect(screen.queryByText("Wallet passes are not connected in this preview yet.")).toBeNull();
 });
 

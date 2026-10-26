@@ -44,3 +44,11 @@ test("a definitive rejection leaves message editable and does not show success",
   expect(screen.getByRole("textbox", { name: "Your reply" })).toHaveProperty("disabled", false);
   expect(mocks.replace).not.toHaveBeenCalled();
 });
+
+test("order help prefills an editable subject and reward topic with its durable reference", () => {
+  const view = render(<SupportForm requestKey="support_request_001" order={{ rewardId: caseId, orderNumber: "ord_owned", title: "Baby essentials", retailer: "Walmart" }} />);
+  expect(screen.getByRole("textbox", { name: "Subject" })).toHaveProperty("value", "Question about Baby essentials");
+  expect(screen.getByRole("combobox", { name: "What do you need help with?" })).toHaveProperty("value", "reward");
+  expect(view.container.querySelector<HTMLInputElement>('[name="rewardId"]')?.value).toBe(caseId);
+  expect(mocks.save).not.toHaveBeenCalled();
+});

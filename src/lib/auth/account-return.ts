@@ -1,3 +1,4 @@
+import { browseReturnPath } from "@/lib/catalog/product-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
 
 type Query = Record<string, string | string[] | undefined>;
@@ -11,7 +12,7 @@ const routes: Record<string, { query: Record<string, (value: string) => boolean>
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), viewed: matches(identifier), filter: oneOf("all", "active", "prize", "completion", "completed") } },
   "/account/declined-offers": { query: {} },
   "/account/favorites": { query: { tab: oneOf("favorites", "shared"), share: matches(uuid), item: matches(slug) }, hash: /^#(?:saved-items-heading|favorite-products)$/ },
-  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, resume: oneOf("extra-entries"), transaction: matches(uuid) }, hash: /^#(?:add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
+  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, resume: oneOf("extra-entries"), shop: value => browseReturnPath(value) !== null, panel: oneOf("balance", "transactions", "cards", "add-funds"), transaction: matches(uuid) }, hash: /^#(?:wallet-content|balance|add-card|add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
   "/account/crew": { query: { member: matches(uuid), tab: oneOf("crew", "requests", "picks"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {} },
   "/account/notifications": { query: {} },
@@ -20,7 +21,7 @@ const routes: Record<string, { query: Record<string, (value: string) => boolean>
   "/account/payment-methods": { query: {} },
   "/account/orders": { query: {} },
   "/account/results": { query: {} },
-  "/support": { query: { case: matches(uuid), transaction: matches(uuid), view: oneOf("inbox"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/) }, hash: /^#(?:conversation|case-list)$/ },
+  "/support": { query: { rewardId: matches(uuid), case: matches(uuid), transaction: matches(uuid), view: oneOf("inbox"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/) }, hash: /^#(?:report-problem|conversation|case-list)$/ },
 };
 
 /** Navigation only: the destination must still authorize every record after login. */

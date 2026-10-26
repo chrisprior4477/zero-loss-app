@@ -1,4 +1,5 @@
 "use client";
+import { orderSupportHref } from "@/lib/support/order-context";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -99,6 +100,7 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
         {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd><span title={value}>{value.slice(-8).toUpperCase()}</span><button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
         <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt)}</time> : "Unavailable"}</dd></div>
       </dl>
+      <Link className={styles.copySupport} href={orderSupportHref(order.rewardId)}>Get help with this order →</Link>
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => { element?.select(); }} /> : null}

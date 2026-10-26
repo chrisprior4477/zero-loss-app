@@ -1,5 +1,8 @@
 "use client";
 
+import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
+
+
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -275,7 +278,7 @@ export function EntryPageActions({ itemTitle, slug, entryId, initialQuantity, re
       </section>
     </div>
     <nav aria-label="Entry detail exits" className={styles.bottomActions}>
-      <Link href="/" className={styles.shoppingButton}>Continue shopping</Link>
+      <ContinueShoppingLink  className={styles.shoppingButton}>Continue shopping</ContinueShoppingLink>
       <Link href={returnHref} className={styles.returnButton}>Return to My Activity →</Link>
     </nav>
   </>;

@@ -1,3 +1,9 @@
+"use client";
+
+import { useMemo, useState, useSyncExternalStore } from "react";
+import { walletPanelFromLocation, walletPanelHref, type WalletPanel } from "@/lib/wallet/workspace";
+import { WalletPaymentMethods } from "./WalletPaymentMethods";
+import type { DemoCardToken } from "@/lib/payments/demo-card";
 import Image from "next/image";
 import Link from "next/link";
 import type { LedgerEntryRow, WalletSnapshot } from "@/lib/wallet/snapshot";
@@ -17,8 +23,16 @@ import styles from "./wallet-overview.module.css";
 import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
 import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 
-export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false }: {
+function subscribePanel(callback: () => void) {
+  window.addEventListener("popstate", callback); window.addEventListener("hashchange", callback); window.addEventListener("wallet-panel", callback);
+  return () => { window.removeEventListener("popstate", callback); window.removeEventListener("hashchange", callback); window.removeEventListener("wallet-panel", callback); };
+}
+
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, initialPanel = "balance", contextSearch = "", displayName = "Demo Customer" }: {
   wallet: WalletSnapshot | null;
+  initialPanel?: WalletPanel;
+  contextSearch?: string;
+  displayName?: string;
   ledgerEntries?: LedgerEntryRow[] | null;
   demoHistoryVisibility?: DemoWalletHistoryVisibility | null;
   activity?: AccountActivity;
@@ -32,6 +46,16 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   returnToProduct?: { title: string; href: string; label?: "Back to purchase option" | "Back to your entries" };
   returnUnavailable?: boolean;
 }) {
+  const panel = useSyncExternalStore(subscribePanel, () => walletPanelFromLocation(window.location.search, window.location.hash), () => initialPanel);
+  const methodCards = useMemo(() => savedCards ?? (savedCard ? [savedCard] : []), [savedCards, savedCard]);
+  const [selectedCard, setSelectedCard] = useState<DemoCardToken | null | undefined>(undefined);
+  const [returnToFunding, setReturnToFunding] = useState(Boolean(returnToProduct));
+  function switchPanel(next: WalletPanel) {
+    if (next === "cards") setReturnToFunding(panel === "add-funds" || Boolean(returnToProduct));
+    window.history.pushState(null, "", walletPanelHref(next, window.location.search));
+    window.dispatchEvent(new Event("wallet-panel"));
+    requestAnimationFrame(() => document.getElementById("wallet-content")?.scrollIntoView({ block: "start" }));
+  }
   const demo = wallet?.scope === "demo";
   const balance = wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable";
   const pendingCents = requests?.filter(request => request.reconciliation === "credit_pending").reduce((sum, request) => sum + request.amount, 0);
@@ -43,7 +67,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : accountRoutes.rewards;
 
   return <main className={styles.page}>
-    <WalletLandingScroll enabled={!selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
+    <WalletLandingScroll enabled={!selectedTransaction?.requested} target="wallet-content" />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="/account/wallet?view=history#balance" actionHref={canFund ? "/account/wallet?view=history#add-funds" : undefined} actionDisabled={!canFund} />
@@ -51,11 +75,13 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </nav>
 
-      <header className={styles.hero}>
+      <header id="wallet-content" className={styles.hero}>
         <div><h1>Playable Wallet</h1><p>Your balance and every move, all in one place.</p></div>
-        <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Gift Cards &amp; Rewards</Link><Link href="/account/wallet?view=history" aria-current="page">Funds &amp; history</Link></nav>
+        <Link href="/account/wallet" className={styles.transactionsLink}>Gift Cards &amp; Rewards →</Link>
       </header>
 
+      <nav aria-label="Wallet sections" className={styles.workspaceTabs}>{([["balance", "Balance"], ["transactions", "Transactions"], ["cards", "Payment Methods"]] as const).map(([key, label]) => <a key={key} href={walletPanelHref(key, contextSearch)} aria-current={(panel === key || key === "balance" && panel === "add-funds") ? "page" : undefined} onClick={event => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); switchPanel(key); } }}>{label}</a>)}</nav>
+      <div hidden={panel !== "balance"}>
       <section className={styles.summaryGrid} aria-label="Wallet summary">
         <article id="balance" className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance">
           <div className={styles.balanceArt}><Image src="/account/drawer/wallet-transactions-324x180.png" alt="Zero Loss leather wallet" width={324} height={180} priority sizes="324px" /></div>
@@ -67,12 +93,12 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
             </div>
             <p className={styles.balanceNote}>{wallet ? "Ready to use for entries." : "Balance could not be verified."}</p>
             <div className={styles.balanceActions}>
-              <a href="#add-funds" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></a>
+              <button type="button" onClick={() => switchPanel("add-funds")} className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></button>
               <div className={styles.fundingActions}>
-                {canFund ? <Link href="/account/payment-methods" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
-                {canFund ? <Link href="/account/payment-methods" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}
+                {canFund ? <button type="button" onClick={() => switchPanel("cards")} className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
+                {canFund ? <button type="button" onClick={() => switchPanel("cards")} className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}
               </div>
-              <a href="#transactions" className={styles.transactionsLink}>View transactions <AccountIcon name="arrow" /></a>
+              <button type="button" className={styles.transactionsLink} onClick={() => switchPanel("transactions")}>View transactions <AccountIcon name="arrow" /></button>
             </div>
           </div>
         </article>
@@ -84,6 +110,8 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         </article>
       </section>
 
+      </div>
+      <div hidden={panel !== "transactions"}>
       <section id="transactions" className={styles.transactions} aria-labelledby="transactions-heading">
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div></div>
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}
@@ -93,13 +121,22 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         {wallet && !ledgerEntries && wallet.transactionCount > wallet.entries.length ? <p className={styles.finePrint}>Only the latest {wallet.entries.length} transactions could be loaded. Refresh to try the full history again. Balance includes all posted transactions.</p> : null}
       </section>
 
+      {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} continueTo={returnToProduct} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
+      </div>
+      <div hidden={panel !== "cards"}>
+        <WalletPaymentMethods savedCards={methodCards} displayName={displayName} enabled={canFund} unavailable={cardUnavailable} onFund={token => { setSelectedCard(token); switchPanel("add-funds"); }} />
+        <button type="button" className={styles.cardAction} onClick={() => switchPanel(returnToFunding ? "add-funds" : "balance")}>{returnToFunding ? "Back to Add funds" : "Back to wallet balance"}</button>
+      </div>
+      <div hidden={panel !== "add-funds"}>
       <section id={canFund ? undefined : "add-funds"} className={`${styles.ticketPanel} ${styles.funding}`} aria-labelledby="funding-heading">
         <div className={styles.sectionHeading}><div><h2 id="funding-heading">Add funds</h2><p>{canFund ? "Choose an amount and confirm your preview deposit." : "Add playable balance when funding is available for your account."}</p></div><span className={styles.fundingBadge}>{demo ? "Demo payment" : "Funding"}</span></div>
         {returnToProduct ? <div className={styles.fundingReturn}><p>{returnToProduct.label === "Back to purchase option" ? <>Add funds to complete your purchase of {returnToProduct.title}. After your deposit, you’ll return to confirm the purchase.</> : returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}
         {returnUnavailable ? <p role="status" className={styles.fundingReturn}>We couldn’t find that purchase option in your account. <Link href="/account/entries?filter=completion">View your purchase options →</Link></p> : null}
-        {canFund ? <DemoFundingForm requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
-        {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} continueTo={returnToProduct} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
+        {canFund ? <DemoFundingForm selectedCard={selectedCard} onSelectCard={setSelectedCard} onManageCards={() => switchPanel("cards")} requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available in Transactions.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
+        <button type="button" className={styles.cardAction} onClick={() => switchPanel("cards")}>Manage payment methods</button>
+        <button type="button" className={styles.cardAction} onClick={() => switchPanel("balance")}>Back to wallet balance</button>
       </section>
+      </div>
     </div>
   </main>;
 }

@@ -1,4 +1,6 @@
 "use client";
+import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
+
 
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -17,10 +19,11 @@ import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 
 type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" | "Back to your entries" };
+type CardSelection = { selectedCard?: DemoCardToken | null; onSelectCard?: (token: DemoCardToken | null) => void; onManageCards?: () => void };
 const noRequests: DemoFundingRequest[] = [];
 const presetAmounts = ["100", "1000", "2500", "10000"];
 
-function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
+function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, selectedCard, onSelectCard, onManageCards }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination } & CardSelection) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof completeDemoFunding>>, form: FormData) => {
     const result = await completeDemoFunding(previous, form);
@@ -34,7 +37,12 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   const amountIsValid = isFundingAmount(Number(amount));
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
   const [visibleTokens, setVisibleTokens] = useState<DemoCardToken[]>(() => cards.length ? cards.map(card => card.token) : [DEMO_CARD_TOKEN]);
-  const [selectedToken, setSelectedToken] = useState<DemoCardToken | null>(initialToken ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
+  const [localToken, setLocalToken] = useState<DemoCardToken | null>(initialToken ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
+  const selectedToken = initialToken ?? (selectedCard === undefined ? localToken : selectedCard);
+  function setSelectedToken(value: DemoCardToken | null | ((token: DemoCardToken | null) => DemoCardToken | null)) {
+    const next = typeof value === "function" ? value(selectedToken) : value;
+    setLocalToken(next); onSelectCard?.(next);
+  }
   const [defaultToken, setDefaultToken] = useState<DemoCardToken | null>(() => initialDefault === false ? null : initialDefault === true ? (initialToken ?? cards.find(card => card.isDefault)?.token ?? DEMO_CARD_TOKEN) : cards.find(card => card.isDefault)?.token ?? null);
   const [savingCard, setSavingCard] = useState<DemoCardToken | null>(null);
   const [cardMessage, setCardMessage] = useState("");
@@ -60,6 +68,16 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     card.focus({ preventScroll: true });
     window.scrollTo({ top: Math.max(0, window.scrollY + card.getBoundingClientRect().top - header - 12), behavior: "auto" });
   }, [visibleTokens]);
+  const [previousSavedCards, setPreviousSavedCards] = useState(savedCards);
+  if (savedCards !== previousSavedCards) {
+    setPreviousSavedCards(savedCards);
+    if (savedCards) {
+      setCards(savedCards);
+      setDefaultToken(savedCards.find(card => card.isDefault)?.token ?? null);
+      setVisibleTokens(previous => [...new Set([...previous, ...savedCards.map(card => card.token)])]);
+      setArtwork(previous => ({ ...previous, ...Object.fromEntries(savedCards.filter(card => card.artwork).map(card => [card.token, card.artwork])) }));
+    }
+  }
   const deleteDialog = useRef<HTMLDialogElement>(null);
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
@@ -118,6 +136,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
           { token, lastFour: fixture.lastFour, isDefault: effectiveDefault, ...(artwork[token] ? { artwork: artwork[token] } : {}) }]);
         if (effectiveDefault) setDefaultToken(token);
         else if (defaultToken === token) setDefaultToken(null);
+        router.refresh();
       }
     } catch { setCardMessage("The sample card could not be saved. Please try again."); }
     finally { setSavingCard(null); }
@@ -151,6 +170,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {!recoveryOnly ? <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel}>
       <div className={styles.demoCardsHeading}><div><h3>Add a card</h3><p>Choose a supplied sample card. No real card details are accepted.</p></div>
         <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable || !nextCard} onClick={() => addCard()}>+ Add another card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} disabled={locked || cardUnavailable} onUse={colors => addCard(nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, colors)} /></div></div>
+      {!nextCard ? <div className={styles.methodNotice}><p>All four sample cards are available. Choose a saved card below. Use Camera updates the selected sample card’s artwork.</p>{onManageCards ? <button type="button" className={styles.cardAction} disabled={locked} onClick={onManageCards}>Edit sample artwork</button> : null}</div> : null}
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const saved = cards.some(card => card.token === token);
         const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
@@ -215,7 +235,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   </form>;
 }
 
-export function DemoFundingForm({ requestKey, blocked = false, requests = noRequests, walletId = "test", savedCard = null, savedCards, cardUnavailable = false, continueTo }: { requestKey: string; blocked?: boolean; requests?: DemoFundingRequest[] | null; walletId?: string; savedCard?: DemoCard | null; savedCards?: DemoCard[]; cardUnavailable?: boolean; continueTo?: ContinueDestination }) {
+export function DemoFundingForm({ requestKey, blocked = false, requests = noRequests, walletId = "test", savedCard = null, savedCards, cardUnavailable = false, continueTo, selectedCard, onSelectCard, onManageCards }: { requestKey: string; blocked?: boolean; requests?: DemoFundingRequest[] | null; walletId?: string; savedCard?: DemoCard | null; savedCards?: DemoCard[]; cardUnavailable?: boolean; continueTo?: ContinueDestination } & CardSelection) {
   const router = useRouter();
   const storageKey = `zero-loss-demo-request:${walletId}`;
   const [successMessage, setSuccessMessage] = useState("");
@@ -260,13 +280,14 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   return <>
     {successMessage ? <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-green-400/40 bg-green-50 px-4 py-3 text-sm font-bold text-green-800"><p role="status" className="flex-1">{successMessage}</p>{continueTo ? <Link href={continueTo.href} className="flex min-h-11 items-center rounded-lg bg-[#31e800] px-4 font-extrabold text-[#062218]">{continueTo.label ?? "Continue your entry"} →</Link> : null}<button type="button" onClick={() => document.getElementById("demo-funding-amount")?.focus()} className="min-h-11 rounded-lg border border-green-600 px-3 text-green-800">Add more funds</button></div> : null}
     <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
+    selectedCard={selectedCard} onSelectCard={onSelectCard} onManageCards={onManageCards}
     savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly} cardUnavailable={cardUnavailable}
     blocked={!attempt.ready || ((blocked || requests === null || requests.some(request => request.reconciliation !== "reconciled")) && !attempt.canRetry)} continueTo={continueTo}
     onNew={newAttempt} onSuccess={onSuccess} onStart={() => setSuccessMessage("")} />
   </>;
 }
 
-function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: ContinueDestination }) {
+function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: ContinueDestination } & CardSelection) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof reconcileDemoFunding>>, form: FormData) => {
     const result = await reconcileDemoFunding(previous, form);
@@ -293,7 +314,7 @@ export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hidd
   }, [showAll]);
   const hidden = new Set(hiddenIds);
   const displayRequests = showArchived && !hideArchived ? requests : requests?.filter(request => !hidden.has(request.id));
-  return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
+  return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><ContinueShoppingLink  className={styles.depositShoppingButton}>Continue shopping</ContinueShoppingLink></div>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
       : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>

@@ -5,6 +5,11 @@ const browseQueryKeys = new Set([
   "partnerCategory", "available", "minValue", "maxValue",
 ]);
 
+export function browseReturnPath(value: unknown): string | null {
+  if (typeof value !== "string" || !value.startsWith("/browse") || /[\\\u0000-\u001f]/.test(value)) return null;
+  return productBrowseReturnHref(value) === value ? value : null;
+}
+
 /** Product return links may point only to a filtered marketplace page. */
 export function productBrowseReturnHref(value: unknown): string {
   if (typeof value !== "string" || value.length > 1000) return "/browse";

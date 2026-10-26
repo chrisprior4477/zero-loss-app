@@ -21,6 +21,7 @@ import entryActionStyles from "./entry-action.module.css";
 
 type Props = {
   productSlug: string;
+  browseReturnHref?: string;
   requestKey: string;
   requestHead: EntryRequestHead;
   productTitle: string;
@@ -42,7 +43,7 @@ type Props = {
 };
 
 export function DemoParticipationPanel({
-  productSlug,
+  productSlug, browseReturnHref,
   requestKey,
   requestHead,
   productTitle,
@@ -109,8 +110,8 @@ export function DemoParticipationPanel({
     && availabilityConfirmed && remaining > 0 && knownBalance !== null && knownBalance >= totalCents;
   const serverBalanceError = state.status === "error" && state.code === "insufficient_balance";
   const showBalanceNotice = balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state);
-  const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity))}`;
-  const addFundsHref = fundingHref(productSlug, undefined, quantity);
+  const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity, browseReturnHref))}`;
+  const addFundsHref = fundingHref(productSlug, undefined, quantity, false, browseReturnHref);
   const rememberEntry = (selected = quantity) => saveEntryIntent(productSlug, productTitle, selected);
 
   useEffect(() => {

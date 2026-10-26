@@ -121,7 +121,7 @@ test("additional entries are reviewed and confirmed on the same page", async () 
   expect(screen.queryByRole("link", { name: /Review 2 more entries/ })).toBeNull();
   expect(screen.getByTestId("outcome-email-preference").closest("section")?.getAttribute("aria-labelledby")).toBe("add-entries-title");
   expect(screen.getByRole("link", { name: /Return to My Activity/ }).getAttribute("href")).toBe(props.returnHref);
-  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
+  expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/browse");
   fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm 2 entries for $2" }));
   await waitFor(() => expect(createPreviewEntry).toHaveBeenCalledOnce());

@@ -150,3 +150,11 @@
   .embedded .headerNote { align-items: flex-start; margin-top: 9px; text-align: left; }
   .embedded .cardGlow { width: min(100%, 430px); }
 }
+.compactGrid { display:block; max-width:680px; margin:auto; }
+.artworkChoices { display:flex; gap:8px; flex-wrap:wrap; margin:18px 0; border:0; padding:0; }
+.artworkChoices legend { font-weight:800; margin-bottom:10px; }
+.artworkChoices button { border:0; border-radius:6px; min-height:44px; padding:10px 15px; background:#dff1ff; color:#153354; font-weight:800; }
+.artworkChoices button[aria-pressed=true] { background:#31e800; }
+
+.compactArtwork { max-width:300px; margin:0 auto 18px; }
+.compactArtwork button { display:block; min-height:40px; margin:auto; color:#075187; font-weight:800; }

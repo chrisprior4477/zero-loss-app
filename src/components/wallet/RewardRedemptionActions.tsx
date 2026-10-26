@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -53,7 +53,7 @@ export function RewardRedemptionActions({
         {appleWalletUrl ? <a href={appleWalletUrl} aria-label="Add to Apple Wallet" className={`${walletButton} bg-black text-white`}>{appleLabel}</a> : <button type="button" disabled aria-label="Add to Apple Wallet" className={`${walletButton} bg-[#494949] text-white`}>{appleLabel}</button>}
         {googleWalletUrl ? <a href={googleWalletUrl} aria-label="Add to Google Wallet" className={`${walletButton} border border-[#d7e1e8] bg-white text-[#182435]`}>{googleLabel}</a> : <button type="button" disabled aria-label="Add to Google Wallet" className={`${walletButton} border border-[#d7e1e8] bg-white text-[#526171]`}>{googleLabel}</button>}
       </div>
-      <Link href="/" className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#061630] transition hover:bg-[#65f33d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b9ff] max-[700px]:mt-2">Continue Shopping</Link>
+      <ContinueShoppingLink className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#061630] transition hover:bg-[#65f33d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b9ff] max-[700px]:mt-2">Continue Shopping</ContinueShoppingLink>
       {!appleWalletUrl && !googleWalletUrl ? <p className="mt-4 text-center text-[11px] leading-4 text-[#4a667c]">Wallet passes are not connected in this preview yet.</p> : null}
     </section>
   </>;

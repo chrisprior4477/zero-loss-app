@@ -1,3 +1,4 @@
+import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -34,7 +35,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       <div className={styles.topline}>
         <div><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Purchase Options</h1><p className={styles.subtitle}>These are your {count} separate purchase {count === 1 ? "option" : "options"}.</p></div>
         <div className={styles.topActions}>
-          <Link href="/" className={styles.shopping}>Continue shopping</Link>
+          <ContinueShoppingLink  className={styles.shopping}>Continue shopping</ContinueShoppingLink>
           <Link href="/account/entries?filter=completion" className={styles.return}>Return to My Activity <span aria-hidden="true">→</span></Link>
           <Link href="/account/entries?filter=completion" className={styles.close} aria-label="Close purchase options and return to My Activity">×</Link>
         </div>

@@ -1,5 +1,8 @@
 "use client";
 
+import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
+
+
 import Image from "next/image";
 import Link from "next/link";
 import { type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useRef, useState } from "react";
@@ -243,7 +246,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
     </div>
     <div className={styles.galleryControls}>
       <div className={styles.galleryActions}>
-      <Link href="/" className={styles.continueShopping}>Continue shopping</Link>
+      <ContinueShoppingLink  className={styles.continueShopping}>Continue shopping</ContinueShoppingLink>
       {canClearDemoEntries ? <ClearAllEntriesButton /> : null}
       {groups.length > 1 ? <div className={styles.carouselButtons}>
         <button type="button" onClick={() => move(-1)} disabled={!view.previous} aria-controls={galleryId} aria-label="Previous product" className={styles.arrowButton}><AccountIcon name="chevron" className={styles.previousIcon} /></button>

@@ -1,9 +1,11 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { WalletOverview } from "./WalletOverview";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 vi.mock("next/image", () => ({ default: () => null }));
 vi.mock("./DemoFundingForm", () => ({ DemoFundingForm: () => null, DemoFundingRequests: () => null }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+beforeEach(() => window.history.replaceState(null, "", "/account/wallet?view=history&panel=transactions"));
 afterEach(cleanup);
 const entry = { id: "11111111-1111-4111-8111-111111111111", entry_type: "DEPOSIT", amount: 100, created_at: "2026-09-21T12:00:00Z" };
 const wallet: WalletSnapshot = { walletAccountId: entry.id, scope: "demo", currency: "USD", balanceCents: 100, fundingAvailable: true, entries: [entry], transactionCount: 1 };

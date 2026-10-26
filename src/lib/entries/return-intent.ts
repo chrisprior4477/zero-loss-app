@@ -1,4 +1,5 @@
 import { isEntryQuantity, parseEntryQuantity } from "./quantity";
+import { browseReturnPath } from "@/lib/catalog/product-return";
 export { parseEntryQuantity } from "./quantity";
 
 const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -7,15 +8,28 @@ const maxAgeMs = 24 * 60 * 60 * 1000;
 
 export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number };
 
-export function productEntryHref(slug: string, quantity = 1): string {
+export function productEntryHref(slug: string, quantity = 1, browseFrom?: string): string {
   if (!productSlugPattern.test(slug)) return "/browse";
   const selected = isEntryQuantity(quantity) ? quantity : 1;
-  return `/items/${slug}${selected > 1 ? `?quantity=${selected}` : ""}#enter-entry`;
+  const params = new URLSearchParams();
+  if (selected > 1) params.set("quantity", String(selected));
+  const from = browseReturnPath(browseFrom);
+  if (from) params.set("from", from);
+  return `/items/${slug}${params.size ? `?${params}` : ""}#enter-entry`;
+}
+
+export function safeProductEntryReturn(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > 2048 || !value.startsWith("/items/")) return null;
+  const url = new URL(value, "https://navigation.invalid");
+  const slug = url.pathname.slice(7);
+  const quantity = url.searchParams.has("quantity") ? parseEntryQuantity(url.searchParams.get("quantity")) : 1;
+  if (quantity === null) return null;
+  return productEntryHref(slug, quantity, url.searchParams.get("from") ?? undefined) === value ? value : null;
 }
 
 /** Mark a successful demo-funding return so the entry button can give a one-time cue. */
 export function fundedProductEntryHref(href: string): string {
-  if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?quantity=[1-9]\d*)?#enter-entry$/.test(href)) return href;
+  if (!safeProductEntryReturn(href)) return href;
   const selected = new URL(href, "https://navigation.invalid").searchParams.get("quantity");
   if (selected !== null && parseEntryQuantity(selected) === null) return href;
   const [path, hash] = href.split("#");
@@ -28,7 +42,7 @@ export function currentProductEntryHref(pathname: string, search: string, intent
   if (!match) return null;
   const slug = match[1];
   const queryQuantity = parseEntryQuantity(new URLSearchParams(search).get("quantity")) ?? 1;
-  return productEntryHref(slug, intent?.slug === slug ? intent.quantity : queryQuantity);
+  return productEntryHref(slug, intent?.slug === slug ? intent.quantity : queryQuantity, new URLSearchParams(search).get("from") ?? undefined);
 }
 
 function validIntent(value: unknown): value is EntryIntent {

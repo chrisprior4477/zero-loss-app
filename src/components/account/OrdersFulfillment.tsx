@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { orderSupportHref } from "@/lib/support/order-context";
 import { AccountIcon } from "./AccountIcon";
 import type { AccountOrders } from "@/lib/account/orders";
 import { accountFulfillment, fulfillmentHref, matchesFulfillmentFilter, type FulfillmentFilter } from "@/lib/account/fulfillment";
@@ -36,7 +37,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
         <div><p>YOUR ACCOUNT</p><h1>Orders &amp; Fulfillment</h1><span>Your winning rewards and purchased gift cards, connected to My Activity and your wallet.</span></div>
         <nav aria-label="Order page actions" className={styles.headingActions}>
           <Link href="/account/notifications"><AccountIcon name="bell" />Notifications</Link>
-          <Link href="/support"><AccountIcon name="security" />Get help</Link>
+          <Link href={selectedRewardId ? orderSupportHref(selectedRewardId) : "/support"}><AccountIcon name="security" />Get help</Link>
         </nav>
       </header>
 

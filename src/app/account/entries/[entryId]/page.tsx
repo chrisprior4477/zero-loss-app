@@ -1,3 +1,4 @@
+import { ContinueShoppingLink } from "@/components/catalog/ContinueShoppingLink";
 import type { Metadata } from "next";
 import { randomUUID } from "node:crypto";
 import Image from "next/image";
@@ -89,7 +90,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
       <div className={styles.topline}>
         <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>{entryCount === 1 ? "Your saved entry" : `Your ${entryCount} saved entries`} for the prize below.</p></div>
         <div className={styles.toplineActions}>
-          <Link href="/" className={styles.topShoppingButton}>Continue shopping</Link>
+          <ContinueShoppingLink  className={styles.topShoppingButton}>Continue shopping</ContinueShoppingLink>
           <Link href={returnHref} className={styles.topReturnButton}>Go to My Activity</Link>
           <Link href={returnHref} className={styles.closePage} aria-label="Close entry details and return to My Activity"><span aria-hidden="true">×</span></Link>
         </div>

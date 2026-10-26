@@ -26,7 +26,7 @@ export const footerLinkGroups: {
       { href: "/how-it-works", label: "How It Works" },
       { href: "/about", label: "About Us" },
       { href: "/support", label: "Support" },
-      { href: "/about", label: "Blog" },
+      { href: "/contact/product-request", label: "Suggest a product" },
     ],
   },
   {

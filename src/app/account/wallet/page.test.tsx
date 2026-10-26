@@ -1,14 +1,15 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ getAccountContext: vi.fn(), redirect: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.getAccountContext }));
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: mocks.rpc }) }));
 vi.mock("next/image", () => ({ default: () => null }));
 vi.mock("@/components/identity/DemoVerificationDialog", () => ({ DemoIdentityPreviewButton: () => null }));
 import WalletPage from "./page";
 
+beforeEach(() => window.history.replaceState(null, "", "/account/wallet?view=history#add-funds"));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const purchaseEntry = "ent_11111111111111111111111111111111";
