@@ -18,8 +18,9 @@ select throws_ok($$select public.create_demo_card_funding_session(2500,'card_req
 select throws_ok($$select public.create_demo_card_funding_session(2500,'card_request_key_01','demo_card_4242',null)$$,'22023',null,'default preference must be explicit');
 select throws_ok($$select public.create_demo_card_funding_session(99,'card_request_key_01','demo_card_4242',true)$$,'22023',null,'amount rules unchanged');
 select is(public.get_demo_payment_method(),null::jsonb,'failed request does not save a default');
+select public.confirm_demo_checkbox_funding(2500,'card_request_key_01','demo_card_4242',true,'funding-confirmation-v1');
 select lives_ok($$select public.create_demo_card_funding_session(2500,'card_request_key_01','demo_card_4242',true)$$,'test card accepted');
-select is(public.get_demo_payment_method(),'{"token":"demo_card_4242","lastFour":"4242","isDefault":true}'::jsonb,'safe default metadata persisted');
+select is(public.get_demo_payment_method(),'{"token":"demo_card_4242","lastFour":"4242","isDefault":true,"isDepositDefault":false,"artwork":null}'::jsonb,'safe default metadata persisted');
 select is(public.get_wallet_snapshot()->>'balanceCents','0','card selection and funding request do not directly credit balance');
 select lives_ok($$
   with receipt as (select public.simulate_demo_payment((public.resume_demo_funding_session(2500,'card_request_key_01')).id) as r)
@@ -33,11 +34,14 @@ $$,'repeat payment reuses receipt and posting');
 select is(public.get_wallet_snapshot()->>'balanceCents','2500','replay cannot credit twice');
 select throws_ok($$select public.create_demo_card_funding_session(1000,'card_request_key_01','demo_card_4242',true)$$,'22023',null,'altered amount rejected');
 select throws_ok($$select public.create_demo_card_funding_session(2500,'card_request_key_01','demo_card_4242',false)$$,'22023',null,'altered card preference replay rejected');
+select public.confirm_demo_checkbox_funding(1000,'card_request_key_02','demo_card_4242',false,'funding-confirmation-v1');
 select lives_ok($$select public.create_demo_card_funding_session(1000,'card_request_key_02','demo_card_4242',false)$$,'next payment may opt out of default');
 select is(public.get_demo_payment_method()->>'isDefault','false','opt out persists');
 select lives_ok($$select public.create_demo_card_funding_session(2500,'card_request_key_01','demo_card_4242',true)$$,'old payment can still be recovered');
 select is(public.get_demo_payment_method()->>'isDefault','false','old replay never overwrites newer preference');
+select public.confirm_demo_checkbox_funding(100,'card_request_key_03','demo_card_4242',false,'funding-confirmation-v1');
 select lives_ok($$select public.create_demo_card_funding_session(100,'card_request_key_03','demo_card_4242',false)$$,'third request allowed');
+select public.confirm_demo_checkbox_funding(100,'card_request_key_04','demo_card_4242',true,'funding-confirmation-v1');
 select lives_ok($$select public.create_demo_card_funding_session(100,'card_request_key_04','demo_card_4242',true)$$,'fourth rapid card request is allowed');
 select is(public.get_demo_payment_method()->>'isDefault','true','successful request saves the selected default');
 select throws_ok($$select public.resume_demo_funding_session(100,'card_missing_key_99')$$,'P0001',null,'recovery cannot create a new request');
@@ -58,19 +62,23 @@ select throws_ok($$update demo_private.funding_payment_methods set make_default=
 select throws_ok($$delete from demo_private.funding_payment_methods where customer_id='98999999-9999-4999-8999-999999999991'$$,'55000',null,'financial method audit history cannot be deleted');
 select throws_ok($$insert into demo_private.funding_payment_methods(session_id,customer_id,provider_token,make_default)
   select id,'98999999-9999-4999-8999-999999999992','demo_card_4242',false from public.demo_funding_sessions
-  where customer_id='98999999-9999-4999-8999-999999999991' limit 1$$,'23505',null,'duplicate session association rejected');
+  where customer_id='98999999-9999-4999-8999-999999999991' limit 1$$,'22023',null,'duplicate session association rejected before constraint');
 insert into demo_private.customer_payment_methods(customer_id) values('98999999-9999-4999-8999-999999999992');
+select set_config('request.jwt.claim.sub','98999999-9999-4999-8999-999999999991',true);
+select set_config('request.jwt.claims','{"sub":"98999999-9999-4999-8999-999999999991","iss":"https://ocgdfnvvjvutevgqzzgj.supabase.co/auth/v1"}',true);
+select public.confirm_demo_checkbox_funding(100,'card_legacy_key_05','demo_card_4242',false,'funding-confirmation-v1');
 insert into public.demo_funding_sessions(customer_id,wallet_account_id,amount,idempotency_key)
   select customer_id,id,100,'card_legacy_key_05' from public.wallet_accounts
   where customer_id='98999999-9999-4999-8999-999999999991' and scope='demo' and closed_at is null;
 select throws_ok($$insert into demo_private.funding_payment_methods(session_id,customer_id,provider_token,make_default)
   select id,'98999999-9999-4999-8999-999999999992','demo_card_4242',false from public.demo_funding_sessions
-  where customer_id='98999999-9999-4999-8999-999999999991' and idempotency_key='card_legacy_key_05'$$,'23503',null,'composite foreign key prevents cross-customer association');
+  where customer_id='98999999-9999-4999-8999-999999999991' and idempotency_key='card_legacy_key_05'$$,'22023',null,'confirmation prevents cross-customer association');
 select is((select count(*)::integer from information_schema.columns where table_schema='demo_private'
   and table_name in ('customer_payment_methods','funding_payment_methods') and column_name in ('pan','card_number','cvc','cvv','security_code')),0,'no storage columns for PAN or security code');
 update auth.users set email_confirmed_at=null where id='98999999-9999-4999-8999-999999999992';
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"98999999-9999-4999-8999-999999999992","iss":"https://ocgdfnvvjvutevgqzzgj.supabase.co/auth/v1"}',true);
+select set_config('request.jwt.claim.sub','98999999-9999-4999-8999-999999999992',true);
 select throws_ok($$select public.create_demo_card_funding_session(100,'card_unconfirmed_01','demo_card_4242',false)$$,'42501',null,'unconfirmed account cannot fund');
 set local role anon;
 select throws_ok($$select public.get_demo_payment_method()$$,'42501',null,'anonymous read denied');

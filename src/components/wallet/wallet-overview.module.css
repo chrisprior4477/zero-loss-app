@@ -152,22 +152,16 @@
   .addCardActions > button:first-child, .addCardActions > button[aria-label="Use camera"] { flex: 1 1 0; min-width: 0; min-height: 40px; padding: 7px 10px; }
 }
 .demoCardsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 15px; }
-.demoCard { min-width: 0; padding: 15px; border: 2px solid #c1dbea; border-radius: 12px; background: #fffefa; }
+.demoCard { min-width: 0; padding: 12px; border: 2px solid #c1dbea; border-radius: 12px; background: #fffefa; }
 .demoCard[data-selected="true"] { border-color: #0872fb; }
 .demoCardTop { display: flex; justify-content: space-between; gap: 8px; }
 .demoCardTop { align-items: center; }
 .demoCardTop strong { min-width: 0; }
 .seeCard { flex: 0 0 auto; min-height: 40px; padding: 7px 10px; border-radius: 8px; background: #dff2ff; color: #075187; font-size: 12px; font-weight: 850; }
-.cardFlip { display: grid; margin-top: 8px; perspective: 900px; }
-.cardInfoFace, .cardArtFace { grid-area: 1 / 1; min-width: 0; backface-visibility: hidden; transition: transform .4s ease, visibility .4s; }
-.cardInfoFace { align-self: center; transform: rotateY(0); }
-.cardArtFace { transform: rotateY(180deg); visibility: hidden; }
-.cardFlip[data-flipped="true"] .cardInfoFace { transform: rotateY(-180deg); visibility: hidden; }
-.cardFlip[data-flipped="true"] .cardArtFace { transform: rotateY(0); visibility: visible; }
 .cardSide { display: block; min-height: 36px; margin: 3px auto 0; padding: 5px 15px; color: #075187; font-size: 12px; font-weight: 850; }
-.cardFooter { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #d8e7f1; }
+.cardFooter { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #d8e7f1; }
 .cardFooter > span { margin-right: auto; color: #075eb4; font-size: 11px; font-weight: 850; }
-.cardFooter button { width: auto; min-height: 40px; margin-top: 0; padding-inline: 12px; font-size: 12px; }
+.cardFooter button { width: auto; min-height: 36px; margin-top: 0; padding-inline: 12px; font-size: 12px; }
 .demoCard:focus-visible, .demoCard button:focus-visible { outline: 3px solid #22b8ef; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .cardInfoFace, .cardArtFace { transition: none; } }
 .demoCardTop strong { color: #0b1940; font-size: 16px; }
@@ -197,6 +191,8 @@
 .fundingForm :global(input:not([type="hidden"]):not([type="checkbox"])), .fundingForm :global(select) { border-color: #b7ccdc; background: #fff; color: #0b1940; }
 .fundingForm :global(select) { border-radius: 9px; }
 .fundingAmountSection { display: grid; gap: 16px; }
+.fundingAmountSection .addCardActions { max-width: 440px; }
+@media (min-width: 768px) { .fundingAmountSection .addCardActions { max-width: 200px; } }
 .addCardShortcut { display: inline-flex; min-height: 48px; width: 100%; align-items: center; justify-content: center; border-radius: 9px; background: #0872fb; color: #fff; font-size: 16px; font-weight: 850; text-decoration: none; }
 .addCardShortcut:hover { background: #005fdc; }
 .addCardShortcut:focus-visible { outline: 3px solid #63caff; outline-offset: 3px; }
@@ -326,3 +322,4 @@
   .ledger li { gap: 3px 7px; padding-inline: 12px; }
   .ledger li .amount, .ledger li .positive { font-size: 16px; }
 }
+.cardPreview { margin-top: 10px; max-width: 340px; } .cardPreview[hidden] { display: none; }

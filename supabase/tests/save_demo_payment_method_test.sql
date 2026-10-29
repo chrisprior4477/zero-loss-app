@@ -18,7 +18,7 @@ select is(public.get_demo_payment_method(),null::jsonb,'new account begins witho
 select throws_ok($$select public.save_demo_payment_method('real_card_token',true)$$,'22023',null,'arbitrary tokens are rejected');
 select throws_ok($$select public.save_demo_payment_method('demo_card_4242',null)$$,'22023',null,'default preference must be explicit');
 select is(public.save_demo_payment_method('demo_card_4242',true),
-  '{"token":"demo_card_4242","lastFour":"4242","isDefault":true}'::jsonb,'safe test method saves independently');
+  '{"token":"demo_card_4242","lastFour":"4242","isDefault":true,"isDepositDefault":false,"artwork":null}'::jsonb,'safe test method saves independently');
 select is(public.get_demo_payment_method()->>'isDefault','true','saved method is readable by its owner');
 select is(public.get_wallet_snapshot()->>'balanceCents','0','saving a card never changes balance');
 select is(jsonb_array_length(public.get_demo_funding_requests()),0,'saving a card never creates a funding request');

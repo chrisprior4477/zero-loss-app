@@ -4,7 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { deleteDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
-import { DEMO_CARD_FIXTURES, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
+import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
+import { DeleteCardToast } from "./DeleteCardToast";
 import { DemoCardArtwork } from "./DemoCardArtwork";
 import { MobileCardCamera } from "./MobileCardCamera";
 import { WalletCardEditor, revealWalletSection } from "./WalletCardEditor";
@@ -21,6 +22,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState<DemoCardToken | null>(null);
+  const [expanded, setExpanded] = useState<DemoCardToken | null>(null);
   const cardsRef = useRef(cards);
   useEffect(() => { cardsRef.current = cards; }, [cards]);
   const [lastSavedCards, setLastSavedCards] = useState(savedCards);
@@ -72,18 +74,18 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   return <section id="payment-methods" hidden={screen === "closed"} className={`${walletStyles.ticketPanel} ${walletStyles.funding} ${styles.panel}`} aria-label="Payment methods">
     {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. Refresh before changing them.</p> : null}
     {screen === "editor" && editor ? <WalletCardEditor key={editor.token} token={editor.token} savedCard={editor.card} initialArtwork={editor.artwork} displayName={displayName} disabled={!enabled || unavailable} onCancel={showMethods} onSaved={card => {
-      setCards(current => [...current.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault })), card]);
+      setCards(current => [...current.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault, isDepositDefault: card.isDepositDefault ? false : item.isDepositDefault })), card]);
       setMessage("Card saved. Your wallet balance has not changed."); showMethods(); router.refresh();
     }} /> : <>
       <h2>Payment methods</h2><p>Your saved cards, ready when you need them.</p>
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
       <div id="payment-methods-controls" className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={availableToken} disabled={!enabled || unavailable || busy} onUse={addCard} /></div>
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
-        <strong>Test card •••• {card.lastFour}</strong><p>{card.isDefault ? "Default payment method" : "Saved payment method"}</p>
+        <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} disabled={!enabled || unavailable || busy} onChange={event => void setDefault(card, event.target.checked)} />Use as my default payment method</label>
-        <details className={styles.artwork}><summary>See card</summary><DemoCardArtwork token={card.token} artwork={card.artwork} /></details>
-        <div className={styles.actions}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} onClick={() => { setEditor({ token: card.token, card }); setScreen("editor"); window.history.pushState(null, "", "#wallet-add-card"); }}>Edit</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => setDeleting(card.token)}>Delete Card</button></div>
-        {deleting === card.token ? <div className={styles.delete}><p>Remove this card? Past deposits and your balance stay the same.</p><div className={styles.actions}><button type="button" className={styles.secondary} disabled={busy} onClick={() => setDeleting(null)}>Keep Card</button><button type="button" className={styles.danger} disabled={busy} onClick={() => void removeCard(card.token)}>{busy ? "Removing…" : "Confirm Delete"}</button></div></div> : null}
+        <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} onClick={() => { setEditor({ token: card.token, card }); setScreen("editor"); window.history.pushState(null, "", "#wallet-add-card"); }}>Edit</button><button type="button" className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={() => setExpanded(expanded === card.token ? null : card.token)}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => setDeleting(card.token)}>Delete Card</button></div>
+        <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
+        {deleting === card.token ? <DeleteCardToast key={card.token} busy={busy} onUndo={() => setDeleting(null)} onDelete={() => void removeCard(card.token)} /> : null}
       </article>)}</div>
       {!unavailable && !cards.length ? <p>No saved cards yet. Add a card to get started.</p> : null}
       <div className={`${styles.actions} ${styles.pairedActions}`}><a href="#balance" className={styles.secondary}>Back to wallet</a><Link href="/" className={styles.confirm}>Continue Shopping</Link></div>

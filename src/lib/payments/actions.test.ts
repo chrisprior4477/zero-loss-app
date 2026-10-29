@@ -174,7 +174,7 @@ test("legacy browser recovery only looks up an existing request", async () => {
 
 test("saved card uses the confirmed preview account boundary without funding", async () => {
   const value = new FormData(); value.set("paymentMethod", "demo_card_4242"); value.set("makeDefault", "true");
-  expect(await saveDemoPaymentMethod({ status: "idle" }, value)).toEqual({ status: "succeeded", message: "Test card •••• 4242 saved as your default. No real card details were stored." });
+  expect(await saveDemoPaymentMethod({ status: "idle" }, value)).toEqual({ status: "succeeded", message: "Bank of America •••• 4242 saved as your default. No real card details were stored." });
   expect(mocks.rpc.mock.calls.map(call => call[0])).toEqual(["ensure_preview_customer", "get_wallet_snapshot", "save_demo_payment_method"]);
   expect(mocks.rpc).toHaveBeenCalledWith("save_demo_payment_method", { p_payment_method: "demo_card_4242", p_make_default: true });
   expect(mocks.rpc.mock.calls.some(call => call[0].includes("funding_session"))).toBe(false);
@@ -199,9 +199,8 @@ test("deleting a card rejects real or unknown card details before database acces
 });
 
 
-test("a confirmed $50.50 deposit reaches the provider as exactly 5050 cents", async () => {
-  const data = form(); data.set("amountCents", "5050");
-  expect((await completeDemoFunding({ status: "idle" }, data)).status).toBe("succeeded");
-  expect(authorization.confirmDemoFunding).toHaveBeenCalledWith(expect.anything(), data, 5050, "funding_review_check_001");
-  expect(mocks.rpc).toHaveBeenCalledWith("create_demo_card_funding_session", { p_amount: 5050, p_idempotency_key: "funding_review_check_001", p_payment_method: "demo_card_4242", p_make_default: true });
+test.each(["125","5050"])("new fractional-dollar deposit %s is rejected before database access", async amount => {
+  const data=form();data.set("amountCents",amount);
+  expect(await completeDemoFunding({status:"idle"},data)).toEqual({status:"error",message:"Use whole dollars only, such as $50. Decimal deposits are not accepted."});
+  expect(mocks.rpc).not.toHaveBeenCalled();expect(authorization.confirmDemoFunding).not.toHaveBeenCalled();
 });

@@ -64,6 +64,7 @@ export async function completeDemoFunding(
   try {
     if (formData.get("currency") !== "USD") throw new Error("Only USD demo funding is supported.");
     assertFundingAmount(amountCents);
+    if (!recoveryOnly && amountCents % 100 !== 0) throw new Error("Use whole dollars only, such as $50. Decimal deposits are not accepted.");
     assertIdempotencyKey(idempotencyKey);
     if (!recoveryOnly && (!demoCardFixture(formData.get("paymentMethod"))
       || !["true", "false"].includes(String(formData.get("makeDefault"))))) {
@@ -114,15 +115,17 @@ export async function saveDemoPaymentMethod(
     } catch { return { status: "error", message: "Use the sample camera colors. Photos and card details cannot be saved." }; }
   }
   if (!fixture
-    || !["true", "false"].includes(String(formData.get("makeDefault")))) {
+    || !["true", "false"].includes(String(formData.get("makeDefault")))
+    || (formData.has("makeDepositDefault") && !["true", "false"].includes(String(formData.get("makeDepositDefault"))))) {
     return { status: "error", message: "Use the supplied preview test card. Real card details are not accepted." };
   }
   let result: DemoFundingActionState;
   try {
-    const card = await (await fundingProvider()).savePaymentMethod(formData.get("makeDefault") === "true", fixture.token, artwork);
+    const card = await (await fundingProvider()).savePaymentMethod(formData.get("makeDefault") === "true", fixture.token, artwork,
+      formData.has("makeDepositDefault") ? formData.get("makeDepositDefault") === "true" : undefined);
     result = {
       status: "succeeded",
-      message: `Test card •••• ${card.lastFour} saved${card.isDefault ? " as your default" : ""}. No real card details were stored.`,
+      message: `${fixture.issuer} •••• ${card.lastFour} saved${card.isDefault ? " as your default" : ""}. No real card details were stored.`,
     };
   } catch (error) {
     result = failure(error);

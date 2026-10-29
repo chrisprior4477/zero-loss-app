@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Owner-approved purchasing policy — October 22, 2026
 
+- October 29 refinement: new wallet deposits must be whole US dollars (integer multiples of 100 cents). Reject fractional dollar input without removing the decimal point or rounding it into a different amount. Keep historical cents and recovery of already-created payments exact; this does not change entry prices, refunds, balances, or ledger history.
+
 - Do not impose demo per-minute, per-day, lifetime, per-deposit, per-submission, or per-customer ticket purchase quotas. The former 10-ticket, 100-ticket/day, 3-deposit/minute, 20-deposit/day and $500 deposit caps are retired site-wide.
 - Customers may select any available ticket quantity and deposit an amount they choose. Preserve the existing $1 funding minimum and exact, representable integer cents/quantities; machine representation boundaries are not business allowances.
 - Enforce actual prize capacity, eligibility, sufficient ledger-backed funds, authentication, ownership, confirmation, idempotency, and concurrency protections. Never enable real payments as part of removing demo quotas.

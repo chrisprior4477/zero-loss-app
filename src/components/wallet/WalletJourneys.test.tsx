@@ -21,13 +21,43 @@ test("journey 1 opens the editor, saves only a reference, and returns to methods
   fireEvent.click(screen.getByRole("button", { name: "Save card" }));
   await waitFor(() => expect(screen.getByRole("heading", { name: "Payment methods" })).toBeTruthy());
   const data = vi.mocked(saveDemoPaymentMethod).mock.calls[0][1];
-  expect([...data.keys()].sort()).toEqual(["makeDefault", "paymentMethod"]);
+  expect([...data.keys()].sort()).toEqual(["makeDefault", "makeDepositDefault", "paymentMethod"]);
   expect(data.get("paymentMethod")).toBe("demo_card_5556");
+  expect(data.get("makeDefault")).toBe("true");
+  expect(data.get("makeDepositDefault")).toBe("true");
   expect(screen.getByRole("article", { name: "Saved card 5556" })).toBeTruthy();
   expect(window.location.hash).toBe("#payment-methods");
   expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("#balance");
   expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
   expect(completeDemoFunding).not.toHaveBeenCalled();
+});
+
+test("deposit preference is restored independently, and the last-minute chooser changes the confirmation card", () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  const { container }=render(<DemoFundingForm requestKey="separate_preferences_001" savedCards={[
+    { token:"demo_card_4242", lastFour:"4242", isDefault:true, isDepositDefault:false },
+    { token:"demo_card_5556", lastFour:"5556", isDefault:false, isDepositDefault:true },
+  ]} />);
+  expect(container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_5556");
+  expect(container.querySelector<HTMLInputElement>('[name="makeDefault"]')?.value).toBe("false");
+  fireEvent.change(screen.getByRole("combobox", {name:"Current card in use"}),{target:{value:"demo_card_4242"}});
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"),{target:{value:"50"}});
+  fireEvent.click(screen.getByRole("button",{name:"Add funds"}));
+  expect(within(screen.getByRole("dialog")).getByText(/Bank of America/)).toBeTruthy();
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("5000");
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
+
+test("new card preferences can be independently unchecked without changing the current deposit", async () => {
+  vi.mocked(saveDemoPaymentMethod).mockResolvedValue({status:"succeeded",message:"Saved"});
+  const {container}=render(<DemoFundingForm requestKey="unchecked_card_preferences" savedCards={initialCards} displayName="Demo Customer" />);
+  fireEvent.click(screen.getByRole("button",{name:"Add Card"}));
+  fireEvent.click(screen.getByRole("checkbox",{name:"Use this card for deposits"}));
+  fireEvent.click(screen.getByRole("button",{name:"Save card"}));
+  await waitFor(()=>expect(screen.getByRole("form",{name:"Add funds"})).toBeTruthy());
+  expect(vi.mocked(saveDemoPaymentMethod).mock.calls[0][1].get("makeDepositDefault")).toBe("false");
+  expect(vi.mocked(saveDemoPaymentMethod).mock.calls[0][1].get("makeDefault")).toBe("true");
+  expect(container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_4242");
 });
 
 test("the editor's See card button toggles a preview without saving or losing entered fields", () => {
@@ -45,17 +75,17 @@ test("the editor's See card button toggles a preview without saving or losing en
   expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
 });
 
-test("journey 2 preserves decimal amount and request key through card save and server refresh", async () => {
+test("journey 2 preserves whole-dollar amount and request key through card save and server refresh", async () => {
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
   const props = { requestKey: "original_request_key_01", savedCards: initialCards, displayName: "Demo Customer" };
   const { container, rerender } = render(<DemoFundingForm {...props} />);
-  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "50.50" } });
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "50" } });
   fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
   fireEvent.click(screen.getByRole("button", { name: "Save card" }));
   await waitFor(() => expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy());
   rerender(<DemoFundingForm {...props} requestKey="refreshed_server_key_02" savedCards={[...initialCards, { token: "demo_card_5556", lastFour: "5556", isDefault: false }]} />);
-  expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$50.50");
-  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("5050");
+  expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$50");
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("5000");
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("original_request_key_01");
   expect(container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_5556");
   expect(container.querySelector<HTMLInputElement>('[name="makeDefault"]')?.value).toBe("false");

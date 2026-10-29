@@ -41,13 +41,14 @@ export class DemoPaymentProvider {
     return parseDemoCards(data);
   }
 
-  async savePaymentMethod(makeDefault: boolean, paymentMethod: DemoCardToken = DEMO_CARD_TOKEN, artwork?: DemoCardArtwork): Promise<DemoCard> {
+  async savePaymentMethod(makeDefault: boolean, paymentMethod: DemoCardToken = DEMO_CARD_TOKEN, artwork?: DemoCardArtwork, makeDepositDefault?: boolean): Promise<DemoCard> {
     if (!demoCardFixture(paymentMethod)) throw new Error("Unsupported test card");
     if (artwork && !parseDemoCardArtwork(artwork)) throw new Error("Invalid sample artwork");
-    const { data, error } = await this.db.rpc(artwork ? "save_demo_card_artwork" : "save_demo_payment_method", {
+    const { data, error } = await this.db.rpc(makeDepositDefault !== undefined ? "save_demo_card_preferences" : artwork ? "save_demo_card_artwork" : "save_demo_payment_method", {
       p_payment_method: paymentMethod,
       p_make_default: makeDefault,
       ...(artwork ? { p_artwork: artwork } : {}),
+      ...(makeDepositDefault !== undefined ? { p_make_deposit_default: makeDepositDefault } : {}),
     });
     if (error) throw new FundingFailure(error.code, error.message);
     const card = parseDemoCard(data);

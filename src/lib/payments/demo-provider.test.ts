@@ -1,6 +1,12 @@
 import { expect, test, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DemoPaymentProvider } from "./demo-provider";
+test("the deposit preference is persisted independently using safe fixture metadata", async () => {
+  const card={token:"demo_card_1117",lastFour:"1117",isDefault:false,isDepositDefault:true};
+  const rpc=vi.fn().mockResolvedValue({data:card});
+  await expect(new DemoPaymentProvider({rpc} as unknown as SupabaseClient).savePaymentMethod(false,"demo_card_1117",undefined,true)).resolves.toEqual(card);
+  expect(rpc).toHaveBeenCalledWith("save_demo_card_preferences",{p_payment_method:"demo_card_1117",p_make_default:false,p_make_deposit_default:true});
+});
 test("invalid provider response cannot reach the event consumer", async () => {
   const rpc = vi.fn().mockResolvedValue({ data: { status: "succeeded" } });
   await expect(new DemoPaymentProvider({ rpc } as unknown as SupabaseClient).finishFunding("request")).rejects.toThrow();

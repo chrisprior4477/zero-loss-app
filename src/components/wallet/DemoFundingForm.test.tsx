@@ -7,14 +7,14 @@ import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, delet
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 test("Add Card opens manual entry and cancel keeps the deposit amount", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" displayName="Demo Customer" />);
-  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "50.50" } });
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "50" } });
   fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
   expect(screen.getByLabelText("Card number")).toBeTruthy();
-  expect(screen.getByText(/Your \$50.50 deposit is waiting/)).toBeTruthy();
+  expect(screen.getByText(/Your \$50 deposit is waiting/)).toBeTruthy();
   expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
   expect(completeDemoFunding).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$50.50");
+  expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$50");
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("stable_demo_request_001");
 });
 
@@ -36,7 +36,7 @@ test("deposit confirmation stays on the page and requires an unchecked acknowled
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
   expect(sessionStorage.length).toBe(0);
 });
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); vi.mocked(deleteDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); navigation.refresh.mockReset(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); localStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); vi.mocked(deleteDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); navigation.refresh.mockReset(); });
 test("a rejected confirmation clears the recovery marker and can be retried", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
@@ -124,8 +124,8 @@ test("custom whole-dollar amounts replace the preset and use the same confirmati
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
   const custom = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
-  expect(custom.inputMode).toBe("decimal");
-  expect(custom.placeholder).toBe("Enter the amount you want to deposit");
+  expect(custom.inputMode).toBe("numeric");
+  expect(custom.placeholder).toBe("Enter a whole-dollar amount");
   fireEvent.change(custom, { target: { value: "500" } });
   expect(custom.value).toBe("$500");
   expect(custom.checkValidity()).toBe(true);
@@ -315,12 +315,12 @@ test("saved card deletion asks for confirmation and leaves deposit history untou
     { token: "demo_card_5556", lastFour: "5556", isDefault: false },
   ]} />);
   fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
-  expect(screen.getByRole("dialog", { name: "Delete this card?" })).toBeTruthy();
-  expect(screen.getByText(/Past deposits and wallet history will stay/)).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Keep Card" }));
+  expect(screen.getByText("Are you sure you want to delete this card?")).toBeTruthy();
+  expect(screen.getByRole("timer").getAttribute("aria-label")).toContain("30 seconds");
+  fireEvent.click(screen.getByRole("button", { name: "Undo" }));
   expect(deleteDemoPaymentMethod).not.toHaveBeenCalled();
   fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
-  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" }).at(-1)!);
+  fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
   await waitFor(() => expect(deleteDemoPaymentMethod).toHaveBeenCalledWith("demo_card_4242"));
   await waitFor(() => expect(container.querySelectorAll("article")).toHaveLength(1));
   expect(container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_5556");
@@ -334,7 +334,7 @@ test("removing the only saved card blocks funding until another card is chosen",
   vi.mocked(deleteDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Test card removed." });
   render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
   fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
-  fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" }).at(-1)!);
+  fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
   await waitFor(() => expect(screen.getByText("No card selected. Add a sample card above to continue.")).toBeTruthy());
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
@@ -396,29 +396,42 @@ test("payment deposits return to their heading when the full list is collapsed",
 });
 
 
-test("typing the decimal point keeps $50.50 through confirmation and submission", async () => {
-  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
-  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
-  const { container } = render(<DemoFundingForm requestKey="decimal_amount_check_001" />);
+test("whole-dollar notice can close or save acknowledgement without changing or submitting the amount", () => {
+  const view = render(<DemoFundingForm requestKey="whole_notice_check_001" walletId="notice-wallet" />);
   const input = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
-  expect(input.inputMode).toBe("decimal");
-  for (const value of ["5", "$50", "$50.", "$50.5", "$50.50"]) {
-    fireEvent.change(input, { target: { value } });
-    expect(input.value).toBe(value.startsWith("$") ? value : `$${value}`);
-  }
-  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("5050");
-  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
-  expect(screen.getByRole("dialog", { name: "Add $50.50 to your balance?" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Confirm $50.50 deposit" }));
-  await waitFor(() => expect(completeDemoFunding).toHaveBeenCalledOnce());
-  expect(vi.mocked(completeDemoFunding).mock.calls[0][1].get("amountCents")).toBe("5050");
+  fireEvent.change(input, { target: { value: "50.50" } });
+  expect(screen.getByText("Only whole dollar amounts are accepted for deposits.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Close whole-dollar notice" }));
+  expect(input.value).toBe("$50.50");
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(input, { target: { value: "50" } });
+  fireEvent.change(input, { target: { value: "50.50" } });
+  fireEvent.click(screen.getByRole("button", { name: "I understand and save" }));
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+  expect(input.value).toBe("$50.50");
+  view.unmount();
+  render(<DemoFundingForm requestKey="whole_notice_check_002" walletId="notice-wallet" />);
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "1.25" } });
+  expect(screen.queryByRole("button", { name: "I understand and save" })).toBeNull();
+  expect(screen.getByRole("alert").textContent).toContain("whole dollars");
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
-test.each(["50.505", "50,50", "-50", "1e3"])("invalid %s is not changed into a larger deposit", value => {
+test("desktop decimal typing is rejected without converting $50.50 into $5050", () => {
+  const {container}=render(<DemoFundingForm requestKey="whole_amount_check_001" />);
+  const input=screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
+  for(const value of ["5","$50","$50.","$50.5","$50.50"]) fireEvent.change(input,{target:{value}});
+  expect(input.value).toBe("$50.50");
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("");
+  expect((screen.getByRole("button",{name:"Add funds"}) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("alert").textContent).toContain("whole dollars");
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
+
+test.each(["1.25", "50.50", "50.505", "50,50", "-50", "1e3"])("invalid %s is not changed into a larger deposit", value => {
   render(<DemoFundingForm requestKey="decimal_amount_check_002" />);
   fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value } });
   expect(screen.getByLabelText("Add specific amount (USD)")).toHaveProperty("value", `$${value}`);
   expect(screen.getByRole("button", { name: "Add funds" })).toHaveProperty("disabled", true);
-  expect(screen.getByRole("alert").textContent).toContain("two decimal places");
+  expect(screen.getByRole("alert").textContent).toContain("whole dollars");
 });

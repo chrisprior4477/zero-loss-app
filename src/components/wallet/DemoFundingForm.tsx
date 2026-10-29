@@ -11,6 +11,9 @@ import { parseFundingDollars } from "@/lib/payments/funding-amount";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken, type DemoCardArtwork } from "@/lib/payments/demo-card";
 import { DemoFundingCard } from "./DemoFundingCard";
+import { DeleteCardToast } from "./DeleteCardToast";
+import { FundingCardPicker } from "./FundingCardPicker";
+import { WholeDollarToast } from "./WholeDollarToast";
 import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
@@ -21,6 +24,8 @@ import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" };
 const noRequests: DemoFundingRequest[] = [];
 const presetAmounts = ["100", "1000", "2500", "10000"];
+const preferredDepositCard = (cards: DemoCard[]) => cards.find(card => card.isDepositDefault)?.token
+  ?? (cards.every(card => card.isDepositDefault === undefined) ? cards.find(card => card.isDefault)?.token : undefined);
 
 function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, displayName }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination; displayName?: string }) {
   const router = useRouter();
@@ -32,11 +37,22 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   }, { status: "idle" });
   const [amount, setAmount] = useState(initialAmount);
   const [customAmount, setCustomAmount] = useState(() => presetAmounts.includes(initialAmount) ? "" : String(Number(initialAmount) / 100));
+  const [showWholeDollarNotice, setShowWholeDollarNotice] = useState(false);
+  const wholeDollarAcknowledged = useRef(false);
+  const noticeKey = `${storageKey}:whole-dollar-notice-v1`;
+  function closeWholeDollarNotice(save = false) {
+    if (save) {
+      wholeDollarAcknowledged.current = true;
+      try { localStorage.setItem(noticeKey, "understood"); } catch { /* Keep the acknowledgement for this visit. */ }
+    }
+    setShowWholeDollarNotice(false);
+    document.getElementById("demo-funding-custom-amount")?.focus({ preventScroll: true });
+  }
   const selectedPreset = customAmount ? "" : presetAmounts.includes(amount) ? amount : "";
-  const amountIsValid = isFundingAmount(Number(amount));
+  const amountIsValid = isFundingAmount(Number(amount)) && (recoveryOnly || Number(amount) % 100 === 0);
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
   const [visibleTokens, setVisibleTokens] = useState<DemoCardToken[]>(() => cards.length ? cards.map(card => card.token) : [DEMO_CARD_TOKEN]);
-  const [selectedToken, setSelectedToken] = useState<DemoCardToken | null>(initialToken ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
+  const [selectedToken, setSelectedToken] = useState<DemoCardToken | null>(initialToken ?? preferredDepositCard(cards) ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
   const [defaultToken, setDefaultToken] = useState<DemoCardToken | null>(() => initialDefault === false ? null : initialDefault === true ? (initialToken ?? cards.find(card => card.isDefault)?.token ?? DEMO_CARD_TOKEN) : cards.find(card => card.isDefault)?.token ?? null);
   const [savingCard, setSavingCard] = useState<DemoCardToken | null>(null);
   const [cardMessage, setCardMessage] = useState("");
@@ -50,7 +66,6 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     setEditingCard({ token, artwork: sampleArtwork });
     revealWalletSection("wallet-card-editor");
   }
-  const deleteDialog = useRef<HTMLDialogElement>(null);
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
   const policyInput = useRef<HTMLInputElement>(null);
@@ -70,7 +85,9 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     setLastSavedCards(savedCards);
     setCards(savedCards);
     setVisibleTokens(savedCards.length ? savedCards.map(card => card.token) : [DEMO_CARD_TOKEN]);
-    setSelectedToken(current => savedCards.some(card => card.token === current) ? current : savedCards.find(card => card.isDefault)?.token ?? savedCards[0]?.token ?? DEMO_CARD_TOKEN);
+    const preferenceChanged = preferredDepositCard(savedCards) !== preferredDepositCard(lastSavedCards ?? []);
+    setSelectedToken(current => preferenceChanged && preferredDepositCard(savedCards) ? preferredDepositCard(savedCards)!
+      : savedCards.some(card => card.token === current) ? current : preferredDepositCard(savedCards) ?? savedCards[0]?.token ?? DEMO_CARD_TOKEN);
     setDefaultToken(savedCards.find(card => card.isDefault)?.token ?? null);
     setArtwork(Object.fromEntries(savedCards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
   }
@@ -80,11 +97,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     window.addEventListener("popstate", closeEditor);
     return () => { window.removeEventListener("hashchange", closeEditor); window.removeEventListener("popstate", closeEditor); };
   }, []);
-  useEffect(() => {
-    if (deleteToken !== null && !deleteDialog.current?.open) deleteDialog.current?.showModal();
-  }, [deleteToken]);
   function closeDeleteDialog() {
-    deleteDialog.current?.close();
     setDeleteToken(null);
   }
   async function confirmDeleteCard() {
@@ -120,7 +133,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
         const fixture = demoCardFixture(token)!;
         const effectiveDefault = asDefault;
         setCards(previous => [...previous.filter(card => card.token !== token).map(card => ({ ...card, isDefault: effectiveDefault ? false : card.isDefault })),
-          { token, lastFour: fixture.lastFour, isDefault: effectiveDefault, ...(artwork[token] ? { artwork: artwork[token] } : {}) }]);
+          { ...previous.find(card => card.token === token), token, lastFour: fixture.lastFour, isDefault: effectiveDefault, ...(artwork[token] ? { artwork: artwork[token] } : {}) }]);
         if (effectiveDefault) setDefaultToken(token);
         else if (defaultToken === token) setDefaultToken(null);
         router.refresh();
@@ -141,13 +154,13 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     if (state.status === "already_credited" || (state.status === "succeeded" && !continueTo?.href)) onSuccess(state.message);
   }, [state, continueTo?.href, onSuccess]);
   if (editingCard) return <WalletCardEditor token={editingCard.token} savedCard={cards.find(card => card.token === editingCard.token)} initialArtwork={editingCard.artwork} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => { setEditingCard(null); revealWalletSection("add-funds"); }} onSaved={card => {
-    setCards(previous => [...previous.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault })), card]);
+    setCards(previous => [...previous.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault, isDepositDefault: card.isDepositDefault ? false : item.isDepositDefault })), card]);
     setVisibleTokens(current => current.includes(card.token) ? current : [...current, card.token]);
-    setSelectedToken(card.token);
+    if (card.isDepositDefault) setSelectedToken(card.token);
     if (card.isDefault) setDefaultToken(card.token);
     else if (defaultToken === card.token) setDefaultToken(null);
     if (card.artwork) setArtwork(current => ({ ...current, [card.token]: card.artwork }));
-    setCardMessage(`Card •••• ${card.lastFour} saved and selected for this deposit. Your amount is unchanged; no funds have been added.`);
+    setCardMessage(`${demoCardFixture(card.token)?.issuer} •••• ${card.lastFour} saved${card.isDepositDefault ? " and selected for deposits" : ""}. No funds added.`);
     setEditingCard(null); revealWalletSection("add-funds"); router.refresh();
   }} />;
   if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo && state.status === "succeeded" ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
@@ -170,7 +183,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const saved = cards.some(card => card.token === token);
         const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
-        return <DemoFundingCard key={token} token={token} selected={selectedToken === token} saved={saved} artwork={artwork[token]} actions={<>
+        return <DemoFundingCard key={token} token={token} selected={selectedToken === token} saved={saved} artwork={artwork[token]} confirmation={deleteToken === token ? <DeleteCardToast key={token} busy={deletingCard} message={cardMessage} onUndo={closeDeleteDialog} onDelete={() => void confirmDeleteCard()} /> : null} actions={<>
           {!saved || artChanged ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : artChanged ? "Save artwork" : "Save this card"}</button> : null}
           {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); setDeleteToken(token); }}>Delete Card</button> : null}
         </>}>
@@ -185,16 +198,11 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
       {cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       <p className={styles.cardMessage}>Only safe sample-card references are saved. You’ll confirm each deposit separately.</p>
     </section> : null}
-    {deleteToken ? <dialog ref={deleteDialog} aria-labelledby="delete-demo-card-title" onCancel={event => { event.preventDefault(); if (!deletingCard) closeDeleteDialog(); }} className={`${styles.deleteCardDialog} ${popupStyles.dialog}`}>
-      <h2 id="delete-demo-card-title">Delete this card?</h2>
-      <p>Remove test card •••• {demoCardFixture(deleteToken)?.lastFour} from your saved cards? Past deposits and wallet history will stay as they are.</p>
-      {cardMessage ? <p role="alert">{cardMessage}</p> : null}
-      <div className={styles.deleteCardActions}><button type="button" disabled={deletingCard} onClick={closeDeleteDialog}>Keep Card</button><button type="button" disabled={deletingCard} onClick={() => void confirmDeleteCard()}>{deletingCard ? "Removing…" : "Delete Card"}</button></div>
-    </dialog> : null}
+    {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
     <div id="add-funds" className={styles.fundingAmountSection}>
-      {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
       {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} disabled={locked || cardUnavailable} onUse={colors => addCard(nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, colors)} /></div> : null}
+      {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={setSelectedToken} /> : null}
       <div className={styles.fundingAmounts}>
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-amount">Amount (USD)
         <select id="demo-funding-amount" value={selectedPreset} onChange={event => { setAmount(event.target.value); setCustomAmount(""); }} disabled={locked} className={styles.fundingAmountControl}>
@@ -203,8 +211,14 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
         </select>
       </label>
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-custom-amount">Add specific amount (USD)
-        <input id="demo-funding-custom-amount" type="text" inputMode="decimal" autoComplete="off" placeholder="Enter the amount you want to deposit" value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
+        <input id="demo-funding-custom-amount" type="text" inputMode="numeric" autoComplete="off" placeholder="Enter a whole-dollar amount" aria-invalid={!amountIsValid} aria-describedby={!amountIsValid ? "funding-amount-error" : undefined} value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
           const dollars = event.target.value.replace(/^\$/, "");
+          if (dollars.includes(".") && !customAmount.includes(".")) {
+            let acknowledged = wholeDollarAcknowledged.current;
+            try { acknowledged ||= localStorage.getItem(noticeKey) === "understood"; } catch { /* The notice still works without browser storage. */ }
+            if (!acknowledged) setShowWholeDollarNotice(true);
+          }
+          if (!dollars.includes(".")) setShowWholeDollarNotice(false);
           setCustomAmount(dollars);
           const cents = parseFundingDollars(dollars);
           setAmount(cents === null ? "" : String(cents));
@@ -212,12 +226,13 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
       </label>
       </div>
     </div>
-    {!locked && !amountIsValid ? <p role="alert" className={styles.fundingAmountError}>Enter at least $1, using no more than two decimal places and an amount that can be represented safely.</p> : null}
+    {!locked && !amountIsValid ? <p id="funding-amount-error" role="alert" className={styles.fundingAmountError}>Use whole dollars only, such as $50. Enter at least $1; decimal amounts are not accepted.</p> : null}
+    {showWholeDollarNotice ? <WholeDollarToast onClose={() => closeWholeDollarNotice()} onSave={() => closeWholeDollarNotice(true)} /> : null}
     <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
-      <p className="mt-2 text-sm text-[#b5cce4]">Test card •••• {demoCardFixture(selectedToken)?.lastFour} · USD · Simulation only</p>
+      <p className="mt-2 text-sm text-[#b5cce4]">{demoCardFixture(selectedToken)?.issuer} •••• {demoCardFixture(selectedToken)?.lastFour} · USD · Simulation only</p>
       <p className="mt-4 text-sm leading-6">Deposits stay in your Zero Loss balance and cannot normally be withdrawn. Exceptional refund requests are reviewed separately. This does not limit your rights for unauthorized charges or payment errors.</p>
       <label className="mt-4 flex items-start gap-3 text-sm leading-6"><input ref={policyInput} name="fundingPolicy" type="checkbox" value="funding-confirmation-v1" required disabled={pending} className="mt-1 h-5 w-5 shrink-0 accent-[#31e800]" />I confirm this amount and understand how deposited funds can be used.</label>
       {state.status !== "idle" ? <p role="alert" className="mt-3 text-sm leading-6 text-amber-100">{state.message}</p> : null}
@@ -227,7 +242,6 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
-    <p className="text-xs leading-5 text-[#b5cce4]">Only a test-card reference and your preference are saved—not a card number or security code.</p>
     <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><a href="#balance" className={paymentStyles.secondary}>Back to wallet</a><Link href={continueTo?.href ?? "/"} className={paymentStyles.confirm}>Continue Shopping</Link></div>
   </form>;
 }
@@ -296,7 +310,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   </section>;
   return <>
     <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
-    displayName={displayName} savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly} cardUnavailable={cardUnavailable}
+    displayName={displayName} savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly || (attempt.recovered && Number(attempt.amount) % 100 !== 0)} cardUnavailable={cardUnavailable}
     blocked={!attempt.ready || ((blocked || requests === null || requests.some(request => request.reconciliation !== "reconciled")) && !attempt.canRetry)} continueTo={continueTo}
     onNew={newAttempt} onSuccess={onSuccess} onStart={() => setSuccessMessage("")} />
   </>;

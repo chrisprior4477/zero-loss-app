@@ -34,7 +34,8 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
   const [expiry, setExpiry] = useState(fixture.expiry as string);
   const [code, setCode] = useState(fixture.code as string);
   const [artwork, setArtwork] = useState(initialArtwork ?? savedCard?.artwork);
-  const [makeDefault, setMakeDefault] = useState(savedCard?.isDefault ?? false);
+  const [makeDefault, setMakeDefault] = useState(savedCard?.isDefault ?? true);
+  const [makeDepositDefault, setMakeDepositDefault] = useState(savedCard ? savedCard.isDepositDefault ?? savedCard.isDefault : true);
   const [error, setError] = useState("");
   const [back, setBack] = useState(false);
   const [showCard, setShowCard] = useState(false);
@@ -45,7 +46,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
       const result = await saveDemoPaymentMethod(previous, data);
       if (result.status === "succeeded") {
         const savedFixture = demoCardFixture(data.get("paymentMethod"))!;
-        onSaved({ token: savedFixture.token, lastFour: savedFixture.lastFour, isDefault: data.get("makeDefault") === "true", ...(artwork ? { artwork } : {}) });
+        onSaved({ token: savedFixture.token, lastFour: savedFixture.lastFour, isDefault: data.get("makeDefault") === "true", isDepositDefault: data.get("makeDepositDefault") === "true", ...(artwork ? { artwork } : {}) });
       }
       return result;
     } catch { return { status: "error" as const, message: "The card could not be saved. Please try again." }; }
@@ -67,14 +68,17 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
     }}>
       <input type="hidden" name="paymentMethod" value={enteredFixture?.token ?? ""} />
       <input type="hidden" name="makeDefault" value={String(makeDefault)} />
+      <input type="hidden" name="makeDepositDefault" value={String(makeDepositDefault)} />
       {artwork ? <input type="hidden" name="artwork" value={JSON.stringify(artwork)} /> : null}
       <label>Cardholder name<input ref={nameInput} autoComplete="off" value={cardholder} onChange={event => setCardholder(event.target.value)} disabled={disabled || pending} /></label>
       <label>Card number<input inputMode="numeric" autoComplete="off" value={number} onChange={event => setNumber(event.target.value)} disabled={disabled || pending} /></label>
+      <p className={styles.issuer}>{enteredFixture?.issuer ?? "Sample card"}</p>
       <div className={styles.fields}>
         <label>Expiry<input autoComplete="off" value={expiry} onChange={event => setExpiry(event.target.value)} disabled={disabled || pending} /></label>
         <label>Security code<input inputMode="numeric" autoComplete="off" value={code} onChange={event => setCode(event.target.value)} disabled={disabled || pending} /></label>
       </div>
-      <label className={styles.choice}><input type="checkbox" checked={makeDefault} onChange={event => setMakeDefault(event.target.checked)} disabled={disabled || pending} />Use this card for future preview transactions</label>
+      <label className={styles.choice}><input type="checkbox" checked={makeDefault} onChange={event => setMakeDefault(event.target.checked)} disabled={disabled || pending} />Use this card for future transactions</label>
+      <label className={styles.choice}><input type="checkbox" checked={makeDepositDefault} onChange={event => setMakeDepositDefault(event.target.checked)} disabled={disabled || pending} />Use this card for deposits</label>
       {error || state.status === "error" ? <p role="alert" className={styles.error}>{error || (state.status === "error" ? state.message : "")}</p> : null}
       <div className={`${styles.actions} ${styles.editorActions}`}>
         <button type="submit" disabled={disabled || pending} className={styles.confirm}>{pending ? "Saving…" : savedCard ? "Update card" : "Save card"}</button>
