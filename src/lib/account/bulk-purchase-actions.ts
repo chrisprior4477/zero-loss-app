@@ -39,7 +39,14 @@ export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest):
     }
     // Navigation reads a fresh account projection. Do not rerender this now-empty
     // options page in the action response before the browser can open the rewards.
-    return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, href: "/account/wallet" };
+    // Open the actual issued reward (the same barcode/details reached from My
+    // Activity), never a client-only sample result. A missing reward falls back
+    // to the completed activity list without attempting the purchase again.
+    const rewardId = Array.isArray(data.rewardIds) ? data.rewardIds.find((id: unknown) => typeof id === "string" && uuid.test(id)) : undefined;
+    const href = rewardId
+      ? `/account/wallet?reward=${encodeURIComponent(request.slug)}&rewardId=${encodeURIComponent(rewardId)}#reward-pass`
+      : "/account/entries?filter=completed";
+    return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, href };
   } catch {
     return { status: "error", recovery: "check", message: "The connection was interrupted. Check your purchases before trying again; they may already be saved." };
   }

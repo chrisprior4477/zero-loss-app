@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
-export function AccountSettingsLandingScroll({ target, visitKey = target, settleAfterNavigation = false }: { target: string; visitKey?: string; settleAfterNavigation?: boolean }) {
+export function AccountSettingsLandingScroll({ target, visitKey = target, settleAfterNavigation = false, allScreens = false }: { target: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -21,7 +21,7 @@ export function AccountSettingsLandingScroll({ target, visitKey = target, settle
       return bottom;
     };
     const align = () => {
-      if (disposed || interrupted || !window.matchMedia?.("(max-width: 767px)").matches) return;
+      if (disposed || interrupted || (!allScreens && !window.matchMedia?.("(max-width: 767px)").matches)) return;
       cancel();
       first = requestAnimationFrame(() => {
         second = requestAnimationFrame(() => {
@@ -91,6 +91,6 @@ export function AccountSettingsLandingScroll({ target, visitKey = target, settle
       document.removeEventListener("click", onAnchor, true);
       scope?.style.removeProperty("--settings-header-bottom");
     };
-  }, [target, visitKey, settleAfterNavigation]);
+  }, [target, visitKey, settleAfterNavigation, allScreens]);
   return null;
 }

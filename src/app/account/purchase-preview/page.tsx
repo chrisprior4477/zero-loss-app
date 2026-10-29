@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
-import { PurchaseJourneyPreview } from "@/components/account/purchase-preview/PurchaseJourneyPreview";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Purchase walkthrough previews",
   robots: { index: false, follow: false },
 };
 
-export default async function PurchasePreviewPage({ searchParams }: {
-  searchParams: Promise<{ version?: string; refinement?: string }>;
-}) {
-  const { version, refinement } = await searchParams;
-  return <PurchaseJourneyPreview initialVersion={version === "1" ? 1 : version === "2" ? 2 : version === "4" ? 4 : 3} initialRefinement={refinement === "1" ? 1 : refinement === "2" ? 2 : refinement === "3" ? 3 : 0} />;
+export default function PurchasePreviewPage() {
+  redirect("/account/entries?filter=completion");
 }

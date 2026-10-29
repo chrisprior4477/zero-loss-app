@@ -7,6 +7,9 @@ import { getAccountContext } from "@/lib/account/context";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import styles from "@/components/account/purchase-options.module.css";
+import { PurchaseCheckout } from "@/components/account/PurchaseCheckout";
+import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
@@ -28,6 +31,17 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const item = options[0];
   const count = options.length;
   const canBulkDecline = account.wallet?.scope === "demo" && isPreviewDataEnvironment();
+  if (canBulkDecline && account.wallet && decline !== "confirm" && options.every(option => option.completionOptionId)) {
+    const provider = new DemoPaymentProvider(await createClient());
+    const [cards, requests] = await Promise.all([
+      provider.getPaymentMethods().catch(() => null),
+      provider.getRequests().catch(() => null),
+    ]);
+    return <PurchaseCheckout key={`${slug}:${selectedEntryId ?? "first"}`} options={options}
+      initiallySelectedEntryId={selectedEntryId} initialBalance={account.wallet.balanceCents}
+      cards={cards ?? []} fundingAvailable={account.fundingEnabled && cards !== null}
+      fundingBlocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} />;
+  }
   return <main className={styles.page}>
     <AccountSettingsLandingScroll target={canBulkDecline && decline === "confirm" ? "purchase-option-rail" : "purchase-options-intro"} visitKey={`${slug}:${selectedEntryId ?? "first"}:${decline ?? "view"}`} settleAfterNavigation />
     <div className={styles.shell}>
