@@ -13,6 +13,7 @@ import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, ty
 import { DemoFundingCard } from "./DemoFundingCard";
 import { DeleteCardToast } from "./DeleteCardToast";
 import { FundingCardPicker } from "./FundingCardPicker";
+import { WalletRollerPicker } from "./WalletRollerPicker";
 import { WholeDollarToast } from "./WholeDollarToast";
 import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-overview.module.css";
@@ -23,7 +24,8 @@ import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 
 type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" };
 const noRequests: DemoFundingRequest[] = [];
-const presetAmounts = ["100", "1000", "2500", "10000"];
+const presetAmounts = ["1000", "2500", "5000", "7500", "10000", "20000", "30000", "40000", "50000", "70000", "100000"];
+const presetChoices = presetAmounts.map(value => ({ value, label: `$${(Number(value) / 100).toLocaleString("en-US")}` }));
 const preferredDepositCard = (cards: DemoCard[]) => cards.find(card => card.isDepositDefault)?.token
   ?? (cards.every(card => card.isDepositDefault === undefined) ? cards.find(card => card.isDefault)?.token : undefined);
 
@@ -204,12 +206,8 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
       {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} disabled={locked || cardUnavailable} onUse={colors => addCard(nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, colors)} /></div> : null}
       {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={setSelectedToken} /> : null}
       <div className={styles.fundingAmounts}>
-      <label className={styles.fundingAmountLabel} htmlFor="demo-funding-amount">Amount (USD)
-        <select id="demo-funding-amount" value={selectedPreset} onChange={event => { setAmount(event.target.value); setCustomAmount(""); }} disabled={locked} className={styles.fundingAmountControl}>
-          <option value="">Choose an amount</option>
-          <option value="100">$1.00</option><option value="1000">$10.00</option><option value="2500">$25.00</option><option value="10000">$100.00</option>
-        </select>
-      </label>
+      <WalletRollerPicker id="demo-funding-amount" label="Amount (USD)" placeholder="Choose an amount" options={presetChoices}
+        value={selectedPreset} onChange={value => { setAmount(value); setCustomAmount(""); }} disabled={locked} />
       <label className={styles.fundingAmountLabel} htmlFor="demo-funding-custom-amount">Add specific amount (USD)
         <input id="demo-funding-custom-amount" type="text" inputMode="numeric" autoComplete="off" placeholder="Enter a whole-dollar amount" aria-invalid={!amountIsValid} aria-describedby={!amountIsValid ? "funding-amount-error" : undefined} value={customAmount ? `$${customAmount}` : ""} onKeyDown={event => { if (event.key === "Enter" && !recoveryOnly) { event.preventDefault(); openConfirmation(); } }} onChange={event => {
           const dollars = event.target.value.replace(/^\$/, "");

@@ -5,6 +5,20 @@ vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
+test("mobile amount roller offers the requested presets and feeds the exact choice into confirmation", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+  const { container } = render(<DemoFundingForm requestKey="roller_amount_request_01" />);
+  const select = screen.getByRole("combobox", { name: "Amount (USD)" }) as HTMLSelectElement;
+  expect(Array.from(select.options).slice(1).map(option => option.text)).toEqual(["$10", "$25", "$50", "$75", "$100", "$200", "$300", "$400", "$500", "$700", "$1,000"]);
+  fireEvent.click(screen.getByRole("button", { name: "Amount (USD) $25" }));
+  fireEvent.click(screen.getByRole("radio", { name: "$1,000" }));
+  await waitFor(() => expect(screen.queryByRole("radiogroup")).toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  expect(screen.getByRole("dialog", { name: "Add $1000 to your balance?" })).toBeTruthy();
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("100000");
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
 test("Add Card opens manual entry and cancel keeps the deposit amount", () => {
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" displayName="Demo Customer" />);
   fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "50" } });
@@ -30,7 +44,7 @@ test("deposit confirmation stays on the page and requires an unchecked acknowled
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByRole("dialog")).toBeNull();
-  fireEvent.change(screen.getByLabelText("Amount (USD)"), { target: { value: "1000" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Amount (USD)" }), { target: { value: "1000" } });
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   expect(screen.getByRole("dialog", { name: "Add $10 to your balance?" })).toBeTruthy();
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
@@ -130,7 +144,7 @@ test("custom whole-dollar amounts replace the preset and use the same confirmati
   expect(custom.value).toBe("$500");
   expect(custom.checkValidity()).toBe(true);
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("50000");
-  expect((screen.getByLabelText("Amount (USD)") as HTMLSelectElement).value).toBe("");
+  expect((screen.getByRole("combobox", { name: "Amount (USD)" }) as HTMLSelectElement).value).toBe("");
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   expect(screen.getByRole("dialog", { name: "Add $500 to your balance?" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -177,7 +191,7 @@ test("choosing a preset clears the custom amount and invalid custom amounts cann
   fireEvent.change(custom, { target: { value: "0" } });
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByRole("alert").textContent).toContain("at least $1");
-  fireEvent.change(screen.getByLabelText("Amount (USD)"), { target: { value: "10000" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Amount (USD)" }), { target: { value: "10000" } });
   expect(custom.value).toBe("");
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("10000");
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
@@ -197,7 +211,7 @@ test.each(["1000", "5050"])("unavailable payment history keeps the original requ
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("original_request_key_01");
   expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe(amount);
   expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy();
-  expect((screen.getByLabelText("Amount (USD)") as HTMLSelectElement).disabled).toBe(true);
+  expect((screen.getByRole("combobox", { name: "Amount (USD)" }) as HTMLSelectElement).disabled).toBe(true);
   expect(container.querySelector<HTMLInputElement>('[name="recoveryOnly"]')?.value).toBe("true");
 });
 test("a browser marker absent from verified payment history cannot freeze a new deposit", async () => {
@@ -206,7 +220,7 @@ test("a browser marker absent from verified payment history cannot freeze a new 
   await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
   expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull();
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("new_server_render_key_02");
-  const amount = screen.getByLabelText("Amount (USD)") as HTMLSelectElement;
+  const amount = screen.getByRole("combobox", { name: "Amount (USD)" }) as HTMLSelectElement;
   expect(amount.disabled).toBe(false);
   fireEvent.change(amount, { target: { value: "10000" } });
   expect(amount.value).toBe("10000");
