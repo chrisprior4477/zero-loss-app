@@ -5,14 +5,19 @@ vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
-test("the lower Add Card control adds and selects another sample card", () => {
-  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} />);
-  expect(container.querySelector("#add-funds")?.contains(screen.getByLabelText("Amount (USD)"))).toBe(true);
+test("Add Card opens manual entry and cancel keeps the deposit amount", () => {
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" displayName="Demo Customer" />);
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "50.50" } });
   fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
-  expect(screen.getByText("Test card •••• 5556")).toBeTruthy();
-  expect(container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_5556");
-  expect(container.querySelector("#add-card")?.contains(screen.getByRole("heading", { name: "Add a card" }))).toBe(true);
+  expect(screen.getByLabelText("Card number")).toBeTruthy();
+  expect(screen.getByText(/Your \$50.50 deposit is waiting/)).toBeTruthy();
+  expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: /Cancel.*return to Add funds/ }));
+  expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$50.50");
+  expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("stable_demo_request_001");
 });
+
 test("deposit confirmation stays on the page and requires an unchecked acknowledgment, not a password", () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
@@ -228,18 +233,22 @@ test("an interrupted matching deposit can be retried while new deposits are bloc
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("original_request_key_01");
 });
 
-test("a completed generic deposit keeps a fresh card-and-amount form visible", async () => {
+test.each(["button", "wallet link"])("a completed deposit can start again through the %s", async (entrance) => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" />);
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
-  await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
-  expect(screen.getByRole("status").textContent).toContain("Demo funds added.");
+  await waitFor(() => expect(screen.getByRole("region", { name: "Deposit complete" })).toBeTruthy());
+  expect(screen.queryByRole("form", { name: "Add funds" })).toBeNull();
+  expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("#balance");
+  if (entrance === "button") fireEvent.click(screen.getByRole("button", { name: "Add more funds" }));
+  else { window.history.replaceState(null, "", "#add-funds"); fireEvent(window, new HashChangeEvent("hashchange")); }
+
   expect(screen.getByRole("region", { name: "Add Credit Card" })).toBeTruthy();
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).not.toBe("stable_demo_request_001");
-  expect(screen.getByRole("button", { name: "Add more funds" })).toBeTruthy();
+
 });
 
 test("a duplicate deposit cannot appear as new funding or redirect to a prize", async () => {
@@ -249,7 +258,7 @@ test("a duplicate deposit cannot appear as new funding or redirect to a prize", 
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
-  await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole("region", { name: "Deposit complete" })).toBeTruthy());
   expect(screen.getByRole("status").textContent).toContain("No new funds were added");
   expect(navigation.replace).not.toHaveBeenCalled();
 });
@@ -261,7 +270,7 @@ test("an already credited purchase-option deposit offers a safe return without c
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
-  await waitFor(() => expect(screen.getByRole("link", { name: "Back to purchase option →" }).getAttribute("href")).toBe(purchaseHref));
+  await waitFor(() => expect(screen.getByRole("link", { name: "Back to purchase option" }).getAttribute("href")).toBe(purchaseHref));
   expect(screen.getByRole("status").textContent).toContain("No new funds were added");
   expect(navigation.replace).not.toHaveBeenCalled();
 });
@@ -290,8 +299,8 @@ test("additional sample cards form a two-card selection and can be saved", async
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
   fireEvent.click(screen.getByRole("button", { name: /Add another card/ }));
-  expect(screen.getByText("Test card •••• 5556")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Save this card" }));
+  fireEvent.change(screen.getByLabelText("Cardholder name"), { target: { value: "Demo Customer" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save card & return to Add funds" }));
   await waitFor(() => expect(saveDemoPaymentMethod).toHaveBeenCalled());
   expect(vi.mocked(saveDemoPaymentMethod).mock.calls[0]?.[1].get("paymentMethod")).toBe("demo_card_5556");
   expect(container.querySelectorAll("article")).toHaveLength(2);
@@ -328,7 +337,11 @@ test("removing the only saved card blocks funding until another card is chosen",
   fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" }).at(-1)!);
   await waitFor(() => expect(screen.getByText("No card selected. Add a sample card above to continue.")).toBeTruthy());
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
   fireEvent.click(screen.getByRole("button", { name: "+ Add another card" }));
+  fireEvent.change(screen.getByLabelText("Cardholder name"), { target: { value: "Demo Customer" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save card & return to Add funds" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
 });
 

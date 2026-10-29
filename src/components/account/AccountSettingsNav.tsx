@@ -23,7 +23,7 @@ export function AccountSettingsNav({ active }: { active: "profile" | "security" 
   return <nav id="account-settings-sections" aria-label="Account and security sections" className={styles.sectionNav}>
     <Link href="/account/profile#account-settings-sections" aria-current={active === "profile" ? "page" : undefined}><span className={styles.navIcon}><SecurityGlyph name="person" /></span><span>Profile</span><AccountIcon name="chevron" /></Link>
     <Link href="/account/security#account-settings-sections" aria-current={active === "security" ? "page" : undefined}><span className={styles.navIcon}><SecurityGlyph name="lock" /></span><span>Sign-in &amp; Security</span><AccountIcon name="chevron" /></Link>
-    <Link href="/account/payment-methods#account-settings-sections" aria-current={active === "payment" ? "page" : undefined}><span className={styles.navIcon}><SecurityGlyph name="card" /></span><span>Payment Methods</span><AccountIcon name="chevron" /></Link>
+    <Link href="/account/wallet?view=history&panel=methods#payment-methods" aria-current={active === "payment" ? "page" : undefined}><span className={styles.navIcon}><SecurityGlyph name="card" /></span><span>Payment Methods</span><AccountIcon name="chevron" /></Link>
     <Link href="/account/crew/display#account-settings-sections" aria-current={active === "sharing" ? "page" : undefined}><span className={styles.navIcon}><AccountIcon name="crew" /></span><span>Sharing Preferences</span><AccountIcon name="chevron" /></Link>
   </nav>;
 }

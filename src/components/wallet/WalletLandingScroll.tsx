@@ -41,6 +41,7 @@ export function WalletLandingScroll({ enabled = true, target = "balance" }: { en
       event.preventDefault();
       // Only the hash changes: preserve Back navigation without a competing router scroll.
       if (destination.href !== window.location.href) window.history.pushState(null, "", destination.href);
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
       revealSection();
     };
     const onHash = () => revealSection();

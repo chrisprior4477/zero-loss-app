@@ -206,8 +206,8 @@ test("history link opens authoritative balance and existing history directly; fa
   expect(screen.queryByText("$0.00")).toBeNull();
 });
 
-test("old card links move to the Account & Security payment destination", async () => {
-  await expect(WalletPage({ searchParams: Promise.resolve({ view: "card" }) })).rejects.toThrow("redirect:/account/payment-methods");
+test("old card links open the wallet card editor", async () => {
+  await expect(WalletPage({ searchParams: Promise.resolve({ view: "card" }) })).rejects.toThrow("redirect:/account/wallet?view=history&panel=card");
 });
 
 test("anonymous reward request redirects to sign-in before displaying account data", async () => {
