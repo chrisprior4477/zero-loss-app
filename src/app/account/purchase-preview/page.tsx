@@ -7,8 +7,8 @@ export const metadata: Metadata = {
 };
 
 export default async function PurchasePreviewPage({ searchParams }: {
-  searchParams: Promise<{ version?: string }>;
+  searchParams: Promise<{ version?: string; refinement?: string }>;
 }) {
-  const { version } = await searchParams;
-  return <PurchaseJourneyPreview initialVersion={version === "1" ? 1 : version === "2" ? 2 : version === "4" ? 4 : 3} />;
+  const { version, refinement } = await searchParams;
+  return <PurchaseJourneyPreview initialVersion={version === "1" ? 1 : version === "2" ? 2 : version === "4" ? 4 : 3} initialRefinement={refinement === "1" ? 1 : refinement === "2" ? 2 : refinement === "3" ? 3 : 0} />;
 }

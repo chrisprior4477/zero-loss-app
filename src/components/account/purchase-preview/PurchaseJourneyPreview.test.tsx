@@ -100,3 +100,47 @@ test("keeping other offers stays selected after buying all and reducing the quan
   expect((screen.getByRole("radio", { name: "Declining 0" }) as HTMLInputElement).checked).toBe(true);
   expect(screen.getByText("2 kept")).toBeTruthy();
 });
+
+test.each([1, 2, 3] as const)("refinement %s retains offers for later without changing the purchase price", refinement => {
+  const network = vi.fn();vi.stubGlobal("fetch", network);
+  render(<PurchaseJourneyPreview initialVersion={3} initialRefinement={refinement} />);
+  expect(screen.getByRole("heading", { name: "Buy 1 $400 gift card" })).toBeTruthy();
+  expect(screen.getByText(/already paid \+/).textContent).toContain("Your $1 already paid + $399 remaining = $400");
+  if (refinement === 1) fireEvent.click(screen.getByRole("checkbox", { name: /Decline and remove/ }));
+  else {
+    fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
+    expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: /Decline & remove/ }).getAttribute("aria-pressed")).toBe("false");
+  }
+  fireEvent.click(screen.getByRole("radio", { name: "Buying 3" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Buying 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add $260 to continue" }));
+  const popup = within(screen.getByRole("dialog"));
+  expect(popup.getByText("Keep 2 in My Activity · expires in 30 days.")).toBeTruthy();
+  fireEvent.click(popup.getByRole("button", { name: "+$25" }));
+  expect(popup.getByText("$260 needed · $25 stays in your wallet after purchase.")).toBeTruthy();
+  fireEvent.click(popup.getByRole("button", { name: "Add $285 to wallet" }));
+  expect(within(screen.getByRole("dialog")).getByText("$25")).toBeTruthy();
+  expect(within(screen.getByRole("dialog")).getByText(/Keep the other 2 offers available in My Activity/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
+  expect(screen.getByText(/2 other offers stay available in My Activity for later/)).toBeTruthy();
+  expect(within(screen.getByRole("region", { name: "Purchase walkthrough" })).getByText("$25")).toBeTruthy();
+  expect(network).not.toHaveBeenCalled();
+});
+
+test("tappable choices are exclusive, apply only on purchase, and survive Undo", () => {
+  render(<PurchaseJourneyPreview initialVersion={3} initialRefinement={3} />);
+  fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Decline & remove/ }));
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("false");
+  fireEvent.click(screen.getByRole("button", { name: "Add $260 to continue" }));
+  fireEvent.click(screen.getByRole("button", { name: "+$30" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add $290 to wallet" }));
+  fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+  expect(screen.queryByText(/declined and removed in this preview/)).toBeNull();
+  expect(screen.getByRole("button", { name: /Decline & remove/ }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "Review $399 purchase" }));
+  expect(within(screen.getByRole("dialog")).getByText("$30")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
+  expect(screen.getByText("2 other offers were declined and removed in this preview.")).toBeTruthy();
+});

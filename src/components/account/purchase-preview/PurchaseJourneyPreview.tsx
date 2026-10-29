@@ -9,6 +9,7 @@ import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import styles from "./purchase-preview.module.css";
 
 type Version = 1 | 2 | 3 | 4;
+type Refinement = 0 | 1 | 2 | 3;
 type Step = "choose" | "wallet" | "complete" | "gift";
 type Overlay = "fund" | "purchase" | "options" | null;
 const versions = [
@@ -16,6 +17,11 @@ const versions = [
   { id: 2, title: "One ticket" },
   { id: 3, title: "Quick popup" },
   { id: 4, title: "Two wheels" },
+] as const;
+const refinements = [
+  { id: 1, title: "Checkbox", letter: "A" },
+  { id: 2, title: "Choice buttons", letter: "B" },
+  { id: 3, title: "Tap & check", letter: "C" },
 ] as const;
 const cards = [
   { value: "wells", label: "Wells Fargo", detail: "Sample card •••• 0002" },
@@ -55,7 +61,7 @@ function MoneySummary({ total, balance }: { total: number; balance: number }) {
   </div>;
 }
 
-function PreviewDialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+function PreviewDialog({ title, children, onClose, compact = false }: { title: string; children: ReactNode; onClose: () => void; compact?: boolean }) {
   const dialog = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const [top, setTop] = useState(130);
@@ -91,15 +97,16 @@ function PreviewDialog({ title, children, onClose }: { title: string; children: 
     };
   }, [onClose]);
   return createPortal(<div className={styles.backdrop} style={{ "--preview-top": top + "px" } as CSSProperties} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="purchase-preview-dialog-title" className={styles.ticket + " " + styles.dialog}>
+    <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="purchase-preview-dialog-title" className={styles.ticket + " " + styles.dialog + (compact ? " " + styles.refined : "")}>
       <button ref={close} type="button" className={styles.close} onClick={onClose} aria-label="Close purchase preview popup">×</button>
       <h2 id="purchase-preview-dialog-title">{title}</h2>{children}
     </div>
   </div>, document.body);
 }
 
-function PurchaseConfirmation({ total, balance, quantity, declined, deposit, onUndo, onConfirm }: {
+function PurchaseConfirmation({ total, balance, quantity, declined, deposit, offerSummary, onUndo, onConfirm }: {
   total: number; balance: number; quantity: number; declined: number; deposit: number;
+  offerSummary?: string;
   onUndo: () => void; onConfirm: () => void;
 }) {
   const [deadline] = useState(() => Date.now() + 30000);
@@ -118,16 +125,17 @@ function PurchaseConfirmation({ total, balance, quantity, declined, deposit, onU
       <div><span>Buying {quantity} gift {quantity === 1 ? "card" : "cards"}</span><strong>{usd(total)}</strong></div>
       <div><span>Wallet after purchase</span><strong>{usd(balance - total)}</strong></div>
     </div>
-    <p className={styles.small}>{declined ? "Decline " + declined + " other " + (declined === 1 ? "offer" : "offers") + " only after the purchase succeeds." : "Other offers stay available."}</p>
+    <p className={styles.small}>{offerSummary ?? (declined ? "Decline " + declined + " other " + (declined === 1 ? "offer" : "offers") + " only after the purchase succeeds." : "Other offers stay available.")}</p>
     <div className={styles.countdown}><p>Confirm or undo.<small>Time runs out? Nothing is purchased.</small></p><EntryUndoCountdown seconds={seconds} /></div>
     <div className={styles.twoButtons}><button type="button" className={styles.secondary} onClick={onUndo}>Undo</button><button type="button" className={styles.primary} onClick={() => { if (Date.now() >= deadline) onUndo(); else onConfirm(); }}>Confirm purchase</button></div>
     <p className={styles.footnote}>Preview only · No real payment</p>
   </>;
 }
 
-export function PurchaseJourneyPreview({ initialVersion = 3 }: { initialVersion?: Version }) {
+export function PurchaseJourneyPreview({ initialVersion = 3, initialRefinement = 0 }: { initialVersion?: Version; initialRefinement?: Refinement }) {
   // Preview state is isolated: no account store, server action, API or persistence.
   const [version, setVersion] = useState<Version>(initialVersion);
+  const [refinement, setRefinement] = useState<Refinement>(initialVersion === 3 ? initialRefinement : 0);
   const [step, setStep] = useState<Step>("choose");
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [selected, setSelected] = useState([1]);
@@ -139,6 +147,7 @@ export function PurchaseJourneyPreview({ initialVersion = 3 }: { initialVersion?
   const [deposit, setDeposit] = useState(0);
   const [notice, setNotice] = useState("");
   const [customAmount, setCustomAmount] = useState("");
+  const [extra, setExtra] = useState(0);
   const [error, setError] = useState("");
   const [navigation, setNavigation] = useState(0);
   const content = useRef<HTMLElement>(null);
@@ -147,9 +156,13 @@ export function PurchaseJourneyPreview({ initialVersion = 3 }: { initialVersion?
   const optionsReturn = useRef<Overlay>(null);
   const total = selected.length * price;
   const shortfall = Math.max(0, total - balance);
-  const amount = customAmount === "" ? shortfall : /^\d+$/.test(customAmount) ? Number(customAmount) * 100 : NaN;
+  const amount = customAmount === "" ? shortfall + extra : /^\d+$/.test(customAmount) ? Number(customAmount) * 100 : NaN;
   const currentCard = cards.find(item => item.value === card)!;
   const remaining = optionIds.length - selected.length;
+  const refined = version === 3 && refinement !== 0;
+  const offerSummary = remaining === 0 ? "All available options are being purchased." : declined
+    ? `Decline and remove the other ${remaining} ${remaining === 1 ? "offer" : "offers"} only after this purchase succeeds.`
+    : `Keep the other ${remaining} ${remaining === 1 ? "offer" : "offers"} available in My Activity. Unused offers expire and are removed after 30 days.`;
 
   const closeOverlay = useCallback(() => {
     submitted.current = false;purchased.current = false;
@@ -167,12 +180,12 @@ export function PurchaseJourneyPreview({ initialVersion = 3 }: { initialVersion?
     return () => cancelAnimationFrame(frame);
   }, [step, navigation]);
 
-  function restart(nextVersion = version, nextBalance = startingBalance) {
+  function restart(nextVersion = version, nextBalance = startingBalance, nextRefinement: Refinement = nextVersion === 3 ? refinement : 0) {
     setVersion(nextVersion);setStep("choose");setOverlay(null);setSelected([1]);setDeclined(2);setDeclineAll(true);
-    setBalance(nextBalance);setDeposit(0);setNotice("");setCustomAmount("");setError("");
+    setRefinement(nextRefinement);setExtra(0);setBalance(nextBalance);setDeposit(0);setNotice("");setCustomAmount("");setError("");
     submitted.current = false;purchased.current = false;
     setNavigation(value => value + 1);
-    window.history.replaceState(null, "", "/account/purchase-preview?version=" + nextVersion);
+    window.history.replaceState(null, "", "/account/purchase-preview?version=" + nextVersion + (nextRefinement ? "&refinement=" + nextRefinement : ""));
   }
   function selectOptions(next: number[]) {
     if (!next.length) return;
@@ -195,7 +208,7 @@ export function PurchaseJourneyPreview({ initialVersion = 3 }: { initialVersion?
     if (submitted.current) return;
     if (!Number.isSafeInteger(amount) || amount < shortfall || amount < 100 || !Number.isSafeInteger(balance + amount)) { setError("Use a whole-dollar amount of at least " + usd(shortfall) + ".");return; }
     submitted.current = true;purchased.current = false;
-    setBalance(value => value + amount);setDeposit(value => value + amount);setCustomAmount("");setError("");
+    setBalance(value => value + amount);setDeposit(value => value + amount);setCustomAmount("");setExtra(0);setError("");
     setStep("choose");setOverlay("purchase");setNotice(usd(amount) + " added. Your purchase is waiting.");
   }
   function complete() {
@@ -204,36 +217,54 @@ export function PurchaseJourneyPreview({ initialVersion = 3 }: { initialVersion?
   }
 
   const declineChoice = remaining > 0 ? <label className={styles.check}><input type="checkbox" checked={declined === remaining} onChange={event => { setDeclineAll(event.target.checked);setDeclined(event.target.checked ? remaining : 0); }} /><span>Decline the other {remaining} {remaining === 1 ? "offer" : "offers"}<small>Only after purchase succeeds</small></span></label> : <p className={styles.small}>Buying all 3 options</p>;
+  function chooseDecline(value: boolean) { setDeclineAll(value);setDeclined(value ? remaining : 0); }
+  const creditExplanation = <p className={styles.credit}>Your <b>$1</b> already paid + <b>$399</b> remaining = <b>$400</b><small>{selected.length > 1 ? "For each gift card. Each entry’s $1 counts separately." : "Your entry dollar still counts."}</small></p>;
+  const offerChoices = remaining ? <fieldset className={styles.offerChoices}>
+    <legend>The other {remaining} {remaining === 1 ? "offer" : "offers"}</legend>
+    {refinement === 1 ? <>
+      <label className={styles.offerCheckbox}><input type="checkbox" checked={declineAll} onChange={event => chooseDecline(event.target.checked)} /><span><strong>Decline and remove {remaining === 1 ? "it" : "them"}</strong><small>Only after this purchase succeeds.</small></span></label>
+      <p className={styles.offerHelp}>{declineAll ? "Uncheck to keep in My Activity for later." : "Keeping in My Activity for later."} Unused offers are removed after 30 days.</p>
+    </> : <>
+      <div className={refinement === 3 ? styles.offerTiles : styles.offerButtons} role="group" aria-label="What to do with the other offers">
+        <button type="button" aria-pressed={declineAll} onClick={() => chooseDecline(true)}><span className={styles.choiceMark} aria-hidden="true">{declineAll ? "✓" : ""}</span><span><strong>Decline & remove</strong><small>{refinement === 3 ? `${remaining} ${remaining === 1 ? "offer" : "offers"}` : "After purchase succeeds"}</small></span></button>
+        <button type="button" aria-pressed={!declineAll} onClick={() => chooseDecline(false)}><span className={styles.choiceMark} aria-hidden="true">{!declineAll ? "✓" : ""}</span><span><strong>Keep for later</strong><small>In My Activity</small></span></button>
+      </div>
+      <p className={styles.offerHelp}>{refinement === 3 && declineAll ? "Decline only after purchase succeeds. " : ""}Kept offers expire and are removed after 30 days.</p>
+    </>}
+  </fieldset> : <p className={styles.offerHelp}>You’re buying all 3 options. None left to decline.</p>;
   const chooser = version === 4 ? <div className={styles.dualWheels}>
     <div><h3>Buying</h3><NumberWheel label="Buying" min={1} max={3} value={selected.length} onChange={quantity} /></div>
     <div className={styles.wheelBridge}><strong>3</strong><span>options</span><small>{remaining - declined} kept</small></div>
     <div><h3>Declining</h3><NumberWheel label="Declining" min={0} max={remaining} value={declined} onChange={value => { setDeclined(value);setDeclineAll(value > 0 && value === remaining); }} /></div>
   </div> : <div className={styles.quantity}>
     <NumberWheel label="Buying" min={1} max={3} value={selected.length} onChange={quantity} />
-    <div><h3>Buy {selected.length} gift {selected.length === 1 ? "card" : "cards"}</h3>{declineChoice}</div>
+    <div><h3>Buy {selected.length} {refined ? "$400 " : ""}gift {selected.length === 1 ? "card" : "cards"}</h3>{refined ? creditExplanation : declineChoice}</div>
   </div>;
-  const choices = <>{chooser}<div className={styles.optionLine}><span>{usd(price)} per purchase</span><button type="button" onClick={() => { optionsReturn.current = overlay;setOverlay("options"); }}>Choose options · {selected.join(", ")}</button></div>{version === 4 ? <p className={styles.wheelNote}>Declining happens only after purchase succeeds.</p> : null}</>;
+  const choices = <>{chooser}{refined ? offerChoices : null}<div className={styles.optionLine}><span>{usd(price)} per purchase</span><button type="button" onClick={() => { optionsReturn.current = overlay;setOverlay("options"); }}>Choose options · {selected.join(", ")}</button></div>{version === 4 ? <p className={styles.wheelNote}>Declining happens only after purchase succeeds.</p> : null}</>;
   const funding = <div className={styles.funding}>
     <div className={styles.cardChoice}><WalletRollerPicker label="Current card in use" placeholder="Choose a card" value={card} options={cards} onChange={setCard} /></div>
+    {refined ? <div className={styles.extraFunds}><span>Extra for later <small>(optional)</small></span><div role="group" aria-label="Extra funds for later">{[0, 2500, 3000].map(value => <button type="button" key={value} aria-pressed={customAmount === "" && extra === value} onClick={() => { setExtra(value);setCustomAmount("");setError(""); }}>{value ? "+" + usd(value) : "Just enough"}</button>)}</div></div> : null}
     <details className={styles.custom}><summary>Add a different amount</summary><label>Whole dollars (USD)<input type="text" inputMode="numeric" value={customAmount} onChange={event => { setCustomAmount(event.target.value);setError(""); }} placeholder={"At least " + usd(shortfall)} /></label></details>
+    {refined && Number.isFinite(amount) && amount > shortfall ? <p className={styles.extraNotice}>{usd(shortfall)} needed · {usd(balance + amount - total)} stays in your wallet after purchase.</p> : null}
     {error ? <p role="alert" className={styles.error}>{error}</p> : null}
     <button type="button" className={styles.primary} onClick={shortfall ? addFunds : begin}>{shortfall ? (Number.isFinite(amount) ? "Add " + usd(amount) : "Add funds") + (version === 1 ? " & return to purchase" : " to wallet") : "Review " + usd(total) + " purchase"}</button>
-    <p className={styles.footnote}>{shortfall ? "Using " + currentCard.label + " •••• " + currentCard.detail.slice(-4) + ". Confirm purchase next." : "Nothing is purchased until you confirm."}</p>
+    <p className={styles.footnote}>{shortfall ? refined ? "Adds funds only. Confirm purchase next." : "Using " + currentCard.label + " •••• " + currentCard.detail.slice(-4) + ". Confirm purchase next." : "Nothing is purchased until you confirm."}</p>
   </div>;
 
   return <div className={styles.page}><div className={styles.shell}>
     <aside className={styles.previewBar} aria-label="Preview controls">
-      <div className={styles.previewHeading}><strong>4 PURCHASE PREVIEWS</strong><span>Sample funds only</span></div>
+      <div className={styles.previewHeading}><strong>{refined ? "NUMBER 3 · THREE REFINEMENTS" : "4 PURCHASE PREVIEWS"}</strong><span>Sample funds only</span></div>
       <nav className={styles.versions} aria-label="Choose a purchase walkthrough">{versions.map(item => <button type="button" key={item.id} aria-label={item.id + " " + item.title} aria-pressed={version === item.id} onClick={() => restart(item.id)}><span>{item.id}</span>{item.title}</button>)}</nav>
+      {refined ? <nav className={styles.refinements} aria-label="Compare refinements of number three">{refinements.map(item => <button type="button" key={item.id} aria-pressed={refinement === item.id} onClick={() => restart(3, startingBalance, item.id)}>{item.letter} · {item.title}</button>)}</nav> : null}
       <div className={styles.previewActions}><button type="button" onClick={() => restart()}>Start over</button><label>Wallet <select aria-label="Preview starting balance" value={startingBalance} onChange={event => { const value = Number(event.target.value);setStartingBalance(value);restart(version, value); }}><option value={13900}>$139</option><option value={0}>$0</option><option value={50000}>$500</option><option value={200000}>$2,000</option></select></label><Link href="/account/entries?filter=completion">Exit</Link></div>
     </aside>
 
-    <section ref={content} className={styles.ticket + " " + styles.content} aria-label="Purchase walkthrough">
+    <section ref={content} className={styles.ticket + " " + styles.content + (refined ? " " + styles.refined : "")} aria-label="Purchase walkthrough">
       {step === "complete" || step === "gift" ? <>
         <p className={styles.successTag}>PREVIEW PURCHASE COMPLETE</p><h1>{step === "gift" ? "Your sample gift card" : (selected.length === 1 ? "Your gift card is" : "Your gift cards are") + " ready."}</h1>
         {step === "gift" ? <div className={styles.gift}><p>BEST BUY</p><strong>$400</strong><span>{selected.length} separate gift {selected.length === 1 ? "card" : "cards"}</span><b>SAMPLE · NOT REDEEMABLE</b></div> : <Product />}
         <div className={styles.facts}><div><span>Paid from preview wallet</span><strong>{usd(total)}</strong></div><div><span>Wallet remaining</span><strong>{usd(balance)}</strong></div></div>
-        <p className={styles.small}>{declined ? declined + " other " + (declined === 1 ? "offer was" : "offers were") + " declined after the simulated purchase." : "No other offers were declined."} {remaining - declined > 0 ? (remaining - declined) + " kept available." : ""}</p>
+        <p className={styles.small}>{refined ? (remaining ? declined ? `${remaining} other ${remaining === 1 ? "offer was" : "offers were"} declined and removed in this preview.` : `${remaining} other ${remaining === 1 ? "offer stays" : "offers stay"} available in My Activity for later. Unused offers expire and are removed after 30 days.` : "All 3 options purchased. None left to decline.") : <>{declined ? declined + " other " + (declined === 1 ? "offer was" : "offers were") + " declined after the simulated purchase." : "No other offers were declined."} {remaining - declined > 0 ? (remaining - declined) + " kept available." : ""}</>}</p>
         {step !== "gift" ? <button type="button" className={styles.primary} onClick={() => setStep("gift")}>View gift {selected.length === 1 ? "card" : "cards"}</button> : null}
         <div className={styles.twoButtons}><button type="button" className={styles.secondary} onClick={() => restart()}>Try again</button><Link className={styles.secondary} href="/">Continue shopping</Link></div>
         <p className={styles.footnote}>Preview only · Your account is unchanged</p>
@@ -249,8 +280,8 @@ export function PurchaseJourneyPreview({ initialVersion = 3 }: { initialVersion?
       </>}
     </section>
   </div>
-    {overlay ? <PreviewDialog title={overlay === "options" ? "Choose your options" : overlay === "fund" ? "Add funds to continue" : "Confirm your purchase"} onClose={overlay === "options" ? closeOptions : closeOverlay}>
-      {overlay === "options" ? <><Product /><p className={styles.small}>Choose the exact options to purchase. At least one must stay selected.</p><div className={styles.exact}>{optionIds.map(id => <button type="button" key={id} aria-label={"OPTION " + id} className={styles.ticket + " " + styles.option} aria-pressed={selected.includes(id)} onClick={() => selectOptions(selected.includes(id) ? selected.filter(value => value !== id) : [...selected, id])}><small>OPTION</small>{id}</button>)}</div><button type="button" className={styles.primary} onClick={closeOptions}>Use these options</button></> : overlay === "fund" ? <><Product />{choices}<MoneySummary total={total} balance={balance} />{funding}<button type="button" className={styles.backLink} onClick={closeOverlay}>Back to purchase options</button></> : <PurchaseConfirmation total={total} balance={balance} quantity={selected.length} declined={declined} deposit={deposit} onUndo={closeOverlay} onConfirm={complete} />}
+    {overlay ? <PreviewDialog title={overlay === "options" ? "Choose your options" : overlay === "fund" ? "Add funds to continue" : "Confirm your purchase"} onClose={overlay === "options" ? closeOptions : closeOverlay} compact={refined && overlay === "fund"}>
+      {overlay === "options" ? <><Product /><p className={styles.small}>Choose the exact options to purchase. At least one must stay selected.</p><div className={styles.exact}>{optionIds.map(id => <button type="button" key={id} aria-label={"OPTION " + id} className={styles.ticket + " " + styles.option} aria-pressed={selected.includes(id)} onClick={() => selectOptions(selected.includes(id) ? selected.filter(value => value !== id) : [...selected, id])}><small>OPTION</small>{id}</button>)}</div><button type="button" className={styles.primary} onClick={closeOptions}>Use these options</button></> : overlay === "fund" ? <><Product />{refined ? <div className={styles.purchaseRecap}><strong>Buy {selected.length} $400 gift {selected.length === 1 ? "card" : "cards"}</strong><span>{usd(selected.length * 100)} already paid + {usd(total)} remaining</span><small>{remaining ? declineAll ? `Decline & remove ${remaining} other ${remaining === 1 ? "offer" : "offers"} after purchase.` : `Keep ${remaining} in My Activity · expires in 30 days.` : "All options selected."}</small></div> : choices}<MoneySummary total={total} balance={balance} />{funding}<button type="button" className={styles.backLink} onClick={closeOverlay}>Back to purchase options</button></> : <PurchaseConfirmation total={total} balance={balance} quantity={selected.length} declined={declined} deposit={deposit} offerSummary={refined ? offerSummary : undefined} onUndo={closeOverlay} onConfirm={complete} />}
     </PreviewDialog> : null}
   </div>;
 }
