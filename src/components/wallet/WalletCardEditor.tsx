@@ -1,15 +1,15 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 import { saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
 import { DemoCardArtwork } from "./DemoCardArtwork";
 import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-payments.module.css";
 
-export function revealWalletSection(id: string) {
+export function revealWalletSection(id: string, mobileId?: string) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const target = document.getElementById(id);
+    const target = document.getElementById(mobileId && window.innerWidth <= 767 ? mobileId : id);
     if (!target) return;
     const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
     window.scrollTo({ top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - header - 12), behavior: "auto" });
@@ -37,6 +37,8 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
   const [makeDefault, setMakeDefault] = useState(savedCard?.isDefault ?? false);
   const [error, setError] = useState("");
   const [back, setBack] = useState(false);
+  const [showCard, setShowCard] = useState(false);
+  const previewId = useId();
   const enteredFixture = DEMO_CARD_FIXTURES.find(card => card.number.replaceAll(" ", "") === number.replaceAll(" ", ""));
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof saveDemoPaymentMethod>>, data: FormData) => {
     try {
@@ -52,7 +54,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
   return <section id="wallet-card-editor" className={styles.editor} aria-labelledby="wallet-card-editor-title">
     <h3 id="wallet-card-editor-title">{savedCard ? "Edit card" : "Add a card"}</h3>
     {depositLabel ? <p className={styles.notice}>Your {depositLabel} deposit is waiting. Saving a card does not add funds.</p> : <p>Save a payment method without adding funds.</p>}
-    <div className={styles.actions}>
+    <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}>
       <button type="button" className={styles.primary} disabled={disabled || pending} onClick={() => nameInput.current?.focus()}>Add Card</button>
       <MobileCardCamera token={enteredFixture?.token ?? token} disabled={disabled || pending} onUse={colors => { setArtwork(colors); setError(""); }} />
     </div>
@@ -66,7 +68,6 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
       <input type="hidden" name="paymentMethod" value={enteredFixture?.token ?? ""} />
       <input type="hidden" name="makeDefault" value={String(makeDefault)} />
       {artwork ? <input type="hidden" name="artwork" value={JSON.stringify(artwork)} /> : null}
-      <p className={styles.sample}>Sample: {fixture.number} · Expires {fixture.expiry} · Security code {fixture.code}</p>
       <label>Cardholder name<input ref={nameInput} autoComplete="off" value={cardholder} onChange={event => setCardholder(event.target.value)} disabled={disabled || pending} /></label>
       <label>Card number<input inputMode="numeric" autoComplete="off" value={number} onChange={event => setNumber(event.target.value)} disabled={disabled || pending} /></label>
       <div className={styles.fields}>
@@ -74,13 +75,14 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
         <label>Security code<input inputMode="numeric" autoComplete="off" value={code} onChange={event => setCode(event.target.value)} disabled={disabled || pending} /></label>
       </div>
       <label className={styles.choice}><input type="checkbox" checked={makeDefault} onChange={event => setMakeDefault(event.target.checked)} disabled={disabled || pending} />Use this card for future preview transactions</label>
-      <details className={styles.artwork}><summary>See card</summary><DemoCardArtwork token={enteredFixture?.token ?? token} artwork={artwork} cardholder={cardholder || "Preview customer"} back={back} /><button type="button" className={styles.secondary} onClick={() => setBack(value => !value)}>See {back ? "front" : "back"}</button></details>
       {error || state.status === "error" ? <p role="alert" className={styles.error}>{error || (state.status === "error" ? state.message : "")}</p> : null}
-      <div className={styles.actions}>
-        <button type="submit" disabled={disabled || pending} className={styles.confirm}>{pending ? "Saving…" : depositLabel ? "Save card & return to Add funds" : savedCard ? "Update card" : "Save card"}</button>
-        <button type="button" disabled={pending} className={styles.secondary} onClick={onCancel}>{depositLabel ? "Cancel · return to Add funds" : "Cancel"}</button>
+      <div className={`${styles.actions} ${styles.editorActions}`}>
+        <button type="submit" disabled={disabled || pending} className={styles.confirm}>{pending ? "Saving…" : savedCard ? "Update card" : "Save card"}</button>
+        <button type="button" disabled={pending} className={styles.secondary} onClick={onCancel}>Cancel</button>
+        <button type="button" className={styles.secondary} aria-expanded={showCard} aria-controls={previewId} onClick={() => setShowCard(value => !value)}>{showCard ? "Hide card" : "See card"}</button>
         <a className={styles.secondary} href="#balance">Back to wallet</a>
       </div>
+      <div id={previewId} hidden={!showCard} className={styles.artwork}><DemoCardArtwork token={enteredFixture?.token ?? token} artwork={artwork} cardholder={cardholder || "Preview customer"} back={back} /><button type="button" className={styles.secondary} onClick={() => setBack(value => !value)}>See {back ? "front" : "back"}</button></div>
       <p className={styles.sample}>Simulation only. Only the safe sample-card reference and your preference are saved. No payment is made.</p>
     </form>
   </section>;

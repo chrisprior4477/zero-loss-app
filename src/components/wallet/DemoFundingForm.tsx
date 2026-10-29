@@ -228,7 +228,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
     <p className="text-xs leading-5 text-[#b5cce4]">Only a test-card reference and your preference are saved—not a card number or security code.</p>
-    <div className={paymentStyles.actions}><a href="#balance" className={paymentStyles.secondary}>Back to wallet</a></div>
+    <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><a href="#balance" className={paymentStyles.secondary}>Back to wallet</a><Link href={continueTo?.href ?? "/"} className={paymentStyles.confirm}>Continue Shopping</Link></div>
   </form>;
 }
 
@@ -284,9 +284,12 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   if (successMessage) return <section id="funding-success" aria-label="Deposit complete" className={paymentStyles.editor}>
     <p role="status" className={paymentStyles.notice}>{successMessage}</p>
     {balanceLabel ? <p><strong>Current balance: {balanceLabel}</strong></p> : null}
+    <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}>
+      <a href="#balance" className={paymentStyles.secondary}>Back to wallet</a>
+      <Link href={continueTo?.href ?? "/"} className={paymentStyles.confirm}>Continue Shopping</Link>
+    </div>
     <div className={paymentStyles.actions}>
       {continueTo ? <Link href={continueTo.href} className={paymentStyles.confirm}>{continueTo.label ?? "Continue your entry"}</Link> : null}
-      <a href="#balance" className={paymentStyles.secondary}>Back to wallet</a>
       <a href="#payment-methods" className={paymentStyles.secondary}>View payment methods</a>
       <button type="button" className={paymentStyles.secondary} onClick={() => { setSuccessMessage(""); revealWalletSection("add-funds"); }}>Add more funds</button>
     </div>

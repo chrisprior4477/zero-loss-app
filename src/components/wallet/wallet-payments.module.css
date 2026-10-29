@@ -3,28 +3,48 @@
 .panel h2 { font-size: clamp(26px, 2.5vw, 34px); font-weight: 850; }
 .editor { max-width: 720px; color: #0b1940; scroll-margin-top: 150px; }
 .editor h3 { font-size: 24px; font-weight: 850; }
-.editor p, .panel > p { margin: 10px 0; color: #506989; font-size: 14px; line-height: 1.5; }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0; }
-.actions > button:not([aria-label="Use camera"]), .actions > a, .secondary, .primary, .confirm, .danger { display: inline-flex; width: auto; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 9px; font-size: 14px; font-weight: 800; line-height: 1.35; text-decoration: none; }
+.editor p, .panel > p { margin: 6px 0; color: #506989; font-size: 14px; line-height: 1.5; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.actions > button:not([aria-label="Use camera"]), .actions > a, .secondary, .primary, .confirm, .danger { display: inline-flex; width: auto; min-height: 36px; align-items: center; justify-content: center; gap: 8px; padding: 7px 12px; border-radius: 8px; font-size: 14px; font-weight: 800; line-height: 1.35; text-align: center; text-decoration: none; }
+.pairedActions { flex-wrap: nowrap; align-items: stretch; width: 100%; max-width: 440px; }
+.pairedActions > a, .pairedActions > button { flex: 1 1 0; min-width: 0; }
+.editorActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 440px; }
+.actions :focus-visible, .artwork summary:focus-visible { outline: 3px solid #168cff; outline-offset: 3px; }
 .primary { background: #0872fb; color: white; }
 .secondary { background: #dff2ff; color: #075187; }
 .confirm { background: #31e800; color: #002719; }
 .danger { border: 1px solid #b34c3b; color: #9b3628; background: white; }
 .actions > :disabled { opacity: .55; cursor: not-allowed; }
-.editor label:not(.choice) { display: block; margin-top: 16px; color: #0b1940; font-size: 14px; font-weight: 750; }
-.editor input:not([type="checkbox"]):not([type="hidden"]) { display: block; width: 100%; min-width: 0; margin-top: 6px; padding: 11px 12px; min-height: 46px; border: 1px solid #a9c8df; border-radius: 9px; background: #fff; color: #101b4e; font-size: 16px; }
-.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.choice { display: flex; gap: 9px; align-items: center; margin: 16px 0; color: #0b1940; font-size: 14px; font-weight: 700; }
+.editor label:not(.choice) { display: block; margin-top: 8px; color: #0b1940; font-size: 14px; font-weight: 750; }
+.editor input:not([type="checkbox"]):not([type="hidden"]) { display: block; width: 100%; min-width: 0; margin-top: 4px; padding: 7px 10px; min-height: 40px; border: 1px solid #a9c8df; border-radius: 8px; background: #fff; color: #101b4e; font-size: 16px; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.choice { display: flex; gap: 9px; align-items: center; margin: 10px 0; color: #0b1940; font-size: 14px; font-weight: 700; }
 .choice input { width: 18px; height: 18px; flex: none; accent-color: #0872fb; }
 .editor .notice, .notice { margin: 12px 0; padding: 12px 14px; border-radius: 9px; color: #153354; background: #e5f5ff; font-size: 14px; }
 .editor .error, .error { color: #9b3628; }
 .editor .sample { color: #506989; font-size: 12px; overflow-wrap: anywhere; }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; margin-top: 16px; }
-.card { padding: 16px; border: 1px solid #b9d2e5; border-radius: 12px; background: #e9f5ff; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 10px; margin-top: 12px; }
+.card { padding: 12px 14px; border: 1px solid #b9d2e5; border-radius: 12px; background: #e9f5ff; }
 .card strong { font-size: 16px; }
-.card p { margin-top: 5px; color: #506989; font-size: 13px; }
-.artwork { max-width: 340px; margin: 12px 0; }
-.artwork summary { min-height: 44px; padding: 12px 0; color: #075187; font-size: 14px; font-weight: 800; cursor: pointer; }
+.card p { margin-top: 2px; color: #506989; font-size: 13px; }
+.card .choice { margin: 8px 0 4px; }
+.card .actions { margin: 6px 0 0; }
+.artwork { max-width: 340px; margin: 4px 0; }
+.artwork[hidden] { display: none; }
+.artwork summary { min-height: 32px; padding: 6px 0; color: #075187; font-size: 14px; font-weight: 800; cursor: pointer; }
 .artwork > button { margin-top: 8px; }
 .delete { margin-top: 12px; padding: 12px; border: 1px solid #b34c3b; border-radius: 9px; }
-@media (max-width: 380px) { .actions { gap: 8px; } .actions > button:not([aria-label="Use camera"]), .actions > a { padding: 10px 12px; } }
+@media (min-width: 768px) {
+  .cardEntryActions { width: auto; }
+  .cardEntryActions > button { flex: 0 0 auto; }
+}
+@media (max-width: 767px) {
+  .panel.panel { padding-top: 20px; padding-bottom: 22px; }
+  .pairedActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pairedActions > a { padding-inline: 6px; font-size: 13px; white-space: nowrap; }
+  .pairedActions > button[aria-label="Use camera"] { flex: 1 1 0; min-width: 0; min-height: 36px; padding: 6px 8px; }
+}
+@media (max-width: 380px) {
+  .pairedActions > a, .editorActions > a, .editorActions > button { padding-inline: 4px; font-size: 12px; }
+}
+@media (max-width: 340px) { .pairedActions > a { font-size: 11px; } }

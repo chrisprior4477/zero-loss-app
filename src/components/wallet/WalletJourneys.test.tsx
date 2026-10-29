@@ -10,7 +10,7 @@ import { WalletCardEditor } from "./WalletCardEditor";
 import { DemoFundingForm } from "./DemoFundingForm";
 const initialCards: DemoCard[] = [{ token: "demo_card_4242", lastFour: "4242", isDefault: true }];
 beforeEach(() => { window.history.replaceState(null, "", "/account/wallet?view=history#balance"); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 test("journey 1 opens the editor, saves only a reference, and returns to methods without funding", async () => {
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
@@ -26,7 +26,23 @@ test("journey 1 opens the editor, saves only a reference, and returns to methods
   expect(screen.getByRole("article", { name: "Saved card 5556" })).toBeTruthy();
   expect(window.location.hash).toBe("#payment-methods");
   expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("#balance");
+  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
   expect(completeDemoFunding).not.toHaveBeenCalled();
+});
+
+test("the editor's See card button toggles a preview without saving or losing entered fields", () => {
+  render(<WalletCardEditor token="demo_card_5556" displayName="Demo Customer" onSaved={vi.fn()} onCancel={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText("Cardholder name"), { target: { value: "Updated name" } });
+  const toggle = screen.getByRole("button", { name: "See card", expanded: false });
+  fireEvent.click(toggle);
+  expect(screen.getByRole("button", { name: "Hide card", expanded: true })).toBeTruthy();
+  expect(document.getElementById(toggle.getAttribute("aria-controls")!)?.hidden).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "See back" }));
+  expect(screen.getByRole("button", { name: "See front" })).toBeTruthy();
+  fireEvent.click(toggle);
+  expect(document.getElementById(toggle.getAttribute("aria-controls")!)?.hidden).toBe(true);
+  expect((screen.getByLabelText("Cardholder name") as HTMLInputElement).value).toBe("Updated name");
+  expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
 });
 
 test("journey 2 preserves decimal amount and request key through card save and server refresh", async () => {
@@ -35,7 +51,7 @@ test("journey 2 preserves decimal amount and request key through card save and s
   const { container, rerender } = render(<DemoFundingForm {...props} />);
   fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "50.50" } });
   fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
-  fireEvent.click(screen.getByRole("button", { name: "Save card & return to Add funds" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save card" }));
   await waitFor(() => expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy());
   rerender(<DemoFundingForm {...props} requestKey="refreshed_server_key_02" savedCards={[...initialCards, { token: "demo_card_5556", lastFour: "5556", isDefault: false }]} />);
   expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$50.50");
@@ -103,4 +119,21 @@ test("legacy payment-method entrances open the manager and normalize an old frag
   render(<WalletPaymentMethods enabled initialSection="methods" savedCards={initialCards} />);
   expect(screen.getByRole("heading", { name: "Payment methods" })).toBeTruthy();
   expect(window.location.hash).toBe("#payment-methods");
+});
+
+test.each([{ width: 390, target: 560 }, { width: 1280, target: 360 }])("payment-method navigation and save land below the header at $width px", async ({ width, target }) => {
+  vi.stubGlobal("innerWidth", width);
+  vi.stubGlobal("scrollY", 0);
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { callback(0); return 1; });
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    return new DOMRect(0, this.id === "payment-methods-controls" ? 700 : this.id === "payment-methods" ? 500 : 0, width, this.tagName === "HEADER" ? 128 : 50);
+  });
+  vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
+  render(<><header className="sticky" /><a href="#payment-methods">View payment methods</a><WalletPaymentMethods enabled savedCards={initialCards} displayName="Demo Customer" /></>);
+  fireEvent.click(screen.getByRole("link", { name: "View payment methods" }));
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
+  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  fireEvent.click(screen.getByRole("button", { name: "Update card" }));
+  await waitFor(() => expect(screen.getByRole("heading", { name: "Payment methods" })).toBeTruthy());
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
 });

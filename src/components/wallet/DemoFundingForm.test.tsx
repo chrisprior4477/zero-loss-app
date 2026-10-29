@@ -13,7 +13,7 @@ test("Add Card opens manual entry and cancel keeps the deposit amount", () => {
   expect(screen.getByText(/Your \$50.50 deposit is waiting/)).toBeTruthy();
   expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
   expect(completeDemoFunding).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: /Cancel.*return to Add funds/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$50.50");
   expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("stable_demo_request_001");
 });
@@ -300,7 +300,7 @@ test("additional sample cards form a two-card selection and can be saved", async
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} savedCards={[{ token: "demo_card_4242", lastFour: "4242", isDefault: true }]} />);
   fireEvent.click(screen.getByRole("button", { name: /Add another card/ }));
   fireEvent.change(screen.getByLabelText("Cardholder name"), { target: { value: "Demo Customer" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save card & return to Add funds" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save card" }));
   await waitFor(() => expect(saveDemoPaymentMethod).toHaveBeenCalled());
   expect(vi.mocked(saveDemoPaymentMethod).mock.calls[0]?.[1].get("paymentMethod")).toBe("demo_card_5556");
   expect(container.querySelectorAll("article")).toHaveLength(2);
@@ -340,7 +340,7 @@ test("removing the only saved card blocks funding until another card is chosen",
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
   fireEvent.click(screen.getByRole("button", { name: "+ Add another card" }));
   fireEvent.change(screen.getByLabelText("Cardholder name"), { target: { value: "Demo Customer" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save card & return to Add funds" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save card" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
 });

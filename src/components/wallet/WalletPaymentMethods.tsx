@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { deleteDemoPaymentMethod, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import { DEMO_CARD_FIXTURES, type DemoCard, type DemoCardArtwork as Artwork, type DemoCardToken } from "@/lib/payments/demo-card";
 import { DemoCardArtwork } from "./DemoCardArtwork";
@@ -11,6 +12,7 @@ import walletStyles from "./wallet-overview.module.css";
 import styles from "./wallet-payments.module.css";
 
 const emptyCards: DemoCard[] = [];
+function revealMethods() { revealWalletSection("payment-methods", "payment-methods-controls"); }
 export function WalletPaymentMethods({ savedCards = emptyCards, displayName, enabled, unavailable = false, initialSection }: { initialSection?: "methods" | "card"; savedCards?: DemoCard[]; displayName?: string; enabled: boolean; unavailable?: boolean }) {
   const router = useRouter();
   const [cards, setCards] = useState(savedCards);
@@ -25,7 +27,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   if (savedCards !== lastSavedCards) { setLastSavedCards(savedCards); setCards(savedCards); }
   const availableToken = (DEMO_CARD_FIXTURES.find(fixture => !cards.some(card => card.token === fixture.token)) ?? DEMO_CARD_FIXTURES[0]).token;
   const nextToken = () => (DEMO_CARD_FIXTURES.find(fixture => !cardsRef.current.some(card => card.token === fixture.token)) ?? DEMO_CARD_FIXTURES[0]).token;
-  function showMethods() { window.history.pushState(null, "", "#payment-methods"); setEditor(null); setScreen("methods"); revealWalletSection("payment-methods"); }
+  function showMethods() { window.history.pushState(null, "", "#payment-methods"); setEditor(null); setScreen("methods"); revealMethods(); }
   function addCard(artwork?: Artwork) { setEditor({ token: nextToken(), artwork }); setMessage(""); setScreen("editor"); window.history.pushState(null, "", "#wallet-add-card"); revealWalletSection("wallet-card-editor"); }
   useEffect(() => {
     const sync = () => {
@@ -36,7 +38,8 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       }
       if (hash === "#wallet-add-card") { setEditor(current => current ?? { token: nextToken() }); setScreen("editor"); }
       else { setEditor(null); setScreen(hash === "#payment-methods" ? "methods" : "closed"); }
-      if (["#balance", "#add-funds", "#payment-methods", "#wallet-add-card"].includes(hash)) revealWalletSection(hash === "#wallet-add-card" ? "wallet-card-editor" : hash.slice(1));
+      if (hash === "#payment-methods") revealMethods();
+      else if (["#balance", "#add-funds", "#wallet-add-card"].includes(hash)) revealWalletSection(hash === "#wallet-add-card" ? "wallet-card-editor" : hash.slice(1));
     };
     const click = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -49,7 +52,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     sync(); window.addEventListener("hashchange", sync); window.addEventListener("popstate", sync); document.addEventListener("click", click, true);
     return () => { window.removeEventListener("hashchange", sync); window.removeEventListener("popstate", sync); document.removeEventListener("click", click, true); };
   }, [initialSection]);
-  useLayoutEffect(() => { if (screen !== "closed") revealWalletSection(screen === "editor" ? "wallet-card-editor" : "payment-methods"); }, [screen]);
+  useLayoutEffect(() => { if (screen === "methods") revealMethods(); else if (screen === "editor") revealWalletSection("wallet-card-editor"); }, [screen]);
   async function setDefault(card: DemoCard, value: boolean) {
     setBusy(true); setMessage("");
     const data = new FormData(); data.set("paymentMethod", card.token); data.set("makeDefault", String(value));
@@ -74,7 +77,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     }} /> : <>
       <h2>Payment methods</h2><p>Your saved cards, ready when you need them.</p>
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
-      <div className={styles.actions}><button type="button" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={availableToken} disabled={!enabled || unavailable || busy} onUse={addCard} /></div>
+      <div id="payment-methods-controls" className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={availableToken} disabled={!enabled || unavailable || busy} onUse={addCard} /></div>
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
         <strong>Test card •••• {card.lastFour}</strong><p>{card.isDefault ? "Default payment method" : "Saved payment method"}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} disabled={!enabled || unavailable || busy} onChange={event => void setDefault(card, event.target.checked)} />Use as my default payment method</label>
@@ -83,7 +86,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
         {deleting === card.token ? <div className={styles.delete}><p>Remove this card? Past deposits and your balance stay the same.</p><div className={styles.actions}><button type="button" className={styles.secondary} disabled={busy} onClick={() => setDeleting(null)}>Keep Card</button><button type="button" className={styles.danger} disabled={busy} onClick={() => void removeCard(card.token)}>{busy ? "Removing…" : "Confirm Delete"}</button></div></div> : null}
       </article>)}</div>
       {!unavailable && !cards.length ? <p>No saved cards yet. Add a card to get started.</p> : null}
-      <div className={styles.actions}><a href="#balance" className={styles.secondary}>Back to wallet</a></div>
+      <div className={`${styles.actions} ${styles.pairedActions}`}><a href="#balance" className={styles.secondary}>Back to wallet</a><Link href="/" className={styles.confirm}>Continue Shopping</Link></div>
     </>}
   </section>;
 }
