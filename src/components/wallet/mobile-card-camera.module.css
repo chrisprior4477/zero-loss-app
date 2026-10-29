@@ -15,10 +15,21 @@
 .dialog h2 { font-size: 26px; line-height: 1.1; font-weight: 850; }
 .dialog > p { margin: 12px 0 18px; color: #526b87; font-size: 14px; line-height: 1.45; }
 .close { position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border-radius: 50%; background: #e8f5fc; color: #12375a; font-size: 28px; }
-.captureGuide { display: grid; justify-items: center; gap: 12px; padding: 26px 18px; border: 2px dashed #22a2c6; border-radius: 15px; background: #ecf8ff; text-align: center; }
-.captureGuide span { font-size: 38px; color: #0077c7; font-weight: 850; }
-.captureGuide small { color: #526b87; font-size: 12px; }
-.file { display: none; }
+.viewfinder { position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 12px; background: #08213b; }
+.viewfinder video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cornerGuide { position: absolute; left: 8%; top: 50%; transform: translateY(-50%); width: 84%; aspect-ratio: 1.586; box-shadow: 0 0 0 100px #00102770; }
+.cornerGuide i { position: absolute; width: 26px; height: 26px; border: solid #8fffd6; border-width: 0; filter: drop-shadow(0 1px 2px #001027); }
+.cornerGuide i:nth-child(1) { top: 0; left: 0; border-top-width: 4px; border-left-width: 4px; }
+.cornerGuide i:nth-child(2) { top: 0; right: 0; border-top-width: 4px; border-right-width: 4px; }
+.cornerGuide i:nth-child(3) { bottom: 0; left: 0; border-bottom-width: 4px; border-left-width: 4px; }
+.cornerGuide i:nth-child(4) { bottom: 0; right: 0; border-bottom-width: 4px; border-right-width: 4px; }
+.sideLabel { position: absolute; top: 8px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 12px; font-weight: 800; }
+.cameraHint { position: absolute; inset: 40% 14% auto; text-align: center; color: #c8efff; font-size: 13px; font-weight: 700; }
+.dialog .captureNote { font-size: 12px; margin: 8px 0; }
+.preferences { display: grid; gap: 10px; margin-top: 16px; }
+.preferences label { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 18px; font-weight: 700; }
+.preferences input { flex: none; width: 18px; height: 18px; accent-color: #0872fb; }
+.dialog .issuer { margin: 10px 0; color: #12375a; }
 .primary, .cancel, .flip { width: 100%; min-height: 45px; margin-top: 12px; border-radius: 9px; font-size: 14px; font-weight: 850; }
 .dialog .primary { color: #082915; background: #48ff00; }
 .primary:disabled { opacity: .6; }

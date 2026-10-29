@@ -33,7 +33,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
   const [number, setNumber] = useState(fixture.number as string);
   const [expiry, setExpiry] = useState(fixture.expiry as string);
   const [code, setCode] = useState(fixture.code as string);
-  const [artwork, setArtwork] = useState(initialArtwork ?? savedCard?.artwork);
+  const [artwork] = useState(initialArtwork ?? savedCard?.artwork);
   const [makeDefault, setMakeDefault] = useState(savedCard?.isDefault ?? true);
   const [makeDepositDefault, setMakeDepositDefault] = useState(savedCard ? savedCard.isDepositDefault ?? savedCard.isDefault : true);
   const [error, setError] = useState("");
@@ -57,7 +57,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
     {depositLabel ? <p className={styles.notice}>Your {depositLabel} deposit is waiting. Saving a card does not add funds.</p> : <p>Save a payment method without adding funds.</p>}
     <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}>
       <button type="button" className={styles.primary} disabled={disabled || pending} onClick={() => nameInput.current?.focus()}>Add Card</button>
-      <MobileCardCamera token={enteredFixture?.token ?? token} disabled={disabled || pending} onUse={colors => { setArtwork(colors); setError(""); }} />
+      <MobileCardCamera token={enteredFixture?.token ?? token} displayName={displayName} makeDefault={makeDefault} makeDepositDefault={makeDepositDefault} disabled={disabled || pending} onSaved={onSaved} />
     </div>
     <form action={action} noValidate aria-label="Save payment method" onSubmit={event => {
       setError("");

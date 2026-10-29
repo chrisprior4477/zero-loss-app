@@ -71,15 +71,17 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     catch { setMessage("Could not confirm the card was removed. Refresh before trying again."); }
     finally { setBusy(false); }
   }
+  function acceptSavedCard(card: DemoCard) {
+    setCards(current => [...current.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault, isDepositDefault: card.isDepositDefault ? false : item.isDepositDefault })), card]);
+    setMessage(`${demoCardFixture(card.token)?.issuer} •••• ${card.lastFour} saved. Your wallet balance has not changed.`);
+    showMethods(); router.refresh();
+  }
   return <section id="payment-methods" hidden={screen === "closed"} className={`${walletStyles.ticketPanel} ${walletStyles.funding} ${styles.panel}`} aria-label="Payment methods">
     {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. Refresh before changing them.</p> : null}
-    {screen === "editor" && editor ? <WalletCardEditor key={editor.token} token={editor.token} savedCard={editor.card} initialArtwork={editor.artwork} displayName={displayName} disabled={!enabled || unavailable} onCancel={showMethods} onSaved={card => {
-      setCards(current => [...current.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault, isDepositDefault: card.isDepositDefault ? false : item.isDepositDefault })), card]);
-      setMessage("Card saved. Your wallet balance has not changed."); showMethods(); router.refresh();
-    }} /> : <>
+    {screen === "editor" && editor ? <WalletCardEditor key={editor.token} token={editor.token} savedCard={editor.card} initialArtwork={editor.artwork} displayName={displayName} disabled={!enabled || unavailable} onCancel={showMethods} onSaved={acceptSavedCard} /> : <>
       <h2>Payment methods</h2><p>Your saved cards, ready when you need them.</p>
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
-      <div id="payment-methods-controls" className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={availableToken} disabled={!enabled || unavailable || busy} onUse={addCard} /></div>
+      <div id="payment-methods-controls" className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={availableToken} displayName={displayName} disabled={!enabled || unavailable || busy} onSaved={acceptSavedCard} /></div>
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
         <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} disabled={!enabled || unavailable || busy} onChange={event => void setDefault(card, event.target.checked)} />Use as my default payment method</label>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { saveDemoPaymentMethod } from "@/lib/payments/actions";
@@ -23,13 +24,14 @@ export function DemoCardManager({ displayName, savedCard = null, savedCards, car
   enabled?: boolean;
   embedded?: boolean;
 }) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(saveDemoPaymentMethod, { status: "idle" });
   const [cardholder, setCardholder] = useState(displayName);
   const [cardNumber, setCardNumber] = useState(TEST_CARD);
   const [expiry, setExpiry] = useState(TEST_EXPIRY);
   const [securityCode, setSecurityCode] = useState(TEST_CODE);
-  const [token, setToken] = useState<DemoCardToken>(DEMO_CARD_TOKEN);
-  const [artwork, setArtwork] = useState<Artwork | undefined>(savedCards?.find(card => card.token === DEMO_CARD_TOKEN)?.artwork ?? (savedCard?.token === DEMO_CARD_TOKEN ? savedCard.artwork : undefined));
+  const [token] = useState<DemoCardToken>(DEMO_CARD_TOKEN);
+  const [artwork] = useState<Artwork | undefined>(savedCards?.find(card => card.token === DEMO_CARD_TOKEN)?.artwork ?? (savedCard?.token === DEMO_CARD_TOKEN ? savedCard.artwork : undefined));
   const [showBack, setShowBack] = useState(false);
   const fixture = demoCardFixture(token)!;
   const firstCard = savedCards?.find(card => card.token === token) ?? (savedCard?.token === token ? savedCard : null);
@@ -68,9 +70,8 @@ export function DemoCardManager({ displayName, savedCard = null, savedCards, car
             <input type="hidden" name="paymentMethod" value={token} />
             <input type="hidden" name="makeDefault" value={String(makeDefault)} />
             {artwork ? <input type="hidden" name="artwork" value={JSON.stringify(artwork)} /> : null}
-            <div className={styles.cameraRow}><MobileCardCamera token={DEMO_CARD_FIXTURES.find(card => !savedCards?.some(saved => saved.token === card.token))?.token ?? token} disabled={pending || !enabled || cardUnavailable} onUse={colors => {
-              const next = DEMO_CARD_FIXTURES.find(card => !savedCards?.some(saved => saved.token === card.token)) ?? fixture;
-              setToken(next.token); setCardNumber(next.number); setExpiry(next.expiry); setSecurityCode(next.code); setCardholder("DEMO CUSTOMER"); setArtwork(colors); setClientError("");
+            <div className={styles.cameraRow}><MobileCardCamera token={DEMO_CARD_FIXTURES.find(card => !savedCards?.some(saved => saved.token === card.token))?.token ?? token} displayName={displayName} disabled={pending || !enabled || cardUnavailable} onSaved={() => {
+              router.push("/account/wallet?view=history#payment-methods"); router.refresh();
             }} /></div>
             <label>Cardholder name<input aria-label="Cardholder name" autoComplete="off" value={cardholder} onChange={event => setCardholder(event.target.value)} disabled={pending || !enabled} /></label>
             <label>Card number<input aria-label="Card number" inputMode="numeric" autoComplete="off" value={cardNumber} onChange={event => setCardNumber(event.target.value)} disabled={pending || !enabled} /></label>

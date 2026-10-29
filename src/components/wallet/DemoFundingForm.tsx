@@ -155,7 +155,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   useEffect(() => {
     if (state.status === "already_credited" || (state.status === "succeeded" && !continueTo?.href)) onSuccess(state.message);
   }, [state, continueTo?.href, onSuccess]);
-  if (editingCard) return <WalletCardEditor token={editingCard.token} savedCard={cards.find(card => card.token === editingCard.token)} initialArtwork={editingCard.artwork} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => { setEditingCard(null); revealWalletSection("add-funds"); }} onSaved={card => {
+  function acceptSavedCard(card: DemoCard, fromCamera = false) {
     setCards(previous => [...previous.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault, isDepositDefault: card.isDepositDefault ? false : item.isDepositDefault })), card]);
     setVisibleTokens(current => current.includes(card.token) ? current : [...current, card.token]);
     if (card.isDepositDefault) setSelectedToken(card.token);
@@ -163,8 +163,10 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     else if (defaultToken === card.token) setDefaultToken(null);
     if (card.artwork) setArtwork(current => ({ ...current, [card.token]: card.artwork }));
     setCardMessage(`${demoCardFixture(card.token)?.issuer} •••• ${card.lastFour} saved${card.isDepositDefault ? " and selected for deposits" : ""}. No funds added.`);
-    setEditingCard(null); revealWalletSection("add-funds"); router.refresh();
-  }} />;
+    setEditingCard(null); revealWalletSection(fromCamera ? `sample-payment-${card.token}` : "add-funds"); router.refresh();
+  }
+  const cameraSaved = (card: DemoCard) => acceptSavedCard(card, true);
+  if (editingCard) return <WalletCardEditor token={editingCard.token} savedCard={cards.find(card => card.token === editingCard.token)} initialArtwork={editingCard.artwork} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => { setEditingCard(null); revealWalletSection("add-funds"); }} onSaved={card => acceptSavedCard(card)} />;
   if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo && state.status === "succeeded" ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
   return <form id="funding-payment" action={action} onSubmit={() => {
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
@@ -181,7 +183,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     {!recoveryOnly ? <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel}>
       <div className={styles.demoCardsHeading}><div><h3>Add a card</h3><p>Choose a supplied sample card. No real card details are accepted.</p></div>
-        <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={() => addCard()}>+ Add another card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} disabled={locked || cardUnavailable} onUse={colors => addCard(nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, colors)} /></div></div>
+        <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={() => addCard()}>+ Add another card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div></div>
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const saved = cards.some(card => card.token === token);
         const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
@@ -203,7 +205,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
     <div id="add-funds" className={styles.fundingAmountSection}>
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
-      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} disabled={locked || cardUnavailable} onUse={colors => addCard(nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, colors)} /></div> : null}
+      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
       {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={setSelectedToken} /> : null}
       <div className={styles.fundingAmounts}>
       <WalletRollerPicker id="demo-funding-amount" label="Amount (USD)" placeholder="Choose an amount" options={presetChoices}

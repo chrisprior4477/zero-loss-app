@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 vi.mock("@/lib/payments/actions", () => ({ saveDemoPaymentMethod: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 import { DemoCardManager } from "./DemoCardManager";
 
 afterEach(cleanup);
