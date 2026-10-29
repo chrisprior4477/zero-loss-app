@@ -10,5 +10,5 @@ export default async function PurchasePreviewPage({ searchParams }: {
   searchParams: Promise<{ version?: string }>;
 }) {
   const { version } = await searchParams;
-  return <PurchaseJourneyPreview initialVersion={version === "1" ? 1 : version === "3" ? 3 : 2} />;
+  return <PurchaseJourneyPreview initialVersion={version === "1" ? 1 : version === "2" ? 2 : version === "4" ? 4 : 3} />;
 }
