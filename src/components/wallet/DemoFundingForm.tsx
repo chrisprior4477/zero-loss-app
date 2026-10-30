@@ -247,7 +247,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
     {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
-    <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><a href="#balance" className={paymentStyles.secondary}>Back to wallet</a><Link href={continueTo?.href ?? "/"} className={paymentStyles.confirm}>Continue Shopping</Link></div>
+    <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><a href="#balance" className={paymentStyles.secondary}>Back to wallet</a><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
   </form>;
 }
 
@@ -305,7 +305,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     {balanceLabel ? <p><strong>Current balance: {balanceLabel}</strong></p> : null}
     <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}>
       <a href="#balance" className={paymentStyles.secondary}>Back to wallet</a>
-      <Link href={continueTo?.href ?? "/"} className={paymentStyles.confirm}>Continue Shopping</Link>
+      <Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link>
     </div>
     <div className={paymentStyles.actions}>
       {continueTo ? <Link href={continueTo.href} className={paymentStyles.confirm}>{continueTo.label ?? "Continue your entry"}</Link> : null}

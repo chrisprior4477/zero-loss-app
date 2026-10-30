@@ -74,6 +74,7 @@ test.each(["", "&from=%2Fbrowse%3Fcategory%3Delectronics%26sort%3Dfewest-left"])
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
   const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} continueTo={{ title: "Samsung TV", href: `/items/samsung-m70h-tv?quantity=4${context}#enter-entry` }} />);
+  expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
   fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(container.querySelector<HTMLInputElement>('[name="returnTo"]')?.value).toBe(`/items/samsung-m70h-tv?quantity=4${context}#enter-entry`);
