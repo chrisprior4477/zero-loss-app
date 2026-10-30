@@ -7,7 +7,7 @@ const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const storageKey = "zero-loss-entry-intent-v1";
 const maxAgeMs = 24 * 60 * 60 * 1000;
 
-export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number; browseReturn?: string };
+export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number; browseReturn?: string; resumeAfter?: "funding" | "sign-in" };
 
 export function productEntryHref(slug: string, quantity = 1, browseReturn?: unknown): string {
   if (!productSlugPattern.test(slug)) return "/browse";
@@ -55,13 +55,17 @@ function validIntent(value: unknown): value is EntryIntent {
     && typeof intent.title === "string" && intent.title.length > 0 && intent.title.length <= 160 && !/[\u0000-\u001f]/.test(intent.title)
     && isEntryQuantity(intent.quantity)
     && (intent.browseReturn === undefined || productBrowseReturnPath(intent.browseReturn) !== null)
+    && (intent.resumeAfter === undefined || intent.resumeAfter === "funding" || intent.resumeAfter === "sign-in")
     && typeof intent.savedAt === "number" && Number.isFinite(intent.savedAt) && intent.savedAt <= Date.now() && Date.now() - intent.savedAt < maxAgeMs;
 }
 
 /** Only a transient navigation hint; server entry and wallet records remain authoritative. */
-export function saveEntryIntent(slug: string, title: string, quantity: number, browseReturn?: string): void {
+export function saveEntryIntent(slug: string, title: string, quantity: number, browseReturn?: string, resumeAfter?: EntryIntent["resumeAfter"]): void {
   if (typeof window === "undefined") return;
   const intent: EntryIntent = { slug, title, quantity, savedAt: Date.now() };
+  const previous = readEntryIntent();
+  const reason = resumeAfter ?? (previous?.slug === slug ? previous.resumeAfter : undefined);
+  if (reason) intent.resumeAfter = reason;
   const browse = productBrowseReturnPath(browseReturn);
   if (browse) intent.browseReturn = browse;
   if (!validIntent(intent)) return;

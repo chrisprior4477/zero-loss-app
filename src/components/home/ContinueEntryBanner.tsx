@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { clearEntryIntent, productEntryHref, readEntryIntent } from "@/lib/entries/return-intent";
-import { readViewedProduct, SHOPPING_REMINDER_EVENT } from "@/lib/catalog/viewed-product";
-import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
+import { SHOPPING_REMINDER_EVENT } from "@/lib/catalog/viewed-product";
 import { ShoppingReminder, type ReminderProduct } from "./ShoppingReminder";
 
 type Reminder = { product: ReminderProduct; href: string; quantity?: number };
@@ -15,13 +14,12 @@ export function ContinueEntryBanner({ products }: { products: ReminderProduct[] 
     const refresh = () => {
       const intent = readEntryIntent();
       const entryProduct = intent && products.find(product => product.slug === intent.slug);
-      if (intent && entryProduct) {
+      if (intent?.resumeAfter && entryProduct) {
         setReminder({ product: entryProduct, quantity: intent.quantity, href: productEntryHref(intent.slug, intent.quantity, intent.browseReturn) });
         return;
       }
-      const viewed = readViewedProduct();
-      const product = viewed && products.find(product => product.slug === viewed.slug);
-      setReminder(viewed && product ? { product, href: viewed.browseReturn ? productHrefWithBrowseReturn(viewed.slug, viewed.browseReturn) : `/items/${viewed.slug}` } : null);
+      // Browsing or adjusting quantity alone must never interrupt the homepage.
+      setReminder(null);
     };
     // Read optional browser navigation hints after hydration, and refresh on Back/restore.
     refresh();

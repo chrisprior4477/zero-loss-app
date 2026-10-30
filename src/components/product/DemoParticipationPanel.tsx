@@ -111,7 +111,7 @@ export function DemoParticipationPanel({
   const showBalanceNotice = balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state);
   const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity, browseReturnHref))}`;
   const addFundsHref = fundingHref(productSlug, undefined, quantity, browseReturnHref);
-  const rememberEntry = (selected = quantity) => saveEntryIntent(productSlug, productTitle, selected, browseReturnHref);
+  const rememberEntry = (selected = quantity, resumeAfter?: "funding" | "sign-in") => saveEntryIntent(productSlug, productTitle, selected, browseReturnHref, resumeAfter);
 
   const addNextEntry = () => {
     const next = Math.min(maxQuantity, quantity + 1);
@@ -373,14 +373,14 @@ export function DemoParticipationPanel({
           </button>
         </form>
       ) : (
-        <Link href={entryLoginHref} onClick={() => rememberEntry()} className={`${compact ? compactStyles.enter : "mt-3"} grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200`}>
+        <Link href={entryLoginHref} onClick={() => rememberEntry(quantity, "sign-in")} className={`${compact ? compactStyles.enter : "mt-3"} grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200`}>
           Sign in to enter
         </Link>
       )}
 
       <div className={`${compact ? compactStyles.wallet : signedOutCompact && !isSignedIn ? "mt-2" : "mt-3"} flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm`}>
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
-        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={() => rememberEntry()} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
+        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={() => rememberEntry(quantity, "funding")} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>
 
       {state.status !== "idle" && state.status !== "request" && !serverBalanceError ? (
@@ -390,7 +390,7 @@ export function DemoParticipationPanel({
         </div>
       ) : null}
 
-      {showBalanceNotice ? <InsufficientBalanceToast quantity={quantity} totalCents={totalCents} balanceCents={serverBalanceError ? null : knownBalance} fundingHref={addFundsHref} onAddFunds={() => rememberEntry()} onClose={() => {
+      {showBalanceNotice ? <InsufficientBalanceToast quantity={quantity} totalCents={totalCents} balanceCents={serverBalanceError ? null : knownBalance} fundingHref={addFundsHref} onAddFunds={() => rememberEntry(quantity, "funding")} onClose={() => {
         setBalanceNoticeOpen(false);
         setDismissedBalanceError(state);
       }} /> : null}
@@ -399,7 +399,7 @@ export function DemoParticipationPanel({
         productTitle={productTitle} productValue={productValue} retailer={retailer} entryPrice={entryPrice}
         isSignedIn={isSignedIn} remember={rememberExplanation} saving={preferenceSaving} error={preferenceError}
         loginHref={entryLoginHref} onRemember={setRememberExplanation} onSave={() => void acknowledgeAndAddEntry()}
-        onClose={() => setAdditionalEntryNoticeOpen(false)} onSignIn={() => rememberEntry()}
+        onClose={() => setAdditionalEntryNoticeOpen(false)} onSignIn={() => rememberEntry(quantity, "sign-in")}
       /> : null}
 
 

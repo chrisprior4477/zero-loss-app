@@ -24,6 +24,9 @@ test("the compact production layout retains the original submission and funding 
   expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy();
   const fundingLinks = screen.getAllByRole("link", { name: "Add funds" });
   expect(fundingLinks.every(link => link.getAttribute("href")?.includes("quantity=4"))).toBe(true);
+  expect(readEntryIntent()?.resumeAfter).toBeUndefined();
+  fireEvent.click(fundingLinks[0]);
+  expect(readEntryIntent()?.resumeAfter).toBe("funding");
   expect(document.querySelector('input[name="idempotencyKey"]')?.getAttribute("value")).toBe(props.requestKey);
   expect(document.querySelector('input[name="quantity"]')?.getAttribute("value")).toBe("4");
 });

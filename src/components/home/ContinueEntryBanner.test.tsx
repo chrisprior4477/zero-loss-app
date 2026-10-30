@@ -12,7 +12,7 @@ const products = [
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.restoreAllMocks(); });
 
 test("offers a compact continuation on mobile and desktop without a saved entry record", () => {
-  saveEntryIntent("samsung-m70h-tv", "Samsung 50-inch TV", 4);
+  saveEntryIntent("samsung-m70h-tv", "Samsung 50-inch TV", 4, undefined, "funding");
   render(<ContinueEntryBanner products={products} />);
   expect(screen.getByText("Samsung 50-inch TV")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Continue your entry" }).getAttribute("href")).toBe("/items/samsung-m70h-tv?quantity=4#enter-entry");
@@ -27,18 +27,24 @@ test("does not show the prompt without a recent explicit selection", () => {
   expect(screen.queryByRole("link", { name: "Continue your entry" })).toBeNull();
 });
 
-test("opening a product creates only a viewing hint, including its category return", () => {
+test("quantity selection without funding or sign-in never triggers the reminder", () => {
+  saveEntryIntent("samsung-m70h-tv", "Samsung TV", 4);
+  render(<ContinueEntryBanner products={products} />);
+  expect(screen.queryByRole("complementary")).toBeNull();
+  expect(readEntryIntent()?.quantity).toBe(4);
+});
+
+test("ordinary product browsing never shows a homepage reminder", () => {
   const page = render(<RememberViewedProduct slug="playstation-5-slim" browseReturn="/browse?category=electronics&sort=fewest-left" />);
   page.unmount();
   expect(readEntryIntent()).toBeNull();
   render(<ContinueEntryBanner products={products} />);
-  expect(screen.getByRole("link", { name: "Back to this product" }).getAttribute("href"))
-    .toBe("/items/playstation-5-slim?from=%2Fbrowse%3Fcategory%3Delectronics%26sort%3Dfewest-left");
+  expect(screen.queryByRole("complementary")).toBeNull();
   expect(screen.queryByText("Not submitted")).toBeNull();
 });
 
 test("an unfinished entry takes priority and dismissal stays dismissed after remount", () => {
-  saveEntryIntent("samsung-m70h-tv", "Untrusted stored title", 4, "/browse?category=electronics");
+  saveEntryIntent("samsung-m70h-tv", "Untrusted stored title", 4, "/browse?category=electronics", "sign-in");
   rememberViewedProduct("playstation-5-slim");
   const banner = render(<ContinueEntryBanner products={products} />);
   expect(screen.getByText("Samsung 50-inch TV")).toBeTruthy();
@@ -55,7 +61,7 @@ test("an unfinished entry takes priority and dismissal stays dismissed after rem
 
 test("submitting an entry clears both reminders for that product, including a mounted Home", () => {
   rememberViewedProduct("samsung-m70h-tv");
-  saveEntryIntent("samsung-m70h-tv", "Samsung TV", 1);
+  saveEntryIntent("samsung-m70h-tv", "Samsung TV", 1, undefined, "funding");
   render(<ContinueEntryBanner products={products} />);
   act(() => clearEntryIntent("samsung-m70h-tv"));
   expect(screen.queryByRole("complementary")).toBeNull();

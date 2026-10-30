@@ -14,7 +14,7 @@ import { ShareIcon } from "./ShareIcon";
 import styles from "./post-entry-crew-toast.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
-type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy" | "contacts";
+type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy" | "contacts" | "contactGroup";
 type PhoneContact = { name?: string[]; email?: string[]; tel?: string[] };
 type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<PhoneContact[]> };
 const contactKey = (value: string, kind: "id" | "email" | "phone") => kind === "phone" ? value.replace(/\D/g, "") : value.trim().toLowerCase();
@@ -37,6 +37,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [shared, setShared] = useState(false);
+  const [sharedGroupName, setSharedGroupName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [query, setQuery] = useState("");
@@ -44,6 +45,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [people, setPeople] = useState<CrewSearchPerson[]>([]);
   const [requested, setRequested] = useState<string[]>([]);
   const [contactChoices, setContactChoices] = useState<{ value: string; kind: "phone" | "email"; name: string }[]>([]);
+  const [pickedContact, setPickedContact] = useState<CrewGroupContact | null>(null);
+  const [contactGroupId, setContactGroupId] = useState("");
   const contactReturn = useRef<"messages" | "find">("messages");
   const searchVersion = useRef(0);
   const [groupName, setGroupName] = useState("");
@@ -69,7 +72,6 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const body = `${text}\n${url}`;
   const members = options?.members ?? [];
   const selectedGroup = options?.groups.find(group => group.id === audience);
-  const recipientCount = audience ? selectedGroup?.memberCount ?? 0 : groupsOnly ? 0 : options?.memberCount ?? 0;
 
   useEffect(() => {
     const element = dialog.current;
@@ -245,11 +247,42 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }
 
   function selectContact(contact: { value: string; kind: "phone" | "email"; name: string }) {
+    setPickedContact({ id: crypto.randomUUID(), name: contact.name.slice(0, 80), phone: contact.kind === "phone" ? contact.value.trim() : "", email: contact.kind === "email" ? contact.value.trim() : "" });
     const destination = contactReturn.current === "messages" && contact.kind === "phone" ? "messages" : "find";
     if (destination === contactReturn.current) history.current.pop();
     if (destination === "messages") { setPhone(contact.value); setStep("messages"); }
     else { searchVersion.current += 1; setQuery(contact.value); setReviewQuery(contact.value); setPeople([]); setStep("find"); }
-    feedback(`${contact.name} selected. Choose Add to Crew to connect, or review and send in your app.`);
+    feedback(`${contact.name} selected. Add to Crew, save to a group, or send in your app.`);
+  }
+
+  async function openContactGroups() {
+    setContactGroupId(""); go("contactGroup");
+    await run(async () => {
+      const result = await getCrewShareOptions();
+      if (!alive.current) return;
+      if (!result.ok) { feedback(result.message, true); return; }
+      setOptions(result);
+    });
+  }
+
+  async function saveContactToGroup() {
+    if (!pickedContact || !contactGroupId) return;
+    await run(async () => {
+      // Re-read before merging so other saved contacts and connected people survive.
+      const latest = await getCrewShareOptions();
+      if (!alive.current) return;
+      if (!latest.ok) { feedback(latest.message, true); return; }
+      const group = latest.groups.find(value => value.id === contactGroupId);
+      if (!group) { feedback("That group is no longer available. Choose another group.", true); setOptions(latest); return; }
+      const contacts = group.contacts ?? [];
+      const exists = contacts.some(contact => Boolean(pickedContact.phone && contactKey(contact.phone, "phone") === contactKey(pickedContact.phone, "phone") || pickedContact.email && contactKey(contact.email, "email") === contactKey(pickedContact.email, "email")));
+      const updated = { id: group.id, name: group.name, memberIds: group.memberIds, contacts: exists ? contacts : [...contacts, pickedContact] };
+      const saved = await saveCrewGroup({ group: updated, remove: false });
+      if (!alive.current) return;
+      if (!saved.ok) { feedback(saved.message, true); return; }
+      setOptions({ ...latest, groups: latest.groups.map(value => value.id === group.id ? { ...value, contacts: updated.contacts } : value) });
+      feedback(`${pickedContact.name} ${exists ? "is already" : "is now"} saved in ${group.name}. No message was sent.`);
+    });
   }
 
   function editGroup(group?: CrewShareOptions["groups"][number]) {
@@ -285,13 +318,14 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     });
   }
 
-  async function shareCrew() {
-    if (!recipientCount) return;
+  async function shareCrew(targetGroupId: string | null) {
+    const group = targetGroupId ? options?.groups.find(value => value.id === targetGroupId) : null;
+    if (targetGroupId ? !group?.memberCount : !options?.memberCount) return;
     await run(async () => {
-      const recipients = audience ? selectedGroup?.memberIds ?? [] : members.map(member => member.id);
+      const recipients = targetGroupId ? group?.memberIds ?? [] : members.map(member => member.id);
       if (!request && recipients.length > 20) { feedback("For email sharing, choose a group of 20 or fewer approved members.", true); return; }
-      const result = item.win ? await shareWinWithCrew(item.win.rewardId, recipients) : request ? await shareConfirmedEntryWithCrew(request.requestId, audience || null) : await sharePrizeWithCrew(item.slug, recipients, audience || null);
-      if (alive.current) { feedback(result.message, !result.ok); setShared(result.ok); }
+      const result = item.win ? await shareWinWithCrew(item.win.rewardId, recipients) : request ? await shareConfirmedEntryWithCrew(request.requestId, targetGroupId) : await sharePrizeWithCrew(item.slug, recipients, targetGroupId);
+      if (alive.current) { feedback(result.message, !result.ok); if (result.ok) setSharedGroupName(group?.name ?? ""); setShared(result.ok); }
     });
   }
 
@@ -325,10 +359,10 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!externalHref) { event.preventDefault(); invalidEmail(); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
-  const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone" };
-  const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{shared ? "Shared with your Crew" : step === "audience" && groupsOnly ? "Share with my groups" : titles[step]}</h2>;
+  const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone", contactGroup: "Save contact to a group" };
+  const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{shared ? sharedGroupName ? `Shared with ${sharedGroupName}` : "Shared with your Crew" : step === "audience" && groupsOnly ? "Share with my groups" : titles[step]}</h2>;
   const compact = step === "home" || step === "email";
-  const journey = !compact;
+  const journey = step !== "email";
 
   return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog} ${journey ? styles.journeyDialog : ""}`} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className={`${styles.paper} ${compact ? styles.compact : styles.journey} ${step === "home" ? styles.perforated : ""} ${step === "email" ? styles.emailPaper : ""}`} ref={paper}>
@@ -337,11 +371,12 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         <button type="button" className={styles.close} aria-label="Close sharing toast" onClick={onClose}>×</button>
       </div>
       {step !== "home" ? titleHeading : null}
-      {!["group", "find", "copy", "contacts"].includes(step) ? itemSummary : null}
+      {!["group", "find", "copy", "contacts", "contactGroup"].includes(step) ? itemSummary : null}
 
       {step === "home" ? <div className={styles.actions}>
         <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
-        <button type="button" className={styles.crewButton} onClick={() => go("crew")}><ShareIcon name="crew" />Share with your Crew</button>
+        <button type="button" className={styles.crewButton} onClick={() => go("crew")}><ShareIcon name="crew" />Share with Crew</button>
+        <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences(true)}><ShareIcon name="crew" />Share with group(s)</button>
         <div ref={perforation} className={styles.perforation}>Or send directly</div>
         {shortcuts}
       </div> : null}
@@ -357,7 +392,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
       {step === "messages" ? <>
         <div className={styles.field}><label htmlFor={`${id}-recipient`}>Phone number <span>· optional</span></label>
-          <div className={styles.phoneRow}><input id={`${id}-recipient`} type="tel" maxLength={25} autoComplete="off" value={phone} onChange={event => setPhone(event.target.value)} placeholder="Phone with country code" disabled={busy} />
+          <div className={styles.phoneRow}><input id={`${id}-recipient`} type="tel" maxLength={25} autoComplete="off" value={phone} onChange={event => { setPhone(event.target.value); setPickedContact(null); }} placeholder="Phone with country code" disabled={busy} />
             <button type="button" className={styles.crewButton} disabled={busy || !validPhone(phone) || requested.includes(contactKey(phone, "phone"))} onClick={() => void addPerson(phone.trim(), "phone")}>{requested.includes(contactKey(phone, "phone")) ? "Added" : "Add to Crew"}</button></div>
           <button type="button" className={styles.contactsButton} disabled={busy} onClick={() => openContacts("messages")}><ShareIcon name="crew" />Add people from your phone</button>
         </div>
@@ -373,8 +408,18 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       {step === "contacts" ? <>
         <p className={styles.note}>Your phone will ask which contact details to share. Only the person you choose is used. Nothing is sent or added until you press Add to Crew or send in your app.</p>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void chooseContact()}><ShareIcon name="crew" />Choose from phone contacts</button>
+        {contactChoices.length > 1 ? <p className={styles.note}>These are details for one person. Choose the phone number or email you want to use.</p> : null}
         {contactChoices.map(contact => <button type="button" className={styles.contactChoice} key={`${contact.kind}-${contact.value}`} onClick={() => selectContact(contact)}><strong>{contact.name}</strong><span>{contact.value}</span></button>)}
         <button type="button" disabled={busy} onClick={back}>Enter details instead</button>
+      </> : null}
+
+      {step === "contactGroup" && pickedContact ? <>
+        <div className={styles.result}><strong>{pickedContact.name}</strong><small>{pickedContact.phone || pickedContact.email}</small></div>
+        <p className={styles.note}>Choose where to save this contact. Saving does not send a message or turn the contact into a connected member.</p>
+        {options ? <fieldset className={styles.contactGroups}><legend>Choose a group</legend>{options.groups.map(group => <label className={styles.choice} key={group.id}><input type="radio" name={`${id}-contact-group`} value={group.id} checked={contactGroupId === group.id} onChange={() => { setContactGroupId(group.id); feedback(""); }} disabled={busy} /><span>{group.name}</span></label>)}</fieldset> : null}
+        {options && !options.groups.length ? <p className={styles.note}>Create a group in Your Crew first, then return to save this contact.</p> : null}
+        <button type="button" className={styles.crewButton} disabled={busy || !contactGroupId} onClick={() => void saveContactToGroup()}>{busy ? "Saving…" : "Save contact to group"}</button>
+        <Link className={styles.seeCrew} href="/account/crew#crew-groups" onClick={onClose}>See your groups →</Link>
       </> : null}
 
       {step === "email" ? <>
@@ -410,7 +455,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       {step === "find" ? <>
         <form className={styles.field} onSubmit={event => { event.preventDefault(); search(); }}>
           <label htmlFor={`${id}-query`}>Name, email address, or phone number</label>
-          <div className={styles.searchRow}><input id={`${id}-query`} value={query} onChange={event => { searchVersion.current += 1; setQuery(event.target.value); setReviewQuery(""); setPeople([]); }} autoComplete="off" maxLength={254} placeholder="Name, email, or phone" disabled={busy} /><button type="submit" className={styles.primary} disabled={busy} aria-label="Search for a member"><ShareIcon name="search" /></button></div>
+          <div className={styles.searchRow}><input id={`${id}-query`} value={query} onChange={event => { searchVersion.current += 1; setQuery(event.target.value); setReviewQuery(""); setPeople([]); setPickedContact(null); }} autoComplete="off" maxLength={254} placeholder="Name, email, or phone" disabled={busy} /><button type="submit" className={styles.primary} disabled={busy} aria-label="Search for a member"><ShareIcon name="search" /></button></div>
         </form>
         <button type="button" className={styles.contactsButton} disabled={busy} onClick={() => openContacts("find")}><ShareIcon name="crew" />Add people from your phone</button>
         <p className={styles.note}>Matching members connect automatically and can leave at any time. Phone and email lookups stay private.</p>
@@ -421,20 +466,20 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
       {step === "audience" && shared ? <div className={styles.shareSuccess} role="status"><strong>✓ Your share is saved</strong><p>{message}</p><small>Returning to where you were…</small></div> : step === "audience" ? <>
         {options ? <>
-          {!groupsOnly ? <div className={styles.audienceRow}>
-            <label className={styles.audienceChoice}><input type="radio" name={`${id}-audience`} checked={!audience} disabled={busy || !options.memberCount} onChange={() => { setAudience(""); setShared(false); }} /><span>Everyone in my Crew<small>{options.memberCount} {options.memberCount === 1 ? "connection" : "connections"}</small></span></label>
+          {!groupsOnly ? <section aria-label="Share with Crew"><div className={styles.audienceRow}>
+            <div className={styles.audienceChoice}><span>Share with Crew<small>{options.memberCount} {options.memberCount === 1 ? "connection" : "connections"}</small></span></div>
             <button type="button" className={styles.addPeople} aria-label="Add People to my Crew" disabled={busy} onClick={() => go("find")}>Add People</button>
-          </div> : null}
+          </div><button type="button" className={styles.crewButton} disabled={busy || !options.memberCount} onClick={() => void shareCrew(null)}>Send to my Crew</button></section> : null}
           <section className={styles.groupSection} aria-label="Your groups"><h3>Share with groups you’ve created</h3><div className={styles.groupList}>
             {options.groups.map(group => <div className={styles.audienceRow} key={group.id}>
               <input type="radio" name={`${id}-audience`} aria-label={`Share with ${group.name}`} checked={audience === group.id} disabled={busy || !group.memberCount} onChange={() => { setAudience(group.id); setShared(false); }} />
-              <button type="button" className={styles.groupName} disabled={busy} aria-label={`Edit ${group.name}`} onClick={() => editGroup(group)}><span>{group.name}<small>{group.memberCount} connected {group.memberCount === 1 ? "person" : "people"}</small></span></button>
+              <button type="button" className={styles.groupName} disabled={busy} aria-label={`Edit ${group.name}`} onClick={() => editGroup(group)}><span>{group.name}<small>{group.memberCount} connected {group.memberCount === 1 ? "person" : "people"}{group.contacts?.length ? ` · ${group.contacts.length} saved ${group.contacts.length === 1 ? "contact" : "contacts"}` : ""}</small></span></button>
               <button type="button" className={styles.addPeople} aria-label={`Add People to ${group.name}`} disabled={busy} onClick={() => editGroup(group)}>Add People</button>
             </div>)}
             </div>{!options.groups.length ? <p className={styles.note}>No groups yet. Create one below.</p> : null}
           </section>
-          {!recipientCount ? <p className={styles.note}>{groupsOnly && !audience ? "Choose a group above to share with." : "No connected members in this audience yet. Add someone to your Crew, then refresh."}</p> : null}
-          <button type="button" className={styles.crewButton} disabled={busy || !recipientCount || shared} onClick={() => void shareCrew()}>{busy ? "Saving…" : shared ? "Shared with Crew" : item.win ? "Share your win" : audience || groupsOnly ? "Send to this group" : "Send to my Crew"}</button>
+          {groupsOnly && !audience ? <p className={styles.note}>Choose a group above to share with.</p> : null}
+          <button type="button" className={styles.crewButton} disabled={busy || !selectedGroup?.memberCount} onClick={() => void shareCrew(audience)}>Send to my group</button>
           {!request ? <p className={styles.note}>{item.win ? "Shares your win with selected Crew members who allow win updates." : "Sends this item’s link to the selected connected members."}</p> : null}
           <button type="button" disabled={busy} onClick={() => editGroup()}>＋ Create a new group</button>
         </> : <button type="button" disabled={busy} onClick={() => void loadAudiences(groupsOnly)}>{busy ? "Loading Crew…" : "Retry loading Crew"}</button>}
@@ -454,6 +499,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         <Link className={styles.manage} href="/account/crew#crew-groups" onClick={onClose}>Manage groups and saved contacts →</Link>
       </> : null}
 
+      {pickedContact && ["messages", "find"].includes(step) ? <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void openContactGroups()}>Save {pickedContact.name} to a group</button> : null}
       {message && !shared ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}
       {requested.length > 0 && ["messages", "find", "contacts"].includes(step) ? <Link className={styles.seeCrew} href="/account/crew#crew-intro" onClick={onClose}>See your Crew →</Link> : null}
       <button type="button" className={styles.later} onClick={onClose}>{shared ? "Done" : "Not now"}</button>

@@ -142,7 +142,10 @@ dialog.toast.journeyDialog.journeyDialog {
 .journey .privacy { font-size:10px; line-height:1.4; margin-top:6px; }
 .toast .contactChoice { flex-direction:column; gap:2px; overflow-wrap:anywhere; }
 .contactChoice span { font-weight:500; }
-.journey .audienceRow { padding:8px; gap:7px; margin-top:7px; }
+.contactGroups { margin:10px 0; border:0; padding:0; max-height:195px; overflow-y:auto; }
+.contactGroups legend { font-size:13px; font-weight:750; }
+.journey .contactGroups .choice { min-height:44px; padding:8px; font-size:13px; }
+.journey .audienceRow { padding:6px; gap:7px; margin-top:5px; }
 .journey .audienceChoice { font-size:13px; }
 .journey .audienceRow small { font-size:11px; margin-top:2px; }
 .toast .journey .addPeople { font-size:11px; padding:7px; }
