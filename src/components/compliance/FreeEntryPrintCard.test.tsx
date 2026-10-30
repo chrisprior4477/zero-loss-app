@@ -1,5 +1,5 @@
-import { afterEach, expect, test } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { FreeEntryPrintCard } from "./FreeEntryPrintCard";
 
 afterEach(cleanup);
@@ -22,4 +22,14 @@ test("signed-out preview does not show a different person's sample name or accou
   render(<FreeEntryPrintCard offeringTitle="$75 HomeGoods Gift Card" offeringSlug="homegoods-75-gift-card" />);
   expect((screen.getByRole("textbox", { name: "Your full legal name" }) as HTMLInputElement).value).toBe("");
   expect((screen.getByRole("textbox", { name: "Zero Loss account reference" }) as HTMLInputElement).value).toBe("");
+});
+
+test("print preview keeps the shopping context for its return journey", () => {
+  const open = vi.spyOn(window, "open").mockImplementation(() => null);
+  const browse = "/browse?category=electronics&sort=fewest-left";
+  render(<FreeEntryPrintCard offeringTitle="AirPods" offeringSlug="airpods-pro" browseReturn={browse} />);
+  fireEvent.click(screen.getByRole("button", { name: "Print entry insert" }));
+  const href = open.mock.calls[0]?.[0];
+  expect(new URL(String(href), "https://example.test").searchParams.get("from")).toBe(browse);
+  open.mockRestore();
 });

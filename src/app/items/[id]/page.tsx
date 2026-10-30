@@ -15,7 +15,7 @@ import { getAccountContext } from "@/lib/account/context";
 import { randomUUID } from "node:crypto";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { parseEntryQuantity } from "@/lib/entries/return-intent";
-import { productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
+import { freeEntryHref, productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
@@ -94,7 +94,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     </section>
   );
   const freeEntryDetails = (
-    <Link href={`/free-entry?offering=${product.slug}`} className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#00b9ff] px-5 py-3 text-center font-extrabold text-[#00132e] transition hover:bg-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
+    <Link href={freeEntryHref(product.slug, query.from)} className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#00b9ff] px-5 py-3 text-center font-extrabold text-[#00132e] transition hover:bg-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
       Prefer to enter without a purchase?
     </Link>
   );
@@ -147,7 +147,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
           <div className="space-y-4 lg:col-span-2">
             <p className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/75">
               <span>No purchase necessary.</span>
-              <Link href={`/free-entry?offering=${product.slug}`} className="font-bold text-cyan-300 underline-offset-2 hover:underline">Free-entry instructions →</Link>
+              <Link href={freeEntryHref(product.slug, query.from)} className="font-bold text-cyan-300 underline-offset-2 hover:underline">Free-entry instructions →</Link>
               <Link href="/terms" className="font-bold text-cyan-300 underline-offset-2 hover:underline">Preview terms and Official Rules status →</Link>
             </p>
             {freeEntryDetails}

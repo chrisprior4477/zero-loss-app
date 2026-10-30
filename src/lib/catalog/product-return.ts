@@ -27,6 +27,14 @@ export function productHrefWithBrowseReturn(slug: string, browseHref: string): s
   return `/items/${slug}?from=${encodeURIComponent(productBrowseReturnHref(browseHref))}`;
 }
 
+/** Keep the shopping context through the free-entry instructions and print preview. */
+export function freeEntryHref(slug: string, browseReturn: unknown): string {
+  const params = new URLSearchParams({ offering: slug });
+  const browse = productBrowseReturnPath(browseReturn);
+  if (browse) params.set("from", browse);
+  return `/free-entry?${params.toString()}`;
+}
+
 export function productBrowseReturnLabel(href: string): string {
   const url = new URL(productBrowseReturnHref(href), "https://zeroloss.local");
   const category = marketplaceCategories.find((item) => item.id === url.searchParams.get("category"));

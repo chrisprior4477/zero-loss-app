@@ -3,14 +3,16 @@ import Link from "next/link";
 import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { getAccountContext } from "@/lib/account/context";
+import { productBrowseReturnPath, productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 
 export const metadata: Metadata = { title: "Free Entry Information" };
 
-type Props = { searchParams: Promise<{ offering?: string }> };
+type Props = { searchParams: Promise<{ offering?: string; from?: string | string[] }> };
 
 export default async function FreeEntryPage({ searchParams }: Props) {
-  const { offering } = await searchParams;
+  const { offering, from } = await searchParams;
   const product = (offering ? getDemoProduct(offering) : undefined) ?? demoProducts[0];
+  const browseReturn = productBrowseReturnPath(from);
   const account = await getAccountContext();
   const legalName = [account?.legalFirstName, account?.legalLastName].filter(Boolean).join(" ");
   const demoAccountReference = account ? `DEMO-${account.userId.replace(/-/g, "").slice(0, 12).toUpperCase()}` : "";
@@ -18,7 +20,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   return (
     <main className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
       <div className="mx-auto max-w-4xl">
-        <Link href={`/items/${product.slug}`} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to {product.title}</Link>
+        <Link href={browseReturn ? productHrefWithBrowseReturn(product.slug, browseReturn) : `/items/${product.slug}`} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to {product.title}</Link>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#31e800]">Alternative method of entry prototype</p>
         <h1 className="mt-2 text-3xl font-black sm:text-5xl">Enter without a purchase</h1>
         <p className="mt-4 max-w-3xl text-lg leading-8 text-white/75">No purchase is necessary. This page demonstrates a proposed mail-in entry workflow for counsel and operational review. It does not currently submit, reserve, or create an entry.</p>
@@ -34,7 +36,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
           </ol>
         </section>
 
-        <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference} />
+        <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} browseReturn={browseReturn} initialLegalName={legalName} initialAccountReference={demoAccountReference} />
 
         <section className="print:hidden mt-8 rounded-3xl border border-white/12 bg-white/5 p-5 text-sm leading-6 text-white/65">
           <h2 className="text-lg font-extrabold text-white">Still awaiting approval</h2>

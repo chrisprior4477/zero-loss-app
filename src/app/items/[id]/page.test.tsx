@@ -23,6 +23,8 @@ test("the product passes the same validated shopping destination to entry and Ba
   render(await ItemPage({ params: Promise.resolve({ id: "samsung-m70h-tv" }), searchParams: Promise.resolve({ from }) }));
   expect(screen.getByText("Entry form").getAttribute("data-browse-return")).toBe(from);
   expect(screen.getByRole("link", { name: "← Back to Electronics" }).getAttribute("href")).toBe(from);
+  const instructions = screen.getByRole("link", { name: /Prefer to enter without a purchase/ }).getAttribute("href")!;
+  expect(new URL(instructions, "https://example.test").searchParams.get("from")).toBe(from);
 });
 
 test("a saved win keeps its details accessible but does not offer another demo entry", async () => {

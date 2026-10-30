@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Barcode } from "@/components/compliance/FreeEntryPrintCard";
 import { PrintSheetButton } from "@/components/compliance/PrintSheetButton";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
+import { freeEntryHref } from "@/lib/catalog/product-return";
 
 export const metadata: Metadata = { title: "Print AMOE Entry Insert" };
 
@@ -12,6 +13,7 @@ type Props = {
     name?: string;
     account?: string;
     reference?: string;
+    from?: string | string[];
   }>;
 };
 
@@ -37,7 +39,7 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
     <main className="amo-print-document-page min-h-screen bg-slate-200 px-4 py-6 text-[#00132e]">
       <div className="amo-print-controls mx-auto mb-5 flex max-w-[8.5in] flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#001b3d] p-4 text-white shadow-lg">
         <div>
-          <Link href={`/free-entry?offering=${product.slug}`} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</Link>
+          <Link href={freeEntryHref(product.slug, params.from)} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</Link>
           <p className="mt-1 text-xs text-white/65">The white page below represents one actual letter-size 8.5 × 11 sheet. If this preview blocks printing, download the PDF.</p>
         </div>
         <PrintSheetButton pdfHref={`/api/free-entry-pdf?${pdfParams.toString()}`} />
