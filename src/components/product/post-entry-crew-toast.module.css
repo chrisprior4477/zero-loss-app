@@ -97,3 +97,64 @@
 @media (max-width:1024px), (hover:none) and (pointer:coarse) {
   .compact .later { background:#e7edf2; color:#344e66; min-height:44px; padding:10px; margin-top:12px; }
 }
+
+/* Short journeys center naturally; longer ones can use the space over the header. */
+dialog.toast.journeyDialog.journeyDialog {
+  --popup-max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  inset:50% auto auto 50%; transform:translate(-50%,-50%);
+  width:min(480px,calc(100% - 12px)); max-width:calc(100% - 12px);
+  max-height:var(--popup-max-height);
+}
+.toast .journey { --scoop:16px; padding:16px; max-height:var(--popup-max-height); }
+.journey .top { min-height:36px; margin-bottom:2px; }
+.toast .journey .close { width:36px; height:36px; font-size:25px; }
+.toast .journey h2 { margin:0 0 10px; font-size:23px; line-height:1.15; }
+.journey .item { padding:8px; gap:8px; }
+.journey .thumb { width:48px; height:42px; }
+.journey .item strong { font-size:13px; }
+.journey .item small { font-size:11px; margin-top:2px; }
+.journey .field { margin:10px 0 6px; }
+.journey .field label { font-size:12px; margin-bottom:5px; }
+.toast .journey :is(button,a.primary,a.seeCrew) { min-height:44px; padding:9px; font-size:13px; }
+.toast .journey .back { min-height:32px; padding:5px 0; }
+.toast .journey button.close { min-height:36px; width:36px; height:36px; padding:0; margin:0; font-size:25px; }
+.toast .journey input:not([type=radio],[type=checkbox]) { min-height:44px; padding:9px 10px; }
+.phoneRow { display:grid; grid-template-columns:minmax(0,1fr) 105px; gap:7px; }
+.toast .phoneRow button { margin:0; }
+.toast .journey .contactsButton { margin-top:7px; background:#dff3fd; }
+.journey .messagePreview { font-size:13px; line-height:1.4; padding:10px; margin:8px 0 0; }
+.journey .note { font-size:11px; line-height:1.4; margin:7px 0; }
+.journey .preview summary { padding:10px 0; }
+.journey .duo { grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.toast .journey .duo > :is(button,a) { margin-top:0; }
+.journey .actions { gap:7px; margin-top:10px; }
+.toast .journey .path { min-height:64px!important; }
+.journey .path small { font-size:11px; line-height:1.35; margin-top:3px; }
+.journey .divider { margin-top:10px; padding-top:10px; }
+.findResults { max-height:190px; overflow-y:auto; overscroll-behavior:contain; }
+.journey .result { display:grid; grid-template-columns:minmax(0,1fr) 105px; gap:8px; align-items:center; padding:9px; margin:8px 0 0; }
+.journey .result strong { font-size:13px; }
+.journey .result small { font-size:10px; line-height:1.4; }
+.toast .journey .result button { margin:0; }
+.journey .feedback { padding:8px; margin-top:8px; font-size:11px; line-height:1.4; }
+.toast .journey .seeCrew { display:flex; align-items:center; justify-content:center; width:100%; margin-top:8px; border-radius:9px; background:#b9e9fc; color:#123552; font-weight:800; text-decoration:none; }
+.toast .journey .later { margin-top:8px; min-height:40px; padding:8px; }
+.journey .privacy { font-size:10px; line-height:1.4; margin-top:6px; }
+.toast .contactChoice { flex-direction:column; gap:2px; overflow-wrap:anywhere; }
+.contactChoice span { font-weight:500; }
+.journey .audienceRow { padding:8px; gap:7px; margin-top:7px; }
+.journey .audienceChoice { font-size:13px; }
+.journey .audienceRow small { font-size:11px; margin-top:2px; }
+.toast .journey .addPeople { font-size:11px; padding:7px; }
+.toast .journey button.groupName { min-height:40px; padding:2px 0; font-size:13px; }
+.groupSection { margin-top:10px; }
+.journey .groupSection h3 { font-size:13px; margin:0 0 4px; }
+.groupList { max-height:195px; overflow-y:auto; overscroll-behavior:contain; }
+.shareSuccess { margin-top:12px; padding:14px; border-radius:10px; background:#e4f9ed; color:#08623d; }
+.shareSuccess strong { display:block; font-size:17px; }
+.shareSuccess p { margin:8px 0; font-size:13px; line-height:1.4; }
+.shareSuccess small { font-size:11px; }
+@media (max-width:360px) {
+  .toast .journey { padding:14px; }
+  .phoneRow,.journey .result { grid-template-columns:minmax(0,1fr) 96px; }
+}
