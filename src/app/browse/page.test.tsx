@@ -21,6 +21,15 @@ beforeEach(() => {
 afterEach(() => { cleanup(); account.get.mockResolvedValue(null); });
 
 describe("Browse search results", () => {
+  test("Movie Night opens the selected collection and preserves it in product links", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "movie-night" }) }));
+    expect(screen.getByRole("heading", { name: "Movie Night" })).toBeTruthy();
+    for (const name of [/Samsung 50.*M70H/i, /65-inch LG OLED/i, /\$25 Netflix Gift Card/i, /\$100 Regal Gift Card/i, /\$100 The Popcorn Factory Gift Card/i]) {
+      const link = screen.getByRole("link", { name });
+      expect(new URL(link.getAttribute("href")!, "https://example.test").searchParams.get("from")).toBe("/browse?category=movie-night");
+    }
+    expect(screen.queryByRole("link", { name: /Dyson V8/i })).toBeNull();
+  });
   test("finds a completed Samsung result in this account without offering another entry or claiming it is missing", async () => {
     const activity = storedActivityFixture();
     Object.assign(activity.activity[1], { rewardId: "samsung-reward", rewardStatus: "ready", rewardClaimedAt: "2026-10-25T12:00:00Z" });

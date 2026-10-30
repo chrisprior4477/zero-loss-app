@@ -9,6 +9,7 @@ export const marketplaceCategories = [
   { id: "electronics", label: "Electronics" },
   { id: "gift-cards", label: "Gift Cards" },
   { id: "home-essentials", label: "Home Essentials" },
+  { id: "movie-night", label: "Movie Night" },
 ] as const;
 
 export type MarketplaceCategoryId = (typeof marketplaceCategories)[number]["id"];
@@ -23,7 +24,17 @@ const categoryAliases: Record<string, MarketplaceCategoryId> = {
   "home electronics": "electronics",
   "gift cards": "gift-cards",
   "home essentials": "home-essentials",
+  "movie night": "movie-night",
 };
+
+// The Movie Night collection is deliberately curated from existing offerings.
+const movieNightSlugs = new Set([
+  "samsung-m70h-tv", "lg-oled-c6-65-tv", "netflix-25-gift-card",
+  "directory-hulu-100-gift-card", "directory-paramount-100-gift-card",
+  "directory-amc-theaters-100-gift-card", "directory-cinemark-100-gift-card",
+  "directory-fandango-100-gift-card", "directory-regal-100-gift-card",
+  "directory-the-popcorn-factory-100-gift-card",
+]);
 
 export function marketplaceCategoryId(value: string): MarketplaceCategoryId | null {
   const normalized = value.trim().toLowerCase();
@@ -68,5 +79,7 @@ export function productMatchesMarketplaceCategory(product: DemoProduct, category
       return /gift card|shopping reward/i.test(product.title);
     case "home-essentials":
       return includesAny(haystack, ["home essentials", "homegoods", "home depot", "lowe", "vacuum", "baby essentials"]);
+    case "movie-night":
+      return movieNightSlugs.has(product.slug);
   }
 }

@@ -43,3 +43,15 @@ test("almost-full category includes only open pools at least 90% filled", () => 
   expect(productMatchesMarketplaceCategory({ ...nearFull, sold: 100 }, "ending-soon")).toBe(false);
   expect(marketplaceCategoryHref("almost full")).toBe("/browse?sort=ending-soon");
 });
+
+test("Movie Night links to the curated TV, streaming, theater and popcorn offerings", () => {
+  expect(marketplaceCategoryHref("Movie Night")).toBe("/browse?category=movie-night");
+  const found = demoProducts.filter(product => productMatchesMarketplaceCategory(product, "movie-night"));
+  expect(found.map(product => product.slug).sort()).toEqual([
+    "samsung-m70h-tv", "lg-oled-c6-65-tv", "netflix-25-gift-card",
+    "directory-hulu-100-gift-card", "directory-paramount-100-gift-card",
+    "directory-amc-theaters-100-gift-card", "directory-cinemark-100-gift-card",
+    "directory-fandango-100-gift-card", "directory-regal-100-gift-card",
+    "directory-the-popcorn-factory-100-gift-card",
+  ].sort());
+});
