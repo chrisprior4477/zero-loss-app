@@ -45,7 +45,7 @@ export function ExtraEntryExplanation({ productTitle, productValue, retailer, en
     </header>
     <div className={styles.body}>
       <div className={styles.art}>
-        <Image src="/account/extra-entry-explainer-seamless-neon.jpg" alt="How extra chances work: each entry is a separate chance and never combines into one discount" fill priority sizes="(max-width:767px) calc(100vw - 56px), 400px" className={styles.image} />
+        <Image src="/account/extra-entry-explainer-trimmed.webp" alt="How extra chances work: each entry is a separate chance and never combines into one discount" fill preload sizes="(max-width:767px) calc(100vw - 32px), 400px" className={styles.image} />
       </div>
       <div className={styles.copy}>
         <p>Each extra entry is a separate chance. Entry payments never combine into a larger discount.</p>

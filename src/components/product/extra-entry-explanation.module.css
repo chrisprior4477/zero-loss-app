@@ -1,19 +1,19 @@
 .ticket {
   --corner:18px; --side:8px;
-  position:fixed; inset:8px auto auto 50%; transform:translateX(-50%); margin:0;
-  width:min(550px,calc(100vw - 16px)); height:calc(100dvh - 16px); max-height:calc(100dvh - 16px);
-  max-width:none; padding:20px; border:0; border-radius:0; overflow:hidden;
+  position:fixed; inset:4px auto auto 50%; transform:translateX(-50%); margin:0;
+  width:min(600px,calc(100vw - 8px)); height:calc(100dvh - 8px); max-height:calc(100dvh - 8px);
+  max-width:none; padding:16px 12px; border:0; border-radius:0; overflow:hidden;
   background:#fffdf9; color:#102344; box-shadow:0 24px 70px #00122c70;
   mask-image:radial-gradient(circle var(--corner) at 0 0,transparent 99%,#000 103%),radial-gradient(circle var(--corner) at 100% 0,transparent 99%,#000 103%),radial-gradient(circle var(--corner) at 0 100%,transparent 99%,#000 103%),radial-gradient(circle var(--corner) at 100% 100%,transparent 99%,#000 103%),radial-gradient(circle var(--side) at 0 50%,transparent 99%,#000 103%),radial-gradient(circle var(--side) at 100% 50%,transparent 99%,#000 103%);
   mask-composite:intersect;
 }
-.ticket[open] { display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:12px; }
+.ticket[open] { display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:8px; }
 .ticket::backdrop { background:#09294ba8; backdrop-filter:blur(4px); }
 .heading { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
 .heading h2 { margin:3px 0 0; font-size:clamp(20px,5.6vw,28px); line-height:1.15; letter-spacing:-.035em; font-weight:900; }
 .close { display:grid; place-items:center; width:36px; height:36px; flex:0 0 36px; border-radius:50%; border:0; background:#e3f3fc; color:#145680; font-size:25px; line-height:1; }
-.body { display:flex; flex-direction:column; gap:12px; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
-.art { position:relative; flex:1 1 auto; min-height:190px; border-radius:11px; overflow:hidden; background:#001b3d; }
+.body { display:flex; flex-direction:column; gap:8px; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+.art { position:relative; flex:0 1 auto; aspect-ratio:1110/1417; min-height:190px; border-radius:8px; overflow:hidden; }
 .image { object-fit:contain; }
 .copy { flex:0 0 auto; font-size:12px; line-height:1.45; color:#506987; }
 .copy > p + p { margin-top:10px; }
@@ -35,8 +35,8 @@
 .error { border-radius:8px; padding:8px 10px; background:#ffe9e5; color:#a23220; font-size:12px; line-height:1.4; font-weight:700; }
 .ticket :is(button,a,input,summary):focus-visible { outline:3px solid #0872fb; outline-offset:2px; }
 @media (max-width:767px) and (max-height:700px) {
-  .ticket { padding:16px 18px; }
-  .ticket[open],.body { gap:9px; }
+  .ticket { padding:12px; }
+  .ticket[open],.body { gap:6px; }
   .heading h2 { font-size:20px; }
   .copy { font-size:11px; line-height:1.35; }
   .copy > p + p { margin-top:8px; }
@@ -50,7 +50,7 @@
   .heading { grid-column:1/-1; }
   .heading h2 { font-size:30px; }
   .body { display:contents; }
-  .art { grid-column:1; grid-row:2/4; min-height:0; }
+  .art { grid-column:1; grid-row:2/4; aspect-ratio:auto; min-height:0; }
   .copy { grid-column:2; grid-row:2; min-height:0; overflow-y:auto; font-size:13px; line-height:1.5; }
   .details summary { font-size:12px; }
   .actions { grid-column:2; grid-row:3; }
