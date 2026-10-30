@@ -357,12 +357,15 @@ export function DemoParticipationPanel({
           setEntryActionTouched(true);
           // Retry the original intent, not new balance/quantity/sharing choices.
           if (uncertain) return;
-          rememberEntry();
           if (knownBalance !== null && knownBalance < totalCents) {
             event.preventDefault();
+            rememberEntry();
             setBalanceNoticeOpen(true);
             return;
           }
+          // Once a request is sent, recovery belongs to its server receipt.
+          // Never describe an in-flight or uncertain submission as "Not submitted".
+          clearEntryIntent(productSlug);
         }}>
           <input type="hidden" name="offeringSlug" value={productSlug} />
           <input type="hidden" name="idempotencyKey" value={submissionKey} />

@@ -2,7 +2,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 import { DemoParticipationPanel } from "./DemoParticipationPanel";
-import { readEntryIntent } from "@/lib/entries/return-intent";
+import { readEntryIntent, saveEntryIntent } from "@/lib/entries/return-intent";
+import { readViewedProduct, rememberViewedProduct } from "@/lib/catalog/viewed-product";
 const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), reset: vi.fn(), enter: vi.fn(), resolve: vi.fn(), confirm: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: actionMocks.replace, refresh: vi.fn() }) }));
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resetExtraEntryExplainer: actionMocks.reset, resolvePendingEntryRequest: actionMocks.resolve, confirmPendingEntryRequest: actionMocks.confirm }));
@@ -324,6 +325,16 @@ test("insufficient balance opens an actionable toast before sharing or submittin
   fireEvent.click(enter);
   fireEvent.click(screen.getByRole("button", { name: "Keep browsing" }));
   expect(screen.queryByRole("region", { name: "Insufficient playable balance" })).toBeNull();
+});
+
+test("sending an entry clears the unfinished hint before the server response arrives", async () => {
+  rememberViewedProduct(props.productSlug);
+  saveEntryIntent(props.productSlug, props.productTitle, 1);
+  render(<DemoParticipationPanel {...props} balanceCents={500} isDemoWallet isSignedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $1.00" }));
+  expect(readEntryIntent()).toBeNull();
+  expect(readViewedProduct()).toBeNull();
+  await waitFor(() => expect(actionMocks.enter).toHaveBeenCalled());
 });
 
 test("multiple entries update the total and shortfall without losing the selected quantity", () => {
