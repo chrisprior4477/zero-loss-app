@@ -1,13 +1,17 @@
 import { marketplaceCategories } from "./navigation";
+import { getPopularRewardBrand } from "./popular-rewards";
 
 const browseQueryKeys = new Set([
   "category", "sort", "subcategory", "q", "type", "retailer",
   "partnerCategory", "available", "minValue", "maxValue",
 ]);
 
-/** Product return links may point only to a filtered marketplace page. */
+/** Product return links may point only to the marketplace or a known retailer page. */
 export function productBrowseReturnPath(value: unknown): string | null {
-  if (typeof value !== "string" || value.length > 1000 || !/^\/browse(?:\?|$)/.test(value) || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  if (typeof value !== "string" || value.length > 1000 || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  const retailer = /^\/rewards\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(value);
+  if (retailer) return getPopularRewardBrand(retailer[1]) ? value : null;
+  if (!/^\/browse(?:\?|$)/.test(value)) return null;
   try {
     const url = new URL(value, "https://zeroloss.local");
     if (url.origin !== "https://zeroloss.local" || url.pathname !== "/browse" || url.hash) return null;
@@ -37,6 +41,10 @@ export function freeEntryHref(slug: string, browseReturn: unknown): string {
 
 export function productBrowseReturnLabel(href: string): string {
   const url = new URL(productBrowseReturnHref(href), "https://zeroloss.local");
+  if (url.pathname.startsWith("/rewards/")) {
+    const brand = getPopularRewardBrand(url.pathname.slice("/rewards/".length));
+    if (brand) return `${brand.name} rewards`;
+  }
   const category = marketplaceCategories.find((item) => item.id === url.searchParams.get("category"));
   if (category) return category.label;
   if (url.searchParams.get("sort") === "ending-soon") return "Ending Soon";

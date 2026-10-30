@@ -9,6 +9,7 @@ afterEach(cleanup);
 test.each([
   "/browse?category=electronics&sort=fewest-left",
   "/browse?q=coffee&available=1&minValue=25",
+  "/rewards/nintendo",
 ])("free-entry and print return to the same shopping context: %s", async (browse) => {
   const { unmount } = render(await FreeEntryPage({ searchParams: Promise.resolve({ offering: "airpods-pro", from: browse }) }));
   const product = new URL(screen.getByRole("link", { name: /Back to Apple AirPods/ }).getAttribute("href")!, "https://example.test");

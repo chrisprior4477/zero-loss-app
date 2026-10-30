@@ -8,6 +8,7 @@ test.each([
   "/browse?category=electronics&sort=fewest-left",
   "/browse?category=electronics&sort=ending-soon",
   "/browse?q=coffee+%26+tea&type=gift-cards&retailer=Dunkin%27&available=1&minValue=25&maxValue=100",
+  "/rewards/nintendo",
 ])("shopping context survives funding, login and the product return: %s", browse => {
   const walletHref = fundingHref("playstation-5-slim", undefined, 111, browse);
   expect(fundingReturnPath(walletHref)).toBe(walletHref);

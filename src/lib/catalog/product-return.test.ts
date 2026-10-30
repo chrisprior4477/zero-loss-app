@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { freeEntryHref, productBrowseReturnHref, productBrowseReturnLabel, productHrefWithBrowseReturn } from "./product-return";
+import { popularRewardBrands } from "./popular-rewards";
 
 test("product links carry their exact marketplace category or search", () => {
   expect(productHrefWithBrowseReturn("dyson-v8-cordless-vacuum", "/browse?category=home-essentials&available=1"))
@@ -10,10 +11,17 @@ test("product links carry their exact marketplace category or search", () => {
 });
 
 test("a product cannot use an external or unrelated return destination", () => {
-  for (const value of [undefined, "https://evil.test/browse", "//evil.test/browse", "/account/wallet", "/browse#fake", "/browse?next=https://evil.test"]) {
+  for (const value of [undefined, "https://evil.test/browse", "//evil.test/browse", "/account/wallet", "/browse#fake", "/browse?next=https://evil.test", "/rewards/unknown", "/rewards/nintendo?next=https://evil.test", "/rewards/nintendo#other", "//evil.test/rewards/nintendo"]) {
     expect(productBrowseReturnHref(value)).toBe("/browse");
     expect(new URL(freeEntryHref("airpods-pro", value), "https://example.test").searchParams.has("from")).toBe(false);
   }
+});
+
+test.each(popularRewardBrands)("$name products return to that retailer's reward choices", brand => {
+  const destination = `/rewards/${brand.slug}`;
+  expect(productBrowseReturnHref(destination)).toBe(destination);
+  expect(productBrowseReturnLabel(destination)).toBe(`${brand.name} rewards`);
+  expect(new URL(freeEntryHref(`${brand.slug}-25-gift-card`, destination), "https://example.test").searchParams.get("from")).toBe(destination);
 });
 
 test("free-entry links retain the complete shopping search and filters", () => {

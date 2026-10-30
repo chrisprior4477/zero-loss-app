@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPopularRewardBrand, popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "@/lib/catalog/popular-rewards";
+import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 
 type Props = { params: Promise<{ brand: string }> };
 
@@ -29,7 +30,7 @@ export default async function RewardBrandPage({ params }: Props) {
 
         <section className="mt-9 grid gap-5 sm:grid-cols-2" aria-label={`${brand.name} gift-card values`}>
           {popularRewardAmounts.map((amount) => (
-            <Link key={amount} href={`/items/${popularRewardProductSlug(brand.slug, amount)}#enter-entry`} className="group rounded-3xl border border-white/15 bg-white/6 p-4 transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300">
+            <Link key={amount} href={`${productHrefWithBrowseReturn(popularRewardProductSlug(brand.slug, amount), `/rewards/${brand.slug}`)}#enter-entry`} className="group rounded-3xl border border-white/15 bg-white/6 p-4 transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300">
               <div className="relative aspect-[8/5] overflow-hidden rounded-2xl bg-white p-2 sm:p-3">
                 <Image src={`/catalog/reward-cards/${brand.artFile}`} alt={`${brand.name} gift card`} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-contain p-2 sm:p-3" />
                 <span className="absolute bottom-3 right-3 grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-[#ff630f] text-xl font-black text-white shadow-[0_8px_24px_rgba(0,0,0,.35)] sm:bottom-5 sm:right-5 sm:h-20 sm:w-20 sm:text-2xl">${amount}</span>

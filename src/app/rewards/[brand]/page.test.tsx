@@ -17,7 +17,7 @@ test.each(popularRewardBrands)("$name cards offer a mobile-sized $1 entry action
     expect(action.className).toContain("rounded-lg bg-[#31e800]");
     expect(action.className).toContain("whitespace-nowrap");
     expect(action.closest("a")?.getAttribute("href")).toBe(
-      `/items/${popularRewardProductSlug(brand.slug, popularRewardAmounts[index])}#enter-entry`,
+      `/items/${popularRewardProductSlug(brand.slug, popularRewardAmounts[index])}?from=${encodeURIComponent(`/rewards/${brand.slug}`)}#enter-entry`,
     );
   });
 });

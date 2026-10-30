@@ -27,6 +27,18 @@ test("the product passes the same validated shopping destination to entry and Ba
   expect(new URL(instructions, "https://example.test").searchParams.get("from")).toBe(from);
 });
 
+test("a retailer reward product returns to its retailer and keeps that path for funding and free entry", async () => {
+  const from = "/rewards/nintendo";
+  mocks.availability.mockResolvedValue(null);
+  mocks.account.mockResolvedValue({ activity: { source: "customer-empty", activity: [] }, wallet: { scope: "demo" } });
+  mocks.requestHead.mockResolvedValue({ ready: true, requestId: null });
+  render(await ItemPage({ params: Promise.resolve({ id: "nintendo-100-gift-card" }), searchParams: Promise.resolve({ from }) }));
+  expect(screen.getByRole("link", { name: "← Back to Nintendo rewards" }).getAttribute("href")).toBe(from);
+  expect(screen.getByText("Entry form").getAttribute("data-browse-return")).toBe(from);
+  const instructions = screen.getByRole("link", { name: /Prefer to enter without a purchase/ }).getAttribute("href")!;
+  expect(new URL(instructions, "https://example.test").searchParams.get("from")).toBe(from);
+});
+
 test("a saved win keeps its details accessible but does not offer another demo entry", async () => {
   mocks.availability.mockResolvedValue(null);
   const activity = storedActivityFixture();
