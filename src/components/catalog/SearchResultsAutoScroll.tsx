@@ -14,7 +14,8 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "" }: { s
       const mobileBrowse = mobileBrowseKey && window.matchMedia?.("(max-width: 1023px)").matches;
       const target = window.location.hash === "#retailer-categories-heading"
         ? "retailer-categories-heading"
-        : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
+        : window.location.hash === "#more-groceries" ? "more-groceries"
+          : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
       if (!target) return;
       cancelled = false;
       const scroll = () => { if (!cancelled) document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "auto" }); };

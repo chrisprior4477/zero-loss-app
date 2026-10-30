@@ -85,3 +85,14 @@ test("touch interaction cancels the pending mobile browse scroll", () => {
   fireEvent.touchStart(window);
   act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
 });
+
+test("the grocery inspiration shortcut lands on the remaining offers instead of jumping back to search", () => {
+  window.history.replaceState(null, "", "/browse?category=groceries#more-groceries");
+  render(<><div id="more-groceries" /><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse?category=groceries" /></>);
+  const groceries = vi.fn(), search = vi.fn();
+  document.getElementById("more-groceries")!.scrollIntoView = groceries;
+  document.getElementById("search-results")!.scrollIntoView = search;
+  act(() => vi.runAllTimers());
+  expect(groceries).toHaveBeenCalledTimes(2);
+  expect(search).not.toHaveBeenCalled();
+});
