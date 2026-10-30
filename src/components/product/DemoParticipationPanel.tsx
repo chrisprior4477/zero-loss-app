@@ -18,6 +18,7 @@ import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { clearEntryIntent, productEntryHref, saveEntryIntent } from "@/lib/entries/return-intent";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
 import entryActionStyles from "./entry-action.module.css";
+import compactStyles from "./product-entry-layout.module.css";
 
 type Props = {
   productSlug: string;
@@ -40,6 +41,7 @@ type Props = {
   highlightAfterFunding?: boolean;
   extraEntryExplainerAcknowledged?: boolean;
   signedOutCompact?: boolean;
+  compact?: boolean;
 };
 
 export function DemoParticipationPanel({
@@ -63,6 +65,7 @@ export function DemoParticipationPanel({
   highlightAfterFunding = false,
   extraEntryExplainerAcknowledged = false,
   signedOutCompact = false,
+  compact = false,
 }: Props) {
   const router = useRouter();
   const availability = availabilityStatus(capacity, sold);
@@ -282,8 +285,17 @@ export function DemoParticipationPanel({
 
 
   return (
-    <aside id="enter-entry" className={`scroll-mt-[calc(var(--site-header-height,163px)+17px)] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
-      <div className="flex items-center justify-between gap-3">
+    <aside id="enter-entry" className={compact ? compactStyles.panel : `scroll-mt-[calc(var(--site-header-height,163px)+17px)] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
+      {compact ? <>
+        <div className={compactStyles.price}><strong>${entryPrice.toFixed(2)}</strong><span>per entry</span></div>
+        <div className={compactStyles.progress}>
+          {availabilityConfirmed ? <>
+            <div className={compactStyles.progressLabels}><strong style={{ color: availability.color }}>{remaining ? `${remaining.toLocaleString()} left` : "No entries left"}</strong><span>{availability.label}</span></div>
+            <PoolProgress ticketsSold={sold} ticketCapacity={capacity} showRemainingLabel={false} />
+            <small>{sold.toLocaleString()} entries · Proposed model: one selected when the pool fills.</small>
+          </> : <small>Availability unverified</small>}
+        </div>
+      </> : <><div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-3xl font-extrabold leading-none">${entryPrice.toFixed(2)} <span className="text-sm font-bold text-white/80">per entry</span></p>
         </div>
@@ -299,7 +311,7 @@ export function DemoParticipationPanel({
           <span>{remaining.toLocaleString()} remaining</span>
         </div>
         <p className="mt-1 text-xs leading-4 text-white/60">Under the proposed model, when all available entries for an offer are filled, one entry is selected.</p>
-      </div> : null}
+      </div> : null}</>}
 
       {availabilityConfirmed && initialQuantity > maxQuantity && maxQuantity > 0 ? <p role="status" className="mt-3 text-xs font-semibold text-cyan-200">Only {maxQuantity} {maxQuantity === 1 ? "entry remains" : "entries remain"}, so your saved selection was adjusted.</p> : null}
 
@@ -308,7 +320,7 @@ export function DemoParticipationPanel({
           <strong className="block text-[#8aff6f]">{selectedTicketsToast} tickets selected</strong>
           <span>Separate chances. Nothing is entered until you press Enter for ${(selectedTicketsToast * entryPrice).toFixed(2)}.</span>
         </div> : null}
-        <fieldset disabled={uncertain} data-testid="entry-quantity-ticket" className={quantityTicketStyles.ticket}>
+        <fieldset disabled={uncertain} data-testid="entry-quantity-ticket" className={`${quantityTicketStyles.ticket} ${compact ? compactStyles.quantity : ""}`}>
           <p className={quantityTicketStyles.label}>Add extra entries</p>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
@@ -317,8 +329,8 @@ export function DemoParticipationPanel({
           </div>
         </fieldset>
       </div>
-      {signedOutCompact && !isSignedIn ? null : <p className="mt-2 text-xs leading-4 text-white/70">Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine.{isPreviewExperience ? "" : " Terms apply."}</p>}
-      {isPreviewExperience && isDemoWallet && isSignedIn && skipFutureExplainer ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceResetting} className="mt-1 inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60">{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null}
+      {signedOutCompact && !isSignedIn && !compact ? null : <p className={compact ? compactStyles.terms : "mt-2 text-xs leading-4 text-white/70"}>Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine.{isPreviewExperience ? "" : " Terms apply."}</p>}
+      {isPreviewExperience && isDemoWallet && isSignedIn && (skipFutureExplainer || compact) ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceResetting} className={`${compact ? compactStyles.reset : "mt-1"} inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60`}>{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null}
       {preferenceResetMessage ? <p role="status" className="mt-1 text-xs text-cyan-200">{preferenceResetMessage}</p> : null}
       {requestReceipt?.status === "pending" ? <div ref={pendingReceiptRef} className="mt-3 rounded-xl border border-[#ff9a45] bg-[#ff6a00] p-3 text-sm text-[#00132e]" role="status">
         <div className="flex items-start justify-between gap-3">
@@ -372,17 +384,17 @@ export function DemoParticipationPanel({
           <input type="hidden" name="previousRequestId" value={requestReceipt?.status !== "pending" ? requestReceipt?.requestId ?? requestHead.requestId ?? "" : requestHead.requestId ?? ""} />
           <input type="hidden" name="quantity" value={quantity} />
           <input type="hidden" name="shareWithCrew" value="no" />
-          <button type="submit" disabled={entryBusy || !requestHead.ready} data-funding-cue={showFundingSweep ? "light-sweep" : undefined} className={`mt-3 min-h-12 w-full rounded-xl bg-[#31e800] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-[#66f34c] disabled:cursor-wait disabled:opacity-60 ${showFundingSweep ? entryActionStyles.fundingSweep : ""}`}>
+          <button type="submit" disabled={entryBusy || !requestHead.ready} data-funding-cue={showFundingSweep ? "light-sweep" : undefined} className={`${compact ? compactStyles.enter : "mt-3"} min-h-12 w-full rounded-xl bg-[#31e800] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-[#66f34c] disabled:cursor-wait disabled:opacity-60 ${showFundingSweep ? entryActionStyles.fundingSweep : ""}`}>
             <span className={showFundingSweep ? entryActionStyles.buttonLabel : undefined}>{pending ? `Confirming ${quantity === 1 ? "entry" : "entries"}…` : uncertain ? "Check saved submission" : requestReceipt?.status === "pending" ? "Entry awaiting confirmation…" : state.status === "succeeded" ? `${quantity === 1 ? "Entry" : "Entries"} confirmed` : `Enter for $${total.toFixed(2)}`}</span>
           </button>
         </form>
       ) : (
-        <Link href={entryLoginHref} onClick={() => rememberEntry()} className="mt-3 grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200">
+        <Link href={entryLoginHref} onClick={() => rememberEntry()} className={`${compact ? compactStyles.enter : "mt-3"} grid min-h-12 w-full place-items-center rounded-xl bg-[#00b9ff] px-5 py-3 text-base font-extrabold text-[#00132e] transition hover:bg-cyan-200`}>
           Sign in to enter
         </Link>
       )}
 
-      <div className={`${signedOutCompact && !isSignedIn ? "mt-2" : "mt-3"} flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm`}>
+      <div className={`${compact ? compactStyles.wallet : signedOutCompact && !isSignedIn ? "mt-2" : "mt-3"} flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm`}>
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
         <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={() => rememberEntry()} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>
@@ -455,7 +467,7 @@ export function DemoParticipationPanel({
       ), document.body) : null}
 
 
-      <p className="mt-4 text-center text-[11px] leading-5 text-white/45">Preview-only activity. The debit, entry and result are written atomically to the development/test database. No real reward is issued.</p>
+      <p className={compact ? compactStyles.simulation : "mt-4 text-center text-[11px] leading-5 text-white/45"}>{compact ? "Demo activity. No real payment or reward is issued." : "Preview-only activity. The debit, entry and result are written atomically to the development/test database. No real reward is issued."}</p>
     </aside>
   );
 }

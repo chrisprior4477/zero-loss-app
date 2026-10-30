@@ -10,6 +10,20 @@ vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter,
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
 beforeEach(() => { Element.prototype.scrollIntoView = vi.fn(); actionMocks.enter.mockResolvedValue({ status: "idle" }); });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", requestHead: { ready: true as const, requestId: null }, productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
+
+test("the compact production layout retains the original submission and funding intent", () => {
+  render(<DemoParticipationPanel {...props} compact initialQuantity={4} isSignedIn isDemoWallet isPreviewExperience balanceCents={0} balanceLabel="$0" browseReturnHref="/browse?category=groceries" />);
+  expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$0");
+  expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("45");
+  expect(screen.getByRole("button", { name: "Reset Entry Toast" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $4.00" }));
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+  expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy();
+  const fundingLinks = screen.getAllByRole("link", { name: "Add funds" });
+  expect(fundingLinks.every(link => link.getAttribute("href")?.includes("quantity=4"))).toBe(true);
+  expect(document.querySelector('input[name="idempotencyKey"]')?.getAttribute("value")).toBe(props.requestKey);
+  expect(document.querySelector('input[name="quantity"]')?.getAttribute("value")).toBe("4");
+});
 test("product balance comes from server data and signed-in preview submits a quantity", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
   expect(screen.getByTestId("entry-quantity-ticket")).toBeTruthy();

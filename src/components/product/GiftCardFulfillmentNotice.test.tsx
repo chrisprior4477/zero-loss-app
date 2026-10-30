@@ -1,10 +1,21 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { demoProducts } from "@/lib/catalog/demo-products";
 import { GiftCardFulfillmentNotice, SignedOutRewardSummary } from "./GiftCardFulfillmentNotice";
 
 afterEach(cleanup);
+
+test("compact reward details retain the retailer rules and exact rewards destination", () => {
+  const show = vi.fn(function(this: HTMLDialogElement) { this.open = true; });
+  Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: show });
+  render(<GiftCardFulfillmentNotice compact productTitle="$100 Publix Gift Card" retailer="Publix" value={100} isGiftCardOffering />);
+  fireEvent.click(screen.getByRole("button", { name: /Prize:.*Publix digital gift card/ }));
+  expect(screen.getByRole("dialog", { name: "What you receive" })).toBeTruthy();
+  expect(screen.getByText(/not Playable Balance or withdrawable cash/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet");
+  Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
+});
 
 test("describes the retailer card instead of direct product delivery", () => {
   render(<GiftCardFulfillmentNotice productTitle={'Samsung 50" M70H Mini LED 4K Smart TV'} retailer="Best Buy" value={400} isGiftCardOffering={false} />);

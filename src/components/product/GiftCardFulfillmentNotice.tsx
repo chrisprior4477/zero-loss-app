@@ -1,13 +1,25 @@
 import Link from "next/link";
+import { ProductInfoDialog } from "./ProductInfoDialog";
+import styles from "./product-entry-layout.module.css";
 
 type GiftCardFulfillmentNoticeProps = {
   productTitle: string;
   retailer: string;
   value: number;
   isGiftCardOffering: boolean;
+  compact?: boolean;
 };
 
-export function GiftCardFulfillmentNotice({ productTitle, retailer, value, isGiftCardOffering }: GiftCardFulfillmentNoticeProps) {
+export function GiftCardFulfillmentNotice({ productTitle, retailer, value, isGiftCardOffering, compact = false }: GiftCardFulfillmentNoticeProps) {
+  if (compact) return <ProductInfoDialog title="What you receive" className={styles.reward}
+    label={<><span>Prize: <strong>${value.toLocaleString()} {retailer} digital gift card</strong></span><span aria-hidden="true">⌄</span></>}>
+    <p className="text-lg font-extrabold">${value.toLocaleString()} {retailer} digital gift card</p>
+    <p>{!isGiftCardOffering && <>Zero Loss does not ship the {productTitle}. </>}
+      If you win or complete your purchase, find your gift card details in <Link href="/account/wallet" className="font-extrabold text-cyan-300 underline">Gift Cards &amp; Rewards</Link>.
+      {isGiftCardOffering && <> It is not Playable Balance or withdrawable cash.</>}
+      {" "}Use it online or in store where accepted, subject to {retailer}&apos;s terms.
+    </p>
+  </ProductInfoDialog>;
   return (
     <section aria-label="Prize fulfillment" className="mt-4">
       <details className="group overflow-hidden rounded-xl bg-white text-[#102044]">
