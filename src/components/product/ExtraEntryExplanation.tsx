@@ -48,8 +48,8 @@ export function ExtraEntryExplanation({ productTitle, productValue, retailer, en
         <Image src="/account/extra-entry-explainer-trimmed.webp" alt="How extra chances work: each entry is a separate chance and never combines into one discount" fill preload sizes="(max-width:767px) calc(100vw - 32px), 400px" className={styles.image} />
       </div>
       <div className={styles.copy}>
-        <p>Each extra entry is a separate chance. Entry payments never combine into a larger discount.</p>
-        <p>A non-selected entry has its own optional 30-day right to complete this offering. One ${entryPrice.toFixed(2)} entry leaves ${remaining.toFixed(2)} to complete one purchase.</p>
+        <p><strong>Each extra entry is a Separate Chance.</strong> Entry payments never combine into a larger discount.</p>
+        <p>A non-selected entry has its own optional 30-day right to complete this offering. One ${entryPrice.toFixed(2)} entry leaves the remaining balance of the prize to complete one purchase.</p>
         <details ref={details} className={styles.details}>
           <summary>Full explanation <span aria-hidden="true">⌄</span></summary>
           <div>
