@@ -30,13 +30,3 @@ test("free-entry links retain the complete shopping search and filters", () => {
   expect(href.searchParams.get("offering")).toBe("airpods-pro");
   expect(href.searchParams.get("from")).toBe(browse);
 });
-
-test("grocery previews return to the chosen layout without allowing arbitrary preview parameters", () => {
-  for (const layout of ["1", "2", "3"]) {
-    const browse = `/browse?category=groceries&inspiration=${layout}`;
-    const product = new URL(productHrefWithBrowseReturn("publix-100-gift-card", browse), "https://example.test");
-    expect(product.searchParams.get("from")).toBe(browse);
-    expect(productBrowseReturnLabel(browse)).toBe("Groceries");
-  }
-  expect(productBrowseReturnHref("/browse?category=groceries&inspiration=https://evil.test")).toBe("/browse");
-});

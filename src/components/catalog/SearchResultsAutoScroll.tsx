@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Settle the requested browse destination below the menu's closing animation. */
-export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "" }: { searchKey: string; mobileBrowseKey?: string }) {
+export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groceryKey = "" }: { searchKey: string; mobileBrowseKey?: string; groceryKey?: string }) {
   useEffect(() => {
     let cancelled = false;
     let first = 0;
@@ -15,7 +15,8 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "" }: { s
       const target = window.location.hash === "#retailer-categories-heading"
         ? "retailer-categories-heading"
         : window.location.hash === "#more-groceries" ? "more-groceries"
-          : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
+          : groceryKey && (!window.location.hash || window.location.hash.startsWith("#search-results") || window.location.hash === "#grocery-inspiration") ? "grocery-inspiration"
+            : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
       if (!target) return;
       cancelled = false;
       const scroll = () => { if (!cancelled) document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "auto" }); };
@@ -35,6 +36,6 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "" }: { s
       window.removeEventListener("pointerdown", stop); window.removeEventListener("wheel", stop);
       window.removeEventListener("touchstart", stop); window.removeEventListener("keydown", stop);
     };
-  }, [searchKey, mobileBrowseKey]);
+  }, [searchKey, mobileBrowseKey, groceryKey]);
   return null;
 }

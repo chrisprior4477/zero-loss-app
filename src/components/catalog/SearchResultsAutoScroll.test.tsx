@@ -96,3 +96,21 @@ test("the grocery inspiration shortcut lands on the remaining offers instead of 
   expect(groceries).toHaveBeenCalledTimes(2);
   expect(search).not.toHaveBeenCalled();
 });
+
+test.each(["", "#search-results", "#search-results#search-results"])("Groceries lands at its inspiration panel for a %s destination", hash => {
+  window.history.replaceState(null, "", `/browse?category=groceries${hash}`);
+  render(<><div id="grocery-inspiration" /><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse?category=groceries" groceryKey="/browse?category=groceries" /></>);
+  const inspiration = vi.fn(), search = vi.fn();
+  document.getElementById("grocery-inspiration")!.scrollIntoView = inspiration;
+  document.getElementById("search-results")!.scrollIntoView = search;
+  act(() => vi.runAllTimers());
+  expect(inspiration).toHaveBeenCalledTimes(2);
+  expect(search).not.toHaveBeenCalled();
+});
+
+test("desktop grocery landing also starts below the header at inspiration", () => {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+  render(<><div id="grocery-inspiration" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse?category=groceries" groceryKey="/browse?category=groceries" /></>);
+  const scroll = vi.fn(); document.getElementById("grocery-inspiration")!.scrollIntoView = scroll;
+  act(() => vi.runAllTimers()); expect(scroll).toHaveBeenCalledTimes(2);
+});

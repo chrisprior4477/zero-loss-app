@@ -16,9 +16,10 @@ beforeEach(() => {
   Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function(this: HTMLDialogElement) { this.open = true; } });
   Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: function(this: HTMLDialogElement) { this.open = false; } });
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
 });
 
-afterEach(() => { cleanup(); account.get.mockResolvedValue(null); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); account.get.mockResolvedValue(null); });
 
 describe("Browse search results", () => {
   test("Movie Night opens the selected collection and preserves it in product links", async () => {
@@ -133,7 +134,7 @@ describe("Browse search results", () => {
     expect(screen.getByRole("region", { name: "Products" }).className).toContain("grid-cols-1");
   });
 
-  test.each(["everyday-items", "groceries", "electronics", "home-essentials", "ending-soon"])(
+  test.each(["everyday-items", "electronics", "home-essentials", "ending-soon"])(
     "puts pictured items before gift cards in %s",
     async category => {
       render(await BrowsePage({ searchParams: Promise.resolve(category === "ending-soon" ? { sort: "ending-soon" } : { category }) }));
@@ -144,6 +145,35 @@ describe("Browse search results", () => {
       expect(headings.slice(firstGiftCard).every(title => /gift card|demo reward|bed bath & beyond \+ wayfair bundle/i.test(title))).toBe(true);
     },
   );
+
+  test("Groceries opens the approved inspiration shelves and leads with grocery-store offers", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "groceries" }) }));
+    expect(screen.getByRole("heading", { name: "Follow your appetite." })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Easy grocery ideas" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Occasion grocery ideas" })).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: "Grocery preview layouts" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Next Easy grocery ideas" })).toBeNull();
+    const titles = within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading").map(heading => heading.textContent ?? "");
+    const coffee = titles.findIndex(title => /Dunkin|Peet|Dutch Bros/i.test(title));
+    const storeCards = titles.map((title, index) => /(?:Publix|Walmart).*Gift Card/i.test(title) ? index : -1).filter(index => index >= 0);
+    expect(storeCards.length).toBeGreaterThan(2);
+    expect(storeCards.every(index => index < coffee)).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Explore Stir-Fry Night" }));
+    const popup = within(screen.getByRole("dialog", { name: "Stir-Fry Night" }));
+    const offer = popup.getAllByRole("link", { name: /Publix Gift Card/ })[0];
+    expect(new URL(offer.getAttribute("href")!, "https://example.test").searchParams.get("from")).toBe("/browse?category=groceries");
+    fireEvent.click(popup.getByRole("button", { name: "Keep exploring ideas" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Follow your appetite." })).toBeTruthy();
+  });
+
+  test("an explicit grocery sort keeps its requested order and the search controls", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "groceries", sort: "price-low" }) }));
+    expect(screen.queryByRole("heading", { name: "Follow your appetite." })).toBeNull();
+    expect(screen.getByRole("button", { name: /Filter & sort/ })).toBeTruthy();
+    const first = within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading")[0];
+    expect(first.textContent).toMatch(/Dunkin/);
+  });
 
   test("clearly identifies indirect retailer results as gift cards", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "reciprocating saw" }) }));
