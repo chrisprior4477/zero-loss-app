@@ -6,6 +6,8 @@ import { AccountSecurityDashboard } from "@/components/account/AccountSecurityDa
 import { OrdersFulfillment } from "@/components/account/OrdersFulfillment";
 import { getAccountContext } from "@/lib/account/context";
 import { fulfillmentFilter } from "@/lib/account/fulfillment";
+import { getOrderSupportHref, walletTransactionHelpHref } from "@/lib/account/order-support";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "My Account" };
 
@@ -80,7 +82,15 @@ export default async function LiveAccountSection({
 
   if (section === "orders") {
     const query = await searchParams;
-    return <OrdersFulfillment state={account.orders} filter={fulfillmentFilter(query?.filter)} selectedRewardId={typeof query?.rewardId === "string" ? query.rewardId : undefined} selectedOrderNumber={typeof query?.order === "string" ? query.order : undefined} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
+    const selectedOrderNumber = typeof query?.order === "string" ? query.order : undefined;
+    const selectedRewardId = typeof query?.rewardId === "string" ? query.rewardId : undefined;
+    const selectedOrder = selectedOrderNumber || selectedRewardId ? account.orders.orders.find(order =>
+      (!selectedOrderNumber || order.orderNumber === selectedOrderNumber)
+      && (!selectedRewardId || order.rewardId === selectedRewardId)) : undefined;
+    const supportHref = selectedOrder && account.wallet?.scope === "demo"
+      ? await getOrderSupportHref(await createClient(), account.userId, selectedOrder.orderNumber)
+      : walletTransactionHelpHref;
+    return <OrdersFulfillment state={account.orders} filter={fulfillmentFilter(query?.filter)} selectedRewardId={selectedRewardId} selectedOrderNumber={selectedOrderNumber} supportHref={supportHref} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
   }
 
   return (

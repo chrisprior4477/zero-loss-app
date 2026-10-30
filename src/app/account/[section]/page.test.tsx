@@ -4,8 +4,10 @@ import type { AccountOrder } from "@/lib/account/orders";
 import { buildOrderNotifications } from "@/lib/account/notifications";
 import LiveAccountSection from "./page";
 
-const mocks = vi.hoisted(() => ({ account: vi.fn() }));
+const mocks = vi.hoisted(() => ({ account: vi.fn(), support: vi.fn(), db: {} }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => mocks.db }));
+vi.mock("@/lib/account/order-support", () => ({ getOrderSupportHref: mocks.support, walletTransactionHelpHref: "/account/wallet?view=history#transactions" }));
 vi.mock("@/components/account/AccountSecurityDashboard", () => ({ AccountSecurityDashboard: () => null }));
 vi.mock("next/image", () => ({ default: () => null }));
 
@@ -18,7 +20,10 @@ const orders: AccountOrder[] = Array.from({ length: 9 }, (_, index) => ({
 }));
 
 beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.support.mockResolvedValue("/support?transaction=11111111-1111-4111-8111-111111111111#report-problem");
   mocks.account.mockResolvedValue({
+    userId: "owner", wallet: { scope: "demo" },
     orders: { source: "stored", orders }, balanceLabel: "$100", fundingEnabled: true,
     activity: { source: "stored", isPreview: false, activeCount: 0, activity: [] },
   });
@@ -44,6 +49,9 @@ test.each([0, 1, 5, 8])("notification for order %i opens its exact gift card, in
   expect(document.getElementById(decodeURIComponent(url.hash.slice(1)))).toBeTruthy();
   expect(screen.getByText("SELECTED ORDER")).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
+  expect(mocks.support).toHaveBeenCalledWith(mocks.db, "owner", order.orderNumber);
+  expect(screen.getByRole("link", { name: "Get help" }).getAttribute("href"))
+    .toBe("/support?transaction=11111111-1111-4111-8111-111111111111#report-problem");
   expect(screen.getByRole("link", { name: "Show all orders & rewards" }).getAttribute("href"))
     .toBe("/account/orders#fulfillment-records");
 });
@@ -60,6 +68,7 @@ test("an unknown order never falls back to a different saved card", async () => 
   expect(screen.getByText("That order is not available here")).toBeTruthy();
   expect(within(screen.getByRole("region", { name: "Retailer gift-card fulfillment" })).queryByRole("article")).toBeNull();
   expect(screen.queryByRole("link", { name: "Open gift card" })).toBeNull();
+  expect(mocks.support).not.toHaveBeenCalled();
 });
 
 test("ordinary Orders navigation still shows the full paginated list", async () => {
@@ -67,4 +76,16 @@ test("ordinary Orders navigation still shows the full paginated list", async () 
   expect(within(screen.getByRole("region", { name: "Retailer gift-card fulfillment" })).getAllByRole("article")).toHaveLength(2);
   expect(screen.getByText("1–2 of 9")).toBeTruthy();
   expect(screen.queryByText("SELECTED ORDER")).toBeNull();
+  expect(mocks.support).not.toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: "Get help" }).getAttribute("href")).toBe("/account/wallet?view=history#transactions");
+});
+
+test("an exact reward selection resolves its own order, while mismatched selections do not", async () => {
+  const page = await LiveAccountSection({ params: Promise.resolve({ section: "orders" }), searchParams: Promise.resolve({ rewardId: orders[8].rewardId }) });
+  const { unmount } = render(page);
+  expect(mocks.support).toHaveBeenCalledWith(mocks.db, "owner", orders[8].orderNumber);
+  unmount();
+  mocks.support.mockClear();
+  render(await LiveAccountSection({ params: Promise.resolve({ section: "orders" }), searchParams: Promise.resolve({ order: orders[0].orderNumber, rewardId: orders[8].rewardId }) }));
+  expect(mocks.support).not.toHaveBeenCalled();
 });
