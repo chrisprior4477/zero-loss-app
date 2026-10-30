@@ -433,7 +433,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
             </div>)}
             </div>{!options.groups.length ? <p className={styles.note}>No groups yet. Create one below.</p> : null}
           </section>
-          {!recipientCount ? <p className={styles.note}>No connected members in this audience yet. Add someone to your Crew, then refresh.</p> : null}
+          {!recipientCount ? <p className={styles.note}>{groupsOnly && !audience ? "Choose a group above to share with." : "No connected members in this audience yet. Add someone to your Crew, then refresh."}</p> : null}
           <button type="button" className={styles.crewButton} disabled={busy || !recipientCount || shared} onClick={() => void shareCrew()}>{busy ? "Saving…" : shared ? "Shared with Crew" : item.win ? "Share your win" : audience || groupsOnly ? "Send to this group" : "Send to my Crew"}</button>
           {!request ? <p className={styles.note}>{item.win ? "Shares your win with selected Crew members who allow win updates." : "Sends this item’s link to the selected connected members."}</p> : null}
           <button type="button" disabled={busy} onClick={() => editGroup()}>＋ Create a new group</button>
