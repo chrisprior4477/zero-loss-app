@@ -99,7 +99,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <Link href="/" className="font-bold text-cyan-300 hover:text-white">← Marketplace home</Link>
         </div>
 
-        <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
+        <div id="search-results" className={`mt-5 min-w-0 ${showGroceryInspiration ? "lg:[--browse-scroll-gap:48px]" : ""}`} style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + var(--browse-scroll-gap, 12px))" }}>
           <BrowseDiscoveryBar key={browseReturnHref} browseHref={browseReturnHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} />
           {showGroceryInspiration ? <GroceryInspiration key={inspirationLayout} layout={inspirationLayout} offers={groceryOffers} browseHref={browseReturnHref} /> : null}
