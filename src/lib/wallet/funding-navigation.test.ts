@@ -1,5 +1,50 @@
 import { expect, test } from "vitest";
 import { fundingHref, fundingReturnPath } from "./funding-navigation";
+import { productEntryHref, fundedProductEntryHref } from "@/lib/entries/return-intent";
+import { productBrowseReturnHref } from "@/lib/catalog/product-return";
+import { authNavigationHref, entryReturnPath, signInReturnPath } from "@/lib/auth/entry-return";
+
+test.each([
+  "/browse?category=electronics&sort=fewest-left",
+  "/browse?category=electronics&sort=ending-soon",
+  "/browse?q=coffee+%26+tea&type=gift-cards&retailer=Dunkin%27&available=1&minValue=25&maxValue=100",
+])("shopping context survives funding, login and the product return: %s", browse => {
+  const walletHref = fundingHref("playstation-5-slim", undefined, 111, browse);
+  expect(fundingReturnPath(walletHref)).toBe(walletHref);
+  expect(new URL(authNavigationHref("/login", walletHref), "https://example.test").searchParams.get("next")).toBe(walletHref);
+  const walletQuery = new URL(walletHref, "https://example.test").searchParams;
+  const back = productEntryHref(walletQuery.get("from")!, Number(walletQuery.get("quantity")), walletQuery.get("browse"));
+  expect(entryReturnPath(back)).toBe(back);
+  expect(signInReturnPath(back)).toBe(back);
+  for (const path of [back, fundedProductEntryHref(back)]) {
+    const url = new URL(path, "https://example.test");
+    expect(url.pathname).toBe("/items/playstation-5-slim");
+    expect(url.searchParams.get("quantity")).toBe("111");
+    expect(productBrowseReturnHref(url.searchParams.get("from"))).toBe(browse);
+    expect(url.hash).toBe("#enter-entry");
+  }
+});
+
+test.each([
+  "https://evil.test/browse", "//evil.test/browse", "/account/wallet", "/browse?next=https://evil.test",
+  "/browse?category=electronics&category=gas", "/browse#wrong", "/browse\n", "/browse\\evil",
+])("nested shopping addresses cannot become arbitrary redirects: %s", browse => {
+  const suffix = encodeURIComponent(browse);
+  expect(fundingHref("playstation-5-slim", undefined, 3, browse)).not.toContain("browse=");
+  expect(signInReturnPath(`/account/wallet?view=history&from=playstation-5-slim&browse=${suffix}#add-funds`)).toBeNull();
+  expect(entryReturnPath(`/items/playstation-5-slim?from=${suffix}#enter-entry`)).toBeNull();
+});
+
+test("browse context cannot replace an exact purchase option or appear without a product", () => {
+  const browse = encodeURIComponent("/browse?category=electronics");
+  expect(fundingHref(undefined, undefined, undefined, "/browse?category=electronics")).not.toContain("browse=");
+  for (const path of [
+    `/account/wallet?view=history&browse=${browse}#add-funds`,
+    `/account/wallet?view=history&from=playstation-5-slim&entry=ent_11111111111111111111111111111111&browse=${browse}#add-funds`,
+    `/account/wallet?view=history&from=playstation-5-slim&browse=${browse}&browse=${browse}#add-funds`,
+    `/items/playstation-5-slim?from=${browse}&from=${browse}#enter-entry`,
+  ]) expect(signInReturnPath(path)).toBeNull();
+});
 
 test("funding retains one exact purchase entry, never an arbitrary return URL", () => {
   const entry = "ent_11111111111111111111111111111111";

@@ -9,11 +9,21 @@ vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailability: m
 vi.mock("@/lib/entries/request-head", () => ({ getEntryRequestHead: mocks.requestHead }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/sharing/receiving-reader", () => ({ getSharedProductContext: vi.fn(async () => null) }));
-vi.mock("@/components/product/DemoParticipationPanel", () => ({ DemoParticipationPanel: () => <div>Entry form</div> }));
+vi.mock("@/components/product/DemoParticipationPanel", () => ({ DemoParticipationPanel: ({ browseReturnHref }: { browseReturnHref?: string }) => <div data-browse-return={browseReturnHref}>Entry form</div> }));
 vi.mock("@/components/product/ProductGallery", () => ({ ProductGallery: () => <div>Product gallery</div> }));
 vi.mock("@/components/product/GiftCardFulfillmentNotice", () => ({ GiftCardFulfillmentNotice: () => null, SignedOutRewardSummary: () => null }));
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
+
+test("the product passes the same validated shopping destination to entry and Back controls", async () => {
+  const from = "/browse?category=electronics&sort=fewest-left";
+  mocks.availability.mockResolvedValue(null);
+  mocks.account.mockResolvedValue({ activity: { source: "customer-empty", activity: [] }, wallet: { scope: "demo" } });
+  mocks.requestHead.mockResolvedValue({ ready: true, requestId: null });
+  render(await ItemPage({ params: Promise.resolve({ id: "samsung-m70h-tv" }), searchParams: Promise.resolve({ from }) }));
+  expect(screen.getByText("Entry form").getAttribute("data-browse-return")).toBe(from);
+  expect(screen.getByRole("link", { name: "← Back to Electronics" }).getAttribute("href")).toBe(from);
+});
 
 test("a saved win keeps its details accessible but does not offer another demo entry", async () => {
   mocks.availability.mockResolvedValue(null);

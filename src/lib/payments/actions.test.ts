@@ -79,6 +79,25 @@ test("confirmed credit redirects on the server to the same product and quantity"
   expect(mocks.rpc.mock.calls.at(-1)?.[0]).toBe("accept_demo_payment_event");
   expect(mocks.redirect).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=4&funded=1#enter-entry");
 });
+
+test("both successful funding and recovery keep the shopping filters in the product return", async () => {
+  const browse = encodeURIComponent("/browse?category=electronics&sort=fewest-left");
+  const destination = `/items/samsung-m70h-tv?quantity=4&from=${browse}#enter-entry`;
+  const expected = `/items/samsung-m70h-tv?quantity=4&from=${browse}&funded=1#enter-entry`;
+  const f = form(); f.set("returnTo", destination);
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.redirect).toHaveBeenCalledWith(expected);
+  mocks.redirect.mockClear();
+  const recovery = new FormData(); recovery.set("sessionId", sid); recovery.set("returnTo", destination);
+  await reconcileDemoFunding({ status: "idle" }, recovery);
+  expect(mocks.redirect).toHaveBeenCalledWith(expected);
+});
+
+test("a forged nested browse address cannot become a payment redirect", async () => {
+  const f = form(); f.set("returnTo", `/items/samsung-m70h-tv?from=${encodeURIComponent("https://evil.test/browse")}#enter-entry`);
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.redirect).not.toHaveBeenCalled();
+});
 test("confirmed credit redirects to the exact saved purchase option", async () => {
   const destination = "/account/entries?item=babys-essentials-bundle&entry=ent_11111111111111111111111111111111";
   const f = form(); f.set("returnTo", destination);

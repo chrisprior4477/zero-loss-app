@@ -115,6 +115,17 @@ test("Add funds opens the funding form and remembers this prize", () => {
   );
 });
 
+test("both funding links keep the original category, sort and selected quantity", () => {
+  const browse = "/browse?category=electronics&sort=fewest-left";
+  render(<DemoParticipationPanel {...props} initialQuantity={3} isSignedIn isDemoWallet balanceCents={0} browseReturnHref={browse} />);
+  const expected = `/account/wallet?view=history&from=test-product&quantity=3&browse=${encodeURIComponent(browse)}#add-funds`;
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(expected);
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $3.00" }));
+  expect(screen.getAllByRole("link", { name: "Add funds" }).length).toBe(2);
+  for (const link of screen.getAllByRole("link", { name: "Add funds" })) expect(link.getAttribute("href")).toBe(expected);
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
 test("selected quantity resumes after sign-in and add funds", () => {
   render(<DemoParticipationPanel {...props} initialQuantity={3} isSignedIn />);
   expect(screen.getByTestId("entry-quantity").textContent).toBe("3");

@@ -6,16 +6,21 @@ const browseQueryKeys = new Set([
 ]);
 
 /** Product return links may point only to a filtered marketplace page. */
-export function productBrowseReturnHref(value: unknown): string {
-  if (typeof value !== "string" || value.length > 1000) return "/browse";
+export function productBrowseReturnPath(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > 1000 || !/^\/browse(?:\?|$)/.test(value) || /[\\\s\u0000-\u001f]/.test(value)) return null;
   try {
     const url = new URL(value, "https://zeroloss.local");
-    if (url.origin !== "https://zeroloss.local" || url.pathname !== "/browse" || url.hash) return "/browse";
-    if ([...url.searchParams.keys()].some((key) => !browseQueryKeys.has(key))) return "/browse";
-    return `/browse${url.search}`;
+    if (url.origin !== "https://zeroloss.local" || url.pathname !== "/browse" || url.hash) return null;
+    const keys = [...url.searchParams.keys()];
+    if (keys.some((key) => !browseQueryKeys.has(key)) || new Set(keys).size !== keys.length) return null;
+    return value;
   } catch {
-    return "/browse";
+    return null;
   }
+}
+
+export function productBrowseReturnHref(value: unknown): string {
+  return productBrowseReturnPath(value) ?? "/browse";
 }
 
 export function productHrefWithBrowseReturn(slug: string, browseHref: string): string {

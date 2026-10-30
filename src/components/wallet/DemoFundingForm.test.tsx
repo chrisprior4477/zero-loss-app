@@ -70,17 +70,19 @@ test("a rejected confirmation clears the recovery marker and can be retried", as
   await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
   expect(vi.mocked(completeDemoFunding).mock.calls[1]?.[1].get("fundingPolicy")).toBe("funding-confirmation-v1");
 });
-test("successful funding automatically returns to the selected product and quantity", async () => {
+test.each(["", "&from=%2Fbrowse%3Fcategory%3Delectronics%26sort%3Dfewest-left"])("successful funding returns to the product, quantity and shopping context: %s", async context => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
-  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv?quantity=4#enter-entry" }} />);
-  expect(container.querySelector<HTMLInputElement>('[name="returnTo"]')?.value).toBe("/items/samsung-m70h-tv?quantity=4#enter-entry");
+  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" blocked={false} continueTo={{ title: "Samsung TV", href: `/items/samsung-m70h-tv?quantity=4${context}#enter-entry` }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(container.querySelector<HTMLInputElement>('[name="returnTo"]')?.value).toBe(`/items/samsung-m70h-tv?quantity=4${context}#enter-entry`);
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(screen.getByText("Demo funds added.")).toBeTruthy());
-  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv?quantity=4&funded=1#enter-entry"));
-  expect(screen.getByRole("link", { name: "Continue your entry" }).getAttribute("href")).toBe("/items/samsung-m70h-tv?quantity=4&funded=1#enter-entry");
+  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith(`/items/samsung-m70h-tv?quantity=4${context}&funded=1#enter-entry`));
+  expect(screen.getByRole("link", { name: "Continue your entry" }).getAttribute("href")).toBe(`/items/samsung-m70h-tv?quantity=4${context}&funded=1#enter-entry`);
   expect(screen.getByRole("button", { name: "Add more funds" })).toBeTruthy();
 });
 test("successful funding returns to the exact purchase option that needed more balance", async () => {

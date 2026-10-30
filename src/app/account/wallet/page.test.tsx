@@ -3,7 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ getAccountContext: vi.fn(), redirect: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.getAccountContext }));
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: mocks.rpc }) }));
 vi.mock("next/image", () => ({ default: () => null }));
 vi.mock("@/components/identity/DemoVerificationDialog", () => ({ DemoIdentityPreviewButton: () => null }));
@@ -13,6 +13,27 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const purchaseEntry = "ent_11111111111111111111111111111111";
 const purchaseActivity = { entryId: purchaseEntry, slug: "babys-essentials-bundle", title: "Baby bundle", retailer: "Walmart", image: "/test.png", status: "completion", rewardKind: "digital", priceCents: 10000, paidCents: 100, remainingCents: 9900, completionOptionId: "11111111-1111-4111-8111-111111111111" };
+
+test("funding keeps shopping filters through expired-session login and Back to this prize", async () => {
+  const browse = "/browse?category=electronics&sort=fewest-left";
+  const query = { view: "history", from: "samsung-m70h-tv", quantity: "4", browse };
+  mocks.getAccountContext.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(WalletPage({ searchParams: Promise.resolve(query) })).rejects.toThrow("NEXT_REDIRECT");
+  const next = new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")!;
+  expect(new URL(next, "https://example.test").searchParams.get("browse")).toBe(browse);
+  mocks.redirect.mockReset();
+  mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "customer-empty", activity: [] } });
+  render(await WalletPage({ searchParams: Promise.resolve(query) }));
+  expect(screen.getByRole("link", { name: "Back to this prize" }).getAttribute("href"))
+    .toBe(`/items/samsung-m70h-tv?quantity=4&from=${encodeURIComponent(browse)}#enter-entry`);
+});
+
+test.each([{ browse: "https://evil.test/browse" }, { browse: ["/browse?category=electronics", "/browse?category=gas"] }])("invalid shopping context is not forwarded: %j", async ({ browse }) => {
+  mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "customer-empty", activity: [] } });
+  render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: "samsung-m70h-tv", browse }) }));
+  expect(screen.getByRole("link", { name: "Back to this prize" }).getAttribute("href")).toBe("/items/samsung-m70h-tv#enter-entry");
+});
 test("funding returns to the exact authorized option even with another entry for the same product", async () => {
   mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, entryId: "ent_22222222222222222222222222222222" }, purchaseActivity] } });
   render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: purchaseActivity.slug, entry: purchaseEntry }) }));

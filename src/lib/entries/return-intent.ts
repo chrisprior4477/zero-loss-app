@@ -1,4 +1,5 @@
 import { isEntryQuantity, parseEntryQuantity } from "./quantity";
+import { productBrowseReturnPath } from "@/lib/catalog/product-return";
 export { parseEntryQuantity } from "./quantity";
 
 const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -7,17 +8,31 @@ const maxAgeMs = 24 * 60 * 60 * 1000;
 
 export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number };
 
-export function productEntryHref(slug: string, quantity = 1): string {
+export function productEntryHref(slug: string, quantity = 1, browseReturn?: unknown): string {
   if (!productSlugPattern.test(slug)) return "/browse";
   const selected = isEntryQuantity(quantity) ? quantity : 1;
-  return `/items/${slug}${selected > 1 ? `?quantity=${selected}` : ""}#enter-entry`;
+  const params = new URLSearchParams();
+  if (selected > 1) params.set("quantity", String(selected));
+  const browse = productBrowseReturnPath(browseReturn);
+  if (browse) params.set("from", browse);
+  return `/items/${slug}${params.size ? `?${params}` : ""}#enter-entry`;
+}
+
+/** The funding and sign-in return may carry only a validated marketplace address. */
+export function productEntryReturnPath(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > 4096 || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?[^#]+)?#enter-entry$/.test(value)) return null;
+  const params = new URL(value, "https://navigation.invalid").searchParams;
+  const keys = [...params.keys()];
+  if (keys.some(key => key !== "quantity" && key !== "from") || new Set(keys).size !== keys.length) return null;
+  if (params.has("quantity") && parseEntryQuantity(params.get("quantity")) === null) return null;
+  if (params.has("from") && !productBrowseReturnPath(params.get("from"))) return null;
+  return value;
 }
 
 /** Mark a successful demo-funding return so the entry button can give a one-time cue. */
 export function fundedProductEntryHref(href: string): string {
-  if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?quantity=[1-9]\d*)?#enter-entry$/.test(href)) return href;
-  const selected = new URL(href, "https://navigation.invalid").searchParams.get("quantity");
-  if (selected !== null && parseEntryQuantity(selected) === null) return href;
+  if (!productEntryReturnPath(href)) return href;
   const [path, hash] = href.split("#");
   return `${path}${path.includes("?") ? "&" : "?"}funded=1#${hash}`;
 }
@@ -27,8 +42,9 @@ export function currentProductEntryHref(pathname: string, search: string, intent
   const match = /^\/items\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(pathname);
   if (!match) return null;
   const slug = match[1];
-  const queryQuantity = parseEntryQuantity(new URLSearchParams(search).get("quantity")) ?? 1;
-  return productEntryHref(slug, intent?.slug === slug ? intent.quantity : queryQuantity);
+  const params = new URLSearchParams(search);
+  const queryQuantity = parseEntryQuantity(params.get("quantity")) ?? 1;
+  return productEntryHref(slug, intent?.slug === slug ? intent.quantity : queryQuantity, params.get("from"));
 }
 
 function validIntent(value: unknown): value is EntryIntent {
