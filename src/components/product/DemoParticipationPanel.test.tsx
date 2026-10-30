@@ -7,8 +7,11 @@ import { readViewedProduct, rememberViewedProduct } from "@/lib/catalog/viewed-p
 const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), reset: vi.fn(), enter: vi.fn(), resolve: vi.fn(), confirm: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: actionMocks.replace, refresh: vi.fn() }) }));
 vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resetExtraEntryExplainer: actionMocks.reset, resolvePendingEntryRequest: actionMocks.resolve, confirmPendingEntryRequest: actionMocks.confirm }));
-afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
-beforeEach(() => { Element.prototype.scrollIntoView = vi.fn(); actionMocks.enter.mockResolvedValue({ status: "idle" }); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal"); });
+beforeEach(() => {
+  Element.prototype.scrollIntoView = vi.fn(); actionMocks.enter.mockResolvedValue({ status: "idle" });
+  Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function(this: HTMLDialogElement) { this.open = true; } });
+});
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", requestHead: { ready: true as const, requestId: null }, productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 
 test("the compact production layout retains the original submission and funding intent", () => {
@@ -208,7 +211,7 @@ test("the first additional entry requires acknowledgment before saving and incre
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   expect(screen.getByRole("dialog", { name: "How Extra Chances Work" })).toBeTruthy();
   expect(screen.getByRole("img", { name: /How extra chances work/i }).getAttribute("src")).toContain("extra-entry-explainer-seamless-neon.jpg");
-  expect(screen.getAllByText("Why does each entry stand alone?")).toHaveLength(2);
+  expect(screen.getAllByText("Why does each entry stand alone?")).toHaveLength(1);
   expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
   expect(screen.getByText(/options cannot be stacked/i)).toBeTruthy();
 
@@ -239,6 +242,38 @@ test("tablet and desktop open the full extra-entry explanation without a disclos
   expect(screen.getByRole("checkbox", { name: /I understand how extra entries work/i })).toBeTruthy();
   expect(screen.getByRole("button", { name: "I understand — save my choice" })).toBeTruthy();
 });
+test("the explanation opens in a native modal and restores scrolling and focus when closed", () => {
+  render(<DemoParticipationPanel {...props} isDemoWallet isSignedIn />);
+  const trigger = screen.getByRole("button", { name: "Add one entry" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog", { name: "How Extra Chances Work" }) as HTMLDialogElement;
+  const close = screen.getByRole("button", { name: "Close extra entry explanation" });
+  expect(dialog.tagName).toBe("DIALOG");
+  expect(dialog.open).toBe(true);
+  expect(document.documentElement.style.overflow).toBe("hidden");
+  expect(document.activeElement).toBe(close);
+  fireEvent.click(close);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(document.documentElement.style.overflow).toBe("");
+  expect(document.activeElement).toBe(trigger);
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+  expect(actionMocks.acknowledge).not.toHaveBeenCalled();
+});
+
+test("an unsuccessful acknowledgment keeps the ticket open without adding an entry", async () => {
+  actionMocks.acknowledge.mockResolvedValue({ status: "error", message: "Your choice could not be saved. Please try again." });
+  render(<DemoParticipationPanel {...props} isDemoWallet isSignedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I understand how extra entries work/i }));
+  fireEvent.click(screen.getByRole("button", { name: /I understand.*save my choice/i }));
+  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Your choice could not be saved. Please try again.");
+  expect(screen.getByRole("dialog", { name: "How Extra Chances Work" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /I understand.*save my choice/i }).hasAttribute("disabled")).toBe(false);
+  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
 test("the remembered preference is saved and prevents future explainers", async () => {
   actionMocks.acknowledge.mockResolvedValue({ status: "succeeded" });
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn />);
