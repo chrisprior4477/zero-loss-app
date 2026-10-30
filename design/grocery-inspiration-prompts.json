@@ -1,0 +1,18 @@
+{
+  "tool": "Built-in image_gen",
+  "purpose": "Grocery inspiration concepts for an isolated preview branch",
+  "savedAssets": "public/grocery-inspiration/{id}.webp",
+  "sharedDirection": "Square photorealistic commercial supermarket still lifes on a pale icy-blue seamless tabletop and background. Soft bright studio daylight, slightly elevated three-quarter front view, tightly grouped realistic grocery ingredients with a modest finished serving in front. Keep important subjects centered for a 1.28:1 crop. Restrained packaging, no people, price tags, gift cards, UI, captions, or watermarks. Meal inspiration rather than a guaranteed bundle or exact-price shopping list.",
+  "generationBriefs": [
+    { "id": "taco-night", "subject": "Old El Paso crunchy taco shells and seasoning, salsa, refried beans, shredded cheddar, sour cream, lettuce, tomatoes, avocado, cilantro, limes and ground beef, with three assembled tacos in front." },
+    { "id": "steak-night", "subject": "Two ribeyes in a butcher tray, corn, asparagus, potatoes, garlic, olive oil, seasoning and salad leaves, with sliced grilled steak and corn in front." },
+    { "id": "backyard-barbecue", "subject": "Chicken drumsticks and thighs, barbecue sauce, corn, coleslaw, bread rolls, potato chips, cherry tomatoes and picnic napkins, with a small barbecue chicken serving in front." },
+    { "id": "stir-fry-night", "subject": "Egg noodles, soy sauce, sesame oil, broccoli, peppers, carrots, snow peas, scallions, ginger, garlic and chicken, with a bowl of chicken vegetable noodles." },
+    { "id": "pizza-night", "subject": "Pizza dough, tomato sauce, mozzarella, pepperoni, peppers, mushrooms, basil and tomatoes, with a small freshly baked pepperoni pizza." },
+    { "id": "pasta-night", "subject": "Barilla pasta, tomato sauce, parmesan, cherry tomatoes, basil, garlic, olive oil and crusty bread, with spaghetti in a white bowl." },
+    { "id": "weekend-breakfast", "subject": "Eggs, maple syrup, pancake mix, strawberries, blueberries, bananas, orange juice, bread and butter, with a modest pancake stack." },
+    { "id": "lunchbox-week", "subject": "Wholegrain bread, turkey, cheddar, peanut butter, apples, bananas, baby carrots, cucumbers, yogurt and granola bars, with an open sandwich lunchbox." },
+    { "id": "cozy-soup-night", "subject": "Carrots, celery, onion, garlic, potatoes, chicken broth, noodles, parsley, chicken and crusty bread, with a small bowl of chicken noodle soup." },
+    { "id": "fresh-for-the-week", "subject": "Two paper grocery bags full of colorful produce, with rice and eggs. Fresh vegetables and fruit arranged in front; no prepared meal." }
+  ]
+}

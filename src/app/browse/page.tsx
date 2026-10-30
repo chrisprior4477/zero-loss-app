@@ -20,13 +20,15 @@ import { getAccountContext } from "@/lib/account/context";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { resolvedProductDestination } from "@/lib/catalog/resolved-destination";
 import { SearchResultsAutoScroll } from "@/components/catalog/SearchResultsAutoScroll";
+import { GroceryInspiration } from "@/components/catalog/GroceryInspiration";
+import { groceryInspirationOfferSlugs } from "@/lib/catalog/grocery-themes";
 
 export const metadata: Metadata = {
   title: "Browse",
 };
 
 type BrowsePageProps = {
-  searchParams: Promise<{ category?: string; sort?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; partnerCategory?: string; available?: string; minValue?: string; maxValue?: string }>;
+  searchParams: Promise<{ category?: string; sort?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; partnerCategory?: string; available?: string; minValue?: string; maxValue?: string; inspiration?: string }>;
 };
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
@@ -72,7 +74,14 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     if (value) returnParams.set(key, value);
   }
   if (searchTerm) returnParams.set("q", searchTerm);
+  const inspirationLayout = query.inspiration === "2" || query.inspiration === "3" ? query.inspiration : "1";
+  if (selectedCategory === "groceries" && query.inspiration) returnParams.set("inspiration", inspirationLayout);
   const browseReturnHref = `/browse${returnParams.size ? `?${returnParams}` : ""}`;
+  const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;
+  const groceryOffers = products.filter(product => groceryInspirationOfferSlugs.has(product.slug)).flatMap(product => {
+    const { remaining } = availabilityStatus(product.capacity, product.sold);
+    return remaining > 0 ? [{ slug: product.slug, title: product.title, retailer: product.retailer, value: product.value, entryPrice: product.entryPrice, remaining, href: productHrefWithBrowseReturn(product.slug, browseReturnHref) }] : [];
+  });
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
@@ -93,6 +102,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <BrowseDiscoveryBar key={browseReturnHref} browseHref={browseReturnHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} />
+          {showGroceryInspiration ? <GroceryInspiration key={inspirationLayout} layout={inspirationLayout} offers={groceryOffers} browseHref={browseReturnHref} /> : null}
 
         {directoryMatches.length ? (
           <section aria-label="Matching retailer categories" className="mt-5 rounded-2xl border border-cyan-300/35 bg-[#061e3d] p-4 sm:p-5">
@@ -108,6 +118,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
+        {showGroceryInspiration ? <div id="more-groceries" className="mt-8 flex items-end justify-between gap-3 border-t border-cyan-200/20 pt-6" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}><div><p className="text-[10px] font-black uppercase tracking-widest text-cyan-200">The rest of your grocery run</p><h2 className="mt-1 text-2xl font-black tracking-tight">More groceries &amp; rewards</h2></div><Link href="/" className="text-xs font-bold text-cyan-200">Marketplace home →</Link></div> : null}
             <p aria-live="polite" className="mt-4 text-sm font-bold text-white/75">{products.length} {products.length === 1 ? "product" : "products"} shown</p>
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>

@@ -3,7 +3,7 @@ import { getPopularRewardBrand } from "./popular-rewards";
 
 const browseQueryKeys = new Set([
   "category", "sort", "subcategory", "q", "type", "retailer",
-  "partnerCategory", "available", "minValue", "maxValue",
+  "partnerCategory", "available", "minValue", "maxValue", "inspiration",
 ]);
 
 /** Product return links may point only to the marketplace or a known retailer page. */
@@ -17,6 +17,7 @@ export function productBrowseReturnPath(value: unknown): string | null {
     if (url.origin !== "https://zeroloss.local" || url.pathname !== "/browse" || url.hash) return null;
     const keys = [...url.searchParams.keys()];
     if (keys.some((key) => !browseQueryKeys.has(key)) || new Set(keys).size !== keys.length) return null;
+    if (url.searchParams.has("inspiration") && !["1", "2", "3"].includes(url.searchParams.get("inspiration")!)) return null;
     return value;
   } catch {
     return null;
