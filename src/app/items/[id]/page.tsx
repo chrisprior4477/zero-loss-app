@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DemoParticipationPanel } from "@/components/product/DemoParticipationPanel";
+import { RememberViewedProduct } from "@/components/product/RememberViewedProduct";
 import { ResetDemoPoolButton } from "@/components/product/ResetDemoPoolButton";
 import { GiftCardFulfillmentNotice, SignedOutRewardSummary } from "@/components/product/GiftCardFulfillmentNotice";
 import { ProductGallery } from "@/components/product/ProductGallery";
@@ -100,6 +101,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-4 text-white sm:px-7 sm:py-12 lg:px-12">
+      {!alreadyResolved ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
       <div className="mx-auto max-w-7xl">
         <Link href={browseReturnHref} className="inline-flex items-center gap-2 text-sm font-bold text-cyan-300 hover:text-white">← Back to {browseReturnLabel}</Link>
 

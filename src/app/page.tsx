@@ -36,11 +36,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     ? <ShoppingReminderPreview key={reminderVariant} variant={reminderVariant} product={{ slug: previewProduct.slug, title: previewProduct.title, image: previewProduct.gallery[0].src }} /> : null;
   return (
     <>
-      {reminderPreview}
+      {reminderPreview ?? <ContinueEntryBanner products={demoProducts
+        .filter(product => !resolvedCatalogSlugs(account?.activity).includes(product.slug)
+          && (availability?.[product.slug]?.remaining !== 0 || availability?.[product.slug]?.repeatableScenario))
+        .map(product => ({ slug: product.slug, title: product.title, image: product.gallery[0].src }))} />}
       <LivePulseTicker items={livePulseItems(availability, account?.activity)} />
 
       <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0 md:pb-4">
-        {reminderPreview ? null : <ContinueEntryBanner />}
         <HeroSection />
         <OfferingAvailabilityProvider snapshot={availability} resolvedSlugs={resolvedCatalogSlugs(account?.activity)}>
           <DesktopMarketplaceRails />

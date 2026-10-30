@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { acknowledgeEntryReceipt, listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 import { PostEntryCrewToast } from "./PostEntryCrewToast";
+import { clearEntryIntent } from "@/lib/entries/return-intent";
 import { PRODUCT_SHARE_EVENT, isProductShareItem, shareDismissalKey, type ProductShareItem } from "@/lib/sharing/product-share";
 
 type TimedRequest = EntryRequest & { receivedAt: number };
@@ -30,6 +31,7 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
   const revision = useRef(0);
 
   const storeReceipt = useCallback((request: EntryRequest) => {
+    if (request.status === "pending" || request.status === "accepted") clearEntryIntent(request.slug);
     revision.current += 1;
     setRequests(previous => [...previous.filter(r => r.requestId !== request.requestId), { ...request, receivedAt: performance.now() }]);
     setNow(performance.now());

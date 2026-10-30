@@ -1,12 +1,13 @@
 import { isEntryQuantity, parseEntryQuantity } from "./quantity";
 import { productBrowseReturnPath } from "@/lib/catalog/product-return";
+import { clearViewedProduct, SHOPPING_REMINDER_EVENT } from "@/lib/catalog/viewed-product";
 export { parseEntryQuantity } from "./quantity";
 
 const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const storageKey = "zero-loss-entry-intent-v1";
 const maxAgeMs = 24 * 60 * 60 * 1000;
 
-export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number };
+export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number; browseReturn?: string };
 
 export function productEntryHref(slug: string, quantity = 1, browseReturn?: unknown): string {
   if (!productSlugPattern.test(slug)) return "/browse";
@@ -53,15 +54,21 @@ function validIntent(value: unknown): value is EntryIntent {
   return typeof intent.slug === "string" && productSlugPattern.test(intent.slug)
     && typeof intent.title === "string" && intent.title.length > 0 && intent.title.length <= 160 && !/[\u0000-\u001f]/.test(intent.title)
     && isEntryQuantity(intent.quantity)
+    && (intent.browseReturn === undefined || productBrowseReturnPath(intent.browseReturn) !== null)
     && typeof intent.savedAt === "number" && Number.isFinite(intent.savedAt) && intent.savedAt <= Date.now() && Date.now() - intent.savedAt < maxAgeMs;
 }
 
 /** Only a transient navigation hint; server entry and wallet records remain authoritative. */
-export function saveEntryIntent(slug: string, title: string, quantity: number): void {
+export function saveEntryIntent(slug: string, title: string, quantity: number, browseReturn?: string): void {
   if (typeof window === "undefined") return;
-  const intent = { slug, title, quantity, savedAt: Date.now() };
+  const intent: EntryIntent = { slug, title, quantity, savedAt: Date.now() };
+  const browse = productBrowseReturnPath(browseReturn);
+  if (browse) intent.browseReturn = browse;
   if (!validIntent(intent)) return;
-  try { window.sessionStorage.setItem(storageKey, JSON.stringify(intent)); } catch { /* Navigation URLs still carry the quantity. */ }
+  try {
+    window.sessionStorage.setItem(storageKey, JSON.stringify(intent));
+    window.dispatchEvent(new Event(SHOPPING_REMINDER_EVENT));
+  } catch { /* Navigation URLs still carry the quantity. */ }
 }
 
 export function readEntryIntent(): EntryIntent | null {
@@ -79,5 +86,8 @@ export function clearEntryIntent(slug?: string): void {
   if (typeof window === "undefined") return;
   try {
     if (!slug || readEntryIntent()?.slug === slug) window.sessionStorage.removeItem(storageKey);
+    // A submitted/dismissed selection must not reappear as a browsing reminder.
+    clearViewedProduct(slug);
+    window.dispatchEvent(new Event(SHOPPING_REMINDER_EVENT));
   } catch { /* The entry outcome is not controlled by browser storage. */ }
 }

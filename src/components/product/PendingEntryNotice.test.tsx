@@ -5,6 +5,8 @@ vi.mock("next/navigation", () => ({ usePathname: () => mocks.path, useRouter: ()
 vi.mock("@/lib/entries/actions", () => ({ listPendingEntryRequests: mocks.list, resolvePendingEntryRequest: mocks.resolve, acknowledgeEntryReceipt: mocks.acknowledge }));
 vi.mock("@/lib/sharing/actions", () => ({ getProductShareItem: async () => null }));
 import { PRODUCT_SHARE_EVENT, shareDismissalKey } from "@/lib/sharing/product-share";
+import { readEntryIntent, saveEntryIntent } from "@/lib/entries/return-intent";
+import { readViewedProduct, rememberViewedProduct } from "@/lib/catalog/viewed-product";
 import { PendingEntryNotice as AccountPendingEntryNotice } from "./PendingEntryNotice";
 const PendingEntryNotice = ({ accountId = "test" }: { accountId?: string }) => <AccountPendingEntryNotice accountId={accountId} />;
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
@@ -23,6 +25,17 @@ test("does not render either the countdown or View entry toast", async () => {
   const { container } = render(<PendingEntryNotice />);
   await waitFor(() => expect(mocks.list).toHaveBeenCalled());
   expect(container.firstChild).toBeNull();
+});
+
+test.each(["pending", "accepted"] as const)("a %s receipt clears unfinished reminders after leaving the product", async status => {
+  mocks.path = "/";
+  rememberViewedProduct(request.slug);
+  saveEntryIntent(request.slug, request.title, request.quantity);
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status } })));
+  expect(readEntryIntent()).toBeNull();
+  expect(readViewedProduct()).toBeNull();
 });
 
 test("dismissal closes only this entry; the next entry for the same prize and manual Share still open", async () => {

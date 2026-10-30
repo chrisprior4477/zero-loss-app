@@ -113,7 +113,7 @@ export function DemoParticipationPanel({
   const showBalanceNotice = balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state);
   const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity, browseReturnHref))}`;
   const addFundsHref = fundingHref(productSlug, undefined, quantity, browseReturnHref);
-  const rememberEntry = (selected = quantity) => saveEntryIntent(productSlug, productTitle, selected);
+  const rememberEntry = (selected = quantity) => saveEntryIntent(productSlug, productTitle, selected, browseReturnHref);
 
   useEffect(() => {
     if (!additionalEntryNoticeOpen || typeof window.matchMedia !== "function") return;
@@ -357,6 +357,7 @@ export function DemoParticipationPanel({
           setEntryActionTouched(true);
           // Retry the original intent, not new balance/quantity/sharing choices.
           if (uncertain) return;
+          rememberEntry();
           if (knownBalance !== null && knownBalance < totalCents) {
             event.preventDefault();
             setBalanceNoticeOpen(true);
