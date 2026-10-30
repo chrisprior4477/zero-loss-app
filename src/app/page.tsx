@@ -10,6 +10,8 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { OfferingAvailabilityProvider } from "@/components/home/OfferingAvailabilityProvider";
 import { ContinueEntryBanner } from "@/components/home/ContinueEntryBanner";
+import { ShoppingReminderPreview } from "@/components/home/ShoppingReminderPreview";
+import { demoProducts } from "@/lib/catalog/demo-products";
 import { getAccountContext } from "@/lib/account/context";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { livePulseItems } from "@/lib/home/live-pulse";
@@ -25,14 +27,20 @@ import { livePulseItems } from "@/lib/home/live-pulse";
  * Sample artwork/content stays intact; only aggregate offering availability
  * comes from the database. No customer or ledger records enter the rail props.
  */
-export default async function HomePage() {
-  const [availability, account] = await Promise.all([getOfferingAvailability(), getAccountContext()]);
+export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const [availability, account, params] = await Promise.all([getOfferingAvailability(), getAccountContext(), searchParams]);
+  const reminderVariant = params["reminder-preview"];
+  const previewProduct = reminderVariant === "viewed" || reminderVariant === "entry"
+    ? demoProducts.find(product => product.slug === "playstation-5-slim") : undefined;
+  const reminderPreview = previewProduct && (reminderVariant === "viewed" || reminderVariant === "entry")
+    ? <ShoppingReminderPreview key={reminderVariant} variant={reminderVariant} product={{ slug: previewProduct.slug, title: previewProduct.title, image: previewProduct.gallery[0].src }} /> : null;
   return (
     <>
+      {reminderPreview}
       <LivePulseTicker items={livePulseItems(availability, account?.activity)} />
 
       <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0 md:pb-4">
-        <ContinueEntryBanner />
+        {reminderPreview ? null : <ContinueEntryBanner />}
         <HeroSection />
         <OfferingAvailabilityProvider snapshot={availability} resolvedSlugs={resolvedCatalogSlugs(account?.activity)}>
           <DesktopMarketplaceRails />
