@@ -40,7 +40,7 @@ const secondaryLinks = [
 const navigationVisuals: Record<(typeof accountNavigation)[number][0], { description: string; imageSrc: string; artworkTreatment?: "zoom" | "full" | "fit-wallet" | "fill-panel" | "declined" }> = {
   "My Activity": { description: "Track your entries and results.", imageSrc: "/account/drawer/my-activity-324x180.png" },
   "Favorites & Sent to You": { description: "Saved and shared items.", imageSrc: "/account/drawer/favorites-324x180.svg", artworkTreatment: "full" },
-  "Gift Cards & Rewards": { description: "Browse prizes and claim rewards.", imageSrc: "/account/drawer/gift-cards-rewards-324x180.png" },
+  "My Gift Cards & Rewards": { description: "See your prizes and rewards.", imageSrc: "/account/drawer/gift-cards-rewards-324x180.png" },
   "Wallet & Transactions": { description: "Manage your balance and view transactions.", imageSrc: "/account/drawer/wallet-transactions-324x180.png", artworkTreatment: "fit-wallet" },
   "Orders & Fulfillment": { description: "Track your orders and delivery updates.", imageSrc: "/account/drawer/orders-fulfillment-324x180.png", artworkTreatment: "fill-panel" },
   "Your Crew": { description: "Build your crew and see their activity.", imageSrc: "/account/drawer/your-crew-exact-324x180.png", artworkTreatment: "fill-panel" },

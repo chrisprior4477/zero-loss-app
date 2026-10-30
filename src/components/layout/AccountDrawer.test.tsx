@@ -130,7 +130,7 @@ test("drawer account destinations follow the approved hierarchy", () => {
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const navigation = within(screen.getByRole("navigation", { name: "Account navigation" }));
   expect(navigation.getAllByRole("link").map(link => link.getAttribute("aria-label"))).toEqual([
-    "My Activity", "Favorites & Sent to You", "Gift Cards & Rewards", "Wallet & Transactions", "Orders & Fulfillment", "Your Crew", "Notifications", "Account & Security", "Declined Offers",
+    "My Gift Cards & Rewards", "My Activity", "Favorites & Sent to You", "Wallet & Transactions", "Orders & Fulfillment", "Your Crew", "Notifications", "Account & Security", "Declined Offers",
   ]);
 });
 
@@ -188,10 +188,10 @@ test("wallet history and rewards get distinct active navigation states", () => {
   render(<AccountDrawer {...props} />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   expect(screen.getByRole("link", { name: "Wallet & Transactions" }).getAttribute("aria-current")).toBe("page");
-  expect(screen.getByRole("link", { name: "Gift Cards & Rewards" }).hasAttribute("aria-current")).toBe(false);
+  expect(screen.getByRole("link", { name: "My Gift Cards & Rewards" }).hasAttribute("aria-current")).toBe(false);
   fireEvent.keyDown(window, { key: "Escape" });
   window.history.replaceState({}, "", "/account/wallet?reward=nike-court-shot-shoes");
   fireEvent.click(screen.getByLabelText("Open account menu"));
-  expect(screen.getByRole("link", { name: "Gift Cards & Rewards" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("link", { name: "My Gift Cards & Rewards" }).getAttribute("aria-current")).toBe("page");
   expect(screen.getByRole("link", { name: "Wallet & Transactions" }).hasAttribute("aria-current")).toBe(false);
 });

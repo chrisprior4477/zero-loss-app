@@ -15,9 +15,9 @@ export const accountRoutes = {
 } as const;
 
 export const accountNavigation = [
+  ["My Gift Cards & Rewards", accountRoutes.rewards, "gift"],
   ["My Activity", accountRoutes.activity, "layers"],
   ["Favorites & Sent to You", accountRoutes.favorites, "prize"],
-  ["Gift Cards & Rewards", accountRoutes.rewards, "gift"],
   ["Wallet & Transactions", accountRoutes.walletHistory, "wallet"],
   ["Orders & Fulfillment", accountRoutes.orders, "orders"],
   ["Your Crew", accountRoutes.crew, "crew"],

@@ -6,12 +6,11 @@ import { placeholderDiscoveryOpportunities } from "./placeholder-data";
 import { livePulseItems } from "./live-pulse";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 
-test("a saved ticker outcome opens its reward and keeps every sample statistic", () => {
+test("a saved outcome leaves the ticker while sample statistics stay intact", () => {
   const activity = storedActivityFixture();
   Object.assign(activity.activity[1], { slug: "dunkin-25-gift-card", rewardId: "dunkin-reward", rewardStatus: "ready" });
   const items = livePulseItems(null, activity);
-  expect(items.find(item => item.label === "Dunkin' Donuts $25 card")).toMatchObject({ value: "Ready to claim", href: "/account/wallet?reward=dunkin-25-gift-card&rewardId=dunkin-reward" });
-  expect(items).toHaveLength(livePulseItems(null).length);
+  expect(items.find(item => item.label === "Dunkin' Donuts $25 card")).toBeUndefined();
   expect(items.find(item => item.label === "193 winners")).toEqual(livePulseItems(null).find(item => item.label === "193 winners"));
   expect(livePulseItems(null, { ...activity, source: "unavailable" })).toEqual(livePulseItems(null));
 });
@@ -32,7 +31,30 @@ test("remaining counts follow the authoritative snapshot and never advertise tic
   expect(livePulseItems(current)[0].value).toBe("Only 1 left");
   current["airpods-pro"].sold = 750;
   current["airpods-pro"].remaining = 0;
-  expect(livePulseItems(current)[0].value).toBe("Pool full");
+  expect(livePulseItems(current).some(item => item.label === "AirPods Pro")).toBe(false);
+  current["airpods-pro"].sold = 748;
+  current["airpods-pro"].remaining = 2;
+  expect(livePulseItems(current).find(item => item.label === "AirPods Pro")?.value).toBe("Only 2 left");
+});
+
+test("resetting account activity restores only offerings that are open again", () => {
+  const state = storedActivityFixture();
+  Object.assign(state.activity[1], { slug: "nintendo-switch", status: "completed", rewardId: "card-one" });
+  state.activity.push({ ...state.activity[1], rewardId: "card-two" });
+  const snapshot = { "nintendo-switch": { slug: "nintendo-switch", capacity: 1200, sold: 1197, remaining: 3, entryPriceCents: 100, repeatableScenario: false } };
+  expect(livePulseItems(snapshot, state).some(item => item.label === "Nintendo Switch")).toBe(false);
+  const reset = { ...state, activity: [] };
+  expect(livePulseItems(snapshot, reset).find(item => item.label === "Nintendo Switch")?.value).toBe("3 tickets left");
+  snapshot["nintendo-switch"].sold = 1200;
+  snapshot["nintendo-switch"].remaining = 0;
+  expect(livePulseItems(snapshot, reset).some(item => item.label === "Nintendo Switch")).toBe(false);
+});
+
+test.each(["prize", "completion", "completed"] as const)("ticker excludes %s outcomes for this account, but not another account", status => {
+  const state = storedActivityFixture();
+  Object.assign(state.activity[0], { slug: "airpods-pro", status });
+  expect(livePulseItems(null, state).some(item => item.label === "AirPods Pro")).toBe(false);
+  expect(livePulseItems(null, { ...state, activity: [] }).some(item => item.label === "AirPods Pro")).toBe(true);
 });
 
 test("new offers use the existing Ending Soon cards, real local images and matching persisted pool snapshots", () => {
