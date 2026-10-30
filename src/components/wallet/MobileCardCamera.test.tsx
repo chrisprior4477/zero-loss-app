@@ -8,6 +8,7 @@ import { MobileCardCamera } from "./MobileCardCamera";
 import { DemoFundingForm } from "./DemoFundingForm";
 import { WalletPaymentMethods } from "./WalletPaymentMethods";
 import { WalletCardEditor } from "./WalletCardEditor";
+import { DEMO_CARD_FIXTURES } from "@/lib/payments/demo-card";
 
 const stop = vi.fn();
 const mediaStream = { getTracks: () => [{ stop }] } as unknown as MediaStream;
@@ -41,6 +42,26 @@ async function captureBoth(index = 0) {
   fireEvent.click(within(dialog).getByRole("button", { name: "Take back photo" }));
   return dialog;
 }
+
+test.each(["funding-top", "funding-bottom", "methods"])("full sample camera explains the existing card update and preserves defaults from %s", async entry => {
+  const cards = DEMO_CARD_FIXTURES.map((fixture, index) => ({ token: fixture.token, lastFour: fixture.lastFour, isDefault: index === 0, isDepositDefault: index === 1 }));
+  window.history.replaceState(null, "", "#payment-methods");
+  const { container } = render(entry === "methods" ? <WalletPaymentMethods enabled savedCards={cards} /> : <DemoFundingForm requestKey="full_camera_waiting_deposit" savedCards={cards} />);
+  const dialog = await captureBoth(entry === "funding-bottom" ? 1 : 0);
+  const isMethods = entry === "methods";
+  expect(within(dialog).getByText(`This updates your saved ${isMethods ? "Bank of America •••• 4242" : "Discover •••• 5556"}.`)).toBeTruthy();
+  expect(within(dialog).getByText(/No additional card is added/)).toBeTruthy();
+  expect((within(dialog).getByRole("checkbox", { name: "Use this card for future transactions" }) as HTMLInputElement).checked).toBe(isMethods);
+  expect((within(dialog).getByRole("checkbox", { name: "Use this card for deposits" }) as HTMLInputElement).checked).toBe(!isMethods);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save this card" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  const data = vi.mocked(saveDemoPaymentMethod).mock.calls[0][1];
+  expect(data.get("paymentMethod")).toBe(isMethods ? "demo_card_4242" : "demo_card_5556");
+  expect(data.get("makeDefault")).toBe(String(isMethods));
+  expect(data.get("makeDepositDefault")).toBe(String(!isMethods));
+  expect(isMethods ? screen.getAllByRole("article").length : container.querySelectorAll('[id^="sample-payment-"]').length).toBe(5);
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
 
 test("front and back use the rear camera, release it, and save only the sample reference and colors", async () => {
   const saved = vi.fn();

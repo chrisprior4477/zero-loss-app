@@ -27,10 +27,15 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   useEffect(() => { cardsRef.current = cards; }, [cards]);
   const [lastSavedCards, setLastSavedCards] = useState(savedCards);
   if (savedCards !== lastSavedCards) { setLastSavedCards(savedCards); setCards(savedCards); }
-  const availableToken = (DEMO_CARD_FIXTURES.find(fixture => !cards.some(card => card.token === fixture.token)) ?? DEMO_CARD_FIXTURES[0]).token;
-  const nextToken = () => (DEMO_CARD_FIXTURES.find(fixture => !cardsRef.current.some(card => card.token === fixture.token)) ?? DEMO_CARD_FIXTURES[0]).token;
+  const availableToken = DEMO_CARD_FIXTURES.find(fixture => !cards.some(card => card.token === fixture.token))?.token;
+  const cameraToken = availableToken ?? cards[0]?.token ?? DEMO_CARD_FIXTURES[0].token;
+  const nextToken = () => DEMO_CARD_FIXTURES.find(fixture => !cardsRef.current.some(card => card.token === fixture.token))?.token;
   function showMethods() { window.history.pushState(null, "", "#payment-methods"); setEditor(null); setScreen("methods"); revealMethods(); }
-  function addCard(artwork?: Artwork) { setEditor({ token: nextToken(), artwork }); setMessage(""); setScreen("editor"); window.history.pushState(null, "", "#wallet-add-card"); revealWalletSection("wallet-card-editor"); }
+  function addCard() {
+    const token = nextToken();
+    if (!token) { showMethods(); return; }
+    setEditor({ token }); setMessage(""); setScreen("editor"); window.history.pushState(null, "", "#wallet-add-card"); revealWalletSection("wallet-card-editor");
+  }
   useEffect(() => {
     const sync = () => {
       let hash = window.location.hash;
@@ -38,8 +43,11 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
         hash = initialSection === "card" ? "#wallet-add-card" : "#payment-methods";
         window.history.replaceState(null, "", hash);
       }
-      if (hash === "#wallet-add-card") { setEditor(current => current ?? { token: nextToken() }); setScreen("editor"); }
-      else { setEditor(null); setScreen(hash === "#payment-methods" ? "methods" : "closed"); }
+      if (hash === "#wallet-add-card") {
+        const token = nextToken();
+        if (token) { setEditor(current => current ?? { token }); setScreen("editor"); }
+        else { hash = "#payment-methods"; window.history.replaceState(null, "", hash); setEditor(null); setScreen("methods"); }
+      } else { setEditor(null); setScreen(hash === "#payment-methods" ? "methods" : "closed"); }
       if (hash === "#payment-methods") revealMethods();
       else if (["#balance", "#add-funds", "#wallet-add-card"].includes(hash)) revealWalletSection(hash === "#wallet-add-card" ? "wallet-card-editor" : hash.slice(1));
     };
@@ -81,7 +89,10 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
     {screen === "editor" && editor ? <WalletCardEditor key={editor.token} token={editor.token} savedCard={editor.card} initialArtwork={editor.artwork} displayName={displayName} disabled={!enabled || unavailable} onCancel={showMethods} onSaved={acceptSavedCard} /> : <>
       <h2>Payment methods</h2><p>Your saved cards, ready when you need them.</p>
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
-      <div id="payment-methods-controls" className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={availableToken} displayName={displayName} disabled={!enabled || unavailable || busy} onSaved={acceptSavedCard} /></div>
+      <div id="payment-methods-controls">
+        {!availableToken && !unavailable ? <p className={styles.notice}>All five sample cards are saved. Choose a saved card to edit.</p> : null}
+        <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>{availableToken ? "Add Card" : "Choose saved card"}</button><MobileCardCamera token={cameraToken} savedCard={cards.find(card => card.token === cameraToken)} displayName={displayName} disabled={!enabled || unavailable || busy} onSaved={acceptSavedCard} /></div>
+      </div>
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
         <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} disabled={!enabled || unavailable || busy} onChange={event => void setDefault(card, event.target.checked)} />Use as my default payment method</label>

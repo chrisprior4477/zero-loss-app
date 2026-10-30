@@ -37,8 +37,8 @@ async function sampleColors(file: File): Promise<number[]> {
   } finally { photo.src = ""; canvas.width = 0; canvas.height = 0; URL.revokeObjectURL(url); }
 }
 
-export function MobileCardCamera({ token, disabled, displayName, makeDefault = true, makeDepositDefault = true, onSaved }: {
-  token: DemoCardToken; disabled?: boolean; displayName?: string; makeDefault?: boolean; makeDepositDefault?: boolean; onSaved: (card: DemoCard) => void;
+export function MobileCardCamera({ token, savedCard, disabled, displayName, makeDefault = savedCard?.isDefault ?? true, makeDepositDefault = savedCard ? savedCard.isDepositDefault ?? savedCard.isDefault : true, onSaved }: {
+  token: DemoCardToken; savedCard?: DemoCard; disabled?: boolean; displayName?: string; makeDefault?: boolean; makeDepositDefault?: boolean; onSaved: (card: DemoCard) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -145,6 +145,7 @@ export function MobileCardCamera({ token, disabled, displayName, makeDefault = t
       <button type="button" className={styles.close} disabled={saving} aria-label="Close camera" onClick={close}>×</button>
       <p className={styles.eyebrow}>SAMPLE CARD CAMERA</p>
       <h2>{artwork ? "Your sample card" : front ? "Now capture the back" : "Capture the front"}</h2>
+      {savedCard ? <p><strong>This updates your saved {demoCardFixture(cameraToken)?.issuer} •••• {demoCardFixture(cameraToken)?.lastFour}.</strong> No additional card is added.</p> : null}
       <p>{artwork ? "We recreated the colors with fake details. The original photos are discarded." : front ? "Front captured. Flip your pretend card over and line up the back." : "Use any pretend card—even one drawn on paper. No real bank card needed. Allow camera access when your phone asks."}</p>
       {artwork ? <><p className={styles.issuer}><strong>{demoCardFixture(cameraToken)?.issuer} •••• {demoCardFixture(cameraToken)?.lastFour}</strong></p><DemoCardArtwork token={cameraToken} artwork={artwork} back={back} cardholder={displayName} /><button type="button" className={styles.flip} onClick={() => setBack(value => !value)}>See {back ? "front" : "back"}</button></> : <>
         <div className={styles.viewfinder} aria-label={`Align the ${front ? "back" : "front"} of your pretend card inside the corner guides`}>

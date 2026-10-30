@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import type { DemoCard } from "@/lib/payments/demo-card";
+import { DEMO_CARD_FIXTURES, type DemoCard } from "@/lib/payments/demo-card";
 const navigation = vi.hoisted(() => ({ refresh: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/payments/actions", () => ({ saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn(), completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn() }));
@@ -9,8 +9,58 @@ import { WalletPaymentMethods } from "./WalletPaymentMethods";
 import { WalletCardEditor } from "./WalletCardEditor";
 import { DemoFundingForm } from "./DemoFundingForm";
 const initialCards: DemoCard[] = [{ token: "demo_card_4242", lastFour: "4242", isDefault: true }];
+const allCards: DemoCard[] = DEMO_CARD_FIXTURES.map((fixture, index) => ({ token: fixture.token, lastFour: fixture.lastFour, isDefault: index === 0, isDepositDefault: index === 1 }));
 beforeEach(() => { window.history.replaceState(null, "", "/account/wallet?view=history#balance"); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+test.each([0, 1])("full funding card list lets the user choose an edit from entry %i without losing the deposit", async index => {
+  vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });
+  const { container } = render(<DemoFundingForm requestKey="full_cards_waiting_deposit" savedCards={allCards} displayName="Demo Customer" />);
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "75" } });
+  fireEvent.click(screen.getAllByRole("button", { name: "Choose saved card" })[index]);
+  expect(screen.getByText("All five sample cards are saved. Choose a saved card to edit.")).toBeTruthy();
+  expect(screen.queryByRole("form", { name: "Save payment method" })).toBeNull();
+  expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
+  const chase = container.querySelector<HTMLElement>("#sample-payment-demo_card_1117")!;
+  fireEvent.click(within(chase).getByRole("button", { name: "Edit" }));
+  expect(screen.getByRole("heading", { name: "Edit card" })).toBeTruthy();
+  expect((screen.getByLabelText("Card number") as HTMLInputElement).value).toBe(DEMO_CARD_FIXTURES[4].number);
+  expect((screen.getByRole("checkbox", { name: "Use this card for deposits" }) as HTMLInputElement).checked).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Update card" }));
+  await waitFor(() => expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy());
+  expect(vi.mocked(saveDemoPaymentMethod).mock.calls[0][1].get("paymentMethod")).toBe("demo_card_1117");
+  expect(container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("7500");
+  expect(container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_5556");
+  expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("full_cards_waiting_deposit");
+  expect(container.querySelectorAll('[id^="sample-payment-"]')).toHaveLength(5);
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
+
+test.each(["methods", "wallet", "legacy"])("all saved cards open the list instead of pretending to add a card via %s", entry => {
+  window.history.replaceState(null, "", entry === "methods" ? "#payment-methods" : entry === "wallet" ? "#wallet-add-card" : "#account-settings-sections");
+  render(<WalletPaymentMethods enabled savedCards={allCards} initialSection={entry === "legacy" ? "card" : undefined} />);
+  expect(window.location.hash).toBe("#payment-methods");
+  expect(screen.getByText("All five sample cards are saved. Choose a saved card to edit.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Choose saved card" }));
+  expect(screen.queryByRole("form", { name: "Save payment method" })).toBeNull();
+  fireEvent.click(within(screen.getByRole("article", { name: "Saved card 1881" })).getByRole("button", { name: "Edit" }));
+  expect(screen.getByRole("heading", { name: "Edit card" })).toBeTruthy();
+  expect((screen.getByLabelText("Card number") as HTMLInputElement).value).toBe(DEMO_CARD_FIXTURES[2].number);
+  expect((screen.getByRole("checkbox", { name: "Use this card for future transactions" }) as HTMLInputElement).checked).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.getAllByRole("article")).toHaveLength(5);
+  expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
+});
+
+test("an available sample restores normal Add Card after the saved list refreshes", () => {
+  window.history.replaceState(null, "", "#payment-methods");
+  const { rerender } = render(<WalletPaymentMethods enabled savedCards={allCards} />);
+  rerender(<WalletPaymentMethods enabled savedCards={allCards.filter(card => card.token !== "demo_card_1881")} />);
+  expect(screen.queryByText(/All five sample cards/)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
+  expect(screen.getByRole("heading", { name: "Add a card" })).toBeTruthy();
+  expect((screen.getByLabelText("Card number") as HTMLInputElement).value).toBe(DEMO_CARD_FIXTURES[2].number);
+});
 
 test("journey 1 opens the editor, saves only a reference, and returns to methods without funding", async () => {
   vi.mocked(saveDemoPaymentMethod).mockResolvedValue({ status: "succeeded", message: "Saved" });

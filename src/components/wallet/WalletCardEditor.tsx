@@ -57,7 +57,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
     {depositLabel ? <p className={styles.notice}>Your {depositLabel} deposit is waiting. Saving a card does not add funds.</p> : <p>Save a payment method without adding funds.</p>}
     <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}>
       <button type="button" className={styles.primary} disabled={disabled || pending} onClick={() => nameInput.current?.focus()}>Add Card</button>
-      <MobileCardCamera token={enteredFixture?.token ?? token} displayName={displayName} makeDefault={makeDefault} makeDepositDefault={makeDepositDefault} disabled={disabled || pending} onSaved={onSaved} />
+      <MobileCardCamera token={enteredFixture?.token ?? token} savedCard={savedCard?.token === (enteredFixture?.token ?? token) ? savedCard : undefined} displayName={displayName} makeDefault={makeDefault} makeDepositDefault={makeDepositDefault} disabled={disabled || pending} onSaved={onSaved} />
     </div>
     <form action={action} noValidate aria-label="Save payment method" onSubmit={event => {
       setError("");

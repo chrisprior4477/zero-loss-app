@@ -63,9 +63,13 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   const [artwork, setArtwork] = useState<Partial<Record<DemoCardToken, DemoCardArtwork>>>(() => Object.fromEntries(cards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
   const [editingCard, setEditingCard] = useState<{ token: DemoCardToken; artwork?: DemoCardArtwork } | null>(null);
   const nextCard = DEMO_CARD_FIXTURES.find(card => !visibleTokens.includes(card.token));
-  function addCard(token = nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, sampleArtwork?: DemoCardArtwork) {
+  const allSamplesSaved = DEMO_CARD_FIXTURES.every(fixture => cards.some(card => card.token === fixture.token));
+  const cameraToken = nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
+  const cameraCard = cards.find(card => card.token === cameraToken);
+  function addCard(token?: DemoCardToken, sampleArtwork?: DemoCardArtwork) {
     if (locked || cardUnavailable) return;
-    setEditingCard({ token, artwork: sampleArtwork });
+    if (!token && allSamplesSaved) { revealWalletSection("add-card"); return; }
+    setEditingCard({ token: token ?? nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, artwork: sampleArtwork });
     revealWalletSection("wallet-card-editor");
   }
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
@@ -182,13 +186,14 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     <input type="hidden" name="recoveryOnly" value={String(recoveryOnly)} />
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     {!recoveryOnly ? <section id="add-card" aria-label="Add Credit Card" className={styles.demoCardsPanel}>
-      <div className={styles.demoCardsHeading}><div><h3>Add a card</h3><p>Choose a supplied sample card. No real card details are accepted.</p></div>
-        <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={() => addCard()}>+ Add another card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div></div>
+      <div className={styles.demoCardsHeading}><div><h3>{allSamplesSaved ? "Your saved cards" : "Add a card"}</h3><p>{allSamplesSaved ? "All five sample cards are saved. Choose a saved card to edit." : "Choose a supplied sample card. No real card details are accepted."}</p></div>
+        <div className={styles.addCardActions}><button type="button" disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "+ Add another card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div></div>
       <div className={styles.demoCardsGrid}>{visibleTokens.map(token => {
         const saved = cards.some(card => card.token === token);
         const artChanged = saved && JSON.stringify(artwork[token]) !== JSON.stringify(cards.find(card => card.token === token)?.artwork);
         return <DemoFundingCard key={token} token={token} selected={selectedToken === token} saved={saved} artwork={artwork[token]} confirmation={deleteToken === token ? <DeleteCardToast key={token} busy={deletingCard} message={cardMessage} onUndo={closeDeleteDialog} onDelete={() => void confirmDeleteCard()} /> : null} actions={<>
           {!saved || artChanged ? <button type="button" className={styles.saveSampleCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => void persistCard(token, defaultToken === token)}>{savingCard === token ? "Saving…" : artChanged ? "Save artwork" : "Save this card"}</button> : null}
+          {allSamplesSaved ? <button type="button" className={styles.seeCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => addCard(token)}>Edit</button> : null}
           {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); setDeleteToken(token); }}>Delete Card</button> : null}
         </>}>
           <label className={styles.cardChoice}><input type="radio" name="cardChoice" checked={selectedToken === token} onChange={() => setSelectedToken(token)} disabled={locked || cardUnavailable} />Use for this deposit</label>
@@ -205,7 +210,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
     <div id="add-funds" className={styles.fundingAmountSection}>
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
-      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>Add Card</button><MobileCardCamera token={nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
+      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
       {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={setSelectedToken} /> : null}
       <div className={styles.fundingAmounts}>
       <WalletRollerPicker id="demo-funding-amount" label="Amount (USD)" placeholder="Choose an amount" options={presetChoices}
