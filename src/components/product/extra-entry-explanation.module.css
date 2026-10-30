@@ -1,7 +1,7 @@
 .ticket {
   --corner:18px; --side:8px;
   position:fixed; inset:4px auto auto 50%; transform:translateX(-50%); margin:0;
-  width:min(600px,calc(100vw - 8px)); height:calc(100dvh - 8px); max-height:calc(100dvh - 8px);
+  width:min(600px,calc(100vw - 8px)); height:auto; max-height:calc(100dvh - 8px);
   max-width:none; padding:16px 12px; border:0; border-radius:0; overflow:hidden;
   background:#fffdf9; color:#102344; box-shadow:0 24px 70px #00122c70;
   mask-image:radial-gradient(circle var(--corner) at 0 0,transparent 99%,#000 103%),radial-gradient(circle var(--corner) at 100% 0,transparent 99%,#000 103%),radial-gradient(circle var(--corner) at 0 100%,transparent 99%,#000 103%),radial-gradient(circle var(--corner) at 100% 100%,transparent 99%,#000 103%),radial-gradient(circle var(--side) at 0 50%,transparent 99%,#000 103%),radial-gradient(circle var(--side) at 100% 50%,transparent 99%,#000 103%);
