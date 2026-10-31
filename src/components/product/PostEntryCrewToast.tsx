@@ -617,6 +617,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
       {step === "group" ? <>
         {deleteGroupConfirm ? <div className={styles.confirmDelete} role="region" aria-label="Confirm group deletion"><strong>Delete {groupName}?</strong><p>The people stay in your Crew.</p><div className={styles.duo}><button type="button" className={styles.deleteGroup} disabled={busy} onClick={() => void deleteGroup()}>Yes, delete group</button><button type="button" disabled={busy} onClick={() => setDeleteGroupConfirm(false)}>Cancel</button></div></div> : null}
+        {!deleteGroupConfirm ? <>
         <form onSubmit={event => { event.preventDefault(); void createGroup(); }}>
           <div className={styles.field}><label htmlFor={`${id}-group`}>Group name</label><input id={`${id}-group`} value={groupName} onChange={event => setGroupName(event.target.value)} maxLength={50} required disabled={busy} placeholder="Family, Friends…" /></div>
           <h3>Choose connected Crew members</h3>
@@ -629,6 +630,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         <details className={styles.more}><summary>More group options</summary><button type="button" disabled={busy} onClick={() => void refreshMembers()}>Refresh Crew members</button>
         <Link className={styles.manage} href="/account/crew#crew-groups" onClick={onClose}>Manage groups and saved contacts →</Link>
         </details>
+        </> : null}
       </> : null}
 
       {step === "roster" ? <><p className={styles.note}>{members.length} people in your Crew</p><div className={styles.groupMemberPicker}>{members.map(member => <div className={styles.memberRow} key={member.id}><div className={styles.personIdentity}><span className={styles.memberAvatar}>{avatarLabel(member.name)}</span><strong>{member.name}</strong></div><button type="button" className={styles.editContact} aria-label={`Edit ${member.name}`} disabled={busy} onClick={() => editContact(member)}>Edit</button><button type="button" className={styles.deleteContact} aria-label={`Delete ${member.name}`} disabled={busy} onClick={() => { editContact(member); setDeleteContactConfirm(true); }}>Delete</button></div>)}</div><button type="button" className={styles.primary} onClick={() => void openFinder()}>＋ Add people</button><button type="button" onClick={() => { setGroupsOnly(false); setStep("audience"); history.current = ["home"]; feedback(""); }}>Back to sharing</button></> : null}

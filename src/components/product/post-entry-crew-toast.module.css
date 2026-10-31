@@ -177,7 +177,7 @@ dialog.toast.journeyDialog.journeyDialog[open] { display:flex; align-items:flex-
 .groupMemberPicker { max-height:160px; overflow-y:auto; overscroll-behavior:contain; margin-block:8px; }
 .journey .groupMemberPicker .choice { padding:7px; margin:4px 0; font-size:13px; min-height:44px; }
 .toast .journey form h3 { margin:8px 0 4px; font-size:13px; }
-.journey form .groupMemberPicker { max-height:128px; }
+.journey form .groupMemberPicker { max-height:116px; }
 .journey input:not([type=radio],[type=checkbox]) { font-size:16px; }
 .journey .duo { margin-top:10px; }
 .journey > .item { margin-block:8px; }
