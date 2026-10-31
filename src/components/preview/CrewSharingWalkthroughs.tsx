@@ -57,6 +57,7 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
   const [success, setSuccess] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const landingHeading = useRef<HTMLHeadingElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const scrollBody = useRef<HTMLDivElement>(null);
   const history = useRef<Screen[]>([]);
@@ -95,6 +96,10 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
   useEffect(() => {
     if (scrollBody.current) scrollBody.current.scrollTop = 0;
     if (modalOpen) heading.current?.focus({ preventScroll: true });
+    else {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      landingHeading.current?.focus({ preventScroll: true });
+    }
   }, [screen, modalOpen]);
 
   useEffect(() => {
@@ -106,6 +111,7 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
   function go(next: Screen) { history.current.push(screen); setNotice(""); setScreen(next); }
   function back() { setNotice(""); setScreen(history.current.pop() ?? "home"); }
   function close() { setScreen("entry"); setNotice(""); }
+  function overview() { setScreen("overview"); window.history.replaceState(null, "", "/crew-walkthroughs"); }
   function start(next: SharingJourney) {
     setJourney(next); setCrew(initialPreviewCrew()); setSelectedGroupId("mom"); setQuery(""); setAddedIds([]);
     setNotice(""); setCompletion(""); history.current = []; setScreen("home");
@@ -144,26 +150,26 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
   return <div className={styles.page}>
     <div className={styles.reviewBar}><span>SHARING WALKTHROUGHS</span><small>Preview only · fictional people · no messages sent</small></div>
     {screen === "overview" ? <section className={styles.overview}>
-      <span className={styles.eyebrow}>FOUR COMPLETE JOURNEYS</span><h1>Sharing, made simple.</h1>
+      <span className={styles.eyebrow}>FOUR COMPLETE JOURNEYS</span><h1 ref={landingHeading} tabIndex={-1}>Sharing, made simple.</h1>
       <p>Try each path with the same find. Add people, build a group, and see exactly where you land.</p>
       <div className={styles.journeyGrid}>{sharingJourneys.map((item, index) => <button key={item.id} onClick={() => start(item.id)}><b>0{index + 1}</b><strong>{item.title}</strong><span>{item.description}</span><small>Start walkthrough →</small></button>)}</div>
       <p className={styles.overviewNote}>Use Test Customer 1–5, 1111111111–5555555555, or testcustomer1@example.test. Changes are simulated and reset when you restart.</p>
       <Link href="https://zero-loss-app-git-openai-homepage-experiment-zero-loss.vercel.app/items/playstation-5-slim">Back to the regular site →</Link>
     </section> : <section className={styles.entry} aria-label="Walkthrough entry details">
       <div className={styles.pathTabs}>{sharingJourneys.map((item, index) => <button key={item.id} aria-pressed={journey === item.id} onClick={() => start(item.id)}>{index + 1}. {item.id === "add" ? "Add people" : item.id === "group" ? "Groups" : item.id === "crew" ? "Crew" : "Text"}</button>)}</div>
-      <span className={styles.eyebrow}>MY ACTIVITY</span><h1>Your Entry Details</h1><p>Your 4 saved entries for the prize below.</p>
+      <span className={styles.eyebrow}>MY ACTIVITY</span><h1 ref={landingHeading} tabIndex={-1}>Your Entry Details</h1><p>Your 4 saved entries for the prize below.</p>
       {completion ? <div className={styles.completed} role="status"><strong>✓ Walkthrough complete</strong><span>{completion}</span><small>Nothing was sent and your real account is unchanged.</small></div> : null}
       <div className={styles.entryPaper}><ProductSummary /><div className={styles.pending}>NO WINNERS YET. WE WILL NOTIFY YOU WHEN THE POOL IS COMPLETE.</div>
         <div className={styles.entryStats}><div><small>Entered</small><strong>Oct 30, 2026</strong><span>4 separate entries</span></div><div><b>68%</b><small>607 tickets left</small></div></div>
         <div className={styles.prizeRow}><span>Prize number<strong>PRZ-1936474803</strong></span><button className={styles.orange} onClick={() => { history.current = []; setScreen("home"); }}><ShareIcon name="share" />Share</button></div>
       </div>
-      <div className={styles.entryActions}><button className={styles.orange} onClick={() => start(journey)}>Restart this journey</button><button onClick={() => setScreen("overview")}>All four journeys</button></div>
+      <div className={styles.entryActions}><button className={styles.orange} onClick={() => start(journey)}>Restart this journey</button><button onClick={overview}>All four journeys</button></div>
       <p className={styles.overviewNote}>This is where every completed sharing journey returns.</p>
     </section>}
 
     {modalOpen ? <dialog ref={dialog} className={styles.dialog} aria-labelledby={`${id}-heading`} onCancel={event => { event.preventDefault(); close(); }} onKeyDown={containDialogTab}>
       <div className={styles.ticket}>
-        <header className={styles.modalHead}><div><span className={styles.journeyLabel}>JOURNEY {journeyIndex + 1} OF 4 · {sharingJourneys[journeyIndex].title}</span><button className={styles.back} onClick={screen === "home" ? () => setScreen("overview") : back}>{screen === "home" ? "← All journeys" : "← Back"}</button></div><button className={styles.close} aria-label="Close walkthrough" onClick={close}>×</button></header>
+        <header className={styles.modalHead}><div><span className={styles.journeyLabel}>JOURNEY {journeyIndex + 1} OF 4 · {sharingJourneys[journeyIndex].title}</span><button className={styles.back} onClick={screen === "home" ? overview : back}>{screen === "home" ? "← All journeys" : "← Back"}</button></div><button className={styles.close} aria-label="Close walkthrough" onClick={close}>×</button></header>
         <h2 id={`${id}-heading`} ref={heading} tabIndex={-1}>{title}</h2>
         {screen !== "contacts" ? <ProductSummary /> : null}
         <div ref={scrollBody} className={styles.content}>

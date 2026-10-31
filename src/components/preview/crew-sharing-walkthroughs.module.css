@@ -45,6 +45,7 @@
 .dialog .close { flex-shrink:0; width:38px; min-height:38px; height:38px; border-radius:50%; padding:0; margin:0; background:#eaf4f9; color:#476980; font-size:27px; font-weight:400; }
 .dialog h2 { font-size:25px; line-height:1.15; letter-spacing:-.5px; font-weight:800; margin:7px 0 12px; flex-shrink:0; }
 .dialog h2:focus { outline:none; }
+.overview h1:focus,.entry h1:focus { outline:none; }
 .product { display:flex; align-items:center; gap:10px; padding:9px 11px; background:#eef5fa; border-radius:12px; flex-shrink:0; }
 .product img { flex-shrink:0; width:54px; height:54px; object-fit:contain; border-radius:8px; background:white; }
 .product strong { display:block; font-size:14px; line-height:1.3; font-weight:800; }

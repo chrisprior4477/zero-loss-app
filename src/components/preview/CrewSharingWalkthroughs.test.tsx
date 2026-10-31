@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { CrewSharingWalkthroughs } from "./CrewSharingWalkthroughs";
 
 beforeEach(() => {
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
 });
@@ -73,6 +74,7 @@ test("Crew confirmation automatically returns to entry details without a live se
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("status").textContent).toContain("with 2 Crew members");
   expect(screen.getByText("Nothing was sent and your real account is unchanged.")).toBeTruthy();
+  expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
 });
 
 test("the text journey reaches a complete simulated draft and returns to the item", () => {
