@@ -502,6 +502,10 @@ test("name suggestions put unadded people first and keep connected people editab
   expect(screen.getByRole("button", { name: "Edit Member" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Edit New member" })).toBeNull();
   expect(mocks.invite).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Done · back to sharing" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add People to your crew" }));
+  expect(screen.getByRole("region", { name: "People you can add" }).querySelector("strong")?.textContent).toBe("Member");
+  expect(screen.queryByText("New member", { exact: true })).toBeNull();
 });
 
 test("editing in a group finder returns there without changing its audience or membership", async () => {

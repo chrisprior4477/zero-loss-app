@@ -254,7 +254,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   async function openFinder(targetGroup: string | null = null) {
     if (step === "home" || step === "crew") setGroupsOnly(false);
     findReturn.current = step === "home" || step === "crew" ? "audience" : step;
-    setFindTargetGroup(targetGroup); setQuery(""); setReviewQuery(""); setSearching(false); go("find");
+    setFindTargetGroup(targetGroup); setQuery(""); setReviewQuery(""); setPeople([]); setSearching(false); go("find");
     if (!options) await run(async () => { const result = await getCrewShareOptions(); if (alive.current && result.ok) setOptions(result); });
   }
 

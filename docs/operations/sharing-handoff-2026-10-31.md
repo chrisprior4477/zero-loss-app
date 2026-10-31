@@ -45,6 +45,7 @@ The phone Contact Picker already exists where supported. The user chooses a cont
 - Rows distinguish **In your Crew**, **In this group**, and discoverable members. Owner-specific saved names take precedence over public profile names.
 - Editing and saving returns to the same finder/group. It does not silently add to a group or send anything.
 - The list starts at the top when entering the finder or changing the query, avoiding a previous scroll position hiding available people.
+- Opening a fresh finder starts with your saved Crew rather than stale results from a previous search. Results still remain available when returning from an add/edit action.
 
 ## Contact ownership and persistence
 
@@ -106,6 +107,8 @@ The [native web Contact Picker](https://developer.chrome.com/docs/capabilities/w
 ## Checks and review recipe
 
 Latest local sharing suite: **50 tests passed** across the popup and share-options files; targeted ESLint, whitespace checks, and `npm run build` passed. Verify the exact released commit before reporting publication. Live phone-layout checks supplement tests; browser resizing is not a substitute for actual device contact permissions or the phone's messaging app.
+
+The finder changes were checked on the regular live site at 375×667, 320×667, and 1280×900. Available-first ordering, autocomplete, per-person editing, and return to the selected Football group worked. Test Customer 1's fixture phone/email were saved through the editor and remained present after a fresh page load. No shares, new connections, group membership changes, deposits, ticket purchases, deletions, or resets were performed for those checks.
 
 1. On the regular PlayStation product, open Share → Share with Crew. Check the thinner Add People to your crew button and existing actions.
 2. Choose a group → Add. People outside that group should be at the top; already-added people remain below. The name search should retain results and use the same ordering.
