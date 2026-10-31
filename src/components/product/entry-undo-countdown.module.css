@@ -32,3 +32,7 @@
   .badge { width: 76px; height: 76px; flex-basis: 76px; }
   .number { font-size: 34px; }
 }
+
+.badge.compact { width: 64px; height: 64px; flex-basis: 64px; }
+.compact .number { font-size: 28px; }
+.compact .unit { font-size: 10px; }

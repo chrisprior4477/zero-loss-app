@@ -44,6 +44,12 @@ test("Account & Security opens at its heading below the actual mobile header", (
   expect(container.style.getPropertyValue("--settings-header-bottom")).toBe("80px");
 });
 
+test("a funded entry return can land on its review instead of the older quantity heading", () => {
+  const { scrollTo, flush } = setup({ hash: "#profile-intro" });
+  render(<AccountSettingsLandingScroll target="account-settings-intro" initialTarget="security-controls" allScreens />); flush();
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 908, behavior: "instant" });
+});
+
 test.each(["/account/profile", "/account/payment-methods", "/account/crew/display"])("direct %s links retain the four section buttons", path => {
   const { scrollTo, flush } = setup({ path });
   render(<AccountSettingsLandingScroll target="account-settings-sections" />); flush();

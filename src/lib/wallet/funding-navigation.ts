@@ -8,7 +8,7 @@ export type FundingContinuation = { title: string; href: string; label?: "Back t
 
 export function entryReviewHref(entryId: string, quantity = 1): string {
   if (!entryPattern.test(entryId)) return "/account/entries";
-  return `/account/entries/${entryId}?quantity=${isEntryQuantity(quantity) ? quantity : 1}&review=entry#add-entries-title`;
+  return `/account/entries/${entryId}?quantity=${isEntryQuantity(quantity) ? quantity : 1}&review=entry#additional-entry-checkout`;
 }
 
 /** An existing entry review is distinct from a purchase-option return. */

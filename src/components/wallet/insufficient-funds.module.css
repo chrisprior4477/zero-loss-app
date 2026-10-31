@@ -1,8 +1,8 @@
-.notice { margin-block:10px; padding:12px 14px; border-radius:10px; background:#c44b00; color:#fff; text-align:left; }
+.notice { margin-block:10px; padding:12px 14px; border-radius:10px; background:#ff6a00; color:#fff; text-align:left; }
 .notice .title { display:block; margin:0 0 4px; color:#fff; font-size:16px; font-weight:850; line-height:1.25; }
 .notice .copy { color:#fff; font-size:14px; line-height:1.45; }
 .notice .copy p { margin:4px 0; color:#fff; }
 .notice .copy strong { color:#fff; }
-.notice .action { display:flex; align-items:center; justify-content:center; min-height:42px; width:100%; margin-top:10px; padding:8px 14px; border:1px solid #fff; border-radius:8px; background:#a83d00; color:#fff; font-size:15px; font-weight:850; line-height:1.2; text-decoration:none; }
-.notice .action:hover { background:#903400; }
+.notice .action { display:flex; align-items:center; justify-content:center; min-height:42px; width:100%; margin-top:10px; padding:8px 14px; border:1px solid #fff; border-radius:8px; background:#ff6a00; color:#fff; font-size:15px; font-weight:850; line-height:1.2; text-decoration:none; }
+.notice .action:hover { background:#ed6100; }
 .notice .action:focus-visible { outline:3px solid #fff; outline-offset:3px; }

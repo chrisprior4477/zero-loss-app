@@ -1,13 +1,15 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { EntryPageActions } from "./EntryPageActions";
+import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 
 const createPreviewEntry = vi.hoisted(() => vi.fn());
 const confirmPendingEntryRequest = vi.hoisted(() => vi.fn());
+const resolvePendingEntryRequest = vi.hoisted(() => vi.fn());
 const refresh = vi.hoisted(() => vi.fn());
 const replace = vi.hoisted(() => vi.fn());
 const sharePrizeWithCrew = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry, confirmPendingEntryRequest, resolvePendingEntryRequest: vi.fn() }));
+vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry, confirmPendingEntryRequest, resolvePendingEntryRequest }));
 vi.mock("@/lib/crew/actions", () => ({ sharePrizeWithCrew }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh, replace }) }));
 vi.mock("./EntryOutcomeEmailPreference", () => ({ EntryOutcomeEmailPreference: () => <div data-testid="outcome-email-preference" /> }));
@@ -53,6 +55,72 @@ function selectQuantity(quantity: number) {
     fireEvent.click(screen.getByRole("button", { name: "Add one extra entry" }));
   }
 }
+
+function pendingReceipt(quantity = 24): EntryRequest {
+  return { requestId: "22222222-2222-4222-8222-222222222222", slug: props.slug, title: props.itemTitle,
+    quantity, amountCents: quantity * 100, status: "pending", duplicate: false,
+    undoUntil: new Date(Date.now() + 30000).toISOString(), serverNow: new Date().toISOString(), href: null };
+}
+
+test("reserving the full balance never asks to fund the same 24 entries a second time", async () => {
+  const request = pendingReceipt();
+  createPreviewEntry.mockResolvedValue({ status: "request", request });
+  const view = render(<EntryPageActions {...props} remaining={100} initialQuantity={24} resumeReview />);
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm 24 entries for $24" }));
+  await screen.findByRole("button", { name: "Confirm entry" });
+  // Revalidation sees the hold deducted, including when it fills the pool.
+  view.rerender(<EntryPageActions {...props} remaining={0} balanceCents={0} initialQuantity={24} resumeReview />);
+  expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
+  expect(screen.queryByText("Review additional entries")).toBeNull();
+  expect(screen.queryByRole("checkbox", { name: /approve this demo entry transaction/i })).toBeNull();
+  expect(screen.queryByText(/Only 0 additional/)).toBeNull();
+  expect(screen.getByRole("button", { name: "Undo entry" })).toBeTruthy();
+  expect(screen.getByRole("timer").className).toContain("compact");
+});
+
+test("a reloaded pending hold is recovered even with zero balance and no unreserved tickets", async () => {
+  const request = pendingReceipt();
+  confirmPendingEntryRequest.mockResolvedValue({ request: { ...request, status: "accepted", href: "/account/entries", entryId: props.entryId } });
+  render(<EntryPageActions {...props} remaining={0} balanceCents={0} initialReceipt={request} resumeReview />);
+  expect(screen.getByText("Your pending entry")).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm entry" }));
+  await waitFor(() => expect(replace).toHaveBeenCalledWith(`/account/entries/${props.entryId}#entry-details-intro`));
+  expect(createPreviewEntry).not.toHaveBeenCalled();
+  expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
+  // A stale in-flight poll cannot resurrect the receipt or its controls.
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request })));
+  expect(screen.queryByRole("button", { name: "Undo entry" })).toBeNull();
+});
+
+test("Undo releases the existing hold and requires a fresh review and approval", async () => {
+  const request = pendingReceipt(1);
+  resolvePendingEntryRequest.mockResolvedValue({ request: { ...request, status: "cancelled" } });
+  render(<EntryPageActions {...props} initialReceipt={request} />);
+  fireEvent.click(screen.getByRole("button", { name: "Undo entry" }));
+  await screen.findByText(/This submission was not entered/);
+  expect(resolvePendingEntryRequest).toHaveBeenCalledWith(request.requestId, true);
+  expect(screen.queryByRole("checkbox", { name: /approve this demo entry transaction/i })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Review entries again" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add more entries to PlayStation 5" }));
+  expect(screen.getByRole("button", { name: "Confirm entry for $1" }).hasAttribute("disabled")).toBe(true);
+  expect(createPreviewEntry).not.toHaveBeenCalled();
+});
+
+test("an unknown outcome can recover the original request after its hold reduces the balance", async () => {
+  createPreviewEntry.mockRejectedValueOnce(new Error("Connection lost"))
+    .mockResolvedValueOnce({ status: "request", request: pendingReceipt() });
+  const view = render(<EntryPageActions {...props} remaining={100} initialQuantity={24} resumeReview />);
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm 24 entries for $24" }));
+  await screen.findByRole("button", { name: "Check saved submission" });
+  view.rerender(<EntryPageActions {...props} remaining={0} balanceCents={0} initialQuantity={24} resumeReview />);
+  expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Check saved submission" }));
+  await screen.findByRole("button", { name: "Undo entry" });
+  expect(createPreviewEntry.mock.calls[1][1]).toBe(createPreviewEntry.mock.calls[0][1]);
+});
 
 test.each([11, 101])("Entry Details reviews and submits %i entries without a customer cap", async quantity => {
   createPreviewEntry.mockResolvedValue({ status: "succeeded", message: "Entries confirmed.", href: "/account/entries", outcome: "active" });

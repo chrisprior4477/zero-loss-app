@@ -20,6 +20,7 @@ import { EntryTicketRail } from "@/components/account/EntryTicketRail";
 import { PrizeNumberCopy } from "@/components/account/PrizeNumberCopy";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
+import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
 import styles from "@/components/account/entry-page.module.css";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
 
@@ -69,11 +70,21 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const [availability, db] = await Promise.all([getOfferingAvailability(), createClient()]);
   const metrics = activityOfferMetrics([item], availability)[item.slug];
   const progressColor = metrics ? availabilityStatus(metrics.capacity, metrics.sold).color : null;
-  const [emailResult, crewResult, requestHead] = await Promise.all([
+  const [emailResult, crewResult, requestHead, pendingResult] = await Promise.all([
     db.rpc("get_entry_outcome_email_enabled"),
     db.rpc("get_crew_member_profiles"),
     getEntryRequestHead(db, item.slug),
+    db.rpc("list_preview_entry_requests"),
   ]);
+  // Recover the owner's existing hold before offering another entry or top-up.
+  // This RPC is owner-scoped; never infer a reservation from a URL or balance.
+  let initialReceipt: EntryRequest | null = null;
+  let pendingReadReady = !pendingResult.error && Array.isArray(pendingResult.data);
+  if (pendingReadReady) {
+    try {
+      initialReceipt = pendingResult.data.map(parseEntryRequest).find((request: EntryRequest) => request.slug === item.slug && request.status === "pending") ?? null;
+    } catch { pendingReadReady = false; }
+  }
   const crew = crewResult.error || !Array.isArray(crewResult.data) ? [] : crewResult.data
     .filter((member: { member_id?: unknown; name?: unknown }) => typeof member.member_id === "string" && typeof member.name === "string")
     .map((member: { member_id: string; name: string; avatar_reference?: string | null }) => ({
@@ -86,7 +97,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
   return <main className={styles.page}>
-    <AccountSettingsLandingScroll target="entry-details-intro" visitKey={entryId} settleAfterNavigation allScreens />
+    <AccountSettingsLandingScroll target="entry-details-intro" initialTarget={resumeReview || initialReceipt ? "additional-entry-checkout" : undefined} visitKey={`${entryId}:${initialQuantity}:${resumeReview}`} settleAfterNavigation allScreens />
     <div className={styles.shell}>
       <div className={styles.topline} id="entry-details-intro">
         <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>{entryCount === 1 ? "Your saved entry" : `Your ${entryCount} saved entries`} for the prize below.</p></div>
@@ -120,7 +131,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
         <p>{entryCount === 1 ? "Your saved entry is one chance" : `Your ${entryCount} saved entries are ${entryCount} separate chances`} in this pool. {metrics ? `${metrics.sold.toLocaleString("en-US")} of ${metrics.capacity.toLocaleString("en-US")} places are filled.` : "Check back for verified pool progress."}</p>
-        <EntryPageActions key={`${entryId}:${initialQuantity}:${resumeReview}`} entryId={entryId} initialQuantity={initialQuantity} resumeReview={resumeReview} itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={requestHead} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
+        <EntryPageActions key={`${entryId}:${initialQuantity}:${resumeReview}`} entryId={entryId} initialQuantity={initialQuantity} resumeReview={resumeReview} initialReceipt={initialReceipt} itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={pendingReadReady ? requestHead : { ready: false, requestId: null }} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
       </section>
     </div>
   </main>;

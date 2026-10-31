@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
-export function AccountSettingsLandingScroll({ target, visitKey = target, settleAfterNavigation = false, allScreens = false }: { target: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean }) {
+export function AccountSettingsLandingScroll({ target, initialTarget, visitKey = target, settleAfterNavigation = false, allScreens = false }: { target: string; initialTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -63,7 +63,7 @@ export function AccountSettingsLandingScroll({ target, visitKey = target, settle
     const onScroll = () => { if (settleAfterNavigation && Date.now() < settlingUntil) align(); };
     const ready = () => {
       if (disposed || interrupted) return;
-      reveal();
+      reveal(initialTarget ?? window.location.hash.slice(1));
       // Router/browser restoration can run after hydration and font readiness.
       // Settle this visit briefly, and stop immediately on any user interaction.
       if (settleAfterNavigation) for (const delay of [150, 400, 900]) settlingTimers.push(window.setTimeout(align, delay));
@@ -91,6 +91,6 @@ export function AccountSettingsLandingScroll({ target, visitKey = target, settle
       document.removeEventListener("click", onAnchor, true);
       scope?.style.removeProperty("--settings-header-bottom");
     };
-  }, [target, visitKey, settleAfterNavigation, allScreens]);
+  }, [target, initialTarget, visitKey, settleAfterNavigation, allScreens]);
   return null;
 }

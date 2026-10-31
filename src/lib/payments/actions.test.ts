@@ -104,8 +104,8 @@ test("confirmed credit redirects to the exact saved purchase option", async () =
   await completeDemoFunding({ status: "idle" }, f);
   expect(mocks.redirect).toHaveBeenCalledWith(destination);
 });
-test("funding and recovery return to the saved additional-entry review without submitting entries", async () => {
-  const destination = "/account/entries/ent_11111111111111111111111111111111?quantity=23&review=entry#add-entries-title";
+test.each(["add-entries-title", "additional-entry-checkout"])("funding and recovery return to the saved additional-entry review at %s without submitting entries", async anchor => {
+  const destination = `/account/entries/ent_11111111111111111111111111111111?quantity=23&review=entry#${anchor}`;
   const f = form(); f.set("returnTo", destination);
   await completeDemoFunding({ status: "idle" }, f);
   expect(mocks.redirect).toHaveBeenCalledWith(destination);

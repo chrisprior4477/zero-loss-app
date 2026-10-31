@@ -6,7 +6,7 @@ import { buildAccountNotifications } from "@/lib/account/notifications";
 import { groupNotifications } from "@/lib/account/notification-groups";
 
 const mocks = vi.hoisted(() => ({
-  account: vi.fn(), availability: vi.fn(), progress: vi.fn(), createClient: vi.fn(),
+  account: vi.fn(), availability: vi.fn(), progress: vi.fn(), createClient: vi.fn(), actions: vi.fn(),
   notFound: vi.fn(() => { throw new Error("NEXT_NOT_FOUND"); }),
   redirect: vi.fn((href: string) => { throw new Error(`NEXT_REDIRECT:${href}`); }),
 }));
@@ -17,7 +17,7 @@ vi.mock("@/lib/account/activity-progress", () => ({ activityOfferMetrics: mocks.
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound, redirect: mocks.redirect }));
 vi.mock("next/image", () => ({ default: ({ src, alt }: { src: string; alt: string }) => <span role="img" aria-label={alt} data-src={src} /> }));
-vi.mock("@/components/account/EntryPageActions", () => ({ EntryPageActions: () => <div>Entry actions</div> }));
+vi.mock("@/components/account/EntryPageActions", () => ({ EntryPageActions: (props: unknown) => { mocks.actions(props); return <div>Entry actions</div>; } }));
 
 const ids = Array.from({ length: 5 }, (_, index) => `ent_${String(index + 1).repeat(32)}`);
 const activity = ids.map((entryId, index) => ({
@@ -37,6 +37,16 @@ beforeEach(() => {
   mocks.createClient.mockResolvedValue({ rpc: vi.fn(async () => ({ data: [], error: null })) });
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
+
+test("a saved entry recovers only its prize's owner-scoped pending hold on reload", async () => {
+  const request = { requestId: "22222222-2222-4222-8222-222222222222", slug: "playstation-5-slim", title: "PlayStation 5 Slim Model",
+    quantity: 24, amountCents: 2400, status: "pending", undoUntil: new Date(Date.now() + 30000).toISOString(), serverNow: new Date().toISOString() };
+  const rpc = vi.fn(async (name: string) => ({ data: name === "list_preview_entry_requests" ? [{ ...request, slug: "another-prize" }, request] : [], error: null }));
+  mocks.createClient.mockResolvedValueOnce({ rpc });
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));
+  expect(rpc).toHaveBeenCalledWith("list_preview_entry_requests");
+  expect(mocks.actions).toHaveBeenCalledWith(expect.objectContaining({ initialReceipt: expect.objectContaining({ requestId: request.requestId, quantity: 24, slug: request.slug }) }));
+});
 
 test("entry browser reveals pictured entry details and keeps the saved ID copy action", async () => {
   const scrollIntoView = vi.fn();

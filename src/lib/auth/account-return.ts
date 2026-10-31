@@ -28,7 +28,7 @@ const routes: Record<string, { query: Record<string, (value: string) => boolean>
 export function accountReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 2048 || !value.startsWith("/") || value.startsWith("//") || /[\\\s\u0000-\u001f]/.test(value)) return null;
   const url = new URL(value, "https://navigation.invalid");
-  const route = routes[url.pathname] ?? (/^\/account\/entries\/ent_[a-f0-9]{32}$/i.test(url.pathname) ? { query: { quantity: (selected: string) => parseEntryQuantity(selected) !== null, review: oneOf("entry") }, hash: /^#add-entries-title$/ } : undefined);
+  const route = routes[url.pathname] ?? (/^\/account\/entries\/ent_[a-f0-9]{32}$/i.test(url.pathname) ? { query: { quantity: (selected: string) => parseEntryQuantity(selected) !== null, review: oneOf("entry") }, hash: /^#(?:add-entries-title|additional-entry-checkout)$/ } : undefined);
   // Reject normalized paths, duplicate selectors, unknown keys and foreign origins.
   if (!route || url.origin !== "https://navigation.invalid" || value.split(/[?#]/, 1)[0] !== url.pathname || (url.hash && !route.hash?.test(url.hash))) return null;
   const seen = new Set<string>();

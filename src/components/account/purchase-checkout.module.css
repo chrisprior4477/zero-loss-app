@@ -37,7 +37,7 @@
 .facts > div { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:14px; min-height:29px; }
 .facts strong { font-size:22px; white-space:nowrap; font-weight:850; }
 .facts .shortfall,.facts .covered { background:#d7efff; color:#0756b0; margin-top:5px; border-radius:7px; padding:8px 10px; }
-.facts .shortfall { background:#c44b00; color:#fff; }
+.facts .shortfall { background:#ff6a00; color:#fff; }
 .facts .shortfall strong,.facts .covered strong { font-size:17px; white-space:normal; line-height:1.2; }
 .facts .covered { color:#165e38; background:#dcf7e6; }
 .primary,.secondary { display:flex; align-items:center; justify-content:center; width:100%; min-height:44px; padding:10px 12px; border:0; border-radius:8px; font-size:15px; line-height:1.25; font-weight:850; cursor:pointer; text-align:center; text-decoration:none; }
