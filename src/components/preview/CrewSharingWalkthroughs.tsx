@@ -202,7 +202,6 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
             <button onClick={() => { setContactsReturn("find"); go("contacts"); }}><ShareIcon name="crew" />Add people from your phone</button>
             <button className={styles.orange} onClick={() => { setScreen(findReturn === "home" ? "crew" : findReturn); setNotice(""); }}>{findGroup ? `Done · back to ${findGroup.name}` : "Done · back to sharing"}</button>
             <div className={styles.duo}><button className={styles.plainLink} onClick={() => go("roster")}>See your Crew →</button><button className={styles.plainLink} onClick={() => { setQuery(""); setNotice(""); searchInput.current?.focus(); }}>Add more people</button></div>
-            <p className={styles.note}>Profiles shown are fictional. Real searches respect each member’s discovery settings.</p>
           </div> : null}
 
           {screen === "roster" ? <div className={styles.stack}>
@@ -210,13 +209,12 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
             <button className={styles.orange} onClick={() => openFinder(findGroupId)}>＋ Add people</button><button onClick={back}>Back to where I was</button>
           </div> : null}
 
-          {screen === "group-edit" ? <form className={styles.stack} onSubmit={event => { event.preventDefault(); commitGroup(); }}>
+          {screen === "group-edit" ? <form id={`${id}-group-form`} className={styles.stack} onSubmit={event => { event.preventDefault(); commitGroup(); }}>
             <label className={styles.field}>Group name<input value={groupName} onChange={event => setGroupName(event.target.value)} maxLength={50} placeholder="Family, Friends, Movie night…" required /></label>
             <div className={styles.rowHeading}><strong>{draftIds.length} selected</strong><small>Saved together when you finish</small></div>
             <div className={styles.addedStrip}>{draftIds.map(personId => <button type="button" key={personId} aria-label={`Remove Test Customer ${personId} from selection`} onClick={() => setDraftIds(current => current.filter(value => value !== personId))}>✓ Customer {personId} ×</button>)}</div>
             <label className={styles.field}>Find people<input value={groupQuery} onChange={event => setGroupQuery(event.target.value)} autoComplete="off" placeholder="Search name, phone, or email" /></label>
             <div className={styles.memberChoices}>{groupResults.map(person => <label key={person.id}><input type="checkbox" checked={draftIds.includes(person.id)} onChange={event => setDraftIds(current => event.target.checked ? [...new Set([...current, person.id])] : current.filter(value => value !== person.id))} /><PersonAvatar id={person.id} /><span><strong>{person.name}</strong><small>{crew.memberIds.includes(person.id) ? "In your Crew" : "Add to your Crew and group"}</small></span></label>)}{!groupResults.length ? <p className={styles.emptyHint}>Try Test Customer 1–5.</p> : null}</div>
-            <div className={styles.duo}><button type="submit" className={styles.orange} disabled={!groupName.trim()}>Save group</button><button type="button" onClick={back}>Cancel</button></div>
           </form> : null}
 
           {screen === "text" ? <div className={styles.stack}>
@@ -246,7 +244,8 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
           {notice ? <p className={styles.notice} role="status">{notice}</p> : null}
         </div>
         <footer className={styles.modalFooter}>
-          {screen !== "success" ? <><details className={styles.why}><summary>Why this step?</summary><p>{explanations[screen] ?? "Choose where to send the product link, then return to your entry details."}</p></details><button className={styles.notNow} onClick={close}>Not now</button></> : null}
+          {screen === "group-edit" ? <div className={styles.duo}><button type="submit" form={`${id}-group-form`} className={styles.orange} disabled={!groupName.trim()}>Save group</button><button type="button" onClick={back}>Cancel</button></div> : null}
+          {screen !== "success" ? <><details className={styles.why}><summary>Why this step?</summary><p>{explanations[screen] ?? "Choose where to send the product link, then return to your entry details."}</p></details>{screen !== "group-edit" ? <button className={styles.notNow} onClick={close}>Not now</button> : null}</> : null}
           <small className={styles.previewNote}>Review only · no messages sent or account changes</small>
         </footer>
       </div>

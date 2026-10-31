@@ -49,14 +49,14 @@
 .product img { flex-shrink:0; width:54px; height:54px; object-fit:contain; border-radius:8px; background:white; }
 .product strong { display:block; font-size:14px; line-height:1.3; font-weight:800; }
 .product small { display:block; color:#536d88; font-size:12px; line-height:1.3; margin-top:3px; }
-.content { overflow-y:auto; overscroll-behavior:contain; min-height:0; padding:3px; margin:9px -3px 0; scrollbar-width:thin; }
+.content { overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; min-height:0; padding:3px; margin:9px -3px 0; scrollbar-width:thin; }
 .stack { display:flex; flex-direction:column; gap:8px; }
 .duo { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 .dialog .orange,.entry .orange { background:#ff7900; color:#11263c; }
 .dialog .blue { background:#b9e9fc; }
 .dialog button:disabled { opacity:.55; cursor:default; }
 .dialog .plainLink { background:none; min-height:30px; padding:4px 0; color:#0066ad; font-size:12px; text-decoration:underline; }
-.separator { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:800; letter-spacing:1px; color:#536d88; margin:1px -4px; }
+.separator { display:flex; align-items:center; gap:10px; font-size:10px; font-weight:800; letter-spacing:1px; color:#536d88; margin:1px 0; }
 .separator::before,.separator::after { content:""; flex:1; border-top:2px dotted #bfd5e3; }
 .modalFooter { flex-shrink:0; padding-top:8px; }
 .why { font-size:11px; color:#536d88; margin-bottom:5px; }
