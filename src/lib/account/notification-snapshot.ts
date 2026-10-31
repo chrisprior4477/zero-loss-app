@@ -7,12 +7,13 @@ import { createClient } from "@/lib/supabase/server";
 import { supportNotifications } from "@/lib/support/notifications";
 import { parseDemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
+import { getRecentLedgerHistory } from "@/lib/wallet/history";
 export const getNotificationSnapshot = cache(async () => {
   const account = await getAccountContext();
   if (!account) return null;
   const db = await createClient();
   const supportEnabled = true;
-  const [crew, support, visibility, alertPreferences, shares, orders] = await Promise.all([
+  const [crew, support, visibility, alertPreferences, shares, orders, ledger] = await Promise.all([
     db.from("crew_invitations").select("id,requester_name,created_at,status,automatic_connection").eq("recipient_id", account.userId).or("status.eq.pending,and(status.eq.accepted,automatic_connection.eq.true)").order("created_at", { ascending: false }),
     // Keep explicit ownership even for members who can staff the support inbox.
     db.from("support_cases").select("id,subject,status,updated_at").eq("customer_id", account.userId).order("updated_at", { ascending: false }).limit(50),
@@ -20,6 +21,7 @@ export const getNotificationSnapshot = cache(async () => {
     db.rpc("get_in_app_alert_preferences"),
     db.rpc("get_received_product_shares"),
     account.orders.source === "unavailable" ? getAccountOrders(db).catch(() => null) : Promise.resolve(account.orders),
+    getRecentLedgerHistory(account.userId, account.wallet).catch(() => null),
   ]);
   const { data: crewRequests, error: crewError } = crew;
   let hiddenWalletIds: string[] = [];
@@ -49,7 +51,7 @@ export const getNotificationSnapshot = cache(async () => {
   const sharedNotifications = (Array.isArray(shares.data) ? shares.data : []).filter(share => afterReset(share.createdAt)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "An item shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared with You", href: `/account/favorites?tab=shared&share=${encodeURIComponent(share.id)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
   const notifications: AccountNotification[] = [...sharedNotifications, ...supportNotifications((support.data ?? []).filter(row => afterReset(row.updated_at))), ...crewNotifications,
     ...buildOrderNotifications(orders?.orders ?? []),
-    ...buildAccountNotifications(account.activity, account.wallet, account.emailConfirmed, hiddenWalletIds)
+    ...buildAccountNotifications(account.activity, account.wallet && ledger ? { ...account.wallet, entries: ledger } : account.wallet, account.emailConfirmed, hiddenWalletIds)
       // The reset already archives entries, orders and ledger records atomically.
       // This one-time account notice otherwise survives every demo reset.
       .filter(notification => !resetAt || notification.id !== "account-email-confirmed")];

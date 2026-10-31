@@ -30,3 +30,11 @@ test("free-entry links retain the complete shopping search and filters", () => {
   expect(href.searchParams.get("offering")).toBe("airpods-pro");
   expect(href.searchParams.get("from")).toBe(browse);
 });
+
+
+test("Favorites is a safe return destination without allowing other account routes", () => {
+  expect(productBrowseReturnHref("/account/favorites")).toBe("/account/favorites");
+  expect(productBrowseReturnLabel("/account/favorites")).toBe("Favorites");
+  expect(productHrefWithBrowseReturn("nike-court-shot-shoes", "/account/favorites")).toBe("/items/nike-court-shot-shoes?from=%2Faccount%2Ffavorites");
+  for (const value of ["/account/favorites?next=/account/wallet", "/account/favorites/other", "/account/favorites#other", "//evil.test/account/favorites"]) expect(productBrowseReturnHref(value)).toBe("/browse");
+});

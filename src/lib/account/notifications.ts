@@ -1,6 +1,7 @@
 import { activityHref, walletRewardHref, type AccountActivity, type ActivityItem } from "./activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
+import { entryProcessingNotifications } from "./entry-processing-notifications";
 import type { AccountOrder } from "./orders";
 
 export type NotificationCategory = "action" | "account" | "activity" | "orders" | "crew";
@@ -206,7 +207,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
   }
   if (wallet) {
     const hidden = new Set(hiddenWalletIds);
-    for (const entry of wallet.entries.filter(item => !hidden.has(item.id))) notifications.push({
+    for (const entry of entryProcessingNotifications(wallet.entries).filter(item => !hidden.has(item.id))) notifications.push({
       id: `wallet-${entry.id}`,
       category: "activity",
       title: ledgerTitle(entry.entry_type),

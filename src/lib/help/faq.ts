@@ -52,7 +52,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "add-funds", category: "wallet", question: "How do I add funds?",
-    answer: "Open Add funds in Wallet & Transactions, choose the amount, and review the confirmation. You must re-enter your account password and confirm how the deposit can be used. In this MVP, funding uses the provided demo payment method and simulated money; do not enter real payment-card details.",
+    answer: "Open Add funds in Wallet & Transactions, choose a saved card and a whole-dollar amount, then review and confirm the deposit. In this MVP, funding uses the provided demo payment method and simulated money; do not enter real payment-card details.",
     keywords: "deposit top up topup money password card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history#add-funds" },
   },
   {

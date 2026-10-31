@@ -119,8 +119,9 @@ dialog.toast.journeyDialog.journeyDialog {
 .toast .journey .back { min-height:32px; padding:5px 0; }
 .toast .journey button.close { min-height:36px; width:36px; height:36px; padding:0; margin:0; font-size:25px; }
 .toast .journey input:not([type=radio],[type=checkbox]) { min-height:44px; padding:9px 10px; }
-.phoneRow { display:grid; grid-template-columns:minmax(0,1fr) 105px; gap:7px; }
+.phoneRow { display:grid; grid-template-columns:minmax(0,1fr) 58px 68px; align-items:stretch; gap:6px; }
 .toast .phoneRow button { margin:0; }
+.toast .phoneRow :is(button,a.primary) { min-height:44px; margin:0; padding:7px 4px; font-size:12px; line-height:1.2; }
 .toast .journey .contactsButton { margin-top:7px; background:#dff3fd; }
 .journey .messagePreview { font-size:13px; line-height:1.4; padding:10px; margin:8px 0 0; }
 .journey .note { font-size:11px; line-height:1.4; margin:7px 0; }
@@ -209,5 +210,5 @@ dialog.toast.journeyDialog.journeyDialog[open] { display:flex; align-items:flex-
 .confirmDelete p { margin-block:6px; }
 @media (max-width:360px) {
   .toast .journey { padding:14px; }
-  .phoneRow,.journey .result { grid-template-columns:minmax(0,1fr) 96px; }
+  .journey .result { grid-template-columns:minmax(0,1fr) 96px; }
 }

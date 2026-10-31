@@ -56,3 +56,7 @@
 @media(min-width:640px) { .page{padding:25px 24px 50px}.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card h2{font-size:16px}.merchant{font-size:11px}.alert{font-size:13px}.detail{padding:22px}.largeArt{height:210px} }
 @media(min-width:1024px) { .grid{grid-template-columns:repeat(4,minmax(0,1fr))}.detail{display:grid;grid-template-columns:230px 1fr;gap:18px}.detail>.sender{grid-column:1/-1;margin:0}.largeArt{height:240px;margin:0}.detail h2{font-size:25px}.heading{font-size:36px} }
 @media(pointer:coarse) { .tabs button,.viewButton{min-height:44px} }
+
+.entryButton { display:flex; align-items:center; justify-content:center; width:100%; min-height:48px; padding:10px 16px; border-radius:12px; background:#39e500; color:#061b33; font-size:16px; font-weight:800; text-align:center; text-decoration:none; }
+.entryButton:hover { filter:brightness(1.05); }
+.entryButton:focus-visible { outline:3px solid #008cff; outline-offset:3px; }

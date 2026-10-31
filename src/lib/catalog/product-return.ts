@@ -6,9 +6,10 @@ const browseQueryKeys = new Set([
   "partnerCategory", "available", "minValue", "maxValue",
 ]);
 
-/** Product return links may point only to the marketplace or a known retailer page. */
+/** Allow only known shopping destinations, including the personal Favorites list. */
 export function productBrowseReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 1000 || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  if (value === "/account/favorites") return value;
   const retailer = /^\/rewards\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(value);
   if (retailer) return getPopularRewardBrand(retailer[1]) ? value : null;
   if (!/^\/browse(?:\?|$)/.test(value)) return null;
@@ -41,6 +42,7 @@ export function freeEntryHref(slug: string, browseReturn: unknown): string {
 
 export function productBrowseReturnLabel(href: string): string {
   const url = new URL(productBrowseReturnHref(href), "https://zeroloss.local");
+  if (url.pathname === "/account/favorites") return "Favorites";
   if (url.pathname.startsWith("/rewards/")) {
     const brand = getPopularRewardBrand(url.pathname.slice("/rewards/".length));
     if (brand) return `${brand.name} rewards`;

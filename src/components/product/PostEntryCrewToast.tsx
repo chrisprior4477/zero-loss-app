@@ -75,6 +75,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const paper = useRef<HTMLDivElement>(null);
   const perforation = useRef<HTMLDivElement>(null);
   const emailRecipientPanel = useRef<HTMLDetailsElement>(null);
+  const smsLink = useRef<HTMLAnchorElement>(null);
   const previousStep = useRef<Step | null>(null);
   const id = useId();
   const [shareToken, setShareToken] = useState<string | null>(null);
@@ -97,6 +98,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     const element = dialog.current;
     if (!element) return;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const openingLocation = window.location.pathname + window.location.search;
+    const openingScroll = { left: window.scrollX, top: window.scrollY };
     const previousOverflow = document.body.style.overflow;
     const previousRootOverflow = document.documentElement.style.overflow;
     // The top layer keeps phone/tablet dialogs positioned against the viewport.
@@ -122,6 +125,11 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       window.removeEventListener("resize", resize); window.visualViewport?.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("scroll", resize); observer?.disconnect();
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+      // Closing the top-layer dialog can restore the browser's old focus scroll.
+      // Restore the page position captured before opening, only on the same page.
+      if (window.location.pathname + window.location.search === openingLocation) {
+        window.scrollTo({ ...openingScroll, behavior: "instant" });
+      }
     };
   }, []);
 
@@ -194,6 +202,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     try {
       await navigator.share(nativeProductShareData(item, window.location.origin, navigator.userAgent, shareToken));
       // Handoff is not proof of delivery. Never report "sent" here.
+      if (alive.current) onClose();
     } catch (reason) {
       if ((reason as { name?: string })?.name !== "AbortError" && alive.current) {
         go("send"); feedback("Your browser couldn’t open sharing. Use Text, Email, or Copy link instead.");
@@ -546,16 +555,19 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
       {step === "messages" ? <>
         <div className={styles.field}><label htmlFor={`${id}-recipient`}>Phone number <span>· optional</span></label>
-          <div className={styles.phoneRow}><input id={`${id}-recipient`} type="tel" maxLength={25} autoComplete="off" value={phone} onChange={event => { setPhone(event.target.value); setPickedContact(null); }} placeholder="Phone with country code" disabled={busy} />
-            <button type="button" className={styles.crewButton} disabled={busy || !validPhone(phone) || requested.includes(contactKey(phone, "phone"))} onClick={() => void addPerson(phone.trim(), "phone")}>{requested.includes(contactKey(phone, "phone")) ? "Added" : "Add to Crew"}</button></div>
+          <form className={styles.phoneRow} onSubmit={event => { event.preventDefault(); smsLink.current?.click(); }}>
+            <input id={`${id}-recipient`} type="tel" enterKeyHint="go" maxLength={25} autoComplete="off" value={phone} onChange={event => { setPhone(event.target.value); setPickedContact(null); }} placeholder="Phone number" disabled={busy} />
+            <a ref={smsLink} className={styles.primary} href={externalHref ?? undefined} aria-label="Send text" onClick={event => {
+              if (!externalHref) { event.preventDefault(); feedback("Enter a valid phone number, or leave it blank.", true); }
+              else feedback("Review and send in your texting app. If it doesn’t open, use Copy link.");
+            }}><span>Send<br />Text</span></a>
+            <button type="button" className={styles.crewButton} aria-label={requested.includes(contactKey(phone, "phone")) ? "Added" : "Add to Crew"} disabled={busy || !validPhone(phone) || requested.includes(contactKey(phone, "phone"))} onClick={() => void addPerson(phone.trim(), "phone")}>{requested.includes(contactKey(phone, "phone")) ? "Added" : <span>Add to<br />Crew</span>}</button>
+          </form>
           <button type="button" className={styles.contactsButton} disabled={busy} onClick={() => openContacts("messages")}><ShareIcon name="crew" />Add people from your phone</button>
         </div>
         <p className={styles.messagePreview}>{text}</p>
         <details className={styles.preview}><summary>See the picture and link</summary>{pictureLink}<p className={styles.note}>Picture previews depend on the receiving app.</p></details>
-        <div className={styles.duo}><a className={styles.primary} href={externalHref ?? undefined} onClick={event => {
-          if (!externalHref) { event.preventDefault(); feedback("Enter a valid phone number, or leave it blank.", true); }
-          else feedback("Review and send in your texting app. If it doesn’t open, use Copy link.");
-        }}>Send text →</a><button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
+        <button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button>
         <p className={styles.note}>Review and send in your texting app.</p>
       </> : null}
 

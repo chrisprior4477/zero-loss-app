@@ -57,3 +57,11 @@ test("product artwork opens the inline detail and Share retains the existing sha
   expect((shareEvent.mock.calls[0][0] as CustomEvent).detail.slug).toBe("nike-court-shot-shoes");
   window.removeEventListener(PRODUCT_SHARE_EVENT, shareEvent);
 });
+
+
+test("Favorites keeps its preview and offers a prominent entry link back to Favorites", () => {
+  show(); fireEvent.click(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" }));
+  expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Enter for $1" }).getAttribute("href")).toBe("/items/nike-court-shot-shoes?from=%2Faccount%2Ffavorites");
+  expect(screen.queryByRole("link", { name: /Open prize details/ })).toBeNull();
+});

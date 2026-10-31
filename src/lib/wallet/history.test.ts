@@ -2,7 +2,7 @@ import { expect, test, vi } from "vitest";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
-import { getCompleteLedgerHistory, ledgerProduct } from "./history";
+import { getCompleteLedgerHistory, getRecentLedgerHistory, ledgerProduct } from "./history";
 import { createClient } from "@/lib/supabase/server";
 
 const base = { id: "11111111-1111-4111-8111-111111111111", amount: -100, created_at: "2026-10-16T12:00:00Z" };
@@ -24,7 +24,7 @@ test("unlinked funding never borrows a product image", () => {
   expect(ledgerProduct({ ...base, entry_type: "DEPOSIT", source_event: "demo_funding", related_pool_id: null }, new Map(), new Map())).toBeUndefined();
 });
 
-test("history resolves every confirmed batch entry using owner-scoped, paged records", async () => {
+test.each([false, true])("history resolves owner-scoped entries with a bounded notification window (recent: %s)", async recent => {
   const ids = Array.from({ length: 501 }, (_, index) => `ent_${index.toString(16).padStart(32, "0")}`);
   const hold = { ...base, entry_type: "ENTRY_HOLD", source_event: `entry_request_${requestId}_ENTRY_HOLD`, related_pool_id: null, related_entry_id: null };
   const debit = { ...base, id: "debit", entry_type: "ENTRY_DEBIT", source_event: "preview_entry", related_pool_id: "preview_best-buy-100-gift-card", related_entry_id: ids[0] };
@@ -44,8 +44,9 @@ test("history resolves every confirmed batch entry using owner-scoped, paged rec
     return builder;
   } };
   vi.mocked(createClient).mockResolvedValue(fake as unknown as Awaited<ReturnType<typeof createClient>>);
-  const history = await getCompleteLedgerHistory("owner", { walletAccountId: "wallet", scope: "demo", currency: "USD", balanceCents: 100, fundingAvailable: true, entries: [hold, debit], transactionCount: 2 });
+  const history = await (recent ? getRecentLedgerHistory : getCompleteLedgerHistory)("owner", { walletAccountId: "wallet", scope: "demo", currency: "USD", balanceCents: 100, fundingAvailable: true, entries: [hold, debit], transactionCount: recent ? 2000 : 2 });
   expect(history?.[0].entryIds).toEqual(ids);
+  expect(queries.filter(query => query.table === "ledger_entries").map(query => query.range)).toEqual([[0, 1]]);
   expect(history?.[1].entryIds).toEqual([ids[0]]);
   expect(queries.every(query => query.owner === "owner")).toBe(true);
   expect(queries.filter(query => query.table === "customer_entries").map(query => query.range)).toEqual([[0, 499], [500, 999]]);

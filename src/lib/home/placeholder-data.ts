@@ -258,12 +258,12 @@ export const placeholderPromoTiles = [
 
 /** Development-only price navigation. Production links will use live catalog filters. */
 export const shopByPriceTiers = [
-  { price: "$25", detail: "and under" },
-  { price: "$50", detail: "and under" },
-  { price: "$75", detail: "and under" },
-  { price: "$100", detail: "and under" },
-  { price: "$100+", detail: "premium prizes" },
-  { price: "RARE FINDS", detail: "Curated Picks" },
+  { price: "$25", detail: "and under", href: "/browse?maxValue=25#search-results" },
+  { price: "$50", detail: "and under", href: "/browse?maxValue=50#search-results" },
+  { price: "$75", detail: "and under", href: "/browse?maxValue=75#search-results" },
+  { price: "$100", detail: "and under", href: "/browse?maxValue=100#search-results" },
+  { price: "$100+", detail: "premium prizes", href: "/browse?minValue=100#search-results" },
+  { price: "RARE FINDS", detail: "Curated Picks", href: "/browse" },
 ] as const;
 
 /**

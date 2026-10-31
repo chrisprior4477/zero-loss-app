@@ -113,3 +113,18 @@ test("the Orders filter is backed by exact fulfillment records", () => {
   expect(notificationIsEnabled(notice, parseNotificationPreferences({ order_updates: false }))).toBe(false);
   expect(notificationIsEnabled(notice, parseNotificationPreferences({ order_updates: true }))).toBe(true);
 });
+
+
+test("processing notices collapse while the posted notification keeps its transaction identity", () => {
+  const entries = [
+    { id:"posted", entry_type:"ENTRY_DEBIT", amount:-100, created_at:"2026-10-31T12:00:30Z", entryIds:["entry-one"] },
+    { id:"released", entry_type:"ENTRY_HOLD_RELEASE", amount:100, created_at:"2026-10-31T12:00:30Z", entryIds:["entry-one"] },
+    { id:"reserved", entry_type:"ENTRY_HOLD", amount:-100, created_at:"2026-10-31T12:00:00Z", entryIds:["entry-one"] },
+  ];
+  const wallet = { walletAccountId:"wallet", scope:"demo" as const, currency:"USD" as const, balanceCents:1300, fundingAvailable:true, transactionCount:3, entries };
+  const notices = buildAccountNotifications(storedActivityFixture(), wallet, true).filter(item => item.tone === "wallet");
+  expect(notices).toHaveLength(1);
+  expect(notices[0]).toMatchObject({ id:"wallet-posted", title:"Entry purchase posted", visualValue:"-$1", href:"/account/wallet?view=history&transaction=posted#transaction-posted" });
+  expect(wallet.entries).toHaveLength(3); expect(wallet.balanceCents).toBe(1300);
+  expect(buildAccountNotifications(storedActivityFixture(), wallet, true, ["posted"]).filter(item => item.tone === "wallet")).toHaveLength(0);
+});

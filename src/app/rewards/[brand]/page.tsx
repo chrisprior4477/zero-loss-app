@@ -43,7 +43,7 @@ export default async function RewardBrandPage({ params }: Props) {
           ))}
         </section>
 
-        <p className="mt-8 rounded-2xl border border-white/12 bg-white/5 p-5 text-sm leading-6 text-white/60">These are preview offerings. A confirmed preview customer can create one database-backed demo entry per product. No real money, gift card, barcode, or retailer inventory is issued.</p>
+        <p className="mt-8 rounded-2xl border border-white/12 bg-white/5 p-5 text-sm leading-6 text-white/60">These are preview offerings. A confirmed preview customer can choose how many available demo entries to add. Each entry remains a separate chance. No real money, gift card, barcode, or retailer inventory is issued.</p>
       </div>
     </main>
   );

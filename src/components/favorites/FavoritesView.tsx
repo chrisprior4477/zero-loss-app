@@ -7,6 +7,7 @@ import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { useFavorites } from "./FavoritesProvider";
 import { FavoritesLandingScroll } from "./FavoritesLandingScroll";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
+import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { availabilityStatus, type AvailabilitySnapshot } from "@/lib/catalog/availability";
 import { setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
 import { savedShareHref, savedShareStatus, sharedWithYouHref, type SavedProductShare } from "@/lib/sharing/saved-shares";
@@ -124,7 +125,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
               <p className={styles.merchant}>{detailProduct?.retailer ?? "Zero Loss"}</p><h2>{detailProduct?.title ?? selectedShare?.title ?? "Product unavailable"}</h2>
               {selectedShare ? <span className={`${styles.badge} ${selectedShare.declinedAt ? styles.declined : ""}`}>{savedShareStatus(selectedShare)}</span> : null}
               {price(selected.slug, true)}
-              {detailProduct ? <Link className={styles.productLink} href={`/items/${detailProduct.slug}${selectedShare?.token ? `?share=${selectedShare.token}` : ""}`}>Open prize details →</Link> : <p>This product is no longer available in the current catalog.</p>}
+              {detailProduct ? <Link className={selectedShare ? styles.productLink : styles.entryButton} href={selectedShare ? `/items/${detailProduct.slug}${selectedShare.token ? `?share=${selectedShare.token}` : ""}` : productHrefWithBrowseReturn(detailProduct.slug, "/account/favorites")}>{selectedShare ? "Open prize details →" : "Enter for $1"}</Link> : <p>This product is no longer available in the current catalog.</p>}
               <div className={styles.detailActions}>
                 <button type="button" className={styles.saveFavorite} disabled={favoriteBusy === selected.slug || !detailProduct || !available} onClick={() => toggle(selected.slug)}>{slugs.includes(selected.slug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
                 <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={back}>Back to list</button></div>

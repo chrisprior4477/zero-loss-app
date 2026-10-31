@@ -99,3 +99,16 @@ describe("browse filters", () => {
       .toEqual([middle]);
   });
 });
+
+
+test.each([25, 50, 75, 100, 101])("homepage price tier %s filters actual prize values, including the boundary", async tier => {
+  const { shopByPriceTiers } = await import("@/lib/home/placeholder-data");
+  const link = shopByPriceTiers[tier === 101 ? 4 : [25, 50, 75, 100].indexOf(tier)].href;
+  const url = new URL(link, "https://example.test");
+  const state = parseBrowseFilterState(Object.fromEntries(url.searchParams), browseRetailers(demoProducts));
+  const result = filterBrowseProducts(demoProducts, state);
+  expect(result.length).toBeGreaterThan(0);
+  expect(result.every(product => tier === 101 ? product.value >= 100 : product.value <= tier)).toBe(true);
+  expect(result.some(product => product.value === (tier === 101 ? 100 : tier))).toBe(true);
+  expect(url.hash).toBe("#search-results");
+});

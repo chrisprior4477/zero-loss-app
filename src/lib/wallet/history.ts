@@ -30,13 +30,23 @@ export function ledgerProduct(
 /** Read the complete owner-scoped history in Data API-sized pages. The wallet
  * snapshot remains authoritative for balance and count. */
 export async function getCompleteLedgerHistory(userId: string, wallet: WalletSnapshot | null): Promise<LedgerEntryRow[] | null> {
+  return getLedgerHistory(userId, wallet, false);
+}
+
+/** Enrich only the snapshot window for notification correlation, not the entire history. */
+export async function getRecentLedgerHistory(userId: string, wallet: WalletSnapshot | null): Promise<LedgerEntryRow[] | null> {
+  return getLedgerHistory(userId, wallet, true);
+}
+
+async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, recentOnly: boolean): Promise<LedgerEntryRow[] | null> {
   if (!wallet || wallet.transactionCount === 0) return wallet?.entries ?? null;
+  const count = recentOnly ? wallet.entries.length : wallet.transactionCount;
   const db = await createClient();
   const rows: LedgerSourceRow[] = [];
-  for (let offset = 0; offset < wallet.transactionCount; offset += 500) {
+  for (let offset = 0; offset < count; offset += 500) {
     const { data, error } = await db.from("ledger_entries").select("id,entry_type,amount,created_at,source_event,related_pool_id,related_entry_id")
       .eq("customer_id", userId).order("created_at", { ascending: false }).order("id", { ascending: false })
-      .range(offset, Math.min(offset + 499, wallet.transactionCount - 1));
+      .range(offset, Math.min(offset + 499, count - 1));
     if (error || !data || data.length === 0) return null;
     for (const row of data) {
       if (typeof row.id !== "string" || typeof row.entry_type !== "string" || !Number.isSafeInteger(row.amount)
@@ -45,7 +55,7 @@ export async function getCompleteLedgerHistory(userId: string, wallet: WalletSna
       rows.push(row);
     }
   }
-  if (rows.length !== wallet.transactionCount || wallet.entries.some((entry, index) => entry.id !== rows[index]?.id)) return null;
+  if (rows.length !== count || wallet.entries.some((entry, index) => entry.id !== rows[index]?.id)) return null;
 
   const requestIds = [...new Set(rows.flatMap(row => {
     if (row.entry_type !== "ENTRY_HOLD" && row.entry_type !== "ENTRY_HOLD_RELEASE") return [];

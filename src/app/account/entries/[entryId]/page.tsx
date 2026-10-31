@@ -15,6 +15,7 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryPageActions } from "@/components/account/EntryPageActions";
 import { EntryCountShortcut } from "@/components/account/EntryCountShortcut";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { EntryTicketRail } from "@/components/account/EntryTicketRail";
 import { PrizeNumberCopy } from "@/components/account/PrizeNumberCopy";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
@@ -81,8 +82,9 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
   return <main className={styles.page}>
+    <AccountSettingsLandingScroll target="entry-details-intro" visitKey={entryId} settleAfterNavigation allScreens />
     <div className={styles.shell}>
-      <div className={styles.topline}>
+      <div className={styles.topline} id="entry-details-intro">
         <div className={styles.toplineHeading}><p className={styles.eyebrow}>MY ACTIVITY</p><h1>Your Entry Details</h1><p className={styles.pageSubtitle}>{entryCount === 1 ? "Your saved entry" : `Your ${entryCount} saved entries`} for the prize below.</p></div>
         <div className={styles.toplineActions}>
           <Link href="/" className={styles.topShoppingButton}>Continue shopping</Link>

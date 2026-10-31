@@ -12,6 +12,7 @@ const groupId = "22222222-2222-4222-8222-222222222222";
 const memberId = "33333333-3333-4333-8333-333333333333";
 const options = { ok: true, message: "", memberCount: 1, members: [{ id: memberId, name: "Member" }], groups: [{ id: groupId, name: "Mom", memberCount: 1, memberIds: [memberId] }] };
 beforeEach(() => {
+  vi.stubGlobal("scrollTo", vi.fn());
   vi.resetAllMocks(); mocks.item.mockResolvedValue(null); mocks.options.mockResolvedValue(options);
   Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
@@ -571,4 +572,28 @@ test("group deletion can be cancelled and deletes only the saved group after con
   expect(await screen.findByText("Mom deleted. The people are still in your Crew.")).toBeTruthy();
   expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts: [] }, remove: true });
   expect(mocks.remove).not.toHaveBeenCalled();
+});
+
+
+test("keyboard Go uses the same SMS composer as the adjacent Send Text link", () => {
+  open(); fireEvent.click(screen.getByRole("button", { name: "Text" }));
+  const input = screen.getByLabelText(/Phone number/);
+  fireEvent.change(input, { target: { value: "2025550123" } });
+  expect(input.getAttribute("enterkeyhint")).toBe("go");
+  const link = screen.getByRole("link", { name: "Send text" });
+  const click = vi.spyOn(link as HTMLAnchorElement, "click").mockImplementation(() => {});
+  fireEvent.submit(input.closest("form")!);
+  expect(click).toHaveBeenCalledOnce();
+  expect(link.getAttribute("href")).toContain("sms:2025550123?");
+  expect(mocks.phone).not.toHaveBeenCalled();
+  expect(link.parentElement).toBe(input.parentElement);
+  expect(screen.getByRole("button", { name: "Add to Crew" }).parentElement).toBe(input.parentElement);
+});
+
+test("closing sharing restores its original scroll rather than the browser's focus jump", () => {
+  const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  vi.spyOn(window, "scrollY", "get").mockReturnValue(168);
+  const { unmount } = render(<PostEntryCrewToast request={request} onClose={vi.fn()} />);
+  unmount();
+  expect(scroll).toHaveBeenLastCalledWith({ top:168, left:0, behavior:"instant" });
 });
