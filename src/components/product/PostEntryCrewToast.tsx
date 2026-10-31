@@ -4,7 +4,8 @@ import { prepareProductShareLink } from "@/lib/sharing/receiving-actions";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, saveCrewGroup, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, shareWinWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
+import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, removeCrewMember, saveCrewGroup, saveCrewMemberContact, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, shareWinWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
+import type { CrewMemberContact } from "@/lib/crew/member-contact";
 import { getProductShareItem } from "@/lib/sharing/actions";
 import { crewLookupKind, emailHref, isAppleMobile, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
 import type { CrewGroupContact } from "@/lib/crew/visibility";
@@ -14,7 +15,7 @@ import { ShareIcon } from "./ShareIcon";
 import styles from "./post-entry-crew-toast.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
-type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy" | "contacts" | "contactGroup" | "roster";
+type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy" | "contacts" | "contactGroup" | "roster" | "contactEdit";
 type PhoneContact = { name?: string[]; email?: string[]; tel?: string[] };
 type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<PhoneContact[]> };
 const contactKey = (value: string, kind: "id" | "email" | "phone") => kind === "phone" ? value.replace(/\D/g, "") : value.trim().toLowerCase();
@@ -60,6 +61,11 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const groupId = useRef<string | null>(null);
   const groupContacts = useRef<CrewGroupContact[]>([]);
   const [editingGroup, setEditingGroup] = useState(false);
+  const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
+  const [contactMemberId, setContactMemberId] = useState<string | null>(null);
+  const [contactDraft, setContactDraft] = useState<CrewMemberContact>({ name: "", phone: "", email: "" });
+  const contactEditorReturn = useRef<Step>("find");
+  const [deleteContactConfirm, setDeleteContactConfirm] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const paper = useRef<HTMLDivElement>(null);
@@ -89,14 +95,24 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     element.showModal();
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
-    const resize = () => element.style.setProperty("--share-visible-height", `${Math.floor(Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight, window.visualViewport?.height ?? window.innerHeight))}px`);
+    const resize = () => {
+      const height = Math.floor(Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight, window.visualViewport?.height ?? window.innerHeight));
+      element.style.setProperty("--share-visible-height", `${height}px`);
+      element.style.setProperty("--share-visible-top", `${window.visualViewport?.offsetTop ?? 0}px`);
+      const ticketHeight = paper.current?.getBoundingClientRect().height ?? height;
+      element.style.setProperty("--share-ticket-top", `${Math.max(0, Math.min(48, (height - 16 - ticketHeight) / 2))}px`);
+    };
     resize(); window.addEventListener("resize", resize); window.visualViewport?.addEventListener("resize", resize);
+    window.visualViewport?.addEventListener("scroll", resize);
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
+    if (paper.current) observer?.observe(paper.current);
     heading.current?.focus({ preventScroll: true });
     return () => {
       element.close();
       document.body.style.overflow = previousOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
       window.removeEventListener("resize", resize); window.visualViewport?.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("scroll", resize); observer?.disconnect();
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
   }, []);
@@ -236,7 +252,9 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     const key = contactKey(value, kind);
     if (requested.includes(key) && !findTargetGroup) return;
     await run(async () => {
-      const alreadyConnected = kind === "id" && options?.members.some(member => member.id === value);
+      const before = options ?? await getCrewShareOptions();
+      if (!before.ok) { feedback(before.message, true); return; }
+      const alreadyConnected = kind === "id" && before.members.some(member => member.id === value);
       const result = alreadyConnected ? { ok: true, message: "Already connected." } : kind === "id" ? await inviteToCrewById(value) : kind === "email" ? await inviteToCrew(value) : await inviteToCrewByPhone(value);
       if (!alive.current) return;
       if (!result.ok) { feedback(result.message, true); return; }
@@ -246,7 +264,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       try {
         const updated = await getCrewShareOptions();
         if (alive.current && updated.ok) {
-          const newMembers = updated.members.filter(member => !options?.members.some(previous => previous.id === member.id));
+          const newMembers = updated.members.filter(member => !before.members.some(previous => previous.id === member.id));
           const addedMember = kind === "id" ? updated.members.find(member => member.id === value) : newMembers.length === 1 ? newMembers[0] : undefined;
           addedName ||= addedMember?.name;
           if (findTargetGroup && addedMember) {
@@ -265,6 +283,13 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
             feedback(addedName ? `${addedName} added to your Crew.` : "Lookup saved. Matching members who allow connections appear in your Crew; phone and email details stay private.");
           }
           if (kind !== "id") setPeople(updated.members.map(member => ({ memberId: member.id, name: member.name, avatarUrl: null })));
+          if (addedMember && !alreadyConnected) {
+            setDeleteContactConfirm(false);
+            contactEditorReturn.current = "find";
+            setContactMemberId(addedMember.id);
+            setContactDraft({ name: addedName || addedMember.name, phone: kind === "phone" ? value : addedMember.phone ?? "", email: kind === "email" ? value : addedMember.email ?? "" });
+            history.current.push("find"); setStep("contactEdit");
+          }
         } else feedback("Connection saved. Refresh your Crew to check the current people.");
       } catch { feedback("Connection saved. Reopen your Crew to refresh the people list."); }
       searchVersion.current += 1; setQuery(""); setReviewQuery(""); setSearching(false);
@@ -340,9 +365,57 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     groupId.current = group?.id ?? null;
     groupContacts.current = group?.contacts ?? [];
     setEditingGroup(Boolean(group));
+    setDeleteGroupConfirm(false);
     setGroupName(group?.name ?? ""); setGroupMembers(group?.memberIds ?? []); setGroupFilter("");
     if (group) setAudience(group.id);
     go("group");
+  }
+
+  function editContact(member: CrewShareOptions["members"][number]) {
+    setDeleteContactConfirm(false);
+    contactEditorReturn.current = step;
+    setContactMemberId(member.id); setContactDraft({ name: member.name, phone: member.phone ?? "", email: member.email ?? "" });
+    go("contactEdit");
+  }
+
+  async function deleteContact() {
+    if (!contactMemberId) return;
+    await run(async () => {
+      const result = await removeCrewMember(contactMemberId);
+      if (!alive.current) return;
+      if (!result.ok) { feedback(result.message, true); return; }
+      setOptions(current => current ? { ...current, memberCount: current.members.filter(member => member.id !== contactMemberId).length,
+        members: current.members.filter(member => member.id !== contactMemberId),
+        groups: current.groups.map(group => ({ ...group, memberIds: group.memberIds.filter(id => id !== contactMemberId), memberCount: group.memberIds.filter(id => id !== contactMemberId).length })) } : current);
+      setRequested(current => current.filter(key => key !== contactKey(contactMemberId, "id")));
+      setGroupMembers(current => current.filter(id => id !== contactMemberId));
+      setDeleteContactConfirm(false); history.current.pop(); setStep(contactEditorReturn.current); feedback(`${contactDraft.name} removed from your Crew.`);
+    });
+  }
+
+  async function saveContact() {
+    if (!contactMemberId) return;
+    await run(async () => {
+      const saved = await saveCrewMemberContact(contactMemberId, contactDraft);
+      if (!alive.current) return;
+      if (!saved.ok) { feedback(saved.message, true); return; }
+      const contact = { name: contactDraft.name.trim(), phone: contactDraft.phone.trim(), email: contactDraft.email.trim() };
+      setOptions(current => current ? { ...current, members: current.members.map(member => member.id === contactMemberId ? { ...member, ...contact } : member) } : current);
+      setPeople(current => current.map(person => person.memberId === contactMemberId ? { ...person, name: contact.name } : person));
+      history.current.pop(); setStep(contactEditorReturn.current); feedback(`${contact.name} saved to your Crew.`);
+    });
+  }
+
+  async function deleteGroup() {
+    const group = options?.groups.find(value => value.id === groupId.current);
+    if (!group) return;
+    await run(async () => {
+      const result = await saveCrewGroup({ group: { id: group.id, name: group.name, memberIds: group.memberIds, contacts: group.contacts ?? [] }, remove: true });
+      if (!alive.current) return;
+      if (!result.ok) { feedback(result.message, true); return; }
+      setOptions(current => current ? { ...current, groups: current.groups.filter(value => value.id !== group.id) } : current);
+      setAudience(""); setGroupsOnly(true); setDeleteGroupConfirm(false); history.current.pop(); setStep("audience"); feedback(`${group.name} deleted. The people are still in your Crew.`);
+    });
   }
 
   async function refreshMembers() {
@@ -410,7 +483,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!externalHref) { event.preventDefault(); invalidEmail(); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
-  const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: findTargetGroup ? `Add people to ${options?.groups.find(group => group.id === findTargetGroup)?.name ?? "your group"}` : "Add people", audience: "Share with your Crew", group: editingGroup ? "Edit your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone", contactGroup: "Save contact to a group", roster: "People in your Crew" };
+  const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: findTargetGroup ? `Add people to ${options?.groups.find(group => group.id === findTargetGroup)?.name ?? "your group"}` : "Add people", audience: "Share with your Crew", group: editingGroup ? "Edit your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone", contactGroup: "Save contact to a group", roster: "People in your Crew", contactEdit: "Save this contact" };
   const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{shared ? sharedGroupName ? `Shared with ${sharedGroupName}` : "Shared with your Crew" : step === "audience" && groupsOnly ? "Share with my groups" : titles[step]}</h2>;
   const compact = step === "home" || step === "email";
   const journey = true;
@@ -423,8 +496,9 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         {step === "home" ? <div>{request ? <p className={styles.eyebrow} role="status">✓ Entry confirmed</p> : null}{titleHeading}</div> : <button type="button" className={styles.back} onClick={back} disabled={busy}>← Back</button>}
         <button type="button" className={styles.close} aria-label="Close sharing toast" onClick={onClose}>×</button>
       </div>
-      {step !== "home" ? titleHeading : null}
-      {!["group", "find", "copy", "contacts", "contactGroup"].includes(step) ? itemSummary : null}
+      {step !== "home" ? <div className={styles.headingRow}>{titleHeading}{step === "group" && editingGroup ? <button type="button" className={styles.deleteGroup} disabled={busy} onClick={() => setDeleteGroupConfirm(true)}>Delete this group</button> : null}</div> : null}
+      {step === "roster" ? <button type="button" className={styles.primary} disabled={busy || !members.length} onClick={() => { setStep("audience"); void shareCrew(null); }}>Send to my Crew</button> : null}
+      {!["group", "find", "copy", "contacts", "contactGroup", "contactEdit"].includes(step) ? itemSummary : null}
 
       {step === "home" ? <div className={styles.actions}>
         <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
@@ -542,11 +616,12 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       </> : null}
 
       {step === "group" ? <>
+        {deleteGroupConfirm ? <div className={styles.confirmDelete} role="region" aria-label="Confirm group deletion"><strong>Delete {groupName}?</strong><p>The people stay in your Crew.</p><div className={styles.duo}><button type="button" className={styles.deleteGroup} disabled={busy} onClick={() => void deleteGroup()}>Yes, delete group</button><button type="button" disabled={busy} onClick={() => setDeleteGroupConfirm(false)}>Cancel</button></div></div> : null}
         <form onSubmit={event => { event.preventDefault(); void createGroup(); }}>
           <div className={styles.field}><label htmlFor={`${id}-group`}>Group name</label><input id={`${id}-group`} value={groupName} onChange={event => setGroupName(event.target.value)} maxLength={50} required disabled={busy} placeholder="Family, Friends…" /></div>
           <h3>Choose connected Crew members</h3>
           <div className={styles.field}><label htmlFor={`${id}-group-search`}>Find people in your Crew</label><input id={`${id}-group-search`} value={groupFilter} onChange={event => setGroupFilter(event.target.value)} placeholder="Search your Crew" /></div>
-          <div className={styles.groupMemberPicker}>{members.filter(member => member.name.toLowerCase().includes(groupFilter.trim().toLowerCase())).map(member => <label className={styles.choice} key={member.id}><input type="checkbox" checked={groupMembers.includes(member.id)} disabled={busy} onChange={event => setGroupMembers(current => event.target.checked ? [...new Set([...current, member.id])] : current.filter(id => id !== member.id))} /><span>{member.name}</span></label>)}</div>
+          <div className={styles.groupMemberPicker}>{members.filter(member => member.name.toLowerCase().includes(groupFilter.trim().toLowerCase())).map(member => <div className={styles.memberRow} key={member.id}><label className={styles.choice}><input type="checkbox" checked={groupMembers.includes(member.id)} disabled={busy} onChange={event => setGroupMembers(current => event.target.checked ? [...new Set([...current, member.id])] : current.filter(id => id !== member.id))} /><span>{member.name}</span></label><button type="button" className={styles.editContact} aria-label={`Edit ${member.name}`} disabled={busy} onClick={() => editContact(member)}>Edit</button></div>)}</div>
           {!members.length ? <p className={styles.note}>Create the group now, then add connected Crew members.</p> : null}
           <button type="submit" className={styles.primary} disabled={busy}>{busy ? "Saving…" : "Save group"}</button>
         </form>
@@ -556,7 +631,18 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         </details>
       </> : null}
 
-      {step === "roster" ? <><p className={styles.note}>{members.length} people in your Crew</p><div className={styles.groupMemberPicker}>{members.map(member => <div className={styles.personIdentity} key={member.id}><span className={styles.memberAvatar}>{avatarLabel(member.name)}</span><strong>{member.name}</strong></div>)}</div><button type="button" className={styles.primary} onClick={() => void openFinder()}>＋ Add people</button><button type="button" onClick={back}>Back to where I was</button></> : null}
+      {step === "roster" ? <><p className={styles.note}>{members.length} people in your Crew</p><div className={styles.groupMemberPicker}>{members.map(member => <div className={styles.memberRow} key={member.id}><div className={styles.personIdentity}><span className={styles.memberAvatar}>{avatarLabel(member.name)}</span><strong>{member.name}</strong></div><button type="button" className={styles.editContact} aria-label={`Edit ${member.name}`} disabled={busy} onClick={() => editContact(member)}>Edit</button><button type="button" className={styles.deleteContact} aria-label={`Delete ${member.name}`} disabled={busy} onClick={() => { editContact(member); setDeleteContactConfirm(true); }}>Delete</button></div>)}</div><button type="button" className={styles.primary} onClick={() => void openFinder()}>＋ Add people</button><button type="button" onClick={() => { setGroupsOnly(false); setStep("audience"); history.current = ["home"]; feedback(""); }}>Back to sharing</button></> : null}
+
+      {step === "contactEdit" ? <>
+        <p className={styles.note}>Choose the name and contact details you want to save in your Crew.</p>
+        {deleteContactConfirm ? <div className={styles.confirmDelete} role="region" aria-label="Confirm contact deletion"><strong>Remove {contactDraft.name} from your Crew?</strong><p>This ends your Crew connection and shared-pick access.</p><div className={styles.duo}><button type="button" className={styles.deleteGroup} disabled={busy} onClick={() => void deleteContact()}>Yes, delete contact</button><button type="button" disabled={busy} onClick={() => setDeleteContactConfirm(false)}>Cancel</button></div></div> : <form onSubmit={event => { event.preventDefault(); void saveContact(); }}>
+          <div className={styles.field}><label htmlFor={`${id}-contact-name`}>Name for your Crew</label><input id={`${id}-contact-name`} value={contactDraft.name} onChange={event => setContactDraft(current => ({ ...current, name: event.target.value }))} onFocus={event => event.target.select()} maxLength={80} autoComplete="off" required disabled={busy} /></div>
+          <div className={styles.field}><label htmlFor={`${id}-contact-phone`}>Phone number <span>· {contactDraft.phone ? "Edit" : "Add"}</span></label><input id={`${id}-contact-phone`} type="tel" value={contactDraft.phone} onChange={event => setContactDraft(current => ({ ...current, phone: event.target.value }))} maxLength={32} autoComplete="off" placeholder="Add a phone number" disabled={busy} /></div>
+          <div className={styles.field}><label htmlFor={`${id}-contact-email`}>Email address <span>· {contactDraft.email ? "Edit" : "Add"}</span></label><input id={`${id}-contact-email`} type="email" value={contactDraft.email} onChange={event => setContactDraft(current => ({ ...current, email: event.target.value }))} maxLength={254} autoComplete="off" placeholder="Add an email address" disabled={busy} /></div>
+          <div className={styles.duo}><button type="submit" className={styles.primary} disabled={busy}>Save contact</button><button type="button" disabled={busy} onClick={back}>Cancel</button></div>
+          <button type="button" className={styles.deleteContact} disabled={busy} onClick={() => setDeleteContactConfirm(true)}>Delete contact</button>
+        </form>}
+      </> : null}
 
       {pickedContact && ["messages", "find"].includes(step) ? <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void openContactGroups()}>Save {pickedContact.name} to a group</button> : null}
       {message && !shared && step !== "find" ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}

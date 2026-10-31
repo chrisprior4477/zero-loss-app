@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, type CrewVisibilityGroup, type CrewVisibilityRule } from "./visibility";
+import { crewMemberContacts, isCrewMemberContact, type CrewMemberContact } from "./member-contact";
 
 type CrewActionResult = { ok: boolean; message: string };
 export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: string | null };
 type CrewSearchResult = CrewActionResult & { people: CrewSearchPerson[] };
 export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 
-export type CrewShareOptions = { ok: boolean; message: string; memberCount: number; members: { id: string; name: string }[]; groups: (CrewVisibilityGroup & { memberCount: number })[] };
+export type CrewShareOptions = { ok: boolean; message: string; memberCount: number; members: { id: string; name: string; phone?: string; email?: string }[]; groups: (CrewVisibilityGroup & { memberCount: number })[] };
 
 export async function getCrewShareOptions(): Promise<CrewShareOptions> {
   const unavailable = { ok: false, message: "We couldn’t load your Crew. Please try again.", memberCount: 0, members: [], groups: [] };
@@ -17,17 +18,28 @@ export async function getCrewShareOptions(): Promise<CrewShareOptions> {
   if (!session) return { ...unavailable, message: "Sign in to share with your Crew." };
   const [members, settings] = await Promise.all([
     session.db.rpc("get_crew_member_profiles"),
-    session.db.from("crew_visibility_settings").select("groups").eq("owner_id", session.user.id).maybeSingle(),
+    session.db.from("crew_visibility_settings").select("groups,member_contacts").eq("owner_id", session.user.id).maybeSingle(),
   ]);
   if (members.error || settings.error) return unavailable;
   const approved = new Set<string>((members.data ?? []).map((member: { member_id: string }) => member.member_id));
   const groups: unknown[] = Array.isArray(settings.data?.groups) ? settings.data.groups : [];
+  const contacts = crewMemberContacts(settings.data?.member_contacts);
   return { ok: true, message: "", memberCount: approved.size,
-    members: (members.data ?? []).map((member: { member_id: string; name: string }) => ({ id: member.member_id, name: member.name })),
+    members: (members.data ?? []).map((member: { member_id: string; name: string }) => contacts[member.member_id] ? { id: member.member_id, ...contacts[member.member_id] } : { id: member.member_id, name: member.name }),
     groups: groups.filter(isCrewVisibilityGroup).map(group => ({
     id: group.id, name: group.name, memberCount: group.memberIds.filter(id => approved.has(id)).length,
     memberIds: group.memberIds.filter(id => approved.has(id)), contacts: group.contacts ?? [],
   })) };
+}
+
+export async function saveCrewMemberContact(memberId: string, input: CrewMemberContact): Promise<CrewActionResult> {
+  if (!crewUuid.test(memberId) || !isCrewMemberContact(input)) return { ok: false, message: "Add a name and check the phone number and email address." };
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in to save contact details." };
+  const { error } = await session.db.rpc("save_crew_member_contact", { p_member_id: memberId, p_contact: { name: input.name.trim(), phone: input.phone.trim(), email: input.email.trim() } });
+  if (error) return { ok: false, message: "We couldn’t save this contact. Check that the person is still in your Crew, then try again." };
+  refreshCrew();
+  return { ok: true, message: "Contact saved to your Crew." };
 }
 
 export async function shareConfirmedEntryWithCrew(requestId: string, groupId: string | null): Promise<CrewActionResult> {
@@ -246,6 +258,19 @@ export async function removeCrewConnection(id: string): Promise<CrewActionResult
   if (error) return { ok: false, message: "We couldn’t remove this connection. Please try again." };
   refreshCrew();
   return { ok: true, message: "Connection removed. You can no longer see each other’s shared picks." };
+}
+
+export async function removeCrewMember(memberId: string): Promise<CrewActionResult> {
+  if (!crewUuid.test(memberId)) return { ok: false, message: "Choose someone in your Crew." };
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in to manage your Crew." };
+  const { data, error } = await session.db.from("crew_invitations").select("id").eq("status", "accepted")
+    .or(`and(requester_id.eq.${session.user.id},recipient_id.eq.${memberId}),and(recipient_id.eq.${session.user.id},requester_id.eq.${memberId})`).limit(1).maybeSingle();
+  if (error || !data) return { ok: false, message: "This person is no longer available in your Crew. Refresh and try again." };
+  const removed = await session.db.rpc("remove_crew_connection", { p_invitation_id: data.id });
+  if (removed.error) return { ok: false, message: "We couldn’t remove this person. Please try again." };
+  refreshCrew();
+  return { ok: true, message: "Removed from your Crew." };
 }
 
 export async function setEntryCrewSharing(entryId: string, share: boolean): Promise<CrewActionResult> {

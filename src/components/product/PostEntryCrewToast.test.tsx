@@ -3,8 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { PostEntryCrewToast } from "./PostEntryCrewToast";
 import type { EntryRequest } from "@/lib/entries/request";
 
-const mocks = vi.hoisted(() => ({ options: vi.fn(), share: vi.fn(), prize: vi.fn(), win: vi.fn(), search: vi.fn(), invite: vi.fn(), phone: vi.fn(), email: vi.fn(), save: vi.fn(), item: vi.fn() }));
-vi.mock("@/lib/crew/actions", () => ({ getCrewShareOptions: mocks.options, shareConfirmedEntryWithCrew: mocks.share, sharePrizeWithCrew: mocks.prize, shareWinWithCrew: mocks.win, searchCrewByName: mocks.search, inviteToCrewById: mocks.invite, inviteToCrewByPhone: mocks.phone, inviteToCrew: mocks.email, saveCrewGroup: mocks.save }));
+const mocks = vi.hoisted(() => ({ options: vi.fn(), share: vi.fn(), prize: vi.fn(), win: vi.fn(), search: vi.fn(), invite: vi.fn(), phone: vi.fn(), email: vi.fn(), save: vi.fn(), item: vi.fn(), contact: vi.fn(), remove: vi.fn() }));
+vi.mock("@/lib/crew/actions", () => ({ getCrewShareOptions: mocks.options, shareConfirmedEntryWithCrew: mocks.share, sharePrizeWithCrew: mocks.prize, shareWinWithCrew: mocks.win, searchCrewByName: mocks.search, inviteToCrewById: mocks.invite, inviteToCrewByPhone: mocks.phone, inviteToCrew: mocks.email, saveCrewGroup: mocks.save, saveCrewMemberContact: mocks.contact, removeCrewMember: mocks.remove }));
 vi.mock("@/lib/sharing/receiving-actions", () => ({ prepareProductShareLink: vi.fn(async () => null) }));
 vi.mock("@/lib/sharing/actions", () => ({ getProductShareItem: mocks.item }));
 const request: EntryRequest = { requestId: "11111111-1111-4111-8111-111111111111", slug: "test-prize", title: "Test prize", quantity: 1, amountCents: 100, status: "accepted", duplicate: false, undoUntil: "2026-10-22T12:00:30Z", serverNow: "2026-10-22T12:01:00Z", href: "/account/entries" };
@@ -386,6 +386,8 @@ test("typing a name shows suggestions without Search and keeps the result after 
   fireEvent.change(screen.getByLabelText("Name, email address, or phone number"), { target: { value: "Test" } });
   fireEvent.click(await screen.findByRole("button", { name: "Add to Crew" }));
   expect(await screen.findByText("Test Customer 4 added to your Crew.")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Save this contact" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.getByLabelText("Name, email address, or phone number")).toHaveProperty("value", "");
   expect(screen.getByRole("button", { name: "✓ Added" })).toHaveProperty("disabled", true);
   expect(screen.getByText("4")).toBeTruthy();
@@ -404,4 +406,50 @@ test("adding an existing Crew member to a group saves its members and preserves 
   expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts }, remove: false });
   fireEvent.click(screen.getByRole("button", { name: "Done · back to sharing" }));
   expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", false);
+});
+
+test("Crew list has a direct send action and saves edited contact details with retry", async () => {
+  mocks.contact.mockResolvedValueOnce({ ok: false, message: "Please try again." }).mockResolvedValue({ ok: true, message: "Saved." });
+  open(); await audiences(); fireEvent.click(screen.getByRole("button", { name: "See your Crew →" }));
+  expect(screen.getByRole("button", { name: "Send to my Crew" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Back to sharing" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Member" }));
+  fireEvent.change(screen.getByLabelText("Name for your Crew"), { target: { value: "Mom" } });
+  fireEvent.change(screen.getByLabelText(/Phone number/), { target: { value: "1111111111" } });
+  fireEvent.change(screen.getByLabelText(/Email address/), { target: { value: "mom@example.test" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save contact" }));
+  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Please try again.");
+  fireEvent.click(screen.getByRole("button", { name: "Save contact" }));
+  expect(await screen.findByText("Mom saved to your Crew.")).toBeTruthy();
+  expect(mocks.contact).toHaveBeenLastCalledWith(memberId, { name: "Mom", phone: "1111111111", email: "mom@example.test" });
+  fireEvent.click(screen.getByRole("button", { name: "Edit Mom" }));
+  expect(screen.getByLabelText(/Phone number/)).toHaveProperty("value", "1111111111");
+  expect(screen.getByLabelText(/Email address/)).toHaveProperty("value", "mom@example.test");
+  expect(mocks.invite).not.toHaveBeenCalled(); expect(mocks.share).not.toHaveBeenCalled();
+});
+
+test("contact deletion requires confirmation and removes the exact Crew member", async () => {
+  mocks.remove.mockResolvedValue({ ok: true, message: "Removed." });
+  open(); await audiences(); fireEvent.click(screen.getByRole("button", { name: "See your Crew →" }));
+  fireEvent.click(screen.getByRole("button", { name: "Delete Member" }));
+  expect(mocks.remove).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Yes, delete contact" }));
+  expect(await screen.findByText("Member removed from your Crew.")).toBeTruthy();
+  expect(mocks.remove).toHaveBeenCalledWith(memberId);
+  expect(screen.queryByRole("button", { name: "Edit Member" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Send to my Crew" })).toHaveProperty("disabled", true);
+});
+
+test("group deletion can be cancelled and deletes only the saved group after confirmation", async () => {
+  mocks.save.mockResolvedValue({ ok: true, message: "Removed." });
+  open(); await audiences(); await groups(); fireEvent.click(screen.getByRole("button", { name: "Edit Mom" }));
+  fireEvent.click(screen.getByRole("button", { name: "Delete this group" }));
+  expect(mocks.save).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("button", { name: "Yes, delete group" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Delete this group" }));
+  fireEvent.click(screen.getByRole("button", { name: "Yes, delete group" }));
+  expect(await screen.findByText("Mom deleted. The people are still in your Crew.")).toBeTruthy();
+  expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts: [] }, remove: true });
+  expect(mocks.remove).not.toHaveBeenCalled();
 });
