@@ -24,7 +24,7 @@ const explanations: Partial<Record<Screen, string>> = {
   home: "Choose who receives the find. Each route brings you back to the same entry details.",
   crew: "Crew sharing gets its own short screen. The orange button clearly sends to everyone shown.",
   groups: "Select a group and send. Adding people stays here, without opening the full settings page.",
-  find: "Suggestions appear as you type. Adding clears the search, keeps a visible receipt, and preserves your group.",
+  find: "The people list stays visible. Typing filters it; Add marks the person as added and puts confirmation directly below the search. Your group stays selected.",
   "group-edit": "Name the group and pick people in one place. Save returns with the group selected, ready to share.",
   text: "No Crew or account is needed for the recipient. Your phone opens a draft; you choose who receives it.",
   messages: "This is a Messages simulation. A real messaging app controls its own picture preview and sends only when you tap Send.",
@@ -65,7 +65,7 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
   const modalOpen = screen !== "entry" && screen !== "overview";
   const selectedGroup = crew.groups.find(group => group.id === selectedGroupId);
   const findGroup = crew.groups.find(group => group.id === findGroupId);
-  const results = findPreviewPeople(query);
+  const results = query.trim().length < 3 ? previewPeople : findPreviewPeople(query);
   const groupResults = groupQuery.trim() ? findPreviewPeople(groupQuery) : previewPeople.filter(person => crew.memberIds.includes(person.id));
   const journeyIndex = sharingJourneys.findIndex(item => item.id === journey);
 
@@ -79,15 +79,17 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
     document.documentElement.style.overflow = "hidden";
     const resize = () => {
       const viewport = window.visualViewport;
-      element.style.setProperty("--visible-height", `${viewport?.height ?? window.innerHeight}px`);
-      element.style.setProperty("--visible-top", `${viewport?.offsetTop ?? 0}px`);
+      const available = Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight, viewport?.height ?? window.innerHeight);
+      element.style.setProperty("--visible-height", `${Math.floor(available)}px`);
     };
     resize();
+    window.addEventListener("resize", resize);
     window.visualViewport?.addEventListener("resize", resize);
     window.visualViewport?.addEventListener("scroll", resize);
     return () => {
       element.close(); document.body.style.overflow = previous;
       document.documentElement.style.overflow = previousRootOverflow;
+      window.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("scroll", resize);
     };
@@ -172,7 +174,7 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
         <header className={styles.modalHead}><div><span className={styles.journeyLabel}>JOURNEY {journeyIndex + 1} OF 4 · {sharingJourneys[journeyIndex].title}</span><button className={styles.back} onClick={screen === "home" ? overview : back}>{screen === "home" ? "← All journeys" : "← Back"}</button></div><button className={styles.close} aria-label="Close walkthrough" onClick={close}>×</button></header>
         <h2 id={`${id}-heading`} ref={heading} tabIndex={-1}>{title}</h2>
         {screen !== "contacts" ? <ProductSummary /> : null}
-        <div ref={scrollBody} className={styles.content}>
+        <div ref={scrollBody} className={`${styles.content} ${screen === "find" ? styles.pickerContent : ""}`}>
           {screen === "home" ? <div className={styles.stack}>
             <div className={styles.duo}><button className={styles.orange} onClick={() => go("share-sheet")}><ShareIcon name="share" />Share…</button><button onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
             <button className={journey === "crew" ? styles.orange : styles.blue} onClick={() => go("crew")}><ShareIcon name="crew" />Share with Crew</button>
@@ -199,15 +201,14 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
             <div className={styles.duo}><button onClick={() => editGroup()}>＋ Create group</button><button disabled={!selectedGroup} onClick={() => editGroup(selectedGroup)}>Edit selected group</button></div>
           </div> : null}
 
-          {screen === "find" ? <div className={styles.stack}>
-            {addedIds.length ? <div className={styles.addedStrip} aria-label="Added people">{addedIds.map(personId => <span key={personId}>✓ Customer {personId}</span>)}</div> : null}
+          {screen === "find" ? <div className={styles.finder}>
             <label className={styles.field} htmlFor={`${id}-search`}>{findGroup ? "Add to your Crew and this group" : "Name, email, or phone number"}<div className={styles.searchField}><ShareIcon name="search" /><input ref={searchInput} id={`${id}-search`} value={query} placeholder={addedIds.length ? "Add another person…" : "Try Test Customer 1"} onChange={event => { setQuery(event.target.value); setNotice(""); }} autoComplete="off" aria-controls={`${id}-results`} /></div></label>
-            <div className={styles.results} id={`${id}-results`} aria-label="Matching people" aria-live="polite">{results.map(person => <div className={styles.personRow} key={person.id}><PersonAvatar id={person.id} /><div><strong>{person.name}</strong><small>{person.email}</small><small>{person.phone.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3")}</small></div><button className={isAdded(person.id) ? styles.smallButton : `${styles.smallButton} ${styles.orange}`} disabled={isAdded(person.id)} aria-label={`${isAdded(person.id) ? "Already added" : "Add"} ${person.name}`} onClick={() => addPerson(person.id)}>{isAdded(person.id) ? "✓ Added" : "＋ Add"}</button></div>)}
-              {!results.length ? <p className={styles.emptyHint}>{query.trim().length >= 3 ? "No demo match. Try Test Customer 1, 1111111111, or testcustomer1@example.test." : "Suggestions appear after 3 letters or a complete phone number or email."}</p> : null}
+            {notice ? <p className={`${styles.notice} ${styles.searchReceipt}`} role="status">✓ {notice}</p> : null}
+            <button className={styles.phoneContacts} onClick={() => { setContactsReturn("find"); go("contacts"); }}><ShareIcon name="crew" />Add people from your phone</button>
+            <div className={styles.searchResultHeading}><strong>{query.trim().length >= 3 ? "Matching people" : "Suggested people"}</strong><span>{crew.memberIds.length} in your Crew</span></div>
+            <div className={styles.results} id={`${id}-results`} aria-label="Matching people" aria-live="polite">{results.map(person => <div className={`${styles.personRow} ${isAdded(person.id) ? styles.addedPerson : ""}`} key={person.id}><PersonAvatar id={person.id} /><div><strong>{person.name}</strong><small>{person.email}</small><small>{person.phone.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3")}</small></div><button className={isAdded(person.id) ? styles.smallButton : `${styles.smallButton} ${styles.orange}`} disabled={isAdded(person.id)} aria-label={`${isAdded(person.id) ? "Already added" : "Add"} ${person.name}`} onClick={() => addPerson(person.id)}>{isAdded(person.id) ? "✓ Added" : "＋ Add"}</button></div>)}
+              {!results.length ? <p className={styles.emptyHint}>No demo match yet. Keep typing a complete phone or email, or try Test Customer 1.</p> : null}
             </div>
-            <button onClick={() => { setContactsReturn("find"); go("contacts"); }}><ShareIcon name="crew" />Add people from your phone</button>
-            <button className={styles.orange} onClick={() => { setScreen(findReturn === "home" ? "crew" : findReturn); setNotice(""); }}>{findGroup ? `Done · back to ${findGroup.name}` : "Done · back to sharing"}</button>
-            <div className={styles.duo}><button className={styles.plainLink} onClick={() => go("roster")}>See your Crew →</button><button className={styles.plainLink} onClick={() => { setQuery(""); setNotice(""); searchInput.current?.focus(); }}>Add more people</button></div>
           </div> : null}
 
           {screen === "roster" ? <div className={styles.stack}>
@@ -247,9 +248,10 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
           {screen === "email" ? <div className={styles.stack}><p className={styles.note}>The existing email handoff stays available. This draft is a simulation.</p><label className={styles.field}>To<input type="email" placeholder="testcustomer1@example.test" /></label><div className={styles.messageDraft}><strong>Subject: {productTitle}</strong><p>{shareText}</p><span>{publicProductUrl}</span></div><button className={styles.orange} onClick={() => finish("Email draft walkthrough finished. Your real email account is unchanged.")}>Finish email preview</button></div> : null}
 
           {screen === "success" ? <div className={styles.success}><span>✓</span><strong>All set.</strong><p>{success}</p><small>Simulated only. Returning to entry details…</small><button onClick={() => { setCompletion(success); close(); }}>Back to entry details</button></div> : null}
-          {notice ? <p className={styles.notice} role="status">{notice}</p> : null}
+          {notice && screen !== "find" ? <p className={styles.notice} role="status">{notice}</p> : null}
         </div>
         <footer className={styles.modalFooter}>
+          {screen === "find" ? <div className={styles.finderFooter}><button className={styles.orange} onClick={() => { setScreen(findReturn === "home" ? "crew" : findReturn); setNotice(""); }}>{findGroup ? `Done · back to ${findGroup.name}` : "Done · back to sharing"}</button><div className={styles.duo}><button className={styles.plainLink} onClick={() => go("roster")}>See your Crew →</button><button className={styles.plainLink} onClick={() => { setQuery(""); searchInput.current?.focus(); }}>Add more people</button></div></div> : null}
           {screen === "group-edit" ? <div className={styles.duo}><button type="submit" form={`${id}-group-form`} className={styles.orange} disabled={!groupName.trim()}>Save group</button><button type="button" onClick={back}>Cancel</button></div> : null}
           {screen !== "success" ? <><details className={styles.why}><summary>Why this step?</summary><p>{explanations[screen] ?? "Choose where to send the product link, then return to your entry details."}</p></details>{screen !== "group-edit" ? <button className={styles.notNow} onClick={close}>Not now</button> : null}</> : null}
           <small className={styles.previewNote}>Review only · no messages sent or account changes</small>

@@ -7,7 +7,7 @@ beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 test("adding by phone clears search, shows the named receipt, and appears in Crew", () => {
   render(<CrewSharingWalkthroughs initialJourney="add" />);
@@ -19,11 +19,37 @@ test("adding by phone clears search, shows the named receipt, and appears in Cre
   expect(query.value).toBe("");
   expect(query.placeholder).toBe("Add another person…");
   expect(screen.getByRole("status").textContent).toContain("Test Customer 1 added to your Crew.");
+  expect(query.closest("label")?.nextElementSibling).toBe(screen.getByRole("status"));
+  expect((screen.getByRole("button", { name: "Already added Test Customer 1" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("button", { name: "Add Test Customer 4" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "See your Crew →" }));
   expect(screen.getByText("Test Customer 1")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Back to where I was" }));
   fireEvent.click(screen.getByRole("button", { name: "Done · back to sharing" }));
   expect(screen.getByText("3 people in your Crew")).toBeTruthy();
+});
+
+test("adding another suggestion keeps the people list available without retyping", () => {
+  render(<CrewSharingWalkthroughs initialJourney="add" />);
+  fireEvent.click(screen.getByRole("button", { name: "Find & add someone" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add Test Customer 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add Test Customer 4" }));
+  expect(screen.getByRole("status").textContent).toContain("Test Customer 4 added");
+  expect((screen.getByRole("button", { name: "Already added Test Customer 1" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("button", { name: "Already added Test Customer 4" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText("4 in your Crew")).toBeTruthy();
+});
+
+test("popup height never exceeds the layout viewport and responds to keyboard resize", () => {
+  const viewport = { height: window.innerHeight + 300, offsetTop: 200, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  vi.stubGlobal("visualViewport", viewport);
+  render(<CrewSharingWalkthroughs initialJourney="text" />);
+  const dialog = screen.getByRole("dialog");
+  expect(dialog.style.getPropertyValue("--visible-height")).toBe(`${window.innerHeight}px`);
+  viewport.height = 360;
+  fireEvent(window, new Event("resize"));
+  expect(dialog.style.getPropertyValue("--visible-height")).toBe("360px");
+  expect(dialog.style.getPropertyValue("--visible-top")).toBe("");
 });
 
 test("adding from an empty group preserves that audience and enables its send button", () => {
