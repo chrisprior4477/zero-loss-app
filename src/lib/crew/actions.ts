@@ -42,11 +42,13 @@ export async function saveCrewMemberContact(memberId: string, input: CrewMemberC
   return { ok: true, message: "Contact saved to your Crew." };
 }
 
-export async function shareConfirmedEntryWithCrew(requestId: string, groupId: string | null): Promise<CrewActionResult> {
-  if (!crewUuid.test(requestId) || (groupId !== null && !crewUuid.test(groupId))) return { ok: false, message: "Choose a saved Crew group." };
+export async function shareConfirmedEntryWithCrew(requestId: string, groupId: string | string[] | null): Promise<CrewActionResult> {
+  if (!crewUuid.test(requestId) || (Array.isArray(groupId) ? !groupId.length || groupId.length > 500 || new Set(groupId).size !== groupId.length || !groupId.every(id => crewUuid.test(id)) : groupId !== null && !crewUuid.test(groupId))) return { ok: false, message: "Choose saved Crew groups." };
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to share this entry." };
-  const { data, error } = await session.db.rpc("share_confirmed_entry_with_crew", { p_request_id: requestId, p_group_id: groupId });
+  const { data, error } = Array.isArray(groupId)
+    ? await session.db.rpc("share_confirmed_entry_with_crew_groups", { p_request_id: requestId, p_group_ids: groupId })
+    : await session.db.rpc("share_confirmed_entry_with_crew", { p_request_id: requestId, p_group_id: groupId });
   if (error || typeof data !== "number" || data < 1) return { ok: false, message: "We couldn’t share this entry. Make sure your selected audience has approved Crew members, then try again." };
   refreshCrew();
   return { ok: true, message: "Shared with your selected approved Crew members. Your wallet and payment details stay private." };

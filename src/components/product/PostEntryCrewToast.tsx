@@ -21,9 +21,8 @@ type ContactPicker = { select: (properties: string[], options: { multiple: boole
 const contactKey = (value: string, kind: "id" | "email" | "phone") => kind === "phone" ? value.replace(/\D/g, "") : value.trim().toLowerCase();
 const validPhone = (value: string) => /^\d{10,15}$/.test(value.replace(/\D/g, ""));
 const samplePortraits = ["andre", "nora", "mateo", "sofia", "owen", "tessa", "samir", "jules"];
-function CrewPortrait({ memberId }: { memberId: string }) {
-  const index = Array.from(memberId).reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0) % samplePortraits.length;
-  return <span className={styles.memberAvatar}><Image src={`/images/home/crew/person-${samplePortraits[index]}.webp`} alt="" title="Sample portrait" width={34} height={34} className={styles.portrait} /></span>;
+function CrewPortrait({ index }: { index: number }) {
+  return <span className={styles.memberAvatar}><Image src={`/images/home/crew/person-${samplePortraits[index % samplePortraits.length]}.webp`} alt="" title="Sample portrait" width={34} height={34} className={styles.portrait} /></span>;
 }
 type Props = { onClose: () => void; focusOnOpen?: boolean } & ({ request: EntryRequest; product?: ProductShareItem } | { request?: undefined; product: ProductShareItem });
 const emptyOptions: CrewShareOptions = { ok: true, message: "", memberCount: 0, members: [], groups: [] };
@@ -35,7 +34,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const history = useRef<Step[]>([]);
   const [origin] = useState(() => typeof window === "undefined" ? "" : window.location.origin);
   const [options, setOptions] = useState<CrewShareOptions | null>(null);
-  const [audience, setAudience] = useState("");
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [groupsOnly, setGroupsOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
@@ -78,16 +77,20 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const previousStep = useRef<Step | null>(null);
   const id = useId();
   const [shareToken, setShareToken] = useState<string | null>(null);
+  const shareGroupId = selectedGroupIds.length === 1 ? selectedGroupIds[0] : null;
   useEffect(() => {
     let cancelled = false;
-    void prepareProductShareLink(item.slug, audience || null).then(token => { if (!cancelled) { setShareToken(token); } }).catch(() => { if (!cancelled) { setShareToken(null); } });
+    void prepareProductShareLink(item.slug, shareGroupId).then(token => { if (!cancelled) { setShareToken(token); } }).catch(() => { if (!cancelled) { setShareToken(null); } });
     return () => { cancelled = true; };
-  }, [item.slug, audience]);
+  }, [item.slug, shareGroupId]);
   const url = origin ? productShareUrl(origin, item.slug, shareToken) : `/items/${item.slug}`;
   const text = productShareText(item.title, item);
   const body = `${text}\n${url}`;
   const members = options?.members ?? [];
-  const selectedGroup = options?.groups.find(group => group.id === audience);
+  const selectedGroups = options?.groups.filter(group => selectedGroupIds.includes(group.id)) ?? [];
+  const selectedGroup = selectedGroups.length === 1 ? selectedGroups[0] : undefined;
+  const selectedRecipientCount = new Set(selectedGroups.flatMap(group => group.memberIds)).size;
+  const portraitIndexes = new Map([...new Set([...members.map(member => member.id), ...people.map(person => person.memberId)])].sort().map((memberId, index) => [memberId, index]));
 
   useEffect(() => {
     const element = dialog.current;
@@ -207,7 +210,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }
 
   async function loadAudiences(onlyGroups = false) {
-    setGroupsOnly(onlyGroups); setAudience(""); setShared(false);
+    setGroupsOnly(onlyGroups); setSelectedGroupIds([]); setShared(false);
     go("audience");
     await run(async () => {
       const result = await getCrewShareOptions();
@@ -279,7 +282,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
             if (!alive.current) return;
             if (!saved.ok) { setOptions(updated); feedback(`Crew connection saved. ${saved.message}`, true); return; }
             setOptions({ ...updated, groups: updated.groups.map(group => group.id === target.id ? { ...savedGroup, memberCount: savedGroup.memberIds.length } : group) });
-            setAudience(target.id);
+            setSelectedGroupIds(current => [...new Set([...current, target.id])]);
             feedback(`${addedName || "This person"} added to your Crew and ${target.name}.`);
           } else {
             setOptions(updated);
@@ -371,7 +374,6 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     setEditingGroup(Boolean(group));
     setDeleteGroupConfirm(false);
     setGroupName(group?.name ?? ""); setGroupMembers(group?.memberIds ?? []); setGroupFilter("");
-    if (group) setAudience(group.id);
     go("group");
   }
 
@@ -418,7 +420,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       if (!alive.current) return;
       if (!result.ok) { feedback(result.message, true); return; }
       setOptions(current => current ? { ...current, groups: current.groups.filter(value => value.id !== group.id) } : current);
-      setAudience(""); setGroupsOnly(true); setDeleteGroupConfirm(false); history.current.pop(); setStep("audience"); feedback(`${group.name} deleted. The people are still in your Crew.`);
+      setSelectedGroupIds(current => current.filter(id => id !== group.id)); setGroupsOnly(true); setDeleteGroupConfirm(false); history.current.pop(); setStep("audience"); feedback(`${group.name} deleted. The people are still in your Crew.`);
     });
   }
 
@@ -442,18 +444,32 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       if (!alive.current) return;
       if (!result.ok) { feedback(result.message, true); return; }
       setOptions(current => ({ ...(current ?? emptyOptions), groups: [...(current?.groups ?? []).filter(g => g.id !== group.id), { ...group, memberCount: group.memberIds.length }] }));
-      setAudience(group.id); setGroupsOnly(true); setShared(false); setStep("audience"); history.current.pop(); feedback(result.message);
+      setSelectedGroupIds(current => [...new Set([...current, group.id])]); setGroupsOnly(true); setShared(false); setStep("audience"); history.current.pop(); feedback(result.message);
     });
   }
 
-  async function shareCrew(targetGroupId: string | null) {
-    const group = targetGroupId ? options?.groups.find(value => value.id === targetGroupId) : null;
-    if (targetGroupId ? !group?.memberCount : !options?.memberCount) return;
+  async function shareCrew(target: string[] | null) {
+    const groups = target ? options?.groups.filter(value => target.includes(value.id)) ?? [] : [];
+    const recipients = [...new Set(target ? groups.flatMap(group => group.memberIds) : members.map(member => member.id))];
+    if (!recipients.length || target && groups.length !== target.length) return;
     await run(async () => {
-      const recipients = targetGroupId ? group?.memberIds ?? [] : members.map(member => member.id);
-      if (!request && recipients.length > 20) { feedback("For email sharing, choose a group of 20 or fewer approved members.", true); return; }
-      const result = item.win ? await shareWinWithCrew(item.win.rewardId, recipients) : request ? await shareConfirmedEntryWithCrew(request.requestId, targetGroupId) : await sharePrizeWithCrew(item.slug, recipients, targetGroupId);
-      if (alive.current) { feedback(result.message, !result.ok); if (result.ok) setSharedGroupName(group?.name ?? ""); setShared(result.ok); }
+      const singleGroup = groups.length === 1 ? groups[0].id : null;
+      let result = { ok: true, message: "Your share is saved." };
+      if (request && !item.win) result = await shareConfirmedEntryWithCrew(request.requestId, target && target.length > 1 ? target : singleGroup);
+      else {
+        let completed = 0;
+        // Keep the existing server batch bound; a person in several groups is
+        // included once, and canonical delivery actions make retries safe.
+        for (let offset = 0; offset < recipients.length; offset += 20) {
+          const batch = recipients.slice(offset, offset + 20);
+          result = item.win ? await shareWinWithCrew(item.win.rewardId, batch) : await sharePrizeWithCrew(item.slug, batch, singleGroup);
+          if (!alive.current) return;
+          if (!result.ok) { feedback(`${completed ? `${completed} people already have a saved share. ` : ""}${result.message}`, true); return; }
+          completed += batch.length;
+        }
+        if (recipients.length > 20) result = { ok: true, message: `Share saved for ${recipients.length} selected Crew members.` };
+      }
+      if (alive.current) { feedback(result.message, !result.ok); if (result.ok) setSharedGroupName(groups.length > 1 ? `${groups.length} groups` : groups[0]?.name ?? ""); setShared(result.ok); }
     });
   }
 
@@ -592,7 +608,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         {message ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}
         <button type="button" className={styles.contactsButton} disabled={busy} onClick={() => openContacts("find")}><ShareIcon name="crew" />Add people from your phone</button>
         <p className={styles.note}>{searching ? "Searching…" : "Type a name for suggestions. Complete phone and email lookups stay private."}</p>
-        <div className={styles.findResults}>{visiblePeople.map(person => <div className={styles.result} key={person.memberId}><div className={styles.personIdentity}><CrewPortrait memberId={person.memberId} /><div><strong>{person.name}</strong><small>{personAdded(person.memberId) ? "Connected" : "Discoverable Zero Loss member"}</small></div></div><button type="button" className={personAdded(person.memberId) ? styles.crewButton : styles.primary} disabled={busy || searching || personAdded(person.memberId)} onClick={() => void addPerson(person.memberId, "id", person.name)}>{personAdded(person.memberId) ? "✓ Added" : findTargetGroup ? "Add to group" : "Add to Crew"}</button></div>)}
+        <div className={styles.findResults}>{visiblePeople.map(person => <div className={styles.result} key={person.memberId}><div className={styles.personIdentity}><CrewPortrait index={portraitIndexes.get(person.memberId) ?? 0} /><div><strong>{person.name}</strong><small>{personAdded(person.memberId) ? "Connected" : "Discoverable Zero Loss member"}</small></div></div><button type="button" className={personAdded(person.memberId) ? styles.crewButton : styles.primary} disabled={busy || searching || personAdded(person.memberId)} onClick={() => void addPerson(person.memberId, "id", person.name)}>{personAdded(person.memberId) ? "✓ Added" : findTargetGroup ? "Add to group" : "Add to Crew"}</button></div>)}
         {reviewQuery ? <div className={styles.result}><div><strong>{reviewQuery}</strong><small>Automatic connection · opt-out available</small></div><button type="button" className={styles.darkButton} disabled={busy || requested.includes(contactKey(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email"))} onClick={() => void addPerson(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")}>{requested.includes(contactKey(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")) ? "Added" : "Add to Crew"}</button></div> : null}</div>
         <button type="button" className={styles.primary} disabled={busy} onClick={finishFinding}>Done · back to sharing</button>
         <div className={styles.duo}><button type="button" className={styles.back} onClick={() => go("roster")}>See &amp; Edit your Crew</button><button type="button" className={styles.back} onClick={() => { searchVersion.current += 1; setQuery(""); setReviewQuery(""); findInput.current?.focus(); }}>Add more people</button></div>
@@ -603,17 +619,17 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           {!groupsOnly ? <section aria-label="Share with Crew"><div className={styles.audienceRow}>
             <div className={styles.audienceChoice}><span>Share with Crew<small>{options.memberCount} {options.memberCount === 1 ? "connection" : "connections"}</small></span></div>
             <button type="button" className={styles.addPeople} aria-label="Add People to my Crew" disabled={busy} onClick={() => void openFinder()}>Add People</button>
-          </div><div className={styles.memberFaces}>{members.map(member => <span key={member.id}><CrewPortrait memberId={member.id} /><small>{member.name}</small></span>)}</div><button type="button" className={styles.primary} disabled={busy || !options.memberCount} onClick={() => void shareCrew(null)}>Send to my Crew</button><div className={styles.duo}><button type="button" onClick={() => go("roster")}>See &amp; Edit your Crew</button><button type="button" onClick={() => void loadAudiences(true)}>Choose a group</button></div></section> : null}
+          </div><div className={styles.memberFaces}>{members.map(member => <span key={member.id}><CrewPortrait index={portraitIndexes.get(member.id) ?? 0} /><small>{member.name}</small></span>)}</div><button type="button" className={styles.primary} disabled={busy || !options.memberCount} onClick={() => void shareCrew(null)}>Send to my Crew</button><div className={styles.duo}><button type="button" onClick={() => go("roster")}>See &amp; Edit your Crew</button><button type="button" onClick={() => void loadAudiences(true)}>Choose a group</button></div></section> : null}
           {groupsOnly ? <section className={styles.groupSection} aria-label="Your groups"><h3>Share with groups you’ve created</h3><div className={styles.groupList}>
             {options.groups.map(group => <div className={styles.audienceRow} key={group.id}>
-              <label className={styles.groupChoice}><input type="radio" name={`${id}-audience`} aria-label={`Share with ${group.name}`} checked={audience === group.id} disabled={busy} onChange={() => { setAudience(group.id); setShared(false); feedback(""); }} /><span>{group.name}<small>{group.memberCount} connected {group.memberCount === 1 ? "person" : "people"}{group.contacts?.length ? ` · ${group.contacts.length} saved ${group.contacts.length === 1 ? "contact" : "contacts"}` : ""}</small></span></label>
-              <div className={styles.groupActions}><button type="button" className={styles.addPeople} aria-label={`Add People to ${group.name}`} disabled={busy} onClick={() => { setAudience(group.id); void openFinder(group.id); }}><ShareIcon name="crew" /><span>Add</span></button><button type="button" className={styles.editGroup} aria-label={`Edit ${group.name}`} disabled={busy} onClick={() => editGroup(group)}>Edit</button></div>
+              <label className={styles.groupChoice}><input type="checkbox" aria-label={`Share with ${group.name}`} checked={selectedGroupIds.includes(group.id)} disabled={busy} onChange={event => { setSelectedGroupIds(current => event.target.checked ? [...new Set([...current, group.id])] : current.filter(id => id !== group.id)); setShared(false); feedback(""); }} /><span>{group.name}<small>{group.memberCount} connected {group.memberCount === 1 ? "person" : "people"}{group.contacts?.length ? ` · ${group.contacts.length} saved ${group.contacts.length === 1 ? "contact" : "contacts"}` : ""}</small></span></label>
+              <div className={styles.groupActions}><button type="button" className={styles.addPeople} aria-label={`Add People to ${group.name}`} disabled={busy} onClick={() => { setSelectedGroupIds(current => [...new Set([...current, group.id])]); void openFinder(group.id); }}><ShareIcon name="crew" /><span>Add</span></button><button type="button" className={styles.editGroup} aria-label={`Edit ${group.name}`} disabled={busy} onClick={() => editGroup(group)}>Edit</button></div>
             </div>)}
             </div>{!options.groups.length ? <p className={styles.note}>No groups yet. Create one below.</p> : null}
           </section> : null}
-          {groupsOnly && !audience ? <p className={styles.note}>Choose a group above to share with.</p> : null}
+          {groupsOnly && !selectedGroupIds.length ? <p className={styles.note}>Choose one or more groups to share with.</p> : null}
           {groupsOnly && selectedGroup && !selectedGroup.memberCount ? <p className={styles.note}>Add people to {selectedGroup.name} to send this item.</p> : null}
-          {groupsOnly ? <button type="button" className={styles.primary} disabled={busy || !selectedGroup?.memberCount} onClick={() => void shareCrew(audience)}>{selectedGroup ? `Send to ${selectedGroup.name}` : "Send to my group"}</button> : null}
+          {groupsOnly ? <button type="button" className={styles.primary} disabled={busy || !selectedRecipientCount} onClick={() => void shareCrew(selectedGroupIds)}>{selectedGroups.length > 1 ? `Send to ${selectedGroups.length} groups` : selectedGroup ? `Send to ${selectedGroup.name}` : "Send to my groups"}</button> : null}
           {!request ? <p className={styles.note}>{item.win ? "Shares your win with selected Crew members who allow win updates." : "Sends this item’s link to the selected connected members."}</p> : null}
           {groupsOnly ? <button type="button" disabled={busy} onClick={() => editGroup()}>＋ Create a new group</button> : null}
         </> : <button type="button" disabled={busy} onClick={() => void loadAudiences(groupsOnly)}>{busy ? "Loading Crew…" : "Retry loading Crew"}</button>}
@@ -637,7 +653,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         </> : null}
       </> : null}
 
-      {step === "roster" ? <><p className={styles.note}>{members.length} people in your Crew</p><div className={styles.groupMemberPicker}>{members.map(member => <div className={styles.memberRow} key={member.id}><div className={styles.personIdentity}><CrewPortrait memberId={member.id} /><strong>{member.name}</strong></div><button type="button" className={styles.editContact} aria-label={`Edit ${member.name}`} disabled={busy} onClick={() => editContact(member)}>Edit</button><button type="button" className={styles.deleteContact} aria-label={`Delete ${member.name}`} disabled={busy} onClick={() => { editContact(member); setDeleteContactConfirm(true); }}>Delete</button></div>)}</div><button type="button" className={styles.primary} onClick={() => void openFinder()}>＋ Add people</button><button type="button" onClick={() => { setGroupsOnly(false); setStep("audience"); history.current = ["home"]; feedback(""); }}>Back to sharing</button></> : null}
+      {step === "roster" ? <><p className={styles.note}>{members.length} people in your Crew</p><div className={styles.groupMemberPicker}>{members.map(member => <div className={styles.memberRow} key={member.id}><div className={styles.personIdentity}><CrewPortrait index={portraitIndexes.get(member.id) ?? 0} /><strong>{member.name}</strong></div><button type="button" className={styles.editContact} aria-label={`Edit ${member.name}`} disabled={busy} onClick={() => editContact(member)}>Edit</button><button type="button" className={styles.deleteContact} aria-label={`Delete ${member.name}`} disabled={busy} onClick={() => { editContact(member); setDeleteContactConfirm(true); }}>Delete</button></div>)}</div><button type="button" className={styles.primary} onClick={() => void openFinder()}>＋ Add people</button><button type="button" onClick={() => { setGroupsOnly(false); setStep("audience"); history.current = ["home"]; feedback(""); }}>Back to sharing</button></> : null}
 
       {step === "contactEdit" ? <>
         <p className={styles.note}>Choose the name and contact details you want to save in your Crew.</p>

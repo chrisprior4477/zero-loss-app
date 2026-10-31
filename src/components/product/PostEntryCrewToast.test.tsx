@@ -22,7 +22,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); Reflect.deleteProperty(navigator, "contacts"); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 function open() { render(<PostEntryCrewToast request={request} onClose={vi.fn()} />); }
 async function audiences() { fireEvent.click(screen.getByRole("button", { name: "Share with Crew" })); await screen.findByRole("button", { name: "Send to my Crew" }); }
-async function groups() { fireEvent.click(screen.getByRole("button", { name: "Choose a group" })); await screen.findByRole("radio", { name: "Share with Mom" }); }
+async function groups() { fireEvent.click(screen.getByRole("button", { name: "Choose a group" })); await screen.findByRole("checkbox", { name: "Share with Mom" }); }
 
 test("perforated home exposes Text and Email directly with just one Copy link", () => {
   open();
@@ -143,7 +143,7 @@ test("copy denial exposes a selectable public link instead of claiming success",
 test("group audience shares only on explicit confirmation", async () => {
   mocks.share.mockResolvedValue({ ok: true, message: "Shared with selected approved Crew members." }); open(); await audiences();
   await groups();
-  fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" })); expect(mocks.share).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Share with Mom" })); expect(mocks.share).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Send to Mom" }));
   await waitFor(() => expect(mocks.share).toHaveBeenCalledWith(request.requestId, groupId));
   expect(await screen.findByRole("button", { name: "Done" })).toBeTruthy();
@@ -152,13 +152,53 @@ test("group audience shares only on explicit confirmation", async () => {
 test("the group name selects the audience while Edit and Add people stay separate", async () => {
   open(); await audiences(); await groups();
   fireEvent.click(screen.getByText("Mom", { exact: true }));
-  expect(screen.getByRole("radio", { name: "Share with Mom" })).toHaveProperty("checked", true);
+  expect(screen.getByRole("checkbox", { name: "Share with Mom" })).toHaveProperty("checked", true);
   expect(screen.getByRole("heading", { name: "Share with my groups" })).toBeTruthy();
   expect(screen.queryByLabelText("Group name")).toBeNull();
   expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", false);
   expect(mocks.share).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Edit Mom" }));
   expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Mom");
+});
+
+test("several selected groups stay checked and confirmed entries share with every chosen group", async () => {
+  const second = "44444444-4444-4444-8444-444444444444";
+  mocks.options.mockResolvedValue({ ...options, groups: [...options.groups, { id: second, name: "Friends", memberIds: [memberId], memberCount: 1 }] });
+  mocks.share.mockResolvedValue({ ok: true, message: "Shared." });
+  open(); await audiences(); await groups();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Share with Mom" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Share with Friends" }));
+  expect(screen.getByRole("checkbox", { name: "Share with Mom" })).toHaveProperty("checked", true);
+  expect(screen.getByRole("checkbox", { name: "Share with Friends" })).toHaveProperty("checked", true);
+  fireEvent.click(screen.getByRole("button", { name: "Send to 2 groups" }));
+  await waitFor(() => expect(mocks.share).toHaveBeenCalledWith(request.requestId, [groupId, second]));
+  expect(await screen.findByRole("heading", { name: "Shared with 2 groups" })).toBeTruthy();
+});
+
+test("item sharing combines overlapping groups into one unique recipient list", async () => {
+  const second = "44444444-4444-4444-8444-444444444444";
+  mocks.options.mockResolvedValue({ ...options, groups: [...options.groups, { id: second, name: "Friends", memberIds: [memberId], memberCount: 1 }] });
+  mocks.prize.mockResolvedValue({ ok: true, message: "Saved." });
+  render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: "Share with group(s)" }));
+  await screen.findByRole("checkbox", { name: "Share with Mom" });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Share with Mom" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Share with Friends" }));
+  fireEvent.click(screen.getByRole("button", { name: "Send to 2 groups" }));
+  await waitFor(() => expect(mocks.prize).toHaveBeenCalledWith(request.slug, [memberId], null));
+  expect(mocks.prize).toHaveBeenCalledOnce();
+});
+
+test("larger audiences use safe delivery batches without an audience selection cap", async () => {
+  const people = Array.from({ length: 21 }, (_, i) => ({ id: `50000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`, name: `Member ${i + 1}` }));
+  mocks.options.mockResolvedValue({ ...options, memberCount: 21, members: people, groups: [{ ...options.groups[0], memberCount: 21, memberIds: people.map(person => person.id) }] });
+  mocks.prize.mockResolvedValue({ ok: true, message: "Saved." });
+  render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />);
+  await audiences();
+  fireEvent.click(screen.getByRole("button", { name: "Send to my Crew" }));
+  await waitFor(() => expect(mocks.prize).toHaveBeenCalledTimes(2));
+  expect(mocks.prize.mock.calls[0][1]).toHaveLength(20);
+  expect(mocks.prize.mock.calls[1][1]).toEqual([people[20].id]);
 });
 
 test("an empty selected group becomes sendable after explicitly adding a Crew member", async () => {
@@ -184,7 +224,7 @@ test("manual win sharing uses the existing owner-checked win action for the sele
   expect(mocks.win).not.toHaveBeenCalled();
   await audiences();
   await groups();
-  fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Share with Mom" }));
   fireEvent.click(screen.getByRole("button", { name: "Send to Mom" }));
   await waitFor(() => expect(mocks.win).toHaveBeenCalledWith(request.requestId, [memberId]));
   expect(mocks.prize).not.toHaveBeenCalled();
@@ -204,7 +244,7 @@ test("create group persists exact approved members before adding the saved choic
   fireEvent.change(screen.getByLabelText("Group name"), { target: { value: "Family" } }); fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: expect.any(String), name: "Family", memberIds: [memberId], contacts: [] }, remove: false }));
-  expect(await screen.findByRole("radio", { name: "Share with Family" })).toHaveProperty("checked", true); expect(mocks.share).not.toHaveBeenCalled();
+  expect(await screen.findByRole("checkbox", { name: "Share with Family" })).toHaveProperty("checked", true); expect(mocks.share).not.toHaveBeenCalled();
 });
 
 test("editing the existing group does not erase saved contacts", async () => {
@@ -218,7 +258,7 @@ test("editing the existing group does not erase saved contacts", async () => {
   fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [], contacts }, remove: false }));
-  expect(await screen.findByRole("radio", { name: "Share with Mom" })).toHaveProperty("checked", true);
+  expect(await screen.findByRole("checkbox", { name: "Share with Mom" })).toHaveProperty("checked", true);
   expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", true);
   expect(mocks.share).not.toHaveBeenCalled();
 });
@@ -334,10 +374,10 @@ test("groups have to be selected before sending and success returns to the under
   mocks.share.mockResolvedValue({ ok: true, message: "Shared with your selected Crew members." });
   render(<PostEntryCrewToast request={request} onClose={close} />);
   fireEvent.click(screen.getByRole("button", { name: "Share with group(s)" }));
-  await screen.findByRole("radio", { name: "Share with Mom" });
-  expect(screen.getByRole("button", { name: "Send to my group" })).toHaveProperty("disabled", true);
+  await screen.findByRole("checkbox", { name: "Share with Mom" });
+  expect(screen.getByRole("button", { name: "Send to my groups" })).toHaveProperty("disabled", true);
   expect(screen.queryByLabelText(/Everyone in my Crew/)).toBeNull();
-  fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Share with Mom" }));
   expect(mocks.share).not.toHaveBeenCalled();
   vi.useFakeTimers();
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Send to Mom" })); });
@@ -354,7 +394,7 @@ test("manual group shares keep their group identity in the recipient link", asyn
   render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />);
   await audiences();
   await groups();
-  fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Share with Mom" }));
   fireEvent.click(screen.getByRole("button", { name: "Send to Mom" }));
   await waitFor(() => expect(mocks.prize).toHaveBeenCalledWith(request.slug, [memberId], groupId));
 });
@@ -362,16 +402,16 @@ test("manual group shares keep their group identity in the recipient link", asyn
 test("the Crew send uses all Crew members without selecting a group", async () => {
   mocks.share.mockResolvedValue({ ok: true, message: "Shared." }); open(); await audiences();
   const crewSend = screen.getByRole("button", { name: "Send to my Crew" });
-  expect(screen.queryByRole("radio", { name: "Share with Mom" })).toBeNull();
+  expect(screen.queryByRole("checkbox", { name: "Share with Mom" })).toBeNull();
   fireEvent.click(crewSend);
   await waitFor(() => expect(mocks.share).toHaveBeenCalledWith(request.requestId, null));
 });
 
 test("home opens group sharing directly without selecting everyone", async () => {
   open(); fireEvent.click(screen.getByRole("button", { name: "Share with group(s)" }));
-  await screen.findByRole("radio", { name: "Share with Mom" });
+  await screen.findByRole("checkbox", { name: "Share with Mom" });
   expect(screen.queryByRole("button", { name: "Send to my Crew" })).toBeNull();
-  expect(screen.getByRole("button", { name: "Send to my group" })).toHaveProperty("disabled", true);
+  expect(screen.getByRole("button", { name: "Send to my groups" })).toHaveProperty("disabled", true);
   expect(mocks.share).not.toHaveBeenCalled();
 });
 
