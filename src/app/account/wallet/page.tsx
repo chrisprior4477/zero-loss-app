@@ -10,7 +10,8 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
-import { fundingHref } from "@/lib/wallet/funding-navigation";
+import { entryFundingAmounts, entryReviewFundingHref, entryReviewHref, fundingHref, type FundingContinuation } from "@/lib/wallet/funding-navigation";
+import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { selectedTransaction } from "@/lib/wallet/selected-transaction";
@@ -20,7 +21,7 @@ import { parseDemoWalletHistoryVisibility, type DemoWalletHistoryVisibility } fr
 
 export const metadata: Metadata = { title: "Gift Cards & Rewards" };
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; transaction?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; transaction?: string | string[] }> }) {
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
@@ -30,15 +31,24 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const requestedQuantity = parseEntryQuantity(query.quantity) ?? 1;
   const account = await getAccountContext();
   if (!account) {
-    const next = history && !query.transaction ? fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse) : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : "");
+    const next = history && !query.transaction ? query.review === "entry" && fromProduct
+      ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity)
+      : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse)
+      : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : "");
     redirect(`${authNavigationHref("/login", next)}&focus=email#login-form`);
   }
   if (cardView) redirect("/account/wallet?view=history&panel=card");
   const fromEntry = fromProduct && typeof query.entry === "string" && account.activity.source !== "unavailable"
     ? findActivityItem(account.activity.activity, fromProduct.slug, query.entry) : undefined;
-  const fundingReturn = query.entry !== undefined
-    ? fromEntry ? { title: fromEntry.title, href: fromEntry.status === "completion" ? `${activityHref(fromEntry)}&resume=purchase` : activityHref(fromEntry), label: "Back to purchase option" as const } : undefined
+  const forEntry = fromProduct && (query.entry === undefined || fromEntry?.status === "active");
+  const availability = forEntry && account.wallet ? await getOfferingAvailability() : null;
+  const amounts = forEntry ? entryFundingAmounts(availability?.[fromProduct.slug]?.entryPriceCents ?? null, requestedQuantity, account.wallet?.balanceCents ?? null) : undefined;
+  const fundingReturn: FundingContinuation | undefined = query.entry !== undefined
+    ? fromEntry ? fromEntry.status === "active"
+      ? { title: fromEntry.title, href: entryReviewHref(fromEntry.entryId!, requestedQuantity), label: "Back to entry review", entryQuantity: requestedQuantity, ...amounts }
+      : { title: fromEntry.title, href: fromEntry.status === "completion" ? `${activityHref(fromEntry)}&resume=purchase` : activityHref(fromEntry), label: "Back to purchase option" } : undefined
     : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity, query.browse) } : undefined;
+  if (fundingReturn && forEntry) Object.assign(fundingReturn, { entryQuantity: requestedQuantity, ...amounts });
   // A URL only selects from this authenticated account's authorized data.
   const matchingRewards = walletRewards(account.activity).filter(item => typeof query.reward !== "string" || item.slug === query.reward);
   const reward = typeof query.rewardId === "string"

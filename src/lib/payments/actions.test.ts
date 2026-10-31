@@ -104,6 +104,17 @@ test("confirmed credit redirects to the exact saved purchase option", async () =
   await completeDemoFunding({ status: "idle" }, f);
   expect(mocks.redirect).toHaveBeenCalledWith(destination);
 });
+test("funding and recovery return to the saved additional-entry review without submitting entries", async () => {
+  const destination = "/account/entries/ent_11111111111111111111111111111111?quantity=23&review=entry#add-entries-title";
+  const f = form(); f.set("returnTo", destination);
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.redirect).toHaveBeenCalledWith(destination);
+  mocks.redirect.mockClear();
+  const recovery = new FormData(); recovery.set("sessionId", sid); recovery.set("returnTo", destination);
+  await reconcileDemoFunding({ status: "idle" }, recovery);
+  expect(mocks.redirect).toHaveBeenCalledWith(destination);
+  expect(mocks.rpc.mock.calls.some(([name]) => name === "submit_preview_entries")).toBe(false);
+});
 test("return destination cannot be replaced with an external or unrelated URL", async () => {
   const f = form(); f.set("returnTo", "https://example.test/steal");
   await completeDemoFunding({ status: "idle" }, f);

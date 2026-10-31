@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { declinePurchaseOption, purchaseGiftCard, type PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
 import { activityHref, type ActivityItem } from "@/lib/account/activity";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
+import { InsufficientFundsNotice } from "@/components/wallet/InsufficientFundsNotice";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./showroom.module.css";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
@@ -93,9 +94,8 @@ export function PurchaseOptionControls({ item, resumePurchase = false }: { item:
       <button type="button" disabled={pending || finished || needsCheck} onClick={cancel}>Cancel</button>
     </section>}
     {state.status !== "idle" ? <div ref={resultRef}>
-      <p role="status" data-status={state.status}>{state.status === "error" && state.recovery === "balance" ? `Sorry, ${state.message.charAt(0).toLowerCase()}${state.message.slice(1)}` : state.message}</p>
+      {state.status === "error" && state.recovery === "balance" ? <InsufficientFundsNotice href={fundingHref(item.slug, item.entryId ?? undefined)}>{`Sorry, ${state.message.charAt(0).toLowerCase()}${state.message.slice(1)}`}</InsufficientFundsNotice> : <p role="status" data-status={state.status}>{state.message}</p>}
       {needsCheck ? <a href={activityHref(item)}>Check purchase status →</a> : null}
-      {state.status === "error" && state.recovery === "balance" ? <Link data-funding-action="true" href={fundingHref(item.slug, item.entryId ?? undefined)}>Add funds →</Link> : null}
       {state.status === "succeeded" && state.href ? <Link href={state.href}>Open your gift card or receipt →</Link> : null}
     </div> : null}
   </div>;

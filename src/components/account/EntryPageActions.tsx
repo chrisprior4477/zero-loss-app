@@ -13,6 +13,8 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { sharePrizeWithCrew } from "@/lib/crew/actions";
+import { entryReviewFundingHref } from "@/lib/wallet/funding-navigation";
+import { InsufficientFundsNotice } from "@/components/wallet/InsufficientFundsNotice";
 import styles from "./entry-page.module.css";
 
 type CrewMember = { id: string; name: string; avatarUrl: string | null };
@@ -36,14 +38,15 @@ function resultInActivity(href: string | null, fillsPool: boolean, entryId?: str
   return exactEntry ? `/account/entries?${new URLSearchParams({ viewed: exactEntry })}` : "/account/entries";
 }
 
-export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref }: {
+export function EntryPageActions({ itemTitle, slug, entryId, initialQuantity = 1, resumeReview = false, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref }: {
+  entryId?: string; initialQuantity?: number; resumeReview?: boolean;
   itemTitle: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
   requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
 }) {
   const router = useRouter();
   const [nextOpen, setNextOpen] = useState(false);
-  const [quantity, setQuantity] = useState(1);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [quantity, setQuantity] = useState(() => Math.min(isEntryQuantity(initialQuantity) ? initialQuantity : 1, isEntryQuantity(remaining) ? remaining : 1));
+  const [checkoutOpen, setCheckoutOpen] = useState(resumeReview);
   const [approved, setApproved] = useState(false);
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -151,6 +154,7 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
     try {
       const response = await createPreviewEntry({ status: "idle" }, form);
       setResult(response);
+      if (response.status === "error" && response.code === "insufficient_balance") router.refresh();
       if (response.status === "request") {
         activeRequestId.current = response.request.requestId;
         setCreatedHereRequestId(response.request.duplicate ? null : response.request.requestId);
@@ -232,13 +236,15 @@ export function EntryPageActions({ itemTitle, slug, remaining, entryPriceCents, 
             <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>
             <p>Demo Playable Balance: <strong>{balanceCents === null ? "Unavailable" : formatUsdFromCents(balanceCents)}</strong></p>
             {!quantityAvailable && !uncertain ? <p className={styles.checkoutError}>Only {maxQuantity} additional {maxQuantity === 1 ? "ticket is" : "tickets are"} available now. Reduce the quantity before confirming.</p> : null}
-            {insufficientBalance ? <p className={styles.checkoutError}>Not enough demo funds for this quantity. <Link href="/account/wallet">Add funds</Link></p> : null}
+            {insufficientBalance || (result.status === "error" && result.code === "insufficient_balance") ? <InsufficientFundsNotice href={entryReviewFundingHref(slug, entryId, quantity)}>
+              {insufficientBalance ? <>Not enough demo funds for this quantity. Add {formatUsdFromCents(totalCents - (balanceCents ?? 0))} more for these entries.</> : <>Your available balance changed. Check the latest balance in Add funds, then return to this entry review.</>}
+            </InsufficientFundsNotice> : null}
             {!requestHead.ready ? <p className={styles.checkoutError}>We couldn’t check your latest saved submission. Refresh before entering; your balance has not been charged.</p> : !canEnter ? <p className={styles.checkoutError}>This demo checkout is unavailable for this account right now.</p> : null}
             {receipt?.status === "pending" ? <div className={styles.receiptBox} role="status"><div className={styles.receiptHeader}><div className={styles.receiptCopy}><strong>{createdHereRequestId === receipt.requestId ? "Entry submitted · Undo available" : "An earlier submission is still pending"}</strong><span>{createdHereRequestId === receipt.requestId ? `${receipt.quantity} ${receipt.quantity === 1 ? "entry" : "entries"} · ${formatUsdFromCents(receipt.amountCents)} reserved from your demo balance.` : "No second reservation or charge was made."}</span><small>The header counts active entries after confirmation. Undo releases this hold.</small></div><EntryUndoCountdown seconds={secondsLeft} /></div><div className={styles.receiptActions}><button type="button" onClick={() => void resolveEntry(true)} disabled={working || secondsLeft === 0}>Undo entry</button><button type="button" onClick={() => void resolveEntry(false)} disabled={working}>Confirm entry</button></div></div> : null}
             {receipt?.status === "accepted" ? <p role="status" className={styles.checkoutSuccess}>{createdHereRequestId === receipt.requestId ? `Your ${receipt.quantity === 1 ? "new entry is" : `${receipt.quantity} new entries are`} confirmed and saved in My Activity. You can stay on this page.` : "That earlier submission was already saved. No additional entries were added or charged by this attempt. Refresh to review your entries."}</p> : null}
             {receipt?.status === "cancelled" || receipt?.status === "rejected" ? <p role="status" className={styles.checkoutError}>This submission was not entered. Any reservation was released.</p> : null}
             {result.status === "succeeded" ? <p role="status" className={styles.checkoutSuccess}>{result.message} You can stay on this page.</p> : null}
-            {result.status === "error" ? <p role="alert" className={styles.checkoutError}>{result.message}</p> : null}
+            {result.status === "error" && result.code !== "insufficient_balance" ? <p role="alert" className={styles.checkoutError}>{result.message}</p> : null}
             {actionError ? <p role="alert" className={styles.checkoutError}>{actionError}</p> : null}
             {receipt?.status !== "pending" && receipt?.status !== "accepted" && result.status !== "succeeded" ? <>
               <label className={styles.approval}><input type="checkbox" checked={approved} onChange={event => setApproved(event.target.checked)} disabled={working} />I approve this demo entry transaction.</label>

@@ -12,6 +12,7 @@ import { PurchaseQuantityPicker } from "./PurchaseQuantityPicker";
 import { completeDemoPurchaseOptions, type BulkPurchaseRequest, type BulkPurchaseResult } from "@/lib/account/bulk-purchase-actions";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
+import { InsufficientFundsNotice } from "@/components/wallet/InsufficientFundsNotice";
 import styles from "./purchase-options.module.css";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 
@@ -184,7 +185,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
       <p>Sample — not redeemable. No real payment or product shipment.</p>
       <button type="button" className={styles.makePurchases} disabled={purchaseLocked} onClick={confirmPurchases}>{purchasePending ? "Saving your purchases…" : `Confirm ${formatUsdFromCents(purchaseRequest.totalCents)} purchase${purchaseRequest.purchaseIds.length === 1 ? "" : "s"}`}</button>
       <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked} onClick={() => { setPurchaseRequest(null); setPurchaseResult(null); }}>Cancel</button>
-      {purchaseResult?.status === "error" ? <div ref={purchaseErrorRef} role="alert"><p>{purchaseResult.message}</p>{purchaseResult.recovery === "balance" ? <Link href={fundingHref(item.slug, selectedOptions[0]?.entryId ?? undefined)}>Add funds →</Link> : null}{purchaseResult.recovery === "check" ? <a href={`/account/purchase-options/${encodeURIComponent(item.slug)}`}>Reload purchase status →</a> : null}<Link href="/account/wallet">Check Gift Cards & Rewards →</Link></div> : null}
+      {purchaseResult?.status === "error" ? <div ref={purchaseErrorRef} role="alert">{purchaseResult.recovery === "balance" ? <InsufficientFundsNotice href={fundingHref(item.slug, selectedOptions[0]?.entryId ?? undefined)}>{purchaseResult.message}</InsufficientFundsNotice> : <><p>{purchaseResult.message}</p>{purchaseResult.recovery === "check" ? <a href={`/account/purchase-options/${encodeURIComponent(item.slug)}`}>Reload purchase status →</a> : null}<Link href="/account/wallet">Check Gift Cards & Rewards →</Link></>}</div> : null}
     </div> : null}
     {bulkPhase === "confirm" ? <div className={styles.bulkPanel} role="group" aria-label="Confirm declining all offers"><strong>Decline all {count} offers for {title}?</strong><p>They will leave your active purchase options. Your original entries and wallet history will not be refunded or removed.</p><div className={styles.bulkButtons}><button type="button" onClick={() => void declineAll()}>Confirm decline all</button><button type="button" onClick={() => { setBulkPhase("idle"); router.replace(`/account/purchase-options/${encodeURIComponent(options[0].slug)}`); }}>Keep my offers</button></div></div> : null}
     {bulkPhase === "working" || bulkPhase === "undo" || bulkPhase === "undoing" || bulkPhase === "error" ? <div className={styles.bulkPanel} role="status">

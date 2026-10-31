@@ -4,6 +4,30 @@ import { productBrowseReturnPath } from "@/lib/catalog/product-return";
 const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const entryPattern = /^ent_[a-f0-9]{32}$/;
 
+export type FundingContinuation = { title: string; href: string; label?: "Back to purchase option" | "Back to entry review"; entryQuantity?: number; shortfallCents?: number; depositCents?: number };
+
+export function entryReviewHref(entryId: string, quantity = 1): string {
+  if (!entryPattern.test(entryId)) return "/account/entries";
+  return `/account/entries/${entryId}?quantity=${isEntryQuantity(quantity) ? quantity : 1}&review=entry#add-entries-title`;
+}
+
+/** An existing entry review is distinct from a purchase-option return. */
+export function entryReviewFundingHref(slug: string, entryId: string | undefined, quantity: number): string {
+  if (!entryId || !entryPattern.test(entryId) || !productSlugPattern.test(slug)) return fundingHref(slug, undefined, quantity);
+  const params = new URLSearchParams({ view: "history", from: slug, entry: entryId, quantity: String(isEntryQuantity(quantity) ? quantity : 1), review: "entry" });
+  return `/account/wallet?${params}#add-funds`;
+}
+
+/** Compute from the current server price and balance; never accept a URL amount. */
+export function entryFundingAmounts(priceCents: number | null, quantity: number, balanceCents: number | null): { shortfallCents: number; depositCents: number } | undefined {
+  if (!isEntryQuantity(quantity) || priceCents === null || balanceCents === null || !Number.isSafeInteger(priceCents) || priceCents <= 0 || !Number.isSafeInteger(balanceCents) || balanceCents < 0) return;
+  const total = priceCents * quantity;
+  if (!Number.isSafeInteger(total)) return;
+  const shortfallCents = Math.max(0, total - balanceCents);
+  const depositCents = Math.ceil(shortfallCents / 100) * 100;
+  return Number.isSafeInteger(depositCents) ? { shortfallCents, depositCents } : undefined;
+}
+
 /** Carry catalog identifiers and an allowlisted marketplace address, never an arbitrary redirect. */
 export function fundingHref(productSlug?: string, entryId?: string, quantity?: number, browseReturn?: unknown): string {
   const params = new URLSearchParams({ view: "history" });
@@ -18,6 +42,9 @@ export function fundingHref(productSlug?: string, entryId?: string, quantity?: n
 /** Exact allowlist for the funding destination used after sign-in. */
 export function fundingReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 4096 || /[\\\s\u0000-\u001f]/.test(value)) return null;
+  if (/^\/account\/wallet\?view=history&from=[a-z0-9]+(?:-[a-z0-9]+)*&entry=ent_[a-f0-9]{32}&quantity=[1-9]\d*&review=entry#add-funds$/.test(value)) {
+    return parseEntryQuantity(new URL(value, "https://navigation.invalid").searchParams.get("quantity")) !== null ? value : null;
+  }
   if (!/^\/account\/wallet\?view=history(?:&from=[a-z0-9]+(?:-[a-z0-9]+)*(?:&entry=ent_[a-f0-9]{32}|&quantity=[1-9]\d*)?(?:&browse=[^&#]+)?)?#add-funds$/.test(value)) return null;
   const params = new URL(value, "https://navigation.invalid").searchParams;
   if (params.has("browse") && (params.has("entry") || !productBrowseReturnPath(params.get("browse")))) return null;

@@ -56,7 +56,7 @@ test("lost server response blocks new attempts until a full authoritative status
 test("insufficient balance carries this exact entry into Add funds", async () => {
   mocks.purchase.mockResolvedValue({ status: "error", recovery: "balance", message: "You do not have enough funds in your wallet. Please add more funds to complete the purchase. No purchase was made." });
   openPurchase(); fireEvent.click(screen.getByRole("button", { name: "Confirm $99 purchase" }));
-  const link = await screen.findByRole("link", { name: "Add funds →" });
+  const link = await screen.findByRole("link", { name: "Add funds" });
   expect(link.getAttribute("href")).toBe(`/account/wallet?view=history&from=${item.slug}&entry=${item.entryId}#add-funds`);
   expect(link.getAttribute("data-funding-action")).toBe("true");
   expect(mocks.push).toHaveBeenCalledWith(link.getAttribute("href"));

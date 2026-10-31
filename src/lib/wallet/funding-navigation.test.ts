@@ -1,8 +1,29 @@
 import { expect, test } from "vitest";
-import { fundingHref, fundingReturnPath } from "./funding-navigation";
+import { entryFundingAmounts, entryReviewFundingHref, entryReviewHref, fundingHref, fundingReturnPath } from "./funding-navigation";
 import { productEntryHref, fundedProductEntryHref } from "@/lib/entries/return-intent";
 import { productBrowseReturnHref } from "@/lib/catalog/product-return";
 import { authNavigationHref, entryReturnPath, signInReturnPath } from "@/lib/auth/entry-return";
+
+test("additional-entry funding preserves the exact review and quantity through sign-in", () => {
+  const id = "ent_11111111111111111111111111111111";
+  const funding = entryReviewFundingHref("playstation-5-slim", id, 23);
+  expect(funding).toBe(`/account/wallet?view=history&from=playstation-5-slim&entry=${id}&quantity=23&review=entry#add-funds`);
+  expect(fundingReturnPath(funding)).toBe(funding);
+  expect(signInReturnPath(funding)).toBe(funding);
+  const back = entryReviewHref(id, 23);
+  expect(signInReturnPath(back)).toBe(back);
+  expect(signInReturnPath(back.replace("quantity=23", "quantity=2147483648"))).toBeNull();
+  expect(fundingReturnPath(funding.replace("&review=entry", "&review=entry&next=https://evil.test"))).toBeNull();
+});
+
+test("entry shortfalls use exact cents and only the new deposit rounds up to whole dollars", () => {
+  expect(entryFundingAmounts(100, 23, 2200)).toEqual({ shortfallCents: 100, depositCents: 100 });
+  expect(entryFundingAmounts(100, 1, 25)).toEqual({ shortfallCents: 75, depositCents: 100 });
+  expect(entryFundingAmounts(100, 23, 2300)).toEqual({ shortfallCents: 0, depositCents: 0 });
+  expect(entryFundingAmounts(null, 23, 2200)).toBeUndefined();
+  expect(entryFundingAmounts(100, 23, null)).toBeUndefined();
+  expect(entryFundingAmounts(Number.MAX_SAFE_INTEGER, 2, 0)).toBeUndefined();
+});
 
 test.each([
   "/browse?category=electronics&sort=fewest-left",

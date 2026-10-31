@@ -21,8 +21,9 @@ import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
 import { WalletCardEditor, revealWalletSection } from "./WalletCardEditor";
 import paymentStyles from "./wallet-payments.module.css";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
+import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
 
-type ContinueDestination = { title: string; href: string; label?: "Back to purchase option" };
+type ContinueDestination = FundingContinuation;
 const noRequests: DemoFundingRequest[] = [];
 const presetAmounts = ["1000", "2500", "5000", "7500", "10000", "20000", "30000", "40000", "50000", "70000", "100000"];
 const presetChoices = presetAmounts.map(value => ({ value, label: `$${(Number(value) / 100).toLocaleString("en-US")}` }));
@@ -209,6 +210,7 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     </section> : null}
     {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
     <div id="add-funds" className={styles.fundingAmountSection}>
+      {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
       {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
       {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={setSelectedToken} /> : null}
@@ -255,8 +257,9 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   const router = useRouter();
   const storageKey = `zero-loss-demo-request:${walletId}`;
   const [successMessage, setSuccessMessage] = useState("");
-  const [attempt, setAttempt] = useState<{ key: string; amount: string; recovered: boolean; canRetry: boolean; ready: boolean; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean }>({ key: requestKey, amount: "2500", recovered: false, canRetry: false, ready: false });
-  const newAttempt = useCallback(() => setAttempt({ key: crypto.randomUUID(), amount: "2500", recovered: false, canRetry: false, ready: true }), []);
+  const startingAmount = continueTo?.depositCents && isFundingAmount(continueTo.depositCents) && continueTo.depositCents % 100 === 0 ? String(continueTo.depositCents) : "2500";
+  const [attempt, setAttempt] = useState<{ key: string; amount: string; recovered: boolean; canRetry: boolean; ready: boolean; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean }>({ key: requestKey, amount: startingAmount, recovered: false, canRetry: false, ready: false });
+  const newAttempt = useCallback(() => setAttempt({ key: crypto.randomUUID(), amount: startingAmount, recovered: false, canRetry: false, ready: true }), [startingAmount]);
   const onSuccess = useCallback((message: string) => {
     try { sessionStorage.removeItem(storageKey); } catch { /* Server history still identifies completed requests. */ }
     setSuccessMessage(message);
@@ -292,8 +295,8 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     // history to distinguish a real interrupted request from a completed one.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAttempt(current => saved ? { ...saved, recovered: true, canRetry: matching !== undefined && matching.reconciliation !== "discrepancy", ready: true }
-      : staleMarker ? { key: requestKey, amount: "2500", recovered: false, canRetry: false, ready: true } : { ...current, ready: true });
-  }, [storageKey, requests, requestKey]);
+      : staleMarker ? { key: requestKey, amount: startingAmount, recovered: false, canRetry: false, ready: true } : { ...current, ready: true });
+  }, [storageKey, requests, requestKey, startingAmount]);
   useEffect(() => {
     const resumeFunding = () => { if (window.location.hash === "#add-funds") setSuccessMessage(""); };
     window.addEventListener("hashchange", resumeFunding);

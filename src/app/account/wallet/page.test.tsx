@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ getAccountContext: vi.fn(), redirect: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.getAccountContext }));
+vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailability: async () => ({ "playstation-5-slim": { entryPriceCents: 100 } }) }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: mocks.rpc }) }));
 vi.mock("next/image", () => ({ default: () => null }));
@@ -13,6 +14,21 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const purchaseEntry = "ent_11111111111111111111111111111111";
 const purchaseActivity = { entryId: purchaseEntry, slug: "babys-essentials-bundle", title: "Baby bundle", retailer: "Walmart", image: "/test.png", status: "completion", rewardKind: "digital", priceCents: 10000, paidCents: 100, remainingCents: 9900, completionOptionId: "11111111-1111-4111-8111-111111111111" };
+
+test("existing active entries return to their own review, never a purchase option", async () => {
+  mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, slug: "playstation-5-slim", status: "active" }] } });
+  render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: "playstation-5-slim", entry: purchaseEntry, quantity: "23", review: "entry" }) }));
+  expect(screen.getByRole("link", { name: "Back to entry review" }).getAttribute("href")).toBe(`/account/entries/${purchaseEntry}?quantity=23&review=entry#add-entries-title`);
+  expect(screen.queryByRole("link", { name: "Back to purchase option" })).toBeNull();
+});
+
+test("expired sessions keep the additional-entry funding context", async () => {
+  mocks.getAccountContext.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(WalletPage({ searchParams: Promise.resolve({ view: "history", from: "playstation-5-slim", entry: purchaseEntry, quantity: "23", review: "entry" }) })).rejects.toThrow("NEXT_REDIRECT");
+  const next = new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")!;
+  expect(next).toContain(`entry=${purchaseEntry}&quantity=23&review=entry#add-funds`);
+});
 
 test("funding keeps shopping filters through expired-session login and Back to this prize", async () => {
   const browse = "/browse?category=electronics&sort=fewest-left";

@@ -14,6 +14,7 @@ vi.mock("./EntryOutcomeEmailPreference", () => ({ EntryOutcomeEmailPreference: (
 afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
 
 const props = {
+  entryId: "ent_11111111111111111111111111111111",
   itemTitle: "PlayStation 5 Slim Model",
   slug: "playstation-5-slim",
   remaining: 6,
@@ -27,6 +28,25 @@ const props = {
   emailEnabled: true,
   returnHref: "/account/entries?viewed=ent_11111111111111111111111111111111",
 };
+
+test("low balance offers Add funds for this exact entry review instead of collected rewards", () => {
+  render(<EntryPageActions {...props} remaining={100} balanceCents={2200} />);
+  selectQuantity(23);
+  fireEvent.click(screen.getByRole("button", { name: "Add 23 more entries to PlayStation 5" }));
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href"))
+    .toBe(`/account/wallet?view=history&from=playstation-5-slim&entry=${props.entryId}&quantity=23&review=entry#add-funds`);
+  expect(screen.getByLabelText("Additional entry checkout").textContent).toContain("Add $1 more");
+  expect(createPreviewEntry).not.toHaveBeenCalled();
+});
+
+test("returning from funding restores the entry review but still requires approval", () => {
+  render(<EntryPageActions {...props} remaining={100} balanceCents={2300} initialQuantity={23} resumeReview />);
+  expect(screen.getByLabelText("Additional entry checkout")).toBeTruthy();
+  expect(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }).hasAttribute("checked")).toBe(false);
+  expect(screen.getByRole("button", { name: "Confirm 23 entries for $23" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
+  expect(createPreviewEntry).not.toHaveBeenCalled();
+});
 
 function selectQuantity(quantity: number) {
   for (let selected = 1; selected < quantity; selected++) {

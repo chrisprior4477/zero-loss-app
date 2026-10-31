@@ -5,6 +5,21 @@ vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
 import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
+
+test("entry funding suggests the shortfall and only returns after explicit deposit confirmation", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  const href = "/account/entries/ent_11111111111111111111111111111111?quantity=23&review=entry#add-entries-title";
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
+  render(<DemoFundingForm requestKey="entry_shortfall_request_01" continueTo={{ title: "PlayStation", href, label: "Back to entry review", entryQuantity: 23, shortfallCents: 100, depositCents: 100 }} />);
+  expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$1");
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  expect(screen.getByRole("dialog", { name: "Add $1 to your balance?" })).toBeTruthy();
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $1 deposit" }));
+  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith(href));
+});
 test("mobile amount roller offers the requested presets and feeds the exact choice into confirmation", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };

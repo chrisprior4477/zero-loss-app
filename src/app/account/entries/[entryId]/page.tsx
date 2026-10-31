@@ -21,10 +21,11 @@ import { PrizeNumberCopy } from "@/components/account/PrizeNumberCopy";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { getEntryRequestHead } from "@/lib/entries/request-head";
 import styles from "@/components/account/entry-page.module.css";
+import { parseEntryQuantity } from "@/lib/entries/quantity";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
 
-export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string }> }) {
+export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[] }> }) {
   const { entryId } = await params;
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
   const account = await getAccountContext();
@@ -50,7 +51,10 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     .filter(entry => entry.status === "active" && entry.slug === item.slug && entry.entryId)
     .sort(compareSavedEntries);
   const entryCount = relatedEntries.length;
-  const entryView = (await searchParams)?.entries;
+  const query = await searchParams;
+  const entryView = query?.entries;
+  const resumeReview = query?.review === "entry";
+  const initialQuantity = resumeReview ? parseEntryQuantity(query?.quantity) ?? 1 : 1;
   const savedTickets = relatedEntries.map((entry, index) => ({
     entryId: entry.entryId!,
     number: index + 1,
@@ -116,7 +120,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>
         <p>{entryCount === 1 ? "Your saved entry is one chance" : `Your ${entryCount} saved entries are ${entryCount} separate chances`} in this pool. {metrics ? `${metrics.sold.toLocaleString("en-US")} of ${metrics.capacity.toLocaleString("en-US")} places are filled.` : "Check back for verified pool progress."}</p>
-        <EntryPageActions itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={requestHead} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
+        <EntryPageActions key={`${entryId}:${initialQuantity}:${resumeReview}`} entryId={entryId} initialQuantity={initialQuantity} resumeReview={resumeReview} itemTitle={item.title} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={requestHead} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
       </section>
     </div>
   </main>;
