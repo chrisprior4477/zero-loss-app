@@ -16,6 +16,16 @@ export type BrowseFilterState = {
 
 export type RetailerFilterGroup = { id: string; category: string; options: { label: string; value: string; hasOffer: boolean }[] };
 
+/** This range is the prize's value, not the price of a single entry. */
+export function browsePrizeValueLabel({ minValue, maxValue }: Pick<BrowseFilterState, "minValue" | "maxValue">): string | null {
+  const dollars = (value: number) => `$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  if (maxValue !== null) {
+    if (minValue !== null && minValue > 0) return minValue === maxValue ? dollars(maxValue) : `${dollars(minValue)}–${dollars(maxValue)}`;
+    return `${dollars(maxValue)} and under`;
+  }
+  return minValue !== null ? `${dollars(minValue)} and over` : null;
+}
+
 const productTypes: BrowseProductType[] = ["all", "pictured", "gift-cards"];
 const sortOptions: BrowseSort[] = ["featured", "fewest-left", "price-low", "value-high"];
 

@@ -11,7 +11,8 @@ import { searchCatalogMatches } from "@/lib/catalog/search";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { BrowseDiscoveryBar } from "@/components/catalog/BrowseDiscoveryBar";
-import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups } from "@/lib/catalog/browse-filters";
+import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
+import { searchResultsHref } from "@/lib/navigation/search-examples";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -49,6 +50,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
   const directoryMatches = searchTerm ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
+  const budgetLabel = browsePrizeValueLabel(filters);
   const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts);
   const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm) : [];
   const savedMatches = searchTerm ? searchCatalogMatches(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), searchTerm) : [];
@@ -166,7 +168,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         ) : activeFilters && (!searchTerm || matchedProducts.length) ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
             <h2 className="text-2xl font-bold">{filters.retailer ? `No current ${filters.retailer} offer matches here.` : selectedRetailerGroup ? `No current ${selectedRetailerGroup.category} offers match here.` : "No products match these filters."}</h2>
-            <p className="mt-2 text-white/65">The partner directory is subject to availability. Try another retailer or clear your filters.</p>
+            <p className="mt-2 text-white/65">{budgetLabel ? `Your prize-value filter is ${budgetLabel}. This is the prize value, not the cost to enter. Clear filters or search all prizes to see more.` : "Try another retailer or clear your filters to see more prizes."}</p>
+            {searchTerm ? <Link href={searchResultsHref(searchTerm)} className="mr-3 mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e]">Search all prizes</Link> : null}
             <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link>
           </section>
         ) : searchTerm ? (

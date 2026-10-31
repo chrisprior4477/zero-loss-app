@@ -241,6 +241,14 @@ describe("Browse search results", () => {
     const cards = screen.getAllByRole("article");
     expect(cards.length).toBeGreaterThan(0);
     expect(cards.every(card => /\$25 value/.test(card.textContent ?? ""))).toBe(true);
-    expect(screen.getAllByRole("searchbox", { name: "Search products, brands, and categories" })).toHaveLength(1);
+    expect(screen.getAllByRole("searchbox", { name: "Search all prizes" })).toHaveLength(1);
+  });
+
+  test("an old filtered search explains the prize-value limit and offers the unrestricted search", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "PlayStation", maxValue: "25" }) }));
+    expect(screen.getByRole("heading", { name: "No products match these filters." })).toBeTruthy();
+    expect(screen.getByText(/This is the prize value, not the cost to enter/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Search all prizes" }).getAttribute("href")).toBe("/browse?q=PlayStation#search-results");
+    expect(screen.getByText("$25 and under")).toBeTruthy();
   });
 });

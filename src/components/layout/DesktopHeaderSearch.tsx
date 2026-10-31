@@ -65,7 +65,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
         <span className="absolute left-[12px] top-[12px] h-0.5 w-2 origin-left rotate-45 rounded-full bg-current" />
       </button>
-      <label htmlFor={inputId} className="sr-only">Search products, brands, and categories</label>
+      <label htmlFor={inputId} className="sr-only">Search all prizes</label>
       <input
         ref={inputRef}
         id={inputId}
@@ -78,7 +78,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         onClick={() => setSuggestions(true)}
         aria-controls={suggestions && active !== false ? `${inputId}-suggestions` : undefined}
         enterKeyHint="search"
-        placeholder="Search products, brands, and categories..."
+        placeholder="Search all prizes"
         className="min-w-0 flex-1 bg-transparent [&::-webkit-search-cancel-button]:hidden text-[14px] text-[#00132e] outline-none placeholder:text-slate-500"
       />
       {query ? <button type="button" aria-label="Clear search" onClick={() => { voice.stop(); setQuery(""); setSuggestions(false); inputRef.current?.focus(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#365875] hover:bg-slate-200">×</button> : null}

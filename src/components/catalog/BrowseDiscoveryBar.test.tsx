@@ -33,6 +33,31 @@ test("Go searches across departments and the X clears a draft without submitting
   expect(navigation.push).not.toHaveBeenCalled();
 });
 
+test.each([
+  { minValue: null, maxValue: 25 },
+  { minValue: null, maxValue: 50 },
+  { minValue: null, maxValue: 75 },
+  { minValue: null, maxValue: 100 },
+  { minValue: 100, maxValue: null },
+  { minValue: 25, maxValue: 75 },
+])("a new catalog search leaves the previous value range $minValue–$maxValue and matches the global header", range => {
+  render(<BrowseDiscoveryBar {...props} selectedCategory="groceries" selectedRetailerGroup={null}
+    browseHref={`/browse?category=groceries&type=gift-cards&available=1&sort=fewest-left&retailer=Publix${range.minValue === null ? "" : `&minValue=${range.minValue}`}${range.maxValue === null ? "" : `&maxValue=${range.maxValue}`}`}
+    filters={{ ...props.filters, ...range, type: "gift-cards", availableOnly: true, sort: "fewest-left", retailer: "Publix" }} />);
+  fireEvent.change(within(searchForm()).getByRole("searchbox", { name: "Search all prizes" }), { target: { value: "PlayStation" } });
+  fireEvent.submit(searchForm());
+  expect(navigation.push).toHaveBeenCalledWith("/browse?q=PlayStation#search-results", { scroll: false });
+});
+
+test("the visible prize-value chip can remove only that range without losing the chosen category or query", () => {
+  render(<BrowseDiscoveryBar {...props} selectedCategory="electronics" selectedRetailerGroup={null} searchTerm="PlayStation"
+    browseHref="/browse?category=electronics&q=PlayStation&minValue=25&maxValue=75&sort=fewest-left"
+    filters={{ ...props.filters, minValue: 25, maxValue: 75, sort: "fewest-left" }} />);
+  expect(screen.getByText("$25–$75")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Remove prize value filter: $25–$75" }).getAttribute("href"))
+    .toBe("/browse?category=electronics&q=PlayStation&sort=fewest-left#search-results");
+});
+
 test("clearing an applied query restores the unsearched list on the same page", () => {
   render(<BrowseDiscoveryBar {...props} searchTerm="auto" browseHref="/browse?q=auto&sort=price-low" />);
   fireEvent.click(within(searchForm()).getByRole("button", { name: "Clear search" }));

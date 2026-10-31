@@ -6,6 +6,15 @@ import { searchExamples } from "@/lib/navigation/search-examples";
 afterEach(cleanup);
 
 describe("header search submit cue", () => {
+  test("names its all-prizes scope and submits the same unrestricted query as the catalog search", () => {
+    const navigate = vi.fn();
+    render(<DesktopHeaderSearchFallback navigate={navigate} />);
+    const input = screen.getByRole("searchbox", { name: "Search all prizes" });
+    expect(input.getAttribute("placeholder")).toBe("Search all prizes");
+    fireEvent.change(input, { target: { value: "PlayStation" } });
+    fireEvent.submit(input.closest("form")!);
+    expect(navigate).toHaveBeenCalledWith("/browse?q=PlayStation#search-results");
+  });
   test("changes the microphone to a visible Go button when a query is entered", () => {
     render(<DesktopHeaderSearchFallback />);
     expect(screen.getByRole("button", { name: "Start voice search" })).toBeTruthy();

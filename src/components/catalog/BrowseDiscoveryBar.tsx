@@ -6,6 +6,8 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
+import { searchResultsHref } from "@/lib/navigation/search-examples";
+import { browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { searchTextMatches } from "@/lib/catalog/search-text";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
@@ -25,6 +27,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const id = useId();
   const withoutRetailer = new URL(props.browseHref, "https://zeroloss.local");
   withoutRetailer.searchParams.delete("retailer");
+  const withoutBudget = new URL(props.browseHref, "https://zeroloss.local");
+  withoutBudget.searchParams.delete("minValue");
+  withoutBudget.searchParams.delete("maxValue");
+  const budgetLabel = browsePrizeValueLabel(props.filters);
   const activeCount = Number(props.filters.type !== "all") + Number(props.filters.availableOnly)
     + Number(props.filters.minValue !== null || props.filters.maxValue !== null)
     + Number(props.filters.sort !== "featured" && !(props.selectedCategory === "ending-soon" && props.filters.sort === "fewest-left"));
@@ -59,11 +65,9 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   function choose(href: string) { setPanel(null); router.push(href, { scroll: false }); }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const url = new URL(props.browseHref, "https://zeroloss.local");
-    // A fresh marketplace search must not be trapped in the previous department.
-    for (const key of ["category", "partnerCategory", "retailer", "subcategory"]) url.searchParams.delete(key);
-    if (search.trim()) url.searchParams.set("q", search.trim()); else url.searchParams.delete("q");
-    router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
+    // Match the header search: a new query searches all prizes, not the
+    // previous prize-value range, retailer, department, or availability filter.
+    router.push(searchResultsHref(search), { scroll: false });
   }
   function clearSearch() {
     setSearch("");
@@ -78,8 +82,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   return <div className={styles.discovery}>
     <span id="retailer-categories-heading" className={styles.anchor} />
     <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}>
-      <label htmlFor={`${id}-search`} className={styles.srOnly}>Search products, brands, and categories</label>
-      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search products or brands" enterKeyHint="search" autoComplete="off" />
+      <label htmlFor={`${id}-search`} className={styles.srOnly}>Search all prizes</label>
+      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search all prizes" enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
       {search.trim() ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : <VoiceSearchButton onTranscript={setSearch} />}
     </form>
@@ -92,6 +96,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
       </button>
     </div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || activeCount > 0) ? <div className={styles.current}>
+      {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
       <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.selectedRetailerGroup?.category ?? (props.searchTerm ? `Results for “${props.searchTerm}”` : "Filtered results")}</span>
       {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
       <Link href={`${props.clearHref}#search-results`}>Clear filters</Link>
