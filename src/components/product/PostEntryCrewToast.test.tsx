@@ -597,3 +597,18 @@ test("closing sharing restores its original scroll rather than the browser's foc
   unmount();
   expect(scroll).toHaveBeenLastCalledWith({ top:168, left:0, behavior:"instant" });
 });
+
+
+test("sharing from Entry Details returns to its heading even when Share was lower down", () => {
+  const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  vi.spyOn(window, "scrollY", "get").mockReturnValue(180);
+  const header = document.createElement("header"); header.className="sticky";
+  header.getBoundingClientRect = () => new DOMRect(0,0,390,91);
+  const intro = document.createElement("div"); intro.id="entry-details-intro";
+  intro.getBoundingClientRect = () => new DOMRect(0,-30,390,100);
+  document.body.append(header, intro);
+  const { unmount } = render(<PostEntryCrewToast request={request} onClose={vi.fn()} />);
+  unmount();
+  expect(scroll).toHaveBeenLastCalledWith({ top:47, left:0, behavior:"instant" });
+  header.remove(); intro.remove();
+});

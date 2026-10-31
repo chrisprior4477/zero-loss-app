@@ -126,9 +126,13 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       window.visualViewport?.removeEventListener("scroll", resize); observer?.disconnect();
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
       // Closing the top-layer dialog can restore the browser's old focus scroll.
-      // Restore the page position captured before opening, only on the same page.
+      // Entry Details returns to its heading below the header. Other pages keep
+      // the position captured before opening; never restore a different route.
       if (window.location.pathname + window.location.search === openingLocation) {
-        window.scrollTo({ ...openingScroll, behavior: "instant" });
+        const intro = document.getElementById("entry-details-intro");
+        const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+        const top = intro ? Math.max(0, window.scrollY + intro.getBoundingClientRect().top - headerBottom - 12) : openingScroll.top;
+        window.scrollTo({ left: openingScroll.left, top, behavior: "instant" });
       }
     };
   }, []);
