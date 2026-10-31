@@ -3,7 +3,7 @@
 import { prepareProductShareLink } from "@/lib/sharing/receiving-actions";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, saveCrewGroup, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, shareWinWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
 import { getProductShareItem } from "@/lib/sharing/actions";
 import { crewLookupKind, emailHref, isAppleMobile, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
@@ -14,11 +14,12 @@ import { ShareIcon } from "./ShareIcon";
 import styles from "./post-entry-crew-toast.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
-type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy" | "contacts" | "contactGroup";
+type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience" | "group" | "copy" | "contacts" | "contactGroup" | "roster";
 type PhoneContact = { name?: string[]; email?: string[]; tel?: string[] };
 type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<PhoneContact[]> };
 const contactKey = (value: string, kind: "id" | "email" | "phone") => kind === "phone" ? value.replace(/\D/g, "") : value.trim().toLowerCase();
 const validPhone = (value: string) => /^\d{10,15}$/.test(value.replace(/\D/g, ""));
+const avatarLabel = (name: string) => /^Test Customer ([1-5])$/i.exec(name)?.[1] ?? name.slice(0, 1).toUpperCase();
 type Props = { onClose: () => void; focusOnOpen?: boolean } & ({ request: EntryRequest; product?: ProductShareItem } | { request?: undefined; product: ProductShareItem });
 const emptyOptions: CrewShareOptions = { ok: true, message: "", memberCount: 0, members: [], groups: [] };
 
@@ -43,6 +44,11 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [query, setQuery] = useState("");
   const [reviewQuery, setReviewQuery] = useState("");
   const [people, setPeople] = useState<CrewSearchPerson[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [findTargetGroup, setFindTargetGroup] = useState<string | null>(null);
+  const findReturn = useRef<Step>("audience");
+  const [groupFilter, setGroupFilter] = useState("");
+  const findInput = useRef<HTMLInputElement>(null);
   const [requested, setRequested] = useState<string[]>([]);
   const [contactChoices, setContactChoices] = useState<{ value: string; kind: "phone" | "email"; name: string }[]>([]);
   const [pickedContact, setPickedContact] = useState<CrewGroupContact | null>(null);
@@ -78,13 +84,19 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!element) return;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
     // The top layer keeps phone/tablet dialogs positioned against the viewport.
     element.showModal();
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    const resize = () => element.style.setProperty("--share-visible-height", `${Math.floor(Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight, window.visualViewport?.height ?? window.innerHeight))}px`);
+    resize(); window.addEventListener("resize", resize); window.visualViewport?.addEventListener("resize", resize);
     heading.current?.focus({ preventScroll: true });
     return () => {
       element.close();
       document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
+      window.removeEventListener("resize", resize); window.visualViewport?.removeEventListener("resize", resize);
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
   }, []);
@@ -141,7 +153,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
   function feedback(value: string, failed = false) { setMessage(value); setError(failed); }
   function go(next: Step) { history.current.push(step); setStep(next); feedback(""); }
-  function back() { setStep(history.current.pop() ?? "home"); feedback(""); }
+  function back() { const previous = history.current.pop() ?? "home"; if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); feedback(""); }
   async function run(work: () => Promise<void>) {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true); feedback("");
@@ -184,39 +196,78 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     });
   }
 
-  function search() {
+  const search = useCallback(() => {
     const version = ++searchVersion.current;
     const clean = query.trim();
     const kind = crewLookupKind(clean);
-    setPeople([]); setReviewQuery(""); feedback("");
+    setReviewQuery(""); setMessage(""); setError(false);
     if (kind !== "name") {
       if (kind === "email" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean) || clean.length > 254)
         || kind === "phone" && !/^\d{10,15}$/.test(clean.replace(/\D/g, ""))) {
-        feedback(kind === "email" ? "Enter a valid email address." : "Enter a phone number with its country code.", true); return;
+        setSearching(false); return;
       }
       setReviewQuery(clean); return;
     }
-    void run(async () => {
-      const result = await searchCrewByName(clean);
+    if (clean.length < 3) return;
+    setSearching(true);
+    void searchCrewByName(clean).then(result => {
       if (!alive.current || version !== searchVersion.current) return;
-      setPeople(result.people); feedback(result.message, !result.ok);
-    });
+      setPeople(result.people); setSearching(false);
+      if (!result.ok) { setMessage(result.message); setError(true); }
+    }).catch(() => { if (alive.current && version === searchVersion.current) { setSearching(false); setMessage("Search is unavailable. Please try again."); setError(true); } });
+  }, [query]);
+
+  useEffect(() => {
+    if (step !== "find" || query.trim().length < 3) return;
+    const timer = window.setTimeout(search, 350);
+    return () => window.clearTimeout(timer);
+  }, [step, query, search]);
+
+  async function openFinder(targetGroup: string | null = null) {
+    if (step === "home" || step === "crew") setGroupsOnly(false);
+    findReturn.current = step === "home" || step === "crew" ? "audience" : step;
+    setFindTargetGroup(targetGroup); setQuery(""); setReviewQuery(""); setSearching(false); go("find");
+    if (!options) await run(async () => { const result = await getCrewShareOptions(); if (alive.current && result.ok) setOptions(result); });
   }
+
+  function finishFinding() { setStep(findReturn.current); feedback(""); }
 
   async function addPerson(value: string, kind: "id" | "email" | "phone", name?: string) {
     const key = contactKey(value, kind);
-    if (requested.includes(key)) return;
+    if (requested.includes(key) && !findTargetGroup) return;
     await run(async () => {
-      const result = kind === "id" ? await inviteToCrewById(value) : kind === "email" ? await inviteToCrew(value) : await inviteToCrewByPhone(value);
+      const alreadyConnected = kind === "id" && options?.members.some(member => member.id === value);
+      const result = alreadyConnected ? { ok: true, message: "Already connected." } : kind === "id" ? await inviteToCrewById(value) : kind === "email" ? await inviteToCrew(value) : await inviteToCrewByPhone(value);
       if (!alive.current) return;
       if (!result.ok) { feedback(result.message, true); return; }
       setRequested(current => [...new Set([...current, key])]);
       setShared(false);
-      feedback(kind === "id" ? `${name || "This person"} is now part of your Crew.` : `${kind === "phone" ? "Phone number" : "Email"} ${value} added for automatic connection. Matching members who allow it join your Crew and can leave at any time.`);
+      let addedName = name;
       try {
         const updated = await getCrewShareOptions();
-        if (alive.current && updated.ok) setOptions(updated);
-      } catch { /* The add succeeded; a later audience load can retry this read. */ }
+        if (alive.current && updated.ok) {
+          const newMembers = updated.members.filter(member => !options?.members.some(previous => previous.id === member.id));
+          const addedMember = kind === "id" ? updated.members.find(member => member.id === value) : newMembers.length === 1 ? newMembers[0] : undefined;
+          addedName ||= addedMember?.name;
+          if (findTargetGroup && addedMember) {
+            const target = updated.groups.find(group => group.id === findTargetGroup);
+            if (!target) { setOptions(updated); feedback("The Crew connection was saved, but that group is no longer available.", true); return; }
+            const savedGroup = { id: target.id, name: target.name, memberIds: [...new Set([...target.memberIds, addedMember.id])], contacts: target.contacts ?? [] };
+            const saved = await saveCrewGroup({ group: savedGroup, remove: false });
+            if (!alive.current) return;
+            if (!saved.ok) { setOptions(updated); feedback(`Crew connection saved. ${saved.message}`, true); return; }
+            setOptions({ ...updated, groups: updated.groups.map(group => group.id === target.id ? { ...savedGroup, memberCount: savedGroup.memberIds.length } : group) });
+            setAudience(target.id);
+            feedback(`${addedName || "This person"} added to your Crew and ${target.name}.`);
+          } else {
+            setOptions(updated);
+            if (findReturn.current === "group" && addedMember) setGroupMembers(current => [...new Set([...current, addedMember.id])]);
+            feedback(addedName ? `${addedName} added to your Crew.` : "Lookup saved. Matching members who allow connections appear in your Crew; phone and email details stay private.");
+          }
+          if (kind !== "id") setPeople(updated.members.map(member => ({ memberId: member.id, name: member.name, avatarUrl: null })));
+        } else feedback("Connection saved. Refresh your Crew to check the current people.");
+      } catch { feedback("Connection saved. Reopen your Crew to refresh the people list."); }
+      searchVersion.current += 1; setQuery(""); setReviewQuery(""); setSearching(false);
     });
   }
 
@@ -289,7 +340,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     groupId.current = group?.id ?? null;
     groupContacts.current = group?.contacts ?? [];
     setEditingGroup(Boolean(group));
-    setGroupName(group?.name ?? ""); setGroupMembers(group?.memberIds ?? []);
+    setGroupName(group?.name ?? ""); setGroupMembers(group?.memberIds ?? []); setGroupFilter("");
     if (group) setAudience(group.id);
     go("group");
   }
@@ -314,7 +365,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       if (!alive.current) return;
       if (!result.ok) { feedback(result.message, true); return; }
       setOptions(current => ({ ...(current ?? emptyOptions), groups: [...(current?.groups ?? []).filter(g => g.id !== group.id), { ...group, memberCount: group.memberIds.length }] }));
-      setAudience(group.id); setShared(false); setStep("audience"); history.current.pop(); feedback(result.message);
+      setAudience(group.id); setGroupsOnly(true); setShared(false); setStep("audience"); history.current.pop(); feedback(result.message);
     });
   }
 
@@ -359,10 +410,12 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!externalHref) { event.preventDefault(); invalidEmail(); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
-  const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: "Find someone on Zero Loss", audience: "Who in your Crew?", group: editingGroup ? "Add people to your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone", contactGroup: "Save contact to a group" };
+  const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: findTargetGroup ? `Add people to ${options?.groups.find(group => group.id === findTargetGroup)?.name ?? "your group"}` : "Add people", audience: "Share with your Crew", group: editingGroup ? "Edit your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone", contactGroup: "Save contact to a group", roster: "People in your Crew" };
   const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{shared ? sharedGroupName ? `Shared with ${sharedGroupName}` : "Shared with your Crew" : step === "audience" && groupsOnly ? "Share with my groups" : titles[step]}</h2>;
   const compact = step === "home" || step === "email";
-  const journey = step !== "email";
+  const journey = true;
+  const visiblePeople = people.length || query.trim().length >= 3 ? people : members.map(member => ({ memberId: member.id, name: member.name, avatarUrl: null }));
+  const personAdded = (memberId: string) => findTargetGroup ? Boolean(options?.groups.find(group => group.id === findTargetGroup)?.memberIds.includes(memberId)) : members.some(member => member.id === memberId) || requested.includes(contactKey(memberId, "id"));
 
   return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog} ${journey ? styles.journeyDialog : ""}`} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className={`${styles.paper} ${compact ? styles.compact : styles.journey} ${step === "home" ? styles.perforated : ""} ${step === "email" ? styles.emailPaper : ""}`} ref={paper}>
@@ -375,8 +428,9 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
 
       {step === "home" ? <div className={styles.actions}>
         <div className={styles.duo}><button type="button" className={styles.primary} disabled={busy} onClick={() => void nativeShare()}><ShareIcon name="share" />Share…</button><button type="button" onClick={() => void copyLink()}><ShareIcon name="link" />Copy link</button></div>
-        <button type="button" className={styles.crewButton} onClick={() => go("crew")}><ShareIcon name="crew" />Share with Crew</button>
+        <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences()}><ShareIcon name="crew" />Share with Crew</button>
         <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences(true)}><ShareIcon name="crew" />Share with group(s)</button>
+        <button type="button" className={styles.back} disabled={busy} onClick={() => void openFinder()}>Find &amp; add someone</button>
         <div ref={perforation} className={styles.perforation}>Or send directly</div>
         {shortcuts}
       </div> : null}
@@ -455,33 +509,35 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       {step === "find" ? <>
         <form className={styles.field} onSubmit={event => { event.preventDefault(); search(); }}>
           <label htmlFor={`${id}-query`}>Name, email address, or phone number</label>
-          <div className={styles.searchRow}><input id={`${id}-query`} value={query} onChange={event => { searchVersion.current += 1; setQuery(event.target.value); setReviewQuery(""); setPeople([]); setPickedContact(null); }} autoComplete="off" maxLength={254} placeholder="Name, email, or phone" disabled={busy} /><button type="submit" className={styles.primary} disabled={busy} aria-label="Search for a member"><ShareIcon name="search" /></button></div>
+          <div className={styles.searchRow}><input ref={findInput} id={`${id}-query`} value={query} onChange={event => { searchVersion.current += 1; setQuery(event.target.value); setReviewQuery(""); setSearching(false); setPickedContact(null); }} autoComplete="off" maxLength={254} placeholder={requested.length ? "Add another person…" : "Name, email, or phone"} disabled={busy} /><button type="submit" className={styles.primary} disabled={busy} aria-label="Search for a member"><ShareIcon name="search" /></button></div>
         </form>
+        {message ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}
         <button type="button" className={styles.contactsButton} disabled={busy} onClick={() => openContacts("find")}><ShareIcon name="crew" />Add people from your phone</button>
-        <p className={styles.note}>Matching members connect automatically and can leave at any time. Phone and email lookups stay private.</p>
-        <div className={styles.findResults}>{people.map(person => <div className={styles.result} key={person.memberId}><div><strong>{person.name}</strong><small>Discoverable Zero Loss member</small></div><button type="button" className={styles.darkButton} disabled={busy || requested.includes(contactKey(person.memberId, "id"))} onClick={() => void addPerson(person.memberId, "id", person.name)}>{requested.includes(contactKey(person.memberId, "id")) ? "Added" : "Add to Crew"}</button></div>)}
+        <p className={styles.note}>{searching ? "Searching…" : "Type a name for suggestions. Complete phone and email lookups stay private."}</p>
+        <div className={styles.findResults}>{visiblePeople.map(person => <div className={styles.result} key={person.memberId}><div className={styles.personIdentity}><span className={styles.memberAvatar}>{avatarLabel(person.name)}</span><div><strong>{person.name}</strong><small>{personAdded(person.memberId) ? "Connected" : "Discoverable Zero Loss member"}</small></div></div><button type="button" className={personAdded(person.memberId) ? styles.crewButton : styles.primary} disabled={busy || searching || personAdded(person.memberId)} onClick={() => void addPerson(person.memberId, "id", person.name)}>{personAdded(person.memberId) ? "✓ Added" : findTargetGroup ? "Add to group" : "Add to Crew"}</button></div>)}
         {reviewQuery ? <div className={styles.result}><div><strong>{reviewQuery}</strong><small>Automatic connection · opt-out available</small></div><button type="button" className={styles.darkButton} disabled={busy || requested.includes(contactKey(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email"))} onClick={() => void addPerson(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")}>{requested.includes(contactKey(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")) ? "Added" : "Add to Crew"}</button></div> : null}</div>
-        <div className={`${styles.divider} ${styles.duo}`}><button type="button" className={styles.crewButton} disabled={busy} onClick={() => void loadAudiences()}>Share with Crew</button><button type="button" onClick={() => go("messages")}>Send to anyone</button></div>
+        <button type="button" className={styles.primary} disabled={busy} onClick={finishFinding}>Done · back to sharing</button>
+        <div className={styles.duo}><button type="button" className={styles.back} onClick={() => go("roster")}>See your Crew →</button><button type="button" className={styles.back} onClick={() => { searchVersion.current += 1; setQuery(""); setReviewQuery(""); findInput.current?.focus(); }}>Add more people</button></div>
       </> : null}
 
       {step === "audience" && shared ? <div className={styles.shareSuccess} role="status"><strong>✓ Your share is saved</strong><p>{message}</p><small>Returning to where you were…</small></div> : step === "audience" ? <>
         {options ? <>
           {!groupsOnly ? <section aria-label="Share with Crew"><div className={styles.audienceRow}>
             <div className={styles.audienceChoice}><span>Share with Crew<small>{options.memberCount} {options.memberCount === 1 ? "connection" : "connections"}</small></span></div>
-            <button type="button" className={styles.addPeople} aria-label="Add People to my Crew" disabled={busy} onClick={() => go("find")}>Add People</button>
-          </div><button type="button" className={styles.crewButton} disabled={busy || !options.memberCount} onClick={() => void shareCrew(null)}>Send to my Crew</button></section> : null}
-          <section className={styles.groupSection} aria-label="Your groups"><h3>Share with groups you’ve created</h3><div className={styles.groupList}>
+            <button type="button" className={styles.addPeople} aria-label="Add People to my Crew" disabled={busy} onClick={() => void openFinder()}>Add People</button>
+          </div><div className={styles.memberFaces}>{members.map(member => <span key={member.id}><b className={styles.memberAvatar}>{avatarLabel(member.name)}</b><small>{member.name}</small></span>)}</div><button type="button" className={styles.primary} disabled={busy || !options.memberCount} onClick={() => void shareCrew(null)}>Send to my Crew</button><div className={styles.duo}><button type="button" onClick={() => go("roster")}>See your Crew →</button><button type="button" onClick={() => void loadAudiences(true)}>Choose a group</button></div></section> : null}
+          {groupsOnly ? <section className={styles.groupSection} aria-label="Your groups"><h3>Share with groups you’ve created</h3><div className={styles.groupList}>
             {options.groups.map(group => <div className={styles.audienceRow} key={group.id}>
-              <input type="radio" name={`${id}-audience`} aria-label={`Share with ${group.name}`} checked={audience === group.id} disabled={busy || !group.memberCount} onChange={() => { setAudience(group.id); setShared(false); }} />
+              <input type="radio" name={`${id}-audience`} aria-label={`Share with ${group.name}`} checked={audience === group.id} disabled={busy} onChange={() => { setAudience(group.id); setShared(false); }} />
               <button type="button" className={styles.groupName} disabled={busy} aria-label={`Edit ${group.name}`} onClick={() => editGroup(group)}><span>{group.name}<small>{group.memberCount} connected {group.memberCount === 1 ? "person" : "people"}{group.contacts?.length ? ` · ${group.contacts.length} saved ${group.contacts.length === 1 ? "contact" : "contacts"}` : ""}</small></span></button>
-              <button type="button" className={styles.addPeople} aria-label={`Add People to ${group.name}`} disabled={busy} onClick={() => editGroup(group)}>Add People</button>
+              <button type="button" className={styles.addPeople} aria-label={`Add People to ${group.name}`} disabled={busy} onClick={() => { setAudience(group.id); void openFinder(group.id); }}>Add People</button>
             </div>)}
             </div>{!options.groups.length ? <p className={styles.note}>No groups yet. Create one below.</p> : null}
-          </section>
+          </section> : null}
           {groupsOnly && !audience ? <p className={styles.note}>Choose a group above to share with.</p> : null}
-          <button type="button" className={styles.crewButton} disabled={busy || !selectedGroup?.memberCount} onClick={() => void shareCrew(audience)}>Send to my group</button>
+          {groupsOnly ? <button type="button" className={styles.primary} disabled={busy || !selectedGroup?.memberCount} onClick={() => void shareCrew(audience)}>{selectedGroup ? `Send to ${selectedGroup.name}` : "Send to my group"}</button> : null}
           {!request ? <p className={styles.note}>{item.win ? "Shares your win with selected Crew members who allow win updates." : "Sends this item’s link to the selected connected members."}</p> : null}
-          <button type="button" disabled={busy} onClick={() => editGroup()}>＋ Create a new group</button>
+          {groupsOnly ? <button type="button" disabled={busy} onClick={() => editGroup()}>＋ Create a new group</button> : null}
         </> : <button type="button" disabled={busy} onClick={() => void loadAudiences(groupsOnly)}>{busy ? "Loading Crew…" : "Retry loading Crew"}</button>}
       </> : null}
 
@@ -489,19 +545,22 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         <form onSubmit={event => { event.preventDefault(); void createGroup(); }}>
           <div className={styles.field}><label htmlFor={`${id}-group`}>Group name</label><input id={`${id}-group`} value={groupName} onChange={event => setGroupName(event.target.value)} maxLength={50} required disabled={busy} placeholder="Family, Friends…" /></div>
           <h3>Choose connected Crew members</h3>
-          {members.map(member => <label className={styles.choice} key={member.id}><input type="checkbox" checked={groupMembers.includes(member.id)} disabled={busy} onChange={event => setGroupMembers(current => event.target.checked ? [...current, member.id] : current.filter(id => id !== member.id))} /><span>{member.name}</span></label>)}
+          <div className={styles.field}><label htmlFor={`${id}-group-search`}>Find people in your Crew</label><input id={`${id}-group-search`} value={groupFilter} onChange={event => setGroupFilter(event.target.value)} placeholder="Search your Crew" /></div>
+          <div className={styles.groupMemberPicker}>{members.filter(member => member.name.toLowerCase().includes(groupFilter.trim().toLowerCase())).map(member => <label className={styles.choice} key={member.id}><input type="checkbox" checked={groupMembers.includes(member.id)} disabled={busy} onChange={event => setGroupMembers(current => event.target.checked ? [...new Set([...current, member.id])] : current.filter(id => id !== member.id))} /><span>{member.name}</span></label>)}</div>
           {!members.length ? <p className={styles.note}>Create the group now, then add connected Crew members.</p> : null}
           <button type="submit" className={styles.primary} disabled={busy}>{busy ? "Saving…" : "Save group"}</button>
         </form>
-        <button type="button" className={styles.darkButton} disabled={busy} onClick={() => go("find")}>Find someone to add to my Crew</button>
-        <p className={styles.note}>Add someone to your Crew, then refresh this list, select them, and save your group.</p>
-        <button type="button" disabled={busy} onClick={() => void refreshMembers()}>Refresh Crew members</button>
+        <button type="button" disabled={busy} onClick={() => void openFinder()}>Find someone to add to my Crew</button>
+        <details className={styles.more}><summary>More group options</summary><button type="button" disabled={busy} onClick={() => void refreshMembers()}>Refresh Crew members</button>
         <Link className={styles.manage} href="/account/crew#crew-groups" onClick={onClose}>Manage groups and saved contacts →</Link>
+        </details>
       </> : null}
 
+      {step === "roster" ? <><p className={styles.note}>{members.length} people in your Crew</p><div className={styles.groupMemberPicker}>{members.map(member => <div className={styles.personIdentity} key={member.id}><span className={styles.memberAvatar}>{avatarLabel(member.name)}</span><strong>{member.name}</strong></div>)}</div><button type="button" className={styles.primary} onClick={() => void openFinder()}>＋ Add people</button><button type="button" onClick={back}>Back to where I was</button></> : null}
+
       {pickedContact && ["messages", "find"].includes(step) ? <button type="button" className={styles.crewButton} disabled={busy} onClick={() => void openContactGroups()}>Save {pickedContact.name} to a group</button> : null}
-      {message && !shared ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}
-      {requested.length > 0 && ["messages", "find", "contacts"].includes(step) ? <Link className={styles.seeCrew} href="/account/crew#crew-intro" onClick={onClose}>See your Crew →</Link> : null}
+      {message && !shared && step !== "find" ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}
+      {requested.length > 0 && ["messages", "contacts"].includes(step) ? <Link className={styles.seeCrew} href="/account/crew#crew-intro" onClick={onClose}>See your Crew →</Link> : null}
       <button type="button" className={styles.later} onClick={onClose}>{shared ? "Done" : "Not now"}</button>
       <p className={styles.privacy}>{request && !shared ? "Your entry stays private unless you share it with your Crew." : "Your wallet and payment details stay private."}</p>
     </div>

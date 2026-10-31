@@ -21,7 +21,8 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); Reflect.deleteProperty(navigator, "contacts"); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 function open() { render(<PostEntryCrewToast request={request} onClose={vi.fn()} />); }
-async function audiences() { fireEvent.click(screen.getByRole("button", { name: "Share with Crew" })); fireEvent.click(screen.getByRole("button", { name: "Share with my Crew" })); await screen.findByRole("button", { name: "Send to my Crew" }); }
+async function audiences() { fireEvent.click(screen.getByRole("button", { name: "Share with Crew" })); await screen.findByRole("button", { name: "Send to my Crew" }); }
+async function groups() { fireEvent.click(screen.getByRole("button", { name: "Choose a group" })); await screen.findByRole("radio", { name: "Share with Mom" }); }
 
 test("perforated home exposes Text and Email directly with just one Copy link", () => {
   open();
@@ -141,8 +142,9 @@ test("copy denial exposes a selectable public link instead of claiming success",
 
 test("group audience shares only on explicit confirmation", async () => {
   mocks.share.mockResolvedValue({ ok: true, message: "Shared with selected approved Crew members." }); open(); await audiences();
+  await groups();
   fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" })); expect(mocks.share).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Send to my group" }));
+  fireEvent.click(screen.getByRole("button", { name: "Send to Mom" }));
   await waitFor(() => expect(mocks.share).toHaveBeenCalledWith(request.requestId, groupId));
   expect(await screen.findByRole("button", { name: "Done" })).toBeTruthy();
 });
@@ -153,8 +155,9 @@ test("manual win sharing uses the existing owner-checked win action for the sele
   expect(screen.getByRole("heading", { name: "Share your win" })).toBeTruthy();
   expect(mocks.win).not.toHaveBeenCalled();
   await audiences();
+  await groups();
   fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" }));
-  fireEvent.click(screen.getByRole("button", { name: "Send to my group" }));
+  fireEvent.click(screen.getByRole("button", { name: "Send to Mom" }));
   await waitFor(() => expect(mocks.win).toHaveBeenCalledWith(request.requestId, [memberId]));
   expect(mocks.prize).not.toHaveBeenCalled();
 });
@@ -162,13 +165,13 @@ test("manual win sharing uses the existing owner-checked win action for the sele
 test("empty groups cannot expose an entry and offer real creation", async () => {
   mocks.options.mockResolvedValue({ ...options, memberCount: 0, members: [], groups: [{ ...options.groups[0], memberCount: 0, memberIds: [] }] }); open(); await audiences();
   expect(screen.getByRole("button", { name: "Send to my Crew" }).hasAttribute("disabled")).toBe(true);
-  expect(screen.getByRole("radio", { name: "Share with Mom" }).hasAttribute("disabled")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Add People to my Crew" }));
-  expect(screen.getByRole("heading", { name: "Find someone on Zero Loss" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Add people" })).toBeTruthy();
 });
 
 test("create group persists exact approved members before adding the saved choice", async () => {
   mocks.save.mockResolvedValue({ ok: true, message: "Group saved." }); open(); await audiences();
+  await groups();
   fireEvent.click(screen.getByRole("button", { name: /Create a new group/ }));
   fireEvent.change(screen.getByLabelText("Group name"), { target: { value: "Family" } }); fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
@@ -176,31 +179,34 @@ test("create group persists exact approved members before adding the saved choic
   expect(await screen.findByRole("radio", { name: "Share with Family" })).toHaveProperty("checked", true); expect(mocks.share).not.toHaveBeenCalled();
 });
 
-test.each(["Add People to Mom", "Edit Mom"])("%s edits the existing group without erasing saved contacts", async label => {
+test("editing the existing group does not erase saved contacts", async () => {
   const contacts = [{ id: request.requestId, name: "Saved contact", email: "saved@example.test", phone: "" }];
   mocks.options.mockResolvedValue({ ...options, groups: [{ ...options.groups[0], contacts }] });
   mocks.save.mockResolvedValue({ ok: true, message: "Mom saved." }); open(); await audiences();
-  fireEvent.click(screen.getByRole("button", { name: label }));
+  await groups();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Mom" }));
   expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Mom");
   expect(screen.getByLabelText("Member")).toHaveProperty("checked", true);
   fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [], contacts }, remove: false }));
-  expect(await screen.findByRole("radio", { name: "Share with Mom" })).toHaveProperty("disabled", true);
+  expect(await screen.findByRole("radio", { name: "Share with Mom" })).toHaveProperty("checked", true);
+  expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", true);
   expect(mocks.share).not.toHaveBeenCalled();
 });
 
 test("empty groups stay editable and Crew Add People opens private discovery", async () => {
   mocks.options.mockResolvedValue({ ...options, memberCount: 0, members: [], groups: [{ ...options.groups[0], memberCount: 0, memberIds: [] }] });
-  open(); await audiences(); fireEvent.click(screen.getByRole("button", { name: "Add People to Mom" }));
-  expect(screen.getByRole("heading", { name: "Add people to your group" })).toBeTruthy();
+  open(); await audiences(); await groups(); fireEvent.click(screen.getByRole("button", { name: "Edit Mom" }));
+  expect(screen.getByRole("heading", { name: "Edit your group" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Find someone to add to my Crew" }));
-  expect(screen.getByRole("heading", { name: "Find someone on Zero Loss" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Add people" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: /Back/ }));
   expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Mom");
   fireEvent.click(screen.getByRole("button", { name: /Back/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Back/ }));
   fireEvent.click(screen.getByRole("button", { name: "Add People to my Crew" }));
-  expect(screen.getByRole("heading", { name: "Find someone on Zero Loss" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Add people" })).toBeTruthy();
 });
 
 test.each([false, true])("sharing uses a modal and restores scroll/focus at either breakpoint (desktop: %s)", desktop => {
@@ -219,18 +225,18 @@ test.each([false, true])("sharing uses a modal and restores scroll/focus at eith
 test("Not now remains after every sharing option in the home action order", () => {
   open();
   expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual([
-    "×", "Share…", "Copy link", "Share with Crew", "Share with group(s)", "Text", "Email", "Not now",
+    "×", "Share…", "Copy link", "Share with Crew", "Share with group(s)", "Find & add someone", "Text", "Email", "Not now",
   ]);
 });
 
 test("private email lookup does not enumerate accounts or send until Add to Crew", async () => {
   mocks.email.mockResolvedValue({ ok: true, message: "Added where a matching account allows connections." });
-  open(); fireEvent.click(screen.getByRole("button", { name: "Share with Crew" })); fireEvent.click(screen.getByRole("button", { name: /Find someone on Zero Loss/ }));
+  open(); fireEvent.click(screen.getByRole("button", { name: "Find & add someone" })); await screen.findByText("Member");
   fireEvent.change(screen.getByLabelText("Name, email address, or phone number"), { target: { value: "friend@example.test" } });
   fireEvent.click(screen.getByRole("button", { name: "Search for a member" })); expect(mocks.search).not.toHaveBeenCalled(); expect(mocks.email).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Add to Crew" }));
   await waitFor(() => expect(mocks.email).toHaveBeenCalledWith("friend@example.test"));
-  expect(mocks.share).not.toHaveBeenCalled(); expect(await screen.findByText(/Email friend@example.test added for automatic connection/)).toBeTruthy();
+  expect(mocks.share).not.toHaveBeenCalled(); expect(await screen.findByText(/Lookup saved/)).toBeTruthy();
 });
 
 test("manual item sharing uses approved recipient ids without creating an entry", async () => {
@@ -281,33 +287,32 @@ test("unsupported contact browsers offer manual entry without claiming access", 
 });
 
 test("named members show an added confirmation; a failed add remains retryable", async () => {
+  mocks.options.mockResolvedValue({ ...options, members: [], memberCount: 0 });
   mocks.search.mockResolvedValue({ ok: true, message: "Choose someone.", people: [{ memberId, name: "Alex", avatarUrl: null }] });
   mocks.invite.mockResolvedValueOnce({ ok: false, message: "This connection is unavailable." }).mockResolvedValueOnce({ ok: true, message: "Added to your Crew." });
-  open(); fireEvent.click(screen.getByRole("button", { name: "Share with Crew" }));
-  fireEvent.click(screen.getByRole("button", { name: "Find someone on Zero Loss" }));
+  open(); fireEvent.click(screen.getByRole("button", { name: "Find & add someone" }));
   fireEvent.change(screen.getByLabelText("Name, email address, or phone number"), { target: { value: "Alex" } });
   fireEvent.click(screen.getByRole("button", { name: "Search for a member" }));
   fireEvent.click(await screen.findByRole("button", { name: "Add to Crew" }));
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "This connection is unavailable.");
   expect(screen.queryByRole("button", { name: "Added" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Add to Crew" }));
-  expect(await screen.findByText("Alex is now part of your Crew.")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Added" })).toHaveProperty("disabled", true);
+  expect(await screen.findByText("Alex added to your Crew.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "✓ Added" })).toHaveProperty("disabled", true);
 });
 
 test("groups have to be selected before sending and success returns to the underlying page", async () => {
   const close = vi.fn();
   mocks.share.mockResolvedValue({ ok: true, message: "Shared with your selected Crew members." });
   render(<PostEntryCrewToast request={request} onClose={close} />);
-  fireEvent.click(screen.getByRole("button", { name: "Share with Crew" }));
-  fireEvent.click(screen.getByRole("button", { name: "Share with my groups" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share with group(s)" }));
   await screen.findByRole("radio", { name: "Share with Mom" });
   expect(screen.getByRole("button", { name: "Send to my group" })).toHaveProperty("disabled", true);
   expect(screen.queryByLabelText(/Everyone in my Crew/)).toBeNull();
   fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" }));
   expect(mocks.share).not.toHaveBeenCalled();
   vi.useFakeTimers();
-  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Send to my group" })); });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Send to Mom" })); });
   expect(mocks.share).toHaveBeenCalledWith(request.requestId, groupId);
   expect(screen.getByRole("heading", { name: "Shared with Mom" })).toBeTruthy();
   expect(screen.getByRole("status").textContent).toContain("Your share is saved");
@@ -320,17 +325,16 @@ test("manual group shares keep their group identity in the recipient link", asyn
   mocks.prize.mockResolvedValue({ ok: true, message: "Saved for email delivery." });
   render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />);
   await audiences();
+  await groups();
   fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" }));
-  fireEvent.click(screen.getByRole("button", { name: "Send to my group" }));
+  fireEvent.click(screen.getByRole("button", { name: "Send to Mom" }));
   await waitFor(() => expect(mocks.prize).toHaveBeenCalledWith(request.slug, [memberId], groupId));
 });
 
-test("the Crew send remains independent of the selected group and sits above groups", async () => {
+test("the Crew send uses all Crew members without selecting a group", async () => {
   mocks.share.mockResolvedValue({ ok: true, message: "Shared." }); open(); await audiences();
-  fireEvent.click(screen.getByRole("radio", { name: "Share with Mom" }));
   const crewSend = screen.getByRole("button", { name: "Send to my Crew" });
-  const groups = screen.getByRole("region", { name: "Your groups" });
-  expect(crewSend.compareDocumentPosition(groups) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.queryByRole("radio", { name: "Share with Mom" })).toBeNull();
   fireEvent.click(crewSend);
   await waitFor(() => expect(mocks.share).toHaveBeenCalledWith(request.requestId, null));
 });
@@ -370,4 +374,34 @@ test("server failure remains retryable without claiming success", async () => {
   mocks.share.mockRejectedValue(new Error("offline")); open(); await audiences();
   fireEvent.click(screen.getByRole("button", { name: "Send to my Crew" })); expect(await screen.findByRole("alert")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Done" })).toBeNull(); expect(screen.getByRole("button", { name: "Send to my Crew" }).hasAttribute("disabled")).toBe(false);
+});
+
+test("typing a name shows suggestions without Search and keeps the result after adding", async () => {
+  const newId = "44444444-4444-4444-8444-444444444444";
+  mocks.search.mockResolvedValue({ ok: true, message: "", people: [{ memberId: newId, name: "Test Customer 4", avatarUrl: null }] });
+  mocks.invite.mockResolvedValue({ ok: true, message: "Added." });
+  mocks.options.mockResolvedValueOnce(options).mockResolvedValue({ ...options, memberCount: 2, members: [...options.members, { id: newId, name: "Test Customer 4" }] });
+  open(); fireEvent.click(screen.getByRole("button", { name: "Find & add someone" }));
+  await screen.findByText("Member");
+  fireEvent.change(screen.getByLabelText("Name, email address, or phone number"), { target: { value: "Test" } });
+  fireEvent.click(await screen.findByRole("button", { name: "Add to Crew" }));
+  expect(await screen.findByText("Test Customer 4 added to your Crew.")).toBeTruthy();
+  expect(screen.getByLabelText("Name, email address, or phone number")).toHaveProperty("value", "");
+  expect(screen.getByRole("button", { name: "✓ Added" })).toHaveProperty("disabled", true);
+  expect(screen.getByText("4")).toBeTruthy();
+  expect(mocks.invite).toHaveBeenCalledWith(newId);
+});
+
+test("adding an existing Crew member to a group saves its members and preserves contacts", async () => {
+  const contacts = [{ id: request.requestId, name: "Saved", phone: "", email: "saved@example.test" }];
+  mocks.options.mockResolvedValue({ ...options, groups: [{ ...options.groups[0], memberCount: 0, memberIds: [], contacts }] });
+  mocks.save.mockResolvedValue({ ok: true, message: "Saved." });
+  open(); await audiences(); await groups();
+  fireEvent.click(screen.getByRole("button", { name: "Add People to Mom" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add to group" }));
+  expect(await screen.findByText("Member added to your Crew and Mom.")).toBeTruthy();
+  expect(mocks.invite).not.toHaveBeenCalled();
+  expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts }, remove: false });
+  fireEvent.click(screen.getByRole("button", { name: "Done · back to sharing" }));
+  expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", false);
 });
