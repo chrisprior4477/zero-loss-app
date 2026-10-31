@@ -50,6 +50,25 @@ test("a funded entry return can land on its review instead of the older quantity
   expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 908, behavior: "instant" });
 });
 
+test("a compact review is centered beneath the sticky header", () => {
+  vi.stubGlobal("innerHeight", 844);
+  const { scrollTo, flush, container } = setup();
+  container.querySelector<HTMLElement>("#security-controls")!.dataset.landingAlign = "center";
+  render(<AccountSettingsLandingScroll target="security-controls" allScreens />); flush();
+  // A 150px review sits at 387px: equal free space above and below it after the 80px header.
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 613, behavior: "instant" });
+});
+
+test("a review taller than the available screen starts below the header instead of being clipped", () => {
+  vi.stubGlobal("innerHeight", 844);
+  const { scrollTo, flush, container } = setup();
+  const review = container.querySelector<HTMLElement>("#security-controls")!;
+  review.dataset.landingAlign = "center";
+  review.getBoundingClientRect = () => new DOMRect(0, 1000, 390, 900);
+  render(<AccountSettingsLandingScroll target="security-controls" allScreens />); flush();
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 908, behavior: "instant" });
+});
+
 test.each(["/account/profile", "/account/payment-methods", "/account/crew/display"])("direct %s links retain the four section buttons", path => {
   const { scrollTo, flush } = setup({ path });
   render(<AccountSettingsLandingScroll target="account-settings-sections" />); flush();

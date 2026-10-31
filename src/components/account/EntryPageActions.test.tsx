@@ -18,6 +18,7 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); localStorage.clear(); });
 const props = {
   entryId: "ent_11111111111111111111111111111111",
   itemTitle: "PlayStation 5 Slim Model",
+  itemImage: "/playstation.png",
   slug: "playstation-5-slim",
   remaining: 6,
   entryPriceCents: 100,
@@ -48,6 +49,15 @@ test("returning from funding restores the entry review but still requires approv
   expect(screen.getByRole("button", { name: "Confirm 23 entries for $23" }).hasAttribute("disabled")).toBe(true);
   expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
   expect(createPreviewEntry).not.toHaveBeenCalled();
+});
+
+test("entry review identifies the original prize above its review heading", () => {
+  render(<EntryPageActions {...props} resumeReview />);
+  const review = screen.getByLabelText("Additional entry checkout");
+  expect(review.querySelector("img")?.getAttribute("alt")).toBe(props.itemTitle);
+  expect(review.querySelector("h4")?.previousElementSibling?.textContent).toBe(props.itemTitle);
+  expect(review.getAttribute("data-landing-align")).toBe("center");
+  expect(screen.getByRole("button", { name: "Confirm entry for $1" }).hasAttribute("disabled")).toBe(true);
 });
 
 function selectQuantity(quantity: number) {

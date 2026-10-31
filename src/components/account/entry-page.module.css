@@ -124,6 +124,9 @@
 .inlineCheckout { margin-top: 14px; border: 1px solid #4586af; border-radius: 12px; background: #0a3157; padding: 16px; color: #fff; }
 .inlineCheckout[data-phase="pending"] { margin-top: 0; border: 0; background: transparent; padding: 0; }
 .inlineCheckout:focus { outline: none; }
+.reviewPrize { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.reviewPrize img { width: 64px; height: 64px; flex: 0 0 64px; border-radius: 10px; background: #e9f6ff; padding: 5px; object-fit: contain; }
+.reviewPrize > strong { min-width: 0; color: #fff; font-size: 15px; line-height: 1.3; }
 @media (max-width: 600px) {
   .entryActionPanel { margin-inline: -12px; padding: 12px; }
   .entryActionPanel .inlineCheckout { padding: 10px; }

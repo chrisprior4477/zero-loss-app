@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { accountLandingTop } from "@/lib/account/landing-position";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
 export function AccountSettingsLandingScroll({ target, initialTarget, visitKey = target, settleAfterNavigation = false, allScreens = false }: { target: string; initialTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean }) {
@@ -30,7 +31,8 @@ export function AccountSettingsLandingScroll({ target, initialTarget, visitKey =
           const id = requestedId === "profile-intro" ? "account-settings-sections" : requestedId;
           const destination = (id && document.getElementById(id)) || document.getElementById(target);
           if (!destination) return;
-          const delta = destination.getBoundingClientRect().top - measure() - 12;
+          const bounds = destination.getBoundingClientRect();
+          const delta = bounds.top - accountLandingTop(measure(), window.visualViewport?.height ?? window.innerHeight, bounds.height, destination.dataset.landingAlign === "center");
           if (Math.abs(delta) > 1) window.scrollTo({ top: Math.max(0, window.scrollY + delta), behavior: "instant" });
         });
       });

@@ -15,6 +15,7 @@ import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { sharePrizeWithCrew } from "@/lib/crew/actions";
 import { entryReviewFundingHref } from "@/lib/wallet/funding-navigation";
 import { InsufficientFundsNotice } from "@/components/wallet/InsufficientFundsNotice";
+import { accountLandingTop } from "@/lib/account/landing-position";
 import styles from "./entry-page.module.css";
 
 type CrewMember = { id: string; name: string; avatarUrl: string | null };
@@ -38,9 +39,9 @@ function resultInActivity(href: string | null, fillsPool: boolean, entryId?: str
   return exactEntry ? `/account/entries?${new URLSearchParams({ viewed: exactEntry })}` : "/account/entries";
 }
 
-export function EntryPageActions({ itemTitle, slug, entryId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref }: {
+export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQuantity = 1, resumeReview = false, initialReceipt = null, remaining, entryPriceCents, balanceCents, entryEnabled, requestKey, requestHead, crew, senderName, emailEnabled, returnHref }: {
   entryId?: string; initialQuantity?: number; resumeReview?: boolean; initialReceipt?: EntryRequest | null;
-  itemTitle: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
+  itemTitle: string; itemImage: string; slug: string; remaining: number | null; entryPriceCents: number | null; balanceCents: number | null; entryEnabled: boolean; requestKey: string;
   requestHead: EntryRequestHead; crew: CrewMember[]; senderName: string; emailEnabled: boolean | null; returnHref: string;
 }) {
   const router = useRouter();
@@ -84,14 +85,15 @@ export function EntryPageActions({ itemTitle, slug, entryId, initialQuantity = 1
   }, [initialReceipt]);
   useEffect(() => {
     if (!checkoutOpen) return;
-    // A newly opened review/receipt belongs immediately below the live header,
-    // rather than leaving the customer at the now-hidden quantity controls.
+    // Compact reviews sit in the middle of the usable screen. The pending
+    // receipt retains its direct landing below the header.
     let second = 0;
     const first = requestAnimationFrame(() => { second = requestAnimationFrame(() => {
       if (!checkout.current || document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       const headerBottom = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
+      const bounds = checkout.current.getBoundingClientRect();
       checkout.current.focus({ preventScroll: true });
-      window.scrollTo({ top: Math.max(0, window.scrollY + checkout.current.getBoundingClientRect().top - headerBottom - 12), behavior: "instant" });
+      window.scrollTo({ top: Math.max(0, window.scrollY + bounds.top - accountLandingTop(headerBottom, window.visualViewport?.height ?? window.innerHeight, bounds.height, checkout.current.dataset.landingAlign === "center")), behavior: "instant" });
     }); });
     return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
   }, [checkoutOpen, receipt?.requestId, receipt?.status]);
@@ -257,8 +259,12 @@ export function EntryPageActions({ itemTitle, slug, entryId, initialQuantity = 1
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
           </div> : null}
           {!checkoutOpen && reviewing ? <button type="button" className={styles.primaryLink} onClick={() => setCheckoutOpen(true)}>Add {quantity === 1 ? "more entries" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}
-          {checkoutOpen ? <div id="additional-entry-checkout" ref={checkout} tabIndex={-1} className={styles.inlineCheckout} data-phase={receipt?.status ?? result.status} aria-label="Additional entry checkout">
+          {checkoutOpen ? <div id="additional-entry-checkout" ref={checkout} tabIndex={-1} className={styles.inlineCheckout} data-phase={receipt?.status ?? result.status} data-landing-align={reviewing ? "center" : "start"} aria-label="Additional entry checkout">
             {reviewing ? <>
+            <div className={styles.reviewPrize}>
+              <Image src={itemImage} alt={itemTitle} width={64} height={64} />
+              <strong>{itemTitle}</strong>
+            </div>
             <h4>Review additional entries</h4>
             <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>
             <p>Demo Playable Balance: <strong>{balanceCents === null ? "Unavailable" : formatUsdFromCents(balanceCents)}</strong></p>
