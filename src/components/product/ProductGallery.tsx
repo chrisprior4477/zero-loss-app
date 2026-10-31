@@ -1,28 +1,32 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { DemoProduct } from "@/lib/catalog/demo-products";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { ProductInfoDialog } from "./ProductInfoDialog";
 import styles from "./product-entry-layout.module.css";
 
-export function ProductGallery({ gallery, title, slug, signedOutCompact = false, compact = false }: Pick<DemoProduct, "gallery" | "title" | "slug"> & { signedOutCompact?: boolean; compact?: boolean }) {
+export function ProductGallery({ gallery, title, slug, signedOutCompact = false, compact = false, productInfo }: Pick<DemoProduct, "gallery" | "title" | "slug"> & { signedOutCompact?: boolean; compact?: boolean; productInfo?: ReactNode }) {
   const [selected, setSelected] = useState(0);
   const image = gallery[selected];
 
-  return (
-    <div className={compact ? styles.gallery : undefined}>
-      <div className={compact ? styles.media : `relative overflow-hidden rounded-3xl border border-white/15 bg-white shadow-[0_24px_70px_rgba(0,0,0,.2)] ${signedOutCompact ? "h-36 min-[480px]:h-64 lg:aspect-[4/3] lg:h-auto" : "aspect-[16/9] sm:aspect-[4/3]"}`}>
-        <Image
+  const picture = <Image
           src={image.src}
           alt={image.alt}
           fill
           priority
           sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 768px) 100vw, 54vw"
           className={compact ? image.fit === "cover" ? styles.galleryImageCover : styles.galleryImage : image.fit === "cover" ? "object-cover" : image.fit === "reward" ? "object-contain p-2 sm:p-3" : "object-contain p-5 sm:p-9"}
-        />
-        {compact ? <ProductInfoDialog title={title} className={styles.imageOpen} label={<span className="sr-only">View pictures of {title}</span>}>
+        />;
+
+  return (
+    <div className={compact ? styles.gallery : undefined}>
+      <div className={compact ? styles.media : `relative overflow-hidden rounded-3xl border border-white/15 bg-white shadow-[0_24px_70px_rgba(0,0,0,.2)] ${signedOutCompact ? "h-36 min-[480px]:h-64 lg:aspect-[4/3] lg:h-auto" : "aspect-[16/9] sm:aspect-[4/3]"}`}>
+        {compact && productInfo ? <ProductInfoDialog title="Product info" triggerLabel={`Product info for ${title}`} variant="ticket" className={styles.imageOpen} label={<>{picture}<span className={styles.productInfoLabel}>Product info</span></>}>
+          {productInfo}
+        </ProductInfoDialog> : picture}
+        {compact && !productInfo ? <ProductInfoDialog title={title} className={styles.imageOpen} label={<span className="sr-only">View pictures of {title}</span>}>
           <Image src={image.src} alt={image.alt} width={1000} height={700} className={styles.enlargedImage} />
           {gallery.length > 1 ? <div className={styles.enlargedThumbs}>{gallery.map((picture, index) => <button key={`${picture.src}-${index}`} type="button" aria-label={`Show enlarged image ${index + 1} of ${gallery.length}`} aria-pressed={selected === index} onClick={() => setSelected(index)}><Image src={picture.src} alt="" fill sizes="70px" className="object-contain p-1" /></button>)}</div> : null}
         </ProductInfoDialog> : null}

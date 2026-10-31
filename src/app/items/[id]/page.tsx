@@ -67,33 +67,32 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <DemoParticipationPanel compact key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} browseReturnHref={query.from === undefined ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
   );
   const productDetails = (
-    <section className="rounded-3xl border border-white/12 bg-white/5 p-5 sm:p-8">
-      <h2 className="text-2xl font-extrabold">Product details</h2>
-      <p className="mt-3 max-w-3xl leading-7 text-white/75">{product.summary}</p>
-      <div className="mt-7 grid gap-8 md:grid-cols-2">
+    <section className={entryStyles.productInfoContent} aria-label={`${product.title} information`}>
+      <p className={entryStyles.infoSummary}>{product.summary}</p>
+      <div className={entryStyles.infoSections}>
         <div>
-          <h3 className="font-bold text-cyan-300">Highlights</h3>
-          <ul className="mt-3 space-y-2 text-sm leading-6 text-white/80">
-            {product.highlights.map((highlight) => <li key={highlight} className="flex gap-2"><span className="text-[#31e800]">✓</span><span>{highlight}</span></li>)}
+          <h3>Highlights</h3>
+          <ul>
+            {product.highlights.map((highlight) => <li key={highlight} className={entryStyles.infoHighlight}><span aria-hidden="true">✓</span><span>{highlight}</span></li>)}
           </ul>
         </div>
         <div>
-          <h3 className="font-bold text-cyan-300">What&apos;s included</h3>
-          <ul className="mt-3 space-y-2 text-sm leading-6 text-white/80">
+          <h3>What&apos;s included</h3>
+          <ul>
             {product.included.map((item) => <li key={item}>• {item}</li>)}
           </ul>
         </div>
       </div>
-      <dl className="mt-8 grid gap-x-8 sm:grid-cols-2">
+      <dl className={entryStyles.infoSpecifications}>
         {product.specifications.map((specification) => (
-          <div key={specification.label} className="flex justify-between gap-4 border-t border-white/12 py-3 text-sm">
-            <dt className="text-white/55">{specification.label}</dt>
-            <dd className="text-right font-semibold text-white/90">{specification.value}</dd>
+          <div key={specification.label}>
+            <dt>{specification.label}</dt>
+            <dd>{specification.value}</dd>
           </div>
         ))}
       </dl>
-      {product.note && <p className="mt-5 rounded-xl bg-white/6 p-4 text-xs leading-5 text-white/60">{product.note}</p>}
-      <a href={product.sourceUrl} target="_blank" rel="noreferrer" className="mt-5 inline-block text-xs font-bold text-cyan-300 hover:text-white">View {product.sourceLabel} ↗</a>
+      {product.note && <p className={entryStyles.infoNote}>{product.note}</p>}
+      <a href={product.sourceUrl} target="_blank" rel="noreferrer" className={entryStyles.infoSource}>View {product.sourceLabel} ↗</a>
     </section>
   );
   const entryDetails = <>
@@ -114,14 +113,13 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
         <ProductInfoDialog title="How entries and completion work" label="Entry details">{entryDetails}</ProductInfoDialog>
       </div>
       {sharedControls ? <div className={entryStyles.shared}>{sharedControls}</div> : null}
-      <ProductGallery compact gallery={product.gallery} title={product.title} slug={product.slug} />
+      <ProductGallery compact gallery={product.gallery} title={product.title} slug={product.slug} productInfo={productDetails} />
       <div className={entryStyles.heading}><p>{product.category}</p><h1>{product.title}</h1></div>
-      {account ? <ProductShareButton className={entryStyles.share} product={{ slug: product.slug, title: product.title, image: product.gallery[0]?.src, retailer: product.retailer, value: product.value }} /> : null}
+      {account ? <ProductShareButton label="Share" className={entryStyles.share} product={{ slug: product.slug, title: product.title, image: product.gallery[0]?.src, retailer: product.retailer, value: product.value }} /> : null}
       <GiftCardFulfillmentNotice compact productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
       {alreadyResolved ? <div className={entryStyles.resolved}>{participationPanel}</div> : participationPanel}
       <div className={entryStyles.more}>
-        <ProductInfoDialog title="Product details" label="Product details">{productDetails}</ProductInfoDialog>
-        {!alreadyResolved ? <Link href={freeEntryHref(product.slug, query.from)}>Prefer to enter without a purchase?</Link> : null}
+        {!alreadyResolved ? <Link className={entryStyles.freeEntry} href={freeEntryHref(product.slug, query.from)}>Prefer to enter without a purchase?</Link> : null}
       </div>
       {isPreviewDataEnvironment() && account?.wallet?.scope === "demo" && current?.remaining === 0 && !current.repeatableScenario ? <div className={entryStyles.poolReset}><ResetDemoPoolButton slug={product.slug} /></div> : null}
     </section>

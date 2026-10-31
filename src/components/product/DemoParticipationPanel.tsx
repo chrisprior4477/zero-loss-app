@@ -268,6 +268,8 @@ export function DemoParticipationPanel({
   }
 
 
+  const resetButton = isPreviewExperience && isDemoWallet && isSignedIn && (skipFutureExplainer || compact) ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceResetting} className={`${compact ? compactStyles.reset : "mt-1"} inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60`}>{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null;
+
   return (
     <aside id="enter-entry" className={compact ? compactStyles.panel : `scroll-mt-[calc(var(--site-header-height,163px)+17px)] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
       {compact ? <>
@@ -313,8 +315,8 @@ export function DemoParticipationPanel({
           </div>
         </fieldset>
       </div>
-      {signedOutCompact && !isSignedIn && !compact ? null : <p className={compact ? compactStyles.terms : "mt-2 text-xs leading-4 text-white/70"}>Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine.{isPreviewExperience ? "" : " Terms apply."}</p>}
-      {isPreviewExperience && isDemoWallet && isSignedIn && (skipFutureExplainer || compact) ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceResetting} className={`${compact ? compactStyles.reset : "mt-1"} inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60`}>{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null}
+      {signedOutCompact && !isSignedIn && !compact ? null : <p className={compact ? compactStyles.terms : "mt-2 text-xs leading-4 text-white/70"}>Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine.{isPreviewExperience ? "" : " Terms apply."}{compact && resetButton ? <> {resetButton}</> : null}</p>}
+      {!compact ? resetButton : null}
       {preferenceResetMessage ? <p role="status" className="mt-1 text-xs text-cyan-200">{preferenceResetMessage}</p> : null}
       {requestReceipt?.status === "pending" ? <div ref={pendingReceiptRef} className="mt-3 rounded-xl border border-[#ff9a45] bg-[#ff6a00] p-3 text-sm text-[#00132e]" role="status">
         <div className="flex items-start justify-between gap-3">
