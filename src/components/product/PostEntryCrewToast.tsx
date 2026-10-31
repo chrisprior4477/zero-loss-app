@@ -230,7 +230,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!options) await run(async () => { const result = await getCrewShareOptions(); if (alive.current && result.ok) setOptions(result); });
   }
 
-  function finishFinding() { setStep(findReturn.current); feedback(""); }
+  function finishFinding() { if (history.current.at(-1) === findReturn.current) history.current.pop(); setStep(findReturn.current); feedback(""); }
 
   async function addPerson(value: string, kind: "id" | "email" | "phone", name?: string) {
     const key = contactKey(value, kind);
