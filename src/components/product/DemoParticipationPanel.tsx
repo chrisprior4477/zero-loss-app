@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { ExtraEntryExplanation } from "./ExtraEntryExplanation";
+import { EntryQuantityInput } from "./EntryQuantityInput";
 import { PoolProgress } from "@/components/product/PoolProgress";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
@@ -90,6 +91,8 @@ export function DemoParticipationPanel({
   const uncertain = state.status === "error" && state.code === "outcome_unknown";
   const entryBusy = pending || state.status === "succeeded" || requestReceipt?.status === "pending";
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
+  const requestedQuantity = useRef<number | null>(null);
+  const quantityTyped = useRef(false);
   const [additionalEntryTermsSeen, setAdditionalEntryTermsSeen] = useState(false);
   const [rememberExplanation, setRememberExplanation] = useState(false);
   const [skipFutureExplainer, setSkipFutureExplainer] = useState(extraEntryExplainerAcknowledged);
@@ -114,7 +117,8 @@ export function DemoParticipationPanel({
   const rememberEntry = (selected = quantity, resumeAfter?: "funding" | "sign-in") => saveEntryIntent(productSlug, productTitle, selected, browseReturnHref, resumeAfter);
 
   const addNextEntry = () => {
-    const next = Math.min(maxQuantity, quantity + 1);
+    const next = Math.min(maxQuantity, requestedQuantity.current ?? quantity + 1);
+    requestedQuantity.current = null;
     if (next === quantity) return;
     setQuantity(next);
     rememberEntry(next);
@@ -124,6 +128,7 @@ export function DemoParticipationPanel({
   const requestAdditionalEntry = () => {
     if (entryBusy || uncertain || quantity >= maxQuantity) return;
     if (!additionalEntryTermsSeen && !skipFutureExplainer) {
+      requestedQuantity.current = quantity + 1;
       setAdditionalEntryNoticeOpen(true);
       return;
     }
@@ -310,7 +315,7 @@ export function DemoParticipationPanel({
           <p className={quantityTicketStyles.label}>Add extra entries</p>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
-            <span className="min-w-5 text-center font-mono font-bold" data-testid="entry-quantity">{quantity}</span>
+            <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of entries" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} onChange={next => { quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); }} />
             <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#29ed14] bg-[#43f027] text-xl font-black text-[#002719] shadow-[0_0_15px_rgba(67,240,39,.72)] transition hover:bg-[#6aff50] hover:shadow-[0_0_22px_rgba(81,255,59,.95)] disabled:cursor-not-allowed disabled:border-[#91b2cf] disabled:bg-[#d9e9f5] disabled:text-[#7794ac] disabled:shadow-none" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
           </div>
         </fieldset>
@@ -355,6 +360,12 @@ export function DemoParticipationPanel({
           setEntryActionTouched(true);
           // Retry the original intent, not new balance/quantity/sharing choices.
           if (uncertain) return;
+          if (quantity > 1 && quantityTyped.current && !additionalEntryTermsSeen && !skipFutureExplainer) {
+            event.preventDefault();
+            requestedQuantity.current = quantity;
+            setAdditionalEntryNoticeOpen(true);
+            return;
+          }
           if (knownBalance !== null && knownBalance < totalCents) {
             event.preventDefault();
             rememberEntry();

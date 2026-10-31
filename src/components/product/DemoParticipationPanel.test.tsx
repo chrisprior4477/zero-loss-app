@@ -14,6 +14,35 @@ beforeEach(() => {
 });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", requestHead: { ready: true as const, requestId: null }, productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
 
+test("typing a quantity updates the total and funding return without submitting entries", () => {
+  render(<DemoParticipationPanel {...props} compact capacity={200} isSignedIn isDemoWallet extraEntryExplainerAcknowledged balanceCents={0} />);
+  const input = screen.getByRole("spinbutton", { name: "Number of entries" });
+  fireEvent.change(input, { target: { value: "101" } });
+  expect(screen.getByRole("button", { name: "Enter for $101.00" })).toBeTruthy();
+  expect(document.querySelector('input[name="quantity"]')?.getAttribute("value")).toBe("101");
+  expect(readEntryIntent()?.quantity).toBe(101);
+  expect(screen.getAllByTestId("entry-quantity-ticket")).toHaveLength(1);
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $101.00" }));
+  expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy();
+  expect(screen.getAllByRole("link", { name: "Add funds" }).every(link => link.getAttribute("href")?.includes("quantity=101"))).toBe(true);
+});
+
+test("typed extra entries keep the existing explanation and confirmation before a purchase", async () => {
+  actionMocks.acknowledge.mockResolvedValue({ status: "succeeded" });
+  render(<DemoParticipationPanel {...props} isSignedIn isDemoWallet balanceCents={1000} />);
+  fireEvent.change(screen.getByRole("spinbutton", { name: "Number of entries" }), { target: { value: "5" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $5.00" }));
+  expect(screen.getByRole("dialog", { name: "How Extra Chances Work" })).toBeTruthy();
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("checkbox", { name: /I understand how extra entries work/i }));
+  fireEvent.click(screen.getByRole("button", { name: "I understand — save my choice" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect((screen.getByRole("spinbutton") as HTMLInputElement).value).toBe("5");
+  expect(screen.getByRole("button", { name: "Enter for $5.00" })).toBeTruthy();
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
 test("the compact production layout retains the original submission and funding intent", () => {
   render(<DemoParticipationPanel {...props} compact initialQuantity={4} isSignedIn isDemoWallet isPreviewExperience balanceCents={0} balanceLabel="$0" browseReturnHref="/browse?category=groceries" />);
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$0");
@@ -150,7 +179,7 @@ test("both funding links keep the original category, sort and selected quantity"
 
 test("selected quantity resumes after sign-in and add funds", () => {
   render(<DemoParticipationPanel {...props} initialQuantity={3} isSignedIn />);
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("3");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("3");
   expect(screen.getByRole("button", { name: "Enter for $3.00" })).toBeTruthy();
   const addFunds = screen.getByRole("link", { name: "Add funds" });
   expect(addFunds.getAttribute("href")).toBe("/account/wallet?view=history&from=test-product&quantity=3#add-funds");
@@ -160,7 +189,7 @@ test("selected quantity resumes after sign-in and add funds", () => {
 
 test("saved count is lowered if fewer tickets remain on return", () => {
   render(<DemoParticipationPanel {...props} sold={18} capacity={20} initialQuantity={5} isSignedIn />);
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("2");
   expect(screen.getByRole("status").textContent).toContain("saved selection was adjusted");
 });
 
@@ -175,7 +204,7 @@ test("signed-out selected quantity survives login", () => {
 test("compact signed-out entry keeps quantity, live counts, and login redirect together", () => {
   render(<DemoParticipationPanel {...props} signedOutCompact initialQuantity={2} />);
   expect(screen.getByText("11 remaining")).toBeTruthy();
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("2");
   expect(screen.queryByText(/Each \$1\.00 entry stands alone/)).toBeNull();
   const href = screen.getByRole("link", { name: "Sign in to enter" }).getAttribute("href")!;
   expect(new URL(href, "https://example.test").searchParams.get("next")).toBe("/items/test-product?quantity=2#enter-entry");
@@ -215,7 +244,7 @@ test("the first additional entry requires acknowledgment before saving and incre
   expect(screen.getByRole("dialog", { name: "How Extra Chances Work" })).toBeTruthy();
   expect(screen.getByRole("img", { name: /How extra chances work/i }).getAttribute("src")).toContain("extra-entry-explainer-trimmed.webp");
   expect(screen.getAllByText("Why does each entry stand alone?")).toHaveLength(1);
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("1");
   expect(screen.getByText(/options cannot be stacked/i)).toBeTruthy();
 
   const saveButton = screen.getByRole("button", { name: "I understand — save my choice" });
@@ -225,7 +254,7 @@ test("the first additional entry requires acknowledgment before saving and incre
   fireEvent.click(saveButton);
   await waitFor(() => expect(actionMocks.acknowledge).toHaveBeenCalledTimes(1));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("2");
   expect(screen.getByText("2 tickets selected")).toBeTruthy();
   expect(screen.getByText(/Nothing is entered until you press Enter for \$2\.00/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Enter for $2.00" })).toBeTruthy();
@@ -233,7 +262,7 @@ test("the first additional entry requires acknowledgment before saving and incre
 
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("3");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("3");
 });
 test("tablet and desktop open the full extra-entry explanation without a disclosure click", async () => {
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
@@ -260,7 +289,7 @@ test("the explanation opens in a native modal and restores scrolling and focus w
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(document.documentElement.style.overflow).toBe("");
   expect(document.activeElement).toBe(trigger);
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("1");
   expect(actionMocks.acknowledge).not.toHaveBeenCalled();
 });
 
@@ -273,7 +302,7 @@ test("an unsuccessful acknowledgment keeps the ticket open without adding an ent
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Your choice could not be saved. Please try again.");
   expect(screen.getByRole("dialog", { name: "How Extra Chances Work" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /I understand.*save my choice/i }).hasAttribute("disabled")).toBe(false);
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("1");
   expect(actionMocks.enter).not.toHaveBeenCalled();
 });
 
@@ -287,13 +316,13 @@ test("the remembered preference is saved and prevents future explainers", async 
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("3");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("3");
 });
 test("a stored acknowledgment adds directly without opening the explainer", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn extraEntryExplainerAcknowledged />);
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("2");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("2");
   expect(screen.getByText("2 tickets selected")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Remove one entry" }));
   expect(screen.queryByText("2 tickets selected")).toBeNull();
@@ -306,7 +335,7 @@ test("a demo customer can reset the saved extra-entry explanation without changi
   expect(screen.queryByText(/Terms apply/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Reset Entry Toast" }));
   await waitFor(() => expect(actionMocks.reset).toHaveBeenCalledTimes(1));
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("1");
   expect(screen.getByText(/Extra-entry explanation reset/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   expect(screen.getByRole("dialog", { name: "How Extra Chances Work" })).toBeTruthy();
@@ -339,7 +368,7 @@ test("cannot select more entries than the displayed remaining capacity", () => {
   render(<DemoParticipationPanel {...props} sold={9} capacity={10} isSignedIn />);
   expect(screen.getByText("1 remaining")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Add one entry" }).hasAttribute("disabled")).toBe(true);
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("1");
 });
 
 test("a full pool cannot start a preview entry", () => {
@@ -397,7 +426,7 @@ test("multiple entries update the total and shortfall without losing the selecte
   expect(screen.getByRole("status").textContent).toContain("3 entries cost $3.00");
   expect(screen.getByRole("status").textContent).toContain("$1.75");
   fireEvent.click(screen.getByRole("button", { name: "Dismiss balance notice" }));
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("3");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("3");
   fireEvent.click(screen.getByRole("button", { name: "Remove one entry" }));
   expect(screen.getByRole("button", { name: "Enter for $2.00" })).toBeTruthy();
   expect(actionMocks.enter).not.toHaveBeenCalled();
@@ -424,10 +453,10 @@ test("a server-side balance change shows the funding toast without trusting stal
 test("quantity can exceed ten up to actual availability, total uses cents, and reducing stops at one", () => {
   render(<DemoParticipationPanel {...props} entryPrice={0.1} isSignedIn extraEntryExplainerAcknowledged />);
   for (let i = 0; i < 12; i++) fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("11");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("11");
   expect(screen.getByRole("button", { name: "Enter for $1.10" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Add one entry" }).hasAttribute("disabled")).toBe(true);
   for (let i = 0; i < 12; i++) fireEvent.click(screen.getByRole("button", { name: "Remove one entry" }));
-  expect(screen.getByTestId("entry-quantity").textContent).toBe("1");
+  expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("1");
   expect(screen.getByRole("button", { name: "Enter for $0.10" })).toBeTruthy();
 });

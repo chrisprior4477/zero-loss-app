@@ -32,6 +32,19 @@ const props = {
   returnHref: "/account/entries?viewed=ent_11111111111111111111111111111111",
 };
 
+test("typing additional entries updates review and clears any previous approval", () => {
+  render(<EntryPageActions {...props} remaining={150} balanceCents={20000} />);
+  const input = screen.getByRole("spinbutton", { name: "Number of additional entries" });
+  fireEvent.change(input, { target: { value: "101" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add 101 more entries to PlayStation 5" }));
+  expect(screen.getByRole("button", { name: "Confirm 101 entries for $101" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("checkbox", { name: /approve this demo entry transaction/i }));
+  fireEvent.change(input, { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add 2 more entries to PlayStation 5" }));
+  expect(screen.getByRole("button", { name: "Confirm 2 entries for $2" }).hasAttribute("disabled")).toBe(true);
+  expect(createPreviewEntry).not.toHaveBeenCalled();
+});
+
 test("low balance offers Add funds for this exact entry review instead of collected rewards", () => {
   render(<EntryPageActions {...props} remaining={100} balanceCents={2200} />);
   selectQuantity(23);

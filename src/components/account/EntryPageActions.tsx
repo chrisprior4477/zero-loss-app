@@ -12,6 +12,7 @@ import { initializeSampleCrewPreview, sampleCrewPeople, useSampleCrewPreviews } 
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
+import { EntryQuantityInput } from "@/components/product/EntryQuantityInput";
 import { sharePrizeWithCrew } from "@/lib/crew/actions";
 import { entryReviewFundingHref } from "@/lib/wallet/funding-navigation";
 import { InsufficientFundsNotice } from "@/components/wallet/InsufficientFundsNotice";
@@ -253,7 +254,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
           {reviewing ? <div className={styles.quantityControls} aria-label="Choose additional entries">
             <div className={styles.quantityStepper}>
               <button type="button" aria-label="Remove one extra entry" onClick={() => adjustQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1 || busy || uncertain}>−</button>
-              <output aria-live="polite">{quantity}</output>
+              <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of additional entries" disabled={busy || uncertain || maxQuantity < 1} onChange={adjustQuantity} />
               <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity >= maxQuantity || busy || uncertain}>+</button>
             </div>
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
