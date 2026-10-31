@@ -73,7 +73,9 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
     if (!modalOpen || !element) return;
     element.showModal();
     const previous = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     const resize = () => {
       const viewport = window.visualViewport;
       element.style.setProperty("--visible-height", `${viewport?.height ?? window.innerHeight}px`);
@@ -84,6 +86,7 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
     window.visualViewport?.addEventListener("scroll", resize);
     return () => {
       element.close(); document.body.style.overflow = previous;
+      document.documentElement.style.overflow = previousRootOverflow;
       window.visualViewport?.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("scroll", resize);
     };
@@ -186,7 +189,7 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
               <button className={styles.smallButton} aria-label={`Add people to ${group.name}`} onClick={() => { setSelectedGroupId(group.id); openFinder(group.id); }}>＋ People</button>
             </div>)}</fieldset>
             {selectedGroup && !selectedGroup.memberIds.length ? <p className={styles.note}>Add people to {selectedGroup.name} to share with this group.</p> : null}
-            <button className={styles.orange} disabled={!selectedGroup?.memberIds.length} onClick={() => finish(`Shared ${productTitle} with ${selectedGroup?.name} (${selectedGroup?.memberIds.length} people).`)}>Send to {selectedGroup?.name ?? "my group"}</button>
+            <button className={styles.orange} disabled={!selectedGroup?.memberIds.length} onClick={() => finish(`Shared ${productTitle} with ${selectedGroup?.name} (${selectedGroup?.memberIds.length} ${selectedGroup?.memberIds.length === 1 ? "person" : "people"}).`)}>Send to {selectedGroup?.name ?? "my group"}</button>
             <div className={styles.duo}><button onClick={() => editGroup()}>＋ Create group</button><button disabled={!selectedGroup} onClick={() => editGroup(selectedGroup)}>Edit selected group</button></div>
           </div> : null}
 
@@ -220,7 +223,7 @@ export function CrewSharingWalkthroughs({ initialJourney }: { initialJourney: Sh
             <p className={styles.note}>Your texting app opens with the message ready. Choose recipients there, or enter a number here.</p>
             <label className={styles.field}>Phone number · optional<input type="tel" value={recipient} onChange={event => setRecipient(event.target.value)} placeholder="Choose in Messages, or type here" /></label>
             <button onClick={() => { setContactsReturn("text"); go("contacts"); }}><ShareIcon name="crew" />Choose from phone contacts</button>
-            <div className={styles.messageDraft}>{shareText}<span>zeroloss.com/items/playstation-5-slim</span></div>
+            <div className={styles.messageDraft}>{shareText}<span>{publicProductUrl}</span></div>
             <button className={styles.orange} onClick={() => go("messages")}>Open Messages preview →</button>
             <button className={styles.plainLink} onClick={() => void copyLink()}>Copy link instead</button>
           </div> : null}
