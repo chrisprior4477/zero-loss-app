@@ -41,6 +41,7 @@
 .quantity button:last-child:disabled { background:#d9e9f5; }
 .quantity [data-testid="entry-quantity"] { font-size:18px; font-family:inherit; }
 .panel .terms { margin:0; color:#bdd3e7; font-size:11px; line-height:1.4; }
+.termsEnding { white-space:nowrap; }
 .panel .reset { justify-self:start; width:max-content; min-height:24px; margin:0; font-size:10px; font-weight:700; color:#79d9f9; }
 .panel .terms .reset { display:inline; min-height:0; padding:0; margin:0; white-space:nowrap; font-size:inherit; line-height:inherit; }
 .panel .enter { margin:0; display:flex; width:100%; align-items:center; justify-content:center; min-height:44px; border-radius:10px; padding:10px 12px; font-size:16px; line-height:1.15; font-weight:900; }

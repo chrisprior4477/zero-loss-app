@@ -18,7 +18,7 @@ test("the compact production layout retains the original submission and funding 
   render(<DemoParticipationPanel {...props} compact initialQuantity={4} isSignedIn isDemoWallet isPreviewExperience balanceCents={0} balanceLabel="$0" browseReturnHref="/browse?category=groceries" />);
   expect(screen.getByTestId("product-wallet-balance").textContent).toBe("$0");
   expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("45");
-  expect(screen.getByRole("button", { name: "Reset Entry Toast" }).parentElement?.textContent).toContain("Entries and completion options never combine. Reset Entry Toast");
+  expect(screen.getByRole("button", { name: "Reset Entry Toast" }).closest("p")?.textContent).toContain("Entries and completion options never combine. Reset Entry Toast");
   fireEvent.click(screen.getByRole("button", { name: "Enter for $4.00" }));
   expect(actionMocks.enter).not.toHaveBeenCalled();
   expect(screen.getByRole("region", { name: "Insufficient playable balance" })).toBeTruthy();

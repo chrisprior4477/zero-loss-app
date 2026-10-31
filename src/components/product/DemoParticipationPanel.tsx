@@ -315,7 +315,7 @@ export function DemoParticipationPanel({
           </div>
         </fieldset>
       </div>
-      {signedOutCompact && !isSignedIn && !compact ? null : <p className={compact ? compactStyles.terms : "mt-2 text-xs leading-4 text-white/70"}>Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options never combine.{isPreviewExperience ? "" : " Terms apply."}{compact && resetButton ? <> {resetButton}</> : null}</p>}
+      {signedOutCompact && !isSignedIn && !compact ? null : <p className={compact ? compactStyles.terms : "mt-2 text-xs leading-4 text-white/70"}>Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options {compact && resetButton ? <span className={compactStyles.termsEnding}>never combine. {resetButton}</span> : <>never combine.{isPreviewExperience ? "" : " Terms apply."}</>}</p>}
       {!compact ? resetButton : null}
       {preferenceResetMessage ? <p role="status" className="mt-1 text-xs text-cyan-200">{preferenceResetMessage}</p> : null}
       {requestReceipt?.status === "pending" ? <div ref={pendingReceiptRef} className="mt-3 rounded-xl border border-[#ff9a45] bg-[#ff6a00] p-3 text-sm text-[#00132e]" role="status">
