@@ -233,7 +233,7 @@ test("manual win sharing uses the existing owner-checked win action for the sele
 test("empty groups cannot expose an entry and offer real creation", async () => {
   mocks.options.mockResolvedValue({ ...options, memberCount: 0, members: [], groups: [{ ...options.groups[0], memberCount: 0, memberIds: [] }] }); open(); await audiences();
   expect(screen.getByRole("button", { name: "Send to my Crew" }).hasAttribute("disabled")).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "Add People to my Crew" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add People to your crew" }));
   expect(screen.getByRole("heading", { name: "Add people" })).toBeTruthy();
 });
 
@@ -273,7 +273,7 @@ test("empty groups stay editable and Crew Add People opens private discovery", a
   expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Mom");
   fireEvent.click(screen.getByRole("button", { name: /Back/ }));
   fireEvent.click(screen.getByRole("button", { name: /Back/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Add People to my Crew" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add People to your crew" }));
   expect(screen.getByRole("heading", { name: "Add people" })).toBeTruthy();
 });
 
@@ -474,6 +474,53 @@ test("adding an existing Crew member to a group saves its members and preserves 
   expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts }, remove: false });
   fireEvent.click(screen.getByRole("button", { name: "Done · back to sharing" }));
   expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", false);
+});
+
+test("group finder puts Crew members outside the group first, including people from other groups", async () => {
+  const otherId = "44444444-4444-4444-8444-444444444444";
+  mocks.options.mockResolvedValue({ ...options, memberCount: 2, members: [...options.members, { id: otherId, name: "Other group member" }], groups: [...options.groups, { id: "55555555-5555-4555-8555-555555555555", name: "Friends", memberCount: 1, memberIds: [otherId] }] });
+  open(); await audiences(); await groups();
+  fireEvent.click(screen.getByRole("button", { name: "Add People to Mom" }));
+  const results = screen.getByRole("region", { name: "People you can add" });
+  expect([...results.querySelectorAll("strong")].map(value => value.textContent)).toEqual(["Other group member", "Member"]);
+  expect(results.firstElementChild?.textContent).toContain("In your Crew");
+  expect(results.lastElementChild?.textContent).toContain("In this group");
+  expect(screen.getByRole("button", { name: "Edit Other group member" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Edit Member" })).toBeTruthy();
+  expect(mocks.invite).not.toHaveBeenCalled(); expect(mocks.save).not.toHaveBeenCalled(); expect(mocks.share).not.toHaveBeenCalled();
+});
+
+test("name suggestions put unadded people first and keep connected people editable", async () => {
+  const newId = "44444444-4444-4444-8444-444444444444";
+  mocks.search.mockResolvedValue({ ok: true, message: "", people: [{ memberId, name: "Public profile name", avatarUrl: null }, { memberId: newId, name: "New member", avatarUrl: null }] });
+  open(); fireEvent.click(screen.getByRole("button", { name: "Find & add someone" }));
+  await screen.findByText("Member");
+  fireEvent.change(screen.getByLabelText("Name, email address, or phone number"), { target: { value: "member" } });
+  await screen.findByText("New member");
+  const results = screen.getByRole("region", { name: "People you can add" });
+  expect([...results.querySelectorAll("strong")].map(value => value.textContent)).toEqual(["New member", "Member"]);
+  expect(screen.getByRole("button", { name: "Edit Member" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Edit New member" })).toBeNull();
+  expect(mocks.invite).not.toHaveBeenCalled();
+});
+
+test("editing in a group finder returns there without changing its audience or membership", async () => {
+  mocks.contact.mockResolvedValue({ ok: true, message: "Saved." });
+  open(); await audiences(); await groups();
+  fireEvent.click(screen.getByRole("button", { name: "Add People to Mom" }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit Member" }));
+  fireEvent.change(screen.getByLabelText("Name for your Crew"), { target: { value: "Family friend" } });
+  fireEvent.change(screen.getByLabelText(/Phone number/), { target: { value: "1111111111" } });
+  fireEvent.change(screen.getByLabelText(/Email address/), { target: { value: "friend@example.test" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save contact" }));
+  expect(await screen.findByRole("heading", { name: "Add people to Mom" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Edit Family friend" })).toBeTruthy();
+  expect(mocks.contact).toHaveBeenCalledWith(memberId, { name: "Family friend", phone: "1111111111", email: "friend@example.test" });
+  expect(screen.getByRole("button", { name: "✓ Added" })).toHaveProperty("disabled", true);
+  fireEvent.click(screen.getByRole("button", { name: "Done · back to sharing" }));
+  expect(screen.getByRole("checkbox", { name: "Share with Mom" })).toHaveProperty("checked", true);
+  expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", false);
+  expect(mocks.save).not.toHaveBeenCalled(); expect(mocks.invite).not.toHaveBeenCalled(); expect(mocks.share).not.toHaveBeenCalled();
 });
 
 test("Crew list has a direct send action and saves edited contact details with retry", async () => {

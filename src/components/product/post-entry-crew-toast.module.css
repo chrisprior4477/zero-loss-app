@@ -136,6 +136,11 @@ dialog.toast.journeyDialog.journeyDialog {
 .journey .result strong { font-size:13px; }
 .journey .result small { font-size:10px; line-height:1.4; }
 .toast .journey .result button { margin:0; }
+.journey .result.personResult { grid-template-columns:minmax(0,1fr) auto; }
+.resultActions { display:flex; align-items:center; gap:5px; }
+.toast .journey .resultActions button { width:76px; min-height:40px; padding:6px; font-size:11px; }
+.toast .journey .resultActions button:only-child { width:98px; }
+.toast .journey .resultActions button + button { width:40px; }
 .journey .feedback { padding:8px; margin-top:8px; font-size:11px; line-height:1.4; }
 .toast .journey .seeCrew { display:flex; align-items:center; justify-content:center; width:100%; margin-top:8px; border-radius:9px; background:#b9e9fc; color:#123552; font-weight:800; text-decoration:none; }
 .toast .journey .later { margin-top:8px; min-height:40px; padding:8px; }
@@ -149,6 +154,7 @@ dialog.toast.journeyDialog.journeyDialog {
 .journey .audienceChoice { font-size:13px; }
 .journey .audienceRow small { font-size:11px; margin-top:2px; }
 .toast .journey .addPeople { font-size:11px; padding:7px; }
+.toast .journey .addCrewPeople { min-height:36px; padding:6px 10px; }
 .toast .journey button.groupName { min-height:40px; padding:2px 0; font-size:13px; }
 .groupSection { margin-top:10px; }
 .journey .groupSection h3 { font-size:13px; margin:0 0 4px; }

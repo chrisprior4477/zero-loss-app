@@ -53,6 +53,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const findReturn = useRef<Step>("audience");
   const [groupFilter, setGroupFilter] = useState("");
   const findInput = useRef<HTMLInputElement>(null);
+  const findResults = useRef<HTMLDivElement>(null);
   const [requested, setRequested] = useState<string[]>([]);
   const [contactChoices, setContactChoices] = useState<{ value: string; kind: "phone" | "email"; name: string }[]>([]);
   const [pickedContact, setPickedContact] = useState<CrewGroupContact | null>(null);
@@ -245,6 +246,10 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     const timer = window.setTimeout(search, 350);
     return () => window.clearTimeout(timer);
   }, [step, query, search]);
+
+  useEffect(() => {
+    if (step === "find" && findResults.current) findResults.current.scrollTop = 0;
+  }, [step, query]);
 
   async function openFinder(targetGroup: string | null = null) {
     if (step === "home" || step === "crew") setGroupsOnly(false);
@@ -507,8 +512,9 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{shared ? sharedGroupName ? `Shared with ${sharedGroupName}` : "Shared with your Crew" : step === "audience" && groupsOnly ? "Share with my groups" : titles[step]}</h2>;
   const compact = step === "home" || step === "email";
   const journey = true;
-  const visiblePeople = people.length || query.trim().length >= 3 ? people : members.map(member => ({ memberId: member.id, name: member.name, avatarUrl: null }));
   const personAdded = (memberId: string) => findTargetGroup ? Boolean(options?.groups.find(group => group.id === findTargetGroup)?.memberIds.includes(memberId)) : members.some(member => member.id === memberId) || requested.includes(contactKey(memberId, "id"));
+  const suggestedPeople = people.length || query.trim().length >= 3 ? people : members.map(member => ({ memberId: member.id, name: member.name, avatarUrl: null }));
+  const visiblePeople = [...suggestedPeople].sort((a, b) => Number(personAdded(a.memberId)) - Number(personAdded(b.memberId)));
 
   return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog} ${journey ? styles.journeyDialog : ""}`} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className={`${styles.paper} ${compact ? styles.compact : styles.journey} ${step === "home" ? styles.perforated : ""} ${step === "email" ? styles.emailPaper : ""}`} ref={paper}>
@@ -608,7 +614,15 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         {message ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}
         <button type="button" className={styles.contactsButton} disabled={busy} onClick={() => openContacts("find")}><ShareIcon name="crew" />Add people from your phone</button>
         <p className={styles.note}>{searching ? "Searching…" : "Type a name for suggestions. Complete phone and email lookups stay private."}</p>
-        <div className={styles.findResults}>{visiblePeople.map(person => <div className={styles.result} key={person.memberId}><div className={styles.personIdentity}><CrewPortrait index={portraitIndexes.get(person.memberId) ?? 0} /><div><strong>{person.name}</strong><small>{personAdded(person.memberId) ? "Connected" : "Discoverable Zero Loss member"}</small></div></div><button type="button" className={personAdded(person.memberId) ? styles.crewButton : styles.primary} disabled={busy || searching || personAdded(person.memberId)} onClick={() => void addPerson(person.memberId, "id", person.name)}>{personAdded(person.memberId) ? "✓ Added" : findTargetGroup ? "Add to group" : "Add to Crew"}</button></div>)}
+        <div className={styles.findResults} ref={findResults} role="region" aria-label="People you can add">{visiblePeople.map(person => {
+          const member = members.find(value => value.id === person.memberId);
+          const name = member?.name ?? person.name;
+          const added = personAdded(person.memberId);
+          return <div className={`${styles.result} ${styles.personResult}`} key={person.memberId}>
+            <div className={styles.personIdentity}><CrewPortrait index={portraitIndexes.get(person.memberId) ?? 0} /><div><strong>{name}</strong><small>{findTargetGroup && added ? "In this group" : member ? "In your Crew" : "Discoverable Zero Loss member"}</small></div></div>
+            <div className={styles.resultActions}><button type="button" className={added ? styles.crewButton : styles.primary} disabled={busy || searching || added} onClick={() => void addPerson(person.memberId, "id", name)}>{added ? "✓ Added" : findTargetGroup ? "Add to group" : "Add to Crew"}</button>{member ? <button type="button" aria-label={`Edit ${name}`} disabled={busy} onClick={() => editContact(member)}>Edit</button> : null}</div>
+          </div>;
+        })}
         {reviewQuery ? <div className={styles.result}><div><strong>{reviewQuery}</strong><small>Automatic connection · opt-out available</small></div><button type="button" className={styles.darkButton} disabled={busy || requested.includes(contactKey(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email"))} onClick={() => void addPerson(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")}>{requested.includes(contactKey(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")) ? "Added" : "Add to Crew"}</button></div> : null}</div>
         <button type="button" className={styles.primary} disabled={busy} onClick={finishFinding}>Done · back to sharing</button>
         <div className={styles.duo}><button type="button" className={styles.back} onClick={() => go("roster")}>See &amp; Edit your Crew</button><button type="button" className={styles.back} onClick={() => { searchVersion.current += 1; setQuery(""); setReviewQuery(""); findInput.current?.focus(); }}>Add more people</button></div>
@@ -618,7 +632,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         {options ? <>
           {!groupsOnly ? <section aria-label="Share with Crew"><div className={styles.audienceRow}>
             <div className={styles.audienceChoice}><span>Share with Crew<small>{options.memberCount} {options.memberCount === 1 ? "connection" : "connections"}</small></span></div>
-            <button type="button" className={styles.addPeople} aria-label="Add People to my Crew" disabled={busy} onClick={() => void openFinder()}>Add People</button>
+            <button type="button" className={`${styles.addPeople} ${styles.addCrewPeople}`} aria-label="Add People to your crew" disabled={busy} onClick={() => void openFinder()}>Add People to your crew</button>
           </div><div className={styles.memberFaces}>{members.map(member => <span key={member.id}><CrewPortrait index={portraitIndexes.get(member.id) ?? 0} /><small>{member.name}</small></span>)}</div><button type="button" className={styles.primary} disabled={busy || !options.memberCount} onClick={() => void shareCrew(null)}>Send to my Crew</button><div className={styles.duo}><button type="button" onClick={() => go("roster")}>See &amp; Edit your Crew</button><button type="button" onClick={() => void loadAudiences(true)}>Choose a group</button></div></section> : null}
           {groupsOnly ? <section className={styles.groupSection} aria-label="Your groups"><h3>Share with groups you’ve created</h3><div className={styles.groupList}>
             {options.groups.map(group => <div className={styles.audienceRow} key={group.id}>
