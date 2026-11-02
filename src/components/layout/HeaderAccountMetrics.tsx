@@ -42,7 +42,7 @@ export function HeaderAccountMetrics({
 
   return (
     <HeaderNotifications>
-      <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex min-h-11 min-w-11 items-center text-white hover:opacity-80">
+      <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex min-h-11 min-w-11 items-center text-white hover:opacity-80 focus:outline-none focus-visible:shadow-[inset_0_-3px_0_#6feaff]">
         <EntryTicket count={ticketCount} />
       </Link>
       <Link href={purchaseFunding?.href ?? `${walletHistoryHref}#balance`} onClick={(event) => {
