@@ -51,14 +51,14 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
     <WalletLandingScroll enabled={!initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
-        <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="/account/wallet?view=history#balance" actionHref={canFund ? "/account/wallet?view=history#add-funds" : undefined} actionDisabled={!canFund} />
+        <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="#balance" actionHref={canFund ? "#add-funds" : undefined} actionDisabled={!canFund} />
         <StatusTicket size="top" variant="reward" label="Prize Ready" value={ready === null ? "Unavailable" : String(ready.length)} action={ready?.length === 1 ? "View reward" : "View rewards"} href={rewardHref} />
         <StatusTicket size="top" variant="option" label="Purchase Options" value={optionCount === null ? "Unavailable" : String(optionCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </nav>
 
       <header className={styles.hero}>
         <div><h1>Playable Wallet</h1><p>Your balance and every move, all in one place.</p></div>
-        <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Gift Cards &amp; Rewards</Link><Link href="/account/wallet?view=history" aria-current="page">Funds &amp; history</Link></nav>
+        <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Gift Cards &amp; Rewards</Link><Link href="#balance" aria-current="page">Funds &amp; history</Link></nav>
       </header>
 
       <section className={styles.summaryGrid} aria-label="Wallet summary">

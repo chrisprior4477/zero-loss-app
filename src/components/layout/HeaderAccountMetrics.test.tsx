@@ -47,3 +47,13 @@ test("the balance keeps the selected purchase context and returns to normal afte
   act(() => setPurchaseFundingContext(null));
   expect(wallet.getAttribute("href")).toBe("/account/wallet?view=history#balance");
 });
+
+test("tapping the header balance again on the wallet preserves the purchase return", () => {
+  const url = "/account/wallet?view=history&from=babys-essentials-bundle&entry=ent_11111111111111111111111111111111#add-funds";
+  history.replaceState(null, "", url);
+  render(<HeaderAccountMetrics isSignedIn liveBalance="$24" activityState={activityState} />);
+  fireEvent.click(screen.getByRole("link", { name: "$24 playable balance" }));
+  expect(window.location.search).toBe("?view=history&from=babys-essentials-bundle&entry=ent_11111111111111111111111111111111");
+  expect(window.location.hash).toBe("#balance");
+  history.replaceState(null, "", "/");
+});

@@ -45,7 +45,17 @@ export function HeaderAccountMetrics({
       <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex min-h-11 min-w-11 items-center text-white hover:opacity-80">
         <EntryTicket count={ticketCount} />
       </Link>
-      <Link href={purchaseFunding?.href ?? `${walletHistoryHref}#balance`} onClick={() => { if (purchaseFunding) { try { sessionStorage.setItem(purchaseSelectionKey, JSON.stringify(purchaseFunding)); } catch { /* The exact first option still travels in the URL. */ } } }} aria-label={`${balance} playable balance`} data-header-large-balance={largeBalance || undefined} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
+      <Link href={purchaseFunding?.href ?? `${walletHistoryHref}#balance`} onClick={(event) => {
+        if (purchaseFunding) {
+          try { sessionStorage.setItem(purchaseSelectionKey, JSON.stringify(purchaseFunding)); } catch { /* The exact first option still travels in the URL. */ }
+        } else if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0 && window.location.pathname === "/account/wallet") {
+          const query = new URLSearchParams(window.location.search);
+          if (query.get("view") === "history" && !query.has("reward") && !query.has("rewardId")) {
+            event.preventDefault();
+            window.location.hash = "balance";
+          }
+        }
+      }} aria-label={`${balance} playable balance`} data-header-large-balance={largeBalance || undefined} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
         <CreditIcon />
         <span className="text-sm font-bold tabular-nums sm:text-xl">{balance}</span>
       </Link>

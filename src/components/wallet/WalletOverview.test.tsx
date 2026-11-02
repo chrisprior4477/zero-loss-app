@@ -44,7 +44,7 @@ test("wallet layout exposes responsive transaction filters without replacing led
 
 test("enabled preview wallet puts Add Card beside Add funds", () => {
   render(<WalletOverview wallet={{ ...empty, walletAccountId: "wallet-a", scope: "demo", fundingAvailable: true }} fundingEnabled requests={[]} requestKey="stable_demo_request_001" />);
-  expect(screen.getAllByRole("link", { name: "Add funds" }).map(link => link.getAttribute("href"))).toEqual(expect.arrayContaining(["#add-funds", "/account/wallet?view=history#add-funds"]));
+  expect(screen.getAllByRole("link", { name: "Add funds" }).map(link => link.getAttribute("href"))).toEqual(["#add-funds", "#add-funds"]);
   expect(screen.getByRole("article", { name: "Current balance" }).querySelector<HTMLAnchorElement>('a[href="#wallet-add-card"]')?.textContent).toBe("Add Card");
   expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("#payment-methods");
   expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy();
@@ -57,7 +57,7 @@ test("enabled preview wallet puts Add Card beside Add funds", () => {
 
 test("wallet tickets reuse real account counts and direct destinations", () => {
   render(<WalletOverview wallet={empty} activity={storedActivityFixture()} requests={[]} />);
-  expect(screen.getByRole("link", { name: "Playable Wallet: $0.00" }).getAttribute("href")).toBe("/account/wallet?view=history#balance");
+  expect(screen.getByRole("link", { name: "Playable Wallet: $0.00" }).getAttribute("href")).toBe("#balance");
   expect(screen.getByRole("link", { name: /Prize Ready: 1/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv");
   expect(screen.getByRole("link", { name: /Purchase Options: 2/ }).getAttribute("href")).toBe("/account/entries?filter=completion");
 });
