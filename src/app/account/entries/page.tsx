@@ -59,7 +59,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
         <h2 id="account-tools-heading">Your account, all in one place.</h2>
       </div>
       <div className={styles.accountToolsGrid}>
-        <Link href="/account/security" aria-label="Open Your Profile" className={`${styles.accountTool} ${styles.profileTool}`}>
+        <Link href="/account/profile#account-settings-sections" aria-label="Open Your Profile" className={`${styles.accountTool} ${styles.profileTool}`}>
           <span className={styles.accountAvatar}>
             {account.avatarUrl ? <Image src={account.avatarUrl} alt="" fill unoptimized sizes="54px" className={styles.accountAvatarImage} /> : <span aria-hidden="true">{account.initials}</span>}
           </span>

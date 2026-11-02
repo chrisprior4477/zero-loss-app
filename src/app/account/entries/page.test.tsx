@@ -25,10 +25,10 @@ test("login preserves the selected entry and filter", async () => {
   expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe("/account/entries?item=nike-court-shot-shoes&entry=ent_123&filter=completion");
 });
 
-test("Your Profile keeps its Account & Security destination from My Activity", async () => {
+test("Your Profile opens the profile settings from My Activity", async () => {
   render(await MyZeroLossPage({ searchParams: Promise.resolve({}) }));
   const link = screen.getByRole("link", { name: "Open Your Profile" });
-  expect(link.getAttribute("href")).toBe("/account/security");
+  expect(link.getAttribute("href")).toBe("/account/profile#account-settings-sections");
   expect(link.textContent).toContain("Your Profile");
   expect(screen.getByRole("link", { name: /Declined Offers/ }).getAttribute("href")).toBe("/account/declined-offers");
 });
