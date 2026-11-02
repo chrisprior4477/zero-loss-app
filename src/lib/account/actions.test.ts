@@ -40,6 +40,34 @@ test("partial mailing address is rejected before database access", async () => {
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
 
+test("single-zone international addresses are saved with their local time zone", async () => {
+  const value = profileForm();
+  value.set("country", "United Kingdom"); value.set("region", "England"); value.set("postal_code", "SW1A 1AA");
+  value.delete("timezone");
+  expect((await saveProfileDetails({ status: "idle" }, value)).status).toBe("succeeded");
+  expect(mocks.rpc.mock.calls[0][1].p_updates.timezone).toBe("Europe/London");
+});
+
+test("an account without a mailing address defaults to Eastern", async () => {
+  const value = profileForm();
+  for (const field of ["address_line_1", "address_line_2", "city", "region", "postal_code", "timezone"]) value.set(field, "");
+  expect((await saveProfileDetails({ status: "idle" }, value)).status).toBe("succeeded");
+  expect(mocks.rpc.mock.calls[0][1].p_updates.timezone).toBe("America/New_York");
+});
+
+test("ambiguous addresses require an in-country time-zone choice", async () => {
+  const value = profileForm();
+  value.set("country", "Australia"); value.set("region", "Queensland"); value.set("postal_code", "4000");
+  value.delete("timezone");
+  expect((await saveProfileDetails({ status: "idle" }, value)).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+  value.set("timezone", "America/New_York");
+  expect((await saveProfileDetails({ status: "idle" }, value)).status).toBe("error");
+  value.set("timezone", "Australia/Brisbane");
+  expect((await saveProfileDetails({ status: "idle" }, value)).status).toBe("succeeded");
+  expect(mocks.rpc.mock.calls[0][1].p_updates.timezone).toBe("Australia/Brisbane");
+});
+
 test.each(["123", "call-me", "555-0123 ext secret"])("invalid phone %s is rejected before database access", async phone => {
   const value = profileForm(); value.set("phone_number", phone);
   expect((await saveProfileDetails({ status: "idle" }, value)).status).toBe("error");

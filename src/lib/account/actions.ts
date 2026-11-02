@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isAtLeastAge, MIN_ACCOUNT_AGE_YEARS } from "@/lib/auth/validation";
-import { addressTimeZone } from "./address-timezone";
-import { safeTimeZone } from "./timezone";
+import { addressTimeZone, countryTimeZones } from "./address-timezone";
+import { DEFAULT_TIME_ZONE, safeTimeZone } from "./timezone";
 
 const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxPhotoBytes = 5 * 1024 * 1024;
@@ -56,7 +56,7 @@ export async function saveProfileDetails(
     const postalCode = textField(formData, "postal_code", 24);
     const countryInput = textField(formData, "country", 100);
     const preferredLocale = textField(formData, "preferred_locale", 20);
-    const timezone = textField(formData, "timezone", 64);
+    const timezone = typeof formData.get("timezone") === "string" ? textField(formData, "timezone", 64) : "";
     if (displayName.length < 2) throw new Error("Enter the name you want displayed on your account.");
     if (!legalFirstName || !legalLastName) throw new Error("Enter your legal first and last name.");
     if (!isCalendarDate(dateOfBirth) || !isAtLeastAge(dateOfBirth)) {
@@ -69,8 +69,11 @@ export async function saveProfileDetails(
     if (hasAddress && (!addressLine1 || !city || !region || !postalCode || !countryInput)) {
       throw new Error("Complete the street, city, state or region, postal code, and country for your mailing address.");
     }
-    if (!supportedLocales.has(preferredLocale) || !timezone || safeTimeZone(timezone) !== timezone) {
-      throw new Error("Choose a supported language and time zone.");
+    if (!supportedLocales.has(preferredLocale)) throw new Error("Choose a supported language.");
+    const detectedZone = hasAddress ? addressTimeZone(countryInput, region, postalCode) : DEFAULT_TIME_ZONE;
+    const allowedZones = hasAddress ? countryTimeZones(countryInput) : [];
+    if (hasAddress && !detectedZone && (!timezone || (allowedZones.length ? !allowedZones.includes(timezone) : safeTimeZone(timezone) !== timezone))) {
+      throw new Error("Choose your time zone below your country to finish saving your address.");
     }
     updates = {
       display_name: displayName,
@@ -85,7 +88,7 @@ export async function saveProfileDetails(
       postal_code: hasAddress ? postalCode : null,
       country: hasAddress ? countryInput : null,
       preferred_locale: preferredLocale,
-      timezone: (hasAddress ? addressTimeZone(countryInput, region, postalCode) : null) ?? timezone,
+      timezone: detectedZone ?? timezone,
     };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "Check the profile details and try again." };

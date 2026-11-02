@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { addressTimeZone } from "./address-timezone";
+import { addressTimeZone, countryTimeZones } from "./address-timezone";
+import { PROFILE_COUNTRIES } from "./countries";
 import { safeTimeZone } from "./timezone";
 
 describe("address time zones", () => {
@@ -16,5 +17,12 @@ describe("address time zones", () => {
     expect(addressTimeZone("Canada", "ON", "M5V 3A8")).toBeNull();
     expect(safeTimeZone(null)).toBe("America/New_York");
     expect(safeTimeZone("not-a-zone")).toBe("America/New_York");
+  });
+  it("determines a single-zone country and offers zones for countries with several", () => {
+    expect(addressTimeZone("United Kingdom", "London", "SW1A 1AA")).toBe("Europe/London");
+    expect(addressTimeZone("Japan", "Tokyo", "100-0001")).toBe("Asia/Tokyo");
+    expect(addressTimeZone("Australia", "Queensland", "4000")).toBeNull();
+    expect(countryTimeZones("Australia")).toContain("Australia/Brisbane");
+    expect(PROFILE_COUNTRIES.filter(country => countryTimeZones(country).length === 0)).toEqual([]);
   });
 });
