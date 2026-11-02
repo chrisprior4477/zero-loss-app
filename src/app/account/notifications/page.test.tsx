@@ -10,13 +10,13 @@ import type { ReactElement } from "react";
 import type { AccountNotification } from "@/lib/account/notifications";
 const id = "11111111-1111-4111-8111-111111111111";
 function query(data: unknown, error: unknown = null) {
-  const chain = { select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), in: vi.fn(), then: (resolve: (r: unknown) => unknown) => Promise.resolve({ data, error }).then(resolve) };
-  [chain.select, chain.eq, chain.order, chain.limit, chain.in].forEach(fn => fn.mockReturnValue(chain));
+  const chain = { select: vi.fn(), eq: vi.fn(), or: vi.fn(), order: vi.fn(), limit: vi.fn(), in: vi.fn(), then: (resolve: (r: unknown) => unknown) => Promise.resolve({ data, error }).then(resolve) };
+  [chain.select, chain.eq, chain.or, chain.order, chain.limit, chain.in].forEach(fn => fn.mockReturnValue(chain));
   return chain;
 }
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.account.mockResolvedValue({ userId: "owner", emailConfirmed: true, wallet: null, activity: { source: "customer-empty", activity: [] } });
+  mocks.account.mockResolvedValue({ userId: "owner", emailConfirmed: true, wallet: null, activity: { source: "customer-empty", activity: [] }, orders: { source: "unavailable", orders: [] } });
   mocks.rpc.mockResolvedValue({ data: true, error: null });
   mocks.orders.mockResolvedValue({ source: "customer-empty", orders: [] });
 });
@@ -45,7 +45,7 @@ test("Crew, support and persisted read receipts are scoped to the signed-in owne
   expect(mocks.rpc).toHaveBeenCalledWith("get_crew_win_email_enabled");
   expect(mocks.rpc).toHaveBeenCalledWith("get_in_app_alert_preferences");
   expect(crew.eq).toHaveBeenCalledWith("recipient_id", "owner");
-  expect(crew.eq).toHaveBeenCalledWith("status", "pending");
+  expect(crew.or).toHaveBeenCalledWith("status.eq.pending,and(status.eq.accepted,automatic_connection.eq.true)");
   expect(support.eq).toHaveBeenCalledWith("customer_id", "owner");
   expect(reads.eq).toHaveBeenCalledWith("customer_id", "owner");
 });
