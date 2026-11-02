@@ -49,9 +49,9 @@ export const getNotificationSnapshot = cache(async () => {
     preferenceKey: "crew_updates" as const,
   }));
   const sharedNotifications = (Array.isArray(shares.data) ? shares.data : []).filter(share => afterReset(share.createdAt)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "An item shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared with You", href: `/account/favorites?tab=shared&share=${encodeURIComponent(share.id)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
-  const notifications: AccountNotification[] = [...sharedNotifications, ...supportNotifications((support.data ?? []).filter(row => afterReset(row.updated_at))), ...crewNotifications,
+  const notifications: AccountNotification[] = [...sharedNotifications, ...supportNotifications((support.data ?? []).filter(row => afterReset(row.updated_at)), account.timezone), ...crewNotifications,
     ...buildOrderNotifications(orders?.orders ?? []),
-    ...buildAccountNotifications(account.activity, account.wallet && ledger ? { ...account.wallet, entries: ledger } : account.wallet, account.emailConfirmed, hiddenWalletIds)
+    ...buildAccountNotifications(account.activity, account.wallet && ledger ? { ...account.wallet, entries: ledger } : account.wallet, account.emailConfirmed, hiddenWalletIds, account.timezone)
       // The reset already archives entries, orders and ledger records atomically.
       // This one-time account notice otherwise survives every demo reset.
       .filter(notification => !resetAt || notification.id !== "account-email-confirmed")];

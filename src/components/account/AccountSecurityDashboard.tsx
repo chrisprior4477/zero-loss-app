@@ -18,22 +18,23 @@ type AccountSecurityDashboardProps = {
   lastSignInAt: string | null;
   phone: string | null;
   overview?: AccountSettingsOverview;
+  timeZone?: string;
 };
 
 type GlyphName = "lock" | "shield" | "device" | "clock" | "person" | "card" | "key" | "alert" | "check";
 
-function formatDate(value: string | null) {
+function formatDate(value: string | null, timeZone: string) {
   if (!value) return "Not available";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Not available";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone }).format(date);
 }
 
-function formatDateTime(value: string | null) {
+function formatDateTime(value: string | null, timeZone: string) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return { iso: date.toISOString(), label: new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(date) };
+  return { iso: date.toISOString(), label: new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone }).format(date) };
 }
 
 function SecurityDetail({ icon, title, status, children }: { icon: GlyphName; title: string; status: string; children: React.ReactNode }) {
@@ -47,9 +48,9 @@ function SecurityDetail({ icon, title, status, children }: { icon: GlyphName; ti
   </details>;
 }
 
-export function AccountSecurityDashboard({ displayName, initials, email, emailConfirmed, avatarUrl, memberSince, lastSignInAt, phone, overview }: AccountSecurityDashboardProps) {
+export function AccountSecurityDashboard({ displayName, initials, email, emailConfirmed, avatarUrl, memberSince, lastSignInAt, phone, overview, timeZone = "America/New_York" }: AccountSecurityDashboardProps) {
   const emailLabel = email ?? "Email not available";
-  const signIn = formatDateTime(lastSignInAt);
+  const signIn = formatDateTime(lastSignInAt, timeZone);
 
   return <main className={styles.page}>
     <AccountSettingsLandingScroll target="account-settings-intro" />
@@ -125,7 +126,7 @@ export function AccountSecurityDashboard({ displayName, initials, email, emailCo
         </section>
         <section className={styles.lowerTicket} aria-labelledby="personal-info-heading">
           <header><h2 id="personal-info-heading">Personal information</h2><Link href="/account/profile">Edit profile <AccountIcon name="arrow" /></Link></header>
-          <dl><div><dt>Name</dt><dd>{displayName}</dd></div><div><dt>Email</dt><dd>{emailLabel}</dd></div><div><dt>Phone</dt><dd>{phone ?? "Not added"}</dd></div><div><dt>Member since</dt><dd>{formatDate(memberSince)}</dd></div></dl>
+          <dl><div><dt>Name</dt><dd>{displayName}</dd></div><div><dt>Email</dt><dd>{emailLabel}</dd></div><div><dt>Phone</dt><dd>{phone ?? "Not added"}</dd></div><div><dt>Member since</dt><dd>{formatDate(memberSince, timeZone)}</dd></div></dl>
         </section>
         <section className={styles.lowerTicket} aria-labelledby="crew-heading">
           <header><h2 id="crew-heading">Crew &amp; sharing</h2><Link href="/account/crew?tab=picks#sharing">Manage sharing <AccountIcon name="arrow" /></Link></header>

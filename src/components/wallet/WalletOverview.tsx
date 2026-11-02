@@ -19,7 +19,8 @@ import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
 import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
 
-export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection }: {
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone }: {
+  timeZone?: string;
   displayName?: string;
   initialSection?: "methods" | "card";
   wallet: WalletSnapshot | null;
@@ -92,8 +93,8 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div></div>
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}
         {selectedTransaction?.requested && !selectedTransaction.entry ? <p role="status" className={styles.alert}>That transaction could not be opened for this account. Your available history is shown below.</p> : null}
-        {selectedTransaction?.entry && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selectedTransaction.entry?.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger compact entries={[selectedTransaction.entry]} selectedId={selectedTransaction.entry.id} /></section> : null}
-        {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger entries={ledgerEntries ?? wallet.entries} activity={activity?.source === "unavailable" ? [] : activity?.activity} totalCount={wallet.transactionCount} selectedId={selectedTransaction?.entry?.id} hiddenIds={demoHistoryVisibility?.ledgerEntryIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} />}
+        {selectedTransaction?.entry && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selectedTransaction.entry?.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger timeZone={timeZone} compact entries={[selectedTransaction.entry]} selectedId={selectedTransaction.entry.id} /></section> : null}
+        {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger timeZone={timeZone} entries={ledgerEntries ?? wallet.entries} activity={activity?.source === "unavailable" ? [] : activity?.activity} totalCount={wallet.transactionCount} selectedId={selectedTransaction?.entry?.id} hiddenIds={demoHistoryVisibility?.ledgerEntryIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} />}
         {wallet && !ledgerEntries && wallet.transactionCount > wallet.entries.length ? <p className={styles.finePrint}>Only the latest {wallet.entries.length} transactions could be loaded. Refresh to try the full history again. Balance includes all posted transactions.</p> : null}
       </section>
 

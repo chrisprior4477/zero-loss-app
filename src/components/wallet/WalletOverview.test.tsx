@@ -1,11 +1,17 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { WalletOverview } from "./WalletOverview";
 const empty: WalletSnapshot = { walletAccountId: null, scope: "production", currency: "USD", balanceCents: 0, transactionCount: 0, fundingAvailable: false, entries: [] };
 afterEach(cleanup);
+test("transaction dates and date filters use the selected time zone", () => {
+  render(<WalletOverview timeZone="America/Los_Angeles" wallet={{ ...empty, transactionCount: 1, entries: [{ id: "late", entry_type: "DEPOSIT", amount: 100, created_at: "2026-09-15T02:00:00Z" }] }} />);
+  expect(screen.getByText(/Sep 14, 2026, 7:00 PM PDT/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-09-15" } });
+  expect(screen.queryByText(/Sep 14, 2026, 7:00 PM PDT/)).toBeNull();
+});
 test("verified empty snapshot displays zero and no fabricated transactions", () => {
   render(<WalletOverview wallet={empty} />);
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$0.00");

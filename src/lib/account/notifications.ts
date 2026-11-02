@@ -183,7 +183,7 @@ function ledgerBody(entryType: string, amount: number, balanceCents: number) {
 }
 
 /** Builds display-only notifications from the authenticated account snapshot. */
-export function buildAccountNotifications(activity: AccountActivity, wallet: WalletSnapshot | null, emailConfirmed: boolean, hiddenWalletIds: readonly string[] = []): AccountNotification[] {
+export function buildAccountNotifications(activity: AccountActivity, wallet: WalletSnapshot | null, emailConfirmed: boolean, hiddenWalletIds: readonly string[] = [], timeZone = "America/New_York"): AccountNotification[] {
   const activityPriority = { prize: 0, completion: 1, active: 2, completed: 3 } as const;
   const notifications: AccountNotification[] = activity.source === "unavailable" ? [] : [...activity.activity]
     .sort((left, right) => activityPriority[left.status] - activityPriority[right.status])
@@ -199,7 +199,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
         id: `reward-deadline-${item.rewardId}`,
         category: "action", title: `Claim your ${item.retailer} reward soon`,
         body: "Your claim deadline is approaching. Open the reward for the exact date and next step.",
-        meta: new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(deadline)),
+        meta: new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(new Date(deadline)),
         href: walletRewardHref(item), action: "View reward deadline", image: item.image, itemSlug: item.slug, itemTitle: item.title, rewardSource: item.rewardSource,
         visualLabel: item.retailer, tone: "reward", preferenceKey: "reward_deadline",
       });
@@ -212,7 +212,7 @@ export function buildAccountNotifications(activity: AccountActivity, wallet: Wal
       category: "activity",
       title: ledgerTitle(entry.entry_type),
       body: ledgerBody(entry.entry_type, entry.amount, wallet.balanceCents),
-      meta: new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(entry.created_at)),
+      meta: new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone }).format(new Date(entry.created_at)),
       href: `/account/wallet?view=history&transaction=${encodeURIComponent(entry.id)}#transaction-${encodeURIComponent(entry.id)}`,
       action: "View transaction",
       visualLabel: entry.amount > 0 ? "Added" : "Posted",

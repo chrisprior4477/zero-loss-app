@@ -16,6 +16,7 @@ import { MenuLayoutTrialBar } from "./MenuLayoutTrialBar";
 import { MobileLogoSizeProvider } from "./MobileLogoSizeProvider";
 import { MobileLogoSizeTrialBar } from "./MobileLogoSizeTrialBar";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { TimeZoneProvider } from "@/components/account/TimeZoneProvider";
 
 type AppShellProps = {
   children: ReactNode;
@@ -28,6 +29,7 @@ export async function AppShell({ children }: AppShellProps) {
     account ? getNotificationSnapshot() : Promise.resolve(null),
   ]);
   return (
+    <TimeZoneProvider value={account?.timezone ?? "America/New_York"}>
     <NotificationProvider key={account?.userId ?? "guest"} initial={notifications} initialPopupStyle={account?.notificationPopupStyle ?? "rounded"} initialSpeed={account?.notificationBannerSpeed ?? 5} initialDisplaySeconds={account?.notificationBannerDisplaySeconds ?? 6} initialEnabled={account?.headerNotificationsEnabled ?? true} initialStyle={account?.notificationBannerStyle ?? "capsule"}>
     <MobileLogoSizeProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialSize={account?.mobileLogoSize ?? 0}>
     <MenuLayoutProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialLayout={account?.menuLayout ?? "classic"} initialTabletLayout={account?.tabletMenuLayout ?? "classic"} initialDesktopLayout={account?.desktopMenuLayout ?? "classic"}>
@@ -55,5 +57,6 @@ export async function AppShell({ children }: AppShellProps) {
     </MenuLayoutProvider>
     </MobileLogoSizeProvider>
     </NotificationProvider>
+    </TimeZoneProvider>
   );
 }

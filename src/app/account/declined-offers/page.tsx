@@ -57,7 +57,7 @@ export default async function DeclinedOffersPage() {
             <h2>{item.title}</h2>
             <p>Offer value: <strong>{formatUsdFromCents(item.priceCents)}</strong> · Entry applied: <strong>{formatUsdFromCents(item.paidCents)}</strong></p>
             <p>Cost to revive: <strong>$0.00</strong> · Remaining to complete: <strong>{formatUsdFromCents(item.remainingCents)}</strong></p>
-            {item.completionExpiresAt ? <p>Original deadline: <time dateTime={item.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(item.completionExpiresAt))}</time></p> : null}
+            {item.completionExpiresAt ? <p>Original deadline: <time dateTime={item.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: account.timezone }).format(new Date(item.completionExpiresAt))}</time></p> : null}
           </div>
           <DeclinedOfferDeadline optionId={item.completionOptionId!} expiresAt={item.completionExpiresAt ?? null}
             initialReminderStatus={reminderStatus.get(item.completionOptionId!) ?? null}

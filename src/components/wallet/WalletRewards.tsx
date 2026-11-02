@@ -46,14 +46,14 @@ function rewardLabel(item: ActivityItem, isPreview: boolean) {
   }
 }
 
-function claimedDate(value: string | null | undefined) {
+function claimedDate(value: string | null | undefined, timeZone: string) {
   if (!value) return "—";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" }).format(date);
+  return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone }).format(date);
 }
 
-export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all" }: {
-  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView;
+export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", timeZone = "America/New_York" }: {
+  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; timeZone?: string;
 }) {
   const allRewards = walletRewards(state);
   const ready = readyWalletRewards(state);
@@ -125,7 +125,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           <RewardHistoryCarousel key={view}>
           <div className={overview.tableHeader} aria-hidden="true"><span>Date</span><span>Reward</span><span>Type</span><span>Status</span><span>Value</span><span className={overview.visuallyHidden}>Open</span></div>
           {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={isWalletReward(item) ? walletRewardHref(item) : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}`} className={overview.historyRow}>
-            <span>{claimedDate(item.rewardClaimedAt)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><strong>{item.title}</strong></span>
+            <span>{claimedDate(item.rewardClaimedAt, timeZone)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><strong>{item.title}</strong></span>
             <span>{isWalletReward(item) ? "Gift Card" : "Purchase Option"}</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item, state.isPreview)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
           </Link>)}
           </RewardHistoryCarousel>
@@ -172,7 +172,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, claimedCode = null, overview: accountOverview, crewMembers = [] }: { item: ActivityItem; isPreview: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
+export function WalletRewardDetail({ item, isPreview, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -203,12 +203,12 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
               ? { title: "Not issued yet", message: "No gift card or redeemable barcode has been issued." }
               : { title: "Reward temporarily unavailable", message: "We couldn’t load your saved gift-card number. Refresh to try again, or contact support if this continues." };
   const statusLabel = rewardReady ? (item.rewardClaimedAt ? "Claimed — ready to use" : "Demo ready") : canClaim ? "Ready to claim" : notice.title;
-  const claimDeadline = item.rewardClaimExpiresAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short" }).format(new Date(item.rewardClaimExpiresAt)) : "Not available";
+  const claimDeadline = item.rewardClaimExpiresAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeStyle: "short", timeZone }).format(new Date(item.rewardClaimExpiresAt)) : "Not available";
   const detailRows = [
     ["Retailer", item.retailer],
     ["Value", formatUsdFromCents(item.priceCents)],
     ["Status", statusLabel],
-    item.rewardClaimedAt ? ["Claimed on", claimedDate(item.rewardClaimedAt)] : ["Claim by", claimDeadline],
+    item.rewardClaimedAt ? ["Claimed on", claimedDate(item.rewardClaimedAt, timeZone)] : ["Claim by", claimDeadline],
   ];
   const ready = accountOverview ? readyWalletRewards(accountOverview.activity) : [];
   const optionCount = accountOverview?.activity.source === "unavailable" ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;

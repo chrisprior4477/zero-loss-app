@@ -49,7 +49,7 @@ test("purchase deadlines match across server and browser time zones without repl
     defaultTimeZone = "America/Los_Angeles";
     expect(markup()).toBe(server);
     expect(server).toContain("Nov 24, 2026, 12:00 AM");
-    expect(server).toContain(" ET</time>");
+    expect(server).toContain(" EST</time>");
   } finally { formatter.mockRestore(); }
 });
 test("one compact chooser shows both number badges and confirms exact choices before saving", async () => {

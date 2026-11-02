@@ -8,6 +8,7 @@ import { walletRewardHref } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./order-ticket-gallery.module.css";
+import { useAccountTimeZone } from "./TimeZoneProvider";
 
 function subscribePhone(change: () => void) {
   const query = window.matchMedia?.("(max-width: 700px)");
@@ -31,8 +32,8 @@ function orderPresentation(order: FulfillmentRecord) {
   }
 }
 
-function displayDate(value: string) {
-  return Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(value)) : "Unavailable";
+function displayDate(value: string, timeZone: string) {
+  return Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone }).format(new Date(value)) : "Unavailable";
 }
 
 /** Support gets the full saved references, never the redeemable gift-card code. */
@@ -86,6 +87,7 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
     catch { setManualCopy(value); setCopyStatus("Copy the selected text below."); }
   }
 
+  const timeZone = useAccountTimeZone();
   const references = [
     { label: order.orderNumber ? "Order number" : "Reward reference", value: order.orderNumber ?? order.rewardId },
     ...(order.entryId ? [{ label: "Entry reference", value: order.entryId }] : []),
@@ -97,7 +99,7 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
       {detail.tone !== "reward" ? <p className={styles.detailsNotice}>{detail.message}</p> : null}
       <dl className={styles.references}>
         {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd><span title={value}>{value.slice(-8).toUpperCase()}</span><button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
-        <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt)}</time> : "Unavailable"}</dd></div>
+        <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone)}</time> : "Unavailable"}</dd></div>
       </dl>
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>

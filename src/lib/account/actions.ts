@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isAtLeastAge, MIN_ACCOUNT_AGE_YEARS } from "@/lib/auth/validation";
+import { addressTimeZone } from "./address-timezone";
+import { safeTimeZone } from "./timezone";
 
 const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxPhotoBytes = 5 * 1024 * 1024;
@@ -20,7 +22,6 @@ export type SaveProfileDetailsResult =
   | { status: "error"; message: string };
 
 const supportedLocales = new Set(["en-US", "en-GB", "es-US"]);
-const supportedTimezones = new Set(["America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Phoenix", "Pacific/Honolulu"]);
 
 function textField(formData: FormData, name: string, maxLength: number) {
   const value = formData.get(name);
@@ -68,7 +69,7 @@ export async function saveProfileDetails(
     if (hasAddress && (!addressLine1 || !city || !region || !postalCode || !countryInput)) {
       throw new Error("Complete the street, city, state or region, postal code, and country for your mailing address.");
     }
-    if (!supportedLocales.has(preferredLocale) || !supportedTimezones.has(timezone)) {
+    if (!supportedLocales.has(preferredLocale) || !timezone || safeTimeZone(timezone) !== timezone) {
       throw new Error("Choose a supported language and time zone.");
     }
     updates = {
@@ -84,7 +85,7 @@ export async function saveProfileDetails(
       postal_code: hasAddress ? postalCode : null,
       country: hasAddress ? countryInput : null,
       preferred_locale: preferredLocale,
-      timezone,
+      timezone: (hasAddress ? addressTimeZone(countryInput, region, postalCode) : null) ?? timezone,
     };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "Check the profile details and try again." };

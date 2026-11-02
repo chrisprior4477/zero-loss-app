@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimeZone } from "./TimeZoneProvider";
 import Link from "next/link";
 
 import Image from "next/image";
@@ -43,12 +44,13 @@ type Props = {
   incomingInviteToken?: string | null;
 };
 
-const formatDate = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+const formatDate = (value: string, timeZone: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone }).format(new Date(value));
 const subscribeToOrigin = () => () => {};
 const getBrowserOrigin = () => window.location.origin;
 const getServerOrigin = () => "";
 
 export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, available, initialTab, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
+  const timeZone = useAccountTimeZone();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab === "add" ? "crew" : initialTab);
   const [finding, setFinding] = useState(initialTab === "add");
@@ -196,7 +198,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       </nav>
       {tab === "crew" ? <>
         <CrewConnectedGallery people={people} samples={samples} selectedKey={activeKey}
-          picks={memberPicks.map(pick => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `${pick.shareKind === "win" ? "Shared win" : "Shared"} ${formatDate(pick.sharedAt)}` }))}
+          picks={memberPicks.map(pick => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `${pick.shareKind === "win" ? "Shared win" : "Shared"} ${formatDate(pick.sharedAt, timeZone)}` }))}
           loading={Boolean(activeMember) && memberPicksLoading} error={Boolean(activeMember) && memberPicksError} pending={pending}
           onMember={selectMember} onSample={selectSample} onRetry={() => { if (activeMember) selectMember(activeMember.memberId, true); }}
           onShareBack={(id, enabled) => run(() => setCrewShareBack(id, enabled))} onRemove={id => run(() => removeCrewConnection(id))} onSampleRemove={name => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(samples.find(other => other !== name) ?? null); }}
@@ -210,13 +212,13 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       </div>
 
       {tab === "requests" ? <section className={styles.utilityGrid}>
-        <div className={styles.utilityPanel}><h2>Requests for you</h2>{received.length ? <div className={styles.utilityList}>{received.map((item) => <article key={item.id} id={`crew-request-${item.id}`} className={styles.utilityItem}><strong>{item.requester_name} wants to join your Crew</strong><p>Requested {formatDate(item.created_at)}. Accepting does not share your existing picks.</p><div className={styles.utilityActions}><button type="button" disabled={pending} onClick={() => run(() => respondToCrewRequest(item.id, true))} className={styles.approveButton}>Approve</button><button type="button" disabled={pending} onClick={() => run(() => respondToCrewRequest(item.id, false))} className={styles.secondaryButton}>Decline</button></div></article>)}</div> : <p className={styles.emptyUtility}>No requests waiting for approval.</p>}</div>
-        <div className={styles.utilityPanel}><h2>Requests you sent</h2>{sent.length ? <div className={styles.utilityList}>{sent.map((item) => <article key={item.id} className={styles.utilityItem}><strong>{item.recipient_name}</strong><p>Waiting for approval since {formatDate(item.created_at)}.</p><button type="button" disabled={pending} onClick={() => run(() => removeCrewConnection(item.id))} className={styles.cancelButton}>Cancel request</button></article>)}</div> : <p className={styles.emptyUtility}>No outgoing requests.</p>}</div>
+        <div className={styles.utilityPanel}><h2>Requests for you</h2>{received.length ? <div className={styles.utilityList}>{received.map((item) => <article key={item.id} id={`crew-request-${item.id}`} className={styles.utilityItem}><strong>{item.requester_name} wants to join your Crew</strong><p>Requested {formatDate(item.created_at, timeZone)}. Accepting does not share your existing picks.</p><div className={styles.utilityActions}><button type="button" disabled={pending} onClick={() => run(() => respondToCrewRequest(item.id, true))} className={styles.approveButton}>Approve</button><button type="button" disabled={pending} onClick={() => run(() => respondToCrewRequest(item.id, false))} className={styles.secondaryButton}>Decline</button></div></article>)}</div> : <p className={styles.emptyUtility}>No requests waiting for approval.</p>}</div>
+        <div className={styles.utilityPanel}><h2>Requests you sent</h2>{sent.length ? <div className={styles.utilityList}>{sent.map((item) => <article key={item.id} className={styles.utilityItem}><strong>{item.recipient_name}</strong><p>Waiting for approval since {formatDate(item.created_at, timeZone)}.</p><button type="button" disabled={pending} onClick={() => run(() => removeCrewConnection(item.id))} className={styles.cancelButton}>Cancel request</button></article>)}</div> : <p className={styles.emptyUtility}>No outgoing requests.</p>}</div>
       </section> : null}
 
       {tab === "picks" ? <section className={styles.utilityPanelWide} id="sharing"><h2>Choose what your Crew can see</h2><p className={styles.utilityIntro}>Sharing is off by default. You can change each entry here at any time. Turning sharing off removes it immediately from Crew views; it does not retract your entry or change your purchase options.</p>
         <button type="button" className={firstStyles.privacyLink} onClick={() => setTab("privacy")}>How to display my picks · choose who sees them</button>
-        {entries.length ? <div className={styles.shareGrid}>{entries.map((entry) => <article key={entry.id} className={styles.shareItem}>{entry.image ? <div className={styles.shareImage}><Image src={entry.image} alt="" fill sizes="80px" className="object-contain p-1" /></div> : null}<div className={styles.shareDetails}><strong>{entry.title}</strong><small>{entry.retailer} · {formatDate(entry.createdAt)}</small><button type="button" disabled={pending || !available} onClick={() => run(() => setEntryCrewSharing(entry.id, !entry.shared))} aria-pressed={entry.shared} className={entry.shared ? styles.sharedToggle : styles.privateToggle}>{entry.shared ? "Shared with Crew · turn off" : "Private · share with Crew"}</button></div></article>)}</div> : <p className={styles.emptyUtility}>You don’t have entries to share yet.</p>}
+        {entries.length ? <div className={styles.shareGrid}>{entries.map((entry) => <article key={entry.id} className={styles.shareItem}>{entry.image ? <div className={styles.shareImage}><Image src={entry.image} alt="" fill sizes="80px" className="object-contain p-1" /></div> : null}<div className={styles.shareDetails}><strong>{entry.title}</strong><small>{entry.retailer} · {formatDate(entry.createdAt, timeZone)}</small><button type="button" disabled={pending || !available} onClick={() => run(() => setEntryCrewSharing(entry.id, !entry.shared))} aria-pressed={entry.shared} className={entry.shared ? styles.sharedToggle : styles.privateToggle}>{entry.shared ? "Shared with Crew · turn off" : "Private · share with Crew"}</button></div></article>)}</div> : <p className={styles.emptyUtility}>You don’t have entries to share yet.</p>}
       </section> : null}
       <p className={firstStyles.footer}>Your entries stay private unless you choose to share them. Your wallet and payment details are never shared with Crew.</p>
     </div>

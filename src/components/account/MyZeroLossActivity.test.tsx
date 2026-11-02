@@ -36,7 +36,7 @@ test("a saved purchase-option result renders the same deadline in different serv
     const server = markup();
     defaultTimeZone = "America/New_York";
     expect(markup()).toBe(server);
-    expect(server).toContain("November 19, 2026 at 5:00 AM UTC");
+    expect(server).toContain("November 19, 2026 at 12:00 AM EST");
   } finally {
     formatter.mockRestore();
   }

@@ -13,6 +13,8 @@ import { getStoredAccountActivity } from "./activity-reader";
 import { getAccountOrders } from "./orders";
 import { menuLayoutOrClassic } from "@/lib/navigation/menu-layout";
 import { mobileLogoSizeOrOriginal } from "@/lib/navigation/mobile-logo-size";
+import { addressTimeZone } from "./address-timezone";
+import { safeTimeZone } from "./timezone";
 
 /** Request-scoped reader shared by pages, header and drawer. No writes. */
 export const getAccountContext = cache(async () => {
@@ -47,7 +49,7 @@ export const getAccountContext = cache(async () => {
     legalLastName: profile?.legal_last_name ?? null,
     dateOfBirth: profile?.date_of_birth ?? null,
     preferredLocale: profile?.preferred_locale ?? null,
-    timezone: profile?.timezone ?? null,
+    timezone: safeTimeZone(addressTimeZone(profile?.country ?? null, profile?.region ?? null, profile?.postal_code ?? null) ?? profile?.timezone),
     phone: profile?.phone_number ?? user.phone ?? null,
     addressLine1: profile?.address_line_1 ?? null,
     addressLine2: profile?.address_line_2 ?? null,

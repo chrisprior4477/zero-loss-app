@@ -35,11 +35,11 @@ function pageLinks(base: string, page: number, more: boolean, conversation = fal
     {more ? <Link href={href(page + 1)}>Older {conversation ? "messages" : "cases"} →</Link> : null}
   </nav>;
 }
-function transactionLabel(value: unknown) {
+function transactionLabel(value: unknown, timeZone: string) {
   if (!value || typeof value !== "object") return null;
   const r = value as Record<string, unknown>;
   if (typeof r.amount !== "number" || !Number.isSafeInteger(r.amount) || typeof r.created_at !== "string" || !Number.isFinite(Date.parse(r.created_at))) return null;
-  return `${r.amount > 0 ? "+" : ""}${formatUsdFromCents(r.amount)} · ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(r.created_at))} UTC`;
+  return `${r.amount > 0 ? "+" : ""}${formatUsdFromCents(r.amount)} · ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(r.created_at))} (${timeZone})`;
 }
 
 export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; view?: string; page?: string; messages?: string }> }) {
@@ -69,10 +69,10 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     return <PageContainer>{heading}{navigation}<section id="conversation" className={`${card} ${styles.anchor}`}>
       <p className={`break-all text-xs font-bold uppercase tracking-wide ${styles.eyebrow}`}>Case {supportCase.case_number}</p>
       <h2 className="mt-3 break-words text-2xl font-black">{supportCase.subject}</h2><p className={`mt-2 font-bold ${styles.status}`}>{statusLabel(supportCase.status, staffView)}</p>
-      {transactionLabel(transaction?.data) ? <p className={`${note} mt-3 text-sm`}>Linked wallet transaction: {transactionLabel(transaction?.data)}</p> : null}
+      {transactionLabel(transaction?.data, account.timezone) ? <p className={`${note} mt-3 text-sm`}>Linked wallet transaction: {transactionLabel(transaction?.data, account.timezone)}</p> : null}
       <p className={`mt-3 text-sm ${styles.muted}`}>Check this case for the next reply. If more information is needed, you can add it below. No email is sent by this preview.</p>
       {events.error ? <p role="alert" className="mt-5">We couldn’t load the conversation. Refresh to try again.</p> : <ol className="my-6 space-y-4">{messages.map(event => <li key={event.id} data-staff={event.actor_kind === "staff"} className={`${styles.ticket} ${styles.message}`}>
-        <p className={`text-xs font-bold ${styles.eyebrow}`}>{event.actor_kind === "staff" ? "Zero Loss support" : "Customer"} · {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(event.created_at))} UTC</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{event.body}</p>
+        <p className={`text-xs font-bold ${styles.eyebrow}`}>{event.actor_kind === "staff" ? "Zero Loss support" : "Customer"} · {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: account.timezone }).format(new Date(event.created_at))} ({account.timezone})</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{event.body}</p>
       </li>)}</ol>}
       {!events.error ? pageLinks(`/support?case=${validCase}`, messagePage, (events.data?.length ?? 0) > pageSize, true) : null}
       {messagePage === 0 ? <SupportForm key={`${validCase}-${events.data?.[0]?.id ?? "new"}`} requestKey={randomUUID()} caseId={validCase} staff={staffView} /> : <Link className={button} href={`/support?case=${validCase}#conversation`}>Return to the latest messages to reply</Link>}
@@ -92,7 +92,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     <div className="grid gap-6 lg:grid-cols-2">
       {!inbox ? <section id="report-problem" className={`${card} ${styles.anchor}`}><h2 className="mb-4 text-xl font-black">Report a problem</h2>
         {validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again.</p> : <>
-          {transactionLabel(transaction?.data) ? <p className={`${note} mb-4 text-sm`}>Linked wallet transaction: {transactionLabel(transaction?.data)}</p> : null}
+          {transactionLabel(transaction?.data, account.timezone) ? <p className={`${note} mb-4 text-sm`}>Linked wallet transaction: {transactionLabel(transaction?.data, account.timezone)}</p> : null}
           <SupportForm key={validTransaction ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} />
         </>}
       </section> : null}

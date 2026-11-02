@@ -29,8 +29,8 @@ function description(entry: LedgerEntryRow) {
   return ({ DEPOSIT: ["Funds added", "Playable wallet funding"], REFUND: ["Refund", "Returned to playable wallet"], CORRECTION: ["Adjustment", "Wallet correction"] } as Record<string, [string, string]>)[entry.entry_type] ?? ["Wallet transaction", "Posted ledger activity"];
 }
 
-function dateLabel(value: string) {
-  return new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC", timeZoneName: "short" }).format(new Date(value));
+function dateLabel(value: string, timeZone: string) {
+  return new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone, timeZoneName: "short" }).format(new Date(value));
 }
 
 function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
@@ -40,7 +40,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = [], canResetDemoHistory = false, hideArchived = false }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = [], canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York" }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string }) {
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
@@ -56,9 +56,11 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const archived = useMemo(() => new Set(hiddenIds), [hiddenIds]);
   const displayEntries = useMemo(() => compact || (showArchived && !hideArchived) ? entries : entries.filter(entry => !archived.has(entry.id)), [compact, showArchived, hideArchived, entries, archived]);
   const dated = useMemo(() => compact ? displayEntries : displayEntries.filter(entry => {
-    const day = entry.created_at.slice(0, 10);
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(entry.created_at));
+    const part = (type: string) => parts.find(value => value.type === type)?.value ?? "";
+    const day = `${part("year")}-${part("month")}-${part("day")}`;
     return (!from || day >= from) && (!through || day <= through);
-  }), [displayEntries, from, through, compact]);
+  }), [displayEntries, from, through, compact, timeZone]);
   const matching = useMemo(() => filter === "all" ? dated : dated.filter(entry => category(entry) === filter), [dated, filter]);
   const visible = compact || showAll ? matching : matching.slice(0, 5);
   return <>
@@ -85,7 +87,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         <span className={styles.ledgerDivider} aria-hidden="true" />
         <div className={styles.ledgerDescription}><strong>{title}</strong><span>{detail}</span></div>
         <span className={styles.ledgerDivider} aria-hidden="true" />
-        <time dateTime={entry.created_at}>{dateLabel(entry.created_at)}</time>
+        <time dateTime={entry.created_at}>{dateLabel(entry.created_at, timeZone)}</time>
         <span className={styles.ledgerDivider} aria-hidden="true" />
         <strong className={entry.amount > 0 ? styles.positive : styles.amount}>{entry.amount > 0 ? "+" : ""}{formatUsdFromCents(entry.amount)}</strong>
         <span className={styles.posted}>Posted</span>

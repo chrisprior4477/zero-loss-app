@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimeZone } from "@/components/account/TimeZoneProvider";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -20,6 +21,7 @@ type Props = {
 };
 type Selection = { slug: string; shareId?: string } | null;
 export function FavoritesView({ availability, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem }: Props) {
+  const timeZone = useAccountTimeZone();
   const { slugs, available, toggle, busySlug: favoriteBusy } = useFavorites();
   const [tab, setTab] = useState(initialTab);
   const [shares, setShares] = useState(initialShares ?? []);
@@ -99,7 +101,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
       <span className={styles.remaining} style={{ color: status?.color }}>{status?.remaining === 0 ? "Pool full" : <><strong>{status?.remaining.toLocaleString()}</strong> left</>}</span></div>;
   }
   function sender(share: SavedProductShare) {
-    return <div className={styles.sender}><span aria-hidden="true">{share.sender[0]?.toUpperCase() ?? "?"}</span><div>From {share.sender}<small>{share.demo ? "Demo share · " : ""}{new Date(share.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}</small></div></div>;
+    return <div className={styles.sender}><span aria-hidden="true">{share.sender[0]?.toUpperCase() ?? "?"}</span><div>From {share.sender}<small>{share.demo ? "Demo share · " : ""}{new Date(share.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone })}</small></div></div>;
   }
   const selectedShare = selected?.shareId ? shares.find(s => s.id === selected.shareId) : null;
   const detailProduct = selected ? getDemoProduct(selected.slug) : null;

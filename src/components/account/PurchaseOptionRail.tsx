@@ -15,8 +15,11 @@ import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { InsufficientFundsNotice } from "@/components/wallet/InsufficientFundsNotice";
 import styles from "./purchase-options.module.css";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
+import { useAccountTimeZone } from "./TimeZoneProvider";
+import { timeZoneAbbreviation } from "@/lib/account/timezone";
 
 export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, initiallyConfirmDecline = false, canBulkDecline = false, showSummary = false }: { title: string; options: ActivityItem[]; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean; canBulkDecline?: boolean; showSummary?: boolean }) {
+  const timeZone = useAccountTimeZone();
   const router = useRouter();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set([initiallySelectedEntryId && options.some(option => option.entryId === initiallySelectedEntryId) ? initiallySelectedEntryId : options[0]?.entryId].filter((id): id is string => Boolean(id))));
   const [bulkPhase, setBulkPhase] = useState<"idle" | "confirm" | "working" | "undo" | "undoing" | "error">(initiallyConfirmDecline && canBulkDecline ? "confirm" : "idle");
@@ -223,7 +226,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
           </div>
           <div className={styles.optionFacts}>
             <div className={styles.optionMath}><strong>{formatUsdFromCents(option.paidCents)} applied</strong><strong>{formatUsdFromCents(option.remainingCents)} remaining</strong></div>
-            <div className={styles.optionMeta}><p>Entry #{option.entryId.slice(-8)}</p>{option.completionExpiresAt ? <><p>Available until</p><time dateTime={option.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" }).format(new Date(option.completionExpiresAt))} ET</time></> : null}</div>
+            <div className={styles.optionMeta}><p>Entry #{option.entryId.slice(-8)}</p>{option.completionExpiresAt ? <><p>Available until</p><time dateTime={option.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(option.completionExpiresAt))} {timeZoneAbbreviation(option.completionExpiresAt, timeZone)}</time></> : null}</div>
           </div>
           <Link href={href} className={styles.reviewOption} aria-label={`Complete purchase for option ${index + 1} of ${count} for ${option.title}`}>Complete this purchase <span aria-hidden="true">→</span></Link>
             </div>
