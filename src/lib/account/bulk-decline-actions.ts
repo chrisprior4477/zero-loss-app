@@ -51,8 +51,8 @@ export async function declineAllDemoPurchaseOptions(slug: string): Promise<BulkD
   const { confirmed, failed } = await runOptionAction([...new Set(optionIds)], "decline");
   if (confirmed.length === 0) return { status: "error", message: "No declines were confirmed. Check your current offers before trying again.", optionIds: [] };
   return failed.length
-    ? { status: "partial", message: `${confirmed.length} offers were declined, but ${failed.length} could not be confirmed. Check Declined Offers before retrying.`, optionIds: confirmed }
-    : { status: "succeeded", message: `${confirmed.length} offers declined. You can undo this for 30 seconds. Original entries and wallet history remain saved.`, optionIds: confirmed };
+    ? { status: "partial", message: `${confirmed.length} ${confirmed.length === 1 ? "offer was" : "offers were"} declined, but ${failed.length} could not be confirmed. Check Declined Offers before retrying.`, optionIds: confirmed }
+    : { status: "succeeded", message: `${confirmed.length} ${confirmed.length === 1 ? "offer" : "offers"} declined. You can undo this for 30 seconds. Original entries and wallet history remain saved.`, optionIds: confirmed };
 }
 
 export async function undoBulkDemoPurchaseOptions(optionIds: string[]): Promise<BulkDeclineResult> {

@@ -50,5 +50,9 @@ test("a partial server result names only confirmed declines for safe undo", asyn
   mocks.rpc.mockImplementation(async (_name: string, args: { p_completion_option_id: string }) => args.p_completion_option_id === first
     ? { data: { status: "declined" }, error: null }
     : { data: null, error: { code: "P0001" } });
-  expect(await declineAllDemoPurchaseOptions("gift-card")).toMatchObject({ status: "partial", optionIds: [first] });
+  expect(await declineAllDemoPurchaseOptions("gift-card")).toMatchObject({ status: "partial", optionIds: [first], message: expect.stringContaining("1 offer was declined") });
+});
+
+test("one declined offer uses singular wording", async () => {
+  expect(await declineAllDemoPurchaseOptions("other-gift-card")).toMatchObject({ status: "succeeded", message: expect.stringContaining("1 offer declined.") });
 });

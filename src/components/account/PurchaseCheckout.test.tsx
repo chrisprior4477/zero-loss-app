@@ -13,6 +13,10 @@ function setup(balance = 13900, blocked = false) { return render(<PurchaseChecko
 function fundPopup() { fireEvent.click(screen.getByRole("button", { name: "Add $260 to continue" })); return within(screen.getByRole("dialog")); }
 beforeEach(() => { vi.clearAllMocks(); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); sessionStorage.clear(); window.history.replaceState(null, "", "/"); });
+test("a single purchase option has a singular decline link", () => {
+  render(<PurchaseCheckout options={[options[0]]} initialBalance={13900} cards={[]} fundingAvailable />);
+  expect(screen.getByRole("link", { name: "Decline this offer" }).getAttribute("href")).toContain("decline=confirm");
+});
 test("$260 needed + $50 extra funds exactly $310, then requires a separate purchase confirmation", async () => {
   mocks.fund.mockResolvedValue({ status: "succeeded", balanceCents: 44900 });
   mocks.purchase.mockResolvedValue({ status: "succeeded", href: "/account/wallet?rewardId=issued#reward-pass" });

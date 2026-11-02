@@ -156,11 +156,13 @@ test("confirming a saved decline leaves immediately without another write or cou
     const options = bulkOptions(1);
     mocks.decline.mockResolvedValueOnce({ status: "succeeded", message: "1 offer declined.", optionIds: [options[0].completionOptionId] });
     render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline initiallyConfirmDecline />);
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm decline all" })); });
+    expect(screen.getByText("Decline this offer for Gift card?")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Keep my offer" })).toBeTruthy();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm decline" })); });
     expect(mocks.replace).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Confirm decline" }));
     expect(mocks.replace).toHaveBeenCalledExactlyOnceWith("/account/declined-offers");
-    expect((screen.getByRole("button", { name: "Undo decline all" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Undo decline" }) as HTMLButtonElement).disabled).toBe(true);
     act(() => { vi.advanceTimersByTime(31_000); });
     expect(mocks.replace).toHaveBeenCalledTimes(1);
     expect(mocks.decline).toHaveBeenCalledTimes(1);
@@ -171,8 +173,8 @@ test("confirming a saved decline leaves immediately without another write or cou
 test("keeping offers dismisses confirmation and clears the confirmation link", () => {
   const base = storedActivityFixture().activity[2];
   render(<PurchaseOptionRail title={base.title} options={[base]} canBulkDecline initiallyConfirmDecline />);
-  fireEvent.click(screen.getByRole("button", { name: "Keep my offers" }));
-  expect(screen.queryByRole("group", { name: "Confirm declining all offers" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Keep my offer" }));
+  expect(screen.queryByRole("group", { name: "Confirm declining this offer" })).toBeNull();
   expect(screen.getByRole("button", { name: "Show purchase option 1 of 1" })).toBeTruthy();
   expect(mocks.replace).toHaveBeenCalledWith(`/account/purchase-options/${encodeURIComponent(base.slug)}`);
 });
