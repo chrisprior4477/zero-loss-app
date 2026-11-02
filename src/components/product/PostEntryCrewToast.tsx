@@ -44,6 +44,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [shared, setShared] = useState(false);
   const [sharedGroupName, setSharedGroupName] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState(false);
   const [email, setEmail] = useState("");
   const [query, setQuery] = useState("");
   const [reviewQuery, setReviewQuery] = useState("");
@@ -188,8 +189,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }, [step]);
 
   function feedback(value: string, failed = false) { setMessage(value); setError(failed); }
-  function go(next: Step) { history.current.push(step); setStep(next); feedback(""); }
-  function back() { const previous = history.current.pop() ?? "home"; if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); feedback(""); }
+  function go(next: Step) { history.current.push(step); setStep(next); setPhoneError(false); feedback(""); }
+  function back() { const previous = history.current.pop() ?? "home"; if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); setPhoneError(false); feedback(""); }
   async function run(work: () => Promise<void>) {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true); feedback("");
@@ -351,7 +352,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     setPickedContact({ id: crypto.randomUUID(), name: contact.name.slice(0, 80), phone: contact.kind === "phone" ? contact.value.trim() : "", email: contact.kind === "email" ? contact.value.trim() : "" });
     const destination = contactReturn.current === "messages" && contact.kind === "phone" ? "messages" : "find";
     if (destination === contactReturn.current) history.current.pop();
-    if (destination === "messages") { setPhone(contact.value); setStep("messages"); }
+    if (destination === "messages") { setPhone(contact.value); setPhoneError(false); setStep("messages"); }
     else { searchVersion.current += 1; setQuery(contact.value); setReviewQuery(contact.value); setPeople([]); setStep("find"); }
     feedback(`${contact.name} selected. Add to Crew, save to a group, or send in your app.`);
   }
@@ -560,13 +561,16 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       {step === "messages" ? <>
         <div className={styles.field}><label htmlFor={`${id}-recipient`}>Phone number <span>· optional</span></label>
           <form className={styles.phoneRow} onSubmit={event => { event.preventDefault(); smsLink.current?.click(); }}>
-            <input id={`${id}-recipient`} type="tel" enterKeyHint="go" maxLength={25} autoComplete="off" value={phone} onChange={event => { setPhone(event.target.value); setPickedContact(null); }} placeholder="Phone number" disabled={busy} />
-            <a ref={smsLink} className={styles.primary} href={externalHref ?? undefined} aria-label="Send text" onClick={event => {
-              if (!externalHref) { event.preventDefault(); feedback("Enter a valid phone number, or leave it blank.", true); }
+            <input id={`${id}-recipient`} type="tel" enterKeyHint="go" maxLength={25} autoComplete="off" value={phone} onChange={event => { setPhone(event.target.value); setPhoneError(false); setPickedContact(null); }} placeholder="Phone number" disabled={busy} aria-invalid={phoneError || undefined} aria-describedby={phoneError ? `${id}-phone-error` : undefined} />
+            <a ref={smsLink} className={styles.primary} href={externalHref ?? undefined} role="link" tabIndex={0} aria-label="Send text" onKeyDown={event => {
+              if (!externalHref && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setPhoneError(true); }
+            }} onClick={event => {
+              if (!externalHref) { event.preventDefault(); setPhoneError(true); }
               else feedback("Review and send in your texting app. If it doesn’t open, use Copy link.");
             }}><span>Send<br />Text</span></a>
             <button type="button" className={styles.crewButton} aria-label={requested.includes(contactKey(phone, "phone")) ? "Added" : "Add to Crew"} disabled={busy || !validPhone(phone) || requested.includes(contactKey(phone, "phone"))} onClick={() => void addPerson(phone.trim(), "phone")}>{requested.includes(contactKey(phone, "phone")) ? "Added" : <span>Add to<br />Crew</span>}</button>
           </form>
+          {phoneError ? <p id={`${id}-phone-error`} role="alert" className={styles.phoneError}>Please enter a complete phone number, or leave this blank.</p> : null}
           <button type="button" className={styles.contactsButton} disabled={busy} onClick={() => openContacts("messages")}><ShareIcon name="crew" />Add people from your phone</button>
         </div>
         <p className={styles.messagePreview}>{text}</p>

@@ -590,6 +590,25 @@ test("keyboard Go uses the same SMS composer as the adjacent Send Text link", ()
   expect(screen.getByRole("button", { name: "Add to Crew" }).parentElement).toBe(input.parentElement);
 });
 
+test("an incomplete phone number keeps Send Text keyboard-accessible and explains how to correct it", () => {
+  open(); fireEvent.click(screen.getByRole("button", { name: "Text" }));
+  const input = screen.getByLabelText(/Phone number/);
+  fireEvent.change(input, { target: { value: "1" } });
+  const send = screen.getByRole("link", { name: "Send text" });
+  expect(send.tabIndex).toBe(0);
+  expect(send.getAttribute("href")).toBeNull();
+  fireEvent.keyDown(send, { key: "Enter" });
+  expect(screen.getByRole("alert").textContent).toBe("Please enter a complete phone number, or leave this blank.");
+  expect(input.getAttribute("aria-invalid")).toBe("true");
+  expect(input.getAttribute("aria-describedby")).toBe(screen.getByRole("alert").id);
+  fireEvent.change(input, { target: { value: "2025550123" } });
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(send.getAttribute("href")).toContain("sms:2025550123?");
+  expect(screen.getByRole("button", { name: "Add to Crew" })).toHaveProperty("disabled", false);
+  fireEvent.change(input, { target: { value: "" } });
+  expect(send.getAttribute("href")).toContain("sms:?");
+});
+
 test("closing sharing restores its original scroll rather than the browser's focus jump", () => {
   const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   vi.spyOn(window, "scrollY", "get").mockReturnValue(168);
