@@ -7,11 +7,12 @@ vi.mock("next/image", () => ({ default: () => <span /> }));
 vi.mock("@/lib/account/bulk-purchase-actions", () => ({ completeDemoPurchaseOptions: mocks.purchase }));
 vi.mock("@/lib/account/purchase-funding-actions", () => ({ fundPurchaseWallet: mocks.fund }));
 import { PurchaseCheckout } from "./PurchaseCheckout";
+import { purchaseSelectionKey } from "@/lib/wallet/purchase-funding-context";
 const options: ActivityItem[] = Array.from({ length: 3 }, (_, i) => ({ entryId: `entry-${i}`, completionOptionId: `option-${i}`, slug: "nintendo-switch", title: "Nintendo Switch", retailer: "Best Buy", image: "/catalog/nintendo-switch-oled.jpg", status: "completion", rewardKind: "digital", priceCents: 40000, paidCents: 100, remainingCents: 39900, availability: "Available", completionExpiresAt: "2026-11-28T17:00:00Z" }));
 function setup(balance = 13900, blocked = false) { return render(<PurchaseCheckout options={options} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable fundingBlocked={blocked} />); }
 function fundPopup() { fireEvent.click(screen.getByRole("button", { name: "Add $260 to continue" })); return within(screen.getByRole("dialog")); }
 beforeEach(() => { vi.clearAllMocks(); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); sessionStorage.clear(); window.history.replaceState(null, "", "/"); });
 test("$260 needed + $50 extra funds exactly $310, then requires a separate purchase confirmation", async () => {
   mocks.fund.mockResolvedValue({ status: "succeeded", balanceCents: 44900 });
   mocks.purchase.mockResolvedValue({ status: "succeeded", href: "/account/wallet?rewardId=issued#reward-pass" });
@@ -60,4 +61,22 @@ test("pre-existing unresolved deposits prevent a new deposit", () => {
 test("uses the returned ledger balance even if another action changed it during funding", async () => {
   mocks.fund.mockResolvedValue({ status: "succeeded", balanceCents: 39800 }); setup(); const popup = fundPopup(); fireEvent.click(popup.getByRole("checkbox")); fireEvent.click(popup.getByRole("button", { name: "Add $260 to wallet" }));
   await screen.findByRole("button", { name: "Add $1 to continue" }); expect(screen.queryByRole("dialog")).toBeNull(); expect(mocks.purchase).not.toHaveBeenCalled();
+});
+test("the funded and unfunded instructions match the next step and the four actions stay inside the ticket", () => {
+  const view = setup(50000);
+  const ticket = screen.getByRole("region", { name: "Your purchase options" });
+  expect(within(ticket).getByText("Review and confirm your purchase in the popup.")).toBeTruthy();
+  expect(within(ticket).getByRole("link", { name: "Go to My Activity" })).toBeTruthy();
+  expect(within(ticket).getByRole("link", { name: "Decline all offers" })).toBeTruthy();
+  expect(within(ticket).getByRole("link", { name: "Continue shopping" })).toBeTruthy();
+  expect(within(ticket).getByRole("button", { name: "Share" })).toBeTruthy();
+  view.unmount(); setup(0);
+  expect(screen.getByText("Choose a card in the popup. Confirm purchase separately.")).toBeTruthy();
+});
+test("returning from the wallet restores selected options and the keep-for-later choice", async () => {
+  window.history.replaceState(null, "", "/account/purchase-options/nintendo-switch?option=ent_11111111111111111111111111111111&resume=wallet");
+  sessionStorage.setItem(purchaseSelectionKey, JSON.stringify({ slug: "nintendo-switch", selected: ["option-0", "option-2"], decline: false }));
+  setup(100000);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Review $798 purchase" })).toBeTruthy());
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
 });

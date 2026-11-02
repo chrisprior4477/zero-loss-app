@@ -213,9 +213,12 @@
   .dialog.refined .backLink { margin-top:2px; padding-block:2px; }
 }
 /* The approved quick purchase flow, using the normal account records. */
-.utility { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin:14px 4px; }
-.utility a,.utility button { color:#c7efff; font-size:12px; padding:8px; font-weight:750; }
-.utility .declineAll { background:#c32b28; color:#fff; border-radius:7px; }
+.utility { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:12px 0 4px; }
+.utility a,.utility button { display:flex; align-items:center; justify-content:center; min-width:0; min-height:44px; margin:0; padding:7px 6px; border:0; border-radius:7px; font-size:12px; line-height:1.15; font-weight:800; text-align:center; text-decoration:none; }
+.utility .activityButton { background:#bceeff; color:#10385b; }
+.utility .declineAll { background:#c32b28; color:#fff; }
+.utility .shoppingButton { background:#35e800; color:#092713; }
+.utility .shareButton { background:#ff7900; color:#092b4b; }
 .extraEquation { margin:7px 0 3px; }
 .extraEquation h3 { font-size:13px; font-weight:800; margin:0 0 4px; }
 .extraEquation > div { display:grid; grid-template-columns:92px 18px minmax(0,1fr); align-items:end; gap:8px; }

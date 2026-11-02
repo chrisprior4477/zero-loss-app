@@ -19,6 +19,7 @@ import { NumberWheel, PurchaseDialog } from "./PurchaseCheckoutDialog";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import styles from "./purchase-checkout.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
+import { purchaseFundingHref, purchaseSelectionKey, setPurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
 
 function Product({ item }: { item: ActivityItem }) {
   return <div className={styles.product}><Image src={item.image} alt={item.title} width={64} height={60} /><div><p className={styles.retailer}>{item.retailer}</p><h2>{item.title}</h2><p>{usd(item.priceCents)} gift card · Each entry counts toward its own option</p></div></div>;
@@ -65,6 +66,25 @@ export function PurchaseCheckout({ options, initialBalance, cards, fundingAvaila
   const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
   const inFlight = useRef(false);
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
+  const selectedEntryId = chosen[0]?.entryId;
+  useEffect(() => {
+    const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined);
+    setPurchaseFundingContext(href ? { href, slug: item.slug, selected: [...selected], decline } : null);
+    return () => setPurchaseFundingContext(null);
+  }, [item.slug, selectedEntryId, selected, decline]);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("resume") !== "wallet") return;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(purchaseSelectionKey) ?? "null") as { slug?: unknown; selected?: unknown; decline?: unknown } | null;
+      sessionStorage.removeItem(purchaseSelectionKey);
+      const validIds = new Set(options.map(option => option.completionOptionId));
+      if (saved?.slug === item.slug && Array.isArray(saved.selected) && saved.selected.length > 0 && saved.selected.every(id => typeof id === "string" && validIds.has(id)) && new Set(saved.selected).size === saved.selected.length) {
+        const restored = saved.selected as string[];
+        const restoredDecline = saved.decline;
+        queueMicrotask(() => { setSelected(restored); if (typeof restoredDecline === "boolean") setDecline(restoredDecline); });
+      }
+    } catch { /* A stale or unavailable selection never affects checkout authorization. */ }
+  }, [item.slug, options]);
   const total = chosen.reduce((sum, option) => sum + option.remainingCents, 0);
   const paid = chosen.reduce((sum, option) => sum + option.paidCents, 0);
   const face = chosen.reduce((sum, option) => sum + option.priceCents, 0);
@@ -144,9 +164,9 @@ export function PurchaseCheckout({ options, initialBalance, cards, fundingAvaila
       <div className={styles.optionLine}><span>{usd(item.remainingCents)} per option</span><button type="button" disabled={locked} onClick={() => setOverlay("options")}>Choose options · {chosen.length}</button></div>
       {money}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}
       <button type="button" className={styles.primary} disabled={locked} onClick={review}>{shortfall ? `Add ${usd(required)} to continue` : `Review ${usd(total)} purchase`}</button>
-      <p className={styles.footnote}>Choose a card in the popup. Confirm purchase separately.</p>
+      <p className={styles.footnote}>{shortfall ? "Choose a card in the popup. Confirm purchase separately." : "Review and confirm your purchase in the popup."}</p>
+      <div className={styles.utility}><Link className={styles.activityButton} href="/account/entries?filter=completion">Go to My Activity</Link><Link className={styles.declineAll} href={`/account/purchase-options/${encodeURIComponent(item.slug)}?decline=confirm`}>Decline all offers</Link><Link className={styles.shoppingButton} href="/">Continue shopping</Link><ProductShareButton className={styles.shareButton} product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
-    <div className={styles.utility}><Link href="/account/entries?filter=completion">Go to My Activity</Link><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /><Link className={styles.declineAll} href={`/account/purchase-options/${encodeURIComponent(item.slug)}?decline=confirm`}>Decline all offers</Link><Link href="/">Continue shopping</Link></div>
     </div>{overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money}

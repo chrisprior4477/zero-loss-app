@@ -18,7 +18,7 @@ const purchaseActivity = { entryId: purchaseEntry, slug: "babys-essentials-bundl
 test("existing active entries return to their own review, never a purchase option", async () => {
   mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, slug: "playstation-5-slim", status: "active" }] } });
   render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: "playstation-5-slim", entry: purchaseEntry, quantity: "23", review: "entry" }) }));
-  expect(screen.getByRole("link", { name: "Back to entry review" }).getAttribute("href")).toBe(`/account/entries/${purchaseEntry}?quantity=23&review=entry#add-entries-title`);
+  expect(screen.getByRole("link", { name: "Back to entry review" }).getAttribute("href")).toBe(`/account/entries/${purchaseEntry}?quantity=23&review=entry#additional-entry-checkout`);
   expect(screen.queryByRole("link", { name: "Back to purchase option" })).toBeNull();
 });
 
@@ -53,7 +53,7 @@ test.each([{ browse: "https://evil.test/browse" }, { browse: ["/browse?category=
 test("funding returns to the exact authorized option even with another entry for the same product", async () => {
   mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, entryId: "ent_22222222222222222222222222222222" }, purchaseActivity] } });
   render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: purchaseActivity.slug, entry: purchaseEntry }) }));
-  expect(screen.getByRole("link", { name: "Back to purchase option" }).getAttribute("href")).toBe(`/account/entries?item=${purchaseActivity.slug}&entry=${purchaseEntry}&resume=purchase`);
+  expect(screen.getByRole("link", { name: "Back to purchase option" }).getAttribute("href")).toBe(`/account/purchase-options/${purchaseActivity.slug}?option=${purchaseEntry}&resume=wallet`);
   expect(screen.queryByRole("link", { name: "Back to this prize" })).toBeNull();
 });
 test.each(["ent_99999999999999999999999999999999", [purchaseEntry, purchaseEntry]])("foreign or ambiguous funding selectors cannot substitute another entry: %j", async entry => {

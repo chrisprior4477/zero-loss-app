@@ -4,6 +4,8 @@ import { HeaderNotifications } from "@/components/notifications/HeaderNotificati
 import Link from "next/link";
 import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
 import { EntryTicket } from "@/components/layout/EntryTicket";
+import { useSyncExternalStore } from "react";
+import { getPurchaseFundingContext, purchaseSelectionKey, subscribePurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
 
 function CreditIcon() {
   // Approved preview: shorten the painted outer lines (including round caps) by 20%.
@@ -21,6 +23,7 @@ export function HeaderAccountMetrics({
   activityState: AccountActivity;
 }) {
   const state = activityState;
+  const purchaseFunding = useSyncExternalStore(subscribePurchaseFundingContext, getPurchaseFundingContext, () => null);
 
   if (!isSignedIn) {
     return (
@@ -42,7 +45,7 @@ export function HeaderAccountMetrics({
       <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex min-h-11 min-w-11 items-center text-white hover:opacity-80">
         <EntryTicket count={ticketCount} />
       </Link>
-      <Link href={`${walletHistoryHref}#balance`} aria-label={`${balance} playable balance`} data-header-large-balance={largeBalance || undefined} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
+      <Link href={purchaseFunding?.href ?? `${walletHistoryHref}#balance`} onClick={() => { if (purchaseFunding) { try { sessionStorage.setItem(purchaseSelectionKey, JSON.stringify(purchaseFunding)); } catch { /* The exact first option still travels in the URL. */ } } }} aria-label={`${balance} playable balance`} data-header-large-balance={largeBalance || undefined} className="inline-grid grid-cols-[max-content_max-content] items-center gap-1 text-white hover:opacity-80 sm:gap-2">
         <CreditIcon />
         <span className="text-sm font-bold tabular-nums sm:text-xl">{balance}</span>
       </Link>

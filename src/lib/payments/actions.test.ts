@@ -104,6 +104,21 @@ test("confirmed credit redirects to the exact saved purchase option", async () =
   await completeDemoFunding({ status: "idle" }, f);
   expect(mocks.redirect).toHaveBeenCalledWith(destination);
 });
+test("confirmed funding returns to the exact purchase checkout without completing it", async () => {
+  const destination = "/account/purchase-options/babys-essentials-bundle?option=ent_11111111111111111111111111111111&resume=wallet";
+  const f = form(); f.set("returnTo", destination);
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.redirect).toHaveBeenCalledWith(destination);
+});
+test.each([
+  "/account/purchase-options/babys-essentials-bundle?option=ent_11111111111111111111111111111111&next=https://example.test",
+  "/account/purchase-options/babys-essentials-bundle?option=ent_11111111111111111111111111111111&resume=wallet&resume=wallet",
+  "//example.test/account/purchase-options/babys-essentials-bundle?option=ent_11111111111111111111111111111111",
+])("funding cannot redirect to an unapproved purchase URL: %s", async destination => {
+  const f = form(); f.set("returnTo", destination);
+  await completeDemoFunding({ status: "idle" }, f);
+  expect(mocks.redirect).not.toHaveBeenCalled();
+});
 test.each(["add-entries-title", "additional-entry-checkout"])("funding and recovery return to the saved additional-entry review at %s without submitting entries", async anchor => {
   const destination = `/account/entries/ent_11111111111111111111111111111111?quantity=23&review=entry#${anchor}`;
   const f = form(); f.set("returnTo", destination);

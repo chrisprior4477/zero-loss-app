@@ -14,6 +14,7 @@ import { entryReturnPath } from "@/lib/auth/entry-return";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { redirect } from "next/navigation";
+import { purchaseOptionReturnPath } from "@/lib/wallet/funding-navigation";
 
 export type DemoFundingActionState =
   | { status: "idle" }
@@ -46,6 +47,8 @@ function failure(error: unknown): DemoFundingActionState {
 function updateWalletViews() { revalidatePath("/", "layout"); }
 
 function fundingContinuation(value: unknown): string | null {
+  const purchase = purchaseOptionReturnPath(value);
+  if (purchase) return purchase;
   const product = entryReturnPath(value);
   if (product) return fundedProductEntryHref(product);
   const account = accountReturnPath(value);

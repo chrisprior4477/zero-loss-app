@@ -6,6 +6,15 @@ const entryPattern = /^ent_[a-f0-9]{32}$/;
 
 export type FundingContinuation = { title: string; href: string; label?: "Back to purchase option" | "Back to entry review"; entryQuantity?: number; shortfallCents?: number; depositCents?: number };
 
+/** Only an exact option selector is accepted; the purchase page rechecks ownership. */
+export function purchaseOptionReturnPath(value: unknown): string | null {
+  return typeof value === "string" && /^\/account\/purchase-options\/[a-z0-9]+(?:-[a-z0-9]+)*\?option=ent_[a-f0-9]{32}(?:&resume=wallet)?$/.test(value) ? value : null;
+}
+
+export function purchaseOptionHref(slug: string, entryId: string): string | null {
+  return purchaseOptionReturnPath(`/account/purchase-options/${slug}?option=${entryId}&resume=wallet`);
+}
+
 export function entryReviewHref(entryId: string, quantity = 1): string {
   if (!entryPattern.test(entryId)) return "/account/entries";
   return `/account/entries/${entryId}?quantity=${isEntryQuantity(quantity) ? quantity : 1}&review=entry#additional-entry-checkout`;

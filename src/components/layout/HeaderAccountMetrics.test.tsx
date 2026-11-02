@@ -1,9 +1,10 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { HeaderAccountMetrics } from "./HeaderAccountMetrics";
+import { purchaseFundingHref, purchaseSelectionKey, setPurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); setPurchaseFundingContext(null); sessionStorage.clear(); });
 const activityState = { activeCount: 17, activity: [], source: "stored" as const, isPreview: false };
 
 test.each([
@@ -32,4 +33,17 @@ test("the fit marker follows balance updates in both directions without changing
 test("signed-out headers never enable balance fitting", () => {
   const { container } = render(<HeaderAccountMetrics isSignedIn={false} liveBalance="$1000" activityState={activityState} />);
   expect(container.querySelector("[data-header-large-balance]")).toBeNull();
+});
+
+test("the balance keeps the selected purchase context and returns to normal after checkout closes", () => {
+  const slug = "babys-essentials-bundle";
+  const entry = "ent_11111111111111111111111111111111";
+  render(<HeaderAccountMetrics isSignedIn liveBalance="$24" activityState={activityState} />);
+  const wallet = screen.getByRole("link", { name: "$24 playable balance" });
+  act(() => setPurchaseFundingContext({ href: purchaseFundingHref(slug, entry)!, slug, selected: ["option-1", "option-2"], decline: false }));
+  expect(wallet.getAttribute("href")).toBe(`/account/wallet?view=history&from=${slug}&entry=${entry}#balance`);
+  fireEvent.click(wallet);
+  expect(JSON.parse(sessionStorage.getItem(purchaseSelectionKey)!)).toMatchObject({ slug, selected: ["option-1", "option-2"], decline: false });
+  act(() => setPurchaseFundingContext(null));
+  expect(wallet.getAttribute("href")).toBe("/account/wallet?view=history#balance");
 });

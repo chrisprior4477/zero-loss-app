@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
-import { entryFundingAmounts, entryReviewFundingHref, entryReviewHref, fundingHref, type FundingContinuation } from "@/lib/wallet/funding-navigation";
+import { entryFundingAmounts, entryReviewFundingHref, entryReviewHref, fundingHref, purchaseOptionHref, type FundingContinuation } from "@/lib/wallet/funding-navigation";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
@@ -46,7 +46,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const fundingReturn: FundingContinuation | undefined = query.entry !== undefined
     ? fromEntry ? fromEntry.status === "active"
       ? { title: fromEntry.title, href: entryReviewHref(fromEntry.entryId!, requestedQuantity), label: "Back to entry review", entryQuantity: requestedQuantity, ...amounts }
-      : { title: fromEntry.title, href: fromEntry.status === "completion" ? `${activityHref(fromEntry)}&resume=purchase` : activityHref(fromEntry), label: "Back to purchase option" } : undefined
+      : { title: fromEntry.title, href: fromEntry.status === "completion" ? purchaseOptionHref(fromEntry.slug, fromEntry.entryId!) ?? activityHref(fromEntry) : activityHref(fromEntry), label: "Back to purchase option" } : undefined
     : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity, query.browse) } : undefined;
   if (fundingReturn && forEntry) Object.assign(fundingReturn, { entryQuantity: requestedQuantity, ...amounts });
   // A URL only selects from this authenticated account's authorized data.
