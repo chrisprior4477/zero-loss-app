@@ -213,7 +213,7 @@ export const existingDemoProducts: DemoProduct[] = [
       { label: "Department", value: "Men's" },
       { label: "Width", value: "Standard / medium" },
       { label: "Closure", value: "Lace-up" },
-      { label: "Sizing", value: "Choose an available men's size during completion" },
+      { label: "Sizing", value: "Choose your size at Dick's when you use the gift card." },
     ],
     included: ["One $75 Dick's Sporting Goods digital gift card for the pictured shoes or another eligible Dick's purchase"],
     sourceUrl: "https://www.dickssportinggoods.com/p/nike-mens-court-shot-shoes-24nikmcrtshtwhtblmns/24nikmcrtshtwhtblmns",
