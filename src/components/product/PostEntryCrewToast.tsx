@@ -4,7 +4,7 @@ import { prepareProductShareLink } from "@/lib/sharing/receiving-actions";
 import { accountRoutes } from "@/lib/account/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, removeCrewMember, saveCrewGroup, saveCrewMemberContact, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, shareWinWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
 import type { CrewMemberContact } from "@/lib/crew/member-contact";
 import { getProductShareItem } from "@/lib/sharing/actions";
@@ -21,6 +21,14 @@ type PhoneContact = { name?: string[]; email?: string[]; tel?: string[] };
 type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<PhoneContact[]> };
 const contactKey = (value: string, kind: "id" | "email" | "phone") => kind === "phone" ? value.replace(/\D/g, "") : value.trim().toLowerCase();
 const validPhone = (value: string) => /^\d{10,15}$/.test(value.replace(/\D/g, ""));
+
+// An incomplete recipient has no draft href, so the browser won't synthesize a click.
+function activateDraftLink(event: ReactKeyboardEvent<HTMLAnchorElement>) {
+  if (!event.currentTarget.hasAttribute("href") && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    event.currentTarget.click();
+  }
+}
 const samplePortraits = ["andre", "nora", "mateo", "sofia", "owen", "tessa", "samir", "jules"];
 function CrewPortrait({ index }: { index: number }) {
   return <span className={styles.memberAvatar}><Image src={`/images/home/crew/person-${samplePortraits[index % samplePortraits.length]}.webp`} alt="" title="Sample portrait" width={34} height={34} className={styles.portrait} /></span>;
@@ -45,7 +53,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const [shared, setShared] = useState(false);
   const [sharedGroupName, setSharedGroupName] = useState("");
   const [phone, setPhone] = useState("");
-  const [phoneError, setPhoneError] = useState(false);
+  const [recipientError, setRecipientError] = useState(false);
   const [email, setEmail] = useState("");
   const [query, setQuery] = useState("");
   const [reviewQuery, setReviewQuery] = useState("");
@@ -190,8 +198,8 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }, [step]);
 
   function feedback(value: string, failed = false) { setMessage(value); setError(failed); }
-  function go(next: Step) { history.current.push(step); setStep(next); setPhoneError(false); feedback(""); }
-  function back() { const previous = history.current.pop() ?? "home"; if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); setPhoneError(false); feedback(""); }
+  function go(next: Step) { history.current.push(step); setStep(next); setRecipientError(false); feedback(""); }
+  function back() { const previous = history.current.pop() ?? "home"; if (step === "audience" && previous === "audience") setGroupsOnly(false); setStep(previous); setRecipientError(false); feedback(""); }
   async function run(work: () => Promise<void>) {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true); feedback("");
@@ -353,7 +361,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     setPickedContact({ id: crypto.randomUUID(), name: contact.name.slice(0, 80), phone: contact.kind === "phone" ? contact.value.trim() : "", email: contact.kind === "email" ? contact.value.trim() : "" });
     const destination = contactReturn.current === "messages" && contact.kind === "phone" ? "messages" : "find";
     if (destination === contactReturn.current) history.current.pop();
-    if (destination === "messages") { setPhone(contact.value); setPhoneError(false); setStep("messages"); }
+    if (destination === "messages") { setPhone(contact.value); setRecipientError(false); setStep("messages"); }
     else { searchVersion.current += 1; setQuery(contact.value); setReviewQuery(contact.value); setPeople([]); setStep("find"); }
     feedback(`${contact.name} selected. Add to Crew, save to a group, or send in your app.`);
   }
@@ -515,11 +523,12 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     return webmailHref(provider, email, item.title, body);
   }
   function invalidEmail() {
-    feedback("Enter a valid email address, or leave it blank.", true);
+    setRecipientError(true);
+    feedback("");
     if (emailRecipientPanel.current) emailRecipientPanel.current.open = true;
     document.getElementById(`${id}-recipient`)?.focus();
   }
-  const webmailLink = (provider: WebmailProvider, label: string, tile = false) => <a className={tile ? styles.emailTile : styles.emailOption} aria-label={`${label} in browser (opens a new tab)`} href={emailLink(provider)} target="_blank" rel="noopener noreferrer" onClick={event => {
+  const webmailLink = (provider: WebmailProvider, label: string, tile = false) => <a className={tile ? styles.emailTile : styles.emailOption} aria-label={`${label} in browser (opens a new tab)`} href={emailLink(provider)} role="link" tabIndex={0} onKeyDown={activateDraftLink} target="_blank" rel="noopener noreferrer" onClick={event => {
     if (!externalHref) { event.preventDefault(); invalidEmail(); }
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
@@ -562,16 +571,14 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       {step === "messages" ? <>
         <div className={styles.field}><label htmlFor={`${id}-recipient`}>Phone number <span>· optional</span></label>
           <form className={styles.phoneRow} onSubmit={event => { event.preventDefault(); smsLink.current?.click(); }}>
-            <input id={`${id}-recipient`} type="tel" enterKeyHint="go" maxLength={25} autoComplete="off" value={phone} onChange={event => { setPhone(event.target.value); setPhoneError(false); setPickedContact(null); }} placeholder="Phone number" disabled={busy} aria-invalid={phoneError || undefined} aria-describedby={phoneError ? `${id}-phone-error` : undefined} />
-            <a ref={smsLink} className={styles.primary} href={externalHref ?? undefined} role="link" tabIndex={0} aria-label="Send text" onKeyDown={event => {
-              if (!externalHref && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setPhoneError(true); }
-            }} onClick={event => {
-              if (!externalHref) { event.preventDefault(); setPhoneError(true); }
+            <input id={`${id}-recipient`} type="tel" enterKeyHint="go" maxLength={25} autoComplete="off" value={phone} onChange={event => { setPhone(event.target.value); setRecipientError(false); setPickedContact(null); }} placeholder="Phone number" disabled={busy} aria-invalid={recipientError || undefined} aria-describedby={recipientError ? `${id}-phone-error` : undefined} />
+            <a ref={smsLink} className={styles.primary} href={externalHref ?? undefined} role="link" tabIndex={0} aria-label="Send text" onKeyDown={activateDraftLink} onClick={event => {
+              if (!externalHref) { event.preventDefault(); setRecipientError(true); }
               else feedback("Review and send in your texting app. If it doesn’t open, use Copy link.");
             }}><span>Send<br />Text</span></a>
             <button type="button" className={styles.crewButton} aria-label={requested.includes(contactKey(phone, "phone")) ? "Added" : "Add to Crew"} disabled={busy || !validPhone(phone) || requested.includes(contactKey(phone, "phone"))} onClick={() => void addPerson(phone.trim(), "phone")}>{requested.includes(contactKey(phone, "phone")) ? "Added" : <span>Add to<br />Crew</span>}</button>
           </form>
-          {phoneError ? <p id={`${id}-phone-error`} role="alert" className={styles.phoneError}>Please enter a complete phone number, or leave this blank.</p> : null}
+          {recipientError ? <p id={`${id}-phone-error`} role="alert" className={styles.recipientError}>Please enter a complete phone number, or leave this blank.</p> : null}
           <button type="button" className={styles.contactsButton} disabled={busy} onClick={() => openContacts("messages")}><ShareIcon name="crew" />Add people from your phone</button>
         </div>
         <p className={styles.messagePreview}>{text}</p>
@@ -603,7 +610,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           <div className={styles.emailTiles}>
             {webmailLink("gmail", "Gmail", true)}
             {webmailLink("outlook", "Outlook", true)}
-            <a className={styles.emailTile} aria-label="Use my default email app" href={externalHref ?? undefined} onClick={event => {
+            <a className={styles.emailTile} aria-label="Use my default email app" href={externalHref ?? undefined} role="link" tabIndex={0} onKeyDown={activateDraftLink} onClick={event => {
               if (!externalHref) { event.preventDefault(); invalidEmail(); }
               else feedback("Review and send in your email app. If it doesn’t open, choose Gmail or Outlook, or copy the message below.");
             }}><ShareIcon name="mail" /><span>Email app</span></a>
@@ -612,7 +619,11 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         </section>
         <details className={styles.more} ref={emailRecipientPanel}>
           <summary>Add recipient · optional</summary>
-          <div className={styles.field}><label htmlFor={`${id}-recipient`}>Email address</label><input id={`${id}-recipient`} type="email" maxLength={254} autoComplete="off" value={email} onChange={event => setEmail(event.target.value)} placeholder="name@example.com" /></div>
+          <div className={styles.field}>
+            <label htmlFor={`${id}-recipient`}>Email address</label>
+            <input id={`${id}-recipient`} type="email" maxLength={254} autoComplete="off" value={email} onChange={event => { setEmail(event.target.value); setRecipientError(false); }} placeholder="name@example.com" aria-invalid={recipientError || undefined} aria-describedby={recipientError ? `${id}-email-error` : undefined} />
+            {recipientError ? <p id={`${id}-email-error`} role="alert" className={styles.recipientError}>Enter a complete email address or leave this blank.</p> : null}
+          </div>
         </details>
         <details className={styles.more}>
           <summary>Preview &amp; other email options</summary>

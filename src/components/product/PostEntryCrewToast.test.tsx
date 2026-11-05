@@ -50,16 +50,39 @@ test("email starts with three app choices and keeps advanced options collapsed",
   expect(screen.getByLabelText("Message with item link")).toHaveProperty("value", expect.stringContaining("/items/test-prize"));
 });
 
-test("invalid optional email blocks handoff and reveals the field to correct", () => {
+test.each([
+  [/Gmail in browser/, "click"],
+  [/Gmail in browser/, "Enter"],
+  [/^Outlook in browser/, "Enter"],
+  [/Use my default email app/, "Enter"],
+  [/Outlook for work or school/, " "],
+] as const)("an incomplete recipient keeps %s reachable and %s returns to the inline error", (label, activation) => {
   open(); fireEvent.click(screen.getByRole("button", { name: "Email" }));
   const recipient = screen.getByLabelText("Email address");
-  fireEvent.change(recipient, { target: { value: "not-an-email" } });
-  fireEvent.click(screen.getByText("Gmail").closest("a")!);
-  expect(screen.getByRole("alert").textContent).toContain("Enter a valid email");
+  const summary = screen.getByText("Add recipient · optional");
+  fireEvent.click(summary);
+  fireEvent.change(recipient, { target: { value: "alex@" } });
+  fireEvent.click(summary);
+  fireEvent.click(screen.getByText("Preview & other email options"));
+  const link = screen.getByRole("link", { name: label });
+  expect(link.tabIndex).toBe(0);
+  expect(link.getAttribute("href")).toBeNull();
+  link.focus();
+  if (activation === "click") expect(fireEvent.click(link)).toBe(false);
+  else expect(fireEvent.keyDown(link, { key: activation })).toBe(false);
+  const error = screen.getByRole("alert");
+  expect(error.textContent).toBe("Enter a complete email address or leave this blank.");
+  expect(recipient.nextElementSibling).toBe(error);
+  expect(recipient.getAttribute("aria-invalid")).toBe("true");
+  expect(recipient.getAttribute("aria-describedby")).toBe(error.id);
   expect(recipient.closest("details")).toHaveProperty("open", true);
   expect(document.activeElement).toBe(recipient);
+  fireEvent.change(recipient, { target: { value: "alex@example.test" } });
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(decodeURIComponent(link.getAttribute("href")!)).toContain("alex@example.test");
   fireEvent.change(recipient, { target: { value: "" } });
-  expect(screen.getByRole("link", { name: /Gmail in browser/ }).getAttribute("href")).toBeTruthy();
+  expect(link.getAttribute("href")).toBeTruthy();
+  expect(recipient.hasAttribute("aria-invalid")).toBe(false);
   expect(mocks.share).not.toHaveBeenCalled(); expect(mocks.prize).not.toHaveBeenCalled();
 });
 
