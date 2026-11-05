@@ -33,7 +33,7 @@ export function PurchaseOptionControls({ item, resumePurchase = false }: { item:
       if (result.status === "succeeded") {
         window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
         const destination = result.href ?? (intent === "purchase" ? "/account/wallet" : "/account/entries");
-        router.replace(intent === "purchase" && destination.startsWith("/account/wallet?") ? `${destination}#reward-pass` : destination);
+        router.replace(destination);
       }
       return result;
     } catch {

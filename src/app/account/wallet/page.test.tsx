@@ -118,6 +118,31 @@ test.each(["expired", "cancelled", "redeemed", "issuance_pending", "issuance_fai
   expect(screen.queryByLabelText("Sample reward barcode")).toBeNull();
 });
 
+test.each([
+  { via: "purchase", count: 0, label: null },
+  { via: "purchase", count: 1, label: "View your remaining 1 Walmart offer" },
+  { via: "purchase", count: 2, label: "View your remaining 2 Walmart offers" },
+  { via: undefined, count: 2, label: null },
+])("issued card shortcut follows arrival and same-prize availability: %j", async ({ via, count, label }) => {
+  const rewardId = "reward-1";
+  const paid = { ...purchaseActivity, status: "completed", rewardSource: "purchase", rewardStatus: "ready", rewardClaimedAt: "2026-09-21T12:00:00Z", rewardId };
+  const kept = Array.from({ length: count }, (_, i) => ({ ...purchaseActivity, entryId: `open-${i}` }));
+  mocks.getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [
+    paid, ...kept, { ...purchaseActivity, slug: "different-prize-same-retailer" },
+    { ...purchaseActivity, completionOptionStatus: "declined" }, { ...purchaseActivity, completionOptionStatus: "expired" },
+  ] } });
+  mocks.rpc.mockResolvedValue({ data: { code: "123456789012" } });
+  render(await WalletPage({ searchParams: Promise.resolve({ rewardId, via }) }));
+  expect(screen.getByRole("button", { name: "Copy number" })).toBeTruthy();
+  if (label) {
+    const link = screen.getByRole("link", { name: label });
+    expect(link.getAttribute("href")).toBe(`/account/purchase-options/${purchaseActivity.slug}`);
+    expect(link.nextElementSibling?.textContent).toBe("Continue Shopping");
+  } else {
+    expect(screen.queryByRole("link", { name: /View your remaining/ })).toBeNull();
+  }
+});
+
 test("a credential read error cannot fall back to another sample number", async () => {
   mocks.getAccountContext.mockResolvedValue({ activity: { source: "stored", isPreview: true, activity: [{
     slug: "test-reward", title: "Test", retailer: "Test retailer", image: "/test.png", priceCents: 2500,

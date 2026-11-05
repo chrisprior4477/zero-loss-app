@@ -58,6 +58,18 @@ export function walletRewardHref(item: Pick<ActivityItem, "slug" | "rewardId">):
   if (item.rewardId) params.set("rewardId", item.rewardId);
   return `/account/wallet?${params}`;
 }
+/** Only a purchase arrival carries the shortcut back to other offers for this prize. */
+export function purchasedRewardHref(rewardId: string, slug?: string): string {
+  const params = new URLSearchParams();
+  if (slug) params.set("reward", slug);
+  params.set("rewardId", rewardId);
+  params.set("via", "purchase");
+  return `/account/wallet?${params}#reward-pass`;
+}
+export function openPrizeOptions(items: ActivityItem[], slug: string): ActivityItem[] {
+  return items.filter(item => item.slug === slug && item.status === "completion" && item.entryId
+    && (item.completionOptionStatus == null || item.completionOptionStatus === "available"));
+}
 /** This filters only the caller's server-authorized data; it never loads fixtures. */
 export function walletRewards(state: AccountActivity): ActivityItem[] {
   return state.source === "unavailable" ? [] : state.activity.filter(isWalletReward);

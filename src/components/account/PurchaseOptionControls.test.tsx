@@ -42,8 +42,8 @@ test("duplicate clicks only dispatch once and success opens the exact reward", a
   fireEvent.click(button); fireEvent.click(button);
   await waitFor(() => expect(mocks.purchase).toHaveBeenCalledOnce());
   expect((screen.getByRole("button", { name: "Cancel" }) as HTMLButtonElement).disabled).toBe(true);
-  await act(async () => finish({ status: "succeeded", message: "Saved", href: "/account/wallet?rewardId=22222222-2222-4222-8222-222222222222" }));
-  expect(mocks.replace).toHaveBeenCalledWith("/account/wallet?rewardId=22222222-2222-4222-8222-222222222222#reward-pass");
+  await act(async () => finish({ status: "succeeded", message: "Saved", href: "/account/wallet?rewardId=22222222-2222-4222-8222-222222222222&via=purchase#reward-pass" }));
+  expect(mocks.replace).toHaveBeenCalledWith("/account/wallet?rewardId=22222222-2222-4222-8222-222222222222&via=purchase#reward-pass");
 });
 test("lost server response blocks new attempts until a full authoritative status reload", async () => {
   mocks.purchase.mockRejectedValue(new Error("connection lost"));

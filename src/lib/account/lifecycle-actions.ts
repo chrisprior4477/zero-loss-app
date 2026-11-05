@@ -1,5 +1,6 @@
 "use server";
 
+import { purchasedRewardHref } from "./activity";
 import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -171,14 +172,14 @@ export async function purchaseGiftCard(
       return { status: "error", recovery: "check", message: "We couldn’t confirm the purchase result. Check purchase status before trying again; it may already be complete." };
     }
     if (typeof data.rewardId === "string" && uuidPattern.test(data.rewardId)) {
-      href = `/account/wallet?rewardId=${data.rewardId}`;
+      href = purchasedRewardHref(data.rewardId);
     } else {
       // Older duplicate receipts contain only an order number. Resolve the exact
       // reward from this customer's authorized projection, never from form data.
       try {
         const { data: activity, error: readError } = await db.rpc("get_account_activity");
         const saved = !readError && Array.isArray(activity) ? activity.find(row => row.completion_option_id === optionId) : null;
-        if (saved && typeof saved.reward_id === "string" && uuidPattern.test(saved.reward_id)) href = `/account/wallet?rewardId=${saved.reward_id}`;
+        if (saved && typeof saved.reward_id === "string" && uuidPattern.test(saved.reward_id)) href = purchasedRewardHref(saved.reward_id);
       } catch { /* Confirmed purchase; the wallet list remains the safe fallback. */ }
     }
   } catch {

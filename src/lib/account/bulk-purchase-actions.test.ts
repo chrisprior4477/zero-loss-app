@@ -13,7 +13,7 @@ test("uses one atomic RPC with explicit purchase and decline IDs, quoted total a
 });
 test("opens the issued gift card with its barcode/details instead of the preview artwork", async () => {
   mocks.rpc.mockResolvedValue({ data: { status: "purchased", purchasedCount: 2, declinedCount: 1, totalCents: 29800, rewardIds: [id(8), id(9)] } });
-  expect(await completeDemoPurchaseOptions(request)).toMatchObject({ status: "succeeded", href: `/account/wallet?reward=gift-card&rewardId=${id(8)}#reward-pass` });
+  expect(await completeDemoPurchaseOptions(request)).toMatchObject({ status: "succeeded", href: `/account/wallet?reward=gift-card&rewardId=${id(8)}&via=purchase#reward-pass` });
 });
 test("rejects unconfirmed, repeated/overlapping IDs, signed-out and non-demo calls", async () => {
   expect((await completeDemoPurchaseOptions({ ...request, confirmed: false })).status).toBe("error");

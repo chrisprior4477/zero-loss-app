@@ -16,7 +16,7 @@ beforeEach(() => {
 test("server derives identity and uses the same option-bound key, ignoring client prices and destinations", async () => {
   const data = form(); data.set("amount", "1"); data.set("customerId", "someone-else"); data.set("href", "https://evil.test");
   for (let attempt = 0; attempt < 2; attempt++) {
-    expect(await purchaseGiftCard({ status: "idle" }, data)).toMatchObject({ status: "succeeded", href: `/account/wallet?rewardId=${rewardId}` });
+    expect(await purchaseGiftCard({ status: "idle" }, data)).toMatchObject({ status: "succeeded", href: `/account/wallet?rewardId=${rewardId}&via=purchase#reward-pass` });
   }
   expect(mocks.getUser).toHaveBeenCalledTimes(2);
   expect(mocks.rpc.mock.calls).toEqual(Array.from({ length: 2 }, () => ["purchase_preview_gift_card", { p_option_id: optionId, p_idempotency_key: "checkout_11111111111141118111111111111111" }]));
@@ -51,7 +51,7 @@ test("timeout after commit cannot claim the purchase failed or automatically ret
 test("an older duplicate receipt resolves the same exact reward by option, not by product", async () => {
   mocks.rpc.mockResolvedValueOnce({ data: { status: "purchased", duplicate: true, orderNumber: "ZL-SAVED" } })
     .mockResolvedValueOnce({ data: [{ completion_option_id: "other", reward_id: "33333333-3333-4333-8333-333333333333" }, { completion_option_id: optionId, reward_id: rewardId }] });
-  expect(await purchaseGiftCard({ status: "idle" }, form())).toMatchObject({ status: "succeeded", href: `/account/wallet?rewardId=${rewardId}` });
+  expect(await purchaseGiftCard({ status: "idle" }, form())).toMatchObject({ status: "succeeded", href: `/account/wallet?rewardId=${rewardId}&via=purchase#reward-pass` });
 });
 test("confirmed purchase with an unavailable receipt lookup goes to the wallet, not another charge", async () => {
   mocks.rpc.mockResolvedValueOnce({ data: { status: "purchased", duplicate: true } }).mockRejectedValueOnce(new Error("read unavailable"));

@@ -7,6 +7,7 @@ import { useState } from "react";
 type RewardRedemptionActionsProps = {
   displayCode: string | null;
   isPreview: boolean;
+  remainingOffers?: { count: number; retailer: string; slug: string };
   appleWalletUrl?: string | null;
   googleWalletUrl?: string | null;
 };
@@ -14,6 +15,7 @@ type RewardRedemptionActionsProps = {
 export function RewardRedemptionActions({
   displayCode,
   isPreview,
+  remainingOffers,
   appleWalletUrl = null,
   googleWalletUrl = null,
 }: RewardRedemptionActionsProps) {
@@ -53,6 +55,12 @@ export function RewardRedemptionActions({
         {appleWalletUrl ? <a href={appleWalletUrl} aria-label="Add to Apple Wallet" className={`${walletButton} bg-black text-white`}>{appleLabel}</a> : <button type="button" disabled aria-label="Add to Apple Wallet" className={`${walletButton} bg-[#494949] text-white`}>{appleLabel}</button>}
         {googleWalletUrl ? <a href={googleWalletUrl} aria-label="Add to Google Wallet" className={`${walletButton} border border-[#d7e1e8] bg-white text-[#182435]`}>{googleLabel}</a> : <button type="button" disabled aria-label="Add to Google Wallet" className={`${walletButton} border border-[#d7e1e8] bg-white text-[#526171]`}>{googleLabel}</button>}
       </div>
+      {remainingOffers && <Link href={`/account/purchase-options/${encodeURIComponent(remainingOffers.slug)}`} prefetch={false}
+        className="mt-2 block w-full rounded-xl bg-[#ff861c] px-3 py-2.5 text-center text-sm font-black leading-6 text-[#061630] hover:bg-[#ff9a42] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075b8c]">
+        View your remaining{" "}
+        <span className="inline-grid min-h-6 min-w-6 place-items-center rounded-full bg-white px-1 align-middle leading-none">{remainingOffers.count}</span>{" "}
+        {remainingOffers.retailer} {remainingOffers.count === 1 ? "offer" : "offers"}
+      </Link>}
       <Link href="/" className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#061630] transition hover:bg-[#65f33d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b9ff] max-[700px]:mt-2">Continue Shopping</Link>
       {!appleWalletUrl && !googleWalletUrl ? <p className="mt-4 text-center text-[11px] leading-4 text-[#4a667c]">Wallet passes are not connected in this preview yet.</p> : null}
     </section>

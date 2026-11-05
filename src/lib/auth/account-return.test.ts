@@ -3,7 +3,8 @@ import { accountPageReturnPath, accountReturnPath } from "./account-return";
 import { authNavigationHref, signInReturnPath, signupVerificationPath } from "./entry-return";
 const id = "11111111-1111-4111-8111-111111111111";
 const destinations = [
-  "/contact", "/contact#message",
+  "/contact", "/contact#message", "/account/purchase-options/publix",
+  `/account/wallet?reward=publix&rewardId=${id}&via=purchase#reward-pass`,
   `/account/wallet?reward=samsung-m70h-tv&rewardId=${id}`,
   `/account/wallet?rewardId=${id}`, "/account/wallet", "/account/wallet?rewards=history", "/account/wallet?view=card",
   `/account/wallet?view=history&transaction=${id}#transaction-${id}`,

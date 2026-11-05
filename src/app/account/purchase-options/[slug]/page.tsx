@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PurchaseOptionRail } from "@/components/account/PurchaseOptionRail";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
+import { activityHref, findActivityItem, isPurchasedReward, openPrizeOptions, purchasedRewardHref } from "@/lib/account/activity";
 import { getAccountContext } from "@/lib/account/context";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
@@ -17,15 +18,25 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const { slug } = await params;
   const { option: selectedEntryId, decline } = await searchParams;
   const account = await getAccountContext();
-  const returnPath = `/account/purchase-options/${encodeURIComponent(slug)}`;
+  const prizePath = `/account/purchase-options/${encodeURIComponent(slug)}`;
+  const returnPath = selectedEntryId === undefined ? prizePath : `${prizePath}?option=${encodeURIComponent(selectedEntryId)}`;
   if (!account) redirect(authNavigationHref("/login", returnPath));
   if (account.activity.source === "unavailable") notFound();
 
   // The authenticated account read model is owner-scoped. Never fetch options
   // by a user ID or trust a count supplied through the URL.
-  const options = account.activity.activity
-    .filter(item => item.status === "completion" && item.slug === slug && item.completionOptionStatus !== "declined" && item.entryId)
+  const activity = account.activity.activity;
+  const options = openPrizeOptions(activity, slug)
     .sort((left, right) => (left.enteredAt ?? "").localeCompare(right.enteredAt ?? "") || (left.entryId ?? "").localeCompare(right.entryId ?? ""));
+  if (selectedEntryId !== undefined && !options.some(option => option.entryId === selectedEntryId)) {
+    if (typeof selectedEntryId !== "string" || !selectedEntryId) notFound();
+    const ticket = findActivityItem(activity, slug, selectedEntryId);
+    if (!ticket) notFound();
+    if (isPurchasedReward(ticket)) {
+      redirect(ticket.rewardId ? purchasedRewardHref(ticket.rewardId, slug) : "/account/entries?filter=completed");
+    }
+    redirect(activityHref(ticket));
+  }
   if (options.length === 0) notFound();
 
   const item = options[0];

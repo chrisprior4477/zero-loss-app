@@ -1,5 +1,6 @@
 "use server";
 
+import { purchasedRewardHref } from "./activity";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 
@@ -44,7 +45,7 @@ export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest):
     // to the completed activity list without attempting the purchase again.
     const rewardId = Array.isArray(data.rewardIds) ? data.rewardIds.find((id: unknown) => typeof id === "string" && uuid.test(id)) : undefined;
     const href = rewardId
-      ? `/account/wallet?reward=${encodeURIComponent(request.slug)}&rewardId=${encodeURIComponent(rewardId)}#reward-pass`
+      ? purchasedRewardHref(rewardId, request.slug)
       : "/account/entries?filter=completed";
     return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, href };
   } catch {

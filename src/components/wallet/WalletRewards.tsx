@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { activityHref, isWalletReward, readyWalletRewards, walletHistoryHref, walletRewardHref, walletRewards, type AccountActivity, type ActivityItem } from "@/lib/account/activity";
+import { activityHref, isWalletReward, openPrizeOptions, readyWalletRewards, walletHistoryHref, walletRewardHref, walletRewards, type AccountActivity, type ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { StatusTicket } from "@/components/account/StatusTicket";
 import stripStyles from "@/components/account/account-status-strip.module.css";
@@ -8,6 +8,7 @@ import { AccountIcon } from "@/components/account/AccountIcon";
 import { accountRoutes } from "@/lib/account/navigation";
 import { fulfillmentHref } from "@/lib/account/fulfillment";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { RewardPassAutoScroll } from "./RewardPassAutoScroll";
 import { WalletRewardLink } from "./WalletRewardLink";
 import { WalletLandingScroll } from "./WalletLandingScroll";
@@ -172,7 +173,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
+export function WalletRewardDetail({ item, isPreview, fromPurchase = false, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -183,6 +184,7 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
   const rawCode = available && claimed ? (claimedCode?.trim() || fallbackSample?.raw || null) : null;
   const displayCode = rawCode?.replaceAll(/\s/g, "").match(/.{1,4}/g)?.join(" ") ?? rawCode;
   const rewardReady = available && claimed && Boolean(rawCode);
+  const remainingCount = fromPurchase && accountOverview ? openPrizeOptions(accountOverview.activity.activity, item.slug).length : 0;
   const isWin = item.rewardSource === "winner" || (item.rewardSource !== "purchase" && item.status === "prize");
   const readyMessage = isWin ? "Your prize is ready!" : "Your gift card is ready.";
   const canClaim = available && !claimed && Boolean(item.rewardId);
@@ -215,7 +217,9 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
   const singleReady = ready.length === 1 ? ready[0] : null;
 
   return <main className={styles.detailPage}>
-    <RewardPassAutoScroll rewardKey={item.rewardId ?? item.slug} />
+    {fromPurchase
+      ? <AccountSettingsLandingScroll target="reward-pass" initialTarget="reward-pass" visitKey={item.rewardId ?? item.slug} settleAfterNavigation allScreens />
+      : <RewardPassAutoScroll rewardKey={item.rewardId ?? item.slug} />}
     <section aria-label="Reward redemption details" className={styles.detailShell}>
       {accountOverview ? <section aria-label="Your account overview" className={`${stripStyles.row} ${styles.detailStatusStrip}`}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={accountOverview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={accountOverview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!accountOverview.fundingEnabled} />
@@ -254,7 +258,10 @@ export function WalletRewardDetail({ item, isPreview, claimedCode = null, overvi
               </div> : !canClaim ? <div className={styles.codePanel}><div role="status" className={styles.notIssued}>
                 <div><p>{notice.title}</p><span>{notice.message}</span><Link href="/support" className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
               </div></div> : null}
-              {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} /> : <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview} />}
+              {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} /> : (
+                <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview}
+                  remainingOffers={rewardReady && remainingCount > 0 ? { count: remainingCount, retailer: item.retailer, slug: item.slug } : undefined} />
+              )}
               {isPreview && available && repeatableDemoOutcome && item.rewardId && (item.status === "prize" || item.status === "completed") ? <DemoRewardRestartControl rewardId={item.rewardId} /> : null}
               {isPreview && rewardReady && item.status === "prize" && item.rewardId ? <DemoIdentityPreviewButton rewardId={item.rewardId} /> : null}
             </div>

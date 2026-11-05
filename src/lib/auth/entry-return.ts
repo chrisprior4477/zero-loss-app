@@ -1,4 +1,4 @@
-import { fundingReturnPath } from "@/lib/wallet/funding-navigation";
+import { fundingReturnPath, purchaseOptionReturnPath } from "@/lib/wallet/funding-navigation";
 import { currentProductEntryHref, productEntryReturnPath } from "@/lib/entries/return-intent";
 import { accountReturnPath } from "./account-return";
 
@@ -20,7 +20,7 @@ export function productReturnFromReferer(referer: unknown, requestHost: unknown)
 
 /** Resume only known in-site destinations, never an arbitrary redirect URL. */
 export function signInReturnPath(value: unknown): string | null {
-  return sharedProductReturnPath(value) ?? entryReturnPath(value) ?? fundingReturnPath(value) ?? accountReturnPath(value);
+  return sharedProductReturnPath(value) ?? entryReturnPath(value) ?? fundingReturnPath(value) ?? purchaseOptionReturnPath(value) ?? accountReturnPath(value);
 }
 
 export function sharedProductReturnPath(value: unknown): string | null {
