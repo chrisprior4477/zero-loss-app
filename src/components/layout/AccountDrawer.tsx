@@ -228,6 +228,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
                   <div className={styles.promo}><span className={styles.promoIcon} aria-hidden="true"><span className={styles.promoMark} /></span><strong>Real prizes. Real possibilities.</strong></div>
                 </div>
                 <div className={styles.utilityWrap}>
+                  <Link href="/signup?account=business" onClick={close} className={styles.installButton}><AccountIcon name="layers" /><span>Business application</span><AccountIcon name="chevron" /></Link>
                   <button type="button" onClick={requestInstall} className={styles.installButton}><AccountIcon name="install" /><span>Add to Home Screen</span><AccountIcon name="chevron" /></button>
                 </div>
                 {email ? <span className="sr-only">Signed in as {displayName}, {email}</span> : null}

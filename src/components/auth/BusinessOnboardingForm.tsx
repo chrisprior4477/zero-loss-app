@@ -3,15 +3,24 @@
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
-import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, type ChangeEvent, type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useEffect, useRef, useState } from "react";
 
-type Partnership = "products" | "fulfillment" | "campaign" | "other";
-type DemoCase = Partnership | "restaurant" | "tools";
-type FormValues = Record<string, string | boolean>;
+import { businessSignupPath, demoOf, initialValues, missingBusinessFields, type BusinessDraft, type BusinessFile, type BusinessRecord, type DemoCase, type FormValues, type PartnerListing, type Partnership } from "@/lib/business/application";
+import { authNavigationHref } from "@/lib/auth/entry-return";
+import { downloadMaterial, materialTypes, stageMaterials } from "@/lib/business/materials";
+import { useBusinessApplication } from "./useBusinessApplication";
+
+type Editor = { draft: BusinessDraft; setDraft: Dispatch<SetStateAction<BusinessDraft>>; attach: (files: FileList | null, index: number | null) => Promise<void> };
+const BusinessEditor = createContext<Editor | null>(null);
+function useEditor() {
+  const editor = useContext(BusinessEditor);
+  if (!editor) throw new Error("Business editor is unavailable");
+  return editor;
+}
 
 const steps = ["Business", "Partnership", "Details", "Assets", "Review"] as const;
-const draftKey = "zero-loss-business-partnership-draft-v1";
 const fieldClass = "mt-2 min-h-12 w-full rounded-xl border border-cyan-200/25 bg-[#001b3d] px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10";
 const labelClass = "block text-sm font-bold text-white/90";
 
@@ -22,7 +31,6 @@ const partnerships: Array<{ id: Partnership; icon: string; title: string; descri
   { id: "other", icon: "✧", title: "Explore another partnership", description: "Distribution, technology, content, creators, or something we have not listed." },
 ];
 
-const initialValues: FormValues = { partnership: "products", relationship: "one-time", fulfillment_owner: "business", asset_rights: false, submit_authority: false, creator_notice: false };
 const demoBusinessByPartnership: Record<Partnership, FormValues> = { products: {
   business_name: "Harbor Coffee Company",
   address_line_1: "125 Market Street",
@@ -44,7 +52,6 @@ const extraDemoBusiness: Record<"restaurant" | "tools", FormValues> = {
 };
 
 type DemoCampaign = { brand: string; shortBrand: string; asset: string; filenames: string[]; eyebrow: string; headline: string; accent: string; body: string; cta: string; value: string; category: string; catalog?: string[] };
-type PartnerListing = { title: string; brand: string; category: string; value: number; entryPrice: number; capacity: number; summary: string; highlights: string[]; specifications: Array<[string, string]>; included: string[]; fulfillment: string; availability: string };
 
 const toolListingNames = ["Cordless drill kit","Professional wrench set","Portable jobsite table saw","Telescoping work lantern","Rolling tool chest","Wet-dry shop vacuum","Angle grinder kit","Mechanic socket set","Heavy-duty workbench","Portable power station"];
 const toolValues = [199,129,899,89,749,159,139,219,499,699];
@@ -142,95 +149,105 @@ function StepHeading({ title, description, action }: { title: string; descriptio
   return <div className="flex flex-wrap items-start justify-between gap-4"><div className="min-w-0 flex-1"><h2 className="text-2xl font-black tracking-[-0.03em] text-white sm:text-3xl">{title}</h2><p className="mt-2 text-sm leading-6 text-white/60 sm:text-base">{description}</p></div>{action}</div>;
 }
 
-export function BusinessOnboardingForm() {
-  const [step, setStep] = useState(0);
-  const [values, setValues] = useState<FormValues>(initialValues);
-  const [ready, setReady] = useState(false);
-  const [draftMessage, setDraftMessage] = useState("");
+function restoreListings(draft: BusinessDraft): BusinessDraft {
+  const demo = demoOf(draft.values);
+  if ((demo === "restaurant" || demo === "tools") && !draft.listings.length) return { ...draft, listings: partnerListings[demo] };
+  return draft;
+}
+
+export function BusinessOnboardingForm({ owner, record }: { owner: string | null; record: BusinessRecord | null }) {
+  const router = useRouter();
+  const { draft, setDraft, save, initialized, saving, message: draftMessage, setMessage: setDraftMessage,
+    guestDraft, importGuest, dismissGuest, submitted } = useBusinessApplication(owner, record, restoreListings);
+  const { values, step } = draft;
+  const demoCase = demoOf(values);
   const [errors, setErrors] = useState<string[]>([]);
-  const [demoCase, setDemoCase] = useState<DemoCase | null>(null);
-
-  useEffect(() => {
-    const restoreDraft = window.setTimeout(() => {
-      try {
-        const saved = window.localStorage.getItem(draftKey);
-        if (saved) setValues({ ...initialValues, ...JSON.parse(saved) as FormValues });
-      } catch { /* Browser storage may be disabled. */ }
-    }, 0);
-    return () => window.clearTimeout(restoreDraft);
-  }, []);
-
+  const [finishing, setFinishing] = useState(false);
+  const [staging, setStaging] = useState(false);
+  const stagingLock = useRef(false);
   const partnership = values.partnership as Partnership;
-  const selected = partnerships.find((option) => option.id === partnership) ?? partnerships[0];
-  const mainProposal = String(values.offer_name || values.provider_name || values.campaign_name || values.other_partnership || "Not provided yet");
-
-  const missing = useMemo(() => {
-    const required: Array<[string, string]> = [["business_name", "Business name"], ["address_line_1", "Street address"], ["city", "City"], ["region", "State or region"], ["postal_code", "ZIP or postal code"], ["country", "Country"], ["contact_name", "Authorized contact"], ["work_email", "Work email"], ["business_type", "Business type"], ["service_area", "Service area"]];
-    if (partnership === "products") required.push(["offer_name", "Offer name"], ["offer_type", "Offer type"], ["description", "Customer-facing description"], ["retail_value", "Retail value"], ["quantity", "Quantity or capacity"], ["relationship", "Relationship"], ["fulfillment_owner", "Fulfillment responsibility"]);
-    if (partnership === "fulfillment") required.push(["provider_name", "Provider name"], ["reward_types", "Reward types"], ["coverage", "Geographic coverage"], ["delivery_method", "Delivery method"], ["delivery_time", "Delivery time"], ["pricing_terms", "Pricing terms"], ["technical_contact", "Technical contact"]);
-    if (partnership === "campaign") required.push(["campaign_name", "Campaign name"], ["campaign_offer", "Campaign offer"], ["objective", "Campaign objective"], ["relationship", "Relationship"], ["campaign_supply", "What the business supplies"], ["audience", "Intended audience"]);
-    if (partnership === "other") required.push(["other_partnership", "Partnership explanation"]);
-    const absent = required.filter(([key]) => !String(values[key] ?? "").trim()).map(([, name]) => name);
-    if (!values.capacity_ack) absent.push("Fulfillment-capacity acknowledgment");
-    if (values.auto_relist && !values.card_billing) absent.push("Card-on-file billing authorization");
-    return absent;
-  }, [partnership, values]);
-
+  const selected = partnerships.find(option => option.id === partnership) ?? partnerships[0];
+  const proposalKey = { products: "offer_name", campaign: "campaign_name", fulfillment: "provider_name", other: "other_partnership" }[partnership];
+  const mainProposal = String(values[proposalKey] || "Not provided yet");
+  const missing = missingBusinessFields(values, draft.files);
+  function setStep(next: number) { setDraft(current => ({ ...current, step: next })); }
+  async function attach(files: FileList | null, index: number | null) {
+    if (!files?.length || stagingLock.current) return;
+    stagingLock.current = true;
+    setStaging(true);
+    try {
+      const added = await stageMaterials(Array.from(files), index);
+      setDraft(current => ({ ...current, files: [...current.files, ...added] }));
+      setDraftMessage(owner ? "Files selected. Saving privately…" : "Files selected on this device. Sign in to save them privately.");
+    } catch (error) { setDraftMessage(error instanceof Error ? error.message : "Could not attach the files."); }
+    finally { stagingLock.current = false; setStaging(false); }
+  }
   function change(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     const target = event.target;
-    setValues((current) => ({ ...current, [target.name]: target instanceof HTMLInputElement && target.type === "checkbox" ? target.checked : target.value }));
+    const name = target.name;
+    const value = target instanceof HTMLInputElement && target.type === "checkbox" ? target.checked : target.value;
+    setDraft(current => ({ ...current, values: { ...current.values, [name]: value } }));
     setDraftMessage("");
   }
-
-  function saveDraft() {
-    try { window.localStorage.setItem(draftKey, JSON.stringify(values)); setDraftMessage("Draft saved on this device."); }
-    catch { setDraftMessage("This browser blocked local draft storage."); }
-  }
-
   function fillDemoBusiness(chosenDemo: DemoCase) {
-    const chosenPartnership = demoPartnership[chosenDemo];
-    const business = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoBusiness[chosenDemo] : demoBusinessByPartnership[chosenDemo];
-    const details = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoDetails[chosenDemo] : demoDetailsByPartnership[chosenDemo];
-    setValues({ ...initialValues, partnership: chosenPartnership, demo_variant: chosenDemo, listing_count: chosenDemo === "tools" ? "10" : "1", recurrence: String(details.recurrence || details.relationship || "one-time"), recurrence_limit: chosenDemo === "tools" ? "10" : "1", ...business, ...details, capacity_ack: true, asset_rights: true, card_billing: false });
-    setDemoCase(chosenDemo);
+    if (chosenDemo === demoCase) return;
+    const special = chosenDemo === "restaurant" || chosenDemo === "tools";
+    const business = special ? extraDemoBusiness[chosenDemo] : demoBusinessByPartnership[chosenDemo];
+    const details = special ? extraDemoDetails[chosenDemo] : demoDetailsByPartnership[chosenDemo];
+    setDraft(current => ({ ...current, listings: special ? partnerListings[chosenDemo] : [],
+      files: current.files.map(file => ({ ...file, listingIndex: null })),
+      values: { ...initialValues, partnership: demoPartnership[chosenDemo], demo_variant: chosenDemo,
+        listing_count: chosenDemo === "tools" ? "10" : "1", recurrence_limit: chosenDemo === "tools" ? "10" : "1",
+        recurrence: String(details.recurrence || details.relationship || "one-time"),
+        ...business, ...details, capacity_ack: true, asset_rights: true, card_billing: false } }));
     setErrors([]);
-    setDraftMessage(`${demoCampaigns[chosenDemo].brand} demo selected. Its matching partnership path is ready.`);
+    setDraftMessage(demoCampaigns[chosenDemo].brand + " demo selected.");
   }
-
   function fillDemoDetails() {
-    const chosenDemo = demoCase && demoPartnership[demoCase] === partnership ? demoCase : partnership;
-    const business = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoBusiness[chosenDemo] : demoBusinessByPartnership[chosenDemo];
-    const details = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoDetails[chosenDemo] : demoDetailsByPartnership[chosenDemo];
-    setValues((current) => ({ ...current, listing_count: chosenDemo === "tools" ? "10" : "1", recurrence: String(details.recurrence || details.relationship || "one-time"), recurrence_limit: chosenDemo === "tools" ? "10" : "1", ...business, ...details, capacity_ack: true, asset_rights: true, card_billing: false, demo_variant: chosenDemo }));
-    setDemoCase(chosenDemo);
+    const demo = demoCase ?? partnership;
+    const details = demo === "restaurant" || demo === "tools" ? extraDemoDetails[demo] : demoDetailsByPartnership[demo];
+    setDraft(current => ({ ...current, values: { ...current.values, ...details, demo_variant: demo, capacity_ack: true } }));
     setErrors([]);
-    setDraftMessage(`${demoCampaigns[chosenDemo].brand} demo information filled. It has not been saved or submitted.`);
   }
   function loadDemoAssets() {
-    const chosenDemo: DemoCase = demoCase && demoPartnership[demoCase] === partnership ? demoCase : partnership;
-    const business = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoBusiness[chosenDemo] : demoBusinessByPartnership[chosenDemo];
-    const details = chosenDemo === "restaurant" || chosenDemo === "tools" ? extraDemoDetails[chosenDemo] : demoDetailsByPartnership[chosenDemo];
-    setDemoCase(chosenDemo); setValues((current) => ({ ...current, listing_count: chosenDemo === "tools" ? "10" : "1", ...business, ...details, capacity_ack: true, asset_rights: true, card_billing: false, demo_variant: chosenDemo }));
+    if (!demoCase) setDraft(current => ({ ...current, values: { ...current.values, demo_variant: partnership } }));
   }
-
   function next() {
-    const businessRequired = ["business_name", "address_line_1", "city", "region", "postal_code", "country", "contact_name", "work_email", "business_type", "service_area"];
-    const businessMissing = businessRequired.filter((key) => !String(values[key] ?? "").trim());
-    if (step === 0 && businessMissing.length) { setErrors(["Complete every starred business field"]); return; }
-    if (step === 2 && missing.length) { setErrors(missing); return; }
-    setErrors([]); setStep((current) => Math.min(4, current + 1)); window.scrollTo({ top: 0, behavior: "smooth" });
+    const identity = ["business_name","address_line_1","city","region","postal_code","country","contact_name","work_email","business_type","service_area"];
+    if (step === 0 && (identity.some(k => !String(values[k] ?? "").trim()) || missing.includes("Valid work email"))) { setErrors(["Complete the starred business fields and enter a valid work email"]); return; }
+    const detailsMissing = missing.filter(label => label !== "Rights to supply the attached materials");
+    if (step === 2 && detailsMissing.length) { setErrors(detailsMissing); return; }
+    setErrors([]); setStep(Math.min(4, step + 1)); window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  function back() { setErrors([]); setStep((current) => Math.max(0, current - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  function submitPreview(event: FormEvent) { event.preventDefault(); if (missing.length || !values.submit_authority) { setErrors(missing.length ? missing : ["Submission authorization"]); return; } setReady(true); }
+  function back() { setErrors([]); setStep(Math.max(0, step - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  async function submitApplication(event: FormEvent) {
+    event.preventDefault();
+    if (step !== 4) { next(); return; }
+    if (missing.length || !values.submit_authority) { setErrors(missing.length ? missing : ["Submission authorization"]); return; }
+    if (!owner) { await save(draft); setErrors(["Sign in or create an account to submit your saved draft"]); return; }
+    setFinishing(true);
+    try { await save(draft, true); } finally { setFinishing(false); }
+  }
+  const accountLink = (page: "/login" | "/signup", label: string) => <Link className="font-bold text-cyan-200 underline" href={authNavigationHref(page, businessSignupPath)} onClick={event => {
+    event.preventDefault();
+    void save(draft).then(ok => { if (ok) router.push(authNavigationHref(page, businessSignupPath)); });
+  }}>{label}</Link>;
+  const accountPrompt = !owner && <p className="my-4 text-sm">{accountLink("/login", "Sign in")} or {accountLink("/signup", "create an account")} to save and submit your business application.</p>;
 
-  if (ready) return <div className="rounded-[28px] border border-[#31e800]/35 bg-[#073153] p-8 text-center text-white sm:p-12"><p className="text-xs font-black uppercase tracking-[.18em] text-[#72ff4e]">Partner preview</p><h2 className="mt-4 text-3xl font-black">Your request is ready to submit.</h2><p className="mx-auto mt-4 max-w-xl leading-7 text-white/65">The application is complete. Secure account-owned submissions and private file storage must be connected before this can honestly be marked “under review.”</p><button type="button" onClick={() => setReady(false)} className="mt-7 rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200">Return to review</button></div>;
-
-  return <div style={{ boxSizing: "border-box", width: "min(100%, calc(100vw - 24px))" }} className="min-w-0 overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[radial-gradient(circle_at_100%_0%,rgba(49,232,0,.14),transparent_30%),#021d43] p-5 text-white shadow-2xl sm:p-8 lg:p-10">
+  if (submitted) return <div className="rounded-3xl border border-cyan-300/30 bg-[#073153] p-6 text-white">
+    <h1 className="text-3xl font-black">Application submitted for review</h1>
+    <p className="my-4">{String(values.business_name)} · {selected.title}</p>
+    <p>Your submission is saved to your account. You can return here to view it.</p>
+    <SubmissionDetails draft={draft} owner={owner!}/>
+  </div>;
+  return <BusinessEditor.Provider value={{ draft, setDraft, attach }}><div style={{ boxSizing: "border-box", width: "min(100%, calc(100vw - 24px))" }} className="min-w-0 overflow-hidden rounded-[30px] border border-cyan-300/20 bg-[radial-gradient(circle_at_100%_0%,rgba(49,232,0,.14),transparent_30%),#021d43] p-5 text-white shadow-2xl sm:p-8 lg:p-10">
     <div className="flex items-center justify-between gap-4"><p className="text-xs font-black tracking-[.18em]">ZER<span className="text-[#31e800]">Ø LØ</span>SS <span className="text-white/45">/ BUSINESS</span></p><span className="rounded-full border border-cyan-300/40 px-4 py-2 text-xs text-cyan-200 sm:text-sm">Partner preview</span></div>
     <header className="mt-10 min-w-0 max-w-4xl"><p className="text-xs font-black uppercase tracking-[.16em] text-[#ff7a2d] sm:text-sm sm:tracking-[.2em]">Bring something worth winning</p><h1 className="mt-4 break-words text-3xl font-black leading-[1.02] tracking-[-.04em] sm:text-5xl">Your product. Your audience.<br/><span className="text-[#31e800]">A whole new way to promote it.</span></h1><p className="mt-5 break-words text-sm leading-7 text-white/70 sm:text-lg">Tell us what you want to offer. Zero Loss will review the opportunity and show you the next step—without forcing you through a sales call first.</p></header>
     <div className="mt-9 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="h-fit min-w-0 rounded-2xl border border-cyan-300/25 bg-[#073153] p-3 lg:sticky lg:top-6 lg:p-5"><p className="text-xs uppercase tracking-wide text-white/50">Application</p><ol className="mt-4 grid grid-cols-5 gap-0.5 lg:grid-cols-1 lg:gap-2">{steps.map((name, index) => <li className="min-w-0" key={name}><button type="button" onClick={() => index <= step && setStep(index)} disabled={index > step} aria-current={index === step ? "step" : undefined} className={`flex min-h-11 w-full min-w-0 items-center justify-center gap-3 rounded-xl border px-0 text-left text-xs transition lg:min-h-12 lg:justify-start lg:px-3 lg:text-sm ${index === step ? "border-white bg-[#124876] text-white" : "border-transparent text-white/55"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full lg:h-8 lg:w-8 ${index === step ? "bg-[#31e800] text-[#00132e]" : "bg-[#0b426b]"}`}>{index + 1}</span><span className="hidden lg:inline">{name}</span></button></li>)}</ol><p className="mt-5 hidden border-t border-cyan-200/15 pt-5 text-sm leading-6 text-white/55 lg:block">Save your progress and return on this device before submitting.</p></aside>
-      <form onSubmit={submitPreview} noValidate className="min-w-0">
+      <aside className="h-fit min-w-0 rounded-2xl border border-cyan-300/25 bg-[#073153] p-3 lg:sticky lg:top-6 lg:p-5"><p className="text-xs uppercase tracking-wide text-white/50">Application</p><ol className="mt-4 grid grid-cols-5 gap-0.5 lg:grid-cols-1 lg:gap-2">{steps.map((name, index) => <li className="min-w-0" key={name}><button type="button" onClick={() => index <= step && setStep(index)} disabled={index > step} aria-current={index === step ? "step" : undefined} className={`flex min-h-11 w-full min-w-0 items-center justify-center gap-3 rounded-xl border px-0 text-left text-xs transition lg:min-h-12 lg:justify-start lg:px-3 lg:text-sm ${index === step ? "border-white bg-[#124876] text-white" : "border-transparent text-white/55"}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full lg:h-8 lg:w-8 ${index === step ? "bg-[#31e800] text-[#00132e]" : "bg-[#0b426b]"}`}>{index + 1}</span><span className="hidden lg:inline">{name}</span></button></li>)}</ol><p className="mt-5 hidden border-t border-cyan-200/15 pt-5 text-sm leading-6 text-white/55 lg:block">{owner ? "Your draft is saved to your account as you edit." : "Save a draft on this device or sign in to continue on another device."}</p></aside>
+      <form onSubmit={submitApplication} noValidate className="min-w-0"><fieldset disabled={!initialized || finishing || staging} className="min-w-0">
+        {guestDraft && <div className="mb-4 rounded-xl bg-[#073153] p-4"><p>There is a draft on this device. Use it for this account?</p><button type="button" className="mr-5 py-2 text-cyan-200 underline" onClick={importGuest}>Use this draft</button><button type="button" onClick={dismissGuest}>Start fresh</button></div>}
+        {step < 4 && accountPrompt}
         <section className="rounded-2xl border border-cyan-300/25 bg-[#073153] p-5 sm:p-7">
           {step === 0 && <div className="space-y-5"><StepHeading title="Start with your business" description="Enter a real business below, or choose one of six complete fictional walkthroughs."/><div className="rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-4 sm:p-5"><div className="flex flex-wrap items-end justify-between gap-2"><div><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">Choose a walkthrough</p><p className="mt-1 text-xs leading-5 text-white/50">Includes a local restaurant and a ten-listing national retailer.</p></div>{demoCase && <span className="rounded-full bg-[#31e800]/12 px-3 py-1 text-[11px] font-bold text-[#9bff83]">Selected</span>}</div><div className="mt-4 grid gap-2 sm:grid-cols-2">{demoChoices.map((choice) => { const active = demoCase === choice; const path = partnerships.find((option) => option.id === demoPartnership[choice]); return <button key={choice} type="button" onClick={() => fillDemoBusiness(choice)} aria-pressed={active} className={`min-h-16 rounded-xl border px-4 py-3 text-left transition focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/25 ${active ? "border-[#31e800] bg-[#31e800]/10" : "border-cyan-200/20 bg-[#073153] hover:border-cyan-200/50"}`}><strong className="block text-sm text-white">{demoLabels[choice]}</strong><span className="mt-1 block text-xs text-white/50">{choice === "tools" ? "Ten marketplace listings" : choice === "restaurant" ? "Local dining reward" : path?.title}</span></button>; })}</div></div><p className="text-xs leading-5 text-white/45">Address entry is for application review and is not business verification.</p><Field label="Business name" name="business_name" values={values} onChange={change} required autoComplete="organization"/><div className="grid gap-4 sm:grid-cols-2"><Field label="Street address" name="address_line_1" values={values} onChange={change} required autoComplete="address-line1"/><Field label="Address line 2 (optional)" name="address_line_2" values={values} onChange={change} autoComplete="address-line2"/><Field label="City" name="city" values={values} onChange={change} required autoComplete="address-level2"/><Field label="State or region" name="region" values={values} onChange={change} required autoComplete="address-level1"/><Field label="ZIP or postal code" name="postal_code" values={values} onChange={change} required autoComplete="postal-code"/><Field label="Country" name="country" values={values} onChange={change} required autoComplete="country-name"/><Field label="Authorized contact" name="contact_name" values={values} onChange={change} required autoComplete="name"/><Field label="Work email" name="work_email" values={values} onChange={change} required type="email" autoComplete="email"/><Field label="Phone (optional)" name="phone" values={values} onChange={change} type="tel" autoComplete="tel"/><Field label="Website (optional)" name="website" values={values} onChange={change} type="url" autoComplete="url"/><SelectField label="Business type" name="business_type" values={values} onChange={change} required options={[["retail","Retailer or ecommerce"],["brand","Brand or manufacturer"],["service","Service business"],["provider","Fulfillment provider"],["other","Other"]]}/><SelectField label="Service area" name="service_area" values={values} onChange={change} required options={[["local","Local"],["states","Selected states"],["nationwide","Nationwide"],["online","Online only"]]}/></div></div>}
           {step === 1 && <div><StepHeading title="What do you want to build with us?" description="Choose the closest fit. You can explain something different under Another partnership."/><div className="mt-6 grid gap-3 sm:grid-cols-2">{partnerships.map((option) => <label key={option.id} className={`cursor-pointer rounded-2xl border p-5 transition focus-within:ring-4 focus-within:ring-cyan-300/15 ${partnership === option.id ? "border-[#31e800] bg-[#31e800]/10" : "border-cyan-200/25 bg-[#001b3d] hover:border-cyan-200/50"}`}><input type="radio" name="partnership" value={option.id} checked={partnership === option.id} onChange={change} className="sr-only"/><span className="text-xl">{option.icon}</span><strong className="mt-2 block text-lg">{option.title}</strong><span className="mt-2 block text-sm leading-6 text-white/60">{option.description}</span></label>)}</div></div>}
@@ -238,11 +255,56 @@ export function BusinessOnboardingForm() {
           {step === 3 && <AssetsStep partnership={partnership} demoCase={demoCase} onLoadDemo={loadDemoAssets} values={values} change={change}/>}
           {step === 4 && <ReviewStep partnership={partnership} demoCase={demoCase} values={values} change={change} selectedTitle={selected.title} mainProposal={mainProposal} missing={missing}/>}
         </section>
+        {step === 4 && accountPrompt}
         {errors.length ? <p role="alert" className="mt-4 rounded-xl border border-red-300/35 bg-red-400/10 p-4 text-sm text-red-100">Please complete: {errors.join(", ")}.</p> : null}
-        <div className="mt-5 flex flex-wrap items-center gap-3"><button type="button" onClick={back} disabled={step === 0} className="min-h-12 rounded-xl border border-cyan-300/30 px-5 font-bold disabled:opacity-35">Back</button><button type="button" onClick={saveDraft} className="min-h-12 rounded-xl border border-cyan-300/45 px-5 font-bold text-cyan-100">Save draft</button><span role="status" className="text-xs text-white/55">{draftMessage}</span>{step < 4 ? <button type="button" onClick={next} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e]">Continue</button> : <button type="submit" disabled={missing.length > 0 || !values.submit_authority} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e] disabled:cursor-not-allowed disabled:opacity-40">Submit for review</button>}</div>
-        <p className="mt-4 text-xs leading-5 text-white/40">Preview behavior only. Drafts are stored on this device; no application or files are transmitted.</p>
-      </form>
+        <div className="mt-5 flex flex-wrap items-center gap-3"><button type="button" onClick={back} disabled={step === 0} className="min-h-12 rounded-xl border border-cyan-300/30 px-5 font-bold disabled:opacity-35">Back</button><button type="button" onClick={() => void save(draft)} className="min-h-12 rounded-xl border border-cyan-300/45 px-5 font-bold text-cyan-100">Save draft</button><span role="status" className="text-xs text-white/55">{saving ? "Saving to your account…" : draftMessage}</span>{step < 4 ? <button type="button" onClick={next} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e]">Continue</button> : <button type="submit" disabled={missing.length > 0 || !values.submit_authority} className="ml-auto min-h-12 rounded-xl bg-gradient-to-r from-cyan-400 to-[#31e800] px-6 font-black text-[#00132e] disabled:cursor-not-allowed disabled:opacity-40">Submit for review</button>}</div>
+        <p className="mt-4 text-xs leading-5 text-white/40">{owner ? "Submitting sends your application to Zero Loss for review." : "Guest drafts and selected files stay on this device until you save them to your account."}</p>
+      </fieldset></form>
     </div><div className="mt-8 text-center"><Link href="/signup" className="text-sm font-bold text-cyan-200 hover:underline">← Return to personal signup</Link></div>
+  </div></BusinessEditor.Provider>;
+}
+
+function SubmissionDetails({ draft, owner }: { draft: BusinessDraft; owner: string }) {
+  return <details className="mt-5 rounded-xl border border-cyan-300/25 p-4">
+    <summary className="cursor-pointer font-bold">View submitted details</summary>
+    <dl className="mt-4 grid gap-3 sm:grid-cols-2">{Object.entries(draft.values).map(([key,value]) => <div key={key}>
+      <dt className="text-xs capitalize text-cyan-200">{key.replaceAll("_"," ")}</dt><dd className="whitespace-pre-wrap break-words">{typeof value === "boolean" ? value ? "Yes" : "No" : value}</dd>
+    </div>)}</dl>
+    {draft.listings.map((item,index) => <details key={index} className="mt-3"><summary>Listing {index + 1}: {item.title}</summary>
+      <dl>{Object.entries(item).map(([key,value]) => <div key={key}><dt className="font-bold capitalize">{key}</dt><dd className="whitespace-pre-wrap">{Array.isArray(value) ? value.map(v => Array.isArray(v) ? v.join(": ") : v).join("\n") : value}</dd></div>)}</dl></details>)}
+    {draft.files.map(file => <MaterialDownload key={file.id} owner={owner} file={file}/>)}
+  </details>;
+}
+
+function MaterialDownload({ owner, file }: { owner: string; file: BusinessFile }) {
+  const [error, setError] = useState("");
+  return <div><button type="button" className="mt-2 text-cyan-200 underline" onClick={async () => {
+    setError("");
+    try { await downloadMaterial(owner, file); } catch { setError("Could not download this file. Please try again."); }
+  }}>Download {file.name}</button>{file.listingIndex !== null && <span> · Listing {file.listingIndex+1}</span>}{error && <p role="alert">{error}</p>}</div>;
+}
+
+function ApplicationFiles({ listingIndex = null }: { listingIndex?: number | null }) {
+  const { draft, setDraft, attach } = useEditor();
+  const photos = listingIndex !== null;
+  const files = photos ? draft.files.filter(file => file.listingIndex !== null) : draft.files;
+  return <div className="mt-4 rounded-2xl border border-dashed border-cyan-300/45 bg-[#001b3d] p-4"
+    onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void attach(event.dataTransfer.files, listingIndex); }}>
+    <label className="block font-bold">{photos ? "Photos for Listing " + (listingIndex + 1) : "Private campaign files"}
+      <input type="file" multiple accept={photos ? "image/jpeg,image/png,image/gif,image/webp" : materialTypes.join(",")} className="mt-2 block w-full text-sm"
+        onChange={event => { void attach(event.target.files, listingIndex); event.target.value = ""; }}/>
+    </label>
+    <p className="mt-2 text-xs text-white/65">Choose files or drop them here. Up to 50 MB per file.</p>
+    {files.map(file => <div key={file.id} className="mt-3 rounded-lg bg-[#073153] p-3 text-sm">
+      <strong className="break-words">{file.name}</strong>
+      {draft.listings.length > 0 && <label className="block">Assign to product
+        <select className={fieldClass} value={file.listingIndex ?? ""} onChange={event => {
+          const index = event.target.value === "" ? null : Number(event.target.value);
+          setDraft(current => ({ ...current, files: current.files.map(item => item.id === file.id ? { ...item, listingIndex: index } : item) }));
+        }}><option value="">Campaign materials</option>{draft.listings.map((item,index) => <option key={index} value={index}>Listing {index+1}: {item.title}</option>)}</select>
+      </label>}
+      <button type="button" className="mt-2 text-cyan-200 underline" onClick={() => setDraft(current => ({ ...current, files: current.files.filter(item => item.id !== file.id) }))}>Remove from application</button>
+    </div>)}
   </div>;
 }
 
@@ -261,12 +323,13 @@ function AssetsStep({ partnership, demoCase, onLoadDemo, values, change }: { par
     return () => window.clearTimeout(timer);
   }, [hasMatchingDemo, partnership]);
   function playDemo() { onLoadDemo(); setAnimation(0); window.setTimeout(() => setAnimation(1), 30); window.setTimeout(() => setAnimation(2), 1780); }
-  return <div className="space-y-6"><StepHeading title="Add the material we should review" description="See how campaign files come together here. Real partner uploads will remain private after account-owned storage is connected." action={<button type="button" onClick={playDemo} className="inline-flex min-h-10 items-center rounded-full border border-cyan-300/45 bg-cyan-300/10 px-4 text-xs font-black text-cyan-100 hover:bg-cyan-300 hover:text-[#00132e]">{hasMatchingDemo ? "Replay demo upload" : "Load demo campaign assets"}</button>}/>
+  return <div className="space-y-6"><StepHeading title="Add the material we should review" description="Attach your own materials for review or replay the sample upload." action={<button type="button" onClick={playDemo} className="inline-flex min-h-10 items-center rounded-full border border-cyan-300/45 bg-cyan-300/10 px-4 text-xs font-black text-cyan-100 hover:bg-cyan-300 hover:text-[#00132e]">{hasMatchingDemo ? "Replay demo upload" : "Load demo campaign assets"}</button>}/>
     <div className="relative min-h-56 overflow-hidden rounded-2xl border border-dashed border-cyan-300/45 bg-[#001b3d] p-6 text-center sm:p-8">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-cyan-300/10 text-2xl text-cyan-200">⇩</div><strong className="mt-3 block text-lg">Drop private campaign files here</strong><p className="mt-1 text-sm text-white/50">Images, video, logos, descriptions, specifications, media kits, or fulfillment documents</p>
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-cyan-300/10 text-2xl text-cyan-200">⇩</div><strong className="mt-3 block text-lg">Sample campaign upload</strong><p className="mt-1 text-sm text-white/50">Images, video, logos, descriptions, specifications, media kits, or fulfillment documents</p>
       {animation === 1 && <div aria-live="polite" className="absolute inset-0 bg-[#001b3d]/90"><div className="absolute left-1/2 top-1/2 w-[85%] -translate-x-1/2 -translate-y-1/2"><p className="mb-4 text-xs font-black uppercase tracking-[.18em] text-cyan-200">Building {campaign.shortBrand} campaign</p><div className="flex flex-wrap justify-center gap-2">{campaign.filenames.map((name, index) => <div key={name} style={{ animationDelay: `${index * 120}ms` }} className="business-demo-file grid h-12 w-11 place-items-center rounded-lg border border-cyan-200/40 bg-[#124876] text-lg shadow-xl">▧</div>)}</div><p className="mt-4 text-sm text-white/65">Dropping {campaign.filenames.length} files…</p></div></div>}
-      {!hasMatchingDemo && <p className="mt-6 text-xs text-orange-100/70">Demo only: no files are transmitted from this preview.</p>}
+
     </div>
+    <ApplicationFiles/>
     {hasMatchingDemo && animation === 2 && <div className="business-demo-reveal"><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">{campaign.filenames.length} demo assets ready</p><p className="mt-1 text-sm text-white/55">Original partner-supplied imagery for {campaign.brand}</p></div><span className="rounded-full bg-[#31e800]/12 px-3 py-1 text-xs text-[#9bff83]">Demo files</span></div><div className={`mt-4 grid grid-cols-2 gap-3 ${campaign.filenames.length > 4 ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>{campaign.filenames.map((name, index) => <AssetTile key={name} demo={activeDemo} index={index} label={name}/>)}</div></div>}
     <label className="flex gap-3 text-sm font-bold leading-6 text-white/80"><input type="checkbox" name="asset_rights" checked={Boolean(values.asset_rights)} onChange={change} className="mt-1 accent-[#31e800]"/>I own these materials or am authorized to provide them to Zero Loss for partnership review.</label>
   </div>;
@@ -276,13 +339,16 @@ function CampaignPreview({ partnership }: { partnership: DemoCase }) {
   const campaign = demoCampaigns[partnership];
   const [selectedItem, setSelectedItem] = useState<number | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [headline, setHeadline] = useState(campaign.headline);
-  const [description, setDescription] = useState(campaign.body);
-  const items = campaign.catalog ?? [campaign.eyebrow];
-  const detailedItems = partnership === "restaurant" || partnership === "tools" ? partnerListings[partnership] : null;
+  const { draft, setDraft } = useEditor();
+  const headline = String(draft.values.preview_headline ?? campaign.headline);
+  const description = String(draft.values.preview_description ?? campaign.body);
+  const setHeadline = (value: string) => setDraft(d => ({ ...d, values: { ...d.values, preview_headline: value } }));
+  const setDescription = (value: string) => setDraft(d => ({ ...d, values: { ...d.values, preview_description: value } }));
+  const detailedItems = partnership === "restaurant" || partnership === "tools" ? draft.listings : null;
+  const items = detailedItems?.map(item => item.title) ?? campaign.catalog ?? [campaign.eyebrow];
   const listingValues = detailedItems?.map((item) => item.value) ?? [Number(campaign.value.replace(/[^0-9.]/g, "")) || 1];
   const detail = selectedItem !== null ? detailedItems?.[selectedItem] : undefined;
-  return <><div className={`mx-auto grid gap-4 ${campaign.catalog ? "max-w-5xl grid-cols-2 md:grid-cols-3 lg:grid-cols-5" : "max-w-[320px]"}`}>{items.map((title, index) => <button key={title} type="button" onClick={() => setSelectedItem(index)} className="overflow-hidden rounded-2xl bg-white p-3 text-left text-[#00132e] shadow-xl transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30"><DemoGalleryImage demo={partnership} index={index} className="h-36 rounded-lg"/><div className="mt-3 flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wide text-black/45"><span>{campaign.category}</span><span className="text-[#058bc1]">42 left</span></div><h3 className="mt-2 min-h-10 text-sm font-black leading-tight">{campaign.catalog ? title : headline}</h3><div className="mt-2 flex justify-between border-t border-black/10 pt-2 text-xs"><span>{campaign.catalog ? `$${listingValues[index]}` : campaign.value} value</span><strong>Enter for $1</strong></div><span className="mt-3 block w-full rounded-lg bg-[#00b9ff] px-3 py-2 text-center text-xs font-black">Enter for $1</span></button>)}</div><button type="button" onClick={() => setEditorOpen(true)} className="mx-auto mt-5 block rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-5 py-3 text-sm font-black text-cyan-100">Change listing content &amp; presentation</button>{selectedItem !== null && <div role="dialog" aria-modal="true" aria-label="Listing detail preview" className={`${popupStyles.overlay} fixed inset-0 z-[210] grid overflow-y-auto bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} relative m-auto w-full max-w-4xl rounded-3xl border border-cyan-300/25 bg-[#021d43] p-5 sm:p-8`}><button type="button" onClick={() => setSelectedItem(null)} className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full bg-[#00132e] text-2xl text-white" aria-label="Close listing detail">×</button><div className="grid gap-6 md:grid-cols-[1.15fr_.85fr]"><div><DemoGalleryImage demo={partnership} index={selectedItem} className="aspect-square rounded-2xl"/><div className="mt-3 grid grid-cols-4 gap-2">{campaign.filenames.slice(0, Math.min(10,campaign.filenames.length)).map((name, index) => <button type="button" key={name} onClick={() => setSelectedItem(index)} aria-label={`View ${name}`}><DemoGalleryImage demo={partnership} index={index} className="aspect-square rounded-lg"/></button>)}</div></div><div className="self-center"><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">{campaign.brand}</p><h3 className="mt-3 text-3xl font-black">{campaign.catalog ? items[selectedItem] : headline}</h3><p className="mt-4 leading-7 text-white/65">{detail?.summary ?? description}</p>{detail && <><div className="mt-5"><h4 className="font-black">Highlights</h4><ul className="mt-2 grid gap-2 text-sm text-white/65">{detail.highlights.map((item) => <li key={item}>✓ {item}</li>)}</ul></div><dl className="mt-5 divide-y divide-white/10 rounded-xl border border-white/10 px-4">{detail.specifications.map(([label,value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><dt className="text-white/50">{label}</dt><dd className="text-right font-bold">{value}</dd></div>)}</dl><div className="mt-5 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[#001b3d] p-4"><strong>What is included</strong><ul className="mt-2 space-y-1 text-xs leading-5 text-white/60">{detail.included.map((item) => <li key={item}>• {item}</li>)}</ul></div><div className="rounded-xl bg-[#001b3d] p-4"><strong>Fulfillment &amp; availability</strong><p className="mt-2 text-xs leading-5 text-white/60">{detail.fulfillment}</p><p className="mt-2 text-xs leading-5 text-white/60">{detail.availability}</p></div></div></>}<div className="mt-6 rounded-2xl bg-[#001b3d] p-5"><div className="flex justify-between"><span className="text-white/55">Retail value</span><strong>{campaign.catalog ? `$${listingValues[selectedItem]}` : campaign.value}</strong></div><div className="mt-3 flex justify-between"><span className="text-white/55">Entry</span><strong>$1</strong></div>{detail && <div className="mt-3 flex justify-between"><span className="text-white/55">Entry capacity</span><strong>{detail.capacity.toLocaleString()}</strong></div>}<button type="button" className="mt-5 w-full rounded-xl bg-[#00b9ff] px-4 py-3 font-black text-[#00132e]">Enter for $1</button></div><p className="mt-4 text-xs text-white/45">Interactive partner preview. No entry or purchase is created.</p></div></div></div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Listing editor" className={`${popupStyles.overlay} fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6`}><h3 className="text-2xl font-black">Edit the listing preview</h3><p className="mt-2 text-sm leading-6 text-white/60">Adjust the customer-facing headline and description before submitting the concept.</p><label className={`${labelClass} mt-5`}>Headline<input value={headline} onChange={(event) => setHeadline(event.target.value)} className={fieldClass}/></label><label className={`${labelClass} mt-4`}>Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} className={`${fieldClass} py-3`}/></label><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => { setHeadline(campaign.headline); setDescription(campaign.body); }} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Reset</button><button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e]">Apply preview changes</button></div></div></div>}</>;
+  return <><div className={`mx-auto grid gap-4 ${campaign.catalog ? "max-w-5xl grid-cols-2 md:grid-cols-3 lg:grid-cols-5" : "max-w-[320px]"}`}>{items.map((title, index) => <button key={index} type="button" onClick={() => setSelectedItem(index)} className="overflow-hidden rounded-2xl bg-white p-3 text-left text-[#00132e] shadow-xl transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30"><DemoGalleryImage demo={partnership} index={index} className="h-36 rounded-lg"/><div className="mt-3 flex justify-between gap-2 text-[9px] font-bold uppercase tracking-wide text-black/45"><span>{campaign.category}</span><span className="text-[#058bc1]">42 left</span></div><h3 className="mt-2 min-h-10 text-sm font-black leading-tight">{campaign.catalog ? title : headline}</h3><div className="mt-2 flex justify-between border-t border-black/10 pt-2 text-xs"><span>{campaign.catalog ? `$${listingValues[index]}` : campaign.value} value</span><strong>Enter for ${detailedItems?.[index]?.entryPrice ?? 1}</strong></div><span className="mt-3 block w-full rounded-lg bg-[#00b9ff] px-3 py-2 text-center text-xs font-black">Enter for ${detailedItems?.[index]?.entryPrice ?? 1}</span></button>)}</div><button type="button" onClick={() => setEditorOpen(true)} className="mx-auto mt-5 block rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-5 py-3 text-sm font-black text-cyan-100">Change listing content &amp; presentation</button>{selectedItem !== null && <div role="dialog" aria-modal="true" aria-label="Listing detail preview" className={`${popupStyles.overlay} fixed inset-0 z-[210] grid overflow-y-auto bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} relative m-auto w-full max-w-4xl rounded-3xl border border-cyan-300/25 bg-[#021d43] p-5 sm:p-8`}><button type="button" onClick={() => setSelectedItem(null)} className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full bg-[#00132e] text-2xl text-white" aria-label="Close listing detail">×</button><div className="grid gap-6 md:grid-cols-[1.15fr_.85fr]"><div><DemoGalleryImage demo={partnership} index={selectedItem} className="aspect-square rounded-2xl"/><div className="mt-3 grid grid-cols-4 gap-2">{items.slice(0, 10).map((name, index) => <button type="button" key={name} onClick={() => setSelectedItem(index)} aria-label={`View ${name}`}><DemoGalleryImage demo={partnership} index={index} className="aspect-square rounded-lg"/></button>)}</div></div><div className="self-center"><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">{campaign.brand}</p><h3 className="mt-3 text-3xl font-black">{campaign.catalog ? items[selectedItem] : headline}</h3><p className="mt-4 leading-7 text-white/65">{detail?.summary ?? description}</p>{detail && <><div className="mt-5"><h4 className="font-black">Highlights</h4><ul className="mt-2 grid gap-2 text-sm text-white/65">{detail.highlights.map((item) => <li key={item}>✓ {item}</li>)}</ul></div><dl className="mt-5 divide-y divide-white/10 rounded-xl border border-white/10 px-4">{detail.specifications.map(([label,value]) => <div key={label} className="flex justify-between gap-4 py-3 text-sm"><dt className="text-white/50">{label}</dt><dd className="text-right font-bold">{value}</dd></div>)}</dl><div className="mt-5 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[#001b3d] p-4"><strong>What is included</strong><ul className="mt-2 space-y-1 text-xs leading-5 text-white/60">{detail.included.map((item) => <li key={item}>• {item}</li>)}</ul></div><div className="rounded-xl bg-[#001b3d] p-4"><strong>Fulfillment &amp; availability</strong><p className="mt-2 text-xs leading-5 text-white/60">{detail.fulfillment}</p><p className="mt-2 text-xs leading-5 text-white/60">{detail.availability}</p></div></div></>}<div className="mt-6 rounded-2xl bg-[#001b3d] p-5"><div className="flex justify-between"><span className="text-white/55">Retail value</span><strong>{campaign.catalog ? `$${listingValues[selectedItem]}` : campaign.value}</strong></div><div className="mt-3 flex justify-between"><span className="text-white/55">Entry</span><strong>${detail?.entryPrice ?? 1}</strong></div>{detail && <div className="mt-3 flex justify-between"><span className="text-white/55">Entry capacity</span><strong>{detail.capacity.toLocaleString()}</strong></div>}<button type="button" className="mt-5 w-full rounded-xl bg-[#00b9ff] px-4 py-3 font-black text-[#00132e]">Enter for ${detail?.entryPrice ?? 1}</button></div><p className="mt-4 text-xs text-white/45">Interactive partner preview. No entry or purchase is created.</p></div></div></div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Listing editor" className={`${popupStyles.overlay} fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6`}><h3 className="text-2xl font-black">Edit the listing preview</h3><p className="mt-2 text-sm leading-6 text-white/60">Adjust the customer-facing headline and description before submitting the concept.</p><label className={`${labelClass} mt-5`}>Headline<input value={headline} onChange={(event) => setHeadline(event.target.value)} className={fieldClass}/></label><label className={`${labelClass} mt-4`}>Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} className={`${fieldClass} py-3`}/></label><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => { setHeadline(campaign.headline); setDescription(campaign.body); }} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Reset</button><button type="button" onClick={() => setEditorOpen(false)} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e]">Apply preview changes</button></div></div></div>}</>;
 }
 
 function DemoGalleryImage({ demo, index, className }: { demo: DemoCase; index: number; className: string }) {
@@ -311,10 +377,18 @@ function FlyerProof({ partnership, enlarged = false, generated = false }: { part
 function PrintKitPreviews({ partnership }: { partnership: DemoCase }) {
   const [openProof, setOpenProof] = useState<"postcard" | "flyer" | null>(null);
   const [editorOpen, setEditorOpen] = useState<"postcard" | "flyer" | null>(null);
-  const [generated, setGenerated] = useState(false);
-  const [redos, setRedos] = useState(3);
-  const [feedback, setFeedback] = useState("");
-  const requestRedo = () => { if (redos > 0) { setRedos((value) => value - 1); setGenerated(true); setEditorOpen(null); } };
+  const { draft, setDraft } = useEditor();
+  const generated = draft.values.proof_generated === true;
+  const redos = Number(draft.values.proof_redos ?? 3);
+  const feedbackKey = editorOpen === "flyer" ? "flyer_feedback" : "postcard_feedback";
+  const feedback = String(draft.values[feedbackKey] ?? "");
+  const setFeedback = (value: string) => setDraft(d => ({ ...d, values: { ...d.values, [feedbackKey]: value } }));
+  const setGenerated = (value: boolean) => setDraft(d => ({ ...d, values: { ...d.values, proof_generated: value } }));
+  const requestRedo = () => {
+    if (redos < 1) return;
+    setDraft(d => ({ ...d, values: { ...d.values, proof_generated: true, proof_redos: String(redos - 1) } }));
+    setEditorOpen(null);
+  };
   const editorButton = (format: "postcard" | "flyer") => <button type="button" onClick={() => setEditorOpen(format)} className="mt-3 block w-full rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-4 py-3 text-center text-sm font-black text-cyan-100">Don&apos;t like the design? Edit it · {redos} free redo{redos === 1 ? "" : "s"}</button>;
   return <><div className="mt-5 flex justify-center gap-2"><button type="button" onClick={() => setGenerated(false)} className={`rounded-full px-4 py-2 text-xs font-black ${!generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>Original uploaded image</button><button type="button" onClick={() => setGenerated(true)} className={`rounded-full px-4 py-2 text-xs font-black ${generated ? "bg-[#31e800] text-[#00132e]" : "border border-white/20"}`}>AI-created variation</button></div><div className="mt-6 space-y-8"><section><button type="button" onClick={() => setOpenProof("postcard")} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge landscape postcard preview"><PostcardProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[520px]"><strong className="block">Landscape table card</strong><span className="mt-1 block text-xs leading-5 text-white/50">A finished sideways 4 × 6 card. Click it to inspect the design.</span>{editorButton("postcard")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=cards&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#00b9ff] px-4 py-3 text-center text-sm font-black text-[#00132e]">Download landscape card PDF</a></div></section><section><button type="button" onClick={() => setOpenProof("flyer")} className="block w-full cursor-zoom-in rounded-xl focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/30" aria-label="Enlarge full-page flyer preview"><FlyerProof partnership={partnership} generated={generated}/></button><div className="mx-auto mt-3 max-w-[360px]"><strong className="block">Full-page promotional flyer</strong><span className="mt-1 block text-xs leading-5 text-white/50">Click the finished 8½ × 11 proof to inspect it.</span>{editorButton("flyer")}<a href={`/api/business-campaign-pdf?case=${partnership}&format=flyer&design=${generated ? "generated" : "original"}`} download className="mt-3 block rounded-xl bg-[#ff630f] px-4 py-3 text-center text-sm font-black text-white">Download full-page flyer PDF</a></div></section></div>{openProof && <div role="dialog" aria-modal="true" aria-label={`${openProof} enlarged preview`} className={`${popupStyles.overlay} fixed inset-0 z-[200] grid overflow-y-auto bg-[#000b1d]/95 p-4 sm:p-8`}><button type="button" onClick={() => setOpenProof(null)} className={`${popupStyles.overlayClose} fixed right-4 top-4 z-10 grid h-12 w-12 place-items-center rounded-full border border-cyan-200/40 bg-[#001b3d] text-2xl text-white`} aria-label="Close enlarged preview">×</button><div className={`${popupStyles.surface} m-auto w-full py-12`}>{openProof === "postcard" ? <PostcardProof partnership={partnership} generated={generated} enlarged/> : <FlyerProof partnership={partnership} generated={generated} enlarged/>}</div></div>}{editorOpen && <div role="dialog" aria-modal="true" aria-label="Design editor" className={`${popupStyles.overlay} fixed inset-0 z-[220] grid bg-[#000b1d]/95 p-4`}><div className={`${popupStyles.surface} m-auto w-full max-w-xl rounded-3xl border border-cyan-300/30 bg-[#073153] p-6`}><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">{redos} included redesigns remaining</p><h3 className="mt-2 text-2xl font-black">What should change?</h3><p className="mt-2 text-sm leading-6 text-white/60">The original uploads stay available. A redesign creates a separate visual treatment for the {editorOpen === "postcard" ? "4 × 6 card" : "full-page flyer"}.</p><textarea value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={5} placeholder="Example: Keep the sunset visible, use less dark overlay, make the food warmer, or move the headline." className={`${fieldClass} py-3`}/><div className="mt-5 flex justify-end gap-3"><button type="button" onClick={() => setEditorOpen(null)} className="rounded-xl border border-white/20 px-4 py-3 font-bold">Cancel</button><button type="button" disabled={!feedback.trim() || redos === 0} onClick={requestRedo} className="rounded-xl bg-[#31e800] px-4 py-3 font-black text-[#00132e] disabled:opacity-40">Preview redesigned version</button></div><p className="mt-4 text-xs text-white/40">Walkthrough behavior only. Connecting live image generation and retaining revision history is a later production integration.</p></div></div>}</>;
 }
@@ -332,18 +406,18 @@ function ReviewStep({ partnership, demoCase, values, change, selectedTitle, main
 }
 
 function ProductListingBuilder({ demo }: { demo: "restaurant" | "tools" }) {
-  const [listings, setListings] = useState(() => partnerListings[demo].map((item) => ({ ...item, highlights: [...item.highlights], specifications: [...item.specifications], included: [...item.included] })));
+  const { draft, setDraft } = useEditor();
+  const listings = draft.listings;
   const [selected, setSelected] = useState(0);
-  const [listingFiles, setListingFiles] = useState<Array<{ name: string; listingIndex: number }>>([]);
   const [addedMessage, setAddedMessage] = useState("");
   const listing = listings[selected];
-  function update<K extends keyof PartnerListing>(field: K, value: PartnerListing[K]) { setListings((current) => current.map((item, index) => index === selected ? { ...item, [field]: value } : item)); }
+  function update<K extends keyof PartnerListing>(field: K, value: PartnerListing[K]) { setDraft(current => ({ ...current, listings: current.listings.map((item, index) => index === selected ? { ...item, [field]: value } : item) })); }
   function addProduct() {
     const next: PartnerListing = { title: "New product listing", brand: demo === "tools" ? "Forge & Field" : "Bellamora Italian Kitchen", category: demo === "tools" ? "Tools" : "Dining", value: 100, entryPrice: 1, capacity: 300, summary: "Describe exactly what the customer receives.", highlights: ["Add the first customer-facing highlight"], specifications: [["Model or offer","Add details"]], included: ["Describe what is included"], fulfillment: "Describe who fulfills this listing and how.", availability: "Describe inventory, locations, dates, and geographic limits." };
-    setListings((current) => [next, ...current]); setSelected(0); setAddedMessage("New product added and opened below.");
+    setDraft(current => ({ ...current, listings: [next, ...current.listings],
+      files: current.files.map(file => file.listingIndex === null ? file : { ...file, listingIndex: file.listingIndex + 1 }) })); setSelected(0); setAddedMessage("New product added and opened below.");
   }
-  function addFiles(files: FileList | null) { if (!files) return; setListingFiles((current) => [...current, ...Array.from(files).map((file) => ({ name: file.name, listingIndex: selected }))]); }
-  return <section className="mt-8 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">Individual marketplace listings</p><h3 className="mt-2 text-xl font-black">Complete every product before review</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Each item receives its own Zero Loss page, value, entry capacity, description, specifications, included items, inventory, and fulfillment terms.</p></div><button type="button" onClick={addProduct} className="rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#00132e]">+ Add a product</button></div>{addedMessage && <p role="status" className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-3 text-sm font-bold text-[#9bff83]">{addedMessage}</p>}<div className="mt-5 flex gap-2 overflow-x-auto pb-2">{listings.map((item,index) => <button type="button" key={`${item.title}-${index}`} onClick={() => setSelected(index)} className={`min-w-40 rounded-xl border px-3 py-2 text-left text-xs ${selected === index ? "border-[#31e800] bg-[#31e800]/10 text-white" : "border-white/15 text-white/60"}`}><strong className="block">Listing {index + 1}</strong><span className="mt-1 block truncate">{item.title}</span></button>)}</div><div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" value={listing.value} onChange={(event) => { const value = Number(event.target.value); update("value",value); update("capacity",value * 3); }} className={fieldClass}/></label><label className={labelClass}>Entry price<input type="number" value={listing.entryPrice} onChange={(event) => update("entryPrice",Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Required capacity<input type="number" value={listing.capacity} onChange={(event) => update("capacity",Number(event.target.value))} className={fieldClass}/></label></div><label className={`${labelClass} mt-4`}>Customer-facing summary<textarea value={listing.summary} onChange={(event) => update("summary",event.target.value)} rows={4} className={`${fieldClass} py-3`}/></label><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Highlights, one per line<textarea value={listing.highlights.join("\n")} onChange={(event) => update("highlights",event.target.value.split("\n"))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Specifications, Label: Value<textarea value={listing.specifications.map(([label,value]) => `${label}: ${value}`).join("\n")} onChange={(event) => update("specifications",event.target.value.split("\n").map((line) => { const [label,...rest] = line.split(":"); return [label,rest.join(":").trim()] as [string,string]; }))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>What is included, one per line<textarea value={listing.included.join("\n")} onChange={(event) => update("included",event.target.value.split("\n"))} rows={4} className={`${fieldClass} py-3`}/></label><div className="space-y-4"><label className={labelClass}>Fulfillment<textarea value={listing.fulfillment} onChange={(event) => update("fulfillment",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Inventory and availability<textarea value={listing.availability} onChange={(event) => update("availability",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label></div></div><div className="mt-5 rounded-2xl border border-dashed border-cyan-300/45 bg-[#073153] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><strong className="block">Photos for Listing {selected + 1}: {listing.title}</strong><p className="mt-1 text-xs text-white/50">Upload multiple angles here, or reassign any uploaded image to another product below.</p></div><label className="cursor-pointer rounded-xl bg-[#00b9ff] px-4 py-3 text-sm font-black text-[#00132e]">Choose photos<input type="file" accept="image/*" multiple className="sr-only" onChange={(event) => addFiles(event.target.files)}/></label></div><div onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files); }} className="mt-4 grid min-h-28 place-items-center rounded-xl border border-dashed border-white/20 p-4 text-center text-sm text-white/50">Drop as many product images and alternate angles as needed</div>{listingFiles.length > 0 && <div className="mt-4 grid gap-3 sm:grid-cols-2">{listingFiles.map((file,index) => <div key={`${file.name}-${index}`} className="rounded-xl bg-[#001b3d] p-3"><span className="block truncate text-xs font-bold">{file.name}</span><label className="mt-2 block text-[11px] text-white/50">Assign to product<select value={file.listingIndex} onChange={(event) => setListingFiles((current) => current.map((item,itemIndex) => itemIndex === index ? { ...item, listingIndex: Number(event.target.value) } : item))} className="mt-1 min-h-10 w-full rounded-lg border border-white/15 bg-[#073153] px-2 text-xs text-white">{listings.map((item,itemIndex) => <option key={`${item.title}-${itemIndex}`} value={itemIndex}>Listing {itemIndex + 1}: {item.title}</option>)}</select></label></div>)}</div>}</div><p className="mt-5 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-xs leading-5 text-orange-50">The capacity starts at three times the displayed retail value for this demonstration. Each listing must still be reviewed for verified inventory, fulfillment, restrictions, returns, warranty, safety information, and final contractual terms.</p></section>;
+  return <section className="mt-8 rounded-2xl border border-cyan-300/25 bg-[#001b3d] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[.16em] text-[#72ff4e]">Individual marketplace listings</p><h3 className="mt-2 text-xl font-black">Complete every product before review</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">Each item receives its own Zero Loss page, value, entry capacity, description, specifications, included items, inventory, and fulfillment terms.</p></div><button type="button" onClick={addProduct} className="rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#00132e]">+ Add a product</button></div>{addedMessage && <p role="status" className="mt-4 rounded-xl border border-[#31e800]/30 bg-[#31e800]/10 p-3 text-sm font-bold text-[#9bff83]">{addedMessage}</p>}<div className="mt-5 flex gap-2 overflow-x-auto pb-2">{listings.map((item,index) => <button type="button" key={`${item.title}-${index}`} onClick={() => setSelected(index)} className={`min-w-40 rounded-xl border px-3 py-2 text-left text-xs ${selected === index ? "border-[#31e800] bg-[#31e800]/10 text-white" : "border-white/15 text-white/60"}`}><strong className="block">Listing {index + 1}</strong><span className="mt-1 block truncate">{item.title}</span></button>)}</div><div className="mt-5 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Product or offer name<input value={listing.title} onChange={(event) => update("title",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Brand<input value={listing.brand} onChange={(event) => update("brand",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Category<input value={listing.category} onChange={(event) => update("category",event.target.value)} className={fieldClass}/></label><label className={labelClass}>Retail value<input type="number" value={listing.value} onChange={(event) => { const value = Number(event.target.value); update("value",value); update("capacity",value * 3); }} className={fieldClass}/></label><label className={labelClass}>Entry price<input type="number" value={listing.entryPrice} onChange={(event) => update("entryPrice",Number(event.target.value))} className={fieldClass}/></label><label className={labelClass}>Required capacity<input type="number" value={listing.capacity} onChange={(event) => update("capacity",Number(event.target.value))} className={fieldClass}/></label></div><label className={`${labelClass} mt-4`}>Customer-facing summary<textarea value={listing.summary} onChange={(event) => update("summary",event.target.value)} rows={4} className={`${fieldClass} py-3`}/></label><div className="mt-4 grid gap-4 sm:grid-cols-2"><label className={labelClass}>Highlights, one per line<textarea value={listing.highlights.join("\n")} onChange={(event) => update("highlights",event.target.value.split("\n"))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Specifications, Label: Value<textarea value={listing.specifications.map(([label,value]) => `${label}: ${value}`).join("\n")} onChange={(event) => update("specifications",event.target.value.split("\n").map((line) => { const [label,...rest] = line.split(":"); return [label,rest.join(":").trim()] as [string,string]; }))} rows={5} className={`${fieldClass} py-3`}/></label><label className={labelClass}>What is included, one per line<textarea value={listing.included.join("\n")} onChange={(event) => update("included",event.target.value.split("\n"))} rows={4} className={`${fieldClass} py-3`}/></label><div className="space-y-4"><label className={labelClass}>Fulfillment<textarea value={listing.fulfillment} onChange={(event) => update("fulfillment",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label><label className={labelClass}>Inventory and availability<textarea value={listing.availability} onChange={(event) => update("availability",event.target.value)} rows={3} className={`${fieldClass} py-3`}/></label></div></div><ApplicationFiles listingIndex={selected}/><p className="mt-5 rounded-xl border border-orange-300/25 bg-orange-300/10 p-4 text-xs leading-5 text-orange-50">The capacity starts at three times the displayed retail value for this demonstration. Each listing must still be reviewed for verified inventory, fulfillment, restrictions, returns, warranty, safety information, and final contractual terms.</p></section>;
 }
 
 function Details({ partnership, demoCase, values, change, onFillDemo }: { partnership: Partnership; demoCase: DemoCase | null; values: FormValues; change: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void; onFillDemo: () => void }) {

@@ -4,6 +4,7 @@ import { SignUpExperience } from "@/components/auth/SignUpExperience";
 import { BusinessOnboardingForm } from "@/components/auth/BusinessOnboardingForm";
 import { createClient } from "@/lib/supabase/server";
 import { signInReturnPath } from "@/lib/auth/entry-return";
+import { businessSignupPath, isBusinessDraft, type BusinessRecord } from "@/lib/business/application";
 
 export const metadata: Metadata = { title: "Sign up" };
 
@@ -13,15 +14,23 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
   const initialAccountPath = account === "business" ? "business" : "pleasure";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (user?.email_confirmed_at) redirect(returnTo ?? "/account/entries");
-
   if (initialAccountPath === "business") {
+    const owner = user?.email_confirmed_at ? user.id : null;
+    let record: BusinessRecord | null = null;
+    if (owner) {
+      const { data, error } = await supabase.from("business_applications").select("document,revision,status").eq("owner_id", owner).maybeSingle();
+      if (error || (data && !isBusinessDraft(data.document))) {
+        return <main className="mx-auto max-w-lg p-8 text-white"><h1 className="text-2xl font-bold">Business application</h1><p role="alert" className="my-4">Your saved application could not be loaded.</p><a className="text-cyan-200 underline" href={businessSignupPath}>Try again</a></main>;
+      }
+      record = data as BusinessRecord | null;
+    }
     return (
       <main className="min-h-[calc(100vh-163px)] max-w-[100vw] overflow-x-hidden bg-[radial-gradient(circle_at_90%_10%,rgba(0,185,255,.14),transparent_28%),linear-gradient(145deg,#00132e,#031b44)] px-3 py-5 sm:px-6 sm:py-10 lg:px-8">
-        <div className="mx-auto w-full min-w-0 max-w-7xl"><BusinessOnboardingForm /></div>
+        <div className="mx-auto w-full min-w-0 max-w-7xl"><BusinessOnboardingForm key={owner ?? "guest"} owner={owner} record={record} /></div>
       </main>
     );
   }
+  if (user?.email_confirmed_at) redirect(returnTo ?? "/account/entries");
 
   return (
     <main className="auth-signup-page min-h-[calc(100vh-163px)] overflow-hidden bg-[radial-gradient(circle_at_12%_12%,rgba(0,185,255,.2),transparent_27%),radial-gradient(circle_at_90%_82%,rgba(255,99,15,.18),transparent_28%),linear-gradient(145deg,#00132e_0%,#031b44_52%,#001a3a_100%)] px-0 pb-8 pt-0 text-white sm:px-6 sm:py-12 lg:px-8">

@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { SignUpForm } from "@/components/auth/SignUpForm";
+import { businessSignupPath } from "@/lib/business/application";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 
 type AccountPath = "pleasure" | "business";
@@ -26,6 +27,12 @@ export function SignUpExperience({ initialAccountPath = "pleasure", returnTo = n
     firstField?.focus({ preventScroll: true });
   }
 
+  if (returnTo === businessSignupPath) {
+    return <section><h2 className="text-3xl font-black">Create your business account</h2>
+      <p className="my-4 text-sm text-white/70">Verify your email and sign in to continue your business application. Already registered? <Link className="font-bold text-cyan-300 underline" href={authNavigationHref("/login", returnTo)}>Sign in</Link></p>
+      <SignUpForm returnTo={returnTo} />
+    </section>;
+  }
   return (
     <>
       <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ff8a45]">What brings you to Zero Loss?</p>

@@ -1,6 +1,7 @@
 import { fundingReturnPath, purchaseOptionReturnPath } from "@/lib/wallet/funding-navigation";
 import { currentProductEntryHref, productEntryReturnPath } from "@/lib/entries/return-intent";
 import { accountReturnPath } from "./account-return";
+import { businessSignupPath } from "@/lib/business/application";
 
 /** Only allow a sign-in return to a product's entry section on this site. */
 export function entryReturnPath(value: unknown): string | null {
@@ -20,6 +21,7 @@ export function productReturnFromReferer(referer: unknown, requestHost: unknown)
 
 /** Resume only known in-site destinations, never an arbitrary redirect URL. */
 export function signInReturnPath(value: unknown): string | null {
+  if (value === businessSignupPath) return businessSignupPath;
   return sharedProductReturnPath(value) ?? entryReturnPath(value) ?? fundingReturnPath(value) ?? purchaseOptionReturnPath(value) ?? accountReturnPath(value);
 }
 
