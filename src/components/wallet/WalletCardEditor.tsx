@@ -7,6 +7,8 @@ import { DemoCardArtwork } from "./DemoCardArtwork";
 import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-payments.module.css";
 
+export const savedCardEditPrefix = "#wallet-edit-card/";
+
 export function revealWalletSection(id: string, mobileId?: string) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const target = document.getElementById(mobileId && window.innerWidth <= 767 ? mobileId : id);

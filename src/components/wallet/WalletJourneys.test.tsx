@@ -52,6 +52,32 @@ test.each(["methods", "wallet", "legacy"])("all saved cards open the list instea
   expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
 });
 
+test.each([{ cards: allCards }, { cards: allCards.slice(0, 3) }])("refresh restores the selected saved card and its last saved preferences", ({ cards }) => {
+  window.history.replaceState(null, "", "/account/wallet?view=history&panel=methods#payment-methods");
+  const open = () => render(<WalletPaymentMethods enabled initialSection="methods" savedCards={cards} />);
+  const page = open();
+  fireEvent.click(within(screen.getByRole("article", { name: "Saved card 5556" })).getByRole("button", { name: "Edit" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Use this card for deposits" }));
+  page.unmount();
+  open();
+  expect(screen.getByRole("heading", { name: "Edit card" })).toBeTruthy();
+  expect((screen.getByLabelText("Card number") as HTMLInputElement).value).toBe(DEMO_CARD_FIXTURES[1].number);
+  expect((screen.getByRole("checkbox", { name: "Use this card for deposits" }) as HTMLInputElement).checked).toBe(true);
+  expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
+
+test("a link to a removed card returns to the saved list instead of editing another card", () => {
+  window.history.replaceState(null, "", "#payment-methods");
+  const { rerender } = render(<WalletPaymentMethods enabled savedCards={allCards} />);
+  fireEvent.click(within(screen.getByRole("article", { name: "Saved card 1881" })).getByRole("button", { name: "Edit" }));
+  rerender(<WalletPaymentMethods enabled savedCards={initialCards} />);
+  expect(window.location.hash).toBe("#payment-methods");
+  expect(screen.getByRole("heading", { name: "Payment methods" })).toBeTruthy();
+  expect(screen.queryByRole("form", { name: "Save payment method" })).toBeNull();
+  expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
+});
+
 test("an available sample restores normal Add Card after the saved list refreshes", () => {
   window.history.replaceState(null, "", "#payment-methods");
   const { rerender } = render(<WalletPaymentMethods enabled savedCards={allCards} />);

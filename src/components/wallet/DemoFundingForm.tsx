@@ -21,7 +21,7 @@ import { WholeDollarToast } from "./WholeDollarToast";
 import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
-import { WalletCardEditor, revealWalletSection } from "./WalletCardEditor";
+import { WalletCardEditor, revealWalletSection, savedCardEditPrefix } from "./WalletCardEditor";
 import paymentStyles from "./wallet-payments.module.css";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
@@ -102,7 +102,10 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
     setArtwork(Object.fromEntries(savedCards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
   }
   useEffect(() => {
-    const closeEditor = () => { if (["#balance", "#add-funds", "#payment-methods", "#wallet-add-card"].includes(window.location.hash)) setEditingCard(null); };
+    const closeEditor = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith(savedCardEditPrefix) || ["#balance", "#add-funds", "#payment-methods", "#wallet-add-card"].includes(hash)) setEditingCard(null);
+    };
     window.addEventListener("hashchange", closeEditor);
     window.addEventListener("popstate", closeEditor);
     return () => { window.removeEventListener("hashchange", closeEditor); window.removeEventListener("popstate", closeEditor); };
