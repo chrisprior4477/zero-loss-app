@@ -160,7 +160,7 @@ dialog.toast.journeyDialog.journeyDialog {
 .toast .journey button.groupName { min-height:40px; padding:2px 0; font-size:13px; }
 .groupSection { margin-top:10px; }
 .journey .groupSection h3 { font-size:13px; margin:0 0 4px; }
-.groupList { max-height:195px; overflow-y:auto; overscroll-behavior:contain; }
+.groupList { max-height:clamp(68px, calc(var(--share-visible-height, 100dvh) - 304px), 195px); overflow-y:auto; overscroll-behavior:contain; }
 .shareSuccess { margin-top:12px; padding:14px; border-radius:10px; background:#e4f9ed; color:#08623d; }
 .shareSuccess strong { display:block; font-size:17px; }
 .shareSuccess p { margin:8px 0; font-size:13px; line-height:1.4; }

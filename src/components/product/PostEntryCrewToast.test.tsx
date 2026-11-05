@@ -238,7 +238,11 @@ test("empty groups cannot expose an entry and offer real creation", async () => 
   expect(screen.getByRole("heading", { name: "Add people" })).toBeTruthy();
 });
 
-test("create group persists exact approved members before adding the saved choice", async () => {
+test("saving a group puts its checked row first in a long list with its Send button ready", async () => {
+  const olderGroups = Array.from({ length: 6 }, (_, index) => ({
+    ...options.groups[0], id: `55555555-5555-4555-8555-00000000000${index}`, name: `Group ${index + 1}`,
+  }));
+  mocks.options.mockResolvedValue({ ...options, groups: [...options.groups, ...olderGroups] });
   mocks.save.mockResolvedValue({ ok: true, message: "Group saved." }); open(); await audiences();
   await groups();
   fireEvent.click(screen.getByRole("button", { name: /Create a new group/ }));
@@ -247,7 +251,11 @@ test("create group persists exact approved members before adding the saved choic
   fireEvent.change(screen.getByLabelText("Group name"), { target: { value: "Family" } }); fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: expect.any(String), name: "Family", memberIds: [memberId], contacts: [] }, remove: false }));
-  expect(await screen.findByRole("checkbox", { name: "Share with Family" })).toHaveProperty("checked", true); expect(mocks.share).not.toHaveBeenCalled();
+  const savedGroup = await screen.findByRole("checkbox", { name: "Share with Family" });
+  expect(savedGroup).toHaveProperty("checked", true);
+  expect(screen.getAllByRole("checkbox", { name: /^Share with / })[0]).toBe(savedGroup);
+  expect(screen.getByRole("button", { name: "Send to Family" })).toHaveProperty("disabled", false);
+  expect(mocks.share).not.toHaveBeenCalled();
 });
 
 test("editing the existing group does not erase saved contacts", async () => {
