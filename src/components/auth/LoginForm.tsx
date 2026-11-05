@@ -118,7 +118,7 @@ export function LoginForm({
       </button>
 
       <div className="flex flex-col items-center justify-between gap-3 text-sm sm:flex-row">
-        <Link href="/forgot-password" className="font-semibold text-cyan-300 underline-offset-4 hover:underline">Forgot your password?</Link>
+        <Link href={authNavigationHref("/forgot-password", returnTo)} className="font-semibold text-cyan-300 underline-offset-4 hover:underline">Forgot your password?</Link>
         <p className="text-white/50">
         Need an account?{" "}
         <Link

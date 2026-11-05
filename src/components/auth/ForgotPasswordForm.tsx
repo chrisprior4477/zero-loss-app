@@ -6,7 +6,7 @@ import { requestPasswordResetAction, type PasswordRecoveryState } from "@/lib/au
 
 const initialState: PasswordRecoveryState = { status: "idle", message: null };
 
-export function ForgotPasswordForm({ expired = false }: { expired?: boolean }) {
+export function ForgotPasswordForm({ expired = false, signInHref }: { expired?: boolean; signInHref: string }) {
   const [state, action, pending] = useActionState(requestPasswordResetAction, initialState);
 
   return (
@@ -19,7 +19,7 @@ export function ForgotPasswordForm({ expired = false }: { expired?: boolean }) {
       {state.message ? <p role={state.status === "error" ? "alert" : "status"} className={`rounded-xl border p-4 text-sm leading-6 ${state.status === "error" ? "border-red-300/30 bg-red-400/10 text-red-100" : "border-[#31e800]/35 bg-[#31e800]/10 text-white"}`}>{state.message}</p> : null}
       <button type="submit" disabled={pending} className="min-h-12 w-full rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e] transition hover:bg-cyan-200 disabled:opacity-60">{pending ? "Sending…" : state.status === "sent" ? "Resend reset email" : "Send reset email"}</button>
       <p className="text-xs leading-5 text-white/55">You can request another link if it doesn&apos;t arrive. Please wait a minute between requests.</p>
-      <Link href="/login" className="inline-block text-sm font-bold text-cyan-300 hover:underline">← Back to sign in</Link>
+      <Link href={signInHref} className="inline-block text-sm font-bold text-cyan-300 hover:underline">← Back to sign in</Link>
     </form>
   );
 }
