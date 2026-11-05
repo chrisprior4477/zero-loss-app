@@ -26,7 +26,13 @@ export type CrewMember = { memberId: string; name: string; avatarUrl: string | n
 export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; tab?: string; request?: string; invite?: string; design?: string }> }) {
   const account = await getAccountContext();
   const params = await searchParams;
-  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/crew", params, params.tab === "picks" ? "#sharing" : params.tab === "requests" && params.request ? `#crew-request-${params.request}` : "")));
+  if (!account) {
+    let section = "";
+    if (params.tab === "groups") section = "#crew-groups";
+    if (params.tab === "picks") section = "#sharing";
+    if (params.tab === "requests" && params.request) section = `#crew-request-${params.request}`;
+    redirect(authNavigationHref("/login", accountPageReturnPath("/account/crew", params, section)));
+  }
   const db = await createClient();
   const [invitationsResult, entriesResult, sharesResult, membersResult, profileResult, inviteLinkResult, settingsResult] = await Promise.all([
     db.from("crew_invitations").select("id,requester_id,recipient_id,requester_name,recipient_name,status,created_at")

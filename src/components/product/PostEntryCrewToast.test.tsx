@@ -242,6 +242,8 @@ test("create group persists exact approved members before adding the saved choic
   mocks.save.mockResolvedValue({ ok: true, message: "Group saved." }); open(); await audiences();
   await groups();
   fireEvent.click(screen.getByRole("button", { name: /Create a new group/ }));
+  fireEvent.click(screen.getByText("More group options"));
+  expect(screen.getByRole("link", { name: /Manage groups and saved contacts/ }).getAttribute("href")).toBe("/account/crew?tab=groups#crew-groups");
   fireEvent.change(screen.getByLabelText("Group name"), { target: { value: "Family" } }); fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: expect.any(String), name: "Family", memberIds: [memberId], contacts: [] }, remove: false }));
@@ -427,6 +429,7 @@ test("saving a chosen phone contact requires a group and preserves its existing 
   fireEvent.click(screen.getByRole("button", { name: "Choose from phone contacts" }));
   fireEvent.click(await screen.findByRole("button", { name: "Save Chosen friend to a group" }));
   await screen.findByRole("radio", { name: "Mom" });
+  expect(screen.getByRole("link", { name: /See your groups/ }).getAttribute("href")).toBe("/account/crew?tab=groups#crew-groups");
   expect(mocks.save).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Save contact to group" })).toHaveProperty("disabled", true);
   fireEvent.click(screen.getByRole("radio", { name: "Mom" }));

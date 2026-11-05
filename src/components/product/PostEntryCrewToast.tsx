@@ -1,6 +1,7 @@
 "use client";
 
 import { prepareProductShareLink } from "@/lib/sharing/receiving-actions";
+import { accountRoutes } from "@/lib/account/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -593,7 +594,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         {options ? <fieldset className={styles.contactGroups}><legend>Choose a group</legend>{options.groups.map(group => <label className={styles.choice} key={group.id}><input type="radio" name={`${id}-contact-group`} value={group.id} checked={contactGroupId === group.id} onChange={() => { setContactGroupId(group.id); feedback(""); }} disabled={busy} /><span>{group.name}</span></label>)}</fieldset> : null}
         {options && !options.groups.length ? <p className={styles.note}>Create a group in Your Crew first, then return to save this contact.</p> : null}
         <button type="button" className={styles.crewButton} disabled={busy || !contactGroupId} onClick={() => void saveContactToGroup()}>{busy ? "Saving…" : "Save contact to group"}</button>
-        <Link className={styles.seeCrew} href="/account/crew#crew-groups" onClick={onClose}>See your groups →</Link>
+        <Link className={styles.seeCrew} href={accountRoutes.crewGroups} onClick={onClose}>See your groups →</Link>
       </> : null}
 
       {step === "email" ? <>
@@ -682,7 +683,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         </form>
         <button type="button" disabled={busy} onClick={() => void openFinder()}>Find someone to add to my Crew</button>
         <details className={styles.more}><summary>More group options</summary><button type="button" disabled={busy} onClick={() => void refreshMembers()}>Refresh Crew members</button>
-        <Link className={styles.manage} href="/account/crew#crew-groups" onClick={onClose}>Manage groups and saved contacts →</Link>
+        <Link className={styles.manage} href={accountRoutes.crewGroups} onClick={onClose}>Manage groups and saved contacts →</Link>
         </details>
         </> : null}
       </> : null}

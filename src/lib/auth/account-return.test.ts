@@ -12,7 +12,7 @@ const destinations = [
   "/account/entries?filter=active", "/account/favorites", "/account/orders", "/account/security", "/account/profile", "/account/notifications",
   `/account/favorites?tab=shared&share=${id}`, "/account/favorites?item=nike-court-shot-shoes", "/account/favorites#saved-items-heading",
   "/account/entries/ent_11111111111111111111111111111111", "/account/entries?viewed=ent_11111111111111111111111111111111",
-  `/account/crew?tab=requests&request=${id}#crew-request-${id}`, "/account/crew?tab=picks#sharing",
+  `/account/crew?tab=requests&request=${id}#crew-request-${id}`, "/account/crew?tab=picks#sharing", "/account/crew?tab=groups#crew-groups",
   `/account/crew?member=${id}`, `/account/crew?invite=${id}`, `/support?case=${id}#conversation`, `/support?transaction=${id}`,
   "/support?view=inbox&page=2#case-list", `/support?case=${id}&messages=2#conversation`, "/support",
 ];

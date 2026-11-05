@@ -9,6 +9,7 @@ export const accountRoutes = {
   walletHistory: "/account/wallet?view=history",
   orders: "/account/orders",
   crew: "/account/crew",
+  crewGroups: "/account/crew?tab=groups#crew-groups",
   notifications: "/account/notifications",
   security: "/account/security",
   declinedOffers: "/account/declined-offers",
