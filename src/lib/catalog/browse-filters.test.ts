@@ -57,7 +57,9 @@ describe("browse filters", () => {
   test("validates prize-value bounds from the URL", () => {
     const retailers = browseRetailers(demoProducts);
     expect(parseBrowseFilterState({ maxValue: "50", minValue: "25.50" }, retailers))
-      .toMatchObject({ minValue: 25.5, maxValue: 50 });
+      .toMatchObject({ minValue: 26, maxValue: 50 });
+    expect(parseBrowseFilterState({ minValue: "0", maxValue: "75.99" }, retailers))
+      .toMatchObject({ minValue: 0, maxValue: 75 });
     expect(parseBrowseFilterState({ minValue: "-1", maxValue: "Infinity" }, retailers))
       .toMatchObject({ minValue: null, maxValue: null });
     expect(parseBrowseFilterState({ minValue: "5.999", maxValue: "1000001" }, retailers))

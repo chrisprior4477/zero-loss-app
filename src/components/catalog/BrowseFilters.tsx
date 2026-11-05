@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import type { BrowseFilterState } from "@/lib/catalog/browse-filters";
+import { MAX_PRIZE_VALUE, type BrowseFilterState } from "@/lib/catalog/browse-filters";
 import type { RetailerFilterGroup } from "@/lib/catalog/browse-filters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import type { MarketplaceCategoryId } from "@/lib/catalog/navigation";
 import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
+import { PrizeDollarField } from "./PrizeDollarField";
 
 export type BrowseFilterProps = {
   filters: BrowseFilterState;
@@ -28,6 +29,14 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const directoryMatches = searchFocused ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
   const presetValue = filters.minValue === null && [25, 50, 75, 100].includes(filters.maxValue ?? -1)
     ? String(filters.maxValue) : filters.minValue !== null || filters.maxValue !== null ? "custom" : "all";
+  const [mode, setMode] = useState(presetValue);
+  const [bounds, setBounds] = useState({ minValue: String(filters.minValue ?? ""), maxValue: String(filters.maxValue ?? "") });
+  const fields = ["minValue", "maxValue"] as const;
+  const invalidAmount = fields.find(field => bounds[field] !== "" && (!/^\d+$/.test(bounds[field]) || Number(bounds[field]) > MAX_PRIZE_VALUE));
+  const reversed = bounds.minValue !== "" && bounds.maxValue !== "" && Number(bounds.minValue) > Number(bounds.maxValue);
+  const issue = invalidAmount ? "Enter a whole dollar amount from $0 to $1,000,000."
+    : reversed ? "Maximum must be at least the minimum." : "";
+  const issueField = invalidAmount ?? "maxValue";
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -35,16 +44,17 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     const params = new URLSearchParams();
     const valueMode = data.get("valueMode")?.toString() ?? "all";
     if (valueMode === "custom") {
-      const min = data.get("minValue")?.toString() ?? "";
-      const max = data.get("maxValue")?.toString() ?? "";
-      const maxField = form.elements.namedItem("maxValue") as HTMLInputElement | null;
-      if (min && max && Number(min) > Number(max)) {
-        maxField?.setCustomValidity("Maximum must be at least the minimum.");
-        maxField?.reportValidity();
+      if (issue) {
+        const trigger = form.querySelector<HTMLButtonElement>(`button[data-bound="${issueField}"]`);
+        const input = form.elements.namedItem(issueField) as HTMLInputElement;
+        (trigger?.getClientRects().length ? trigger : input).focus();
         return;
       }
-      if (min) params.set("minValue", min);
-      if (max) params.set("maxValue", max);
+      for (const field of fields) {
+        const input = form.elements.namedItem(field) as HTMLInputElement;
+        if (!input.reportValidity()) return;
+        if (bounds[field] !== "") params.set(field, String(Number(bounds[field])));
+      }
     } else if (["25", "50", "75", "100"].includes(valueMode)) {
       params.set("maxValue", valueMode);
     }
@@ -59,11 +69,8 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   };
 
   return (
-    <form action="/browse" method="get" onSubmit={submit} onChange={event => {
+    <form action="/browse" method="get" noValidate onSubmit={submit} onChange={event => {
       const target = event.target;
-      if (target instanceof HTMLInputElement && target.name === "valueMode" && target.value !== "custom") {
-        event.currentTarget.querySelector<HTMLInputElement>('input[name="maxValue"]')?.setCustomValidity("");
-      }
       if ((target instanceof HTMLInputElement || target instanceof HTMLSelectElement)
         && !["q", "minValue", "maxValue"].includes(target.name)
         && !(target.name === "valueMode" && target.value === "custom")) event.currentTarget.requestSubmit();
@@ -117,19 +124,17 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         <div className="grid grid-cols-2 gap-2">
           {([ ["all", "Any value"], ["25", "$25 & below"], ["50", "$50 & below"], ["75", "$75 & below"], ["100", "$100 & below"], ["custom", "Custom range"] ] as const).map(([value, label]) => (
             <label key={value} className="cursor-pointer">
-              <input className="peer sr-only" type="radio" name="valueMode" value={value} defaultChecked={presetValue === value} />
+              <input className="peer sr-only" type="radio" name="valueMode" value={value} checked={mode === value} onChange={() => setMode(value)} />
               <span className="flex min-h-11 h-full items-center justify-center rounded-xl border border-white/25 px-2 py-2 text-center text-xs font-bold leading-4 text-white/85 transition hover:border-cyan-300 peer-checked:border-cyan-300 peer-checked:bg-cyan-300 peer-checked:text-[#00132e] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-cyan-300">{label}</span>
             </label>
           ))}
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <label className="text-xs font-bold text-white/75">From ($)
-            <input type="number" name="minValue" min="0" max="1000000" step="0.01" inputMode="decimal" defaultValue={presetValue === "custom" ? filters.minValue ?? "" : ""} onFocus={event => event.currentTarget.form?.querySelector<HTMLInputElement>('input[name="valueMode"][value="custom"]')?.click()} className="mt-1 min-h-10 w-full rounded-lg border border-white/30 bg-[#061e3d] px-2 text-sm text-white focus-visible:outline-2 focus-visible:outline-cyan-300" />
-          </label>
-          <label className="text-xs font-bold text-white/75">To ($)
-            <input type="number" name="maxValue" min="0" max="1000000" step="0.01" inputMode="decimal" defaultValue={presetValue === "custom" ? filters.maxValue ?? "" : ""} onInput={event => event.currentTarget.setCustomValidity("")} onFocus={event => event.currentTarget.form?.querySelector<HTMLInputElement>('input[name="valueMode"][value="custom"]')?.click()} className="mt-1 min-h-10 w-full rounded-lg border border-white/30 bg-[#061e3d] px-2 text-sm text-white focus-visible:outline-2 focus-visible:outline-cyan-300" />
-          </label>
+          {fields.map(name => <PrizeDollarField key={name} name={name} value={bounds[name]}
+            issueId={mode === "custom" && issue && issueField === name ? `${id}-range-error` : undefined}
+            onActivate={() => setMode("custom")} onChange={value => setBounds(current => ({ ...current, [name]: value }))} />)}
         </div>
+        <p id={`${id}-range-error`} aria-live="polite" className="mt-1 text-sm font-bold text-amber-200 empty:hidden">{mode === "custom" ? issue : ""}</p>
       </fieldset>
       {filters.retailer ? <p className="rounded-xl border border-cyan-300/35 bg-[#061e3d] px-3 py-2 text-xs text-white/75">Retailer: <strong className="text-white">{filters.retailer}</strong></p> : null}
       <fieldset>

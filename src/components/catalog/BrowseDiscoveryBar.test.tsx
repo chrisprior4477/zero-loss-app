@@ -19,6 +19,65 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const searchForm = () => screen.getByRole("search", { name: "Search marketplace" });
 
+function openPriceFilters() {
+  render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} />);
+  fireEvent.click(screen.getByRole("button", { name: /Filter & sort/ }));
+  return within(screen.getByRole("dialog", { name: "Filter & sort" }));
+}
+
+test("correcting either custom bound validates the current pair and applies the inclusive range", () => {
+  const form = openPriceFilters();
+  const from = form.getByRole("spinbutton", { name: "From ($)" });
+  const to = form.getByRole("spinbutton", { name: "To ($)" });
+  const apply = form.getByRole("button", { name: "Apply filters" });
+  fireEvent.focus(from);
+  fireEvent.change(from, { target: { value: "100" } });
+  fireEvent.change(to, { target: { value: "50" } });
+  fireEvent.click(apply);
+  expect(form.getByText("Maximum must be at least the minimum.")).toBeTruthy();
+  expect(navigation.push).not.toHaveBeenCalled();
+  fireEvent.change(to, { target: { value: "101" } });
+  expect(form.queryByText("Maximum must be at least the minimum.")).toBeNull();
+  fireEvent.change(to, { target: { value: "50" } });
+  fireEvent.change(from, { target: { value: "25" } });
+  expect(form.queryByText("Maximum must be at least the minimum.")).toBeNull();
+  fireEvent.click(apply);
+  expect(navigation.push).toHaveBeenCalledWith("/browse?minValue=25&maxValue=50#search-results", { scroll: false });
+});
+
+test("fractional drafts cannot apply or prevent switching to a preset", () => {
+  const form = openPriceFilters();
+  const from = form.getByRole("spinbutton", { name: "From ($)" });
+  fireEvent.focus(from);
+  fireEvent.change(from, { target: { value: "0.02" } });
+  fireEvent.click(form.getByRole("button", { name: "Apply filters" }));
+  expect(navigation.push).not.toHaveBeenCalled();
+  fireEvent.click(form.getByLabelText("$75 & below"));
+  expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=75#search-results", { scroll: false });
+});
+
+test("the dollar wheel saves zero, can clear a bound, and Cancel keeps the current selection", () => {
+  const form = openPriceFilters();
+  const from = () => form.getByRole("button", { name: /From \(\$\)/ });
+  fireEvent.click(from());
+  let list = screen.getByRole("listbox", { name: "Minimum prize value" });
+  fireEvent.keyDown(list, { key: "End" });
+  expect(within(list).getByRole("option", { selected: true }).textContent).toBe("$1,000,000");
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  fireEvent.click(from());
+  list = screen.getByRole("listbox", { name: "Minimum prize value" });
+  fireEvent.keyDown(list, { key: "Home" });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(from().textContent).toContain("$1,000,000");
+  fireEvent.click(from());
+  fireEvent.click(screen.getByRole("button", { name: "Clear amount" }));
+  expect(from().textContent).toContain("No minimum");
+  fireEvent.click(from());
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  fireEvent.click(form.getByRole("button", { name: "Apply filters" }));
+  expect(navigation.push).toHaveBeenCalledWith("/browse?minValue=0#search-results", { scroll: false });
+});
+
 test("Go searches across departments and the X clears a draft without submitting", () => {
   render(<BrowseDiscoveryBar {...props} />);
   const form = searchForm();

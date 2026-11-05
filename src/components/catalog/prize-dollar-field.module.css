@@ -1,0 +1,42 @@
+.field { min-width: 0; color: #c3d4e6; font-size: .75rem; font-weight: 700; }
+.field > input, .field > button {
+  width: 100%; min-height: 44px; margin-top: 4px; padding: 8px 10px;
+  border: 1px solid #68829d; border-radius: 8px; background: #061e3d;
+  color: white; font: inherit; font-size: 1rem;
+}
+.field > input { display: block; }
+.field > button { display: none; }
+.field :focus-visible { outline: 2px solid #67e8f9; outline-offset: 2px; }
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .field > input { display: none; }
+  .field > button { display: flex; justify-content: space-between; align-items: center; text-align: left; }
+}
+.dialog {
+  width: min(22rem, calc(100% - 24px)); max-height: calc(100dvh - 24px); margin: auto;
+  padding: 0; border: 1px solid #497395; border-radius: 18px; background: #0b2b50;
+  color: white; box-shadow: 0 16px 48px #00132e66; overscroll-behavior: contain;
+}
+.dialog::backdrop { background: #00132ec9; }
+.panel { padding: 16px; }
+.panel h3 { margin-bottom: 12px; font-size: 1.25rem; font-weight: 800; }
+.frame { --pad: min(96px, 12dvh); position: relative; overflow: hidden; border-radius: 10px; background: #061e3d; }
+.frame::before {
+  content: ""; position: absolute; top: var(--pad); height: var(--row); inset-inline: 4px;
+  background: #184974; border-block: 1px solid #64dfff; border-radius: 6px; pointer-events: none;
+}
+.wheel {
+  position: relative; height: calc(var(--pad) * 2 + var(--row)); overflow-y: auto;
+  padding-block: var(--pad); scroll-snap-type: y mandatory; overscroll-behavior: contain;
+  scrollbar-width: none; touch-action: pan-y pinch-zoom; overflow-anchor: none;
+}
+.wheel::-webkit-scrollbar { display: none; }
+.wheel:focus-visible { outline-offset: -2px; border-radius: inherit; }
+.row {
+  display: grid; place-items: center; height: var(--row); scroll-snap-align: center;
+  color: #bbd5ed; font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.row[aria-selected="true"] { color: white; font-size: 1.5rem; font-weight: 850; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.actions button { min-height: 44px; border-radius: 9px; background: #c4eaff; color: #061e3d; font-size: 1rem; font-weight: 800; cursor: pointer; }
+.actions .done { background: #31e800; }
+.clear { display: block; min-height: 44px; margin: 4px auto 0; padding-inline: 10px; color: #9aefff; font-size: .875rem; text-decoration: underline; cursor: pointer; }
