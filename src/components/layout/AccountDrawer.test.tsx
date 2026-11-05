@@ -15,7 +15,7 @@ vi.mock("next/image", () => ({ default: (props: Record<string, unknown>) => {
 import { AccountDrawer } from "./AccountDrawer";
 import { drawerState } from "@/lib/account/drawer-state";
 import type { AccountActivity } from "@/lib/account/activity";
-import { purchaseFundingHref, purchaseSelectionKey, setPurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
+import { purchaseFundingHref, purchaseSelectionKey, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 
 const storedActivity: AccountActivity = {
   isPreview: false,
@@ -32,7 +32,7 @@ const props = { isSignedIn: true, displayName: "Chris Prior", email: "owner@exam
 
 afterEach(() => {
   cleanup();
-  setPurchaseFundingContext(null);
+  setWalletFundingContext(null);
   sessionStorage.clear();
   path.value = "/account";
   window.history.replaceState({}, "", "/");
@@ -79,7 +79,7 @@ test.each(["Add funds", "Playable Wallet: $0.00", "Wallet & Transactions"])("the
   const href = purchaseFundingHref(slug, "ent_11111111111111111111111111111111")!;
   const selection = { href, slug, selected: ["option-2", "option-4"], decline: false };
   path.value = `/account/purchase-options/${slug}`;
-  setPurchaseFundingContext(selection);
+  setWalletFundingContext(selection);
   render(<AccountDrawer {...props} fundingEnabled />);
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const link = screen.getByRole("link", { name: label });

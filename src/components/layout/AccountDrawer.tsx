@@ -17,7 +17,7 @@ import { SignOutForm } from "@/components/auth/SignOutForm";
 import { INSTALL_APP_REQUEST_EVENT } from "@/components/layout/InstallAppPrompt";
 import { ResetAllDemoActivityButton } from "@/components/account/ResetAllDemoActivityButton";
 import { useAccountProfileShortcut } from "./useAccountProfileShortcut";
-import { rememberPurchaseSelection, usePurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
+import { rememberWalletSelection, useWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -68,8 +68,8 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
   const [currentWalletHref, setCurrentWalletHref] = useState<string | null>(null);
   const pathname = usePathname();
-  const purchaseFunding = usePurchaseFundingContext();
-  const walletHref = purchaseFunding?.href ?? (currentWalletHref ? `${currentWalletHref}#balance` : walletHistoryHref);
+  const walletFunding = useWalletFundingContext();
+  const walletHref = walletFunding?.href ?? (currentWalletHref ? `${currentWalletHref}#balance` : walletHistoryHref);
   const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
   const [avatarUpdate, setAvatarUpdate] = useState<{ original: string | null; photo: string | null } | null>(null);
   const [menuVisibilityUpdate, setMenuVisibilityUpdate] = useState<{ original: boolean; enabled: boolean } | null>(null);
@@ -138,7 +138,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
 
   const close = () => setOpen(false);
   const openWallet = () => {
-    if (purchaseFunding) rememberPurchaseSelection(purchaseFunding);
+    if (walletFunding) rememberWalletSelection(walletFunding);
     close();
   };
   const requestInstall = () => {

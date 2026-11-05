@@ -15,6 +15,7 @@ import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { EntryQuantityInput } from "@/components/product/EntryQuantityInput";
 import { sharePrizeWithCrew } from "@/lib/crew/actions";
 import { entryReviewFundingHref } from "@/lib/wallet/funding-navigation";
+import { useEntryWalletFunding } from "@/lib/wallet/wallet-funding-context";
 import { InsufficientFundsNotice } from "@/components/wallet/InsufficientFundsNotice";
 import { accountLandingTop } from "@/lib/account/landing-position";
 import styles from "./entry-page.module.css";
@@ -80,6 +81,8 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   const busy = working || receipt?.status === "pending";
   const uncertain = result.status === "error" && result.code === "outcome_unknown";
   const reviewing = !receipt && result.status !== "succeeded" && result.status !== "request";
+  const addFundsHref = entryReviewFundingHref(slug, entryId, quantity);
+  useEntryWalletFunding(entryId && canEnter && quantityAvailable && reviewing && !busy && !uncertain ? addFundsHref : null);
 
   useEffect(() => {
     if (initialReceipt) window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_ROUTED_EVENT, { detail: initialReceipt.requestId }));
@@ -270,7 +273,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
             <p>{quantity} separate {quantity === 1 ? "entry" : "entries"} × {formatUsdFromCents(entryPriceCents ?? 0)} = <strong>{formatUsdFromCents(totalCents)}</strong></p>
             <p>Demo Playable Balance: <strong>{balanceCents === null ? "Unavailable" : formatUsdFromCents(balanceCents)}</strong></p>
             {!quantityAvailable && !uncertain ? <p className={styles.checkoutError}>Only {maxQuantity} additional {maxQuantity === 1 ? "ticket is" : "tickets are"} available now. Reduce the quantity before confirming.</p> : null}
-            {!working && !uncertain && requestHead.ready && (insufficientBalance || (result.status === "error" && result.code === "insufficient_balance")) ? <InsufficientFundsNotice href={entryReviewFundingHref(slug, entryId, quantity)}>
+            {!working && !uncertain && requestHead.ready && (insufficientBalance || (result.status === "error" && result.code === "insufficient_balance")) ? <InsufficientFundsNotice href={addFundsHref}>
               {insufficientBalance ? <>Not enough demo funds for this quantity. Add {formatUsdFromCents(totalCents - (balanceCents ?? 0))} more for these entries.</> : <>Your available balance changed. Check the latest balance in Add funds, then return to this entry review.</>}
             </InsufficientFundsNotice> : null}
             {!requestHead.ready ? <p className={styles.checkoutError}>We couldn’t check your latest saved submission. Refresh to check it before entering again.</p> : !canEnter ? <p className={styles.checkoutError}>This demo checkout is unavailable for this account right now.</p> : null}

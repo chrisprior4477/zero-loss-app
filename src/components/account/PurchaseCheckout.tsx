@@ -19,7 +19,7 @@ import { NumberWheel, PurchaseDialog } from "./PurchaseCheckoutDialog";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import styles from "./purchase-checkout.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
-import { purchaseFundingHref, purchaseSelectionKey, setPurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
+import { purchaseFundingHref, purchaseSelectionKey, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 
 function Product({ item }: { item: ActivityItem }) {
   return <div className={styles.product}><Image src={item.image} alt={item.title} width={64} height={60} /><div><p className={styles.retailer}>{item.retailer}</p><h2>{item.title}</h2><p>{usd(item.priceCents)} gift card · Each entry counts toward its own option</p></div></div>;
@@ -69,8 +69,8 @@ export function PurchaseCheckout({ options, initialBalance, cards, fundingAvaila
   const selectedEntryId = chosen[0]?.entryId;
   useEffect(() => {
     const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined);
-    setPurchaseFundingContext(href ? { href, slug: item.slug, selected: [...selected], decline } : null);
-    return () => setPurchaseFundingContext(null);
+    setWalletFundingContext(href ? { href, slug: item.slug, selected: [...selected], decline } : null);
+    return () => setWalletFundingContext(null);
   }, [item.slug, selectedEntryId, selected, decline]);
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("resume") !== "wallet") return;

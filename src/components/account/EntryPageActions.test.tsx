@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { EntryPageActions } from "./EntryPageActions";
+import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
 import { ENTRY_REQUEST_EVENT, type EntryRequest } from "@/lib/entries/request";
 
 const createPreviewEntry = vi.hoisted(() => vi.fn());
@@ -42,6 +43,22 @@ test("typing additional entries updates review and clears any previous approval"
   fireEvent.change(input, { target: { value: "2" } });
   fireEvent.click(screen.getByRole("button", { name: "Add 2 more entries to PlayStation 5" }));
   expect(screen.getByRole("button", { name: "Confirm 2 entries for $2" }).hasAttribute("disabled")).toBe(true);
+  expect(createPreviewEntry).not.toHaveBeenCalled();
+});
+
+test("the header wallet and inline funding return to this exact ticket and additional quantity", () => {
+  render(<HeaderAccountMetrics isSignedIn liveBalance="$1" activityState={{ source: "stored", isPreview: true, activeCount: 1, activity: [] }} />);
+  const wallet = screen.getByRole("link", { name: "$1 playable balance" });
+  const ticket = render(<EntryPageActions {...props} remaining={100} balanceCents={100} />);
+  for (const quantity of [6, 7, 9, 10]) {
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Number of additional entries" }), { target: { value: String(quantity) } });
+    const href = `/account/wallet?view=history&from=${props.slug}&entry=${props.entryId}&quantity=${quantity}&review=entry`;
+    expect(wallet.getAttribute("href")).toBe(href + "#balance");
+    fireEvent.click(screen.getByRole("button", { name: `Add ${quantity} more entries to PlayStation 5` }));
+    expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(href + "#add-funds");
+  }
+  ticket.unmount();
+  expect(wallet.getAttribute("href")).toBe("/account/wallet?view=history#balance");
   expect(createPreviewEntry).not.toHaveBeenCalled();
 });
 

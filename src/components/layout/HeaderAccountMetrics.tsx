@@ -4,7 +4,7 @@ import { HeaderNotifications } from "@/components/notifications/HeaderNotificati
 import Link from "next/link";
 import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
 import { EntryTicket } from "@/components/layout/EntryTicket";
-import { rememberPurchaseSelection, usePurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
+import { rememberWalletSelection, useWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 
 function CreditIcon() {
   // Approved preview: shorten the painted outer lines (including round caps) by 20%.
@@ -22,7 +22,7 @@ export function HeaderAccountMetrics({
   activityState: AccountActivity;
 }) {
   const state = activityState;
-  const purchaseFunding = usePurchaseFundingContext();
+  const walletFunding = useWalletFundingContext();
 
   if (!isSignedIn) {
     return (
@@ -44,9 +44,9 @@ export function HeaderAccountMetrics({
       <Link href={openEntriesHref} title={ticketLabel} aria-label={ticketLabel} className="inline-flex min-h-11 min-w-11 items-center text-white hover:opacity-80 focus:outline-none focus-visible:shadow-[inset_0_-3px_0_#6feaff]">
         <EntryTicket count={ticketCount} />
       </Link>
-      <Link href={purchaseFunding?.href ?? `${walletHistoryHref}#balance`} onClick={(event) => {
-        if (purchaseFunding) {
-          rememberPurchaseSelection(purchaseFunding);
+      <Link href={walletFunding?.href ?? `${walletHistoryHref}#balance`} onClick={(event) => {
+        if (walletFunding) {
+          rememberWalletSelection(walletFunding);
         } else if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0 && window.location.pathname === "/account/wallet") {
           const query = new URLSearchParams(window.location.search);
           if (query.get("view") === "history" && !query.has("reward") && !query.has("rewardId")) {

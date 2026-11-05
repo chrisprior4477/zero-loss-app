@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 import { DemoParticipationPanel } from "./DemoParticipationPanel";
+import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
 import { readEntryIntent, saveEntryIntent } from "@/lib/entries/return-intent";
 import { readViewedProduct, rememberViewedProduct } from "@/lib/catalog/viewed-product";
 const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), reset: vi.fn(), enter: vi.fn(), resolve: vi.fn(), confirm: vi.fn(), replace: vi.fn() }));
@@ -13,6 +14,26 @@ beforeEach(() => {
   Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function(this: HTMLDialogElement) { this.open = true; } });
 });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", requestHead: { ready: true as const, requestId: null }, productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
+
+test("the sticky wallet balance follows the current prize quantity and browse filters, then clears on exit", () => {
+  const browse = "/browse?category=groceries";
+  render(<HeaderAccountMetrics isSignedIn liveBalance="$1" activityState={{ source: "stored", isPreview: true, activeCount: 1, activity: [] }} />);
+  const panel = render(<DemoParticipationPanel {...props} capacity={200} isSignedIn isDemoWallet browseReturnHref={browse} />);
+  const wallet = screen.getByRole("link", { name: "$1 playable balance" });
+  for (const quantity of [6, 7, 9, 10, 101, 1]) {
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Number of entries" }), { target: { value: String(quantity) } });
+    const href = screen.getByRole("link", { name: "Add funds" }).getAttribute("href")!;
+    expect(wallet.getAttribute("href")).toBe(href.replace("#add-funds", "#balance"));
+    const params = new URL(href, "https://example.test").searchParams;
+    expect(params.get("browse")).toBe(browse);
+    expect(params.get("quantity") ?? "1").toBe(String(quantity));
+  }
+  fireEvent.click(wallet);
+  expect(readEntryIntent()).toMatchObject({ slug: props.productSlug, quantity: 1, browseReturn: browse, resumeAfter: "funding" });
+  panel.unmount();
+  expect(wallet.getAttribute("href")).toBe("/account/wallet?view=history#balance");
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
 
 test("typing a quantity updates the total and funding return without submitting entries", () => {
   render(<DemoParticipationPanel {...props} compact capacity={200} isSignedIn isDemoWallet extraEntryExplainerAcknowledged balanceCents={0} />);

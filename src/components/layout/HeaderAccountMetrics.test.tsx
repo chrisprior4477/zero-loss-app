@@ -1,10 +1,10 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { HeaderAccountMetrics } from "./HeaderAccountMetrics";
-import { purchaseFundingHref, purchaseSelectionKey, setPurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
+import { purchaseFundingHref, purchaseSelectionKey, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
-afterEach(() => { cleanup(); setPurchaseFundingContext(null); sessionStorage.clear(); });
+afterEach(() => { cleanup(); setWalletFundingContext(null); sessionStorage.clear(); });
 const activityState = { activeCount: 17, activity: [], source: "stored" as const, isPreview: false };
 
 test.each([
@@ -40,11 +40,11 @@ test("the balance keeps the selected purchase context and returns to normal afte
   const entry = "ent_11111111111111111111111111111111";
   render(<HeaderAccountMetrics isSignedIn liveBalance="$24" activityState={activityState} />);
   const wallet = screen.getByRole("link", { name: "$24 playable balance" });
-  act(() => setPurchaseFundingContext({ href: purchaseFundingHref(slug, entry)!, slug, selected: ["option-1", "option-2"], decline: false }));
+  act(() => setWalletFundingContext({ href: purchaseFundingHref(slug, entry)!, slug, selected: ["option-1", "option-2"], decline: false }));
   expect(wallet.getAttribute("href")).toBe(`/account/wallet?view=history&from=${slug}&entry=${entry}#balance`);
   fireEvent.click(wallet);
   expect(JSON.parse(sessionStorage.getItem(purchaseSelectionKey)!)).toMatchObject({ slug, selected: ["option-1", "option-2"], decline: false });
-  act(() => setPurchaseFundingContext(null));
+  act(() => setWalletFundingContext(null));
   expect(wallet.getAttribute("href")).toBe("/account/wallet?view=history#balance");
 });
 

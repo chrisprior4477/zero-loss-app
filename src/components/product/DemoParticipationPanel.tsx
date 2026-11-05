@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { ExtraEntryExplanation } from "./ExtraEntryExplanation";
 import { EntryQuantityInput } from "./EntryQuantityInput";
 import { PoolProgress } from "@/components/product/PoolProgress";
@@ -10,6 +10,7 @@ import { availabilityStatus } from "@/lib/catalog/availability";
 import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
+import { useEntryWalletFunding } from "@/lib/wallet/wallet-funding-context";
 import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, resetExtraEntryExplainer, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
@@ -115,6 +116,9 @@ export function DemoParticipationPanel({
   const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity, browseReturnHref))}`;
   const addFundsHref = fundingHref(productSlug, undefined, quantity, browseReturnHref);
   const rememberEntry = (selected = quantity, resumeAfter?: "funding" | "sign-in") => saveEntryIntent(productSlug, productTitle, selected, browseReturnHref, resumeAfter);
+  const rememberFundingEntry = useCallback(() => saveEntryIntent(productSlug, productTitle, quantity, browseReturnHref, "funding"),
+    [productSlug, productTitle, quantity, browseReturnHref]);
+  useEntryWalletFunding(isSignedIn && availabilityConfirmed && remaining > 0 && !entryBusy && !uncertain ? addFundsHref : null, rememberFundingEntry);
 
   const addNextEntry = () => {
     const next = Math.min(maxQuantity, requestedQuantity.current ?? quantity + 1);
@@ -393,7 +397,7 @@ export function DemoParticipationPanel({
 
       <div className={`${compact ? compactStyles.wallet : signedOutCompact && !isSignedIn ? "mt-2" : "mt-3"} flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm`}>
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
-        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={() => rememberEntry(quantity, "funding")} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
+        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={rememberFundingEntry} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>
 
       {state.status !== "idle" && state.status !== "request" && !serverBalanceError ? (
@@ -403,7 +407,7 @@ export function DemoParticipationPanel({
         </div>
       ) : null}
 
-      {showBalanceNotice ? <InsufficientBalanceToast quantity={quantity} totalCents={totalCents} balanceCents={serverBalanceError ? null : knownBalance} fundingHref={addFundsHref} onAddFunds={() => rememberEntry(quantity, "funding")} onClose={() => {
+      {showBalanceNotice ? <InsufficientBalanceToast quantity={quantity} totalCents={totalCents} balanceCents={serverBalanceError ? null : knownBalance} fundingHref={addFundsHref} onAddFunds={rememberFundingEntry} onClose={() => {
         setBalanceNoticeOpen(false);
         setDismissedBalanceError(state);
       }} /> : null}
