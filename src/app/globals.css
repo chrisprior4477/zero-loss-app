@@ -293,6 +293,24 @@ body {
   }
 }
 
+/* Scale each entire face from its design width so the barcode, stamp and
+   typography keep their proportions inside the 3:2 postcard when it flips. */
+.amo-postcard-artwork {
+  --postcard-width: 432px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--postcard-width);
+  aspect-ratio: 3 / 2;
+  perspective: 1800px;
+  transform-origin: top left;
+  transform: scale(tan(atan2(100cqi, var(--postcard-width))));
+}
+
+@media (min-width: 40rem) {
+  .amo-postcard-artwork { --postcard-width: 720px; }
+}
+
 .amo-print-sheet {
   display: none;
 }
