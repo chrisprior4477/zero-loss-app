@@ -19,6 +19,7 @@ test("existing active entries return to their own review, never a purchase optio
   mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [{ ...purchaseActivity, slug: "playstation-5-slim", status: "active" }] } });
   render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: "playstation-5-slim", entry: purchaseEntry, quantity: "23", review: "entry" }) }));
   expect(screen.getByRole("link", { name: "Back to entry review" }).getAttribute("href")).toBe(`/account/entries/${purchaseEntry}?quantity=23&review=entry#additional-entry-checkout`);
+  expect(screen.getByRole("link", { name: "Back to 23 selected entries" }).getAttribute("href")).toBe(`/account/entries/${purchaseEntry}?quantity=23&review=entry#additional-entry-checkout`);
   expect(screen.queryByRole("link", { name: "Back to purchase option" })).toBeNull();
 });
 
@@ -43,6 +44,7 @@ test("funding keeps shopping filters through expired-session login and Back to t
   render(await WalletPage({ searchParams: Promise.resolve(query) }));
   expect(screen.getByRole("link", { name: "Back to this prize" }).getAttribute("href"))
     .toBe(`/items/samsung-m70h-tv?quantity=4&from=${encodeURIComponent(browse)}#enter-entry`);
+  expect(screen.getByRole("link", { name: "Back to 4 selected entries" }).closest("#balance")).toBeTruthy();
 });
 
 test.each([{ browse: "https://evil.test/browse" }, { browse: ["/browse?category=electronics", "/browse?category=gas"] }])("invalid shopping context is not forwarded: %j", async ({ browse }) => {

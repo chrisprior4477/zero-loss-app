@@ -73,6 +73,9 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
             <p className={styles.balanceNote}>{wallet ? "Ready to use for entries." : "Balance could not be verified."}</p>
             <div className={styles.balanceActions}>
               <a href="#add-funds" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></a>
+              {returnToProduct?.entryQuantity ? <Link href={returnToProduct.href} className={styles.entryReturn}>
+                Back to {returnToProduct.entryQuantity} selected {returnToProduct.entryQuantity === 1 ? "entry" : "entries"}
+              </Link> : null}
               <div className={styles.fundingActions}>
                 {canFund ? <Link href="#wallet-add-card" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="wallet" />Add Card</button>}
                 {canFund ? <Link href="#payment-methods" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</Link> : <button disabled type="button" className={styles.cardAction}><AccountIcon name="layers" />View payment methods</button>}

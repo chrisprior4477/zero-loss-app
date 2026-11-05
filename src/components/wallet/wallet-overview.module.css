@@ -40,6 +40,7 @@
 .primaryAction, .cardAction { display: inline-flex; min-height: 47px; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 9px; text-decoration: none; font-weight: 800; cursor: pointer; }
 .primaryAction { width: 100%; background: #0872fb; color: #fff; font-size: 18px; }
 .primaryAction svg { width: 25px; height: 25px; }
+.entryReturn { display: flex; min-height: 44px; align-items: center; justify-content: center; text-align: center; color: #0866c6; font-size: 14px; font-weight: 800; text-decoration: underline; }
 .fundingActions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 12px; margin-top: 13px; padding-top: 13px; border-top: 2px dotted #d3dbe5; }
 .cardAction { min-width: 0; padding: 8px; background: #edf1f5; color: #0a1940; font-size: 14px; }
 .cardAction svg { width: 20px; height: 20px; }
