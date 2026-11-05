@@ -1,0 +1,6 @@
+.rows { min-width: 0; overflow-y: auto; overflow-x: hidden; overflow-anchor: none; scroll-margin-top: calc(var(--site-header-height, 110px) + 12px); }
+.rows:focus-visible { outline: 2px solid #008de7; outline-offset: 2px; }
+.actions { display: flex; grid-column: 1 / -1; flex-wrap: wrap; gap: 8px; margin-block: 6px; min-width: 0; }
+.actions button { flex: 1 1 auto; min-height: 44px; padding: 8px 12px; border-radius: 9px; background: #ff861c; color: #071d37; font-weight: 800; }
+.actions .close { background: #0064d9; color: white; }
+.actions button:focus-visible { outline: 3px solid #55c7ff; outline-offset: 2px; }

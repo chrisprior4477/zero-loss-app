@@ -20,6 +20,9 @@ import { groupNotifications } from "@/lib/account/notification-groups";
 import stripStyles from "./account-status-strip.module.css";
 import { notificationIsEnabled, type AccountNotification, type NotificationCategory, type NotificationPreferenceKey, type NotificationPreferences } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
+import { useTicketBatches } from "./useTicketBatches";
+import { TicketBatchControls } from "./TicketBatchControls";
+import batchStyles from "./ticket-batches.module.css";
 
 type FilterKey = "all" | NotificationCategory;
 const groupsPerPage = 12;
@@ -37,7 +40,6 @@ type NotificationOverview = { balanceLabel: string; fundingEnabled: boolean; act
 
 export function NotificationsCenter({ supportEnabled = true, notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable, initialAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [shownGroups, setShownGroups] = useState(groupsPerPage);
   const [alertPreferences, setAlertPreferences] = useState<NotificationPreferences>(initialAlertPreferences ?? {});
   const router = useRouter();
   const [responding, startTransition] = useTransition();
@@ -50,6 +52,7 @@ export function NotificationsCenter({ supportEnabled = true, notifications, init
   const enabledNotifications = useMemo(() => notifications.filter(notification => notificationIsEnabled(notification, alertPreferences)), [notifications, alertPreferences]);
   const visible = useMemo(() => filter === "all" ? enabledNotifications : enabledNotifications.filter(notification => notification.category === filter), [filter, enabledNotifications]);
   const groups = useMemo(() => groupNotifications(visible), [visible]);
+  const { list: listRef, ...batches } = useTicketBatches<HTMLDivElement>(groups.length, groupsPerPage);
   const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? enabledNotifications.length : enabledNotifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [enabledNotifications]);
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
@@ -61,7 +64,7 @@ export function NotificationsCenter({ supportEnabled = true, notifications, init
 
   function selectFilter(nextFilter: FilterKey) {
     setFilter(nextFilter);
-    setShownGroups(groupsPerPage);
+    batches.reset();
     if (!window.matchMedia?.("(max-width: 620px)").matches) return;
     if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
     scrollFrame.current = window.requestAnimationFrame(() => {
@@ -143,7 +146,7 @@ export function NotificationsCenter({ supportEnabled = true, notifications, init
       {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => selectFilter("action")}><AccountIcon name="alert" /> <strong>{counts.action} action needed</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
 
       <div className={styles.layout}>
-        <nav aria-label="Notification filters" className={styles.filters}>
+        <nav id="notification-tickets-filters" aria-label="Notification filters" className={styles.filters}>
           {filters.map(([key, label, icon]) => <button key={key} type="button" aria-pressed={filter === key} onClick={() => selectFilter(key)}>
             <AccountIcon name={icon} />
             <span>{label}</span>
@@ -156,7 +159,7 @@ export function NotificationsCenter({ supportEnabled = true, notifications, init
             <span aria-hidden="true"><AccountIcon name={filter === "orders" ? "orders" : "bell"} /></span>
             <h2>{filter === "all" ? "No notifications" : filter === "orders" ? "No order updates" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} updates`}</h2>
             <p>New verified updates will appear here automatically.</p>
-          </div> : groups.slice(0, shownGroups).map(group => {
+          </div> : <div id="notification-tickets" ref={listRef} tabIndex={-1} className={`${styles.list} ${batchStyles.rows}`}>{groups.slice(0, batches.end).map(group => {
             const notification = group.notifications[0];
             return <NotificationStack key={group.key} group={group} read={read} categoryLabel={filters.find(([key]) => key === notification.category)?.[1] ?? ""} onOpen={handleNotificationClick}>
               {notification.crewRequestId ? <div className={styles.crewActions}>
@@ -164,8 +167,12 @@ export function NotificationsCenter({ supportEnabled = true, notifications, init
                 <button type="button" disabled={responding} onClick={() => startTransition(async () => { const result = await respondToCrewRequest(notification.crewRequestId!, false); setCrewMessage(result.message); if (result.ok) router.refresh(); })}>Decline</button>
               </div> : null}
             </NotificationStack>;
-          })}
-          {shownGroups < groups.length ? <button type="button" className={styles.showMore} onClick={() => setShownGroups(current => current + groupsPerPage)}>Show more updates ({groups.length - shownGroups} remaining)<AccountIcon name="arrow" /></button> : null}
+          })}</div>}
+          <TicketBatchControls {...batches} listId="notification-tickets" noun="updates" close={() => {
+            batches.reset();
+            listRef.current?.focus({ preventScroll: true });
+            listRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
+          }} />
         </section>
       </div>
       <div id="alert-settings" className={styles.settingsBlock}>

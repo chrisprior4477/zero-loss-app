@@ -1,7 +1,10 @@
 "use client";
 
 import popupStyles from "@/components/layout/responsive-popup.module.css";
-import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useTicketBatches } from "@/components/account/useTicketBatches";
+import { TicketBatchControls } from "@/components/account/TicketBatchControls";
+import batchStyles from "@/components/account/ticket-batches.module.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { completeDemoFunding, deleteDemoPaymentMethod, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
@@ -340,28 +343,27 @@ function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: Cont
 }
 
 export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hiddenIds = [], hideArchived = false, canResetDemoHistory = false }: { requests: DemoFundingRequest[] | null; fundingEnabled: boolean; continueTo?: ContinueDestination; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean }) {
-  const [showAll, setShowAll] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const returnToDepositsOnCollapse = useRef(false);
-  useLayoutEffect(() => {
-    if (showAll || !returnToDepositsOnCollapse.current) return;
-    returnToDepositsOnCollapse.current = false;
+  function close() {
+    batches.reset();
     document.getElementById("payment-deposits-heading")?.focus({ preventScroll: true });
-    document.getElementById("payment-deposits")?.scrollIntoView({ block: "start", behavior: "auto" });
-  }, [showAll]);
+    document.getElementById("payment-deposits")?.scrollIntoView?.({ block: "start", behavior: "auto" });
+  }
   const hidden = new Set(hiddenIds);
   const displayRequests = showArchived && !hideArchived ? requests : requests?.filter(request => !hidden.has(request.id));
+  const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(displayRequests?.length ?? 0, 5);
+  const controls = { ...batches, close, listId: "wallet-deposit-list", noun: "deposits" };
   return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
       : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>
-      : <ul className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]">{(showAll ? displayRequests : displayRequests?.slice(0, 5))?.map(request => <li key={request.id} className="p-4">
+      : <><TicketBatchControls {...controls} top /><ul id={controls.listId} tabIndex={-1} ref={listRef} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, batches.end).map(request => <li key={request.id} className="p-4">
         <p className="flex flex-wrap justify-between gap-2 text-sm font-bold text-white"><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         <p className="mt-2 break-all text-[10px] text-[#b5cce4]">Request {request.id}</p>
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it.</p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} continueTo={continueTo} /> : null}
-      </li>)}</ul>}
+      </li>)}</ul></>}
+    <TicketBatchControls {...controls} />
     {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}
-    {displayRequests && displayRequests.length > 5 ? <button type="button" className={styles.showAllTicket} onClick={() => { returnToDepositsOnCollapse.current = showAll; setShowAll(!showAll); }} aria-expanded={showAll}>{showAll ? "Show just the first five payment deposits" : `See all ${displayRequests.length} payment deposits`}<span aria-hidden="true">→</span></button> : null}
-    {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setShowArchived(value => !value); setShowAll(false); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
+    {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setShowArchived(value => !value); batches.reset(); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
   </section>;
 }

@@ -37,19 +37,48 @@ test("Refunds remains its own filter, separate from released entry holds", () =>
   expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=33333333-3333-4333-8333-333333333333");
 });
 
-test("history starts with five rows, expands, and filters an inclusive date range", () => {
+test("history expands from its first batch and filters an inclusive date range", () => {
   const entries = Array.from({ length: 7 }, (_, index) => ({
     id: `11111111-1111-4111-8111-11111111111${index}`,
     entry_type: "DEPOSIT", amount: 100, created_at: `2026-09-${String(20 + index).padStart(2, "0")}T12:00:00Z`,
   }));
   render(<WalletLedger entries={entries} />);
   expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(5);
-  fireEvent.click(screen.getByRole("button", { name: /See all 7 transactions/ }));
+  fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
   expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(7);
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-09-23" } });
   fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-09-24" } });
   expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(2);
   expect(screen.getByText(/Showing 2 of 2 transactions/)).toBeTruthy();
+});
+
+test("measures whole rows, reveals one screen at a time, and closes from the last batch", () => {
+  const original = HTMLElement.prototype.getBoundingClientRect;
+  const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function(this: HTMLElement) {
+    if (this.parentElement?.id === "wallet-transaction-list") {
+      const index = Array.from(this.parentElement.children).indexOf(this);
+      return new DOMRect(0, index * 100, 360, 100);
+    }
+    return original.call(this);
+  });
+  vi.stubGlobal("innerHeight", 500);
+  try {
+    const rows = Array.from({ length: 8 }, (_, n) => ({ id: `deposit-${n}`, entry_type: "DEPOSIT", amount: 100, created_at: "2026-10-01T10:00:00Z" }));
+    render(<WalletLedger entries={rows} />);
+    const list = document.getElementById("wallet-transaction-list")!;
+    expect(list.children).toHaveLength(3);
+    fireEvent.click(screen.getByRole("button", { name: "See more transactions (5 remaining)" }));
+    expect(list.children).toHaveLength(6);
+    expect(list.style.maxHeight).toBe("300px");
+    fireEvent.click(screen.getByRole("button", { name: "See more transactions (2 remaining)" }));
+    expect(list.children).toHaveLength(8);
+    expect(screen.queryByRole("button", { name: /See more transactions/ })).toBeNull();
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
+    expect(list.children).toHaveLength(3);
+  } finally {
+    rect.mockRestore();
+    vi.unstubAllGlobals();
+  }
 });
 
 test("collapsing all transactions returns to the history heading, not payment deposits", () => {
@@ -62,15 +91,15 @@ test("collapsing all transactions returns to the history heading, not payment de
   HTMLElement.prototype.scrollIntoView = scrollIntoView;
   try {
     render(<><section id="transactions"><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><WalletLedger entries={entries} /></section><h2>Payment deposits</h2></>);
-    fireEvent.click(screen.getByRole("button", { name: /See all 7 transactions/ }));
+    fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
     expect(scrollIntoView).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Show just the first five transactions" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
     expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(5);
     expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Transaction history" }));
     expect(scrollIntoView).toHaveBeenCalledOnce();
     expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByRole("heading", { name: "Transaction history" }).parentElement);
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
-    fireEvent.click(screen.getByRole("button", { name: /See all 7 transactions/ }));
+    fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
     fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-09-23" } });
     expect(scrollIntoView).toHaveBeenCalledOnce();
   } finally {

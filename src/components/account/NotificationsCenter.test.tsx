@@ -246,9 +246,12 @@ test("show more reveals the remaining records and filters retain their full coun
   expect(screen.getByRole("button", { name: /All15/ })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
   await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(transactions.map(item => item.id)));
-  fireEvent.click(screen.getByRole("button", { name: /Show more updates/ }));
+  fireEvent.click(screen.getByRole("button", { name: /See more updates/ }));
   expect(screen.getAllByRole("article")).toHaveLength(15);
-  expect(screen.queryByRole("button", { name: /Show more updates/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /See more updates/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(screen.getAllByRole("article")).toHaveLength(12);
+  fireEvent.click(screen.getByRole("button", { name: /See more updates/ }));
   fireEvent.click(screen.getByRole("button", { name: /Activity15/ }));
   expect(screen.getAllByRole("article")).toHaveLength(12);
 });

@@ -413,10 +413,10 @@ test("payment deposits return to their heading when the full list is collapsed",
     const heading = screen.getByRole("heading", { name: "Payment deposits" });
     expect(screen.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
     expect(screen.getAllByText("Payment & credit matched")).toHaveLength(5);
-    fireEvent.click(screen.getByRole("button", { name: /See all 7 payment deposits/ }));
+    fireEvent.click(screen.getByRole("button", { name: /See more deposits/ }));
     expect(screen.getAllByText("Payment & credit matched")).toHaveLength(7);
     expect(scrollIntoView).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Show just the first five payment deposits" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
     expect(screen.getAllByText("Payment & credit matched")).toHaveLength(5);
     expect(document.activeElement).toBe(heading);
     expect(scrollIntoView).toHaveBeenCalledOnce();
