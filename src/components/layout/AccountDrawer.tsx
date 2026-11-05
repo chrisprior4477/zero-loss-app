@@ -17,6 +17,7 @@ import { SignOutForm } from "@/components/auth/SignOutForm";
 import { INSTALL_APP_REQUEST_EVENT } from "@/components/layout/InstallAppPrompt";
 import { ResetAllDemoActivityButton } from "@/components/account/ResetAllDemoActivityButton";
 import { useAccountProfileShortcut } from "./useAccountProfileShortcut";
+import { rememberPurchaseSelection, usePurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
 
 type AccountDrawerProps = {
   isSignedIn: boolean;
@@ -65,8 +66,10 @@ function DrawerAvatar({ avatar, initials, size }: { avatar: string | null; initi
 export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showPhotoInMenu = true, balanceLabel, fundingEnabled = false, activityState, onPreviewOpen, previewExpanded = false }: AccountDrawerProps) {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
-  const [walletHistoryOpen, setWalletHistoryOpen] = useState(false);
+  const [currentWalletHref, setCurrentWalletHref] = useState<string | null>(null);
   const pathname = usePathname();
+  const purchaseFunding = usePurchaseFundingContext();
+  const walletHref = purchaseFunding?.href ?? (currentWalletHref ? `${currentWalletHref}#balance` : walletHistoryHref);
   const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
   const [avatarUpdate, setAvatarUpdate] = useState<{ original: string | null; photo: string | null } | null>(null);
   const [menuVisibilityUpdate, setMenuVisibilityUpdate] = useState<{ original: boolean; enabled: boolean } | null>(null);
@@ -134,6 +137,10 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
   }, [open]);
 
   const close = () => setOpen(false);
+  const openWallet = () => {
+    if (purchaseFunding) rememberPurchaseSelection(purchaseFunding);
+    close();
+  };
   const requestInstall = () => {
     setOpen(false);
     window.dispatchEvent(new Event(INSTALL_APP_REQUEST_EVENT));
@@ -153,7 +160,13 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
         ref={triggerRef}
         type="button"
         {...profileShortcut}
-        onClick={() => { if (onPreviewOpen) { onPreviewOpen(); return; } setWalletHistoryOpen(new URLSearchParams(window.location.search).get("view") === "history"); setOpen(true); }}
+        onClick={() => {
+          if (onPreviewOpen) { onPreviewOpen(); return; }
+          const query = new URLSearchParams(window.location.search);
+          const inWallet = pathname === "/account/wallet" && query.get("view") === "history" && !query.has("reward") && !query.has("rewardId");
+          setCurrentWalletHref(inWallet ? `${pathname}${window.location.search}` : null);
+          setOpen(true);
+        }}
         aria-label="Open account menu"
         title={isSignedIn && !onPreviewOpen ? "Tap for menu. Hold for your profile." : undefined}
         aria-expanded={onPreviewOpen ? previewExpanded : open}
@@ -199,13 +212,16 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
 
             <div className={`min-h-0 flex-1 overflow-y-auto ${showAccountContent ? styles.accountContent : "px-5 py-4"}`}>
               {showAccountContent ? <>
-                <DrawerOverview state={state} balanceLabel={balanceLabel} fundingEnabled={fundingEnabled} onNavigate={close} />
+                <DrawerOverview state={state} balanceLabel={balanceLabel} fundingEnabled={fundingEnabled}
+                  walletHref={walletHref} onWalletNavigate={openWallet} onNavigate={close} />
 
                 <nav aria-label="Account navigation" className={styles.nav}>
                   {accountNavigation.map(([label, href]) => {
-                    const active = href.startsWith("/account/wallet") ? pathname === "/account/wallet" && (href === walletHistoryHref) === walletHistoryOpen : pathname === href || pathname?.startsWith(href + "/");
+                    const active = href.startsWith("/account/wallet") ? pathname === "/account/wallet" && (href === walletHistoryHref) === Boolean(currentWalletHref) : pathname === href || pathname?.startsWith(href + "/");
                     const visual = navigationVisuals[label];
-                    return <MenuTicket key={href} title={label} description={visual.description} href={href === accountRoutes.crew ? `${href}#crew-intro` : href} imageSrc={visual.imageSrc} artworkTreatment={visual.artworkTreatment} onNavigate={close} active={active} wrapTitle={href === accountRoutes.favorites} />;
+                    const isWallet = href === walletHistoryHref;
+                    const destination = isWallet ? walletHref : href === accountRoutes.crew ? `${href}#crew-intro` : href;
+                    return <MenuTicket key={href} title={label} description={visual.description} href={destination} imageSrc={visual.imageSrc} artworkTreatment={visual.artworkTreatment} onNavigate={isWallet ? openWallet : close} active={active} wrapTitle={href === accountRoutes.favorites} />;
                   })}
                 </nav>
                 <div className={styles.promoWrap}>

@@ -1,4 +1,5 @@
 import { fundingHref } from "./funding-navigation";
+import { useSyncExternalStore } from "react";
 
 // Navigation context only. Ownership, price and payment are verified on the server.
 export type PurchaseFundingContext = { href: string; slug: string; selected: string[]; decline: boolean };
@@ -19,4 +20,13 @@ export function getPurchaseFundingContext() { return current; }
 export function subscribePurchaseFundingContext(listener: () => void) {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
+}
+
+export function usePurchaseFundingContext() {
+  return useSyncExternalStore(subscribePurchaseFundingContext, getPurchaseFundingContext, () => null);
+}
+
+export function rememberPurchaseSelection(context: PurchaseFundingContext) {
+  try { sessionStorage.setItem(purchaseSelectionKey, JSON.stringify(context)); }
+  catch { /* The exact option still travels in the wallet URL. */ }
 }

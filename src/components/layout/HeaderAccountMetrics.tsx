@@ -4,8 +4,7 @@ import { HeaderNotifications } from "@/components/notifications/HeaderNotificati
 import Link from "next/link";
 import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
 import { EntryTicket } from "@/components/layout/EntryTicket";
-import { useSyncExternalStore } from "react";
-import { getPurchaseFundingContext, purchaseSelectionKey, subscribePurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
+import { rememberPurchaseSelection, usePurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
 
 function CreditIcon() {
   // Approved preview: shorten the painted outer lines (including round caps) by 20%.
@@ -23,7 +22,7 @@ export function HeaderAccountMetrics({
   activityState: AccountActivity;
 }) {
   const state = activityState;
-  const purchaseFunding = useSyncExternalStore(subscribePurchaseFundingContext, getPurchaseFundingContext, () => null);
+  const purchaseFunding = usePurchaseFundingContext();
 
   if (!isSignedIn) {
     return (
@@ -47,7 +46,7 @@ export function HeaderAccountMetrics({
       </Link>
       <Link href={purchaseFunding?.href ?? `${walletHistoryHref}#balance`} onClick={(event) => {
         if (purchaseFunding) {
-          try { sessionStorage.setItem(purchaseSelectionKey, JSON.stringify(purchaseFunding)); } catch { /* The exact first option still travels in the URL. */ }
+          rememberPurchaseSelection(purchaseFunding);
         } else if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0 && window.location.pathname === "/account/wallet") {
           const query = new URLSearchParams(window.location.search);
           if (query.get("view") === "history" && !query.has("reward") && !query.has("rewardId")) {

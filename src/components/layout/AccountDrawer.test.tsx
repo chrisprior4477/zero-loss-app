@@ -15,6 +15,7 @@ vi.mock("next/image", () => ({ default: (props: Record<string, unknown>) => {
 import { AccountDrawer } from "./AccountDrawer";
 import { drawerState } from "@/lib/account/drawer-state";
 import type { AccountActivity } from "@/lib/account/activity";
+import { purchaseFundingHref, purchaseSelectionKey, setPurchaseFundingContext } from "@/lib/wallet/purchase-funding-context";
 
 const storedActivity: AccountActivity = {
   isPreview: false,
@@ -31,6 +32,8 @@ const props = { isSignedIn: true, displayName: "Chris Prior", email: "owner@exam
 
 afterEach(() => {
   cleanup();
+  setPurchaseFundingContext(null);
+  sessionStorage.clear();
   path.value = "/account";
   window.history.replaceState({}, "", "/");
   push.mockReset(); vi.useRealTimers();
@@ -69,6 +72,30 @@ test("signed-in drawer follows the compact account-menu hierarchy", () => {
   expect(dialog.getByRole("button", { name: "Add to Home Screen" })).toBeTruthy();
   expect(dialog.getByRole("button", { name: "Sign out" })).toBeTruthy();
   expect(dialog.queryByRole("button", { name: "Reset All Demo Activity" })).toBeNull();
+});
+
+test.each(["Add funds", "Playable Wallet: $0.00", "Wallet & Transactions"])("the menu’s %s shortcut carries the exact checkout and choices", label => {
+  const slug = "publix-100-gift-card-ending-soon";
+  const href = purchaseFundingHref(slug, "ent_11111111111111111111111111111111")!;
+  const selection = { href, slug, selected: ["option-2", "option-4"], decline: false };
+  path.value = `/account/purchase-options/${slug}`;
+  setPurchaseFundingContext(selection);
+  render(<AccountDrawer {...props} fundingEnabled />);
+  fireEvent.click(screen.getByLabelText("Open account menu"));
+  const link = screen.getByRole("link", { name: label });
+  expect(link.getAttribute("href")).toBe(label === "Add funds" ? href.replace("#balance", "#add-funds") : href);
+  fireEvent.click(link);
+  expect(JSON.parse(sessionStorage.getItem(purchaseSelectionKey)!)).toEqual(selection);
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("using the menu again inside the wallet keeps the existing purchase return", () => {
+  const wallet = "/account/wallet?view=history&from=publix&entry=ent_11111111111111111111111111111111";
+  path.value = "/account/wallet";
+  window.history.replaceState({}, "", wallet + "#balance");
+  render(<AccountDrawer {...props} fundingEnabled />);
+  fireEvent.click(screen.getByLabelText("Open account menu"));
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(wallet + "#add-funds");
 });
 
 test("balance failure displays Unavailable, never an invented zero", () => {
