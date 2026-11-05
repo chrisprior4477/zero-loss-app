@@ -30,8 +30,12 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
       if (!first?.height || !first.width) return;
       const viewport = window.visualViewport?.height ?? window.innerHeight;
       // Leave space for the sticky header, two 44px control rows and their gaps.
-      const available = viewport - (header?.getBoundingClientRect().height ?? 0) - (filters?.getBoundingClientRect().height ?? 0) - 124;
-      const room = Math.max(Math.min(140, viewport / 2), available);
+      const belowHeader = viewport - (header?.getBoundingClientRect().height ?? 0) - 124;
+      const available = belowHeader - (filters?.getBoundingClientRect().height ?? 0);
+      // On a short phone the filters may scroll above the list. Keep one whole
+      // ticket visible when it fits, including its action buttons.
+      const singleTicket = Math.min(first.height, Math.max(96, belowHeader));
+      const room = Math.max(singleTicket, available);
       const width = Math.round(el.getBoundingClientRect().width);
       const gap = parseFloat(getComputedStyle(el).rowGap) || 0;
       let used = 0;
