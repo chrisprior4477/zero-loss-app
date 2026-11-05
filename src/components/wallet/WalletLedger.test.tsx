@@ -57,7 +57,9 @@ test("measures whole rows, reveals one screen at a time, and closes from the las
   const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function(this: HTMLElement) {
     if (this.parentElement?.id === "wallet-transaction-list") {
       const index = Array.from(this.parentElement.children).indexOf(this);
-      return new DOMRect(0, index * 100, 360, 100);
+      // A vertical scrollbar can make rows narrower during the measurement pass.
+      const rowWidth = this.parentElement.children.length > 3 ? 345 : 360;
+      return new DOMRect(0, index * 100, rowWidth, 100);
     }
     return original.call(this);
   });

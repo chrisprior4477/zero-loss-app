@@ -9,7 +9,7 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
   const [start, setStart] = useState(initial);
   const [size, setSize] = useState(fallbackSize);
   const list = useRef<T>(null);
-  const nextRow = useRef({ index: -1, height: 0, width: 0 });
+  const measuredLimit = useRef({ start: -1, room: 0, width: 0, count: 0 });
   const moveToStart = useRef(false);
   const end = Math.min(total, start + size);
   if (start > 0 && start >= total) {
@@ -32,6 +32,7 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
       // Leave space for the sticky header, two 44px control rows and their gaps.
       const available = viewport - (header?.getBoundingClientRect().height ?? 0) - (filters?.getBoundingClientRect().height ?? 0) - 124;
       const room = Math.max(Math.min(140, viewport / 2), available);
+      const width = Math.round(el.getBoundingClientRect().width);
       const gap = parseFloat(getComputedStyle(el).rowGap) || 0;
       let used = 0;
       let count = 0;
@@ -39,7 +40,7 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
         const bounds = row.getBoundingClientRect();
         const height = bounds.bottom - first.top;
         if (count > 0 && height > room) {
-          nextRow.current = { index: start + count, height: bounds.height, width: first.width };
+          measuredLimit.current = { start, room, width, count };
           break;
         }
         used = height;
@@ -49,9 +50,11 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
       if (count < rows.length) {
         setSize(count);
       } else if (end < total) {
-        const next = nextRow.current;
-        const required = next.index === end && next.width === first.width ? next.height : 1;
-        if (used + gap + required <= room) {
+        const last = measuredLimit.current;
+        // Removing the probe row can remove a scrollbar. Do not retry a row
+        // already measured in this space until the viewport or contents change.
+        const alreadyMeasured = last.start === start && last.room === room && last.width === width && count >= last.count;
+        if (!alreadyMeasured && used + gap + 1 <= room) {
           const averageHeight = Math.max(1, used / count + gap);
           const extra = Math.max(1, Math.floor((room - used) / averageHeight));
           setSize(Math.min(total - start, size + extra));
@@ -64,17 +67,28 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
       }
     }
     fit();
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
+    let frame = 0;
+    const scheduleFit = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
+    };
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(scheduleFit);
     observer?.observe(el);
     for (const row of Array.from(el.children).slice(start - origin)) observer?.observe(row);
     if (header) observer?.observe(header);
     if (filters) observer?.observe(filters);
-    window.addEventListener("resize", fit);
-    window.visualViewport?.addEventListener("resize", fit);
+    const remeasureContents = () => { measuredLimit.current.start = -1; };
+    el.addEventListener("click", remeasureContents, true);
+    el.addEventListener("toggle", remeasureContents, true);
+    window.addEventListener("resize", scheduleFit);
+    window.visualViewport?.addEventListener("resize", scheduleFit);
     return () => {
       observer?.disconnect();
-      window.removeEventListener("resize", fit);
-      window.visualViewport?.removeEventListener("resize", fit);
+      cancelAnimationFrame(frame);
+      el.removeEventListener("click", remeasureContents, true);
+      el.removeEventListener("toggle", remeasureContents, true);
+      window.removeEventListener("resize", scheduleFit);
+      window.visualViewport?.removeEventListener("resize", scheduleFit);
     };
   }, [end, origin, size, start, total]);
 
@@ -84,7 +98,7 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
   }
   const reset = useCallback(() => {
     moveToStart.current = false;
-    nextRow.current.index = -1;
+    measuredLimit.current.start = -1;
     setOrigin(0);
     setStart(0);
     setSize(fallbackSize);
