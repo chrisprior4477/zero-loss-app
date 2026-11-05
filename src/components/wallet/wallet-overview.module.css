@@ -79,6 +79,8 @@
 .ledger { margin-top: 10px; }
 .ledgerHeader { display: none; }
 .ledger ul { display: grid; gap: 3px; }
+.transactionPage { min-width: 0; scroll-margin-top: calc(var(--site-header-height, 110px) + 8px); }
+.transactionPage:focus-visible { outline: 2px solid #008de7; outline-offset: 2px; }
 .ledger li { --corner-scoop: 10px; --side-scoop: 10px; display: grid; grid-template-columns: 92px 2px minmax(180px, 2fr) 2px minmax(150px, 1fr) 2px minmax(70px, .5fr) minmax(78px, .55fr) 28px; min-height: 59px; align-items: center; gap: 12px; padding: 6px 30px 6px 24px; background: #fffefa; color: #0b1940; scroll-margin-top: 190px; }
 .ledger li[data-selected="true"] { background: #d8f1ff; }
 .ledgerVisuals { display: flex; width: 92px; align-items: center; justify-content: flex-end; gap: 6px; }
@@ -92,7 +94,8 @@
 .ledgerDivider { width: 2px; height: 38px; background: radial-gradient(circle, #9fb5ca 1px, transparent 1.4px) center / 2px 7px repeat-y; }
 .ledgerDescription { min-width: 0; display: flex; align-items: baseline; gap: 10px; }
 .ledgerDescription strong { flex: 0 0 auto; font-size: 15px; font-weight: 850; }
-.ledgerDescription span { min-width: 0; max-width: 100%; overflow: hidden; color: #536d8b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.ledgerDescription span, .productTitle { min-width: 0; max-width: 100%; overflow: hidden; color: #536d8b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.productTitle { color: #075fae; text-decoration: underline; text-underline-offset: 2px; }
 .ledger li time { color: #4c6686; font-size: 12px; white-space: nowrap; }
 .amount, .positive { justify-self: center; font-size: 19px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .positive { color: #008b2d; }
@@ -107,6 +110,7 @@
 .transactionActions a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .transactionActions a:focus-visible, .relatedEntries summary:focus-visible { outline: 2px solid #0872fb; outline-offset: 2px; }
 .relatedEntries { min-width: 0; }
+.relatedShort { display: none; }
 .relatedEntries[open] { flex-basis: 100%; }
 .relatedEntries summary { cursor: pointer; }
 .relatedEntries summary::after { content: "+"; font-size: 20px; }
@@ -312,6 +316,19 @@
   .ledger li .posted { grid-column: 3; grid-row: 2; min-width: 66px; }
   .ledger li .reportLink { grid-column: 4; grid-row: 1 / 3; min-width: 22px; min-height: 44px; }
   .ledger li .reportLink svg { width: 20px; height: 20px; }
+  .ledger .transactionPage > li { grid-template-columns: 54px minmax(0, 1fr) auto; min-height: 0; gap: 0 6px; padding: 4px 14px; }
+  .transactionPage .ledgerVisuals { width: 54px; gap: 2px; }
+  .transactionPage .ledgerProduct, .transactionPage .ledgerIcon { width: 26px; height: 26px; flex-basis: 26px; }
+  .transactionPage .ledgerDescription { line-height: 1.15; }
+  .ledger .transactionPage li .amount, .ledger .transactionPage li .positive { font-size: 16px; line-height: 1.15; }
+  .ledger .transactionPage li .posted { min-width: auto; padding: 1px 6px; font-size: 10px; }
+  .ledger .transactionPage li .reportLink, .transactionPage .transactionActions .productAction { display: none; }
+  .transactionPage .transactionActions { column-gap: 8px; padding-top: 0; }
+  .transactionPage .transactionActions a, .transactionPage .relatedEntries summary { min-height: 27px; font-size: 12px; }
+  .transactionPage .relatedEntries summary { gap: 4px; }
+  .transactionPage .relatedFull { display: none; }
+  .transactionPage .relatedShort { display: inline; }
+  .transactionPage .transactionActions a svg { display: none; }
 }
 @media (max-width: 430px) {
   .balanceCard { padding-inline: 17px; }
@@ -319,8 +336,14 @@
   .cardAction { font-size: 12px; }
   .summaryRow strong { font-size: 28px; }
   .ledgerDescription strong { font-size: 13px; }
-  .ledgerDescription span { font-size: 10px; }
+  .ledgerDescription span, .productTitle { font-size: 10px; }
   .ledger li { gap: 3px 7px; padding-inline: 12px; }
   .ledger li .amount, .ledger li .positive { font-size: 16px; }
 }
 .cardPreview { margin-top: 10px; max-width: 340px; } .cardPreview[hidden] { display: none; }
+@media (max-width: 360px) {
+  .ledger .transactionPage > li { grid-template-columns: 40px minmax(0, 1fr) auto; padding-block: 3px; }
+  .transactionPage .ledgerVisuals { width: 40px; gap: 0; }
+  .transactionPage .ledgerProduct + .ledgerIcon { width: 22px; height: 22px; flex-basis: 22px; align-self: end; margin-left: -8px; }
+  .transactionPage .ledgerProduct + .ledgerIcon svg { width: 18px; height: 18px; }
+}

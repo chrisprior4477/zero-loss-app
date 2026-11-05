@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-/** Reveal whole tickets per screen. Earlier batches remain reachable inside the same list. */
-export function useTicketBatches<T extends HTMLElement>(total: number, fallbackSize: number, initialIndex = 0) {
-  const initial = Math.max(0, initialIndex);
+/** Fit whole tickets to the screen, or replace them one fixed-size page at a time. */
+export function useTicketBatches<T extends HTMLElement>(total: number, fallbackSize: number, initialIndex = 0, mode: "fit" | "pages" = "fit") {
+  const index = Math.max(0, initialIndex);
+  const initial = mode === "pages" ? index - index % fallbackSize : index;
   const [origin, setOrigin] = useState(initial);
   const [start, setStart] = useState(initial);
   const [size, setSize] = useState(fallbackSize);
@@ -21,6 +22,14 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
   useLayoutEffect(() => {
     const el = list.current;
     if (!el) return;
+    if (mode === "pages") {
+      if (moveToStart.current) {
+        moveToStart.current = false;
+        el.focus({ preventScroll: true });
+        el.scrollIntoView?.({ block: "start", behavior: "instant" });
+      }
+      return;
+    }
     const header = document.querySelector("header.sticky");
     const filters = document.getElementById(`${el.id}-filters`);
     function fit() {
@@ -94,11 +103,15 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
       window.removeEventListener("resize", scheduleFit);
       window.visualViewport?.removeEventListener("resize", scheduleFit);
     };
-  }, [end, origin, size, start, total]);
+  }, [end, mode, origin, size, start, total]);
 
   function more() {
     moveToStart.current = true;
     setStart(end);
+  }
+  function previousPage() {
+    moveToStart.current = true;
+    setStart(Math.max(0, start - fallbackSize));
   }
   const reset = useCallback(() => {
     moveToStart.current = false;
@@ -124,5 +137,5 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
     document.addEventListener("click", onNavigate, true);
     return () => document.removeEventListener("click", onNavigate, true);
   }, [start, reset]);
-  return { list, origin, end, remaining: total - end, expanded: start > 0, more, reset };
+  return { list, origin: mode === "pages" ? start : origin, end, remaining: total - end, expanded: start > 0, more, previousPage: mode === "pages" ? previousPage : undefined, reset };
 }

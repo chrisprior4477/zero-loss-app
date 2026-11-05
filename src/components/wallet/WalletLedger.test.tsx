@@ -45,38 +45,37 @@ test("history expands from its first batch and filters an inclusive date range",
   render(<WalletLedger entries={entries} />);
   expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(5);
   fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
-  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(7);
+  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(2);
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-09-23" } });
   fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-09-24" } });
   expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(2);
   expect(screen.getByText(/Showing 2 of 2 transactions/)).toBeTruthy();
 });
 
-test("measures whole rows, reveals one screen at a time, and closes from the last batch", () => {
-  const original = HTMLElement.prototype.getBoundingClientRect;
+test("shows fixed pages of five even when a short screen would only fit two full-height tickets", () => {
   const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function(this: HTMLElement) {
-    if (this.parentElement?.id === "wallet-transaction-list") {
-      const index = Array.from(this.parentElement.children).indexOf(this);
-      // A vertical scrollbar can make rows narrower during the measurement pass.
-      const rowWidth = this.parentElement.children.length > 3 ? 345 : 360;
-      return new DOMRect(0, index * 100, rowWidth, 100);
-    }
-    return original.call(this);
+    const index = this.parentElement ? Array.from(this.parentElement.children).indexOf(this) : 0;
+    return new DOMRect(0, index * 160, 320, 160);
   });
   vi.stubGlobal("innerHeight", 500);
   try {
-    const rows = Array.from({ length: 8 }, (_, n) => ({ id: `deposit-${n}`, entry_type: "DEPOSIT", amount: 100, created_at: "2026-10-01T10:00:00Z" }));
+    const rows = Array.from({ length: 12 }, (_, n) => ({ id: `deposit-${n}`, entry_type: "DEPOSIT", amount: 100, created_at: "2026-10-01T10:00:00Z" }));
     render(<WalletLedger entries={rows} />);
-    const list = document.getElementById("wallet-transaction-list")!;
-    expect(list.children).toHaveLength(3);
-    fireEvent.click(screen.getByRole("button", { name: "See more transactions (5 remaining)" }));
-    expect(list.children).toHaveLength(6);
-    expect(list.style.maxHeight).toBe("300px");
+    const list = screen.getByRole("list", { name: "Transaction tickets" });
+    const ids = () => Array.from(list.children, row => row.id);
+    const expected = (start: number) => rows.slice(start, start + 5).map(row => `transaction-${row.id}`);
+    expect(ids()).toEqual(expected(0));
+    fireEvent.click(screen.getByRole("button", { name: "See more transactions (7 remaining)" }));
+    expect(ids()).toEqual(expected(5));
+    expect(screen.getByText("Showing 6–10 of 12 transactions")).toBeTruthy();
+    expect(list.style.maxHeight).toBe("");
     fireEvent.click(screen.getByRole("button", { name: "See more transactions (2 remaining)" }));
-    expect(list.children).toHaveLength(8);
+    expect(ids()).toEqual(expected(10));
     expect(screen.queryByRole("button", { name: /See more transactions/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    expect(ids()).toEqual(expected(5));
     fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
-    expect(list.children).toHaveLength(3);
+    expect(ids()).toEqual(expected(0));
   } finally {
     rect.mockRestore();
     vi.unstubAllGlobals();
@@ -94,7 +93,8 @@ test("collapsing all transactions returns to the history heading, not payment de
   try {
     render(<><section id="transactions"><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><WalletLedger entries={entries} /></section><h2>Payment deposits</h2></>);
     fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
-    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("wallet-transaction-list"));
+    scrollIntoView.mockClear();
     fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
     expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(5);
     expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Transaction history" }));
@@ -102,8 +102,9 @@ test("collapsing all transactions returns to the history heading, not payment de
     expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByRole("heading", { name: "Transaction history" }).parentElement);
     expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
     fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
+    scrollIntoView.mockClear();
     fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-09-23" } });
-    expect(scrollIntoView).toHaveBeenCalledOnce();
+    expect(scrollIntoView).not.toHaveBeenCalled();
   } finally {
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   }

@@ -12,7 +12,6 @@ import type { ActivityItem } from "@/lib/account/activity";
 import { transactionLinks } from "@/lib/wallet/transaction-links";
 import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
-import batchStyles from "@/components/account/ticket-batches.module.css";
 
 type LedgerFilter = "all" | "funding" | "entries" | "refunds";
 const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["refunds", "Refunds"]];
@@ -66,7 +65,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     });
   }, [displayEntries, from, through, compact, timeZone]);
   const matching = useMemo(() => filter === "all" ? dated : dated.filter(entry => category(entry) === filter), [dated, filter]);
-  const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(matching.length, 5, matching.findIndex(entry => entry.id === selectedId));
+  const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(matching.length, 5, matching.findIndex(entry => entry.id === selectedId), "pages");
   const visible = compact ? matching : matching.slice(batches.origin, batches.end);
   const controls = { ...batches, close, listId: "wallet-transaction-list", noun: "transactions" };
   const selectedRow = useRef<HTMLLIElement>(null);
@@ -81,13 +80,13 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         <label>To date<input aria-label="To date" type="date" value={through} min={from || undefined} onChange={event => { setThrough(event.target.value); batches.reset(); }} /></label>
         {(from || through) ? <button type="button" onClick={() => { setFrom(""); setThrough(""); batches.reset(); }}>Clear dates</button> : null}
       </div>
-      <p>Showing {visible.length} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
+      <p aria-live="polite">Showing {matching.length > visible.length ? `${batches.origin + 1}–${batches.end}` : visible.length} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
     </div> : null}
     {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? dated.length : dated.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
     {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       <div className={styles.ledgerHeader} aria-hidden="true"><span>Date</span><span>Description</span><span>Status</span><span>Amount</span></div>
       {!compact && <TicketBatchControls {...controls} top />}
-      <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : batchStyles.rows} tabIndex={-1}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
+      <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
         const links = transactionLinks(entry, activity);
         const productHref = entry.product?.slug ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
           const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}`;
@@ -99,7 +98,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
           <span className={styles.ledgerIcon} data-tone={artwork.tone}><AccountIcon name={artwork.name} /></span>
         </span>
         <span className={styles.ledgerDivider} aria-hidden="true" />
-        <div className={styles.ledgerDescription}><strong>{title}</strong><span>{detail}</span></div>
+        <div className={styles.ledgerDescription}><strong>{title}</strong>{productHref && !compact ? <Link className={styles.productTitle} href={productHref} title={detail}>{detail}</Link> : <span>{detail}</span>}</div>
         <span className={styles.ledgerDivider} aria-hidden="true" />
         <time dateTime={entry.created_at}>{dateLabel(entry.created_at, timeZone)}</time>
         <span className={styles.ledgerDivider} aria-hidden="true" />
@@ -108,8 +107,11 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         {links.length === 1 ? <Link href={links[0].href} className={styles.reportLink} aria-label={`${links[0].label} for ${detail}`} title={links[0].label}><AccountIcon name="chevron" /></Link> : null}
         <div className={styles.transactionActions}>
           {links.length === 1 ? <Link href={links[0].href}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
-          {links.length > 1 ? <details className={styles.relatedEntries}><summary>View {links.length} entries and results</summary><div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div></details> : null}
-          {productHref ? <Link href={productHref}>View product</Link> : null}
+          {links.length > 1 ? <details className={styles.relatedEntries}>
+            <summary aria-label={`View ${links.length} entries and results`}><span className={styles.relatedFull}>View {links.length} entries and results</span><span className={styles.relatedShort}>Entries &amp; results ({links.length})</span></summary>
+            <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
+          </details> : null}
+          {productHref ? <Link href={productHref} className={styles.productAction}>View product</Link> : null}
           <Link href={supportHref} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
         </div>
       </li>; })}</ul>

@@ -36,14 +36,17 @@ test("connects orders to rewards, activity and support", () => {
   expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id");
   const card = screen.getByRole("link", { name: /Open gift card/ }).closest("article")!;
   expect(within(card).queryByRole("link", { name: /My Activity|Wallet history/ })).toBeNull();
-  expect(screen.getByRole("link", { name: /Visit support/ }).getAttribute("href")).toBe("/account/wallet?view=history#transactions");
+  const helpLinks = screen.getAllByRole("link", { name: "Choose a transaction to report" });
+  expect(helpLinks).toHaveLength(2);
+  for (const link of helpLinks) expect(link.getAttribute("href")).toBe("/account/wallet?view=history#transactions");
 });
 
 test("both order help links open the selected transaction's problem form", () => {
   const supportHref = "/support?transaction=11111111-1111-4111-8111-111111111111#report-problem";
   render(<OrdersFulfillment state={{ source: "stored", orders: [order("fulfilled", "ready")] }} selectedOrderNumber="ord_ready" supportHref={supportHref} />);
-  expect(screen.getByRole("link", { name: "Get help" }).getAttribute("href")).toBe(supportHref);
-  expect(screen.getByRole("link", { name: /Visit support/ }).getAttribute("href")).toBe(supportHref);
+  const helpLinks = screen.getAllByRole("link", { name: "Report a problem with this order" });
+  expect(helpLinks).toHaveLength(2);
+  for (const link of helpLinks) expect(link.getAttribute("href")).toBe(supportHref);
 });
 
 test("two orders for the same product open their own saved gift cards", () => {

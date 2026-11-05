@@ -50,7 +50,7 @@ test.each([0, 1, 5, 8])("notification for order %i opens its exact gift card, in
   expect(screen.getByText("SELECTED ORDER")).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(mocks.support).toHaveBeenCalledWith(mocks.db, "owner", order.orderNumber);
-  expect(screen.getByRole("link", { name: "Get help" }).getAttribute("href"))
+  expect(within(screen.getByRole("navigation", { name: "Order page actions" })).getByRole("link", { name: "Report a problem with this order" }).getAttribute("href"))
     .toBe("/support?transaction=11111111-1111-4111-8111-111111111111#report-problem");
   expect(screen.getByRole("link", { name: "Show all orders & rewards" }).getAttribute("href"))
     .toBe("/account/orders#fulfillment-records");
@@ -77,7 +77,7 @@ test("ordinary Orders navigation still shows the full paginated list", async () 
   expect(screen.getByText("1–2 of 9")).toBeTruthy();
   expect(screen.queryByText("SELECTED ORDER")).toBeNull();
   expect(mocks.support).not.toHaveBeenCalled();
-  expect(screen.getByRole("link", { name: "Get help" }).getAttribute("href")).toBe("/account/wallet?view=history#transactions");
+  expect(within(screen.getByRole("navigation", { name: "Order page actions" })).getByRole("link", { name: "Choose a transaction to report" }).getAttribute("href")).toBe("/account/wallet?view=history#transactions");
 });
 
 test("an exact reward selection resolves its own order, while mismatched selections do not", async () => {
