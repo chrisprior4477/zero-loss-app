@@ -159,6 +159,17 @@ test("malformed IDs are rejected before reading account data", async () => {
   expect(mocks.account).not.toHaveBeenCalled();
 });
 
+test("sign-in restores a seven-entry review on the same owned saved ticket", async () => {
+  const query = { quantity: "7", review: "entry" };
+  mocks.account.mockResolvedValueOnce(null);
+  await expect(EntryPage({ params: Promise.resolve({ entryId: ids[2] }), searchParams: Promise.resolve(query) })).rejects.toThrow("NEXT_REDIRECT:");
+  const next = new URL(mocks.redirect.mock.calls[0][0], "https://navigation.invalid").searchParams.get("next")!;
+  expect(next).toBe(`/account/entries/${ids[2]}?quantity=7&review=entry#additional-entry-checkout`);
+  expect(mocks.createClient).not.toHaveBeenCalled();
+  render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }), searchParams: Promise.resolve(Object.fromEntries(new URL(next, "https://navigation.invalid").searchParams)) }));
+  expect(mocks.actions).toHaveBeenCalledWith(expect.objectContaining({ initialQuantity: 7, resumeReview: true }));
+});
+
 test("a single saved entry and later count changes keep the same numbered-ticket UI", async () => {
   mocks.account.mockResolvedValueOnce({ activity: { activity: [activity[0]], source: "stored" }, wallet: { balanceCents: 10000, scope: "demo" }, emailConfirmed: true, displayName: "Chris" });
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[0] }) }));

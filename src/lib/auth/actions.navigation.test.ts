@@ -14,6 +14,9 @@ test.each([
   ["/items/playstation-5-slim?quantity=4#enter-entry", "/items/playstation-5-slim?quantity=4#enter-entry"],
   ["/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111", "/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111"],
   ["/support?case=11111111-1111-4111-8111-111111111111#conversation", "/support?case=11111111-1111-4111-8111-111111111111#conversation"],
+  ["/account/orders?order=ord_123#order-ord_123", "/account/orders?order=ord_123#order-ord_123"],
+  ["/account/wallet?view=history&panel=methods#payment-methods", "/account/wallet?view=history&panel=methods#payment-methods"],
+  ["/account/entries/ent_11111111111111111111111111111111?quantity=7&review=entry#additional-entry-checkout", "/account/entries/ent_11111111111111111111111111111111?quantity=7&review=entry#additional-entry-checkout"],
   ["https://evil.test", "/"],
 ])("sign-in returns only to an approved in-site destination: %s", async (returnTo, expected) => {
   mocks.createClient.mockResolvedValue({ auth: {

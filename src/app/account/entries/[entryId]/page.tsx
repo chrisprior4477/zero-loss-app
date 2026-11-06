@@ -12,6 +12,7 @@ import { activityOfferMetrics } from "@/lib/account/activity-progress";
 import { prizeNumberForSlug } from "@/lib/catalog/prize-number";
 import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref } from "@/lib/auth/entry-return";
+import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryPageActions } from "@/components/account/EntryPageActions";
 import { EntryCountShortcut } from "@/components/account/EntryCountShortcut";
@@ -29,8 +30,10 @@ export const metadata: Metadata = { title: "Your Entry Details" };
 export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[] }> }) {
   const { entryId } = await params;
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
+  const query = await searchParams;
+  const destination = accountPageReturnPath(`/account/entries/${entryId}`, query, query?.review === "entry" ? "#additional-entry-checkout" : "");
   const account = await getAccountContext();
-  if (!account) redirect(authNavigationHref("/login", `/account/entries/${entryId}`));
+  if (!account) redirect(authNavigationHref("/login", destination));
   if (account.activity.source === "unavailable") {
     console.warn("[entry-details] Account activity unavailable; showing retry instead of not found.");
     return <main className={styles.page}><div className={styles.shell}>
@@ -39,7 +42,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <h2 id="entry-unavailable-title">We couldn’t load your entry right now</h2>
         <p>Your account activity is temporarily unavailable. Try again to check this entry.</p>
         {/* A full navigation retries the server read, including a previously cached failed response. */}
-        <a href={`/account/entries/${entryId}`} className={styles.primaryLink}>Try again</a>
+        <a href={destination} className={styles.primaryLink}>Try again</a>
         <Link href="/account/entries" className={styles.returnButton}>Go to My Activity</Link>
       </section>
     </div></main>;
@@ -52,7 +55,6 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
     .filter(entry => entry.status === "active" && entry.slug === item.slug && entry.entryId)
     .sort(compareSavedEntries);
   const entryCount = relatedEntries.length;
-  const query = await searchParams;
   const entryView = query?.entries;
   const resumeReview = query?.review === "entry";
   const initialQuantity = resumeReview ? parseEntryQuantity(query?.quantity) ?? 1 : 1;

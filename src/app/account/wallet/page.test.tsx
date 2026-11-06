@@ -13,6 +13,15 @@ import WalletPage from "./page";
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const purchaseEntry = "ent_11111111111111111111111111111111";
+
+test.each([ ["methods", "payment-methods"], ["card", "wallet-add-card"] ])("the %s payment panel survives signed-out navigation", async (panel, anchor) => {
+  mocks.getAccountContext.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(WalletPage({ searchParams: Promise.resolve({ view: "history", panel }) })).rejects.toThrow("NEXT_REDIRECT");
+  const next = new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next");
+  expect(next).toBe(`/account/wallet?view=history&panel=${panel}#${anchor}`);
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
 const purchaseActivity = { entryId: purchaseEntry, slug: "babys-essentials-bundle", title: "Baby bundle", retailer: "Walmart", image: "/test.png", status: "completion", rewardKind: "digital", priceCents: 10000, paidCents: 100, remainingCents: 9900, completionOptionId: "11111111-1111-4111-8111-111111111111" };
 
 test("existing active entries return to their own review, never a purchase option", async () => {

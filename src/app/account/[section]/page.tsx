@@ -8,6 +8,8 @@ import { getAccountContext } from "@/lib/account/context";
 import { fulfillmentFilter } from "@/lib/account/fulfillment";
 import { getOrderSupportHref, walletTransactionHelpHref } from "@/lib/account/order-support";
 import { createClient } from "@/lib/supabase/server";
+import { accountPageReturnPath } from "@/lib/auth/account-return";
+import { authNavigationHref } from "@/lib/auth/entry-return";
 
 export const metadata: Metadata = { title: "My Account" };
 
@@ -56,13 +58,18 @@ export default async function LiveAccountSection({
   searchParams,
 }: {
   params: Promise<{ section: string }>;
-  searchParams?: Promise<{ filter?: string; rewardId?: string; order?: string }>;
+  searchParams?: Promise<{ filter?: string | string[]; rewardId?: string | string[]; order?: string | string[] }>;
 }) {
   const { section } = await params;
   if (!(section in liveSections)) notFound();
 
+  const query = await searchParams;
   const account = await getAccountContext();
-  if (!account) redirect(`/login?next=${encodeURIComponent(`/account/${section}`)}`);
+  if (!account) {
+    const anchor = section === "orders" && query && (query.order || query.rewardId || query.filter)
+      ? typeof query.order === "string" ? `#order-${query.order}` : "#fulfillment-records" : "";
+    redirect(authNavigationHref("/login", accountPageReturnPath(`/account/${section}`, query, anchor)));
+  }
 
   const content = liveSections[section as LiveSection];
 
@@ -82,7 +89,6 @@ export default async function LiveAccountSection({
   }
 
   if (section === "orders") {
-    const query = await searchParams;
     const selectedOrderNumber = typeof query?.order === "string" ? query.order : undefined;
     const selectedRewardId = typeof query?.rewardId === "string" ? query.rewardId : undefined;
     const selectedOrder = selectedOrderNumber || selectedRewardId ? account.orders.orders.find(order =>

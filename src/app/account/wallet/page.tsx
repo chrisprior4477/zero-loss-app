@@ -32,7 +32,9 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const account = await getAccountContext();
   if (!account) {
     const purchaseArrival = requestedReward && query.via === "purchase" && typeof query.rewardId === "string";
-    const next = history && !query.transaction ? query.review === "entry" && fromProduct
+    const paymentPanel = history && (query.panel === "methods" || query.panel === "card");
+    const next = paymentPanel ? accountPageReturnPath("/account/wallet", query, query.panel === "card" ? "#wallet-add-card" : "#payment-methods")
+      : history && !query.transaction ? query.review === "entry" && fromProduct
       ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity)
       : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse)
       : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : purchaseArrival ? "#reward-pass" : "");

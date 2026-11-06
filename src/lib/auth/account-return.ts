@@ -7,29 +7,37 @@ const identifier = /^[a-zA-Z0-9_-]{1,80}$/;
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const oneOf = (...values: string[]) => (value: string) => values.includes(value);
 const matches = (pattern: RegExp) => (value: string) => pattern.test(value);
-const routes: Record<string, { query: Record<string, (value: string) => boolean>; hash?: RegExp }> = {
+type ReturnRoute = { query: Record<string, (value: string) => boolean>; hash?: RegExp };
+const routes: Record<string, ReturnRoute> = {
   "/contact": { query: {}, hash: /^#message$/ },
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), viewed: matches(identifier), filter: oneOf("all", "active", "prize", "completion", "completed") } },
   "/account/declined-offers": { query: {} },
   "/account/favorites": { query: { tab: oneOf("favorites", "shared"), share: matches(uuid), item: matches(slug) }, hash: /^#(?:saved-items-heading|favorite-products)$/ },
-  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), via: oneOf("purchase"), view: oneOf("history", "card"), rewards: oneOf("ready", "history"), from: matches(slug), browse: value => productBrowseReturnPath(value) !== null, entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid) }, hash: /^#(?:reward-pass|add-funds|transactions|transaction-[0-9a-f-]{36})$/i },
+  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), via: oneOf("purchase"), view: oneOf("history", "card"), panel: oneOf("methods", "card"), rewards: oneOf("ready", "history"), from: matches(slug), browse: value => productBrowseReturnPath(value) !== null, entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid) }, hash: /^#(?:reward-pass|add-funds|payment-methods|wallet-add-card|transactions|transaction-[0-9a-f-]{36})$/i },
   "/account/crew": { query: { member: matches(uuid), tab: oneOf("crew", "requests", "picks", "groups"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-groups|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {} },
   "/account/notifications": { query: {} },
   "/account/security": { query: {} },
   "/account/profile": { query: {} },
   "/account/payment-methods": { query: {} },
-  "/account/orders": { query: {} },
+  "/account/orders": { query: { filter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), order: matches(identifier), rewardId: matches(uuid) }, hash: /^#(?:fulfillment-records|order-[a-zA-Z0-9_-]{1,80})$/ },
   "/account/results": { query: {} },
   "/support": { query: { case: matches(uuid), transaction: matches(uuid), view: oneOf("inbox"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/) }, hash: /^#(?:conversation|case-list)$/ },
 };
+
+function returnRoute(path: string): ReturnRoute | undefined {
+  return routes[path] ?? (/^\/account\/entries\/ent_[a-f0-9]{32}$/i.test(path) ? {
+    query: { entries: oneOf("first"), quantity: selected => parseEntryQuantity(selected) !== null, review: oneOf("entry") },
+    hash: /^#(?:entry-details-intro|add-entries-title|additional-entry-checkout)$/,
+  } : undefined);
+}
 
 /** Navigation only: the destination must still authorize every record after login. */
 export function accountReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 2048 || !value.startsWith("/") || value.startsWith("//") || /[\\\s\u0000-\u001f]/.test(value)) return null;
   const url = new URL(value, "https://navigation.invalid");
   if (/^\/account\/purchase-options\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) return value;
-  const route = routes[url.pathname] ?? (/^\/account\/entries\/ent_[a-f0-9]{32}$/i.test(url.pathname) ? { query: { quantity: (selected: string) => parseEntryQuantity(selected) !== null, review: oneOf("entry") }, hash: /^#(?:add-entries-title|additional-entry-checkout)$/ } : undefined);
+  const route = returnRoute(url.pathname);
   // Reject normalized paths, duplicate selectors, unknown keys and foreign origins.
   if (!route || url.origin !== "https://navigation.invalid" || value.split(/[?#]/, 1)[0] !== url.pathname || (url.hash && !route.hash?.test(url.hash))) return null;
   const seen = new Set<string>();
@@ -38,6 +46,7 @@ export function accountReturnPath(value: unknown): string | null {
     seen.add(key);
   }
   if (url.pathname === "/account/wallet" && url.searchParams.has("via") && !url.searchParams.has("rewardId")) return null;
+  if (url.pathname === "/account/wallet" && url.searchParams.has("panel") && url.searchParams.get("view") !== "history") return null;
   if (url.pathname === "/account/wallet" && url.searchParams.has("quantity") &&
     (url.searchParams.get("view") !== "history" || !url.searchParams.has("from") || url.searchParams.has("entry"))) return null;
   if (url.pathname === "/account/wallet" && url.searchParams.has("browse") &&
@@ -47,7 +56,7 @@ export function accountReturnPath(value: unknown): string | null {
 
 /** Build from known page selectors only; never forward arbitrary query data. */
 export function accountPageReturnPath(path: string, query: Query = {}, hash = ""): string {
-  const route = routes[path];
+  const route = returnRoute(path);
   if (!route) return "/account/entries";
   const params = new URLSearchParams();
   for (const key of Object.keys(route.query)) {
