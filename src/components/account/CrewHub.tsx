@@ -2,11 +2,10 @@
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import Link from "next/link";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
-  getCrewSharedPicks, setCrewShareBack, removeCrewConnection, requestCrewInvitationFromLink, respondToCrewRequest, setEntryCrewSharing,
+  getCrewSharedPicks, setCrewShareBack, removeCrewConnection, requestCrewInvitationFromLink, respondToCrewRequest,
 } from "@/lib/crew/actions";
 import type { CrewInvitation, CrewMember, OwnCrewEntry, SharedCrewPick } from "@/app/account/crew/page";
 import { CrewConnectedGallery, CrewSharePicker } from "./CrewConnectedGallery";
@@ -17,6 +16,7 @@ import { StatusTicket } from "./StatusTicket";
 import stripStyles from "./account-status-strip.module.css";
 import styles from "./crew-dashboard.module.css";
 import firstStyles from "./crew-people-first.module.css";
+import { CrewSharedPicks } from "./CrewSharedPicks";
 
 import { samplePicks } from "@/components/home/SharedPicksConcept";
 import { initializeSampleCrewPreview, removeSampleCrewPreview, useSampleCrewPreviews, type SampleCrewName } from "@/lib/crew/sample-preview";
@@ -208,7 +208,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       {sharing ? <CrewSharePicker products={[...new Map([...memberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(false)} /> : null}
 
       <div className={firstStyles.content} hidden={tab !== "groups" && tab !== "privacy"}>
-        <CrewDisplaySettings embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />
+        <CrewDisplaySettings key={JSON.stringify([visibility, entries.filter(entry => entry.shared).map(entry => entry.id)])} embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />
       </div>
 
       {tab === "requests" ? <section className={styles.utilityGrid}>
@@ -216,10 +216,9 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <div className={styles.utilityPanel}><h2>Requests you sent</h2>{sent.length ? <div className={styles.utilityList}>{sent.map((item) => <article key={item.id} className={styles.utilityItem}><strong>{item.recipient_name}</strong><p>Waiting for approval since {formatDate(item.created_at, timeZone)}.</p><button type="button" disabled={pending} onClick={() => run(() => removeCrewConnection(item.id))} className={styles.cancelButton}>Cancel request</button></article>)}</div> : <p className={styles.emptyUtility}>No outgoing requests.</p>}</div>
       </section> : null}
 
-      {tab === "picks" ? <section className={styles.utilityPanelWide} id="sharing"><h2>Choose what your Crew can see</h2><p className={styles.utilityIntro}>Sharing is off by default. You can change each entry here at any time. Turning sharing off removes it immediately from Crew views; it does not retract your entry or change your purchase options.</p>
-        <button type="button" className={firstStyles.privacyLink} onClick={() => setTab("privacy")}>How to display my picks · choose who sees them</button>
-        {entries.length ? <div className={styles.shareGrid}>{entries.map((entry) => <article key={entry.id} className={styles.shareItem}>{entry.image ? <div className={styles.shareImage}><Image src={entry.image} alt="" fill sizes="80px" className="object-contain p-1" /></div> : null}<div className={styles.shareDetails}><strong>{entry.title}</strong><small>{entry.retailer} · {formatDate(entry.createdAt, timeZone)}</small><button type="button" disabled={pending || !available} onClick={() => run(() => setEntryCrewSharing(entry.id, !entry.shared))} aria-pressed={entry.shared} className={entry.shared ? styles.sharedToggle : styles.privateToggle}>{entry.shared ? "Shared with Crew · turn off" : "Private · share with Crew"}</button></div></article>)}</div> : <p className={styles.emptyUtility}>You don’t have entries to share yet.</p>}
-      </section> : null}
+      {tab === "picks" ? <CrewSharedPicks entries={entries} available={available && visibilityAvailable}
+        groups={visibility?.groups ?? []} defaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule}
+        rules={visibility?.entryRules ?? {}} onPrivacy={() => setTab("privacy")} /> : null}
       <p className={firstStyles.footer}>Your entries stay private unless you choose to share them. Your wallet and payment details are never shared with Crew.</p>
     </div>
   </main>;

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { crewVisibilitySnapshot } from "@/lib/crew/visibility";
+import { readOwnCrewEntries, readOwnCrewShares } from "@/lib/crew/own-entries";
 
 export const metadata: Metadata = { title: "Your Crew" };
 
@@ -19,7 +20,7 @@ export type CrewInvitation = {
   status: "pending" | "accepted" | "declined" | "removed";
   created_at: string;
 };
-export type OwnCrewEntry = { id: string; title: string; retailer: string; image: string | null; createdAt: string; shared: boolean };
+export type OwnCrewEntry = { id: string; offeringSlug?: string; title: string; retailer: string; image: string | null; createdAt: string; shared: boolean; sharedAt?: string | null };
 export type SharedCrewPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 export type CrewMember = { memberId: string; name: string; avatarUrl: string | null };
 
@@ -37,14 +38,14 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   const [invitationsResult, entriesResult, sharesResult, membersResult, profileResult, inviteLinkResult, settingsResult] = await Promise.all([
     db.from("crew_invitations").select("id,requester_id,recipient_id,requester_name,recipient_name,status,created_at")
       .or(`requester_id.eq.${account.userId},recipient_id.eq.${account.userId}`).order("created_at", { ascending: false }),
-    db.from("customer_entries").select("id,offering_slug,created_at").eq("customer_id", account.userId).order("created_at", { ascending: false }).limit(40),
-    db.from("crew_entry_shares").select("entry_id").eq("owner_id", account.userId),
+    readOwnCrewEntries(db, account.userId),
+    readOwnCrewShares(db, account.userId),
     db.rpc("get_crew_member_profiles"),
     db.from("customer_profiles").select("crew_discoverable,crew_find_real_name,crew_find_email,crew_find_phone").eq("customer_id", account.userId).maybeSingle(),
     db.rpc("get_or_create_crew_invite_link"),
     db.from("crew_visibility_settings").select("default_rule,groups,entry_rules").eq("owner_id", account.userId).maybeSingle(),
   ]);
-  const available = !invitationsResult.error && !sharesResult.error && !membersResult.error && !profileResult.error;
+  const available = !invitationsResult.error && !entriesResult.error && !sharesResult.error && !membersResult.error && !profileResult.error;
   const invitations = (invitationsResult.data ?? []) as CrewInvitation[];
   const connected = invitations.filter((invitation) => invitation.status === "accepted");
   const selected = connected.find((invitation) => {
@@ -59,15 +60,18 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     : null;
   const titles = new Map(account.activity.activity.map((item) => [item.slug, item]));
   const sharedIds = new Set((sharesResult.data ?? []).map((row) => row.entry_id));
+  const sharedDates = new Map((sharesResult.data ?? []).map(row => [row.entry_id, row.created_at]));
   const entries: OwnCrewEntry[] = (entriesResult.data ?? []).map((entry) => {
     const item = titles.get(entry.offering_slug);
     return {
       id: entry.id,
+      offeringSlug: entry.offering_slug,
       title: item?.title ?? entry.offering_slug.replaceAll("-", " "),
       retailer: item?.retailer ?? "Zero Loss",
       image: item?.image ?? null,
       createdAt: entry.created_at,
       shared: sharedIds.has(entry.id),
+      sharedAt: sharedDates.get(entry.id) ?? null,
     };
   });
 
