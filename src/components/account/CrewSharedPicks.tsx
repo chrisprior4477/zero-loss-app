@@ -20,11 +20,13 @@ function TrashIcon() {
 export function CrewSharedPicks({ entries, groups, defaultRule, rules, available, onPrivacy }: Props) {
   const router = useRouter();
   const timeZone = useAccountTimeZone();
-  const [audience, setAudience] = useState<"crew" | "groups">("crew");
-  const [groupId, setGroupId] = useState(groups[0]?.id ?? "");
-  const group = groups.find(g => g.id === groupId) ?? groups[0];
-  const scope = audience === "crew" ? "crew" : group?.id ?? "";
-  const label = audience === "crew" ? "My Crew" : group?.name ?? "Choose a group";
+  const [selectedScope, setSelectedScope] = useState(() => {
+    if (entries.some(entry => entrySharedInScope(entry, "crew", defaultRule, rules))) return "crew";
+    return groups.find(group => entries.some(entry => entrySharedInScope(entry, group.id, defaultRule, rules)))?.id ?? "crew";
+  });
+  const group = groups.find(g => g.id === selectedScope);
+  const scope = group?.id ?? "crew";
+  const label = group?.name ?? "Your Crew";
   const [sharedOnly, setSharedOnly] = useState(true);
   const [visible, setVisible] = useState(5);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -95,19 +97,19 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
       {retry ? <button type="button" disabled={pending} onClick={() => stop(retry)}>Retry cleanup</button> : null}</div>
   </div> : null;
   return <section className={styles.root} id="sharing" aria-labelledby="my-shared-picks-heading">
-    <h2 id="my-shared-picks-heading" ref={listTop}>My Shared Picks</h2>
-    <div className={styles.tabs} role="group" aria-label="Sharing audience">
-      <button type="button" aria-pressed={audience === "crew"} disabled={pending} onClick={() => { setAudience("crew"); resetList(); }}>My Crew</button>
-      <button type="button" aria-pressed={audience === "groups"} disabled={pending} onClick={() => { setAudience("groups"); resetList(); }}>My groups</button>
+    <div className={styles.sectionHeading}>
+      <h2 id="my-shared-picks-heading" ref={listTop}>My Shared Picks Cleanup</h2>
+      <button type="button" className={styles.privacy} onClick={onPrivacy}>Privacy Settings</button>
     </div>
-    {audience === "groups" ? groups.length ? <div className={styles.groupPicker}>
-      <label htmlFor="shared-pick-group">Choose a group</label>
-      <select id="shared-pick-group" className={styles.desktopPicker} value={group?.id ?? ""} disabled={pending} onChange={e => { setGroupId(e.target.value); resetList(); }}>
+    <div className={styles.groupPicker}>
+      <label id="shared-with-label" htmlFor="shared-pick-group">Shared with</label>
+      <select id="shared-pick-group" className={styles.desktopPicker} value={scope} disabled={pending} onChange={e => { setSelectedScope(e.target.value); resetList(); }}>
+        <option value="crew">Your Crew</option>
         {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
       </select>
-      <button className={styles.mobilePicker} type="button" disabled={pending} aria-haspopup="dialog" onClick={() => setPicker(true)}>{label}<span aria-hidden="true">⌄</span></button>
-    </div> : <p>Create a saved group in Your Crew to manage its shared picks here.</p>
-      : <p className={styles.intro}>Picks shared with your whole Crew or individually chosen people. Group-only picks are under My groups.</p>}
+      <button className={styles.mobilePicker} type="button" disabled={pending} aria-haspopup="dialog" aria-labelledby="shared-with-label shared-with-value" onClick={() => setPicker(true)}><span id="shared-with-value">{label}</span><span aria-hidden="true">⌄</span></button>
+    </div>
+    <p className={styles.intro}>{scope === "crew" ? "Picks shared with your whole Crew or individually chosen people." : `Picks shared with ${label}. Cleanup applies only to this group.`}</p>
     <div className={styles.toolbar}>
       <label><input type="checkbox" checked={sharedOnly} onChange={e => { setSharedOnly(e.target.checked); resetList(); }} /> Shared only</label>
       <button type="button" disabled={disabled} onClick={() => { setCleanup("choose"); setBefore(undefined); }}>Clean up sharing</button>
@@ -144,9 +146,11 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
     {!shown.length ? <p className={styles.empty}>{sharedOnly ? "No shared picks in this view. Turn off Shared only to see your private entries." : "You don’t have entries to share in this view yet."}</p> : null}
     {shown.length > visible ? <button type="button" className={styles.orange} onClick={() => setVisible(n => n + 5)}>Show more · {shown.length - visible} prizes</button> : null}
     {visible > 5 ? <button type="button" className={styles.blue} onClick={() => { resetList(); listTop.current?.scrollIntoView({ block: "start" }); }}>Close to first five</button> : null}
-    <button type="button" className={styles.privacy} onClick={onPrivacy}>Privacy Settings · choose who sees your picks</button>
-    {picker ? <CrewSharingDialog title="Choose a group" onClose={() => setPicker(false)}>
-      <div className={styles.mobileGroupList} role="group" aria-label="Your saved groups">{groups.map(g => <button type="button" key={g.id} aria-pressed={g.id === group?.id} onClick={() => { setGroupId(g.id); resetList(); setPicker(false); }}>{g.name}<span>{g.memberIds.length} connected {g.memberIds.length === 1 ? "person" : "people"}</span></button>)}</div>
+    {picker ? <CrewSharingDialog title="Shared with" onClose={() => setPicker(false)}>
+      <div className={styles.mobileGroupList} role="group" aria-label="Sharing audiences">
+        <button type="button" aria-pressed={scope === "crew"} onClick={() => { setSelectedScope("crew"); resetList(); setPicker(false); }}>Your Crew<span>Whole Crew or individually chosen people</span></button>
+        {groups.map(g => <button type="button" key={g.id} aria-pressed={g.id === scope} onClick={() => { setSelectedScope(g.id); resetList(); setPicker(false); }}>{g.name}<span>{g.memberIds.length} connected {g.memberIds.length === 1 ? "person" : "people"}</span></button>)}
+      </div>
     </CrewSharingDialog> : null}
     {cleanup ? <CrewSharingDialog title={cleanup === "choose" ? "Clean up sharing" : "Review cleanup"} onClose={() => { if (!pending) setCleanup(null); }}>
       <div className={styles.cleanup}>

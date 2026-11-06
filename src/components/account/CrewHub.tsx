@@ -54,7 +54,6 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab === "add" ? "crew" : initialTab);
   const [finding, setFinding] = useState(initialTab === "add");
-  const [moreOpen, setMoreOpen] = useState(initialTab === "picks" || initialTab === "privacy");
   const [sharing, setSharing] = useState(false);
   const [message, setMessage] = useState("");
   const [samplePerson, setSamplePerson] = useState<SampleCrewName | null>(null);
@@ -189,12 +188,11 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
       <nav className={connectedStyles.navigation} aria-label="Your Crew sections">
         <div className={connectedStyles.mainButtons}>
-          <button type="button" aria-pressed={tab === "crew"} onClick={() => setTab("crew")}>Your People</button>
+          <button type="button" aria-pressed={tab === "crew"} onClick={() => setTab("crew")}>Your Crew</button>
           <button type="button" aria-pressed={tab === "groups"} onClick={() => setTab("groups")}>Groups</button>
           <Link href="/account/favorites?tab=shared">Shared with You</Link>
         </div>
-        <button type="button" className={connectedStyles.moreButton} aria-expanded={moreOpen} onClick={() => setMoreOpen(open => !open)}>More <span aria-hidden="true">{moreOpen ? "⌃" : "⌄"}</span></button>
-        {moreOpen ? <div className={connectedStyles.moreOptions}><button type="button" aria-pressed={tab === "picks"} onClick={() => setTab("picks")}>My Shared Picks</button><button type="button" aria-pressed={tab === "privacy"} onClick={() => setTab("privacy")}>Privacy Settings</button></div> : null}
+        <button type="button" className={connectedStyles.sharingButton} aria-pressed={tab === "picks"} onClick={() => setTab("picks")}>Shared Picks &amp; Cleanup</button>
       </nav>
       {tab === "crew" ? <>
         <CrewConnectedGallery people={people} samples={samples} selectedKey={activeKey}

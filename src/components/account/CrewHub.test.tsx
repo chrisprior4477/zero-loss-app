@@ -134,7 +134,7 @@ test("every sample clearly highlights the selected person and matches the shared
   }
   fireEvent.click(screen.getByRole("button", { name: "Groups" }));
   expect(screen.queryByRole("region", { name: "Leo's shared activity" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Your People" }));
+  fireEvent.click(screen.getByRole("button", { name: "Your Crew" }));
   expect(screen.getByRole("region", { name: "Leo's shared activity" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "See Leo's sample shared activity" }));
   expect(screen.getByRole("region", { name: "Leo's shared activity" })).toBeTruthy();
@@ -248,14 +248,14 @@ test("groups and privacy share the same editor state across compact navigation",
   fireEvent.click(screen.getByRole("button", { name: /Create group/ }));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await screen.findByText(/Family saved to your profile/);
-  if (!screen.queryByRole("button", { name: "Privacy Settings" })) fireEvent.click(nav.getByRole("button", { name: "More" }));
-  fireEvent.click(nav.getByRole("button", { name: "Privacy Settings" }));
+  fireEvent.click(nav.getByRole("button", { name: "Shared Picks & Cleanup" }));
+  fireEvent.click(screen.getByRole("button", { name: "Privacy Settings" }));
   expect(screen.queryByRole("heading", { name: "Make your own groups" })).toBeNull();
   fireEvent.click(screen.getByRole("radio", { name: /Only selected groups/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Family" }));
-  fireEvent.click(nav.getByRole("button", { name: "Your People" }));
-  if (!screen.queryByRole("button", { name: "Privacy Settings" })) fireEvent.click(nav.getByRole("button", { name: "More" }));
-  fireEvent.click(nav.getByRole("button", { name: "Privacy Settings" }));
+  fireEvent.click(nav.getByRole("button", { name: "Your Crew" }));
+  fireEvent.click(nav.getByRole("button", { name: "Shared Picks & Cleanup" }));
+  fireEvent.click(screen.getByRole("button", { name: "Privacy Settings" }));
   expect((screen.getByRole("checkbox", { name: "Family" }) as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(actions.saveCrewDisplaySettings).toHaveBeenCalledOnce());

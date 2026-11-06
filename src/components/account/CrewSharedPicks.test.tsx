@@ -36,8 +36,7 @@ test("groups repeats and keeps an older prize accessible beyond 40 entries", () 
 });
 test("trash immediately clears only the selected prize and group, with Undo", async () => {
   render(<CrewSharedPicks {...base} defaultRule={{ audience: "groups", memberIds: [], groupIds: [family, football] }} />);
-  fireEvent.click(screen.getByRole("button", { name: "My groups" }));
-  fireEvent.change(screen.getByLabelText("Choose a group", { selector: "select" }), { target: { value: football } });
+  fireEvent.change(screen.getByLabelText("Shared with", { selector: "select" }), { target: { value: football } });
   fireEvent.click(screen.getByRole("button", { name: "Stop sharing all PlayStation 5 entries with Football" }));
   await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String), { scope: football, offeringSlug: "playstation-5-slim" }));
   fireEvent.click(await screen.findByRole("button", { name: "Undo" }));
@@ -56,8 +55,20 @@ test("age cleanup requires review and does not include a recently shared entry",
 test("uncertain cleanup retries the same operation instead of starting another", async () => {
   actions.cleanupCrewShares.mockRejectedValueOnce(new Error("offline"));
   render(<CrewSharedPicks {...base} />);
-  fireEvent.click(screen.getByRole("button", { name: "Stop sharing all Samsung TV entries with My Crew" }));
+  fireEvent.click(screen.getByRole("button", { name: "Stop sharing all Samsung TV entries with Your Crew" }));
   fireEvent.click(await screen.findByRole("button", { name: "Retry cleanup" }));
   await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledTimes(2));
   expect(actions.cleanupCrewShares.mock.calls[0]).toEqual(actions.cleanupCrewShares.mock.calls[1]);
+});
+
+test("one audience picker opens the populated group and switches back to Crew on mobile", () => {
+  render(<CrewSharedPicks {...base} defaultRule={{ audience: "groups", memberIds: [], groupIds: [football] }} />);
+  expect(screen.getByRole("heading", { name: "My Shared Picks Cleanup" })).toBeTruthy();
+  expect((screen.getByLabelText("Shared with", { selector: "select" }) as HTMLSelectElement).value).toBe(football);
+  fireEvent.click(screen.getByRole("button", { name: "Shared with Football" }));
+  const dialog = screen.getByRole("dialog", { name: "Shared with" });
+  fireEvent.click(within(dialog).getByRole("button", { name: /Your Crew/ }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect((screen.getByLabelText("Shared with", { selector: "select" }) as HTMLSelectElement).value).toBe("crew");
+  expect(screen.queryByRole("button", { name: /Stop sharing all/ })).toBeNull();
 });

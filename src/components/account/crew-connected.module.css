@@ -7,11 +7,8 @@
 .mainButtons { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
 .mainButtons button, .mainButtons a { display:flex; justify-content:center; align-items:center; border:0; border-radius:8px; padding:13px 10px; min-height:46px; background:#c9efff; color:#10274a; font-size:15px; font-weight:850; text-align:center; text-decoration:none; cursor:pointer; }
 .mainButtons [aria-pressed=true] { background:#48f000; }
-.moreButton { display:flex; justify-content:center; align-items:center; gap:8px; width:100%; min-height:30px; margin-top:8px; padding:5px 12px; background:#163c58; border:0; border-radius:6px; color:#cfedff; font-size:12px; font-weight:800; cursor:pointer; }
-.moreButton[aria-expanded=true] { background:#255574; }
-.moreOptions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding-top:8px; }
-.moreOptions button { border:0; border-radius:7px; padding:12px; background:#c9efff; color:#10274a; font-weight:800; font-size:13px; cursor:pointer; }
-.moreOptions [aria-pressed=true] { background:#48f000; }
+.sharingButton { display:flex; justify-content:center; align-items:center; width:100%; min-height:44px; margin-top:8px; padding:10px 12px; background:#c9efff; border:0; border-radius:8px; color:#10274a; font-size:15px; font-weight:850; cursor:pointer; }
+.sharingButton[aria-pressed=true] { background:#48f000; }
 .connectedSpace { padding:18px; background:#0874ff; border-radius:18px; }
 .connectedSpace *, .shareDialog *, .finder * { box-sizing:border-box; }
 .connectedSpace button { font:inherit; cursor:pointer; }
