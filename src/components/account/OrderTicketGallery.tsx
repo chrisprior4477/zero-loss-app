@@ -112,6 +112,7 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
         {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd><span title={value}>{value.slice(-8).toUpperCase()}</span><button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
         <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone)}</time> : "Unavailable"}</dd></div>
       </dl>
+      {order.orderNumber ? <Link className={styles.reportSupport} href={`/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report`}>Report a problem to Support<AccountIcon name="arrow" /></Link> : null}
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => { element?.select(); }} /> : null}
@@ -130,6 +131,8 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
   const currentPage = Math.floor(Math.max(0, anchorIndex) / size);
   const start = currentPage * size;
   const shown = orders.slice(start, start + size);
+  const hasPrevious = currentPage > 0;
+  const hasNext = currentPage < lastPage;
   const selected = opened ? shown.find(order => order.rewardId === opened.id) : null;
   const galleryId = useId();
 
@@ -144,6 +147,10 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
 
   return <div className={styles.gallery} data-order-gallery>
     <div className={styles.galleryBody}>
+      <div className={styles.ticketWindow} data-previous={hasPrevious} data-next={hasNext}>
+      {hasPrevious ? <button type="button" className={styles.peekStack} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage - 1)}>
+        {Array.from({ length: phone ? 2 : 3 }, (_, index) => <span key={index} className={`${styles.card} ${styles.peekCard}`} aria-hidden="true" />)}
+      </button> : null}
       <div className={styles.grid} id={galleryId} inert={Boolean(selected)}>
         {shown.map(order => {
           const detail = orderPresentation(order);
@@ -155,6 +162,10 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
             <div className={styles.actions}><button type="button" className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
           </article>;
         })}
+      </div>
+      {hasNext ? <button type="button" className={styles.peekStack} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage + 1)}>
+        {Array.from({ length: Math.min(phone ? 2 : 3, Math.ceil((orders.length - start - size) / (phone ? 1 : 2))) }, (_, index) => <span key={index} className={`${styles.card} ${styles.peekCard}`} aria-hidden="true" />)}
+      </button> : null}
       </div>
       {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} anchor={opened.anchor} onClose={() => setOpened(null)} /> : null}
     </div>

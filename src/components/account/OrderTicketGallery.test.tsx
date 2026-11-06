@@ -40,6 +40,8 @@ test("details copy full references and exact checkout amounts, then return focus
   const trigger = screen.getByRole("button", { name: "Order details" });
   fireEvent.click(trigger);
   const dialog = screen.getByRole("dialog", { name: "Order details" });
+  expect(within(dialog).getByRole("link", { name: "Report a problem to Support" }).getAttribute("href"))
+    .toBe(`/account/orders?order=${order.orderNumber}&support=report`);
   expect(screen.getByRole("button", { name: "Close details" })).toBe(document.activeElement);
   fireEvent.click(within(dialog).getByRole("button", { name: "Copy order number" }));
   await waitFor(() => expect(writeText).toHaveBeenCalledWith(order.orderNumber));
@@ -50,6 +52,24 @@ test("details copy full references and exact checkout amounts, then return focus
   fireEvent.keyDown(dialog, { key: "Escape" });
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(document.activeElement).toBe(trigger);
+});
+
+test("ticket edges navigate to the adjacent phone page and never suggest a nonexistent next page", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  render(<OrderTicketGallery orders={Array.from({ length: 4 }, (_, i) => record(i + 1))} />);
+  expect(screen.queryByRole("button", { name: "Show previous order tickets" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Show next order tickets" }));
+  expect(screen.getByText("3–4 of 4")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Show next order tickets" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Show previous order tickets" }));
+  expect(screen.getByText("1–2 of 4")).toBeTruthy();
+  fireEvent.click(screen.getAllByRole("button", { name: "Order details" })[0]);
+  expect((screen.getByRole("button", { name: "Show next order tickets" }) as HTMLButtonElement).disabled).toBe(true);
+});
+
+test("a complete single page has no extra-ticket edges", () => {
+  render(<OrderTicketGallery orders={[record(1)]} />);
+  expect(screen.queryByRole("button", { name: /Show (next|previous) order tickets/ })).toBeNull();
 });
 
 test.each([0, 1])("rotation keeps the selected order from a later phone page open (card %i)", async offset => {

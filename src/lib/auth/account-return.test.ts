@@ -3,6 +3,7 @@ import { accountPageReturnPath, accountReturnPath } from "./account-return";
 import { authNavigationHref, signInReturnPath, signupVerificationPath } from "./entry-return";
 const id = "11111111-1111-4111-8111-111111111111";
 const destinations = [
+  `/account/orders?order=ord_123&support=report#order-ord_123`,
   `/account/orders?order=ord_123#order-ord_123`,
   `/account/orders?filter=fulfilled&rewardId=${id}#fulfillment-records`,
   "/account/wallet?view=history&panel=methods#payment-methods",
@@ -29,6 +30,7 @@ test.each(destinations)("preserves the approved destination through every auth s
   }
 });
 test.each([
+  "/account/orders?order=ord_1&support=https%3A%2F%2Fevil.test", "/account/orders?order=ord_1&support=report&support=report",
   "/account/orders?order=ord_1&order=ord_2", "/account/orders?order=https%3A%2F%2Fevil.test", "/account/orders?rewardId=bad", "/account/orders?filter=admin",
   "/account/wallet?panel=methods", "/account/wallet?view=history&panel=admin", "/account/wallet?view=history&panel=methods&panel=card",
   "/account/entries/ent_11111111111111111111111111111111?quantity=7&quantity=9&review=entry",

@@ -13,7 +13,7 @@ import styles from "./orders-fulfillment.module.css";
 
 type OrdersOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function OrdersFulfillment({ state, overview, filter = "all", selectedRewardId, selectedOrderNumber, supportHref = walletTransactionHelpHref }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; selectedRewardId?: string; selectedOrderNumber?: string; supportHref?: string }) {
+export function OrdersFulfillment({ state, overview, filter = "all", selectedRewardId, selectedOrderNumber, supportHref = walletTransactionHelpHref, supportUnavailable = false }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; selectedRewardId?: string; selectedOrderNumber?: string; supportHref?: string; supportUnavailable?: boolean }) {
   const chooseTransaction = supportHref === walletTransactionHelpHref;
   const supportLabel = chooseTransaction ? "Choose a transaction to report" : "Report a problem with this order";
   const fulfillment = accountFulfillment(state, overview?.activity ?? { source: "unavailable", isPreview: false, activeCount: null, activity: [] });
@@ -46,6 +46,8 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
           <Link href={supportHref}><AccountIcon name="security" />{supportLabel}</Link>
         </nav>
       </header>
+
+      {supportUnavailable ? <p role="alert" className={styles.warning}>We couldn’t attach this order’s transaction right now. <Link href={walletTransactionHelpHref}>Choose its transaction from wallet history</Link> to report the problem.</p> : null}
 
       <section className={styles.summary} aria-label="Order status filters">
         {([

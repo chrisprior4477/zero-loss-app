@@ -1,5 +1,15 @@
 .gallery { min-width: 0; container-type: inline-size; }
 .galleryBody { position: relative; }
+.ticketWindow { position: relative; overflow: hidden; }
+.ticketWindow[data-previous="true"] { padding-left: 22px; }
+.ticketWindow[data-next="true"] { padding-right: 22px; }
+.peekStack { position: absolute; top: 0; bottom: 0; display: grid; grid-auto-rows: 244px; align-content: start; gap: 16px; width: 12px; padding: 0; border: 0; overflow: hidden; background: transparent; cursor: pointer; }
+.peekStack[data-direction="previous"] { left: 0; }
+.peekStack[data-direction="next"] { right: 0; }
+.peekStack .peekCard { display: block; width: 200px; pointer-events: none; }
+.peekStack[data-direction="previous"] .peekCard { transform: translateX(-188px); }
+.peekStack:focus-visible { outline: 2px solid #8bdfff; outline-offset: -2px; }
+.peekStack:disabled { cursor: default; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .card { --corner: 14px; --side: 11px; display: grid; position: relative; height: 244px; min-width: 0; grid-template-columns: 28% minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 49px 44px; gap: 12px 16px; padding: 16px; color: #101f42; background: #fffefa;
   mask-image: radial-gradient(circle var(--corner) at 0 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner) at 100% 0, transparent 99%, #000 103%), radial-gradient(circle var(--corner) at 0 100%, transparent 99%, #000 103%), radial-gradient(circle var(--corner) at 100% 100%, transparent 99%, #000 103%), radial-gradient(circle var(--side) at 0 50%, transparent 99%, #000 103%), radial-gradient(circle var(--side) at 100% 50%, transparent 99%, #000 103%); mask-composite: intersect;
@@ -44,8 +54,9 @@
 .references dt { color: #526d88; font-size: 12px; }
 .references dd { display: flex; align-items: center; gap: 8px; min-height: 30px; color: #183752; font-size: 14px; font-weight: 800; }
 .references button { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; border: 0; border-radius: 6px; background: #e5f1fa; color: #20658e; cursor: pointer; }
-.references svg, .copySupport svg { width: 17px; height: 17px; }
-.copySupport { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin-top: 12px; padding: 10px; border: 0; border-radius: 8px; background: #ff7900; color: #122842; font-size: 14px; font-weight: 800; cursor: pointer; }
+.references svg, .copySupport svg, .reportSupport svg { width: 17px; height: 17px; flex: none; }
+.copySupport, .reportSupport { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin-top: 12px; padding: 10px; border: 0; border-radius: 8px; background: #e5f1fa; color: #122842; font-size: 14px; font-weight: 800; cursor: pointer; text-align: center; text-decoration: none; }
+.reportSupport { background: #0878ff; color: white; }
 .copyStatus { color: #1d7047; font-size: 12px; line-height: 17px; text-align: center; }
 .copyStatus:not(:empty) { margin-top: 7px; }
 .manualCopy { display: block; width: 100%; margin-top: 8px; min-height: 90px; padding: 8px; border: 1px solid #9abbd0; border-radius: 6px; color: #183752; background: white; font-size: 16px; }
@@ -57,6 +68,7 @@
   .statuses { gap: 3px; }
 }
 @media (max-width: 700px) {
+  .peekStack { grid-auto-rows: 176px; gap: 10px; }
   .grid { grid-template-columns: 1fr; gap: 10px; }
   .card { --corner: 12px; --side: 8px; height: 176px; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: 64px 32px 44px; gap: 6px 10px; padding: 12px; }
   .art { grid-column: 1; grid-row: 1; border-radius: 9px; }

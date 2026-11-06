@@ -40,6 +40,26 @@ async function openOrderNotification(order: AccountOrder) {
   return url;
 }
 
+test.each([0, 1, 8])("Report a problem resolves exact order %i, including repeated products and later pages", async index => {
+  await expect(LiveAccountSection({ params: Promise.resolve({ section: "orders" }), searchParams: Promise.resolve({ order: orders[index].orderNumber, support: "report" }) }))
+    .rejects.toMatchObject({ digest: expect.stringContaining("/support?transaction=11111111-1111-4111-8111-111111111111#report-problem") });
+  expect(mocks.support).toHaveBeenCalledWith(mocks.db, "owner", orders[index].orderNumber);
+});
+
+test("an unavailable purchase keeps its exact order visible with recovery help instead of attaching another payment", async () => {
+  mocks.support.mockResolvedValue("/account/wallet?view=history#transactions");
+  render(await LiveAccountSection({ params: Promise.resolve({ section: "orders" }), searchParams: Promise.resolve({ order: orders[8].orderNumber, support: "report" }) }));
+  expect(screen.getByText("SELECTED ORDER")).toBeTruthy();
+  expect(screen.getByRole("alert").textContent).toContain("couldn’t attach this order’s transaction");
+  expect(screen.getByRole("link", { name: "Open gift card" }).getAttribute("href")).toContain("rewardId=reward-8");
+});
+
+test("a foreign order report never resolves another customer's payment", async () => {
+  render(await LiveAccountSection({ params: Promise.resolve({ section: "orders" }), searchParams: Promise.resolve({ order: "ord_foreign", support: "report" }) }));
+  expect(screen.getByText("That order is not available here")).toBeTruthy();
+  expect(mocks.support).not.toHaveBeenCalled();
+});
+
 test.each([0, 1, 5, 8])("notification for order %i opens its exact gift card, including repeated products and later pages", async index => {
   const order = orders[index];
   const url = await openOrderNotification(order);
