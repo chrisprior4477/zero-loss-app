@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AccountIcon } from "./AccountIcon";
 import { saveProfileDetails } from "@/lib/account/actions";
 import { PROFILE_COUNTRIES } from "@/lib/account/countries";
@@ -111,7 +111,14 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
   }, [address.country, address.region, address.postalCode, completeAddress, lookupKey, lookupAttempt]);
   const currentLookup = completeAddress && lookup?.key === lookupKey ? lookup : null;
   const fallbackZones = currentLookup && !currentLookup.zone ? currentLookup.options : [];
-  return <form action={action} className={`${styles.form} ${ticket ? styles.ticketForm : ""}`} aria-label="Edit profile" onInput={event => {
+  // Dispatch the action ourselves so React's automatic form reset cannot discard
+  // the draft when the server returns a validation error. Native validation stays.
+  return <form action={action} onSubmit={event => {
+    event.preventDefault();
+    if (pending) return;
+    const data = new FormData(event.currentTarget);
+    startTransition(() => action(data));
+  }} className={`${styles.form} ${ticket ? styles.ticketForm : ""}`} aria-label="Edit profile" onInput={event => {
     const data = new FormData(event.currentTarget);
     const next = { country: String(data.get("country") ?? ""), region: String(data.get("region") ?? ""), postalCode: String(data.get("postal_code") ?? ""), street: String(data.get("address_line_1") ?? ""), city: String(data.get("city") ?? "") };
     if (next.country !== address.country || next.region !== address.region || next.postalCode !== address.postalCode || next.city !== address.city || next.street !== address.street) setSelectedZone("");

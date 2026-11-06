@@ -74,6 +74,13 @@
 }
 @media (prefers-reduced-motion: reduce) { .actions button, .actions a { transition: none; } }
 
+/* Keep the complete month readable when three date fields no longer fit. */
+@media (max-width: 380px) {
+  .dateSelects { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 33px; padding-right: 0; }
+  .dateSelects label:first-child { grid-column: 1 / -1; }
+  .dateSelects .clearButton { position: static; align-self: center; transform: none; }
+}
+
 /* Account & Security ticket presentation; the same protected form still saves the profile. */
 .ticketForm .formSection {
   --corner-scoop: 16px;

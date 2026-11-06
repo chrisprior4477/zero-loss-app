@@ -4,6 +4,7 @@ vi.mock("@/lib/account/actions", () => ({ saveProfileDetails: vi.fn() }));
 vi.mock("@/lib/account/timezone-lookup-action", () => ({ lookupAddressTimeZone: vi.fn().mockResolvedValue({ zone: "America/New_York", options: ["America/New_York"] }) }));
 import { ProfileDetailsForm, type ProfileDetails } from "./ProfileDetailsForm";
 import { lookupAddressTimeZone } from "@/lib/account/timezone-lookup-action";
+import { saveProfileDetails } from "@/lib/account/actions";
 
 const details: ProfileDetails = {
   displayName: "Chris Prior", legalFirstName: "Chris", legalLastName: "Prior", dateOfBirth: "1990-01-01",
@@ -12,7 +13,42 @@ const details: ProfileDetails = {
   preferredLocale: "en-US", timezone: "America/New_York",
 };
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.mocked(saveProfileDetails).mockReset(); });
+
+test("a rejected save preserves the full draft and resubmits corrected values", async () => {
+  vi.mocked(lookupAddressTimeZone).mockResolvedValue({ zone: "Europe/London", options: ["Europe/London"] });
+  vi.mocked(saveProfileDetails).mockResolvedValueOnce({ status: "error", message: "Enter a valid phone number, or leave it blank." });
+  vi.mocked(saveProfileDetails).mockResolvedValueOnce({ status: "succeeded", message: "Your profile information has been updated." });
+  render(<ProfileDetailsForm details={details} />);
+  const changes = { "Display name": "New display", "Legal first name": "New first", "Legal last name": "New last", "Phone number": "123", "Street address": "1 Example Street", "Apartment, suite, or unit (optional)": "", "City": "London", "State or region": "England", "ZIP or postal code": "SW1A 1AA", "Country": "United Kingdom", "Language": "en-GB" };
+  for (const [label, value] of Object.entries(changes)) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  fireEvent.change(screen.getByLabelText("Birth month"), { target: { value: "9" } });
+  await waitFor(() => expect((screen.getByRole("button", { name: /Save profile/ }) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.submit(screen.getByRole("form", { name: "Edit profile" }));
+  await screen.findByText("Enter a valid phone number, or leave it blank.");
+  for (const [label, value] of Object.entries(changes)) expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe(value);
+  expect((screen.getByLabelText("Birth month") as HTMLSelectElement).value).toBe("9");
+  expect(new FormData(screen.getByRole("form") as HTMLFormElement).get("date_of_birth")).toBe("1990-09-01");
+  fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "+44 20 7946 0958" } });
+  fireEvent.submit(screen.getByRole("form", { name: "Edit profile" }));
+  await screen.findByText("Your profile information has been updated.");
+  const submitted = vi.mocked(saveProfileDetails).mock.calls.at(-1)![1];
+  expect(submitted.get("phone_number")).toBe("+44 20 7946 0958");
+  expect(submitted.get("address_line_1")).toBe("1 Example Street");
+  expect(submitted.get("country")).toBe("United Kingdom");
+  expect(submitted.get("preferred_locale")).toBe("en-GB");
+});
+
+test("cleared fields remain blank after rejection and keep keyboard focus", async () => {
+  vi.mocked(lookupAddressTimeZone).mockResolvedValue({ zone: "America/New_York", options: ["America/New_York"] });
+  vi.mocked(saveProfileDetails).mockResolvedValueOnce({ status: "error", message: "Check the profile details." });
+  render(<ProfileDetailsForm details={details} />);
+  fireEvent.click(screen.getByRole("button", { name: "Clear phone number" }));
+  expect(document.activeElement).toBe(screen.getByLabelText("Phone number"));
+  fireEvent.submit(screen.getByRole("form", { name: "Edit profile" }));
+  await screen.findByText("Check the profile details.");
+  expect((screen.getByLabelText("Phone number") as HTMLInputElement).value).toBe("");
+});
 
 test("profile editor includes traditional account, contact, address and preference fields", () => {
   render(<ProfileDetailsForm details={details} />);
