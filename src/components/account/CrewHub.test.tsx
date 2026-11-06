@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { CrewHub } from "./CrewHub";
 import { CrewSearchPanel } from "./CrewSearchDialog";
 import { addSampleCrewPreview } from "@/lib/crew/sample-preview";
 import { walletHistoryHref, walletRewardHref, type ActivityItem } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
+import { parseCrewTab } from "@/lib/crew/navigation";
 
 const actions = vi.hoisted(() => ({
   inviteToCrew: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role={alt ? "img" : undefined} aria-label={alt || undefined} /> }));
 
 beforeEach(() => {
+  window.history.replaceState({}, "", "/account/crew");
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
   localStorage.clear();
   vi.clearAllMocks();
@@ -39,7 +41,7 @@ beforeEach(() => {
   actions.saveCrewGroup.mockResolvedValue({ ok: true, message: "Group saved." });
   actions.saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Settings saved." });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); window.history.replaceState({}, "", "/"); });
 
 const statusReward: ActivityItem = {
   slug: "playstation-5-slim", title: "PlayStation 5 Slim Model", retailer: "Best Buy",
@@ -283,4 +285,69 @@ test("sample lookup reopens the same person rather than toggling their picks off
   fireEvent.click(screen.getByRole("button", { name: "Find" }));
   fireEvent.click(await screen.findByRole("button", { name: "Add sample" }));
   expect(screen.getByRole("region", { name: "Maya's shared activity" })).toBeTruthy();
+});
+
+function crewPageAtCurrentUrl() {
+  return <CrewHub currentUserId="me" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab={parseCrewTab(new URLSearchParams(window.location.search).get("tab"))} />;
+}
+
+test.each([
+  ["Groups", "groups", "#crew-groups", "Make your own groups"],
+  ["Shared Picks & Cleanup", "picks", "#sharing", "My Shared Picks Cleanup"],
+  ["Privacy Settings", "privacy", "#crew-privacy", "Can people find me?"],
+] as const)("%s keeps the same section on refresh and when reopening its link", (label, tab, hash, heading) => {
+  const page = render(crewPageAtCurrentUrl());
+  if (tab === "privacy") fireEvent.click(screen.getByRole("button", { name: "Shared Picks & Cleanup" }));
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  expect(window.location.search).toBe(`?tab=${tab}`);
+  expect(window.location.hash).toBe(hash);
+  expect(screen.getByRole("heading", { name: heading })).toBeTruthy();
+  const copiedLink = window.location.href;
+  page.unmount();
+  // A fresh document/server render derives its initial section from the URL.
+  window.history.replaceState({}, "", copiedLink);
+  render(crewPageAtCurrentUrl());
+  expect(screen.getByRole("heading", { name: heading })).toBeTruthy();
+  expect(actions.saveCrewDisplaySettings).not.toHaveBeenCalled();
+  expect(actions.setEntryCrewSharing).not.toHaveBeenCalled();
+});
+
+test("Back and Forward follow Crew sections while retaining an unsaved group draft", async () => {
+  render(crewPageAtCurrentUrl());
+  fireEvent.click(screen.getByRole("button", { name: "Groups" }));
+  fireEvent.change(screen.getByLabelText("New group name"), { target: { value: "Unsubmitted draft" } });
+  fireEvent.click(screen.getByRole("button", { name: "Shared Picks & Cleanup" }));
+  fireEvent.click(screen.getByRole("button", { name: "Privacy Settings" }));
+  act(() => window.history.back());
+  await waitFor(() => expect(screen.getByRole("heading", { name: "My Shared Picks Cleanup" })).toBeTruthy());
+  act(() => window.history.back());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Groups" }).getAttribute("aria-pressed")).toBe("true"));
+  expect((screen.getByLabelText("New group name") as HTMLInputElement).value).toBe("Unsubmitted draft");
+  act(() => window.history.forward());
+  await waitFor(() => expect(screen.getByRole("heading", { name: "My Shared Picks Cleanup" })).toBeTruthy());
+  expect(actions.saveCrewGroup).not.toHaveBeenCalled();
+  expect(actions.saveCrewDisplaySettings).not.toHaveBeenCalled();
+});
+
+test("section links retain invitation/member context, replace stale anchors, and avoid duplicate Back steps", () => {
+  window.history.replaceState({ framework: "current" }, "", "/account/crew?member=known-member&invite=known-invite&tab=groups#crew-group-old");
+  render(crewPageAtCurrentUrl());
+  const push = vi.spyOn(window.history, "pushState");
+  fireEvent.click(screen.getByRole("button", { name: "Groups" }));
+  expect(push).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Shared Picks & Cleanup" }));
+  expect(window.location.search).toBe("?member=known-member&invite=known-invite&tab=picks");
+  expect(window.location.hash).toBe("#sharing");
+  fireEvent.click(screen.getByRole("button", { name: "Your Crew" }));
+  expect(new URLSearchParams(window.location.search).get("tab")).toBe("crew");
+  expect(window.location.hash).toBe("#crew-intro");
+  expect(screen.getByRole("button", { name: "Your Crew" }).getAttribute("aria-pressed")).toBe("true");
+  expect(push).toHaveBeenCalledTimes(2);
+});
+
+test("unknown section values fall back to Your Crew without changing saved data", () => {
+  window.history.replaceState({}, "", "/account/crew?tab=not-a-section");
+  render(crewPageAtCurrentUrl());
+  expect(screen.getByRole("button", { name: "Your Crew" }).getAttribute("aria-pressed")).toBe("true");
+  expect(actions.saveCrewDisplaySettings).not.toHaveBeenCalled();
 });

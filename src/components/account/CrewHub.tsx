@@ -24,8 +24,9 @@ import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountAc
 import { accountRoutes } from "@/lib/account/navigation";
 import { CrewDisplaySettings } from "./CrewDisplaySettings";
 import { defaultCrewVisibilityRule, type crewVisibilitySnapshot } from "@/lib/crew/visibility";
+import { useCrewTab } from "./useCrewTab";
+import type { CrewTab } from "@/lib/crew/navigation";
 
-type Tab = "crew" | "requests" | "picks" | "groups" | "privacy" | "add";
 type Props = {
   visibility?: ReturnType<typeof crewVisibilitySnapshot>;
   visibilityAvailable?: boolean;
@@ -38,7 +39,7 @@ type Props = {
   selectedMemberId: string | null;
   selectedPicks: SharedCrewPick[];
   available: boolean;
-  initialTab: Tab;
+  initialTab: CrewTab;
   overview?: { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
   ownInviteToken?: string | null;
   incomingInviteToken?: string | null;
@@ -52,7 +53,7 @@ const getServerOrigin = () => "";
 export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, available, initialTab, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>(initialTab === "add" ? "crew" : initialTab);
+  const { tab, selectTab } = useCrewTab(initialTab);
   const [finding, setFinding] = useState(initialTab === "add");
   const [sharing, setSharing] = useState(false);
   const [message, setMessage] = useState("");
@@ -177,7 +178,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       </header>
 
       {finding ? <div>
-        <CrewInlineFinder available={available} onSample={name => { selectSample(name); setTab("crew"); setFinding(false); }} onClose={() => setFinding(false)} />
+        <CrewInlineFinder available={available} onSample={name => { selectSample(name); selectTab("crew"); setFinding(false); }} onClose={() => setFinding(false)} />
         <details className={connectedStyles.inviteLink}><summary>Invite with your personal link</summary><p>They can join your Crew and leave whenever they like.</p><input aria-label="Your Crew invite link" value={inviteUrl} placeholder={ownInviteToken ? "Preparing invite link…" : "Invite link unavailable"} readOnly onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => void copyInviteLink()} disabled={!ownInviteToken}>Copy invite link</button>{copyMessage ? <p role="status">{copyMessage}</p> : null}</details>
       </div> : null}
 
@@ -188,11 +189,11 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
       <nav className={connectedStyles.navigation} aria-label="Your Crew sections">
         <div className={connectedStyles.mainButtons}>
-          <button type="button" aria-pressed={tab === "crew"} onClick={() => setTab("crew")}>Your Crew</button>
-          <button type="button" aria-pressed={tab === "groups"} onClick={() => setTab("groups")}>Groups</button>
+          <button type="button" aria-pressed={tab === "crew"} onClick={() => selectTab("crew")}>Your Crew</button>
+          <button type="button" aria-pressed={tab === "groups"} onClick={() => selectTab("groups")}>Groups</button>
           <Link href="/account/favorites?tab=shared">Shared with You</Link>
         </div>
-        <button type="button" className={connectedStyles.sharingButton} aria-pressed={tab === "picks"} onClick={() => setTab("picks")}>Shared Picks &amp; Cleanup</button>
+        <button type="button" className={connectedStyles.sharingButton} aria-pressed={tab === "picks"} onClick={() => selectTab("picks")}>Shared Picks &amp; Cleanup</button>
       </nav>
       {tab === "crew" ? <>
         <CrewConnectedGallery people={people} samples={samples} selectedKey={activeKey}
@@ -216,7 +217,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
 
       {tab === "picks" ? <CrewSharedPicks entries={entries} available={available && visibilityAvailable}
         groups={visibility?.groups ?? []} defaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule}
-        rules={visibility?.entryRules ?? {}} onPrivacy={() => setTab("privacy")} /> : null}
+        rules={visibility?.entryRules ?? {}} onPrivacy={() => selectTab("privacy")} /> : null}
       <p className={firstStyles.footer}>Your entries stay private unless you choose to share them. Your wallet and payment details are never shared with Crew.</p>
     </div>
   </main>;
