@@ -5,7 +5,7 @@ vi.mock("./funding-authorization", () => authorization);
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "./actions";
+import { checkDemoDeposit, completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "./actions";
 import { FundingFailure } from "./demo-provider";
 
 test.each(['"data:image/png;base64,private-photo"', '{"number":"4111111111111111"}', '[0,1,2,3]', '[0,1,2,3,4,5,6,99]'])("camera artwork rejects non-palette payload %s before database access", async artwork => {
@@ -44,6 +44,24 @@ beforeEach(() => {
     : { status: "succeeded", sessionId: sid, duplicate: false } }));
 });
 afterEach(() => vi.unstubAllEnvs());
+test.each(["reconciled", "credit_pending", "not_processed", "discrepancy", "missing"])("checking a %s deposit only reads the original wallet record", async reconciliation => {
+  const key = "original_request_key_01";
+  const record = { id: sid, amount: 100, currency: "USD", created_at: "2026-11-05", idempotencyKey: key, reconciliation };
+  mocks.rpc.mockImplementation(async (name: string) => ({ data: name === "ensure_preview_customer"
+    ? { walletAccountId: sid, scope: "demo", fundingAvailable: true }
+    : name === "get_wallet_snapshot" ? { ...snapshot, balanceCents: "810" }
+    : name === "get_demo_funding_requests" ? (reconciliation === "missing" ? [] : [record]) : null }));
+  const result = await checkDemoDeposit(key, 100, sid);
+  if (reconciliation === "reconciled") expect(result).toEqual({ status: "credited", amount: 100, balanceCents: 810 });
+  else if (reconciliation === "credit_pending" || reconciliation === "not_processed") expect(result).toEqual({ status: reconciliation, sessionId: sid });
+  else expect(result.status).toBe(reconciliation);
+  expect(await checkDemoDeposit("another_request_key_02", 100, sid)).toEqual({ status: "missing" });
+  if (reconciliation !== "missing") expect(await checkDemoDeposit(key, 200, sid)).toEqual({ status: "discrepancy" });
+  expect(mocks.rpc.mock.calls.every(([name]) => ["get_wallet_snapshot", "ensure_preview_customer", "get_demo_funding_requests"].includes(name))).toBe(true);
+  expect(authorization.confirmDemoFunding).not.toHaveBeenCalled();
+  expect(await checkDemoDeposit(key, 100, "different-wallet")).toEqual({ status: "unavailable" });
+});
+
 test("request, durable provider and verified consumer run in order and refresh shared views", async () => {
   expect((await completeDemoFunding({ status: "idle" }, form())).status).toBe("succeeded");
   expect(authorization.confirmDemoFunding).toHaveBeenCalledOnce();

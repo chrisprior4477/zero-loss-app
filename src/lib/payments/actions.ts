@@ -23,14 +23,15 @@ export type DemoFundingActionState =
   | { status: "pending"; message: string }
   | { status: "error"; message: string; beforePayment?: boolean };
 
-async function fundingProvider() {
+async function fundingProvider(expectedWallet?: FormDataEntryValue | null) {
   if (!isPreviewDataEnvironment()) throw new FundingFailure("42501", "Simulated funding is unavailable in this environment.");
   const db = await createClient();
   const { data: { user }, error } = await db.auth.getUser();
   if (error || !user?.email_confirmed_at) throw new FundingFailure("42501", "Sign in with your confirmed test account.");
   await ensurePreviewCustomer(db, user);
   const { data, error: walletError } = await db.rpc("get_wallet_snapshot");
-  if (walletError || !demoFundingAllowed(parseWalletSnapshot(data), Boolean(user.email_confirmed_at))) {
+  const wallet = walletError ? null : parseWalletSnapshot(data);
+  if (!demoFundingAllowed(wallet, Boolean(user.email_confirmed_at)) || (expectedWallet != null && expectedWallet !== wallet?.walletAccountId)) {
     throw new FundingFailure("42501", "Demo funding is not enabled for this account.");
   }
   return new DemoPaymentProvider(db);
@@ -45,6 +46,28 @@ function failure(error: unknown): DemoFundingActionState {
 }
 
 function updateWalletViews() { revalidatePath("/", "layout"); }
+
+export type DepositCheck =
+  | { status: "credited"; amount: number; balanceCents: number }
+  | { status: "not_processed" | "credit_pending"; sessionId: string }
+  | { status: "missing" | "discrepancy" | "unavailable" };
+
+/** Check the original owner's payment and ledger match without creating or finishing a payment. */
+export async function checkDemoDeposit(key: string, amount: number, walletId: string): Promise<DepositCheck> {
+  try {
+    assertIdempotencyKey(key);
+    assertFundingAmount(amount);
+    const provider = await fundingProvider(walletId);
+    const request = (await provider.getRequests()).find(row => row.idempotencyKey === key);
+    if (!request) return { status: "missing" };
+    if (request.amount !== amount || request.reconciliation === "discrepancy") return { status: "discrepancy" };
+    if (request.reconciliation !== "reconciled") return { status: request.reconciliation, sessionId: request.id };
+    const db = await createClient();
+    const { data, error } = await db.rpc("get_wallet_snapshot");
+    if (error) return { status: "unavailable" };
+    return { status: "credited", amount: request.amount, balanceCents: parseWalletSnapshot(data).balanceCents };
+  } catch { return { status: "unavailable" }; }
+}
 
 function fundingContinuation(value: unknown): string | null {
   const purchase = purchaseOptionReturnPath(value);
@@ -79,7 +102,7 @@ export async function completeDemoFunding(
 
   let result: DemoFundingActionState;
   try {
-    const provider = await fundingProvider();
+    const provider = await fundingProvider(formData.get("walletId"));
     if (!recoveryOnly) {
       try {
         await confirmDemoFunding(await createClient(), formData, amountCents, idempotencyKey);

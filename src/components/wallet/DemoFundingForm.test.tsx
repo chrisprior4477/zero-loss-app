@@ -1,9 +1,9 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 const navigation = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
-vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
-import { completeDemoFunding, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
+vi.mock("next/navigation", () => ({ useRouter: () => navigation, unstable_rethrow: () => {} }));
+vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), checkDemoDeposit: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
+import { completeDemoFunding, checkDemoDeposit, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
 
 test("entry funding suggests the shortfall and only returns after explicit deposit confirmation", async () => {
@@ -65,7 +65,7 @@ test("deposit confirmation stays on the page and requires an unchecked acknowled
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
   expect(sessionStorage.length).toBe(0);
 });
-afterEach(() => { cleanup(); sessionStorage.clear(); localStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); vi.mocked(deleteDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); navigation.refresh.mockReset(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); localStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(checkDemoDeposit).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); vi.mocked(deleteDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); navigation.refresh.mockReset(); });
 test("a rejected confirmation clears the recovery marker and can be retried", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
@@ -112,17 +112,49 @@ test("successful funding returns to the exact purchase option that needed more b
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
   await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith(purchaseHref));
 });
-test("an uncertain payment keeps its recovery marker and request key", async () => {
+test.each(["lost response", "uncertain server result"])("%s can be checked after refresh without starting a second deposit", async mode => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
-  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "pending", message: "Check this request." });
-  const { container } = render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" blocked={false} />);
+  if (mode === "lost response") vi.mocked(completeDemoFunding).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  else vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "pending", message: "Check this request." });
+  const props = { requestKey: "stable_demo_request_001", walletId: "wallet-a", balanceLabel: "$10" };
+  const firstVisit = render(<DemoFundingForm {...props} />);
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
-  await waitFor(() => expect(screen.getByRole("button", { name: "Retry same request" })).toBeTruthy());
-  expect(JSON.parse(sessionStorage.getItem("zero-loss-demo-request:wallet-a") ?? "null")).toMatchObject({ key: "stable_demo_request_001", amount: "2500" });
-  expect(container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("stable_demo_request_001");
-  expect(navigation.replace).not.toHaveBeenCalled();
+  await screen.findByRole("button", { name: "Check this deposit" });
+  firstVisit.unmount();
+  render(<DemoFundingForm {...props} requestKey="another_page_request_02" />);
+  vi.mocked(checkDemoDeposit).mockRejectedValueOnce(new TypeError("Offline"))
+    .mockResolvedValueOnce({ status: "credited", amount: 2500, balanceCents: 3500 });
+  fireEvent.click(await screen.findByRole("button", { name: "Check this deposit" }));
+  await screen.findByText(/Check your connection/);
+  fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
+  await screen.findByText("Your $25 demo deposit was credited to your wallet.");
+  expect(screen.getByText("Current balance: $35")).toBeTruthy();
+  expect(checkDemoDeposit).toHaveBeenLastCalledWith(props.requestKey, 2500, props.walletId);
+  expect(completeDemoFunding).toHaveBeenCalledTimes(1);
+  expect(reconcileDemoFunding).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull();
+});
+
+test("a request that never arrived needs fresh confirmation with the same key", async () => {
+  const key = "original_request_key_01";
+  sessionStorage.setItem("zero-loss-demo-request:wallet-a", JSON.stringify({ key, amount: "100", awaitingReceipt: true, paymentMethod: "demo_card_4242", makeDefault: false }));
+  vi.mocked(checkDemoDeposit).mockResolvedValueOnce({ status: "missing" });
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
+  render(<DemoFundingForm walletId="wallet-a" requestKey="new_server_render_key_02" />);
+  fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Review same deposit" }));
+  expect(screen.getByRole("dialog", { name: "Add $1 to your balance?" })).toBeTruthy();
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+  const agree = screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement;
+  expect(agree.checked).toBe(false);
+  fireEvent.click(agree);
+  fireEvent.click(screen.getByRole("button", { name: "Confirm $1 deposit" }));
+  await screen.findByText("Demo funds added.");
+  const submitted = vi.mocked(completeDemoFunding).mock.calls[0][1];
+  expect(submitted.get("idempotencyKey")).toBe(key);
+  expect(submitted.get("amountCents")).toBe("100");
 });
 
 test("a reconciled deposit also returns to the selected product", async () => {

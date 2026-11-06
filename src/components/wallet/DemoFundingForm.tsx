@@ -6,13 +6,14 @@ import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import batchStyles from "@/components/account/ticket-batches.module.css";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { completeDemoFunding, deleteDemoPaymentMethod, reconcileDemoFunding, saveDemoPaymentMethod } from "@/lib/payments/actions";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { isFundingAmount } from "@/lib/payments/provider";
 import { parseFundingDollars } from "@/lib/payments/funding-amount";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken, type DemoCardArtwork } from "@/lib/payments/demo-card";
+import { DepositRecovery } from "./DepositRecovery";
 import { DemoFundingCard } from "./DemoFundingCard";
 import { DeleteCardToast } from "./DeleteCardToast";
 import { FundingCardPicker } from "./FundingCardPicker";
@@ -33,10 +34,27 @@ const presetChoices = presetAmounts.map(value => ({ value, label: `$${(Number(va
 const preferredDepositCard = (cards: DemoCard[]) => cards.find(card => card.isDepositDefault)?.token
   ?? (cards.every(card => card.isDepositDefault === undefined) ? cards.find(card => card.isDefault)?.token : undefined);
 
-function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, displayName }: { requestKey: string; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination; displayName?: string }) {
+type DepositAttempt = {
+  key: string; amount: string; recovered: boolean; canRetry: boolean; ready: boolean;
+  initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; awaitingReceipt?: boolean; reviewOnMount?: boolean;
+};
+
+function FundingAttempt({ requestKey, walletId, reviewOnMount, blocked, onNew, onSuccess, onStart, onInterrupted, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, displayName }: { requestKey: string; walletId: string; reviewOnMount?: boolean; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; onInterrupted: (attempt: DepositAttempt) => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination; displayName?: string }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof completeDemoFunding>>, form: FormData) => {
-    const result = await completeDemoFunding(previous, form);
+    let result: Awaited<ReturnType<typeof completeDemoFunding>>;
+    try {
+      result = await completeDemoFunding(previous, form);
+    } catch (error) {
+      unstable_rethrow(error);
+      result = { status: "pending", message: "Check whether this deposit reached your wallet." };
+    }
+    if (result.status === "pending") {
+      onInterrupted({ key: requestKey, amount: String(form.get("amountCents")), recovered: true, ready: true,
+        canRetry: false, awaitingReceipt: true, initialToken: demoCardFixture(form.get("paymentMethod"))?.token,
+        initialDefault: form.get("makeDefault") === "true", recoveryOnly: form.get("recoveryOnly") === "true" });
+      return result;
+    }
     // Navigate before revalidation can replace this funding form with fresh wallet data.
     if (result.status === "succeeded" && continueTo?.href) router.replace(fundedProductEntryHref(continueTo.href));
     return result;
@@ -79,11 +97,19 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
   const policyInput = useRef<HTMLInputElement>(null);
+  const openedReview = useRef(false);
+  useEffect(() => {
+    if (reviewOnMount && !blocked && !openedReview.current && confirmation.current) {
+      openedReview.current = true;
+      confirmation.current.showModal();
+      policyInput.current?.focus();
+    }
+  }, [reviewOnMount, blocked]);
   function clearConfirmation() {
     if (policyInput.current) policyInput.current.checked = false;
   }
   function openConfirmation() {
-    if (!amountIsValid || (!recoveryOnly && selectedToken === null) || locked || (cardUnavailable && !recovered) || (blocked && state.status === "idle")) return;
+    if (!amountIsValid || (!recoveryOnly && selectedToken === null) || pending || (locked && !recovered) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")) return;
     clearConfirmation();
     confirmation.current?.showModal();
     policyInput.current?.focus();
@@ -182,9 +208,10 @@ function FundingAttempt({ requestKey, blocked, onNew, onSuccess, onStart, storag
   return <form id="funding-payment" action={action} onSubmit={() => {
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
     onStart();
-    try { sessionStorage.setItem(storageKey, JSON.stringify({ key: requestKey, amount,
+    try { sessionStorage.setItem(storageKey, JSON.stringify({ key: requestKey, amount, awaitingReceipt: !continueTo,
       ...(recoveryOnly ? {} : { paymentMethod: selectedToken, makeDefault }) })); } catch { /* Owner-scoped pending requests remain in the database. */ }
   }} className={styles.fundingForm} aria-label="Add funds">
+    <input type="hidden" name="walletId" value={walletId} />
     <input type="hidden" name="idempotencyKey" value={requestKey} />
     <input type="hidden" name="amountCents" value={amount} />
     <input type="hidden" name="currency" value="USD" />
@@ -263,10 +290,14 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   const router = useRouter();
   const storageKey = `zero-loss-demo-request:${walletId}`;
   const [successMessage, setSuccessMessage] = useState("");
+  const [receiptBalance, setReceiptBalance] = useState<string>();
+  const activeWallet = useRef("");
   const startingAmount = continueTo?.depositCents && isFundingAmount(continueTo.depositCents) && continueTo.depositCents % 100 === 0 ? String(continueTo.depositCents) : "2500";
-  const [attempt, setAttempt] = useState<{ key: string; amount: string; recovered: boolean; canRetry: boolean; ready: boolean; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean }>({ key: requestKey, amount: startingAmount, recovered: false, canRetry: false, ready: false });
+  const [attempt, setAttempt] = useState<DepositAttempt>({ key: requestKey, amount: startingAmount, recovered: false, canRetry: false, ready: false });
   const newAttempt = useCallback(() => setAttempt({ key: crypto.randomUUID(), amount: startingAmount, recovered: false, canRetry: false, ready: true }), [startingAmount]);
-  const onSuccess = useCallback((message: string) => {
+  const onSuccess = useCallback((message: string, balance?: string) => {
+    activeWallet.current = "";
+    setReceiptBalance(balance);
     try { sessionStorage.removeItem(storageKey); } catch { /* Server history still identifies completed requests. */ }
     setSuccessMessage(message);
     newAttempt();
@@ -274,13 +305,22 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     // Re-read the ledger-backed wallet snapshot for the header, summary and history.
     router.refresh();
   }, [newAttempt, router, storageKey]);
+  function interruptDeposit(original: DepositAttempt) {
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify({ key: original.key, amount: original.amount, awaitingReceipt: true,
+        paymentMethod: original.initialToken, makeDefault: original.initialDefault }));
+    } catch { /* The same request can still be checked on this page. */ }
+    setAttempt(original);
+  }
   useEffect(() => {
-    let saved: { key: string; amount: string; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly: boolean } | null = null;
+    // A background refresh must not replace the attempt the customer is confirming or checking.
+    if (activeWallet.current === storageKey) return;
+    let saved: { key: string; amount: string; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly: boolean; awaitingReceipt: boolean } | null = null;
     try {
       const value = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
       if (value && typeof value.key === "string" && /^[A-Za-z0-9_-]{16,128}$/.test(value.key)
         && isFundingAmount(Number(value.amount))) saved = {
-          key: value.key, amount: value.amount,
+          key: value.key, amount: value.amount, awaitingReceipt: value.awaitingReceipt === true,
           initialDefault: typeof value.makeDefault === "boolean" ? value.makeDefault : undefined,
           initialToken: demoCardFixture(value.paymentMethod)?.token,
           recoveryOnly: !demoCardFixture(value.paymentMethod) || typeof value.makeDefault !== "boolean",
@@ -292,14 +332,12 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     const matching = savedKey ? requests?.find(request => request.idempotencyKey === savedKey) : undefined;
     // The owner-scoped request list is authoritative. A browser marker with no
     // matching request was never accepted; a reconciled one is already done.
-    const staleMarker = Boolean(saved && requests !== null && (!matching || matching.reconciliation === "reconciled"));
+    const staleMarker = Boolean(saved && !saved.awaitingReceipt && requests !== null && (!matching || matching.reconciliation === "reconciled"));
     if (staleMarker) {
       try { sessionStorage.removeItem(storageKey); } catch { /* A later visit will check again. */ }
       saved = null;
     }
-    // Hydrate a browser-only retry record after SSR, using owner-scoped database
-    // history to distinguish a real interrupted request from a completed one.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saved?.awaitingReceipt) activeWallet.current = storageKey;
     setAttempt(current => saved ? { ...saved, recovered: true, canRetry: matching !== undefined && matching.reconciliation !== "discrepancy", ready: true }
       : staleMarker ? { key: requestKey, amount: startingAmount, recovered: false, canRetry: false, ready: true } : { ...current, ready: true });
   }, [storageKey, requests, requestKey, startingAmount]);
@@ -311,7 +349,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   }, []);
   if (successMessage) return <section id="funding-success" aria-label="Deposit complete" className={paymentStyles.editor}>
     <p role="status" className={paymentStyles.notice}>{successMessage}</p>
-    {balanceLabel ? <p><strong>Current balance: {balanceLabel}</strong></p> : null}
+    {(receiptBalance ?? balanceLabel) ? <p><strong>Current balance: {receiptBalance ?? balanceLabel}</strong></p> : null}
     <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}>
       <a href="#balance" className={paymentStyles.secondary}>Back to wallet</a>
       <Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link>
@@ -322,18 +360,26 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
       <button type="button" className={paymentStyles.secondary} onClick={() => { setSuccessMessage(""); revealWalletSection("add-funds"); }}>Add more funds</button>
     </div>
   </section>;
+  if (attempt.awaitingReceipt) return <DepositRecovery requestKey={attempt.key} walletId={walletId} amount={Number(attempt.amount)}
+    onCredit={(credited, balance) => onSuccess(`Your ${formatUsdFromCents(credited)} demo deposit was credited to your wallet.`, formatUsdFromCents(balance))}
+    onReview={() => setAttempt(current => ({ ...current, awaitingReceipt: false, reviewOnMount: true }))} />;
   return <>
-    <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
+    <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} walletId={walletId} reviewOnMount={attempt.reviewOnMount} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
     displayName={displayName} savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly || (attempt.recovered && Number(attempt.amount) % 100 !== 0)} cardUnavailable={cardUnavailable}
     blocked={!attempt.ready || ((blocked || requests === null || requests.some(request => request.reconciliation !== "reconciled")) && !attempt.canRetry)} continueTo={continueTo}
-    onNew={newAttempt} onSuccess={onSuccess} onStart={() => setSuccessMessage("")} />
+    onInterrupted={interruptDeposit} onNew={newAttempt} onSuccess={onSuccess} onStart={() => { activeWallet.current = storageKey; setSuccessMessage(""); }} />
   </>;
 }
 
 function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: ContinueDestination }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof reconcileDemoFunding>>, form: FormData) => {
-    const result = await reconcileDemoFunding(previous, form);
+    let result: Awaited<ReturnType<typeof reconcileDemoFunding>>;
+    try { result = await reconcileDemoFunding(previous, form); }
+    catch (error) {
+      unstable_rethrow(error);
+      return { status: "pending" as const, message: "We couldn’t confirm this deposit. Check your connection, then check the same deposit again." };
+    }
     if (result.status === "succeeded" && continueTo?.href) router.replace(fundedProductEntryHref(continueTo.href));
     return result;
   }, { status: "idle" });
