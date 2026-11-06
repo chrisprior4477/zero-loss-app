@@ -156,7 +156,7 @@
 .refinements button[aria-pressed=true] { background:#b9ed9c; color:#194d24; }
 .refined .quantity { margin:6px 0; }
 .refined .facts { display:grid; grid-template-columns:1fr 1fr; column-gap:12px; }
-.refined .facts > div:not(.shortfall):not(.covered) { flex-direction:column; align-items:flex-start; gap:2px; padding:2px 0; }
+.refined .facts > div:nth-child(-n+2) { flex-direction:column; align-items:flex-start; gap:2px; padding:2px 0; }
 .refined .facts > div:nth-child(2) { align-items:flex-end; }
 .refined .facts .shortfall,.refined .facts .covered { grid-column:1/-1; }
 .refined .quantity h3 { font-size:21px; line-height:1.15; margin:0 0 6px; }
