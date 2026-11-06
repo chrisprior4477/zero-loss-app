@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isAtLeastAge, MIN_ACCOUNT_AGE_YEARS } from "@/lib/auth/validation";
 import { addressTimeZone, countryTimeZones } from "./address-timezone";
+import { missingAddressFields } from "./address-requirements";
 import { DEFAULT_TIME_ZONE, safeTimeZone } from "./timezone";
 
 const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -66,8 +67,9 @@ export async function saveProfileDetails(
       throw new Error("Enter a valid phone number, or leave it blank.");
     }
     const hasAddress = [addressLine1, addressLine2, city, region, postalCode].some(Boolean);
-    if (hasAddress && (!addressLine1 || !city || !region || !postalCode || !countryInput)) {
-      throw new Error("Complete the street, city, state or region, postal code, and country for your mailing address.");
+    const missing = missingAddressFields({ street: addressLine1, city, region, postalCode, country: countryInput });
+    if (hasAddress && missing.length) {
+      throw new Error(`Complete the ${missing.join(", ")} for your mailing address in ${countryInput || "your selected country"}.`);
     }
     if (!supportedLocales.has(preferredLocale)) throw new Error("Choose a supported language.");
     const detectedZone = hasAddress ? addressTimeZone(countryInput, region, postalCode) : DEFAULT_TIME_ZONE;
@@ -83,9 +85,9 @@ export async function saveProfileDetails(
       phone_number: phoneNumber || null,
       address_line_1: hasAddress ? addressLine1 : null,
       address_line_2: hasAddress ? addressLine2 || null : null,
-      city: hasAddress ? city : null,
-      region: hasAddress ? region : null,
-      postal_code: hasAddress ? postalCode : null,
+      city: hasAddress ? city || null : null,
+      region: hasAddress ? region || null : null,
+      postal_code: hasAddress ? postalCode || null : null,
       country: hasAddress ? countryInput : null,
       preferred_locale: preferredLocale,
       timezone: detectedZone ?? timezone,

@@ -1,0 +1,977 @@
+{
+  "United States": {
+    "code": "US",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Afghanistan": {
+    "code": "AF",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Albania": {
+    "code": "AL",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Algeria": {
+    "code": "DZ",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Andorra": {
+    "code": "AD",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Angola": {
+    "code": "AO",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Antigua and Barbuda": {
+    "code": "AG",
+    "required": "A",
+    "postalUsed": false
+  },
+  "Argentina": {
+    "code": "AR",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Armenia": {
+    "code": "AM",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Australia": {
+    "code": "AU",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Austria": {
+    "code": "AT",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Azerbaijan": {
+    "code": "AZ",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Bahamas": {
+    "code": "BS",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Bahrain": {
+    "code": "BH",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Bangladesh": {
+    "code": "BD",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Barbados": {
+    "code": "BB",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Belarus": {
+    "code": "BY",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Belgium": {
+    "code": "BE",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Belize": {
+    "code": "BZ",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Benin": {
+    "code": "BJ",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Bhutan": {
+    "code": "BT",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Bolivia": {
+    "code": "BO",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Bosnia and Herzegovina": {
+    "code": "BA",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Botswana": {
+    "code": "BW",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Brazil": {
+    "code": "BR",
+    "required": "ASCZ",
+    "postalUsed": true
+  },
+  "Brunei": {
+    "code": "BN",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Bulgaria": {
+    "code": "BG",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Burkina Faso": {
+    "code": "BF",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Burundi": {
+    "code": "BI",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Cabo Verde": {
+    "code": "CV",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Cambodia": {
+    "code": "KH",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Cameroon": {
+    "code": "CM",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Canada": {
+    "code": "CA",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Central African Republic": {
+    "code": "CF",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Chad": {
+    "code": "TD",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Chile": {
+    "code": "CL",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "China": {
+    "code": "CN",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Colombia": {
+    "code": "CO",
+    "required": "AS",
+    "postalUsed": true
+  },
+  "Comoros": {
+    "code": "KM",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Congo": {
+    "code": "CG",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Costa Rica": {
+    "code": "CR",
+    "required": "ACS",
+    "postalUsed": true
+  },
+  "Côte d’Ivoire": {
+    "code": "CI",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Croatia": {
+    "code": "HR",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Cuba": {
+    "code": "CU",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Cyprus": {
+    "code": "CY",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Czechia": {
+    "code": "CZ",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Democratic Republic of the Congo": {
+    "code": "CD",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Denmark": {
+    "code": "DK",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Djibouti": {
+    "code": "DJ",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Dominica": {
+    "code": "DM",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Dominican Republic": {
+    "code": "DO",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Ecuador": {
+    "code": "EC",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Egypt": {
+    "code": "EG",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "El Salvador": {
+    "code": "SV",
+    "required": "ACS",
+    "postalUsed": true
+  },
+  "Equatorial Guinea": {
+    "code": "GQ",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Eritrea": {
+    "code": "ER",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Estonia": {
+    "code": "EE",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Eswatini": {
+    "code": "SZ",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Ethiopia": {
+    "code": "ET",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Fiji": {
+    "code": "FJ",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Finland": {
+    "code": "FI",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "France": {
+    "code": "FR",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Gabon": {
+    "code": "GA",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Gambia": {
+    "code": "GM",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Georgia": {
+    "code": "GE",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Germany": {
+    "code": "DE",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Ghana": {
+    "code": "GH",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Greece": {
+    "code": "GR",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Grenada": {
+    "code": "GD",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Guatemala": {
+    "code": "GT",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Guinea": {
+    "code": "GN",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Guinea-Bissau": {
+    "code": "GW",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Guyana": {
+    "code": "GY",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Haiti": {
+    "code": "HT",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Honduras": {
+    "code": "HN",
+    "required": "ACS",
+    "postalUsed": true
+  },
+  "Hungary": {
+    "code": "HU",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Iceland": {
+    "code": "IS",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "India": {
+    "code": "IN",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Indonesia": {
+    "code": "ID",
+    "required": "AS",
+    "postalUsed": true
+  },
+  "Iran": {
+    "code": "IR",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Iraq": {
+    "code": "IQ",
+    "required": "ACS",
+    "postalUsed": true
+  },
+  "Ireland": {
+    "code": "IE",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Israel": {
+    "code": "IL",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Italy": {
+    "code": "IT",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Jamaica": {
+    "code": "JM",
+    "required": "ACS",
+    "postalUsed": false
+  },
+  "Japan": {
+    "code": "JP",
+    "required": "ASZ",
+    "postalUsed": true
+  },
+  "Jordan": {
+    "code": "JO",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Kazakhstan": {
+    "code": "KZ",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Kenya": {
+    "code": "KE",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Kiribati": {
+    "code": "KI",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Kuwait": {
+    "code": "KW",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Kyrgyzstan": {
+    "code": "KG",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Laos": {
+    "code": "LA",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Latvia": {
+    "code": "LV",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Lebanon": {
+    "code": "LB",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Lesotho": {
+    "code": "LS",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Liberia": {
+    "code": "LR",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Libya": {
+    "code": "LY",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Liechtenstein": {
+    "code": "LI",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Lithuania": {
+    "code": "LT",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Luxembourg": {
+    "code": "LU",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Madagascar": {
+    "code": "MG",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Malawi": {
+    "code": "MW",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Malaysia": {
+    "code": "MY",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Maldives": {
+    "code": "MV",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Mali": {
+    "code": "ML",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Malta": {
+    "code": "MT",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Marshall Islands": {
+    "code": "MH",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Mauritania": {
+    "code": "MR",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Mauritius": {
+    "code": "MU",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Mexico": {
+    "code": "MX",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Micronesia": {
+    "code": "FM",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Moldova": {
+    "code": "MD",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Monaco": {
+    "code": "MC",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Mongolia": {
+    "code": "MN",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Montenegro": {
+    "code": "ME",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Morocco": {
+    "code": "MA",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Mozambique": {
+    "code": "MZ",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Myanmar": {
+    "code": "MM",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Namibia": {
+    "code": "NA",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Nauru": {
+    "code": "NR",
+    "required": "AS",
+    "postalUsed": false
+  },
+  "Nepal": {
+    "code": "NP",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Netherlands": {
+    "code": "NL",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "New Zealand": {
+    "code": "NZ",
+    "required": "ACDZ",
+    "postalUsed": true
+  },
+  "Nicaragua": {
+    "code": "NI",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Niger": {
+    "code": "NE",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Nigeria": {
+    "code": "NG",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "North Korea": {
+    "code": "KP",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "North Macedonia": {
+    "code": "MK",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Norway": {
+    "code": "NO",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Oman": {
+    "code": "OM",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Pakistan": {
+    "code": "PK",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Palau": {
+    "code": "PW",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Panama": {
+    "code": "PA",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Papua New Guinea": {
+    "code": "PG",
+    "required": "ACS",
+    "postalUsed": true
+  },
+  "Paraguay": {
+    "code": "PY",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Peru": {
+    "code": "PE",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Philippines": {
+    "code": "PH",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Poland": {
+    "code": "PL",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Portugal": {
+    "code": "PT",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Qatar": {
+    "code": "QA",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Romania": {
+    "code": "RO",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Russia": {
+    "code": "RU",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Rwanda": {
+    "code": "RW",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Saint Kitts and Nevis": {
+    "code": "KN",
+    "required": "ACS",
+    "postalUsed": false
+  },
+  "Saint Lucia": {
+    "code": "LC",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Saint Vincent and the Grenadines": {
+    "code": "VC",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Samoa": {
+    "code": "WS",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "San Marino": {
+    "code": "SM",
+    "required": "AZ",
+    "postalUsed": true
+  },
+  "São Tomé and Príncipe": {
+    "code": "ST",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Saudi Arabia": {
+    "code": "SA",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Senegal": {
+    "code": "SN",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Serbia": {
+    "code": "RS",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Seychelles": {
+    "code": "SC",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Sierra Leone": {
+    "code": "SL",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Singapore": {
+    "code": "SG",
+    "required": "AZ",
+    "postalUsed": true
+  },
+  "Slovakia": {
+    "code": "SK",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Slovenia": {
+    "code": "SI",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Solomon Islands": {
+    "code": "SB",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Somalia": {
+    "code": "SO",
+    "required": "ACS",
+    "postalUsed": true
+  },
+  "South Africa": {
+    "code": "ZA",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "South Korea": {
+    "code": "KR",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "South Sudan": {
+    "code": "SS",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Spain": {
+    "code": "ES",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Sri Lanka": {
+    "code": "LK",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Sudan": {
+    "code": "SD",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Suriname": {
+    "code": "SR",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Sweden": {
+    "code": "SE",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Switzerland": {
+    "code": "CH",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Syria": {
+    "code": "SY",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Taiwan": {
+    "code": "TW",
+    "required": "ACSZ",
+    "postalUsed": true
+  },
+  "Tajikistan": {
+    "code": "TJ",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Tanzania": {
+    "code": "TZ",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Thailand": {
+    "code": "TH",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Timor-Leste": {
+    "code": "TL",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Togo": {
+    "code": "TG",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Tonga": {
+    "code": "TO",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Trinidad and Tobago": {
+    "code": "TT",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Tunisia": {
+    "code": "TN",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Türkiye": {
+    "code": "TR",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Turkmenistan": {
+    "code": "TM",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Tuvalu": {
+    "code": "TV",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Uganda": {
+    "code": "UG",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Ukraine": {
+    "code": "UA",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "United Arab Emirates": {
+    "code": "AE",
+    "required": "AS",
+    "postalUsed": false
+  },
+  "United Kingdom": {
+    "code": "GB",
+    "required": "ACZ",
+    "postalUsed": true
+  },
+  "Uruguay": {
+    "code": "UY",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Uzbekistan": {
+    "code": "UZ",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Vanuatu": {
+    "code": "VU",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Vatican City": {
+    "code": "VA",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Venezuela": {
+    "code": "VE",
+    "required": "ACS",
+    "postalUsed": true
+  },
+  "Vietnam": {
+    "code": "VN",
+    "required": "AS",
+    "postalUsed": true
+  },
+  "Yemen": {
+    "code": "YE",
+    "required": "AC",
+    "postalUsed": false
+  },
+  "Zambia": {
+    "code": "ZM",
+    "required": "AC",
+    "postalUsed": true
+  },
+  "Zimbabwe": {
+    "code": "ZW",
+    "required": "AC",
+    "postalUsed": false
+  }
+}

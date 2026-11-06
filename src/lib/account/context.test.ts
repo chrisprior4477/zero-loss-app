@@ -60,6 +60,11 @@ test("invalid authentication stops before any profile, balance or capability rea
   expect(mocks.snapshot).not.toHaveBeenCalled();
 });
 
+test("a saved UAE address without a postal code keeps its local zone after reload", async () => {
+  mocks.maybeSingle.mockResolvedValueOnce({data:{address_line_1:"1 Example Street",city:null,region:"Dubai",postal_code:null,country:"United Arab Emirates",timezone:"Asia/Dubai"}});
+  expect((await getAccountContext())?.timezone).toBe("Asia/Dubai");
+});
+
 test("loads each saved screen-size preference independently, with Classic wider-screen defaults", async () => {
   mocks.maybeSingle.mockResolvedValueOnce({ data: { menu_layout: "home-ending-search", mobile_logo_size: 25 } });
   expect(await getAccountContext()).toMatchObject({ menuLayout: "home-ending-search", tabletMenuLayout: "classic", desktopMenuLayout: "classic", mobileLogoSize: 25 });

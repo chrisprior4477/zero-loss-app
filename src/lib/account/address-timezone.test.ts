@@ -19,6 +19,8 @@ describe("address time zones", () => {
     expect(safeTimeZone("not-a-zone")).toBe("America/New_York");
   });
   it("determines a single-zone country and offers zones for countries with several", () => {
+    expect(addressTimeZone("United Arab Emirates", "Dubai", null)).toBe("Asia/Dubai");
+    expect(addressTimeZone("United Kingdom", null, "SW1A 1AA")).toBe("Europe/London");
     expect(addressTimeZone("United Kingdom", "London", "SW1A 1AA")).toBe("Europe/London");
     expect(addressTimeZone("Japan", "Tokyo", "100-0001")).toBe("Asia/Tokyo");
     expect(addressTimeZone("Australia", "Queensland", "4000")).toBeNull();

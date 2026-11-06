@@ -118,3 +118,12 @@ test("keeps Save disabled and offers a retry if the lookup fails", async () => {
   fireEvent.click(retry);
   await waitFor(() => expect((screen.getByRole("button", { name: /Save profile/ }) as HTMLButtonElement).disabled).toBe(false));
 });
+
+test("an address without a postal code can resolve its country time zone", async () => {
+  vi.mocked(lookupAddressTimeZone).mockResolvedValue({zone:"Asia/Dubai",options:["Asia/Dubai"]});
+  render(<ProfileDetailsForm details={{...details,country:"United Arab Emirates",region:"Dubai",city:null,postalCode:null,timezone:"Asia/Dubai"}} />);
+  await waitFor(() => expect(lookupAddressTimeZone).toHaveBeenCalledWith("United Arab Emirates","Dubai",""));
+  await waitFor(() => expect(screen.queryByText("Checking your address time zone…")).toBeNull());
+  expect(screen.getByText("Optional for United Arab Emirates. Leave blank if your address has no postal code.")).toBeTruthy();
+  expect((screen.getByRole("button",{name:"Save profile"}) as HTMLButtonElement).disabled).toBe(false);
+});

@@ -3,6 +3,9 @@ const mocks = vi.hoisted(() => ({ getUser: vi.fn(), rpc: vi.fn(), revalidate: vi
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { saveProfileDetails, saveProfilePhotoVisibility } from "./actions";
+import { PROFILE_COUNTRIES } from "./countries";
+import { addressRequirements } from "./address-requirements";
+import { countryTimeZones } from "./address-timezone";
 
 function profileForm() {
   const value = new FormData();
@@ -37,6 +40,28 @@ test("saves only validated owner-managed profile fields and refreshes account vi
 test("partial mailing address is rejected before database access", async () => {
   const value = profileForm(); value.set("city", "");
   expect((await saveProfileDetails({ status: "idle" }, value)).status).toBe("error");
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
+test.each(PROFILE_COUNTRIES)("saves %s with only its required core address fields", async country => {
+  const value = profileForm();
+  const rules = addressRequirements(country)!;
+  value.set("country", country);
+  value.set("city", rules.required.includes("C") ? "Example City" : "");
+  value.set("region", rules.required.includes("S") ? "NC" : "");
+  value.set("postal_code", rules.required.includes("Z") ? "28401" : "");
+  value.set("timezone", countryTimeZones(country)[0]);
+  expect((await saveProfileDetails({status:"idle"},value)).status).toBe("succeeded");
+  const saved = mocks.rpc.mock.calls[0][1].p_updates;
+  if (!rules.required.includes("Z")) expect(saved.postal_code).toBeNull();
+  if (!rules.required.includes("S")) expect(saved.region).toBeNull();
+  expect(countryTimeZones(country)).toContain(saved.timezone);
+});
+
+test("a country that requires a postal code still rejects a missing one", async () => {
+  const value = profileForm(); value.set("postal_code", "");
+  const result = await saveProfileDetails({status:"idle"},value);
+  expect(result.status).toBe("error");
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
 

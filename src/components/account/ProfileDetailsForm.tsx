@@ -6,6 +6,7 @@ import { AccountIcon } from "./AccountIcon";
 import { saveProfileDetails } from "@/lib/account/actions";
 import { PROFILE_COUNTRIES } from "@/lib/account/countries";
 import { lookupAddressTimeZone } from "@/lib/account/timezone-lookup-action";
+import { addressRequirements, completeMailingAddress } from "@/lib/account/address-requirements";
 import styles from "./profile-editor.module.css";
 
 export type ProfileDetails = {
@@ -36,8 +37,8 @@ function timeZoneLabel(zone: string) {
   } catch { return location; }
 }
 
-function Field({ label, name, defaultValue, autoComplete, type = "text", placeholder, className, required = false }: {
-  label: string; name: string; defaultValue?: string | null; autoComplete?: string; type?: string; placeholder?: string; className?: string; required?: boolean;
+function Field({ label, name, defaultValue, autoComplete, type = "text", placeholder, className, required = false, hint }: {
+  label: string; name: string; defaultValue?: string | null; autoComplete?: string; type?: string; placeholder?: string; className?: string; required?: boolean; hint?: string;
 }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -47,6 +48,7 @@ function Field({ label, name, defaultValue, autoComplete, type = "text", placeho
       <input ref={input} id={id} type={type} name={name} defaultValue={defaultValue ?? ""} autoComplete={autoComplete} placeholder={placeholder} required={required} />
       <button type="button" className={styles.clearButton} aria-label={`Clear ${label.toLowerCase()}`} onClick={() => { if (input.current) { input.current.value = ""; input.current.dispatchEvent(new Event("input", { bubbles: true })); input.current.focus(); } }}>×</button>
     </div>
+    {hint ? <small>{hint}</small> : null}
   </div>;
 }
 
@@ -97,7 +99,8 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
   const [selectedZone, setSelectedZone] = useState(details.timezone ?? "");
   const [lookup, setLookup] = useState<{ key: string; zone: string | null; options: string[]; failed?: boolean } | null>(null);
   const [lookupAttempt, setLookupAttempt] = useState(0);
-  const completeAddress = Boolean(address.street.trim() && address.city.trim() && address.region.trim() && address.postalCode.trim() && address.country.trim());
+  const completeAddress = completeMailingAddress(address);
+  const requiredFields = addressRequirements(address.country)?.required ?? "AC";
   const lookupKey = JSON.stringify([address.country, address.region, address.postalCode]);
   useEffect(() => {
     if (!completeAddress) return;
@@ -146,11 +149,11 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     <section className={styles.formSection} aria-labelledby="mailing-address-heading">
       <header><span>03</span><div><h2 id="mailing-address-heading">Mailing address</h2><p>Add the address you use for account correspondence and eligible fulfillment.</p></div></header>
       <div className={styles.fieldGrid}>
-        <Field label="Street address" name="address_line_1" defaultValue={details.addressLine1} autoComplete="address-line1" placeholder="125 Market Street" className={styles.fullField} />
+        <Field label="Street address" name="address_line_1" defaultValue={details.addressLine1} autoComplete="address-line1" placeholder="125 Market Street" className={styles.fullField} hint={requiredFields.includes("D") ? "Include your suburb or district in your street address." : undefined} />
         <Field label="Apartment, suite, or unit (optional)" name="address_line_2" defaultValue={details.addressLine2} autoComplete="address-line2" className={styles.fullField} />
-        <Field label="City" name="city" defaultValue={details.city} autoComplete="address-level2" />
-        <Field label="State or region" name="region" defaultValue={details.region} autoComplete="address-level1" />
-        <Field label="ZIP or postal code" name="postal_code" defaultValue={details.postalCode} autoComplete="postal-code" />
+        <Field label="City" name="city" defaultValue={details.city} autoComplete="address-level2" hint={!requiredFields.includes("C") ? `Optional for ${address.country}.` : undefined} />
+        <Field label="State or region" name="region" defaultValue={details.region} autoComplete="address-level1" hint={!requiredFields.includes("S") ? `Optional for ${address.country}.` : undefined} />
+        <Field label="ZIP or postal code" name="postal_code" defaultValue={details.postalCode} autoComplete="postal-code" hint={!requiredFields.includes("Z") ? `Optional for ${address.country}. Leave blank if your address has no postal code.` : undefined} />
         <div className={styles.field}><label htmlFor="profile-country">Country</label><div className={styles.inputWrap}><select id="profile-country" name="country" defaultValue={selectedCountry} autoComplete="country-name"><option value="United States">United States</option>{hasNonStandardCountry ? <option value={selectedCountry}>{selectedCountry}</option> : null}{PROFILE_COUNTRIES.slice(1).map(country => <option key={country} value={country}>{country}</option>)}</select></div></div>
         {completeAddress && !currentLookup ? <p role="status">Checking your address time zone…</p> : null}
         {currentLookup?.failed ? <div role="alert">We couldn’t check the time zones. <button type="button" onClick={() => { setLookup(null); setLookupAttempt(attempt => attempt + 1); }}>Try again</button></div> : null}

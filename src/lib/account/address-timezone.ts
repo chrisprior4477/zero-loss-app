@@ -20,10 +20,11 @@ export function countryTimeZones(country: string | null): string[] {
 
 /** Uses a ZIP centroid for U.S. addresses and unambiguous single-zone countries. */
 export function addressTimeZone(country: string | null, region: string | null, postalCode: string | null): string | null {
-  if (!country || !region || !postalCode) return null;
+  if (!country) return null;
   const zones = countryTimeZones(country);
   if (zones.length === 1) return zones[0];
   if (!/^(united states|usa|us)$/i.test(country.trim())) return null;
+  if (!region || !postalCode) return null;
   const zip = postalCode.trim().match(/^\d{5}(?:-\d{4})?$/)?.[0].slice(0, 5);
   if (!zip) return null;
   const location = zipcodes.lookup(zip);

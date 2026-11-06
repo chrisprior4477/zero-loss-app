@@ -15,6 +15,7 @@ import { menuLayoutOrClassic } from "@/lib/navigation/menu-layout";
 import { mobileLogoSizeOrOriginal } from "@/lib/navigation/mobile-logo-size";
 import { addressTimeZone } from "./address-timezone";
 import { DEFAULT_TIME_ZONE, safeTimeZone } from "./timezone";
+import { completeMailingAddress } from "./address-requirements";
 
 /** Request-scoped reader shared by pages, header and drawer. No writes. */
 export const getAccountContext = cache(async () => {
@@ -50,7 +51,7 @@ export const getAccountContext = cache(async () => {
     legalLastName: profile?.legal_last_name ?? null,
     dateOfBirth: profile?.date_of_birth ?? null,
     preferredLocale: profile?.preferred_locale ?? null,
-    timezone: profile?.address_line_1 && profile?.city && profile?.region && profile?.postal_code && profile?.country
+    timezone: profile && completeMailingAddress({ street: profile.address_line_1 ?? "", city: profile.city ?? "", region: profile.region ?? "", postalCode: profile.postal_code ?? "", country: profile.country ?? "" })
       ? safeTimeZone(addressTimeZone(profile.country, profile.region, profile.postal_code) ?? profile.timezone)
       : DEFAULT_TIME_ZONE,
     phone: profile?.phone_number ?? user.phone ?? null,
