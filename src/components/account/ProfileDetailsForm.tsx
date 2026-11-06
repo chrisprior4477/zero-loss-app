@@ -94,7 +94,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
   const selectedCountry = details.country ?? "United States";
   const hasNonStandardCountry = !PROFILE_COUNTRIES.some(country => country === selectedCountry);
   const [address, setAddress] = useState({ country: selectedCountry, region: details.region ?? "", postalCode: details.postalCode ?? "", street: details.addressLine1 ?? "", city: details.city ?? "" });
-  const [selectedZone, setSelectedZone] = useState("");
+  const [selectedZone, setSelectedZone] = useState(details.timezone ?? "");
   const [lookup, setLookup] = useState<{ key: string; zone: string | null; options: string[]; failed?: boolean } | null>(null);
   const [lookupAttempt, setLookupAttempt] = useState(0);
   const completeAddress = Boolean(address.street.trim() && address.city.trim() && address.region.trim() && address.postalCode.trim() && address.country.trim());

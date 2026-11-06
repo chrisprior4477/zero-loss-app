@@ -13,6 +13,16 @@ export function AccountStateSync({ accountId, balanceCents, activeCount }: {
   const previous = useRef(snapshot);
 
   useEffect(() => {
+    if (balanceCents !== null && activeCount !== null) return;
+    // Retry a failed server read without inventing totals or resubmitting an
+    // account action. Stop after three attempts and cancel as soon as it recovers.
+    const timers = [1000, 4000, 10000].map(delay => window.setTimeout(() => {
+      if (document.visibilityState !== "hidden" && navigator.onLine) router.refresh();
+    }, delay));
+    return () => timers.forEach(timer => window.clearTimeout(timer));
+  }, [accountId, balanceCents, activeCount, router]);
+
+  useEffect(() => {
     if (previous.current === snapshot) return;
     previous.current = snapshot;
     if (balanceCents === null) return;

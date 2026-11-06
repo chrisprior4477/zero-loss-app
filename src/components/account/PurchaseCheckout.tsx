@@ -21,7 +21,7 @@ import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import styles from "./purchase-checkout.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import { formatOfferDeadline } from "@/lib/account/timezone";
-import { purchaseFundingHref, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
+import { purchaseFundingHref, rememberWalletSelection, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 import { useCheckoutSelection } from "./useCheckoutSelection";
 import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 
@@ -67,6 +67,7 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const inFlight = useRef(false);
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
   const selectedEntryId = chosen[0]?.entryId;
+  const addCardHref = `/account/wallet?${new URLSearchParams({ view: "history", panel: "card", from: item.slug, ...(selectedEntryId ? { entry: selectedEntryId } : {}) })}#wallet-add-card`;
   useEffect(() => {
     const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined);
     setWalletFundingContext(href ? { href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview } : null);
@@ -201,7 +202,10 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}
         <div className={styles.cardChoice}><FundingCardPicker tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); }} /></div>
-        {!cards.length ? <Link className={styles.backLink} href={`/account/wallet?view=history&panel=card&from=${item.slug}&entry=${item.entryId}#wallet-card-editor`}>Add a card in your wallet</Link> : null}
+        {!cards.length ? <Link className={styles.backLink} href={addCardHref} onClick={() => {
+          const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined);
+          if (href) rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });
+        }}>Add a card in your wallet</Link> : null}
         <div className={styles.extraFunds}><div aria-label="Extra funds for later">{[0,25,50].map(value => <button type="button" key={value} disabled={locked} aria-pressed={extra === String(value) || (!extra && value === 0)} onClick={() => { setExtra(value ? String(value) : "");setAcknowledged(false); }}>{value ? `+$${value}` : "Just enough"}</button>)}</div></div>
         <div className={styles.extraEquation}><h3>Add a different amount</h3><div><span><small>Needed</small><strong>{usd(required)}</strong></span><b aria-hidden="true">+</b><label>Extra dollars<input type="text" inputMode="numeric" value={extra} disabled={locked} placeholder="$0" aria-invalid={!validDeposit} onChange={event => { setExtra(event.target.value.replace(/^\$/, "")); setAcknowledged(false); }} /></label></div></div>
         {validDeposit ? <p className={styles.extraNotice}>{usd(required)} + {usd(extraCents)} = {usd(deposit)} deposit{extraCents > 0 ? ` · ${usd(balance + deposit - total)} left after purchase` : ""}</p> : <p role="alert" className={styles.error}>Only whole-dollar amounts are accepted. For example: 50.</p>}

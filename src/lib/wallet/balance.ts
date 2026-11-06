@@ -5,6 +5,7 @@ import {
   type PlayableBalanceCents,
 } from "@/lib/wallet/money";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
+import { retryAccountLoad } from "@/lib/account/load-retry";
 
 import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
 export type { LedgerEntryRow } from "@/lib/wallet/snapshot";
@@ -20,8 +21,11 @@ export const getWalletSnapshot = cache(async (authUserId: string) => {
   if (authError || !user || user.id !== authUserId) {
     throw new Error("Wallet authentication required");
   }
-  const { data, error } = await supabase.rpc("get_wallet_snapshot");
-  if (error) throw new Error("Wallet balance is temporarily unavailable");
+  const { data, error, status } = await retryAccountLoad(() => supabase.rpc("get_wallet_snapshot"));
+  if (error) {
+    console.warn("[account-load] Wallet RPC failed", { code: error.code, status });
+    throw new Error("Wallet balance is temporarily unavailable");
+  }
   return parseWalletSnapshot(data);
 });
 

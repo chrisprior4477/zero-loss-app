@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { isPreviewDataEnvironment } from "./environment";
+import { retryAccountLoad } from "@/lib/account/load-retry";
 
 export class PreviewProvisioningError extends Error {
   constructor(message: string, public readonly causeCode?: string) {
@@ -26,8 +27,9 @@ export async function ensurePreviewCustomer(
     throw new PreviewProvisioningError("A confirmed account is required", "42501");
   }
 
-  const { data, error } = await db.rpc("ensure_preview_customer");
+  const { data, error, status } = await retryAccountLoad(() => db.rpc("ensure_preview_customer"));
   if (error) {
+    console.warn("[account-load] Preview setup RPC failed", { code: error.code, status });
     throw new PreviewProvisioningError(
       "Customer wallet setup is temporarily unavailable",
       error.code,

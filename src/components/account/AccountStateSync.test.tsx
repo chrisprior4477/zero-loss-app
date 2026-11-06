@@ -77,3 +77,25 @@ test("blocked browser storage does not prevent focus refresh", () => {
   window.dispatchEvent(new Event("focus")); tick();
   expect(router.refresh).toHaveBeenCalledOnce();
 });
+
+test("unavailable totals retry at most three times and stop when verified totals return", () => {
+  const view = render(<AccountStateSync accountId="owner" balanceCents={null} activeCount={null} />);
+  act(() => vi.advanceTimersByTime(1000));
+  expect(router.refresh).toHaveBeenCalledOnce();
+  view.rerender(sync());
+  act(() => vi.advanceTimersByTime(30000));
+  expect(router.refresh).toHaveBeenCalledOnce();
+});
+
+test("a sustained outage does not create an infinite refresh loop", () => {
+  render(<AccountStateSync accountId="owner" balanceCents={null} activeCount={null} />);
+  act(() => vi.advanceTimersByTime(60000));
+  expect(router.refresh).toHaveBeenCalledTimes(3);
+});
+
+test("automatic recovery does not refresh hidden or offline tabs", () => {
+  vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+  render(<AccountStateSync accountId="owner" balanceCents={null} activeCount={null} />);
+  act(() => vi.advanceTimersByTime(15000));
+  expect(router.refresh).not.toHaveBeenCalled();
+});

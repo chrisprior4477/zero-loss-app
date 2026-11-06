@@ -88,6 +88,27 @@ test("hides the time-zone choice for a resolved address", async () => {
   expect(screen.queryByLabelText("Time zone for your address")).toBeNull();
 });
 
+test("restores the saved in-country zone and keeps it while editing an unrelated field", async () => {
+  vi.mocked(lookupAddressTimeZone).mockResolvedValue({ zone: null, options: ["America/Toronto", "America/Vancouver"] });
+  render(<ProfileDetailsForm details={{ ...details, country: "Canada", region: "Ontario", postalCode: "M5V 1A1", timezone: "America/Toronto" }} />);
+  const picker = await screen.findByLabelText("Time zone for your address", {}, { timeout: 3000 }) as HTMLSelectElement;
+  expect(picker.value).toBe("America/Toronto");
+  expect(picker.checkValidity()).toBe(true);
+  fireEvent.input(screen.getByLabelText("Phone number"), { target: { value: "+1 416 555 0123" } });
+  expect(picker.value).toBe("America/Toronto");
+  expect(new FormData(screen.getByRole("form") as HTMLFormElement).get("timezone")).toBe("America/Toronto");
+  fireEvent.input(screen.getByLabelText("Country"), { target: { value: "Australia" } });
+  await waitFor(() => expect((screen.getByLabelText("Time zone for your address") as HTMLSelectElement).value).toBe(""));
+});
+
+test("does not restore a saved zone outside the current country's choices", async () => {
+  vi.mocked(lookupAddressTimeZone).mockResolvedValue({ zone: null, options: ["America/Toronto", "America/Vancouver"] });
+  render(<ProfileDetailsForm details={{ ...details, country: "Canada", timezone: "Europe/London" }} />);
+  const picker = await screen.findByLabelText("Time zone for your address", {}, { timeout: 3000 }) as HTMLSelectElement;
+  expect(picker.value).toBe("");
+  expect(picker.checkValidity()).toBe(false);
+});
+
 test("keeps Save disabled and offers a retry if the lookup fails", async () => {
   vi.mocked(lookupAddressTimeZone).mockRejectedValueOnce(new Error("offline"));
   vi.mocked(lookupAddressTimeZone).mockResolvedValueOnce({ zone: "Europe/London", options: ["Europe/London"] });

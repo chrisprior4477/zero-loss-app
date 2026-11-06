@@ -244,6 +244,34 @@ test("returning from the wallet restores selected options and the keep-for-later
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
 });
 
+test("adding a missing card carries the exact selected offers and Keep for later through the wallet", () => {
+  const exactOptions = options.map((option, index) => ({ ...option, entryId: `ent_${String(index + 1).repeat(32)}` }));
+  const view = render(<PurchaseCheckout ownerId="account-a" options={exactOptions} initialBalance={0} cards={[]} fundingAvailable />);
+  fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
+  fireEvent.click(screen.getByRole("button", { name: "Option 2" }));
+  fireEvent.click(screen.getByRole("button", { name: "Option 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add funds: $798 to continue" }));
+  const link = screen.getByRole("link", { name: "Add a card in your wallet" });
+  const walletUrl = new URL(link.getAttribute("href")!, window.location.origin);
+  expect(walletUrl.searchParams.get("entry")).toBe(exactOptions[1].entryId);
+  expect(walletUrl.searchParams.get("panel")).toBe("card");
+  expect(walletUrl.hash).toBe("#wallet-add-card");
+  link.addEventListener("click", event => event.preventDefault());
+  fireEvent.click(link);
+  expect(JSON.parse(sessionStorage.getItem(purchaseSelectionKey)!)).toMatchObject({ ownerId: "account-a", selected: ["option-2", "option-1"], decline: false });
+  view.unmount();
+  window.history.replaceState(null, "", `/account/purchase-options/nintendo-switch?option=${exactOptions[1].entryId}&resume=wallet`);
+  render(<PurchaseCheckout ownerId="account-a" options={exactOptions} initiallySelectedEntryId={exactOptions[1].entryId} initialBalance={0} cards={[{token:"demo_card_5556",lastFour:"5556",isDefault:true}]} fundingAvailable />);
+  expect(screen.getByRole("button", { name: "Choose offers to complete · 2 selected" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Add funds: $798 to continue" })).toBeTruthy();
+  expect(mocks.fund).not.toHaveBeenCalled();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+});
+
 test.each(["close", "Escape", "backdrop", "refresh"])("dismissing Choose offers to complete via %s discards only the open edits", dismiss => {
   const checkout = () => render(<PurchaseCheckout ownerId="account-a" initiallySelectedEntryId="entry-2"
     options={options} initialBalance={4300} cards={[]} fundingAvailable />);
