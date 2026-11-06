@@ -69,6 +69,7 @@
 .dateRange label { display: grid; gap: 4px; color: #d8eaff; font-size: 13px; font-weight: 800; }
 .dateRange input { min-width: 160px; min-height: 44px; padding: 7px 11px; border: 1px solid #67b5e3; border-radius: 8px; background: #fffefa; color: #0b1940; font: inherit; color-scheme: light; }
 .dateRange button { min-height: 44px; padding: 7px 12px; border: 1px solid #67b5e3; border-radius: 8px; background: #07335f; color: #fff; font-weight: 800; cursor: pointer; }
+.dateRange .dateRangeError { flex-basis: 100%; grid-column: 1 / -1; margin: 0; color: #ff6565; font-size: 14px; font-weight: 700; line-height: 1.5; text-align: left; }
 .ledgerFilters { display: flex; grid-column: 2; grid-row: 1; gap: 5px; align-self: end; padding-bottom: 3px; overflow-x: auto; scrollbar-width: none; }
 .ledgerFilters::-webkit-scrollbar { display: none; }
 .ledgerFilters button { display: flex; min-width: 135px; min-height: 55px; align-items: center; justify-content: space-between; gap: 9px; padding: 6px 13px; border: 1px solid #0575bf; border-radius: 9px; background: #07335f; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; }

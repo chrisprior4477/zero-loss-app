@@ -52,6 +52,64 @@ test("history expands from its first batch and filters an inclusive date range",
   expect(screen.getByText(/Showing 2 of 2 transactions/)).toBeTruthy();
 });
 
+const dateEntries = [
+  { id: "funding-before", entry_type: "DEPOSIT", amount: 100, created_at: "2026-11-01T12:00:00Z" },
+  { id: "funding-after", entry_type: "DEPOSIT", amount: 200, created_at: "2026-11-07T12:00:00Z" },
+  { id: "entry-between", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-11-05T12:00:00Z" },
+];
+
+test.each(["From date", "To date"])("reversed dates keep records visible when %s is entered first", first => {
+  render(<WalletLedger entries={dateEntries} />);
+  const setDate = (label: string) => fireEvent.change(screen.getByLabelText(label), { target: { value: label === "From date" ? "2026-11-06" : "2026-11-01" } });
+  setDate(first);
+  setDate(first === "From date" ? "To date" : "From date");
+  const message = screen.getByRole("alert");
+  expect(message.textContent).toBe("From date must be on or before To date.");
+  for (const label of ["From date", "To date"]) {
+    expect(screen.getByLabelText(label).getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByLabelText(label).getAttribute("aria-describedby")).toBe(message.id);
+  }
+  expect(screen.getByText("Showing 3 of 3 transactions")).toBeTruthy();
+  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(3);
+  expect(screen.queryByText("No all transactions")).toBeNull();
+  // Correcting one date immediately reapplies an inclusive range.
+  fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-07" } });
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByLabelText("From date").hasAttribute("aria-invalid")).toBe(false);
+  expect(screen.getByText("Showing 1 of 1 transactions")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=funding-after");
+});
+
+test("ignoring reversed dates preserves category and archive choices, and Clear dates resets the warning", () => {
+  render(<WalletLedger entries={dateEntries} hiddenIds={["funding-before"]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Funding" }));
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-06" } });
+  fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-01" } });
+  expect(screen.getByRole("button", { name: "Funding" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("alert")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=funding-after");
+  fireEvent.click(screen.getByRole("button", { name: "Clear dates" }));
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect((screen.getByLabelText("From date") as HTMLInputElement).value).toBe("");
+  expect((screen.getByLabelText("To date") as HTMLInputElement).value).toBe("");
+  expect(screen.getByText("Showing 1 of 1 transactions")).toBeTruthy();
+});
+
+test("same-day ranges use the account time zone and empty results have a clear label", () => {
+  render(<WalletLedger entries={[
+    { id: "local-nov-5", entry_type: "DEPOSIT", amount: 100, created_at: "2026-11-06T03:00:00Z" },
+    { id: "local-nov-6", entry_type: "DEPOSIT", amount: 200, created_at: "2026-11-06T06:00:00Z" },
+  ]} timeZone="America/New_York" />);
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-05" } });
+  fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-05" } });
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=local-nov-5");
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-01" } });
+  fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-01" } });
+  expect(screen.getByRole("heading", { name: "No matching transactions" })).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 test("shows fixed pages of five even when a short screen would only fit two full-height tickets", () => {
   const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function(this: HTMLElement) {
     const index = this.parentElement ? Array.from(this.parentElement.children).indexOf(this) : 0;

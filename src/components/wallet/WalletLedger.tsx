@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
@@ -46,6 +46,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
+  const dateErrorId = useId();
+  const invalidDateRange = Boolean(from && through && from > through);
   const [showArchived, setShowArchived] = useState(() => !hideArchived && Boolean(selectedId && hiddenIds.includes(selectedId)));
   function close() {
     batches.reset();
@@ -55,7 +57,9 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const archived = useMemo(() => new Set(hiddenIds), [hiddenIds]);
   const displayEntries = useMemo(() => compact || (showArchived && !hideArchived) ? entries : entries.filter(entry => !archived.has(entry.id)), [compact, showArchived, hideArchived, entries, archived]);
   const dated = useMemo(() => {
-    if (compact || (!from && !through)) return displayEntries;
+    // A reversed range must not make existing transactions disappear.
+    // Category and archive choices still apply while the date filter is invalid.
+    if (compact || invalidDateRange || (!from && !through)) return displayEntries;
     const formatter = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
     return displayEntries.filter(entry => {
       const parts = formatter.formatToParts(new Date(entry.created_at));
@@ -63,7 +67,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       const day = `${part("year")}-${part("month")}-${part("day")}`;
       return (!from || day >= from) && (!through || day <= through);
     });
-  }, [displayEntries, from, through, compact, timeZone]);
+  }, [displayEntries, from, through, compact, timeZone, invalidDateRange]);
   const matching = useMemo(() => filter === "all" ? dated : dated.filter(entry => category(entry) === filter), [dated, filter]);
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(matching.length, 5, matching.findIndex(entry => entry.id === selectedId), "pages");
   const visible = compact ? matching : matching.slice(batches.origin, batches.end);
@@ -153,14 +157,15 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   return <>
     {!compact ? <div className={styles.historyControls}>
       <div className={styles.dateRange} role="group" aria-label="Transaction date range">
-        <label>From date<input aria-label="From date" type="date" value={from} max={through || undefined} onChange={event => { setFrom(event.target.value); batches.reset(); }} /></label>
-        <label>To date<input aria-label="To date" type="date" value={through} min={from || undefined} onChange={event => { setThrough(event.target.value); batches.reset(); }} /></label>
+        <label>From date<input aria-label="From date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={from} max={through || undefined} onChange={event => { setFrom(event.target.value); batches.reset(); }} /></label>
+        <label>To date<input aria-label="To date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={through} min={from || undefined} onChange={event => { setThrough(event.target.value); batches.reset(); }} /></label>
         {(from || through) ? <button type="button" onClick={() => { setFrom(""); setThrough(""); batches.reset(); }}>Clear dates</button> : null}
+        {invalidDateRange ? <p id={dateErrorId} role="alert" className={styles.dateRangeError}>From date must be on or before To date.</p> : null}
       </div>
       <p aria-live="polite">Showing {matching.length > visible.length ? `${batches.origin + 1}–${batches.end}` : visible.length} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
     </div> : null}
     {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? dated.length : dated.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
-    {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
+    {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : filter === "all" ? "No matching transactions" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       <div className={styles.ledgerHeader} aria-hidden="true"><span>Date</span><span>Description</span><span>Status</span><span>Amount</span></div>
       {!compact && <TicketBatchControls {...controls} top />}
       <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
