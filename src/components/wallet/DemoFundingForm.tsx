@@ -121,7 +121,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     policyInput.current?.focus();
   }
   const beforePaymentError = state.status === "error" && state.beforePayment === true;
-  const locked = pending || (!beforePaymentError && (recovered || state.status !== "idle"));
+  const locked = !ready || pending || (!beforePaymentError && (recovered || state.status !== "idle"));
   const [lastSavedCards, setLastSavedCards] = useState(savedCards);
   if (!locked && savedCards && savedCards !== lastSavedCards) {
     setLastSavedCards(savedCards);
