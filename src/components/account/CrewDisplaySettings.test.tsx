@@ -12,6 +12,37 @@ const first = "11111111-1111-4111-8111-111111111111";
 const second = "22222222-2222-4222-8222-222222222222";
 const pick = "33333333-3333-4333-8333-333333333333";
 
+test("cleanup's unchanged empty audiences do not block a privacy-only save", async () => {
+  saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Saved" });
+  const empty = { audience: "groups" as const, memberIds: [], groupIds: [] };
+  render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[]} initialEntryRules={{ [pick]: empty }} members={[]} sharedPicks={[]} />);
+  fireEvent.click(screen.getByLabelText(/Find me by display name/i));
+  fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
+  await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledOnce());
+  expect(saveCrewDisplaySettings.mock.calls[0][0].entryRules[pick]).toEqual(empty);
+});
+
+test("a newly chosen empty audience still needs a deliberate selection", () => {
+  render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
+  fireEvent.click(screen.getByRole("radio", { name: /Only selected groups/ }));
+  fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
+  expect(screen.getByRole("alert").textContent).toContain("Choose at least one group");
+  expect(saveCrewDisplaySettings).not.toHaveBeenCalled();
+});
+
+test("confirmed group removal updates the baseline before a later privacy save", async () => {
+  saveCrewGroup.mockResolvedValue({ ok: true, message: "Removed" });
+  saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Saved" });
+  render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[{ id: first, name: "Family", memberIds: [] }]} initialEntryRules={{ [pick]: { audience: "groups", memberIds: [], groupIds: [first] } }} members={[]} sharedPicks={[]} />);
+  fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Remove group" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
+  await screen.findByText(/Family removed from your profile/);
+  fireEvent.click(await screen.findByRole("button", { name: "OK · Save to my profile" }));
+  await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledOnce());
+  expect(saveCrewDisplaySettings.mock.calls[0][0].expected.entryRules[pick].groupIds).toEqual([]);
+});
+
 test("an older draft retains its original baseline and adopts merged groups after saving", async () => {
   const initial = { available: true, initialDiscoverable: false, initialDefaultRule: { audience: "everyone" as const, memberIds: [], groupIds: [] }, initialGroups: [], initialEntryRules: {}, members: [], sharedPicks: [] };
   const latestGroups = [{ id: first, name: "New group from another tab", memberIds: [] }];

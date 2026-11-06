@@ -148,6 +148,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
       const result = await saveCrewGroup({ group: { ...group, name }, remove: false }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again." }));
       setEditorMessage({ id: group.id, text: result.ok ? `${name} saved. You can keep editing it or create another group.` : result.message, error: !result.ok });
       if (result.ok) {
+        baseline.current = { ...baseline.current, groups: [...baseline.current.groups.filter(item => item.id !== group.id), { ...group, name }] };
         setGroupMessage("");
         setPersistedGroupIds(current => new Set([...current, group.id]));
         setExpandedGroupId(null);
@@ -174,6 +175,12 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     startTransition(async () => {
       const result = await saveCrewGroup({ group, remove: true }).catch(() => ({ ok: false, message: "Couldn’t confirm removal. Please try again." }));
       if (result.ok) {
+        const withoutGroup = (rule: CrewVisibilityRule) => ({ ...rule, groupIds: rule.groupIds.filter(id => id !== group.id) });
+        baseline.current = { ...baseline.current,
+          groups: baseline.current.groups.filter(item => item.id !== group.id),
+          defaultRule: withoutGroup(baseline.current.defaultRule),
+          entryRules: Object.fromEntries(Object.entries(baseline.current.entryRules).map(([id, rule]) => [id, withoutGroup(rule)])),
+        };
         setRemovingGroupId(null);
         setPersistedGroupIds(current => new Set([...current].filter(id => id !== group.id)));
         discardGroup(group.id);
@@ -189,7 +196,10 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     if (groups.some((group) => !group.name.trim() || group.name.trim().length > 50) || new Set(names).size !== names.length) return "Give every group a unique name of 1–50 characters.";
     const validGroupIds = new Set(groups.map((group) => group.id));
     const validMemberIds = new Set(members.map((member) => member.id));
-    const rules = [defaultRule, ...Object.values(entryRules)];
+    // Cleanup intentionally leaves empty audiences on historical/private picks.
+    // Validate new audience choices without blocking unrelated privacy edits.
+    const changed = (rule: CrewVisibilityRule, before: CrewVisibilityRule | undefined) => JSON.stringify(rule) !== JSON.stringify(before);
+    const rules = [...(changed(defaultRule, baseline.current.defaultRule) ? [defaultRule] : []), ...Object.entries(entryRules).filter(([id, rule]) => changed(rule, baseline.current.entryRules[id])).map(([, rule]) => rule)];
     if (rules.some((rule) => rule.memberIds.some((id) => !validMemberIds.has(id)) || rule.groupIds.some((id) => !validGroupIds.has(id)))) return "A selected person or group is no longer available. Review your choices.";
     if (groups.some((group) => group.memberIds.some((id) => !validMemberIds.has(id)))) return "One of your groups includes someone who is no longer in your Crew.";
     if (rules.some((rule) => rule.audience === "people" && rule.memberIds.length === 0)) return "Choose at least one person for each selected-people audience.";
