@@ -1,6 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
+import { readLedgerReturn } from "@/lib/wallet/ledger-return";
+
+function subscribeToHistory(callback: () => void) {
+  window.addEventListener("popstate", callback);
+  window.addEventListener("hashchange", callback);
+  window.addEventListener("pageshow", callback);
+  return () => {
+    window.removeEventListener("popstate", callback);
+    window.removeEventListener("hashchange", callback);
+    window.removeEventListener("pageshow", callback);
+  };
+}
+
+/** A Support return owns its scroll; ordinary wallet/notification arrivals still align normally. */
+export function WalletHistoryLandingScroll({ walletId, selectedId, selectedRequested, enabled, target }: {
+  walletId?: string; selectedId?: string; selectedRequested?: boolean; enabled: boolean; target: string;
+}) {
+  const returning = useSyncExternalStore(subscribeToHistory,
+    () => Boolean(walletId && readLedgerReturn(window.history.state, walletId, window.location.href, selectedId)),
+    () => false);
+  return <>
+    <WalletLandingScroll enabled={enabled && !returning} />
+    {selectedRequested && !returning && <AccountSettingsLandingScroll target={target} visitKey={target} settleAfterNavigation allScreens />}
+  </>;
+}
 
 /** Ordinary mobile wallet visits start at the relevant section, below the fixed header. */
 export function WalletLandingScroll({ enabled = true, target = "balance" }: { enabled?: boolean; target?: "balance" | "ready-rewards" }) {

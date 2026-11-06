@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { LedgerEntryRow } from "@/lib/wallet/snapshot";
@@ -12,8 +12,8 @@ import type { ActivityItem } from "@/lib/account/activity";
 import { transactionLinks } from "@/lib/wallet/transaction-links";
 import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
+import { ledgerReturnKey, readLedgerReturn, type LedgerFilter, type LedgerReturn } from "@/lib/wallet/ledger-return";
 
-type LedgerFilter = "all" | "funding" | "entries" | "refunds";
 const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["refunds", "Refunds"]];
 
 function category(entry: LedgerEntryRow): LedgerFilter {
@@ -42,7 +42,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = [], canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York" }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = [], canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string }) {
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
@@ -68,6 +68,59 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(matching.length, 5, matching.findIndex(entry => entry.id === selectedId), "pages");
   const visible = compact ? matching : matching.slice(batches.origin, batches.end);
   const controls = { ...batches, close, listId: "wallet-transaction-list", noun: "transactions" };
+  const restoreBatch = batches.restore;
+  useLayoutEffect(() => {
+    if (compact || !walletId) return;
+    let firstFrame = 0;
+    let secondFrame = 0;
+    function restoreView() {
+      const saved = readLedgerReturn(window.history.state, walletId!, window.location.href, selectedId);
+      if (!saved) return;
+      // Restore the whole view before painting the returned wallet, then let
+      // Next/browser navigation settle before restoring the transaction's position.
+      setFilter(saved.filter);
+      setFrom(saved.from);
+      setThrough(saved.through);
+      setShowArchived(saved.showArchived);
+      restoreBatch(saved.offset);
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+      firstFrame = requestAnimationFrame(() => {
+        secondFrame = requestAnimationFrame(() => {
+          if (window.location.href !== saved.href) return;
+          const list = listRef.current;
+          for (const detail of list?.querySelectorAll("details") ?? []) {
+            detail.open = saved.expandedRows.includes(detail.closest("li")?.id ?? "");
+          }
+          const row = document.getElementById(saved.rowId);
+          const top = row && list?.contains(row) ? window.scrollY + row.getBoundingClientRect().top - saved.rowTop : saved.scrollY;
+          window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+        });
+      });
+    }
+    restoreView();
+    window.addEventListener("popstate", restoreView);
+    window.addEventListener("pageshow", restoreView);
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+      window.removeEventListener("popstate", restoreView);
+      window.removeEventListener("pageshow", restoreView);
+    };
+  }, [compact, walletId, selectedId, restoreBatch, listRef]);
+
+  function rememberView(event: MouseEvent<HTMLAnchorElement>) {
+    if (compact || !walletId || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const row = event.currentTarget.closest("li");
+    const saved: LedgerReturn = {
+      walletId, href: window.location.href, selectedId, filter, from, through, showArchived,
+      offset: batches.origin, scrollY: window.scrollY, rowId: row?.id ?? "", rowTop: row?.getBoundingClientRect().top ?? 0,
+      expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
+    };
+    // Merge, rather than replace, Next's own navigation state. Keep the URL and
+    // support transaction link unchanged and don't add a Back-button step.
+    window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: saved }, "");
+  }
   const selectedRow = useRef<HTMLLIElement>(null);
   useEffect(() => {
     const row = selectedRow.current;
@@ -112,7 +165,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
             <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
           </details> : null}
           {productHref ? <Link href={productHref} className={styles.productAction}>View product</Link> : null}
-          <Link href={supportHref} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
+          <Link href={supportHref} onClick={rememberView} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
         </div>
       </li>; })}</ul>
     </div>}

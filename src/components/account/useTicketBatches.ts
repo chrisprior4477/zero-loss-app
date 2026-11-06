@@ -121,6 +121,15 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
     setSize(fallbackSize);
     if (list.current) list.current.scrollTop = 0;
   }, [fallbackSize]);
+  // Restore a navigation bookmark without moving focus or scrolling to the top.
+  const restore = useCallback((offset: number) => {
+    const next = Math.max(0, Math.floor(offset / fallbackSize) * fallbackSize);
+    moveToStart.current = false;
+    measuredLimit.current.start = -1;
+    setOrigin(next);
+    setStart(next);
+    setSize(fallbackSize);
+  }, [fallbackSize]);
 
   // A link to the current page can be a hash-only navigation with no remount.
   useEffect(() => {
@@ -137,5 +146,5 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
     document.addEventListener("click", onNavigate, true);
     return () => document.removeEventListener("click", onNavigate, true);
   }, [start, reset]);
-  return { list, origin: mode === "pages" ? start : origin, end, remaining: total - end, expanded: start > 0, more, previousPage: mode === "pages" ? previousPage : undefined, reset };
+  return { list, origin: mode === "pages" ? start : origin, end, remaining: total - end, expanded: start > 0, more, previousPage: mode === "pages" ? previousPage : undefined, reset, restore };
 }
