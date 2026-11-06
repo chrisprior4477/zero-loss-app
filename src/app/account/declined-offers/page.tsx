@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";
+import { formatOfferDeadline } from "@/lib/account/timezone";
 import { ReviveOptionButton } from "@/components/account/ReviveOptionButton";
 import { DeclinedOfferDeadline } from "@/components/account/DeclinedOfferDeadline";
 import { createClient } from "@/lib/supabase/server";
@@ -57,7 +58,7 @@ export default async function DeclinedOffersPage() {
             <h2>{item.title}</h2>
             <p>Offer value: <strong>{formatUsdFromCents(item.priceCents)}</strong> · Entry applied: <strong>{formatUsdFromCents(item.paidCents)}</strong></p>
             <p>Cost to revive: <strong>$0.00</strong> · Remaining to complete: <strong>{formatUsdFromCents(item.remainingCents)}</strong></p>
-            {item.completionExpiresAt ? <p>Original deadline: <time dateTime={item.completionExpiresAt}>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: account.timezone }).format(new Date(item.completionExpiresAt))}</time></p> : null}
+            {item.completionExpiresAt ? <p>Original deadline: <time dateTime={item.completionExpiresAt}>{formatOfferDeadline(item.completionExpiresAt, account.timezone)}</time></p> : null}
           </div>
           <DeclinedOfferDeadline optionId={item.completionOptionId!} expiresAt={item.completionExpiresAt ?? null}
             initialReminderStatus={reminderStatus.get(item.completionOptionId!) ?? null}

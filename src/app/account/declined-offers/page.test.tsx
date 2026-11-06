@@ -23,7 +23,7 @@ test("only signed-in customers can open declined offers", async () => {
 });
 
 test("declined entries retain their own credit, original deadline and free revive action", async () => {
-  mocks.account.mockResolvedValue({ userId: "owner", emailConfirmed: true, activity: { source: "stored", activity: [{
+  mocks.account.mockResolvedValue({ userId: "owner", emailConfirmed: true, timezone: "America/Los_Angeles", activity: { source: "stored", activity: [{
     entryId: "ent_one", completionOptionId: "11111111-1111-4111-8111-111111111111", completionOptionStatus: "declined",
     title: "$100 Walmart Gift Card", retailer: "Walmart", image: "/walmart.png",
     priceCents: 10000, paidCents: 100, remainingCents: 9900,
@@ -40,6 +40,7 @@ test("declined entries retain their own credit, original deadline and free reviv
   expect(screen.queryByText("Unrelated purchase option")).toBeNull();
   expect(screen.getByText("$0.00")).toBeTruthy();
   expect(screen.getByText("$99")).toBeTruthy();
+  expect(screen.getByText("Dec 31, 2098, 4:00 PM PST").getAttribute("dateTime")).toBe("2099-01-01T00:00:00.000Z");
   expect((screen.getByRole("button", { name: "Revive" }) as HTMLButtonElement).disabled).toBe(false);
   expect((screen.getByRole("checkbox", { name: /Please remind me by email/ }) as HTMLInputElement).checked).toBe(true);
 });

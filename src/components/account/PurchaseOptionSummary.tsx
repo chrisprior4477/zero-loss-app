@@ -1,6 +1,6 @@
 "use client";
 import { useAccountTimeZone } from "./TimeZoneProvider";
-import { timeZoneAbbreviation } from "@/lib/account/timezone";
+import { formatOfferDeadline } from "@/lib/account/timezone";
 import type { ActivityItem } from "@/lib/account/activity";
 import { purchaseOptionSummary } from "@/lib/account/purchase-option-summary";
 import styles from "./my-activity.module.css";
@@ -14,8 +14,8 @@ export function PurchaseOptionSummary({ options }: { options: readonly ActivityI
       <strong>{summary.remaining}<small>remaining{summary.multiple ? " per option" : ""}</small></strong>
       <span>{summary.applied}<small>applied{summary.multiple ? " to each" : ""}</small></span>
     </div>
-    {summary.deadline ? <time dateTime={summary.deadline} title={`Available until ${new Intl.DateTimeFormat("en-US", { dateStyle: "full", timeStyle: "short", timeZone }).format(new Date(summary.deadline))} ${timeZoneAbbreviation(summary.deadline, timeZone)}`}>
-      {summary.earliestDeadline ? "First expires" : "Available until"} {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone }).format(new Date(summary.deadline))}
+    {summary.deadline ? <time dateTime={summary.deadline}>
+      {summary.earliestDeadline ? "First expires" : "Available until"} {formatOfferDeadline(summary.deadline, timeZone)}
     </time> : <span className={styles.optionDeadlineUnknown}>Deadline shown in details</span>}
   </div>;
 }

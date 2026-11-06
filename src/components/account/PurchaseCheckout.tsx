@@ -20,6 +20,7 @@ import { PurchaseOptionPicker } from "./PurchaseOptionPicker";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import styles from "./purchase-checkout.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
+import { formatOfferDeadline } from "@/lib/account/timezone";
 import { purchaseFundingHref, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 import { useCheckoutSelection } from "./useCheckoutSelection";
 
@@ -203,7 +204,7 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
       </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Tap the exact options to buy. Each entry’s credit applies only to its own option.</p>
         <PurchaseOptionPicker optionIds={available} selected={selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}>
           {draft => <div className={styles.optionDetails}>{options.filter(option => draft.includes(option.completionOptionId!)).map(option =>
-            <p key={option.entryId}>{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining · available until {option.completionExpiresAt ? new Date(option.completionExpiresAt).toLocaleDateString("en-US", { timeZone }) : "its original deadline"}</p>
+            <p key={option.entryId}>{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining<br />Available until {option.completionExpiresAt ? <time dateTime={option.completionExpiresAt}>{formatOfferDeadline(option.completionExpiresAt, timeZone)}</time> : "its original deadline"}</p>
           )}</div>}
         </PurchaseOptionPicker></>}
     </PurchaseDialog> : null}</div>;

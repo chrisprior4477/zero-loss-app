@@ -7,6 +7,8 @@ vi.mock("next/image", () => ({ default: () => <span /> }));
 vi.mock("@/lib/account/bulk-purchase-actions", () => ({ completeDemoPurchaseOptions: mocks.purchase }));
 vi.mock("@/lib/account/purchase-funding-actions", () => ({ fundPurchaseWallet: mocks.fund }));
 import { PurchaseCheckout } from "./PurchaseCheckout";
+import { PurchaseOptionSummary } from "./PurchaseOptionSummary";
+import { TimeZoneProvider } from "./TimeZoneProvider";
 import { purchaseSelectionKey } from "@/lib/wallet/wallet-funding-context";
 const options: ActivityItem[] = Array.from({ length: 3 }, (_, i) => ({ entryId: `entry-${i}`, completionOptionId: `option-${i}`, slug: "nintendo-switch", title: "Nintendo Switch", retailer: "Best Buy", image: "/catalog/nintendo-switch-oled.jpg", status: "completion", rewardKind: "digital", priceCents: 40000, paidCents: 100, remainingCents: 39900, availability: "Available", completionExpiresAt: "2026-11-28T17:00:00Z" }));
 function setup(balance = 13900, blocked = false) { return render(<PurchaseCheckout ownerId="account-a" options={options} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable fundingBlocked={blocked} />); }
@@ -17,6 +19,25 @@ function updatedCheckout(balance: number) {
   // Refresh supplies new objects from the server while retaining the client component.
   return <PurchaseCheckout ownerId="account-a" options={options.map(option => ({ ...option }))} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />;
 }
+
+test.each([
+  ["2026-11-28T02:30:00Z", "America/Los_Angeles", "Nov 27, 2026, 6:30 PM PST"],
+  ["2026-07-15T17:00:00Z", "America/New_York", "Jul 15, 2026, 1:00 PM EDT"],
+  ["2026-11-28T17:00:00Z", "Asia/Kolkata", "Nov 28, 2026, 10:30 PM GMT+5:30"],
+])("the summary and offer chooser show the same exact account deadline for %s in %s", (deadline, timeZone, label) => {
+  const datedOptions = [{ ...options[0], completionExpiresAt: deadline }];
+  render(<TimeZoneProvider value={timeZone}>
+    <PurchaseOptionSummary options={datedOptions} />
+    <PurchaseCheckout ownerId="account-a" options={datedOptions} initialBalance={13900} cards={[]} fundingAvailable />
+  </TimeZoneProvider>);
+  const summary = screen.getByText(`Available until ${label}`);
+  expect(summary.getAttribute("dateTime")).toBe(deadline);
+  fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
+  const exactDeadline = within(screen.getByRole("dialog")).getByText(label);
+  expect(exactDeadline.getAttribute("dateTime")).toBe(deadline);
+  expect(mocks.fund).not.toHaveBeenCalled();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+});
 test("another tab's funding updates the purchase without losing the exact offer or keep-for-later choice", () => {
   const view = render(updatedCheckout(4300));
   fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
