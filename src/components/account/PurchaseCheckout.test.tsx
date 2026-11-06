@@ -6,6 +6,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, 
 vi.mock("next/image", () => ({ default: () => <span /> }));
 vi.mock("@/lib/account/bulk-purchase-actions", () => ({ completeDemoPurchaseOptions: mocks.purchase }));
 vi.mock("@/lib/account/purchase-funding-actions", () => ({ fundPurchaseWallet: mocks.fund }));
+vi.mock("@/lib/account/bulk-decline-actions", () => ({ declineAllDemoPurchaseOptions: vi.fn(), undoBulkDemoPurchaseOptions: vi.fn() }));
 import { PurchaseCheckout } from "./PurchaseCheckout";
 import { PurchaseOptionSummary } from "./PurchaseOptionSummary";
 import { TimeZoneProvider } from "./TimeZoneProvider";
@@ -78,9 +79,35 @@ test("spending elsewhere closes an uncovered purchase confirmation before showin
   expect(screen.getByRole("button", { name: "Add funds: $356 to continue" })).toBeTruthy();
   expect(mocks.purchase).not.toHaveBeenCalled();
 });
-test("a single purchase option has a singular decline link", () => {
+test("a single purchase option opens a singular decline popup over the current ticket", () => {
   render(<PurchaseCheckout ownerId="account-a" options={[options[0]]} initialBalance={13900} cards={[]} fundingAvailable />);
-  expect(screen.getByRole("link", { name: "Decline this offer" }).getAttribute("href")).toContain("decline=confirm");
+  fireEvent.click(screen.getByRole("button", { name: "Decline this offer" }));
+  expect(screen.getByRole("dialog", { name: "Decline offer?" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Decline 1 offer" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Keep my offer" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(mocks.replace).not.toHaveBeenCalled();
+});
+
+test("canceling decline keeps the exact purchase choices, quantity and wallet in place", () => {
+  setup(200000);
+  fireEvent.click(screen.getByRole("radio", { name: "Buying 2" }));
+  fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Decline all offers" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close and keep my offers" }));
+  expect(screen.getByRole("button", { name: "Review purchase: $798" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+  expect(mocks.replace).not.toHaveBeenCalled();
+  expect(mocks.fund).not.toHaveBeenCalled();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+});
+
+test("an old decline URL opens the compact popup and returns to the same exact offer when canceled", () => {
+  render(<PurchaseCheckout ownerId="account-a" options={options} initialBalance={13900} cards={[]} fundingAvailable initiallySelectedEntryId="entry-2" initiallyConfirmDecline />);
+  expect(screen.getByRole("dialog", { name: "Decline offers?" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Keep my offers" }));
+  expect(mocks.replace).toHaveBeenCalledWith("/account/purchase-options/nintendo-switch?option=entry-2", { scroll: false });
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 test("$260 needed + $50 extra funds exactly $310, then requires a separate purchase confirmation", async () => {
   mocks.fund.mockResolvedValue({ status: "succeeded", balanceCents: 44900 });
@@ -200,7 +227,7 @@ test("the funded and unfunded instructions match the next step and the four acti
   const ticket = screen.getByRole("region", { name: "Your purchase options" });
   expect(within(ticket).getByText("Review first. Confirm your purchase next.")).toBeTruthy();
   expect(within(ticket).getByRole("link", { name: "My Activity" })).toBeTruthy();
-  expect(within(ticket).getByRole("link", { name: "Decline all offers" })).toBeTruthy();
+  expect(within(ticket).getByRole("button", { name: "Decline all offers" })).toBeTruthy();
   expect(within(ticket).getByRole("link", { name: "Continue shopping" })).toBeTruthy();
   expect(within(ticket).getByRole("button", { name: "Share" })).toBeTruthy();
   view.unmount(); setup(0);

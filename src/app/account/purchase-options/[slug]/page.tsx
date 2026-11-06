@@ -45,14 +45,14 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   const item = options[0];
   const count = options.length;
   const canBulkDecline = account.wallet?.scope === "demo" && isPreviewDataEnvironment();
-  if (canBulkDecline && account.wallet && decline !== "confirm" && options.every(option => option.completionOptionId)) {
+  if (canBulkDecline && account.wallet && options.every(option => option.completionOptionId)) {
     const provider = new DemoPaymentProvider(await createClient());
     const [cards, requests] = await Promise.all([
       provider.getPaymentMethods().catch(() => null),
       provider.getRequests().catch(() => null),
     ]);
-    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, options.map(option => option.completionOptionId)])} ownerId={account.userId} options={options}
-      initiallySelectedEntryId={selectedEntryId} initialBalance={account.wallet.balanceCents}
+    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", options.map(option => option.completionOptionId)])} ownerId={account.userId} options={options}
+      initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={decline === "confirm"} initialBalance={account.wallet.balanceCents}
       cards={cards ?? []} fundingAvailable={account.fundingEnabled && cards !== null}
       fundingBlocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} />;
   }

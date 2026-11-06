@@ -1,0 +1,32 @@
+.dialog.dialog { max-width:482px; padding:28px 24px; }
+.dialog.dialog > h2 { margin-bottom:24px; font-size:25px; }
+.product { display:flex; align-items:center; gap:12px; min-width:0; }
+.product img { width:70px; height:70px; flex:none; object-fit:contain; padding:5px; border-radius:15px; background:#e1f4ff; }
+.product > div { min-width:0; }
+.product h3 { margin:0; font-size:18px; line-height:1.22; font-weight:850; overflow-wrap:anywhere; }
+.product p { margin:5px 0 0; font-size:13px; line-height:1.4; color:#52718f; }
+.product .retailer { margin:0 0 5px; color:#a64c00; font-weight:850; text-transform:uppercase; font-size:10px; letter-spacing:.07em; }
+.question { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; margin:20px 0 15px; padding:14px 12px; border-radius:13px; background:#fff0dc; font-size:21px; line-height:1.25; font-weight:850; }
+.count { display:inline-grid; place-items:center; flex:none; min-width:40px; min-height:40px; padding:4px 9px; border-radius:50%; background:#fff; color:#0b2545; font-size:23px; font-weight:850; }
+.message { margin:16px 0 0; color:#355779; font-size:15px; line-height:1.45; }
+.actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:20px; }
+.keep,.decline,.finish,.recovery { display:flex; align-items:center; justify-content:center; width:100%; min-height:50px; padding:12px 10px; border:0; border-radius:12px; color:#0b2545; font-size:16px; font-weight:850; line-height:1.2; text-align:center; text-decoration:none; cursor:pointer; }
+.keep { background:#def3ff; }
+.decline { background:#ff7900; }
+.finish { background:#42e600; }
+.recovery { background:#def3ff; margin-top:20px; }
+.note { margin:14px 0 0; text-align:center; color:#52718f; font-size:12px; line-height:1.4; }
+.undoPanel { margin-top:20px; padding:18px; border-radius:15px; background:#ff7900; }
+.undoHeading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.undoHeading h3 { margin:0; font-size:21px; font-weight:850; line-height:1.25; }
+.undoMessage { margin:12px 0 0; font-size:13px; line-height:1.4; color:#0b2545; }
+@media(max-width:380px) {
+  .dialog.dialog { padding:25px 19px; }
+  .dialog.dialog > h2 { font-size:23px; margin-bottom:20px; }
+  .product img { width:57px; height:60px; }
+  .product h3 { font-size:16px; }
+  .question { font-size:19px; }
+  .actions { grid-template-columns:1fr; gap:8px; margin-top:16px; }
+  .undoPanel { padding:14px; }
+  .undoHeading h3 { font-size:18px; }
+}

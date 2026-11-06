@@ -3,6 +3,12 @@ import PurchaseOptionsPage from "./page";
 
 const { getAccountContext } = vi.hoisted(() => ({ getAccountContext: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext }));
+vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: () => true }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/payments/demo-provider", () => ({ DemoPaymentProvider: class {
+  async getPaymentMethods() { return []; }
+  async getRequests() { return []; }
+} }));
 vi.mock("next/navigation", () => ({
   redirect: (href: string) => { throw new Error(href); },
   notFound: () => { throw new Error("NOT_FOUND"); },
@@ -39,4 +45,13 @@ test("refreshing after the final offer was purchased opens completed purchases",
 test("an unknown prize with no offers still reports not found", async () => {
   getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [] } });
   await expect(visit()).rejects.toThrow("NOT_FOUND");
+});
+
+test("saved decline links render the modern checkout with the compact confirmation", async () => {
+  getAccountContext.mockResolvedValue({ userId: "owner", fundingEnabled: true, wallet: { scope: "demo", balanceCents: 10000 }, activity: { source: "stored", activity: [{ ...open, completionOptionId: "option-1" }] } });
+  const page = await PurchaseOptionsPage({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ option: open.entryId, decline: "confirm" }) });
+  expect(page.props.initiallyConfirmDecline).toBe(true);
+  expect(page.props.initiallySelectedEntryId).toBe(open.entryId);
+  expect(page.props.ownerId).toBe("owner");
+  expect(page.props.initialBalance).toBe(10000);
 });

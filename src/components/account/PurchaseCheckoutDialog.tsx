@@ -36,7 +36,7 @@ export function NumberWheel({ label, min, max, value, disabled, onChange }: { la
   </div>;
 }
 
-export function PurchaseDialog({ title, children, onClose, compact = false }: { title: string; children: ReactNode; onClose: () => void; compact?: boolean }) {
+export function PurchaseDialog({ title, children, onClose, compact = false, className = "", closeLabel = "Close purchase popup", closeDisabled = false }: { title: string; children: ReactNode; onClose: () => void; compact?: boolean; className?: string; closeLabel?: string; closeDisabled?: boolean }) {
   const dialog = useRef<HTMLDivElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const [top, setTop] = useState(130);
@@ -72,8 +72,8 @@ export function PurchaseDialog({ title, children, onClose, compact = false }: { 
     };
   }, [onClose]);
   return createPortal(<div className={styles.backdrop} style={{ "--preview-top": top + "px" } as CSSProperties} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="purchase-preview-dialog-title" className={styles.ticket + " " + styles.dialog + (compact ? " " + styles.refined : "")}>
-      <button ref={close} type="button" className={styles.close} onClick={onClose} aria-label="Close purchase popup">×</button>
+    <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="purchase-preview-dialog-title" className={styles.ticket + " " + styles.dialog + (compact ? " " + styles.refined : "") + " " + className}>
+      <button ref={close} type="button" className={styles.close} onClick={onClose} aria-label={closeLabel} disabled={closeDisabled}>×</button>
       <h2 id="purchase-preview-dialog-title">{title}</h2>{children}
     </div>
   </div>, document.body);

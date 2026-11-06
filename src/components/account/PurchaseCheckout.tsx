@@ -23,6 +23,7 @@ import { useAccountTimeZone } from "./TimeZoneProvider";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { purchaseFundingHref, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
 import { useCheckoutSelection } from "./useCheckoutSelection";
+import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 
 function Product({ item }: { item: ActivityItem }) {
   return <div className={styles.product}><Image src={item.image} alt={item.title} width={64} height={60} /><div><p className={styles.retailer}>{item.retailer}</p><h2>{item.title}</h2><p>{usd(item.priceCents)} gift card · Each entry counts toward its own option</p></div></div>;
@@ -44,8 +45,8 @@ function ConfirmPurchase({ total, balance, quantity, summary, busy, onUndo, onCo
     <p className={styles.footnote}>Simulation only · No real payment or shipment.</p></>;
 }
 
-export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId }: {
-  ownerId: string; options: ActivityItem[]; initialBalance: number; cards: DemoCard[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string;
+export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false }: {
+  ownerId: string; options: ActivityItem[]; initialBalance: number; cards: DemoCard[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
 }) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
@@ -56,7 +57,7 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const [card, setCard] = useState<DemoCardToken | null>(() => cards.find(card => card.isDepositDefault)?.token ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? null);
   const [extra, setExtra] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
-  const [overlay, setOverlay] = useState<"fund" | "purchase" | "options" | null>(null);
+  const [overlay, setOverlay] = useState<"fund" | "purchase" | "options" | "decline" | null>(initiallyConfirmDecline ? "decline" : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [recovery, setRecovery] = useState<"deposit" | "purchase" | "offers" | null>(null);
@@ -102,7 +103,13 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const sameValue = chosen.every(option => option.priceCents === chosen[0]?.priceCents);
   const buyLabel = `Buy ${chosen.length} ${sameValue ? usd(chosen[0]?.priceCents ?? 0) + " " : ""}gift ${chosen.length === 1 ? "card" : "cards"}`;
 
-  const close = useCallback(() => { if (inFlight.current) return; setOverlay(null); setPurchaseRequest(null); setAcknowledged(false); }, []);
+  const closeHref = `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
+  const close = useCallback(() => {
+    if (inFlight.current) return;
+    setOverlay(null); setPurchaseRequest(null); setAcknowledged(false);
+    // Old saved decline links now open this same ticket, and cancel returns here.
+    if (initiallyConfirmDecline) router.replace(closeHref, { scroll: false });
+  }, [initiallyConfirmDecline, router, closeHref]);
   function changeSelection(ids: string[], reviewed = false) {
     if (locked || !ids.length) return;
     updateChoice({ selected: ids, needsReview: needsReview && !reviewed });
@@ -188,9 +195,9 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
       <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Review purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Review purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>
       {!needsReview && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Review first. Confirm your purchase next."}</p>}
       <div className={styles.utility}><Link href="/account/entries?filter=completion"><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
-      <div className={styles.utilityTools}><Link href={`/account/purchase-options/${encodeURIComponent(item.slug)}?decline=confirm`}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</Link><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
+      <div className={styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
-    </div>{overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
+    </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog item={item} count={options.length} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}
         <div className={styles.cardChoice}><FundingCardPicker tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); }} /></div>
