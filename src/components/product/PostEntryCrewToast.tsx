@@ -11,6 +11,7 @@ import { getProductShareItem } from "@/lib/sharing/actions";
 import { crewLookupKind, emailHref, isAppleMobile, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
 import type { CrewGroupContact } from "@/lib/crew/visibility";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
+import { CrewGroupRemovalCountdown } from "@/components/account/CrewGroupRemovalCountdown";
 import type { EntryRequest } from "@/lib/entries/request";
 import { ShareIcon } from "./ShareIcon";
 import styles from "./post-entry-crew-toast.module.css";
@@ -75,7 +76,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const groupId = useRef<string | null>(null);
   const groupContacts = useRef<CrewGroupContact[]>([]);
   const [editingGroup, setEditingGroup] = useState(false);
-  const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
+  const [deleteGroupConfirm, setDeleteGroupConfirm] = useState<string | null>(null);
   const [contactMemberId, setContactMemberId] = useState<string | null>(null);
   const [contactDraft, setContactDraft] = useState<CrewMemberContact>({ name: "", phone: "", email: "" });
   const contactEditorReturn = useRef<Step>("find");
@@ -400,7 +401,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     groupId.current = group?.id ?? null;
     groupContacts.current = group?.contacts ?? [];
     setEditingGroup(Boolean(group));
-    setDeleteGroupConfirm(false);
+    setDeleteGroupConfirm(null);
     setGroupName(group?.name ?? ""); setGroupMembers(group?.memberIds ?? []); setGroupFilter("");
     go("group");
   }
@@ -448,7 +449,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       if (!alive.current) return;
       if (!result.ok) { feedback(result.message, true); return; }
       setOptions(current => current ? { ...current, groups: current.groups.filter(value => value.id !== group.id) } : current);
-      setSelectedGroupIds(current => current.filter(id => id !== group.id)); setGroupsOnly(true); setDeleteGroupConfirm(false); history.current.pop(); setStep("audience"); feedback(`${group.name} deleted. The people are still in your Crew.`);
+      setSelectedGroupIds(current => current.filter(id => id !== group.id)); setGroupsOnly(true); setDeleteGroupConfirm(null); history.current.pop(); setStep("audience"); feedback(`${group.name} deleted. The people are still in your Crew.`);
     });
   }
 
@@ -546,7 +547,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         {step === "home" ? <div>{request ? <p className={styles.eyebrow} role="status">✓ Entry confirmed</p> : null}{titleHeading}</div> : <button type="button" className={styles.back} onClick={back} disabled={busy}>← Back</button>}
         <button type="button" className={styles.close} aria-label="Close sharing toast" onClick={onClose}>×</button>
       </div>
-      {step !== "home" ? <div className={styles.headingRow}>{titleHeading}{step === "group" && editingGroup ? <button type="button" className={styles.deleteGroup} disabled={busy} onClick={() => setDeleteGroupConfirm(true)}>Delete this group</button> : null}</div> : null}
+      {step !== "home" ? <div className={styles.headingRow}>{titleHeading}{step === "group" && editingGroup ? <button type="button" className={styles.deleteGroup} disabled={busy} onClick={() => setDeleteGroupConfirm(options?.groups.find(group => group.id === groupId.current)?.name ?? groupName)}>Delete this group</button> : null}</div> : null}
       {step === "roster" ? <button type="button" className={styles.primary} disabled={busy || !members.length} onClick={() => { setStep("audience"); void shareCrew(null); }}>Send to my Crew</button> : null}
       {!["group", "find", "copy", "contacts", "contactGroup", "contactEdit"].includes(step) ? itemSummary : null}
 
@@ -683,7 +684,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       </> : null}
 
       {step === "group" ? <>
-        {deleteGroupConfirm ? <div className={styles.confirmDelete} role="region" aria-label="Confirm group deletion"><strong>Delete {groupName}?</strong><p>The people stay in your Crew.</p><div className={styles.duo}><button type="button" className={styles.deleteGroup} disabled={busy} onClick={() => void deleteGroup()}>Yes, delete group</button><button type="button" disabled={busy} onClick={() => setDeleteGroupConfirm(false)}>Cancel</button></div></div> : null}
+        {deleteGroupConfirm ? <CrewGroupRemovalCountdown name={deleteGroupConfirm} busy={busy} onUndo={() => { setDeleteGroupConfirm(null); heading.current?.focus({ preventScroll: true }); }} onConfirm={() => void deleteGroup()} /> : null}
         {!deleteGroupConfirm ? <>
         <form onSubmit={event => { event.preventDefault(); void createGroup(); }}>
           <div className={styles.field}><label htmlFor={`${id}-group`}>Group name</label><input id={`${id}-group`} value={groupName} onChange={event => setGroupName(event.target.value)} maxLength={50} required disabled={busy} placeholder="Family, Friends…" /></div>

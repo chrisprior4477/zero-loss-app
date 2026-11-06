@@ -1,12 +1,12 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CrewDisplaySettings } from "./CrewDisplaySettings";
 
 const { saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhone } = vi.hoisted(() => ({ saveCrewDisplaySettings: vi.fn(), saveCrewGroup: vi.fn(), inviteToCrew: vi.fn(), inviteToCrewByPhone: vi.fn() }));
 vi.mock("@/lib/crew/actions", () => ({ saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhone }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: () => <span /> }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
 
 const first = "11111111-1111-4111-8111-111111111111";
 const second = "22222222-2222-4222-8222-222222222222";
@@ -55,13 +55,54 @@ test("creates multiple named groups and assigns a shared pick to a chosen group"
   expect(saved.entryRules[pick]).toMatchObject({ audience: "groups", groupIds: [saved.groups[0].id] });
 });
 
-test("removes a saved group from the profile within the inline editor", async () => {
+test("only removes a saved group after countdown confirmation, leaving other groups intact", async () => {
   saveCrewGroup.mockResolvedValue({ ok: true, message: "Group removed." });
+  render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[{ id: first, name: "Family", memberIds: [] }, { id: second, name: "Friends", memberIds: [] }]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
+  fireEvent.click(screen.getAllByRole("button", { name: /Add people to group/ })[0]);
+  fireEvent.click(screen.getByRole("button", { name: "Remove group" }));
+  expect(saveCrewGroup).not.toHaveBeenCalled();
+  expect(screen.getByRole("timer").getAttribute("aria-label")).toContain("30 seconds");
+  fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
+  await waitFor(() => expect(saveCrewGroup).toHaveBeenCalledWith({ group: { id: first, name: "Family", memberIds: [] }, remove: true }));
+  await waitFor(() => expect(screen.queryByText("Family")).toBeNull());
+  expect(screen.getByText("Friends")).toBeTruthy();
+});
+
+test.each(["Undo", "timeout", "collapse"])("%s preserves a saved group without a removal request", mode => {
+  vi.useFakeTimers();
   render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[{ id: first, name: "Family", memberIds: [] }]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
   fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
   fireEvent.click(screen.getByRole("button", { name: "Remove group" }));
-  await waitFor(() => expect(saveCrewGroup).toHaveBeenCalledWith({ group: { id: first, name: "Family", memberIds: [] }, remove: true }));
+  if (mode === "Undo") fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+  else if (mode === "collapse") fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
+  act(() => vi.advanceTimersByTime(31_000));
+  expect(saveCrewGroup).not.toHaveBeenCalled();
+  expect(screen.getByText("Family")).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Confirm group removal" })).toBeNull();
+  if (mode !== "collapse") expect(document.activeElement).toBe(screen.getByRole("button", { name: "Remove group" }));
+});
+
+test("failed removal keeps the group and allows a deliberate retry", async () => {
+  saveCrewGroup.mockResolvedValueOnce({ ok: false, message: "Couldn’t confirm removal. Please try again." }).mockResolvedValueOnce({ ok: true });
+  render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[{ id: first, name: "Family", memberIds: [] }]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
+  fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Remove group" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
+  expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Couldn’t confirm removal. Please try again.");
+  expect(screen.getByText("Family")).toBeTruthy();
+  fireEvent.click(await screen.findByRole("button", { name: "Confirm removal" }));
   await waitFor(() => expect(screen.getByText(/No groups yet/)).toBeTruthy());
+  expect(saveCrewGroup).toHaveBeenCalledTimes(2);
+});
+
+test("discarding a never-saved group needs no countdown or server removal", () => {
+  render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
+  fireEvent.change(screen.getByLabelText("New group name"), { target: { value: "Draft" } });
+  fireEvent.click(screen.getByRole("button", { name: /Create group/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Remove group" }));
+  expect(screen.getByText(/No groups yet/)).toBeTruthy();
+  expect(screen.queryByRole("timer")).toBeNull();
+  expect(saveCrewGroup).not.toHaveBeenCalled();
 });
 
 test("search discoverability remains separate from pick audience", async () => {

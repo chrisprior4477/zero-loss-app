@@ -8,6 +8,7 @@ import { saveCrewDisplaySettings, saveCrewGroup } from "@/lib/crew/actions";
 import { type CrewAudience, type CrewVisibilityGroup, type CrewVisibilityRule } from "@/lib/crew/visibility";
 import styles from "./crew-display-settings.module.css";
 import { CrewGroupContacts } from "./CrewGroupContacts";
+import { CrewGroupRemovalCountdown } from "./CrewGroupRemovalCountdown";
 
 type Member = { id: string; name: string };
 type Pick = { id: string; title: string; retailer: string; image: string | null };
@@ -68,6 +69,8 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
   const [entryRules, setEntryRules] = useState<Record<string, CrewVisibilityRule>>(initialEntryRules);
   const [newGroupName, setNewGroupName] = useState("");
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
+  const [removingGroupId, setRemovingGroupId] = useState<string | null>(null);
+  const restoreRemovalFocus = useRef<string | null>(null);
   const [groupMessage, setGroupMessage] = useState("");
   const [groupMessageError, setGroupMessageError] = useState(false);
   const [editorMessage, setEditorMessage] = useState<{ id: string; text: string; error: boolean } | null>(null);
@@ -76,6 +79,17 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
   const [pending, startTransition] = useTransition();
   const groupToReveal = useRef<string | null>(null);
   const [persistedGroupIds, setPersistedGroupIds] = useState(new Set(initialGroups.map((group) => group.id)));
+
+  useEffect(() => {
+    if (removingGroupId || !restoreRemovalFocus.current) return;
+    document.getElementById(`remove-crew-group-${restoreRemovalFocus.current}`)?.focus({ preventScroll: true });
+    restoreRemovalFocus.current = null;
+  }, [removingGroupId]);
+
+  function undoGroupRemoval() {
+    restoreRemovalFocus.current = removingGroupId;
+    setRemovingGroupId(null);
+  }
 
   useEffect(() => {
     if (!groupToReveal.current) return;
@@ -142,16 +156,23 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     });
   }
 
-  function removeGroup(group: CrewVisibilityGroup) {
+  function requestGroupRemoval(group: CrewVisibilityGroup) {
     if (!persistedGroupIds.has(group.id)) {
       discardGroup(group.id);
       setGroupMessage(`${group.name} removed.`);
       setGroupMessageError(false);
       return;
     }
+    setEditorMessage(null);
+    setRemovingGroupId(group.id);
+  }
+
+  function removeGroup(group: CrewVisibilityGroup) {
+    if (removingGroupId !== group.id || pending || !available) return;
     startTransition(async () => {
       const result = await saveCrewGroup({ group, remove: true }).catch(() => ({ ok: false, message: "Couldn’t confirm removal. Please try again." }));
       if (result.ok) {
+        setRemovingGroupId(null);
         setPersistedGroupIds(current => new Set([...current].filter(id => id !== group.id)));
         discardGroup(group.id);
         setGroupMessage(`${group.name} removed from your profile.`);
@@ -220,8 +241,9 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
           {groups.length ? <div className={styles.groupList}>{groups.map((group) => {
             const expanded = expandedGroupId === group.id;
             return <div id={`crew-group-${group.id}`} key={group.id} className={styles.groupRow}>
-              <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={`crew-group-editor-${group.id}`} onClick={() => setExpandedGroupId(expanded ? null : group.id)}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
+              <div className={styles.groupSummary}><div><strong>{group.name}</strong><small>{group.memberIds.length} connected members · {group.contacts?.length ?? 0} saved contacts{persistedGroupIds.has(group.id) ? "" : " · Not saved yet"}</small></div><button type="button" disabled={pending} aria-expanded={expanded} aria-controls={`crew-group-editor-${group.id}`} onClick={() => { setRemovingGroupId(null); setExpandedGroupId(expanded ? null : group.id); }}>Add people to group <span aria-hidden="true">{expanded ? "⌃" : "⌄"}</span></button></div>
               {expanded ? <div id={`crew-group-editor-${group.id}`} className={styles.groupEditor}>
+                {removingGroupId === group.id ? <CrewGroupRemovalCountdown key={group.id} name={group.name} busy={pending} onUndo={undoGroupRemoval} onConfirm={() => removeGroup(group)} /> : <>
                 <label className={styles.groupName}>Group name<input value={group.name} maxLength={50} disabled={!available || pending} onChange={(event) => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, name: event.target.value } : item)); setSaved(false); }} /></label>
                 <div className={styles.memberEditor}>
                   <div className={styles.memberPickerHeading}><strong>People in this group</strong><span>{group.memberIds.length ? "Use Remove to take someone out of this group." : "No one added yet."}</span></div>
@@ -233,7 +255,8 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
                   <div className={styles.targets}>{members.length ? members.filter((member) => !group.memberIds.includes(member.id)).map((member) => <button type="button" key={member.id} className={styles.addMember} disabled={!available || pending} onClick={() => { setGroups((current) => current.map((item) => item.id === group.id ? { ...item, memberIds: [...item.memberIds, member.id] } : item)); setSaved(false); }}>+ Add {member.name}</button>) : <span className={styles.emptyTargets}>No connected Crew members yet. Add a contact below to get started.</span>}</div>
                 </div>
                 <CrewGroupContacts contacts={group.contacts ?? []} disabled={!available || pending} onChange={contacts => { setGroups(current => current.map(item => item.id === group.id ? { ...item, contacts } : item)); setSaved(false); setEditorMessage(null); }} />
-                <div className={styles.groupActions}><button type="button" className={styles.removeGroup} onClick={() => removeGroup(group)} disabled={!available || pending}>Remove group</button><button type="button" className={styles.saveGroup} onClick={() => saveGroup(group)} disabled={!available || pending}>{pending ? "Saving…" : "Save group"}</button></div>
+                <div className={styles.groupActions}><button id={`remove-crew-group-${group.id}`} type="button" className={styles.removeGroup} onClick={() => requestGroupRemoval(group)} disabled={!available || pending}>Remove group</button><button type="button" className={styles.saveGroup} onClick={() => saveGroup(group)} disabled={!available || pending}>{pending ? "Saving…" : "Save group"}</button></div>
+                </>}
                 {editorMessage?.id === group.id ? <p role={editorMessage.error ? "alert" : "status"} className={editorMessage.error ? styles.groupError : styles.groupSaved}>{editorMessage.text}</p> : <p className={styles.groupHint}>Add or remove people, then choose Save group to apply this group’s changes.</p>}
               </div> : null}
             </div>;

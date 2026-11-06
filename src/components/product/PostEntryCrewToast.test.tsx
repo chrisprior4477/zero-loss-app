@@ -599,10 +599,11 @@ test("group deletion can be cancelled and deletes only the saved group after con
   open(); await audiences(); await groups(); fireEvent.click(screen.getByRole("button", { name: "Edit Mom" }));
   fireEvent.click(screen.getByRole("button", { name: "Delete this group" }));
   expect(mocks.save).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(screen.queryByRole("button", { name: "Yes, delete group" })).toBeNull();
+  expect(screen.getByRole("timer").getAttribute("aria-label")).toContain("30 seconds");
+  fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+  expect(screen.queryByRole("button", { name: "Confirm removal" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Delete this group" }));
-  fireEvent.click(screen.getByRole("button", { name: "Yes, delete group" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
   expect(await screen.findByText("Mom deleted. The people are still in your Crew.")).toBeTruthy();
   expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts: [] }, remove: true });
   expect(mocks.remove).not.toHaveBeenCalled();
