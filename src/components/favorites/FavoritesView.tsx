@@ -20,6 +20,24 @@ type Props = {
   initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
 };
 type Selection = { slug: string; shareId?: string } | null;
+type ListPosition = { href: string; target: string; top: number };
+function savedListPosition(state: unknown): ListPosition | null {
+  if (!state || typeof state !== "object" || !("zeroLossFavoritesReturn" in state)) return null;
+  const value = state.zeroLossFavoritesReturn;
+  if (!value || typeof value !== "object" || !("href" in value) || !("target" in value) || !("top" in value)) return null;
+  return (value.href === "/account/favorites" || value.href === sharedWithYouHref)
+    && typeof value.target === "string" && typeof value.top === "number" && Number.isFinite(value.top) && value.top >= 0
+    ? { href: value.href, target: value.target, top: value.top } : null;
+}
+function restoreListPosition(target?: string, top?: number) {
+  requestAnimationFrame(() => {
+    const button = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-saved-item]")).find(element => element.dataset.savedItem === target);
+    button?.focus({ preventScroll: true });
+    if (top !== undefined) window.scrollTo({ top, behavior: "instant" });
+    else button?.scrollIntoView?.({ block: "nearest" });
+  });
+}
+
 export function FavoritesView({ availability, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem }: Props) {
   const timeZone = useAccountTimeZone();
   const { slugs, available, toggle, busySlug: favoriteBusy } = useFavorites();
@@ -35,10 +53,12 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const tabs = useRef<HTMLDivElement>(null);
+  const listPosition = useRef<ListPosition | null>(null);
   // Let Next.js copy its internal state so a server action keeps the active tab URL.
   function location(href: string) { window.history.replaceState(null, "", href); }
   function revealHeading() { requestAnimationFrame(() => document.getElementById("saved-items-heading")?.scrollIntoView?.({ block: "start", behavior: "instant" })); }
   function chooseTab(next: "favorites" | "shared") {
+    listPosition.current = null;
     setTab(next); setSelected(null); setMessage(""); location(next === "shared" ? sharedWithYouHref : "/account/favorites");
     revealHeading();
   }
@@ -54,17 +74,46 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
       .catch(() => { if (active) setMessage("The item is available, but its viewed status could not be saved."); });
     return () => { active = false; };
   }, [initialShareId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    listPosition.current = savedListPosition(window.history.state);
+    function restoreHistory(event: PopStateEvent) {
+      if (window.location.pathname !== "/account/favorites") return;
+      const query = new URLSearchParams(window.location.search);
+      const nextTab = query.get("tab") === "shared" ? "shared" : "favorites";
+      const share = nextTab === "shared" ? shares.find(item => item.id === query.get("share")) : null;
+      const slug = query.get("item");
+      const nextSelected = share ? { slug: share.slug, shareId: share.id }
+        : nextTab === "favorites" && slug && slugs.includes(slug) ? { slug } : null;
+      const previousPosition = listPosition.current;
+      listPosition.current = savedListPosition(event.state);
+      setTab(nextTab); setSelected(nextSelected); setMessage("");
+      if (nextSelected) revealHeading();
+      else if (previousPosition?.href === (nextTab === "shared" ? sharedWithYouHref : "/account/favorites")) {
+        restoreListPosition(previousPosition.target, previousPosition.top);
+      }
+    }
+    window.addEventListener("popstate", restoreHistory);
+    return () => window.removeEventListener("popstate", restoreHistory);
+  }, [shares, slugs]);
   function openItem(slug: string, shareId?: string) {
+    listPosition.current = { href: tab === "shared" ? sharedWithYouHref : "/account/favorites", target: shareId ?? slug, top: window.scrollY };
     setSelected({ slug, shareId }); setMessage("");
-    location(shareId ? savedShareHref(shareId) : `/account/favorites?item=${encodeURIComponent(slug)}`);
+    // Keep the list in history; Next.js copies its router state into this entry.
+    window.history.pushState({ zeroLossFavoritesReturn: listPosition.current }, "", shareId ? savedShareHref(shareId) : `/account/favorites?item=${encodeURIComponent(slug)}`);
     revealHeading();
     if (shareId) void setReceivedProductState(shareId, "viewed").then(result => applyShareResult(shareId, result, true))
       .catch(() => setMessage("The item is available, but its viewed status could not be saved."));
   }
   function back() {
     const target = selected?.shareId ?? selected?.slug;
-    setSelected(null); location(tab === "shared" ? sharedWithYouHref : "/account/favorites");
-    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(`[data-saved-item="${target}"]`)?.focus({ preventScroll: true }));
+    const href = tab === "shared" ? sharedWithYouHref : "/account/favorites";
+    if (savedListPosition(window.history.state)?.href === href) {
+      window.history.back();
+      return;
+    }
+    // A directly opened item may have no list behind it in this tab.
+    setSelected(null); location(href);
+    restoreListPosition(target);
   }
   async function changeShare(share: SavedProductShare, state: "declined" | "restore") {
     if (shareBusy) return;

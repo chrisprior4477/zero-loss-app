@@ -11,8 +11,14 @@ vi.mock("next/image", () => ({ default: ({ src, alt }: { src: string; alt: strin
 import { FavoritesView } from "./FavoritesView";
 const share: SavedProductShare = { id: "11111111-1111-4111-8111-111111111111", token: "22222222-2222-4222-8222-222222222222", slug: "playstation-5-slim", title: "PlayStation", sender: "Alex", createdAt: "2026-10-25T12:00:00Z", viewedAt: null, savedAt: null, declinedAt: null, demo: false };
 function show(props: Partial<React.ComponentProps<typeof FavoritesView>> = {}) { return render(<FavoritesView availability={null} initialAlerts={{}} emailEnabled initialShares={[share]} {...props} />); }
-beforeEach(() => { vi.clearAllMocks(); mocks.state.mockImplementation(async (_id, state) => ({ ok: true, viewedAt: "2026-10-25", declinedAt: state === "declined" ? "2026-10-25" : null, message: state === "declined" ? "Declined. This item stays in Shared with You." : "" })); });
-afterEach(() => { cleanup(); window.history.replaceState({}, "", "/"); });
+beforeEach(() => {
+  vi.clearAllMocks();
+  window.history.replaceState({}, "", "/account/favorites");
+  vi.stubGlobal("scrollTo", vi.fn());
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+  mocks.state.mockImplementation(async (_id, state) => ({ ok: true, viewedAt: "2026-10-25", declinedAt: state === "declined" ? "2026-10-25" : null, message: state === "declined" ? "Declined. This item stays in Shared with You." : "" }));
+});
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState({}, "", "/"); });
 test("personal favorites are the default and the two tabs replace the introductory copy", () => {
   window.history.replaceState({ __NA: true }, "", "/account/favorites");
   const replace = vi.spyOn(window.history, "replaceState");
@@ -23,13 +29,15 @@ test("personal favorites are the default and the two tabs replace the introducto
   expect(replace).toHaveBeenLastCalledWith(null, "", "/account/favorites?tab=shared"); replace.mockRestore();
 });
 test("declining keeps the shared card and never changes personal favorites", async () => {
+  window.history.replaceState({}, "", "/account/favorites?tab=shared");
   show({ initialTab: "shared" }); fireEvent.click(screen.getByRole("button", { name: /View prize/ }));
   fireEvent.click(screen.getByRole("button", { name: "Decline this share" }));
   await waitFor(() => expect(screen.getByText("Declined")).toBeTruthy());
   expect(screen.getByRole("tab", { name: "Shared with You 1" })).toBeTruthy(); expect(screen.getByRole("tab", { name: "Your Favorites 1" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: /View prize/ })).toBeTruthy(); expect(mocks.toggle).not.toHaveBeenCalled();
+  await waitFor(() => expect(screen.getByRole("button", { name: /View prize/ })).toBeTruthy()); expect(mocks.toggle).not.toHaveBeenCalled();
 });
 test("a late viewed response cannot erase a completed decline", async () => {
+  window.history.replaceState({}, "", "/account/favorites?tab=shared");
   let finishView!: (value: unknown) => void;
   mocks.state.mockImplementation((_id, state) => state === "viewed" ? new Promise(resolve => { finishView = resolve; }) : Promise.resolve({ ok: true, viewedAt: "today", declinedAt: "today", message: "Kept" }));
   show({ initialTab: "shared" }); fireEvent.click(screen.getByRole("button", { name: /View prize/ })); fireEvent.click(screen.getByRole("button", { name: "Decline this share" }));
@@ -64,4 +72,61 @@ test("Favorites keeps its preview and offers a prominent entry link back to Favo
   expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Enter for $1" }).getAttribute("href")).toBe("/items/nike-court-shot-shoes?from=%2Faccount%2Ffavorites");
   expect(screen.queryByRole("link", { name: /Open prize details/ })).toBeNull();
+});
+
+test("browser Back restores the Favorites list and position, Forward reopens the item, and Back to list adds no extra stop", async () => {
+  window.history.replaceState({}, "", "/account/entries");
+  window.history.pushState({}, "", "/account/favorites");
+  vi.stubGlobal("scrollY", 420);
+  show();
+  fireEvent.click(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" }));
+  act(() => window.history.back());
+  await waitFor(() => expect(window.location.pathname + window.location.search).toBe("/account/favorites"));
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Back to list" })).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Nike Men's Court Shot Shoes" })));
+  expect(window.scrollTo).toHaveBeenCalledWith({ top: 420, behavior: "instant" });
+  act(() => window.history.forward());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy());
+  fireEvent.click(screen.getByRole("button", { name: "Back to list" }));
+  await waitFor(() => expect(window.location.search).toBe(""));
+  act(() => window.history.back());
+  await waitFor(() => expect(window.location.pathname).toBe("/account/entries"));
+  expect(mocks.toggle).not.toHaveBeenCalled();
+  expect(mocks.state).not.toHaveBeenCalled();
+});
+
+test("a shared preview returns to Shared with You on browser Back and reopens on Forward", async () => {
+  window.history.replaceState({}, "", "/account/favorites?tab=shared");
+  show({ initialTab: "shared" });
+  fireEvent.click(screen.getByRole("button", { name: /View prize/ }));
+  await waitFor(() => expect(mocks.state).toHaveBeenCalledWith(share.id, "viewed"));
+  act(() => window.history.back());
+  await waitFor(() => expect(window.location.search).toBe("?tab=shared"));
+  await waitFor(() => expect(screen.getByRole("button", { name: /View prize/ })).toBeTruthy());
+  expect(screen.getByRole("tab", { name: "Shared with You 1" }).getAttribute("aria-selected")).toBe("true");
+  act(() => window.history.forward());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Decline this share" })).toBeTruthy());
+  expect(mocks.state).toHaveBeenCalledTimes(1);
+});
+
+test("refreshing an opened item preserves Back to list's history destination", async () => {
+  window.history.replaceState({}, "", "/account/entries");
+  window.history.pushState({}, "", "/account/favorites");
+  const view = show();
+  fireEvent.click(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" }));
+  view.unmount();
+  show({ initialItem: "nike-court-shot-shoes" });
+  fireEvent.click(screen.getByRole("button", { name: "Back to list" }));
+  await waitFor(() => expect(window.location.pathname + window.location.search).toBe("/account/favorites"));
+  await waitFor(() => expect(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" })).toBeTruthy());
+  act(() => window.history.back());
+  await waitFor(() => expect(window.location.pathname).toBe("/account/entries"));
+});
+
+test("Back to list from a direct item link stays in Favorites", () => {
+  window.history.replaceState({}, "", "/account/favorites?item=nike-court-shot-shoes");
+  show({ initialItem: "nike-court-shot-shoes" });
+  fireEvent.click(screen.getByRole("button", { name: "Back to list" }));
+  expect(window.location.pathname + window.location.search).toBe("/account/favorites");
+  expect(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" })).toBeTruthy();
 });
