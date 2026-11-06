@@ -52,6 +52,66 @@ test("details copy full references and exact checkout amounts, then return focus
   expect(document.activeElement).toBe(trigger);
 });
 
+test.each([0, 1])("rotation keeps the selected order from a later phone page open (card %i)", async offset => {
+  let phone = true;
+  let change = () => {};
+  vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: (_: string, fn: () => void) => { change = fn; }, removeEventListener: vi.fn() }));
+  vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+  render(<OrderTicketGallery orders={Array.from({ length: 8 }, (_, i) => record(i + 1))} />);
+  fireEvent.click(screen.getByRole("button", { name: "Next tickets" }));
+  const trigger = screen.getAllByRole("button", { name: "Order details" })[offset];
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Copy for Support" }));
+  await screen.findByText("Copied. Ready to paste into Support.");
+  act(() => { phone = false; change(); });
+  expect(screen.getByRole("dialog")).toBe(dialog);
+  expect(within(dialog).getByText(`Reward ${3 + offset} · Retailer`)).toBeTruthy();
+  expect(screen.getByText("1–6 of 8")).toBeTruthy();
+  expect(screen.getByText("Copied. Ready to paste into Support.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Next tickets" }).hasAttribute("disabled")).toBe(true);
+  act(() => { phone = true; change(); });
+  expect(screen.getByRole("dialog")).toBe(dialog);
+  expect(screen.getByText("3–4 of 8")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(document.activeElement).toBe(trigger);
+  expect(screen.getByText("3–4 of 8")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Next tickets" }));
+  expect(screen.getByText("5–6 of 8")).toBeTruthy();
+});
+
+test("an order opened on the wide layout selects its own phone page even after closing", () => {
+  let phone = false;
+  let change = () => {};
+  vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: (_: string, fn: () => void) => { change = fn; }, removeEventListener: vi.fn() }));
+  render(<OrderTicketGallery orders={Array.from({ length: 8 }, (_, i) => record(i + 1))} />);
+  fireEvent.click(screen.getAllByRole("button", { name: "Order details" })[5]);
+  act(() => { phone = true; change(); });
+  expect(within(screen.getByRole("dialog")).getByText("Reward 6 · Retailer")).toBeTruthy();
+  expect(screen.getByText("5–6 of 8")).toBeTruthy();
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByText("5–6 of 8")).toBeTruthy();
+  act(() => { phone = false; change(); });
+  act(() => { phone = true; change(); });
+  expect(screen.getByText("5–6 of 8")).toBeTruthy();
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("resizing a later page without an open dialog keeps the same orders within view", () => {
+  let phone = true;
+  let change = () => {};
+  vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: (_: string, fn: () => void) => { change = fn; }, removeEventListener: vi.fn() }));
+  render(<OrderTicketGallery orders={Array.from({ length: 8 }, (_, i) => record(i + 1))} />);
+  fireEvent.click(screen.getByRole("button", { name: "Next tickets" }));
+  act(() => { phone = false; change(); });
+  expect(screen.getByRole("heading", { name: "Reward 3" })).toBeTruthy();
+  act(() => { phone = true; change(); });
+  expect(screen.getByText("3–4 of 8")).toBeTruthy();
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
 test("a failed copy provides selectable text instead of claiming success", async () => {
   vi.stubGlobal("navigator", { clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) } });
   render(<OrderTicketGallery orders={[record(1)]} />);

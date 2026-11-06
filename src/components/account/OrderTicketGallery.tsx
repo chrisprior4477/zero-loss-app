@@ -73,13 +73,24 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
       const top = isPhone() ? 0 : Math.max(0, Math.min(cardBox.bottom - galleryBox.top - element.offsetHeight, gallery.clientHeight - element.offsetHeight));
       element.style.left = `${left}px`;
       element.style.top = `${top}px`;
+      // Rotation also changes document height and browser scroll anchoring.
+      // Keep the open details below the sticky header in either orientation.
+      if (element.offsetHeight) {
+        const box = element.getBoundingClientRect();
+        const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+        const visibleTop = Math.max(0, headerBottom) + 8;
+        if (box.top < visibleTop || box.bottom > window.innerHeight - 8) {
+          window.scrollTo({ top: Math.max(0, window.scrollY + box.top - visibleTop), behavior: "instant" });
+        }
+      }
     }
     position();
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(position);
     if (element) observer?.observe(element);
     if (gallery) observer?.observe(gallery);
+    window.addEventListener("resize", position);
     close.current?.focus({ preventScroll: true });
-    return () => { observer?.disconnect(); if (anchor.isConnected) anchor.focus({ preventScroll: true }); };
+    return () => { observer?.disconnect(); window.removeEventListener("resize", position); if (anchor.isConnected) anchor.focus({ preventScroll: true }); };
   }, [anchor]);
 
   async function copy(value: string) {
@@ -110,15 +121,26 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
 
 export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) {
   const phone = useSyncExternalStore(subscribePhone, isPhone, serverPhone);
-  const [page, setPage] = useState(0);
+  const [pageAnchor, setPageAnchor] = useState<string | null>(null);
   const [opened, setOpened] = useState<{ id: string; anchor: HTMLButtonElement } | null>(null);
   const size = phone ? 2 : 6;
   const lastPage = Math.max(0, Math.ceil(orders.length / size) - 1);
-  const currentPage = Math.min(page, lastPage);
+  // Keep the same record in view when the number of cards per page changes.
+  const anchorIndex = orders.findIndex(order => order.rewardId === (opened?.id ?? pageAnchor));
+  const currentPage = Math.floor(Math.max(0, anchorIndex) / size);
   const start = currentPage * size;
   const shown = orders.slice(start, start + size);
   const selected = opened ? shown.find(order => order.rewardId === opened.id) : null;
   const galleryId = useId();
+
+  function changePage(page: number) {
+    setPageAnchor(orders[page * size]?.rewardId ?? null);
+  }
+
+  function openDetails(id: string, anchor: HTMLButtonElement) {
+    setPageAnchor(id);
+    setOpened({ id, anchor });
+  }
 
   return <div className={styles.gallery} data-order-gallery>
     <div className={styles.galleryBody}>
@@ -130,12 +152,12 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
             <Link href={href} className={styles.art} aria-label={`View ${order.title} reward`}><Image src={order.image} alt="" fill sizes="(max-width: 700px) 64px, 200px" /></Link>
             <div className={styles.copy}><p className={styles.retailer}>{order.retailer}</p><h3><Link href={href} title={order.title}>{order.title}</Link></h3><div className={styles.statuses}><span className={styles.source} data-source={order.source}><AccountIcon name={order.source === "winner" ? "prize" : "orders"} />{order.source === "winner" ? "You won" : order.source === "purchase" ? "Purchased" : "Reward"}</span><span className={styles.status}>{detail.label}</span></div></div>
             <dl className={styles.money}><div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>{order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}</dl>
-            <div className={styles.actions}><button type="button" className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => setOpened({ id: order.rewardId, anchor: event.currentTarget })}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
+            <div className={styles.actions}><button type="button" className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
           </article>;
         })}
       </div>
       {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} anchor={opened.anchor} onClose={() => setOpened(null)} /> : null}
     </div>
-    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{start + 1}–{Math.min(start + size, orders.length)} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={currentPage === 0 || Boolean(selected)} onClick={() => setPage(currentPage - 1)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={currentPage === lastPage || Boolean(selected)} onClick={() => setPage(currentPage + 1)}><AccountIcon name="chevron" /></button></div></nav>
+    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{start + 1}–{Math.min(start + size, orders.length)} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={currentPage === 0 || Boolean(selected)} onClick={() => changePage(currentPage - 1)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={currentPage === lastPage || Boolean(selected)} onClick={() => changePage(currentPage + 1)}><AccountIcon name="chevron" /></button></div></nav>
   </div>;
 }
