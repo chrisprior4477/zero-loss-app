@@ -26,7 +26,7 @@ beforeEach(() => {
   vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { frames.set(++id, callback); return id; });
   vi.spyOn(window, "cancelAnimationFrame").mockImplementation(id => { frames.delete(id); });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); window.history.replaceState({}, "", "/"); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); window.history.replaceState({}, "", "/"); });
 function flush() {
   act(() => {
     while (frames.size) {
@@ -118,5 +118,22 @@ test("opening Support in another tab does not overwrite this tab's return positi
   render(<WalletLedger walletId="wallet-1" entries={entries} />);
   fireEvent.click(screen.getAllByRole("link", { name: "Report a problem" })[0], { ctrlKey: true });
   expect(window.history.state[ledgerReturnKey]).toBeUndefined();
+});
+
+test("corrects a late browser scroll but stops immediately when the customer starts scrolling", () => {
+  vi.useFakeTimers();
+  const page = saveView();
+  page.unmount();
+  render(<WalletLedger walletId="wallet-1" entries={allEntries} />);
+  flush();
+  scrollTo.mockClear();
+  act(() => vi.advanceTimersByTime(400));
+  flush();
+  expect(scrollTo).toHaveBeenCalledWith({ top: 1300, behavior: "instant" });
+  scrollTo.mockClear();
+  fireEvent.wheel(window);
+  act(() => vi.advanceTimersByTime(1000));
+  flush();
+  expect(scrollTo).not.toHaveBeenCalled();
 });
 

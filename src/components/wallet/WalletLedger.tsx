@@ -73,6 +73,14 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     if (compact || !walletId) return;
     let firstFrame = 0;
     let secondFrame = 0;
+    let interrupted = false;
+    const settlingTimers: number[] = [];
+    function cancelScroll() {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+      settlingTimers.splice(0).forEach(timer => window.clearTimeout(timer));
+    }
+    function interrupt() { interrupted = true; cancelScroll(); }
     function restoreView() {
       const saved = readLedgerReturn(window.history.state, walletId!, window.location.href, selectedId);
       if (!saved) return;
@@ -83,29 +91,45 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       setThrough(saved.through);
       setShowArchived(saved.showArchived);
       restoreBatch(saved.offset);
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
-      firstFrame = requestAnimationFrame(() => {
-        secondFrame = requestAnimationFrame(() => {
-          if (window.location.href !== saved.href) return;
-          const list = listRef.current;
-          for (const detail of list?.querySelectorAll("details") ?? []) {
-            detail.open = saved.expandedRows.includes(detail.closest("li")?.id ?? "");
-          }
-          const row = document.getElementById(saved.rowId);
-          const top = row && list?.contains(row) ? window.scrollY + row.getBoundingClientRect().top - saved.rowTop : saved.scrollY;
-          window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+      cancelScroll();
+      interrupted = false;
+      const align = () => {
+        if (interrupted || window.location.href !== saved.href) return;
+        cancelAnimationFrame(firstFrame);
+        cancelAnimationFrame(secondFrame);
+        firstFrame = requestAnimationFrame(() => {
+          secondFrame = requestAnimationFrame(() => {
+            if (interrupted || window.location.href !== saved.href) return;
+            const list = listRef.current;
+            for (const detail of list?.querySelectorAll("details") ?? []) {
+              detail.open = saved.expandedRows.includes(detail.closest("li")?.id ?? "");
+            }
+            const row = document.getElementById(saved.rowId);
+            const top = row && list?.contains(row) ? window.scrollY + row.getBoundingClientRect().top - saved.rowTop : saved.scrollY;
+            window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+          });
         });
-      });
+      };
+      align();
+      // Browser Back and the collapsing mobile header may settle after the
+      // initial render. Stop all corrections as soon as the customer interacts.
+      for (const delay of [150, 400, 900]) settlingTimers.push(window.setTimeout(align, delay));
     }
     restoreView();
     window.addEventListener("popstate", restoreView);
     window.addEventListener("pageshow", restoreView);
+    window.addEventListener("pointerdown", interrupt, { passive: true });
+    window.addEventListener("touchstart", interrupt, { passive: true });
+    window.addEventListener("wheel", interrupt, { passive: true });
+    window.addEventListener("keydown", interrupt);
     return () => {
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
+      cancelScroll();
       window.removeEventListener("popstate", restoreView);
       window.removeEventListener("pageshow", restoreView);
+      window.removeEventListener("pointerdown", interrupt);
+      window.removeEventListener("touchstart", interrupt);
+      window.removeEventListener("wheel", interrupt);
+      window.removeEventListener("keydown", interrupt);
     };
   }, [compact, walletId, selectedId, restoreBatch, listRef]);
 
