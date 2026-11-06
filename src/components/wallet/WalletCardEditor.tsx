@@ -8,6 +8,13 @@ import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-payments.module.css";
 
 export const savedCardEditPrefix = "#wallet-edit-card/";
+export const fundingCardEditorId = "funding-card-editor";
+
+export function openWalletPanel(hash: string, state: object | null = null, replace = false) {
+  if (replace) window.history.replaceState(state, "", hash);
+  else if (window.location.hash !== hash) window.history.pushState(state, "", hash);
+  window.dispatchEvent(new HashChangeEvent("hashchange"));
+}
 
 export function revealWalletSection(id: string, mobileId?: string) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -54,7 +61,7 @@ export function WalletCardEditor({ token, savedCard, displayName = "", initialAr
     } catch { return { status: "error" as const, message: "The card could not be saved. Please try again." }; }
   }, { status: "idle" });
 
-  return <section id="wallet-card-editor" className={styles.editor} aria-labelledby="wallet-card-editor-title">
+  return <section id={depositLabel ? fundingCardEditorId : "wallet-card-editor"} className={styles.editor} aria-labelledby="wallet-card-editor-title">
     <h3 id="wallet-card-editor-title">{savedCard ? "Edit card" : "Add a card"}</h3>
     {depositLabel ? <p className={styles.notice}>Your {depositLabel} deposit is waiting. Saving a card does not add funds.</p> : <p>Save a payment method without adding funds.</p>}
     <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}>

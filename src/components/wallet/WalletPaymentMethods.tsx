@@ -8,16 +8,12 @@ import { DEMO_CARD_FIXTURES, demoCardFixture, type DemoCard, type DemoCardToken 
 import { DeleteCardToast } from "./DeleteCardToast";
 import { DemoCardArtwork } from "./DemoCardArtwork";
 import { MobileCardCamera } from "./MobileCardCamera";
-import { WalletCardEditor, revealWalletSection, savedCardEditPrefix } from "./WalletCardEditor";
+import { WalletCardEditor, fundingCardEditorId, openWalletPanel, revealWalletSection, savedCardEditPrefix } from "./WalletCardEditor";
 import walletStyles from "./wallet-overview.module.css";
 import styles from "./wallet-payments.module.css";
 
 const emptyCards: DemoCard[] = [];
 function revealMethods() { revealWalletSection("payment-methods", "payment-methods-controls"); }
-function openPanel(hash: string) {
-  if (window.location.hash !== hash) window.history.pushState(null, "", hash);
-  window.dispatchEvent(new HashChangeEvent("hashchange"));
-}
 export function WalletPaymentMethods({ savedCards = emptyCards, displayName, enabled, unavailable = false, initialSection }: { initialSection?: "methods" | "card"; savedCards?: DemoCard[]; displayName?: string; enabled: boolean; unavailable?: boolean }) {
   const router = useRouter();
   const [cards, setCards] = useState(savedCards);
@@ -35,12 +31,12 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   const isAdd = panelHash === "#wallet-add-card";
   const editorToken = isAdd ? availableToken : savedCard?.token;
   const panelOpen = isEdit || isAdd || panelHash === "#payment-methods";
-  function showMethods() { openPanel("#payment-methods"); }
-  function addCard() { setMessage(""); openPanel(availableToken ? "#wallet-add-card" : "#payment-methods"); }
+  function showMethods() { openWalletPanel("#payment-methods"); }
+  function addCard() { setMessage(""); openWalletPanel(availableToken ? "#wallet-add-card" : "#payment-methods"); }
   useEffect(() => {
     const sync = () => {
       let hash = window.location.hash;
-      if (initialSection && !hash.startsWith(savedCardEditPrefix) && !["#balance", "#add-funds", "#payment-methods", "#wallet-add-card", "#transactions"].includes(hash)) {
+      if (initialSection && !hash.startsWith(savedCardEditPrefix) && !["#balance", "#add-funds", "#payment-methods", "#wallet-add-card", "#transactions", `#${fundingCardEditorId}`].includes(hash)) {
         hash = initialSection === "card" ? "#wallet-add-card" : "#payment-methods";
         window.history.replaceState(null, "", hash);
       }
@@ -55,7 +51,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
       const url = new URL(anchor.href);
       if (url.origin !== window.location.origin || url.pathname !== window.location.pathname || url.search !== window.location.search || !["#balance", "#add-funds", "#payment-methods", "#wallet-add-card"].includes(url.hash)) return;
-      event.preventDefault(); openPanel(url.hash);
+      event.preventDefault(); openWalletPanel(url.hash);
     };
     sync(); window.addEventListener("hashchange", sync); window.addEventListener("popstate", sync); document.addEventListener("click", click, true);
     return () => { window.removeEventListener("hashchange", sync); window.removeEventListener("popstate", sync); document.removeEventListener("click", click, true); };
@@ -102,7 +98,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
         <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} disabled={!enabled || unavailable || busy} onChange={event => void setDefault(card, event.target.checked)} />Use as my default payment method</label>
-        <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} onClick={() => openPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={() => setExpanded(expanded === card.token ? null : card.token)}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => setDeleting(card.token)}>Delete Card</button></div>
+        <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} onClick={() => openWalletPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={() => setExpanded(expanded === card.token ? null : card.token)}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => setDeleting(card.token)}>Delete Card</button></div>
         <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
         {deleting === card.token ? <DeleteCardToast key={card.token} busy={busy} onUndo={() => setDeleting(null)} onDelete={() => void removeCard(card.token)} /> : null}
       </article>)}</div>

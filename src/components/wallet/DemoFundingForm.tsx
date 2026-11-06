@@ -22,7 +22,7 @@ import { WholeDollarToast } from "./WholeDollarToast";
 import { MobileCardCamera } from "./MobileCardCamera";
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
-import { WalletCardEditor, revealWalletSection, savedCardEditPrefix } from "./WalletCardEditor";
+import { WalletCardEditor, revealWalletSection, fundingCardEditorId, openWalletPanel } from "./WalletCardEditor";
 import paymentStyles from "./wallet-payments.module.css";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
@@ -39,7 +39,7 @@ type DepositAttempt = {
   initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; awaitingReceipt?: boolean; reviewOnMount?: boolean;
 };
 
-function FundingAttempt({ requestKey, walletId, reviewOnMount, blocked, onNew, onSuccess, onStart, onInterrupted, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, displayName }: { requestKey: string; walletId: string; reviewOnMount?: boolean; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; onInterrupted: (attempt: DepositAttempt) => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination; displayName?: string }) {
+function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, onNew, onSuccess, onStart, onInterrupted, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, displayName }: { requestKey: string; walletId: string; ready: boolean; reviewOnMount?: boolean; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; onInterrupted: (attempt: DepositAttempt) => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination; displayName?: string }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof completeDemoFunding>>, form: FormData) => {
     let result: Awaited<ReturnType<typeof completeDemoFunding>>;
@@ -83,16 +83,22 @@ function FundingAttempt({ requestKey, walletId, reviewOnMount, blocked, onNew, o
   const [deleteToken, setDeleteToken] = useState<DemoCardToken | null>(null);
   const [deletingCard, setDeletingCard] = useState(false);
   const [artwork, setArtwork] = useState<Partial<Record<DemoCardToken, DemoCardArtwork>>>(() => Object.fromEntries(cards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
-  const [editingCard, setEditingCard] = useState<{ token: DemoCardToken; artwork?: DemoCardArtwork } | null>(null);
+  const [editingCard, setEditingCard] = useState<DemoCardToken | null>(null);
+  const fundingEditorHash = `#${fundingCardEditorId}`;
+  const returnHref = continueTo?.href ?? null;
   const nextCard = DEMO_CARD_FIXTURES.find(card => !visibleTokens.includes(card.token));
   const allSamplesSaved = DEMO_CARD_FIXTURES.every(fixture => cards.some(card => card.token === fixture.token));
   const cameraToken = nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
   const cameraCard = cards.find(card => card.token === cameraToken);
-  function addCard(token?: DemoCardToken, sampleArtwork?: DemoCardArtwork) {
-    if (locked || cardUnavailable) return;
+  function addCard(token?: DemoCardToken) {
+    if (!ready || locked || cardUnavailable) return;
     if (!token && allSamplesSaved) { revealWalletSection("add-card"); return; }
-    setEditingCard({ token: token ?? nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN, artwork: sampleArtwork });
-    revealWalletSection("wallet-card-editor");
+    const editorToken = token ?? nextCard?.token ?? selectedToken ?? DEMO_CARD_TOKEN;
+    // Only store the funding choice and fixture reference in this tab's editor history entry.
+    openWalletPanel(fundingEditorHash, { fundingCardDraft: {
+      walletId, returnHref, editorToken, editingSavedCard: cards.some(card => card.token === editorToken),
+      selectedToken, amountCents: amountIsValid ? Number(amount) : null, custom: Boolean(customAmount),
+    } });
   }
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
@@ -128,14 +134,35 @@ function FundingAttempt({ requestKey, walletId, reviewOnMount, blocked, onNew, o
     setArtwork(Object.fromEntries(savedCards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
   }
   useEffect(() => {
-    const closeEditor = () => {
-      const hash = window.location.hash;
-      if (hash.startsWith(savedCardEditPrefix) || ["#balance", "#add-funds", "#payment-methods", "#wallet-add-card"].includes(hash)) setEditingCard(null);
-    };
-    window.addEventListener("hashchange", closeEditor);
-    window.addEventListener("popstate", closeEditor);
-    return () => { window.removeEventListener("hashchange", closeEditor); window.removeEventListener("popstate", closeEditor); };
-  }, []);
+    function syncEditor() {
+      if (window.location.hash !== fundingEditorHash) {
+        setEditingCard(null);
+        return;
+      }
+      if (!ready || recovered || locked) return;
+      const draft = window.history.state?.fundingCardDraft;
+      const editorToken = demoCardFixture(draft?.editorToken)?.token;
+      if (!editorToken || draft.walletId !== walletId || draft.returnHref !== returnHref) {
+        openWalletPanel("#add-funds", null, true);
+        return;
+      }
+      const cents = draft.amountCents;
+      const valid = isFundingAmount(cents) && cents % 100 === 0;
+      setAmount(valid ? String(cents) : "");
+      setCustomAmount(valid && draft.custom ? String(cents / 100) : "");
+      if (draft.selectedToken === null || visibleTokens.includes(draft.selectedToken)) setSelectedToken(draft.selectedToken);
+      if (cardUnavailable || draft.editingSavedCard !== cards.some(card => card.token === editorToken)) {
+        openWalletPanel("#add-funds", null, true);
+        return;
+      }
+      setEditingCard(editorToken);
+      revealWalletSection(fundingCardEditorId);
+    }
+    if (window.location.hash === fundingEditorHash) syncEditor();
+    window.addEventListener("hashchange", syncEditor);
+    window.addEventListener("popstate", syncEditor);
+    return () => { window.removeEventListener("hashchange", syncEditor); window.removeEventListener("popstate", syncEditor); };
+  }, [fundingEditorHash, ready, recovered, locked, walletId, returnHref, cardUnavailable, cards, visibleTokens]);
   function closeDeleteDialog() {
     setDeleteToken(null);
   }
@@ -200,10 +227,11 @@ function FundingAttempt({ requestKey, walletId, reviewOnMount, blocked, onNew, o
     else if (defaultToken === card.token) setDefaultToken(null);
     if (card.artwork) setArtwork(current => ({ ...current, [card.token]: card.artwork }));
     setCardMessage(`${demoCardFixture(card.token)?.issuer} •••• ${card.lastFour} saved${card.isDepositDefault ? " and selected for deposits" : ""}. No funds added.`);
-    setEditingCard(null); revealWalletSection(fromCamera ? `sample-payment-${card.token}` : "add-funds"); router.refresh();
+    if (window.location.hash === fundingEditorHash) openWalletPanel("#add-funds", null, true);
+    revealWalletSection(fromCamera ? `sample-payment-${card.token}` : "add-funds"); router.refresh();
   }
   const cameraSaved = (card: DemoCard) => acceptSavedCard(card, true);
-  if (editingCard) return <WalletCardEditor token={editingCard.token} savedCard={cards.find(card => card.token === editingCard.token)} initialArtwork={editingCard.artwork} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => { setEditingCard(null); revealWalletSection("add-funds"); }} onSaved={card => acceptSavedCard(card)} />;
+  if (editingCard) return <WalletCardEditor token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => { openWalletPanel("#add-funds", null, true); revealWalletSection("add-funds"); }} onSaved={card => acceptSavedCard(card)} />;
   if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo && state.status === "succeeded" ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
   return <form id="funding-payment" action={action} onSubmit={() => {
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
@@ -364,7 +392,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     onCredit={(credited, balance) => onSuccess(`Your ${formatUsdFromCents(credited)} demo deposit was credited to your wallet.`, formatUsdFromCents(balance))}
     onReview={() => setAttempt(current => ({ ...current, awaitingReceipt: false, reviewOnMount: true }))} />;
   return <>
-    <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} walletId={walletId} reviewOnMount={attempt.reviewOnMount} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
+    <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} walletId={walletId} ready={attempt.ready} reviewOnMount={attempt.reviewOnMount} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
     displayName={displayName} savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly || (attempt.recovered && Number(attempt.amount) % 100 !== 0)} cardUnavailable={cardUnavailable}
     blocked={!attempt.ready || ((blocked || requests === null || requests.some(request => request.reconciliation !== "reconciled")) && !attempt.canRetry)} continueTo={continueTo}
     onInterrupted={interruptDeposit} onNew={newAttempt} onSuccess={onSuccess} onStart={() => { activeWallet.current = storageKey; setSuccessMessage(""); }} />

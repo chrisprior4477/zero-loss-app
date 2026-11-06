@@ -36,6 +36,68 @@ test.each([0, 1])("full funding card list lets the user choose an edit from entr
   expect(completeDemoFunding).not.toHaveBeenCalled();
 });
 
+test.each(["add", "edit"])("refresh inside the funding card editor restores the %s view, funding card and $73 draft", async mode => {
+  const cards = mode === "edit" ? allCards : initialCards;
+  const renderWallet = (key: string) => render(<>
+    <WalletPaymentMethods enabled initialSection="methods" savedCards={cards} />
+    <DemoFundingForm requestKey={key} walletId="wallet-a" savedCards={cards} displayName="Demo Customer" />
+  </>);
+  window.history.replaceState(null, "", "/account/wallet?view=history&panel=methods#add-funds");
+  let page = renderWallet("before_card_editor_refresh");
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "73" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Current card in use" }), { target: { value: "demo_card_4242" } });
+  if (mode === "edit") fireEvent.click(within(page.container.querySelector<HTMLElement>("#sample-payment-demo_card_1117")!).getByRole("button", { name: "Edit" }));
+  else fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
+  fireEvent.change(screen.getByLabelText("Security code"), { target: { value: "unsaved-code" } });
+  expect(JSON.stringify(window.history.state)).not.toContain("unsaved-code");
+  page.unmount();
+
+  page = renderWallet("after_card_editor_refresh");
+  expect(screen.getByRole("heading", { name: mode === "edit" ? "Edit card" : "Add a card" })).toBeTruthy();
+  expect(screen.getByText(/Your \$73 deposit is waiting/)).toBeTruthy();
+  const fixture = DEMO_CARD_FIXTURES[mode === "edit" ? 4 : 1];
+  expect((screen.getByLabelText("Card number") as HTMLInputElement).value).toBe(fixture.number);
+  expect((screen.getByLabelText("Security code") as HTMLInputElement).value).toBe(fixture.code);
+  expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
+  if (mode === "edit") {
+    vi.mocked(saveDemoPaymentMethod).mockResolvedValueOnce({ status: "succeeded", message: "Saved" });
+    fireEvent.click(screen.getByRole("button", { name: "Update card" }));
+  } else fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  await screen.findByRole("form", { name: "Add funds" });
+  expect(window.location.hash).toBe("#add-funds");
+  expect(window.history.state?.fundingCardDraft).toBeUndefined();
+  expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$73");
+  expect(page.container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_4242");
+  expect(page.container.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value).toBe("after_card_editor_refresh");
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
+
+test("a different wallet cannot reopen another wallet's funding editor or amount", () => {
+  const first = render(<DemoFundingForm walletId="a" requestKey="first_wallet_request" savedCards={initialCards} />);
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "73" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
+  first.unmount();
+  const second = render(<DemoFundingForm walletId="b" requestKey="second_wallet_request" savedCards={initialCards} />);
+  expect(screen.queryByRole("form", { name: "Save payment method" })).toBeNull();
+  expect(second.container.querySelector<HTMLInputElement>('[name="amountCents"]')?.value).toBe("2500");
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
+
+test("a payment awaiting confirmation takes priority over the unsubmitted editor draft", () => {
+  const first = render(<DemoFundingForm walletId="a" requestKey="first_wallet_request" savedCards={initialCards} />);
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "73" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
+  first.unmount();
+  sessionStorage.setItem("zero-loss-demo-request:a", JSON.stringify({
+    key: "original_pending_request", amount: "100", awaitingReceipt: true,
+    paymentMethod: "demo_card_4242", makeDefault: true,
+  }));
+  render(<DemoFundingForm walletId="a" requestKey="fresh_wallet_request" savedCards={initialCards} />);
+  expect(screen.getByRole("heading", { name: "Check your $1 deposit" })).toBeTruthy();
+  expect(screen.queryByRole("form", { name: "Save payment method" })).toBeNull();
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
+
 test.each(["methods", "wallet", "legacy"])("all saved cards open the list instead of pretending to add a card via %s", entry => {
   window.history.replaceState(null, "", entry === "methods" ? "#payment-methods" : entry === "wallet" ? "#wallet-add-card" : "#account-settings-sections");
   render(<WalletPaymentMethods enabled savedCards={allCards} initialSection={entry === "legacy" ? "card" : undefined} />);
