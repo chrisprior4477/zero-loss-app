@@ -58,7 +58,8 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const [overlay, setOverlay] = useState<"fund" | "purchase" | "options" | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [checkRequired, setCheckRequired] = useState(false);
+  const [recovery, setRecovery] = useState<"deposit" | "purchase" | "offers" | null>(null);
+  const checkRequired = recovery !== null;
   const [notice, setNotice] = useState("");
   const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
   const inFlight = useRef(false);
@@ -138,9 +139,9 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
         router.refresh();
       } else {
         setError("message" in result ? result.message : "Check the deposit in your wallet.");
-        setCheckRequired(!(result.status === "error" && result.beforePayment));
+        setRecovery(result.status === "error" && result.beforePayment ? null : "deposit");
       }
-    } catch { setError("The connection was interrupted. Check Payment deposits in your wallet before adding more money. No purchase has been submitted."); setCheckRequired(true); }
+    } catch { setError("The connection was interrupted. Check Payment deposits in your wallet before adding more money. No purchase has been submitted."); setRecovery("deposit"); }
     finally { inFlight.current = false; setBusy(false); }
   }
   async function confirm() {
@@ -148,13 +149,20 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
     inFlight.current = true; setBusy(true); setError("");
     try {
       const result = await completeDemoPurchaseOptions(purchaseRequest);
-      if (result.status === "succeeded") { clearChoice(); setCheckRequired(true); window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(result.href); router.refresh(); return; }
-      setError(result.message); setCheckRequired(result.recovery === "check"); setOverlay(null); setPurchaseRequest(null);
+      if (result.status === "succeeded") { clearChoice(); setRecovery("purchase"); window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(result.href); router.refresh(); return; }
+      setError(result.message); setRecovery(result.recovery === "offers" ? "offers" : result.recovery === "check" ? "purchase" : null); setOverlay(null); setPurchaseRequest(null);
       if (result.recovery === "balance") { router.refresh(); setNotice("Your balance changed. Review the updated amount before continuing."); }
-    } catch { setError("We couldn’t confirm the result. Check My Activity before trying again; your purchase may already be saved."); setCheckRequired(true); setOverlay(null); }
+    } catch { setError("We couldn’t confirm the result. Check your completed purchases before trying again; your purchase may already be saved."); setRecovery("purchase"); setOverlay(null); setPurchaseRequest(null); }
     finally { inFlight.current = false; setBusy(false); }
   }
-  const feedback = <>{error ? <p className={styles.error} role="alert">{error}</p> : null}{checkRequired ? <div className={styles.twoButtons}><Link className={styles.secondary} href="/account/wallet?view=history#add-funds">Check deposits</Link><Link className={styles.secondary} href="/account/entries?filter=completed">Check My Activity</Link></div> : null}</>;
+  // Full navigation clears the locked checkout response and reads current offers.
+  // The saved selection is reconciled on mount; a paid exact ticket opens its reward.
+  const refreshOffersHref = `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
+  const feedback = <>{error ? <p className={styles.error} role="alert">{error}</p> : null}{recovery ? <div className={recovery === "purchase" ? undefined : styles.twoButtons}>
+    {recovery === "offers" ? <a className={styles.secondary} href={refreshOffersHref}>Refresh available offers</a> : null}
+    {recovery === "deposit" ? <Link className={styles.secondary} href="/account/wallet?view=history#add-funds">Check deposits</Link> : null}
+    <Link className={styles.secondary} href="/account/entries?filter=completed">View completed purchases</Link>
+  </div> : null}</>;
   const money = (onPage = false) => <div className={styles.facts}><div><span>Purchase total</span><strong>{usd(total)}</strong></div><div><span>In your wallet</span><strong>{usd(balance)}</strong></div>{onPage
     ? <div className={shortfall ? styles.balanceNeeded : styles.balanceReady}>{shortfall ? <><span>Still needed to continue</span><strong>{usd(required)}</strong></> : <><span aria-hidden="true">✓</span><strong>Your wallet covers this purchase.</strong></>}</div>
     : <div className={shortfall ? styles.shortfall : styles.covered}><strong>{shortfall ? `Please add ${usd(required)} to continue.` : "Your wallet covers this purchase."}</strong></div>}</div>;

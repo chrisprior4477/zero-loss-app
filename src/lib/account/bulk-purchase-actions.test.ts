@@ -36,3 +36,18 @@ test("does not report success for malformed receipts and accepts more than 100 c
   mocks.rpc.mockResolvedValueOnce({ data: { status: "purchased", purchasedCount: 101, declinedCount: 0, totalCents: 10100 } });
   expect((await completeDemoPurchaseOptions(large)).status).toBe("succeeded");
 });
+
+test.each([
+  { code: "P0001", message: "Purchase selection changed. Refresh your options." },
+  { code: "P0001", message: "Purchase total changed. Refresh your options." },
+  { code: "42501", message: "Purchase option unavailable" },
+])("a rejected changed offer uses offer recovery: $message", async error => {
+  mocks.rpc.mockResolvedValue({ error });
+  expect(await completeDemoPurchaseOptions(request)).toMatchObject({ status: "error", recovery: "offers", message: expect.stringContaining("No new purchases or declines were made") });
+  expect(mocks.rpc).toHaveBeenCalledOnce();
+});
+
+test("an unexpected database error remains uncertain purchase recovery", async () => {
+  mocks.rpc.mockResolvedValue({ error: { code: "P0001", message: "Unexpected failure" } });
+  expect(await completeDemoPurchaseOptions(request)).toMatchObject({ status: "error", recovery: "check", message: expect.stringContaining("may already be saved") });
+});

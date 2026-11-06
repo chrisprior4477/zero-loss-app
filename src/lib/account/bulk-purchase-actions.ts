@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type BulkPurchaseRequest = { slug: string; purchaseIds: string[]; declineIds: string[]; totalCents: number; requestId: string; confirmed: boolean };
 export type BulkPurchaseResult = { status: "succeeded"; purchasedCount: number; declinedCount: number; href: string }
-  | { status: "error"; message: string; recovery: "balance" | "check" | "edit" };
+  | { status: "error"; message: string; recovery: "balance" | "offers" | "check" | "edit" };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest): Promise<BulkPurchaseResult> {
@@ -32,8 +32,9 @@ export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest):
     if (error?.code === "P0001" && error.message === "Add demo funds before completing these options.") {
       return { status: "error", recovery: "balance", message: "Your wallet does not have enough funds for these purchases. No purchases or declines were made." };
     }
-    if (error && ["P0001", "42501", "22023"].includes(error.code)) {
-      return { status: "error", recovery: "check", message: "These options have changed or are no longer available. Refresh and check them before continuing. No new purchases or declines were made." };
+    if (error && ((error.code === "P0001" && ["Purchase selection changed. Refresh your options.", "Purchase total changed. Refresh your options."].includes(error.message))
+      || (error.code === "42501" && error.message === "Purchase option unavailable"))) {
+      return { status: "error", recovery: "offers", message: "These offers changed or are no longer available. Refresh available offers, or view your completed purchases. No new purchases or declines were made." };
     }
     if (error || data?.status !== "purchased" || data.purchasedCount !== request.purchaseIds.length || data.declinedCount !== request.declineIds.length || data.totalCents !== request.totalCents) {
       return { status: "error", recovery: "check", message: "We couldn’t confirm the result. Check your purchases before trying again; they may already be saved." };

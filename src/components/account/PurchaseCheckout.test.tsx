@@ -132,6 +132,44 @@ test("uncertain funding is locked for recovery rather than submitting a second d
 test("pre-existing unresolved deposits prevent a new deposit", () => {
   setup(13900, true); const popup = fundPopup(); fireEvent.click(popup.getByRole("checkbox")); fireEvent.click(popup.getByRole("button", { name: "Add $260 to wallet" })); expect(mocks.fund).not.toHaveBeenCalled();
 });
+
+test("changed offers show a fresh navigation and completed purchases without offering deposit recovery or resubmission", async () => {
+  mocks.purchase.mockResolvedValue({ status: "error", recovery: "offers", message: "These offers changed. No new purchases or declines were made." });
+  setup(200000);
+  fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
+  await screen.findByRole("alert");
+  expect(screen.getByRole("link", { name: "Refresh available offers" }).getAttribute("href")).toBe("/account/purchase-options/nintendo-switch");
+  expect(screen.getByRole("link", { name: "View completed purchases" }).getAttribute("href")).toBe("/account/entries?filter=completed");
+  expect(screen.queryByRole("link", { name: "Check deposits" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Review purchase: $399" }).hasAttribute("disabled")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" }));
+  expect(mocks.purchase).toHaveBeenCalledOnce();
+  // A full navigation mounts the server's remaining options and reconciles the saved draft.
+  cleanup();
+  render(<PurchaseCheckout ownerId="account-a" options={options.slice(1)} initialBalance={160100} cards={[]} fundingAvailable />);
+  expect(screen.getByRole("button", { name: "Review updated options" }).hasAttribute("disabled")).toBe(false);
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(mocks.purchase).toHaveBeenCalledOnce();
+  expect(mocks.fund).not.toHaveBeenCalled();
+});
+
+test.each(["uncertain receipt", "connection lost"])("%s points to completed purchases and keeps checkout locked", async outcome => {
+  if (outcome === "connection lost") mocks.purchase.mockRejectedValue(new Error("Lost response"));
+  else mocks.purchase.mockResolvedValue({ status: "error", recovery: "check", message: "Check your purchases; they may already be saved." });
+  const view = setup(50000);
+  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
+  await screen.findByRole("link", { name: "View completed purchases" });
+  view.rerender(updatedCheckout(10100));
+  expect(screen.queryByRole("link", { name: "Check deposits" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Refresh available offers" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Add funds: $298 to continue" }).hasAttribute("disabled")).toBe(true);
+  expect(mocks.purchase).toHaveBeenCalledOnce();
+  expect(mocks.fund).not.toHaveBeenCalled();
+});
 test("uses the returned ledger balance even if another action changed it during funding", async () => {
   mocks.fund.mockResolvedValue({ status: "succeeded", balanceCents: 39800 }); setup(); const popup = fundPopup(); fireEvent.click(popup.getByRole("checkbox")); fireEvent.click(popup.getByRole("button", { name: "Add $260 to wallet" }));
   await screen.findByRole("button", { name: "Add funds: $1 to continue" }); expect(screen.queryByRole("dialog")).toBeNull(); expect(mocks.purchase).not.toHaveBeenCalled();
