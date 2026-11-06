@@ -14,11 +14,12 @@ import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import { ledgerReturnKey, readLedgerReturn, type LedgerFilter, type LedgerReturn } from "@/lib/wallet/ledger-return";
 
-const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["refunds", "Refunds"]];
+const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["purchases", "Purchases"], ["refunds", "Refunds"]];
 
 function category(entry: LedgerEntryRow): LedgerFilter {
   if (entry.entry_type === "DEPOSIT") return "funding";
   if (["ENTRY_DEBIT", "ENTRY_HOLD", "ENTRY_HOLD_RELEASE"].includes(entry.entry_type)) return "entries";
+  if (entry.entry_type === "PURCHASE_DEBIT") return "purchases";
   if (entry.entry_type === "REFUND") return "refunds";
   return "all";
 }
@@ -27,7 +28,7 @@ function description(entry: LedgerEntryRow) {
   if (entry.entry_type === "ENTRY_HOLD") return ["Entry reservation", entry.product?.title ?? "Held during the 30-second Undo window"];
   if (entry.entry_type === "ENTRY_HOLD_RELEASE") return ["Entry reservation released", entry.product?.title ?? "Hold released on Undo or replaced by the confirmed entry purchase"];
   if (entry.entry_type === "ENTRY_DEBIT") return ["Entry purchase", entry.product?.title ?? "Product entry"];
-  if (entry.entry_type === "PURCHASE_DEBIT" && entry.product) return ["Wallet transaction", entry.product.title];
+  if (entry.entry_type === "PURCHASE_DEBIT") return ["Gift-card purchase", entry.product?.title ?? "Completed purchase option"];
   return ({ DEPOSIT: ["Funds added", "Playable wallet funding"], REFUND: ["Refund", "Returned to playable wallet"], CORRECTION: ["Adjustment", "Wallet correction"] } as Record<string, [string, string]>)[entry.entry_type] ?? ["Wallet transaction", "Posted ledger activity"];
 }
 
@@ -164,8 +165,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       </div>
       <p aria-live="polite">Showing {matching.length > visible.length ? `${batches.origin + 1}–${batches.end}` : visible.length} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
     </div> : null}
-    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? dated.length : dated.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
-    {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : filter === "all" ? "No matching transactions" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
+    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? dated.length : dated.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
+    {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       <div className={styles.ledgerHeader} aria-hidden="true"><span>Date</span><span>Description</span><span>Status</span><span>Amount</span></div>
       {!compact && <TicketBatchControls {...controls} top />}
       <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);

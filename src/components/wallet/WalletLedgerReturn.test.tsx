@@ -71,6 +71,23 @@ test("Support Back restores both dates, category, the five-ticket page and posit
   expect(window.history.state[ledgerReturnKey]).toMatchObject({ filter: "entries", from: "", through: "", offset: 0, rowId: "transaction-entry-1" });
 });
 
+test("returning from Support restores the Purchases filter and its page", () => {
+  const purchases = entries.map((entry, index) => ({ ...entry, id: `purchase-${index}`, entry_type: "PURCHASE_DEBIT", amount: -9900 }));
+  const mixed = [...purchases, ...entries];
+  const page = render(<WalletLedger walletId="wallet-1" entries={mixed} />);
+  fireEvent.click(screen.getByRole("button", { name: "Purchases" }));
+  fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
+  fireEvent.click(screen.getAllByRole("link", { name: "Report a problem" })[1]);
+  expect(window.history.state[ledgerReturnKey]).toMatchObject({ filter: "purchases", offset: 5, rowId: "transaction-purchase-6" });
+  page.unmount();
+  render(<WalletLedger walletId="wallet-1" entries={mixed} />);
+  flush();
+  expect(screen.getByRole("button", { name: "Purchases" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByText("Showing 6–10 of 12 transactions")).toBeTruthy();
+  expect(document.getElementById("transaction-purchase-6")).toBeTruthy();
+  expect(screen.queryByText("Funds added")).toBeNull();
+});
+
 test.each(["fresh visit", "another wallet", "different selected transaction"])("does not apply a Support bookmark to %s", kind => {
   const page = saveView();
   page.unmount();

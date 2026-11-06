@@ -4,6 +4,33 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { WalletLedger } from "./WalletLedger";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 afterEach(cleanup);
+
+test("Purchases isolates gift-card charges, including older records without product metadata, and keeps exact result links", () => {
+  const item = { ...storedActivityFixture().activity[0], entryId: `ent_${"4".repeat(32)}`, status: "completed" as const, rewardId: "purchased-reward", rewardStatus: "ready" as const };
+  const created_at = "2026-11-05T17:00:00Z";
+  render(<WalletLedger entries={[
+    { id: "deposit", entry_type: "DEPOSIT", amount: 50000, created_at },
+    { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at },
+    { id: "purchase", entry_type: "PURCHASE_DEBIT", amount: -9900, created_at, entryIds: [item.entryId], product: { title: item.title, image: item.image, slug: item.slug } },
+    { id: "older-purchase", entry_type: "PURCHASE_DEBIT", amount: -7400, created_at: "2026-11-01T17:00:00Z" },
+    { id: "refund", entry_type: "REFUND", amount: 100, created_at },
+  ]} activity={[item]} />);
+  const resultHref = screen.getByRole("link", { name: "View result" }).getAttribute("href");
+  expect(resultHref).toContain("purchased-reward");
+  fireEvent.click(screen.getByRole("button", { name: "Purchases" }));
+  expect(screen.getByRole("button", { name: "Purchases" }).textContent).toBe("Purchases2");
+  expect(screen.getAllByText("Gift-card purchase")).toHaveLength(2);
+  expect(screen.queryByText("Funds added")).toBeNull();
+  expect(screen.queryByText("Entry purchase")).toBeNull();
+  expect(screen.queryByText("Refund")).toBeNull();
+  expect(screen.getByRole("link", { name: "View result" }).getAttribute("href")).toBe(resultHref);
+  expect(screen.getByRole("link", { name: "View product" }).getAttribute("href")).toBe(`/items/${item.slug}`);
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-05" } });
+  expect(screen.getByRole("button", { name: "Purchases" }).textContent).toBe("Purchases1");
+  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=purchase");
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-06" } });
+  expect(screen.getByRole("heading", { name: "No gift-card purchases" })).toBeTruthy();
+});
 test("transaction actions separate the exact entry, its product, and support", () => {
   const item = { ...storedActivityFixture().activity[0], entryId: `ent_${"1".repeat(32)}` };
   const entry = { id: "ledger-1", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-10-24T12:00:00Z", entryIds: [item.entryId], product: { title: item.title, image: item.image, slug: item.slug } };
