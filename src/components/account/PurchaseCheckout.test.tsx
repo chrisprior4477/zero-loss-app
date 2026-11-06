@@ -112,10 +112,10 @@ test("returning from the wallet restores selected options and the keep-for-later
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
 });
 
-test.each(["close", "Escape", "backdrop", "refresh"])("dismissing Choose options via %s discards only the open edits", dismiss => {
+test.each(["close", "Escape", "backdrop", "refresh"])("dismissing Choose offers to complete via %s discards only the open edits", dismiss => {
   const checkout = () => render(<PurchaseCheckout ownerId="account-a" initiallySelectedEntryId="entry-2"
     options={options} initialBalance={4300} cards={[]} fundingAvailable />);
-  const open = () => fireEvent.click(screen.getByRole("button", { name: /Choose options/ }));
+  const open = () => fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
   const option = (number: number) => screen.getByRole("button", { name: `Option ${number}` });
   checkout();
   open();
@@ -128,7 +128,7 @@ test.each(["close", "Escape", "backdrop", "refresh"])("dismissing Choose options
   if (dismiss === "refresh") { cleanup(); checkout(); }
 
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.getByRole("button", { name: "Choose options · 1" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Choose offers to complete · 1 selected" })).toBeTruthy();
   open();
   expect(option(3).getAttribute("aria-pressed")).toBe("true");
   expect(option(2).getAttribute("aria-pressed")).toBe("false");
@@ -142,7 +142,7 @@ test.each(["close", "Escape", "backdrop", "refresh"])("dismissing Choose options
 test.each([true, false])("refresh restores the exact offers and decline=%s, without submitting checkout", async decline => {
   mocks.purchase.mockResolvedValue({ status: "succeeded", href: "/account/entries?filter=completed" });
   setup(200000);
-  fireEvent.click(screen.getByRole("button", { name: /Choose options/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
   fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
   fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
   fireEvent.click(screen.getByRole("button", { name: decline ? /Decline & remove/ : /Keep for later/ }));
@@ -187,7 +187,7 @@ test("a different account or an explicit link to a different ticket starts its o
   expect((screen.getByRole("radio", { name: "Buying 1" }) as HTMLInputElement).checked).toBe(true);
   cleanup();
   render(<PurchaseCheckout ownerId="account-a" initiallySelectedEntryId="entry-2" options={options} initialBalance={200000} cards={[]} fundingAvailable />);
-  fireEvent.click(screen.getByRole("button", { name: /Choose options/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
   expect(screen.getByRole("button", { name: "Option 3" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("button", { name: "Option 1" }).getAttribute("aria-pressed")).toBe("false");
 });

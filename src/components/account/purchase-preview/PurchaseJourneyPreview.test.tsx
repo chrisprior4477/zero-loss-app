@@ -23,13 +23,13 @@ test.each([1, 2, 3, 4] as const)("version %s requires a separate purchase confir
 
 test("Undo preserves the funded wallet and exact selected options", () => {
   render(<PurchaseJourneyPreview initialVersion={2} />);
-  fireEvent.click(screen.getByRole("button", { name: "Choose options · 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Choose offers to complete · 1 selected" }));
   fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
   fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
   fireEvent.click(screen.getByRole("button", { name: "Add $659 to wallet" }));
   fireEvent.click(screen.getByRole("button", { name: "Undo" }));
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.getByRole("button", { name: "Choose options · 1, 3" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Choose offers to complete · 2 selected" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Review $798 purchase" })).toBeTruthy();
   expect(screen.getByText("Nothing purchased. Your wallet and choices are unchanged.")).toBeTruthy();
 });
@@ -72,7 +72,7 @@ test("the quick popup retains decline controls and returns from choosing exact o
   fireEvent.click(screen.getByRole("button", { name: "Add $260 to continue" }));
   const popup = within(screen.getByRole("dialog"));
   fireEvent.click(popup.getByRole("checkbox", { name: /Decline the other 2/ }));
-  fireEvent.click(popup.getByRole("button", { name: "Choose options · 1" }));
+  fireEvent.click(popup.getByRole("button", { name: "Choose offers to complete · 1 selected" }));
   fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
   fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
   expect(screen.getByRole("dialog", { name: "Add funds to continue" })).toBeTruthy();
@@ -83,7 +83,7 @@ test("the quick popup retains decline controls and returns from choosing exact o
 test("closing the exact option picker returns to the original funding amount", () => {
   render(<PurchaseJourneyPreview initialVersion={3} />);
   fireEvent.click(screen.getByRole("button", { name: "Add $260 to continue" }));
-  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Choose options · 1" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Choose offers to complete · 1 selected" }));
   fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
   fireEvent.click(screen.getByRole("button", { name: "Close purchase preview popup" }));
   expect(within(screen.getByRole("dialog", { name: "Add funds to continue" })).getByRole("button", { name: "Add $260 to wallet" })).toBeTruthy();
