@@ -155,24 +155,35 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
     finally { inFlight.current = false; setBusy(false); }
   }
   const feedback = <>{error ? <p className={styles.error} role="alert">{error}</p> : null}{checkRequired ? <div className={styles.twoButtons}><Link className={styles.secondary} href="/account/wallet?view=history#add-funds">Check deposits</Link><Link className={styles.secondary} href="/account/entries?filter=completed">Check My Activity</Link></div> : null}</>;
-  const money = <div className={styles.facts}><div><span>Purchase total</span><strong>{usd(total)}</strong></div><div><span>In your wallet</span><strong>{usd(balance)}</strong></div><div className={shortfall ? styles.shortfall : styles.covered}><strong>{shortfall ? `Please add ${usd(required)} to continue.` : "Your wallet covers this purchase."}</strong></div></div>;
+  const money = (onPage = false) => <div className={styles.facts}><div><span>Purchase total</span><strong>{usd(total)}</strong></div><div><span>In your wallet</span><strong>{usd(balance)}</strong></div>{onPage
+    ? <div className={shortfall ? styles.balanceNeeded : styles.balanceReady}>{shortfall ? <><span>Still needed to continue</span><strong>{usd(required)}</strong></> : <><span aria-hidden="true">✓</span><strong>Your wallet covers this purchase.</strong></>}</div>
+    : <div className={shortfall ? styles.shortfall : styles.covered}><strong>{shortfall ? `Please add ${usd(required)} to continue.` : "Your wallet covers this purchase."}</strong></div>}</div>;
   return <div className={styles.page}><AccountSettingsLandingScroll target="purchase-options-intro" settleAfterNavigation allScreens /><div className={styles.shell}>
     <section id="purchase-options-intro" className={`${styles.ticket} ${styles.content} ${styles.refined}`} aria-label="Your purchase options">
       <h1>Your {options.length} purchase {options.length === 1 ? "option" : "options"}</h1><Product item={item} />
       <div className={styles.quantity}><NumberWheel label="Buying" min={1} max={options.length} value={chosen.length} disabled={locked || overlay !== null} onChange={changeQuantity} /><div><h3>{buyLabel}</h3><p className={styles.credit}>Your <b>{usd(paid)}</b> already paid + <b>{usd(total)}</b> remaining = <b>{usd(face)}</b><small>Your entry {chosen.length === 1 ? "dollar still counts." : "dollars still count toward their own options."}</small></p></div></div>
       {rest ? <fieldset className={styles.offerChoices} disabled={locked}><legend>The other {rest} {rest === 1 ? "offer" : "offers"}</legend><div className={styles.offerTiles}>
-        <button type="button" aria-pressed={decline} onClick={() => updateChoice({ decline: true })}><span className={styles.choiceMark} aria-hidden="true">{decline ? "✓" : ""}</span><span><strong>Decline &amp; remove</strong><small>{rest} {rest === 1 ? "offer" : "offers"}</small></span></button>
-        <button type="button" aria-pressed={!decline} onClick={() => updateChoice({ decline: false })}><span className={styles.choiceMark} aria-hidden="true">{!decline ? "✓" : ""}</span><span><strong>Keep for later</strong><small>In My Activity</small></span></button>
+        <button type="button" aria-pressed={decline} onClick={() => updateChoice({ decline: true })}>
+          <span className={styles.choiceHeading}><span className={styles.choiceMark} aria-hidden="true">{decline ? "✓" : ""}</span><strong>Decline &amp; remove</strong></span>{" "}
+          <span className={styles.choiceCount}><span>Accepting</span>{" "}<b>{chosen.length}</b></span>{" "}
+          <span className={styles.choiceCount}><span>Declining &amp; removing</span>{" "}<b>{rest}</b></span>
+        </button>
+        <button type="button" aria-pressed={!decline} onClick={() => updateChoice({ decline: false })}>
+          <span className={styles.choiceHeading}><span className={styles.choiceMark} aria-hidden="true">{!decline ? "✓" : ""}</span><strong>Keep for later</strong></span>{" "}
+          <span className={styles.choiceCount}><span>Accepting</span>{" "}<b>{chosen.length}</b></span>{" "}
+          <span className={styles.choiceCount}><span>Keeping for later</span>{" "}<b>{rest}</b></span>
+        </button>
       </div><p className={styles.offerHelp}>{selectionSummary}</p></fieldset> : null}
       <div className={styles.optionLine}><span>{usd(item.remainingCents)} per option</span><button type="button" disabled={locked} onClick={() => setOverlay("options")}>Choose offers to complete · {chosen.length} selected</button></div>
-      {money}{needsReview && <p role="status" className={styles.status}>Your available offers changed. Check which offers you want to buy before continuing.</p>}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}
-      <button type="button" className={styles.primary} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : shortfall ? `Add ${usd(required)} to continue` : `Review ${usd(total)} purchase`}</button>
-      {!needsReview && <p className={styles.footnote}>{shortfall ? "Choose a card in the popup. Confirm purchase separately." : "Review and confirm your purchase in the popup."}</p>}
-      <div className={styles.utility}><Link className={styles.activityButton} href="/account/entries?filter=completion">Go to My Activity</Link><Link className={styles.declineAll} href={`/account/purchase-options/${encodeURIComponent(item.slug)}?decline=confirm`}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</Link><Link className={styles.shoppingButton} href="/">Continue shopping</Link><ProductShareButton className={styles.shareButton} product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
+      {money(true)}{needsReview && <p role="status" className={styles.status}>Your available offers changed. Check which offers you want to buy before continuing.</p>}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}
+      <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Review purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Review purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>
+      {!needsReview && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Review first. Confirm your purchase next."}</p>}
+      <div className={styles.utility}><Link href="/account/entries?filter=completion"><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
+      <div className={styles.utilityTools}><Link href={`/account/purchase-options/${encodeURIComponent(item.slug)}?decline=confirm`}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</Link><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
     </div>{overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
       <Product item={item} />
-      {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money}
+      {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}
         <div className={styles.cardChoice}><FundingCardPicker tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); }} /></div>
         {!cards.length ? <Link className={styles.backLink} href={`/account/wallet?view=history&panel=card&from=${item.slug}&entry=${item.entryId}#wallet-card-editor`}>Add a card in your wallet</Link> : null}
         <div className={styles.extraFunds}><div aria-label="Extra funds for later">{[0,25,50].map(value => <button type="button" key={value} disabled={locked} aria-pressed={extra === String(value) || (!extra && value === 0)} onClick={() => { setExtra(value ? String(value) : "");setAcknowledged(false); }}>{value ? `+$${value}` : "Just enough"}</button>)}</div></div>
