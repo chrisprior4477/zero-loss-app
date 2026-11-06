@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import BrowsePage from "./page";
+import ProductRequestPage from "../contact/product-request/page";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 // Full-directory integration renders hundreds of cards in jsdom.
 vi.setConfig({ testTimeout: 20000 });
@@ -103,13 +104,25 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: /\$100 Walmart Gift Card/i })).toBeTruthy();
   });
 
-  test("shows the product-request path when nothing matches", async () => {
-    render(await BrowsePage({ searchParams: Promise.resolve({ q: "kayak" }) }));
+  test.each([
+    { q: "kayak" },
+    { q: "kayak", minValue: "5", maxValue: "25", sort: "value-high", type: "pictured", available: "1", retailer: "Best Buy" },
+  ])("returns from a product request to the same search and filters: %j", async query => {
+    render(await BrowsePage({ searchParams: Promise.resolve(query) }));
 
     expect(screen.getByRole("heading", { name: "We don't have “kayak” in the catalog yet." })).toBeTruthy();
     expect(screen.getByText(/Shopping should never feel like a/i)).toBeTruthy();
     expect(screen.getByText("loss.").className).toContain("text-[#31e800]");
-    expect(screen.getByRole("link", { name: /Tell us what you'd like to see/i }).getAttribute("href")).toBe("/contact/product-request?product=kayak");
+    const request = new URL(screen.getByRole("link", { name: /Tell us what you'd like to see/i }).getAttribute("href")!, "https://example.test");
+    expect(request.pathname).toBe("/contact/product-request");
+    expect(request.searchParams.get("product")).toBe("kayak");
+    cleanup();
+    render(await ProductRequestPage({ searchParams: Promise.resolve(Object.fromEntries(request.searchParams)) }));
+    expect((screen.getByLabelText("What would you like to see?") as HTMLInputElement).value).toBe("kayak");
+    const back = new URL(screen.getByRole("link", { name: /Back to search/ }).getAttribute("href")!, "https://example.test");
+    expect(back.pathname).toBe("/browse");
+    expect(Object.fromEntries(back.searchParams)).toEqual(query);
+    expect(back.hash).toBe("#search-results");
   });
 
   test.each(["auto", "spark plugs"])("takes %s to the Automotive directory from either search box", async query => {

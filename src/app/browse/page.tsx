@@ -67,7 +67,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     || Boolean(selectedRetailerGroup)
     || filters.minValue !== null || filters.maxValue !== null
     || (filters.sort !== "featured" && !(selectedCategory === "ending-soon" && filters.sort === "fewest-left"));
-  const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm })}`;
   const allSearchHref = `/browse?${new URLSearchParams({ q: searchTerm })}`;
   const clearHrefParams = new URLSearchParams();
   if (selectedCategory) clearHrefParams.set("category", selectedCategory);
@@ -81,6 +80,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   }
   if (searchTerm) returnParams.set("q", searchTerm);
   const browseReturnHref = `/browse${returnParams.size ? `?${returnParams}` : ""}`;
+  const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}`;
   const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;
   const groceryOffers = products.filter(product => groceryInspirationOfferSlugs.has(product.slug)).flatMap(product => {
     const { remaining } = availabilityStatus(product.capacity, product.sold);
