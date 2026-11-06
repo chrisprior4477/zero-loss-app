@@ -1,16 +1,69 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ProfilePhotoCard } from "./ProfilePhotoCard";
+import type { CSSProperties } from "react";
 
 const { savePhoto, saveVisibility } = vi.hoisted(() => ({ savePhoto: vi.fn(), saveVisibility: vi.fn() }));
 vi.mock("@/lib/account/actions", () => ({ saveProfilePhoto: savePhoto, saveProfilePhotoVisibility: saveVisibility }));
-vi.mock("next/image", () => ({ default: ({ src }: { src: string }) => <span data-photo-source={src} /> }));
+vi.mock("next/image", () => ({ default: ({ src, style }: { src: string; style?: CSSProperties }) => <span data-photo-source={src} style={style} /> }));
 afterEach(() => {
   cleanup();
   savePhoto.mockClear();
   saveVisibility.mockClear();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   document.body.style.overflow = "";
   document.documentElement.style.overflow = "";
+});
+
+function dragPhoto(preview: HTMLElement, dx: number, dy: number) {
+  Object.defineProperty(preview, "setPointerCapture", { configurable: true, value: vi.fn() });
+  fireEvent(preview, new MouseEvent("pointerdown", { bubbles: true, clientX: 10, clientY: 10 }));
+  fireEvent(preview, new MouseEvent("pointermove", { bubbles: true, clientX: 10 + dx, clientY: 10 + dy }));
+  fireEvent.pointerUp(preview);
+}
+
+test.each([128, 224, 256])("dragging scales correctly in a %ipx crop preview", (width) => {
+  render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
+  fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[1]);
+  const preview = screen.getByLabelText("Photo crop preview");
+  Object.defineProperty(preview, "clientWidth", { configurable: true, value: width });
+  dragPhoto(preview, width / 4, width / 8);
+  const image = preview.querySelector<HTMLElement>("[data-photo-source]")!;
+  expect(image.style.transform).toBe("translate(25%, 12.5%) scale(1)");
+  // Rotation changes only the rendered size, never the selected crop or zoom.
+  fireEvent.change(screen.getByRole("slider"), { target: { value: "1.5" } });
+  Object.defineProperty(preview, "clientWidth", { configurable: true, value: 256 });
+  fireEvent.resize(window);
+  expect(image.style.transform).toBe("translate(25%, 12.5%) scale(1.5)");
+  dragPhoto(preview, 16, 0);
+  expect(image.style.transform).toBe("translate(31.25%, 12.5%) scale(1.5)");
+  expect(savePhoto).not.toHaveBeenCalled();
+});
+
+test("saving after a small-screen drag exports the crop shown in the preview", async () => {
+  vi.stubGlobal("Image", class {
+    src = "";
+    naturalWidth = 1000;
+    naturalHeight = 500;
+    decode = () => Promise.resolve();
+  });
+  const drawImage = vi.fn();
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
+  vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(callback => callback(new Blob(["cropped"], { type: "image/webp" })));
+  savePhoto.mockResolvedValue({ ok: true, publicUrl: "/cropped.webp" });
+  render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
+  const trigger = screen.getAllByRole("button", { name: "Adjust profile photo" })[1];
+  fireEvent.click(trigger);
+  const preview = screen.getByLabelText("Photo crop preview");
+  Object.defineProperty(preview, "clientWidth", { value: 128 });
+  dragPhoto(preview, 32, 16);
+  fireEvent.change(screen.getByRole("slider"), { target: { value: "1.5" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save photo" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(drawImage.mock.calls[0].slice(1)).toEqual([-384, -64, 1536, 768]);
+  expect(savePhoto).toHaveBeenCalledTimes(1);
+  expect(document.activeElement).toBe(trigger);
 });
 
 test.each([0, 1])("Escape closes the editor without saving and restores photo button %i", (index) => {

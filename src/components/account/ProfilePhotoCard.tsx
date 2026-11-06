@@ -1,6 +1,7 @@
 "use client";
 
 import popupStyles from "@/components/layout/responsive-popup.module.css";
+import photoStyles from "./profile-photo.module.css";
 
 import Image from "next/image";
 import { ChangeEvent, MouseEvent, PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -10,6 +11,8 @@ import { saveProfilePhoto, saveProfilePhotoVisibility, type PhotoVisibilitySurfa
 const PHOTO_KEY = "zero-loss-profile-photo";
 const CROP_KEY = "zero-loss-profile-photo-crop";
 const AVATAR_EVENT = "zero-loss-avatar-updated";
+// Keep draft offsets in one coordinate space, independent of the visible editor size.
+const CROP_SIZE = 256;
 
 type Crop = { x: number; y: number; zoom: number };
 const defaultCrop: Crop = { x: 0, y: 0, zoom: 1 };
@@ -22,7 +25,7 @@ function readCrop(): Crop {
   }
 }
 
-function AvatarImage({ photo, crop, offsetScale = 1 }: { photo: string; crop: Crop; offsetScale?: number }) {
+function AvatarImage({ photo, crop }: { photo: string; crop: Crop }) {
   return (
     <Image
       src={photo}
@@ -32,7 +35,7 @@ function AvatarImage({ photo, crop, offsetScale = 1 }: { photo: string; crop: Cr
       draggable={false}
       className="pointer-events-none select-none object-cover"
       style={{
-        transform: `translate(${crop.x * offsetScale}px, ${crop.y * offsetScale}px) scale(${crop.zoom})`,
+        transform: `translate(${crop.x / CROP_SIZE * 100}%, ${crop.y / CROP_SIZE * 100}%) scale(${crop.zoom})`,
       }}
     />
   );
@@ -53,8 +56,8 @@ async function renderCroppedPhoto(photo: string, crop: Crop): Promise<Blob> {
   const scale = Math.max(size / image.naturalWidth, size / image.naturalHeight) * crop.zoom;
   const width = image.naturalWidth * scale;
   const height = image.naturalHeight * scale;
-  const x = (size - width) / 2 + crop.x * 2;
-  const y = (size - height) / 2 + crop.y * 2;
+  const x = (size - width) / 2 + crop.x * size / CROP_SIZE;
+  const y = (size - height) / 2 + crop.y * size / CROP_SIZE;
   context.drawImage(image, x, y, width, height);
 
   return new Promise((resolve, reject) => {
@@ -87,7 +90,7 @@ export function ProfilePhotoCard({
   const editorRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<HTMLInputElement>(null);
   const editorTriggerRef = useRef<HTMLButtonElement>(null);
-  const dragRef = useRef<{ x: number; y: number; cropX: number; cropY: number } | null>(null);
+  const dragRef = useRef<{ x: number; y: number; cropX: number; cropY: number; scale: number } | null>(null);
   const migrationStarted = useRef(false);
   const [photo, setPhoto] = useState<string | null>(initialAvatarUrl);
   const [draftPhoto, setDraftPhoto] = useState<string | null>(null);
@@ -232,6 +235,7 @@ export function ProfilePhotoCard({
       y: event.clientY,
       cropX: draftCrop.x,
       cropY: draftCrop.y,
+      scale: CROP_SIZE / Math.max(1, event.currentTarget.clientWidth),
     };
   }
 
@@ -239,8 +243,8 @@ export function ProfilePhotoCard({
     if (!dragRef.current) return;
     setDraftCrop((current) => ({
       ...current,
-      x: Math.max(-90, Math.min(90, dragRef.current!.cropX + event.clientX - dragRef.current!.x)),
-      y: Math.max(-90, Math.min(90, dragRef.current!.cropY + event.clientY - dragRef.current!.y)),
+      x: Math.max(-90, Math.min(90, dragRef.current!.cropX + (event.clientX - dragRef.current!.x) * dragRef.current!.scale)),
+      y: Math.max(-90, Math.min(90, dragRef.current!.cropY + (event.clientY - dragRef.current!.y) * dragRef.current!.scale)),
     }));
   }
 
@@ -281,7 +285,7 @@ export function ProfilePhotoCard({
             aria-label={photo ? "Adjust profile photo" : "Add profile photo"}
             className={`group relative grid shrink-0 place-items-center overflow-hidden rounded-full border-4 border-cyan-300/25 bg-[#07533f] text-2xl font-black text-[#72ff9f] transition hover:border-cyan-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-cyan-300/40 ${compact ? "h-16 w-16" : "h-24 w-24"}`}
           >
-            {photo ? <AvatarImage photo={photo} crop={crop} offsetScale={compact ? 0.25 : 0.375} /> : initials}
+            {photo ? <AvatarImage photo={photo} crop={crop} /> : initials}
             <span aria-hidden="true" className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-[10px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
               Edit
             </span>
@@ -318,12 +322,15 @@ export function ProfilePhotoCard({
       </article>
 
       {editing && draftPhoto ? createPortal(
-        <div ref={editorRef} className={`${popupStyles.overlay} fixed inset-0 z-[160] grid place-items-center bg-black/75 p-4`} role="dialog" aria-modal="true" aria-labelledby="photo-editor-title">
-          <div className={`${popupStyles.surface} w-full max-w-md rounded-[28px] border border-cyan-300/25 bg-[#052447] p-6 shadow-2xl`}>
-            <h2 id="photo-editor-title" className="text-2xl font-black text-white">Adjust your photo</h2>
-            <p className="mt-2 text-sm text-white/60">Drag to reposition it, then use the slider to resize it.</p>
+        <div ref={editorRef} className={`${popupStyles.overlay} ${photoStyles.overlay} fixed inset-0 z-[160] grid place-items-center bg-black/75 p-4`} role="dialog" aria-modal="true" aria-labelledby="photo-editor-title">
+          <div className={`${popupStyles.surface} ${photoStyles.editorSurface} w-full max-w-md rounded-[28px] border border-cyan-300/25 bg-[#052447] shadow-2xl`}>
+            <div className={photoStyles.heading}>
+              <h2 id="photo-editor-title" className="text-2xl font-black text-white">Adjust your photo</h2>
+              <p className="mt-2 text-sm text-white/60">Drag to reposition it, then use the slider to resize it.</p>
+            </div>
             <div
-              className="relative mx-auto mt-6 h-64 w-64 touch-none cursor-move overflow-hidden rounded-full border-4 border-cyan-300 bg-[#00132e]"
+              className={`${photoStyles.cropArea} relative touch-none cursor-move overflow-hidden rounded-full border-4 border-cyan-300 bg-[#00132e]`}
+              aria-label="Photo crop preview"
               onPointerDown={beginDrag}
               onPointerMove={movePhoto}
               onPointerUp={() => { dragRef.current = null; }}
@@ -332,32 +339,36 @@ export function ProfilePhotoCard({
               <AvatarImage photo={draftPhoto} crop={draftCrop} />
               <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0_0_0_1px_rgba(255,255,255,.35)]" />
             </div>
-            <label htmlFor="profile-photo-zoom" className="mt-6 block text-sm font-bold text-white">
-              Photo size
-            </label>
-            <input
-              ref={zoomRef}
-              id="profile-photo-zoom"
-              type="range"
-              min="1"
-              max="3"
-              step="0.05"
-              value={draftCrop.zoom}
-              onChange={(event) => setDraftCrop((current) => ({ ...current, zoom: Number(event.target.value) }))}
-              className="mt-3 w-full accent-cyan-300"
-            />
-            {error ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => setEditing(false)} className="min-h-12 rounded-xl border border-white/20 text-sm font-bold text-white hover:bg-white/8">
-                Cancel
-              </button>
-              <button type="button" disabled={saving} onClick={savePhoto} className="min-h-12 rounded-xl bg-[#31e800] text-sm font-black text-[#002719] hover:bg-[#72ff4e] disabled:cursor-wait disabled:opacity-60">
-                {saving ? "Saving…" : "Save photo"}
+            <div className={photoStyles.controls}>
+              <label htmlFor="profile-photo-zoom" className="block text-sm font-bold text-white">
+                Photo size
+              </label>
+              <input
+                ref={zoomRef}
+                id="profile-photo-zoom"
+                type="range"
+                min="1"
+                max="3"
+                step="0.05"
+                value={draftCrop.zoom}
+                onChange={(event) => setDraftCrop((current) => ({ ...current, zoom: Number(event.target.value) }))}
+                className="mt-2 block min-h-6 w-full accent-cyan-300"
+              />
+              {error ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
+            </div>
+            <div className={photoStyles.actions}>
+              <div className="grid grid-cols-2 gap-3">
+                <button type="button" onClick={() => setEditing(false)} className="min-h-12 rounded-xl border border-white/20 text-sm font-bold text-white hover:bg-white/8">
+                  Cancel
+                </button>
+                <button type="button" disabled={saving} onClick={savePhoto} className="min-h-12 rounded-xl bg-[#31e800] text-sm font-black text-[#002719] hover:bg-[#72ff4e] disabled:cursor-wait disabled:opacity-60">
+                  {saving ? "Saving…" : "Save photo"}
+                </button>
+              </div>
+              <button type="button" onClick={() => inputRef.current?.click()} className="mt-2 min-h-11 w-full text-sm font-bold text-cyan-300 hover:text-cyan-100">
+                Choose a different photo
               </button>
             </div>
-            <button type="button" onClick={() => inputRef.current?.click()} className="mt-4 w-full text-sm font-bold text-cyan-300 hover:text-cyan-100">
-              Choose a different photo
-            </button>
           </div>
         </div>,
         document.body,

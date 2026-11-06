@@ -1,0 +1,66 @@
+.editorSurface.editorSurface.editorSurface {
+  --photo-controls-height: 340px;
+  display: grid;
+  grid-template-areas: "heading" "crop" "controls" "actions";
+  gap: 16px;
+  min-width: 0;
+  padding: 24px;
+}
+
+.heading { grid-area: heading; min-width: 0; }
+.controls { grid-area: controls; min-width: 0; }
+.actions { grid-area: actions; min-width: 0; }
+
+.cropArea {
+  grid-area: crop;
+  justify-self: center;
+  align-self: center;
+  width: min(256px, 100%, max(112px, calc(var(--popup-max-height) - var(--photo-controls-height))));
+  aspect-ratio: 1;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .editorSurface.editorSurface.editorSurface {
+    --photo-controls-height: 300px;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .heading h2 { font-size: 22px; line-height: 1.2; }
+}
+
+/* Short screens need the full height; the dimmed header stays behind the editor. */
+@media (max-height: 700px) {
+  .overlay.overlay.overlay {
+    --popup-max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding-block: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-bottom));
+    align-items: center;
+  }
+}
+
+@media (max-height: 500px) and (min-width: 480px) {
+  .overlay.overlay.overlay {
+    --popup-max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: max(8px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    align-items: center;
+  }
+
+  .editorSurface.editorSurface.editorSurface {
+    grid-template-areas: "heading heading" "crop controls" "crop actions";
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: 12px 20px;
+    max-width: 720px;
+    padding: 16px;
+  }
+
+  .heading h2 { font-size: 22px; line-height: 1.2; }
+  .heading p { margin-top: 4px; }
+  .cropArea {
+    width: min(
+      256px,
+      100%,
+      max(112px, calc(var(--popup-max-height) - 110px))
+    );
+  }
+}
