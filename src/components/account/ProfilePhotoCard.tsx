@@ -3,7 +3,7 @@
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 import Image from "next/image";
-import { ChangeEvent, PointerEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, MouseEvent, PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { saveProfilePhoto, saveProfilePhotoVisibility, type PhotoVisibilitySurface } from "@/lib/account/actions";
 
@@ -84,6 +84,9 @@ export function ProfilePhotoCard({
   initialVisibility?: { menu: boolean; crew: boolean };
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef<HTMLInputElement>(null);
+  const editorTriggerRef = useRef<HTMLButtonElement>(null);
   const dragRef = useRef<{ x: number; y: number; cropX: number; cropY: number } | null>(null);
   const migrationStarted = useRef(false);
   const [photo, setPhoto] = useState<string | null>(initialAvatarUrl);
@@ -97,6 +100,56 @@ export function ProfilePhotoCard({
   const [crewVisible, setCrewVisible] = useState(initialVisibility?.crew ?? true);
   const [savingVisibility, setSavingVisibility] = useState(false);
   const [visibilityMessage, setVisibilityMessage] = useState<{ error: boolean; text: string } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!editing) return;
+    const editor = editorRef.current;
+    if (!editor) return;
+    // Remember the clicked button before a file chooser can move focus elsewhere.
+    const trigger = editorTriggerRef.current;
+    const bodyOverflow = document.body.style.overflow;
+    const rootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    zoomRef.current?.focus({ preventScroll: true });
+
+    const keepFocusInside = (event: FocusEvent) => {
+      if (event.target instanceof Node && !editor.contains(event.target)) {
+        zoomRef.current?.focus({ preventScroll: true });
+      }
+    };
+    const handleKeys = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        setEditing(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = Array.from(editor.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]',
+      )).filter(control => control.tabIndex >= 0 && !control.hidden);
+      const first = controls[0];
+      const last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("focusin", keepFocusInside);
+    document.addEventListener("keydown", handleKeys);
+    return () => {
+      document.removeEventListener("focusin", keepFocusInside);
+      document.removeEventListener("keydown", handleKeys);
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = rootOverflow;
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    };
+  }, [editing]);
 
   async function changeVisibility(surface: PhotoVisibilitySurface, enabled: boolean) {
     const previous = surface === "menu" ? menuVisible : crewVisible;
@@ -207,7 +260,8 @@ export function ProfilePhotoCard({
     }
   }
 
-  function openEditor() {
+  function openEditor(event: MouseEvent<HTMLButtonElement>) {
+    editorTriggerRef.current = event.currentTarget;
     if (!photo) {
       inputRef.current?.click();
       return;
@@ -238,7 +292,7 @@ export function ProfilePhotoCard({
               <p className={`break-all text-white/60 ${compact ? "text-xs" : "text-sm"}`}>{email}</p>
               {emailStatus ? <span data-status={emailStatus} className={`inline-flex items-center gap-1 text-[11px] font-bold ${emailStatus === "verified" ? "text-[#63ff7d]" : "text-amber-300"}`}><span aria-hidden="true" className={`grid h-4 w-4 place-items-center rounded-full text-[10px] text-white ${emailStatus === "verified" ? "bg-[#07883c]" : "bg-amber-600"}`}>{emailStatus === "verified" ? "✓" : "!"}</span>{emailStatus === "verified" ? "Verified" : "Confirmation pending"}</span> : null}
             </div>
-            <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={choosePhoto} className="sr-only" aria-label="Choose a profile photo" />
+            <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={choosePhoto} tabIndex={-1} className="sr-only" aria-label="Choose a profile photo" />
             <button type="button" onClick={openEditor} className={`inline-flex min-h-11 items-center rounded-full border border-cyan-300/40 bg-cyan-300/10 px-4 text-sm font-bold text-cyan-200 transition hover:bg-cyan-300 hover:text-[#00132e] ${compact ? "mt-2" : "mt-4"}`}>
               {photo ? "Adjust profile photo" : "Add profile photo"}
             </button>
@@ -260,11 +314,11 @@ export function ProfilePhotoCard({
         {!compact ? <p className="mt-5 border-t border-white/10 pt-4 text-sm leading-6 text-white/50">
           Your saved photo follows your account across devices. Choose where to show it in Profile settings.
         </p> : null}
-        {error ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
+        {error && !editing ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
       </article>
 
       {editing && draftPhoto ? createPortal(
-        <div className={`${popupStyles.overlay} fixed inset-0 z-[160] grid place-items-center bg-black/75 p-4`} role="dialog" aria-modal="true" aria-labelledby="photo-editor-title">
+        <div ref={editorRef} className={`${popupStyles.overlay} fixed inset-0 z-[160] grid place-items-center bg-black/75 p-4`} role="dialog" aria-modal="true" aria-labelledby="photo-editor-title">
           <div className={`${popupStyles.surface} w-full max-w-md rounded-[28px] border border-cyan-300/25 bg-[#052447] p-6 shadow-2xl`}>
             <h2 id="photo-editor-title" className="text-2xl font-black text-white">Adjust your photo</h2>
             <p className="mt-2 text-sm text-white/60">Drag to reposition it, then use the slider to resize it.</p>
@@ -282,6 +336,7 @@ export function ProfilePhotoCard({
               Photo size
             </label>
             <input
+              ref={zoomRef}
               id="profile-photo-zoom"
               type="range"
               min="1"
@@ -291,6 +346,7 @@ export function ProfilePhotoCard({
               onChange={(event) => setDraftCrop((current) => ({ ...current, zoom: Number(event.target.value) }))}
               className="mt-3 w-full accent-cyan-300"
             />
+            {error ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button type="button" onClick={() => setEditing(false)} className="min-h-12 rounded-xl border border-white/20 text-sm font-bold text-white hover:bg-white/8">
                 Cancel
