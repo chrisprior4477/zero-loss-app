@@ -131,6 +131,15 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
     setSize(fallbackSize);
   }, [fallbackSize]);
 
+  // Expanding lists have variable-size batches; keep their exact loaded range.
+  const restoreRange = useCallback((nextStart: number, nextSize: number) => {
+    moveToStart.current = false;
+    measuredLimit.current.start = -1;
+    setOrigin(0);
+    setStart(Math.max(0, nextStart));
+    setSize(Math.max(1, nextSize));
+  }, []);
+
   // A link to the current page can be a hash-only navigation with no remount.
   useEffect(() => {
     if (!start) return;
@@ -146,5 +155,5 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
     document.addEventListener("click", onNavigate, true);
     return () => document.removeEventListener("click", onNavigate, true);
   }, [start, reset]);
-  return { list, origin: mode === "pages" ? start : origin, end, remaining: total - end, expanded: start > 0, more, previousPage: mode === "pages" ? previousPage : undefined, reset, restore };
+  return { list, origin: mode === "pages" ? start : origin, start, size, end, remaining: total - end, expanded: start > 0, more, previousPage: mode === "pages" ? previousPage : undefined, reset, restore, restoreRange };
 }

@@ -8,14 +8,18 @@ import type { NotificationGroup } from "@/lib/account/notification-groups";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./notifications.module.css";
 
-export function NotificationStack({ group, read, categoryLabel, onOpen, children }: {
+export function NotificationStack({ group, read, categoryLabel, onOpen, children, expanded: controlledExpanded, onExpandedChange }: {
   group: NotificationGroup;
   read: ReadonlySet<string>;
   categoryLabel: string;
   onOpen: (event: MouseEvent<HTMLAnchorElement>, notification: AccountNotification) => void;
   children?: ReactNode;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? localExpanded;
+  const setExpanded = onExpandedChange ?? setLocalExpanded;
   const notification = group.notifications[0];
   const count = group.notifications.length;
   const stacked = count > 1;
@@ -42,15 +46,15 @@ export function NotificationStack({ group, read, categoryLabel, onOpen, children
       </div>
       <div className={styles.bottom}>
         <div className={styles.details}><strong>{categoryLabel}</strong><span>{notification.meta}</span></div>
-        {stacked ? <button type="button" className={styles.rowAction} aria-expanded={expanded} aria-controls={entriesId} aria-label={expanded ? `Collapse entries for ${title}` : `See all ${count} entries for ${title}`} onClick={() => setExpanded(current => !current)}>
+        {stacked ? <button type="button" className={styles.rowAction} aria-expanded={expanded} aria-controls={entriesId} aria-label={expanded ? `Collapse entries for ${title}` : `See all ${count} entries for ${title}`} onClick={() => setExpanded(!expanded)}>
           {expanded ? "Collapse" : `See all ${count}`}<AccountIcon name={expanded ? "chevron" : "arrow"} className={expanded ? styles.collapseIcon : undefined} />
-        </button> : <Link href={notification.href} className={styles.rowAction} onClick={event => onOpen(event, notification)}>{openEntry ? "See entry" : notification.action}<AccountIcon name="arrow" /></Link>}
+        </button> : <Link id={`notification-link-${encodeURIComponent(notification.id)}`} href={notification.href} className={styles.rowAction} onClick={event => onOpen(event, notification)}>{openEntry ? "See entry" : notification.action}<AccountIcon name="arrow" /></Link>}
       </div>
       {stacked && expanded ? <ol id={entriesId} className={styles.entryList} aria-label={`Entries for ${title}`}>
         {group.notifications.map((item, index) => <li key={item.id} data-read={read.has(item.id)}>
           <span className={styles.entryNumber} aria-hidden="true">{index + 1}</span>
           <div className={styles.entryCopy}><strong>Entry {index + 1}</strong><span>{item.body}</span><small>{item.meta}</small></div>
-          <Link href={item.href} className={styles.entryLink} aria-label={`See entry ${index + 1} for ${title}`} onClick={event => onOpen(event, item)}>See entry<AccountIcon name="arrow" /></Link>
+          <Link id={`notification-link-${encodeURIComponent(item.id)}`} href={item.href} className={styles.entryLink} aria-label={`See entry ${index + 1} for ${title}`} onClick={event => onOpen(event, item)}>See entry<AccountIcon name="arrow" /></Link>
         </li>)}
       </ol> : null}
     </article>

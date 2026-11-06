@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition, type MouseEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type MouseEvent } from "react";
 import { respondToCrewRequest } from "@/lib/crew/actions";
 import { markNotificationsRead } from "@/lib/account/notification-read-actions";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
@@ -17,6 +17,7 @@ import { CrewWinEmailPreference } from "./CrewWinEmailPreference";
 import { InAppAlertPreferences } from "./InAppAlertPreferences";
 import { NotificationStack } from "./NotificationStack";
 import { groupNotifications } from "@/lib/account/notification-groups";
+import { notificationReturnKey, readNotificationReturn, type NotificationReturn } from "@/lib/account/notification-return";
 import stripStyles from "./account-status-strip.module.css";
 import { notificationIsEnabled, type AccountNotification, type NotificationCategory, type NotificationPreferenceKey, type NotificationPreferences } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
@@ -38,8 +39,9 @@ const filters = [
 
 type NotificationOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function NotificationsCenter({ supportEnabled = true, notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable, initialAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ userId, supportEnabled = true, notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable, initialAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [alertPreferences, setAlertPreferences] = useState<NotificationPreferences>(initialAlertPreferences ?? {});
   const router = useRouter();
   const [responding, startTransition] = useTransition();
@@ -57,6 +59,65 @@ export function NotificationsCenter({ supportEnabled = true, notifications, init
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter((item) => item.status === "completion").length;
+  const restoreRange = batches.restoreRange;
+
+  useLayoutEffect(() => {
+    if (!userId) return;
+    let firstFrame = 0;
+    let secondFrame = 0;
+    let interrupted = false;
+    const timers: number[] = [];
+    function cancelScroll() {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+      timers.splice(0).forEach(timer => window.clearTimeout(timer));
+    }
+    function interrupt() { interrupted = true; cancelScroll(); }
+    function restoreView() {
+      const saved = readNotificationReturn(window.history.state, userId!, window.location.href);
+      if (!saved) return;
+      setFilter(saved.filter);
+      setExpandedGroups(saved.expandedGroups);
+      restoreRange(saved.start, saved.size);
+      cancelScroll();
+      interrupted = false;
+      const align = () => {
+        if (interrupted || window.location.href !== saved.href) return;
+        cancelAnimationFrame(firstFrame);
+        cancelAnimationFrame(secondFrame);
+        firstFrame = requestAnimationFrame(() => {
+          secondFrame = requestAnimationFrame(() => {
+            if (interrupted || window.location.href !== saved.href) return;
+            const list = listRef.current;
+            if (list) list.scrollTop = saved.listScrollTop;
+            const link = document.getElementById(saved.linkId);
+            const top = link && list?.contains(link) ? window.scrollY + link.getBoundingClientRect().top - saved.linkTop : saved.scrollY;
+            window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+          });
+        });
+      };
+      align();
+      // Back navigation and the sticky header can settle after the first paint.
+      // Never keep correcting position once the customer starts interacting.
+      for (const delay of [150, 400, 900]) timers.push(window.setTimeout(align, delay));
+    }
+    restoreView();
+    window.addEventListener("popstate", restoreView);
+    window.addEventListener("pageshow", restoreView);
+    window.addEventListener("pointerdown", interrupt, { passive: true });
+    window.addEventListener("touchstart", interrupt, { passive: true });
+    window.addEventListener("wheel", interrupt, { passive: true });
+    window.addEventListener("keydown", interrupt);
+    return () => {
+      cancelScroll();
+      window.removeEventListener("popstate", restoreView);
+      window.removeEventListener("pageshow", restoreView);
+      window.removeEventListener("pointerdown", interrupt);
+      window.removeEventListener("touchstart", interrupt);
+      window.removeEventListener("wheel", interrupt);
+      window.removeEventListener("keydown", interrupt);
+    };
+  }, [userId, restoreRange, listRef]);
 
   useEffect(() => () => {
     if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
@@ -116,14 +177,23 @@ export function NotificationsCenter({ supportEnabled = true, notifications, init
   }
 
   function handleNotificationClick(event: MouseEvent<HTMLAnchorElement>, notification: AccountNotification) {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
-      || !readAvailable || read.has(notification.id)) return;
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (userId) {
+      const saved: NotificationReturn = {
+        userId, href: window.location.href, filter, start: batches.start, size: batches.size, expandedGroups,
+        scrollY: window.scrollY, listScrollTop: listRef.current?.scrollTop ?? 0,
+        linkId: event.currentTarget.id, linkTop: event.currentTarget.getBoundingClientRect().top,
+      };
+      // Preserve Next's state and the exact destination without another Back step.
+      window.history.replaceState({ ...window.history.state, [notificationReturnKey]: saved }, "");
+    }
+    if (!readAvailable || read.has(notification.id)) return;
     event.preventDefault();
     openNotification(notification);
   }
 
   return <div className={styles.page}>
-    <NotificationsLandingScroll />
+    <NotificationsLandingScroll userId={userId} />
     <div className={styles.pageContent}>
       {overview ? <div className={stripStyles.row} aria-label="Your account overview">
         <StatusTicket variant="wallet" size="top" label="Playable Wallet" value={overview.balanceLabel} action="Add funds" href={walletHistoryHref} actionHref={overview.fundingEnabled ? `${walletHistoryHref}#add-funds` : undefined} actionDisabled={!overview.fundingEnabled} />
@@ -161,7 +231,8 @@ export function NotificationsCenter({ supportEnabled = true, notifications, init
             <p>New verified updates will appear here automatically.</p>
           </div> : <div id="notification-tickets" ref={listRef} tabIndex={-1} className={`${styles.list} ${batchStyles.rows}`}>{groups.slice(0, batches.end).map(group => {
             const notification = group.notifications[0];
-            return <NotificationStack key={group.key} group={group} read={read} categoryLabel={filters.find(([key]) => key === notification.category)?.[1] ?? ""} onOpen={handleNotificationClick}>
+            return <NotificationStack key={group.key} group={group} read={read} categoryLabel={filters.find(([key]) => key === notification.category)?.[1] ?? ""} onOpen={handleNotificationClick}
+              expanded={expandedGroups.includes(group.key)} onExpandedChange={expanded => setExpandedGroups(current => expanded ? [...current, group.key] : current.filter(key => key !== group.key))}>
               {notification.crewRequestId ? <div className={styles.crewActions}>
                 <button type="button" disabled={responding} onClick={() => startTransition(async () => { const result = await respondToCrewRequest(notification.crewRequestId!, true); setCrewMessage(result.message); if (result.ok) router.refresh(); })}>Approve</button>
                 <button type="button" disabled={responding} onClick={() => startTransition(async () => { const result = await respondToCrewRequest(notification.crewRequestId!, false); setCrewMessage(result.message); if (result.ok) router.refresh(); })}>Decline</button>

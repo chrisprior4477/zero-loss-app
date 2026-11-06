@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { readNotificationReturn } from "@/lib/account/notification-return";
 
 /** Mobile menu visits begin at Notifications, not the account overview above it. */
-export function NotificationsLandingScroll() {
+export function NotificationsLandingScroll({ userId }: { userId?: string }) {
   useEffect(() => {
     let firstFrame = 0;
     let secondFrame = 0;
@@ -26,7 +27,8 @@ export function NotificationsLandingScroll() {
         secondFrame = window.requestAnimationFrame(() => {
           const headerBottom = measure();
           // Do not override Alert settings or another explicit destination.
-          if (!heading || !window.matchMedia?.("(max-width: 767px)").matches
+          if ((userId && readNotificationReturn(window.history.state, userId, window.location.href))
+            || !heading || !window.matchMedia?.("(max-width: 767px)").matches
             || (window.location.hash && window.location.hash !== "#notifications-intro")) return;
           window.scrollTo({
             top: Math.max(0, window.scrollY + heading.getBoundingClientRect().top - headerBottom - 12),
@@ -47,6 +49,6 @@ export function NotificationsLandingScroll() {
       window.removeEventListener("resize", measure);
       container?.style.removeProperty("--notifications-header-height");
     };
-  }, []);
+  }, [userId]);
   return null;
 }
