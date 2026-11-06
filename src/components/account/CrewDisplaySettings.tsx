@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { saveCrewDisplaySettings, saveCrewGroup } from "@/lib/crew/actions";
-import { type CrewAudience, type CrewVisibilityGroup, type CrewVisibilityRule } from "@/lib/crew/visibility";
+import { type CrewAudience, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "@/lib/crew/visibility";
 import styles from "./crew-display-settings.module.css";
 import { CrewGroupContacts } from "./CrewGroupContacts";
 import { CrewGroupRemovalCountdown } from "./CrewGroupRemovalCountdown";
@@ -67,6 +67,8 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
   const [defaultRule, setDefaultRule] = useState<CrewVisibilityRule>(initialDefaultRule);
   const [groups, setGroups] = useState<CrewVisibilityGroup[]>(initialGroups);
   const [entryRules, setEntryRules] = useState<Record<string, CrewVisibilityRule>>(initialEntryRules);
+  // Keep the baseline paired with this draft, even when a soft refresh supplies newer props.
+  const baseline = useRef<CrewDisplaySnapshot>({ discoverable: initialDiscoverable, discovery: initialDiscovery ?? { real: true, email: true, phone: true }, defaultRule: initialDefaultRule, groups: initialGroups, entryRules: initialEntryRules });
   const [newGroupName, setNewGroupName] = useState("");
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [removingGroupId, setRemovingGroupId] = useState<string | null>(null);
@@ -199,11 +201,15 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     const problem = validate();
     if (problem) { setMessage(problem); setSaved(false); return; }
     startTransition(async () => {
-      const result = await saveCrewDisplaySettings({ discoverable, discovery, defaultRule, groups, entryRules }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again." }));
+      const result = await saveCrewDisplaySettings({ discoverable, discovery, defaultRule, groups, entryRules, expected: baseline.current }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again.", settings: undefined }));
       setMessage(result.message);
       setSaved(result.ok);
       if (result.ok) {
-        setPersistedGroupIds(new Set(groups.map((group) => group.id)));
+        const latest = result.settings ?? { discoverable, discovery, defaultRule, groups, entryRules };
+        baseline.current = latest;
+        setDiscoverable(latest.discoverable); setDiscovery(latest.discovery);
+        setDefaultRule(latest.defaultRule); setGroups(latest.groups); setEntryRules(latest.entryRules);
+        setPersistedGroupIds(new Set(latest.groups.map((group) => group.id)));
         router.refresh();
       }
     });

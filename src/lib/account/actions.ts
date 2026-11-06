@@ -126,20 +126,31 @@ export async function saveProfilePhoto(formData: FormData): Promise<SaveProfileP
     return { ok: false, message: "Your session expired. Sign in again before saving your photo." };
   }
 
-  const reference = `${user.id}/avatar.webp`;
+  // Never overwrite the file currently referenced by the profile.
+  const reference = `${user.id}/avatar-${crypto.randomUUID()}.webp`;
   const { error: uploadError } = await supabase.storage
     .from("profile-photos")
-    .upload(reference, photo, { contentType: "image/webp", upsert: true });
+    .upload(reference, photo, { contentType: photo.type, upsert: false });
   if (uploadError) {
     return { ok: false, message: `Photo upload failed: ${uploadError.message}` };
   }
 
-  const { error: profileError } = await supabase.rpc("update_customer_profile_preferences", {
-    p_updates: { avatar_reference: reference },
-  });
+  let profileError;
+  try {
+    ({ error: profileError } = await supabase.rpc("update_customer_profile_preferences", {
+      p_updates: { avatar_reference: reference },
+    }));
+  } catch {
+    // A lost response may follow a successful commit. Retain the new file as well.
+    return { ok: false, message: "Couldn’t confirm the photo update. Refresh your profile to check before trying again." };
+  }
   if (profileError) {
-    await supabase.storage.from("profile-photos").remove([reference]);
-    return { ok: false, message: `Photo saved, but the profile could not be updated: ${profileError.message}` };
+    if (!/^[0-9A-Z]{5}$/.test(profileError.code ?? "")) {
+      return { ok: false, message: "Couldn’t confirm the photo update. Refresh your profile to check before trying again." };
+    }
+    // Only this attempt's unique upload is disposable; previous photos stay intact.
+    await supabase.storage.from("profile-photos").remove([reference]).catch(() => undefined);
+    return { ok: false, message: "Your photo could not be updated. Your previous photo is unchanged. Please try again." };
   }
 
   revalidatePath("/account/entries");

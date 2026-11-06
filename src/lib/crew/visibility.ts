@@ -3,6 +3,14 @@ export type CrewVisibilityRule = { audience: CrewAudience; memberIds: string[]; 
 export type CrewGroupContact = { id: string; name: string; phone: string; email: string };
 export type CrewVisibilityGroup = { id: string; name: string; memberIds: string[]; contacts?: CrewGroupContact[] };
 
+export type CrewDisplaySnapshot = {
+  discoverable: boolean;
+  discovery: { real: boolean; email: boolean; phone: boolean };
+  defaultRule: CrewVisibilityRule;
+  groups: CrewVisibilityGroup[];
+  entryRules: Record<string, CrewVisibilityRule>;
+};
+
 export const defaultCrewVisibilityRule: CrewVisibilityRule = {
   audience: "everyone", memberIds: [], groupIds: [],
 };

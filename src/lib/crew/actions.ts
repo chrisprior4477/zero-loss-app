@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, type CrewVisibilityGroup, type CrewVisibilityRule } from "./visibility";
+import { crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "./visibility";
 import { crewMemberContacts, isCrewMemberContact, type CrewMemberContact } from "./member-contact";
 
 type CrewActionResult = { ok: boolean; message: string };
@@ -116,7 +116,8 @@ export async function saveCrewDisplaySettings(input: {
   defaultRule: CrewVisibilityRule;
   groups: CrewVisibilityGroup[];
   entryRules: Record<string, CrewVisibilityRule>;
-}): Promise<CrewActionResult> {
+  expected: CrewDisplaySnapshot;
+}): Promise<CrewActionResult & { settings?: CrewDisplaySnapshot }> {
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to save your Crew sharing settings." };
   if (!input || (input.discovery && ![input.discovery.real, input.discovery.email, input.discovery.phone].every(value => typeof value === "boolean")) || typeof input.discoverable !== "boolean" || !isCrewVisibilityRule(input.defaultRule)
@@ -130,16 +131,21 @@ export async function saveCrewDisplaySettings(input: {
   if (new Set(names).size !== names.length || new Set(input.groups.map((group) => group.id)).size !== input.groups.length) {
     return { ok: false, message: "Give every group a different name." };
   }
-  const { error } = await session.db.rpc("save_crew_display_preferences", {
-    p_default_rule: { audience: input.defaultRule.audience, memberIds: input.defaultRule.memberIds, groupIds: input.defaultRule.groupIds },
-    p_groups: input.groups.map((group) => ({ id: group.id, name: group.name.trim(), memberIds: group.memberIds, contacts: group.contacts ?? [] })),
-    p_entry_rules: Object.fromEntries(Object.entries(input.entryRules).map(([id, rule]) => [id, { audience: rule.audience, memberIds: rule.memberIds, groupIds: rule.groupIds }])),
-    p_discoverable: input.discoverable,
-    p_real: input.discovery?.real ?? true, p_email: input.discovery?.email ?? true, p_phone: input.discovery?.phone ?? true,
+  if (!input.expected) return { ok: false, message: "Refresh this page before saving your Crew settings." };
+  const { data, error } = await session.db.rpc("patch_crew_display_preferences", {
+    p_expected: input.expected,
+    p_desired: {
+      discoverable: input.discoverable,
+      discovery: input.discovery ?? { real: true, email: true, phone: true },
+      defaultRule: input.defaultRule,
+      groups: input.groups.map(group => ({ ...group, name: group.name.trim(), contacts: group.contacts ?? [] })),
+      entryRules: input.entryRules,
+    },
   });
+  if (error?.code === "40001") return { ok: false, message: "These settings changed in another tab. Refresh this page and review the latest choices before saving. Your newer groups and sharing choices are safe." };
   if (error) return { ok: false, message: "We couldn’t save those settings. Check that each person is still in your approved Crew, then try again." };
   refreshCrew();
-  return { ok: true, message: "Saved to your profile. Your search visibility and pick audiences are updated." };
+  return { ok: true, message: "Saved to your profile. Your search visibility and pick audiences are updated.", settings: data as CrewDisplaySnapshot };
 }
 
 /** Save just one group, leaving other visibility edits for the main Save to profile action. */

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { openEntriesHref, walletHistoryHref, type AccountActivity } from "@/lib/account/activity";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { DrawerOverview } from "@/components/account/DrawerOverview";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { EntryTicket } from "@/components/layout/EntryTicket";
@@ -68,6 +68,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
   const [moreOpen, setMoreOpen] = useState(!isSignedIn);
   const [currentWalletHref, setCurrentWalletHref] = useState<string | null>(null);
   const pathname = usePathname();
+  const search = useSearchParams().toString();
   const walletFunding = useWalletFundingContext();
   const walletHref = walletFunding?.href ?? (currentWalletHref ? `${currentWalletHref}#balance` : walletHistoryHref);
   const [accountPath, setAccountPath] = useState<"pleasure" | "business">("pleasure");
@@ -78,6 +79,12 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const profileShortcut = useAccountProfileShortcut(isSignedIn && !onPreviewOpen);
+
+  useEffect(() => {
+    // Includes browser Back/Forward and query-only navigation.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpen(false);
+  }, [pathname, search]);
 
   useEffect(() => {
     const updateAvatar = (event: Event) => {

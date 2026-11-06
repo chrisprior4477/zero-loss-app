@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), acknowledge: vi.fn(), refresh: vi.fn(), replace: vi.fn(), path: "/items/test-prize" }));
-vi.mock("next/navigation", () => ({ usePathname: () => mocks.path, useRouter: () => ({ refresh: mocks.refresh, replace: mocks.replace }) }));
+const mocks = vi.hoisted(() => ({ list: vi.fn(), resolve: vi.fn(), acknowledge: vi.fn(), refresh: vi.fn(), replace: vi.fn(), path: "/items/test-prize", search: "" }));
+vi.mock("next/navigation", () => ({ usePathname: () => mocks.path, useSearchParams: () => new URLSearchParams(mocks.search), useRouter: () => ({ refresh: mocks.refresh, replace: mocks.replace }) }));
 vi.mock("@/lib/entries/actions", () => ({ listPendingEntryRequests: mocks.list, resolvePendingEntryRequest: mocks.resolve, acknowledgeEntryReceipt: mocks.acknowledge }));
 vi.mock("@/lib/sharing/actions", () => ({ getProductShareItem: async () => null }));
 import { PRODUCT_SHARE_EVENT, shareDismissalKey } from "@/lib/sharing/product-share";
@@ -12,13 +12,43 @@ const PendingEntryNotice = ({ accountId = "test" }: { accountId?: string }) => <
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 const request: EntryRequest = { requestId: "41414141-4141-4141-8141-414141414141", slug: "test-prize", title: "Test prize", quantity: 3, amountCents: 300, status: "pending", duplicate: false, undoUntil: "2026-09-21T12:00:30Z", serverNow: "2026-09-21T12:00:00Z", href: null };
 beforeEach(() => {
-  vi.resetAllMocks(); mocks.path = "/items/test-prize"; sessionStorage.clear(); mocks.list.mockResolvedValue({ requests: [] }); mocks.acknowledge.mockResolvedValue({});
+  vi.resetAllMocks(); mocks.path = "/items/test-prize"; mocks.search = ""; sessionStorage.clear(); mocks.list.mockResolvedValue({ requests: [] }); mocks.acknowledge.mockResolvedValue({});
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.show = function () { this.setAttribute("open", ""); };
   HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+test.each(["page", "query"])("manual Share closes on %s navigation without muting future sharing", async kind => {
+  const view = render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  const open = () => window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: { slug: request.slug, title: request.title } }));
+  act(open);
+  expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
+  if (kind === "page") mocks.path = "/account/wallet";
+  else mocks.search = "entry=another-entry";
+  view.rerender(<PendingEntryNotice />);
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
+  act(open);
+  expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
+});
+
+test("automatic sharing survives its entry handoff but closes when Back leaves that entry", async () => {
+  const view = render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => {
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, status: "accepted", href: "/account/entries?entry=confirmed" } }));
+  });
+  expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
+  mocks.path = "/account/entries"; mocks.search = "entry=confirmed";
+  view.rerender(<PendingEntryNotice />);
+  expect(screen.getByRole("heading", { name: "Share this find" })).toBeTruthy();
+  mocks.path = "/items/test-prize"; mocks.search = "";
+  view.rerender(<PendingEntryNotice />);
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
+});
 
 test("does not render either the countdown or View entry toast", async () => {
   mocks.list.mockResolvedValue({ requests: [request] });

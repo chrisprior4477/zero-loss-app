@@ -12,6 +12,19 @@ const first = "11111111-1111-4111-8111-111111111111";
 const second = "22222222-2222-4222-8222-222222222222";
 const pick = "33333333-3333-4333-8333-333333333333";
 
+test("an older draft retains its original baseline and adopts merged groups after saving", async () => {
+  const initial = { available: true, initialDiscoverable: false, initialDefaultRule: { audience: "everyone" as const, memberIds: [], groupIds: [] }, initialGroups: [], initialEntryRules: {}, members: [], sharedPicks: [] };
+  const latestGroups = [{ id: first, name: "New group from another tab", memberIds: [] }];
+  saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Saved", settings: { discoverable: true, discovery: { real: true, email: true, phone: true }, defaultRule: initial.initialDefaultRule, groups: latestGroups, entryRules: {} } });
+  const view = render(<CrewDisplaySettings {...initial} />);
+  fireEvent.click(screen.getByLabelText(/Find me by display name/i));
+  view.rerender(<CrewDisplaySettings {...initial} initialGroups={latestGroups} />);
+  fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
+  await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledOnce());
+  expect(saveCrewDisplaySettings.mock.calls[0][0].expected.groups).toEqual([]);
+  expect(await screen.findByText("New group from another tab")).toBeTruthy();
+});
+
 test("account settings framing keeps every existing sharing control available", () => {
   render(<CrewDisplaySettings withinAccountSettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
   expect(screen.getByRole("heading", { level: 2, name: "How to display my picks" })).toBeTruthy();

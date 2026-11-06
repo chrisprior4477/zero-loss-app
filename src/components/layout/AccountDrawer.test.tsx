@@ -1,8 +1,8 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 
-const { path, push } = vi.hoisted(() => ({ path: { value: "/account" }, push: vi.fn() }));
-vi.mock("next/navigation", () => ({ usePathname: () => path.value, useRouter: () => ({ refresh: vi.fn(), push }) }));
+const { path, push } = vi.hoisted(() => ({ path: { value: "/account", search: "" }, push: vi.fn() }));
+vi.mock("next/navigation", () => ({ usePathname: () => path.value, useSearchParams: () => new URLSearchParams(path.search), useRouter: () => ({ refresh: vi.fn(), push }) }));
 vi.mock("next/image", () => ({ default: (props: Record<string, unknown>) => {
   const imageProps = { ...props };
   delete imageProps.fill;
@@ -35,8 +35,22 @@ afterEach(() => {
   setWalletFundingContext(null);
   sessionStorage.clear();
   path.value = "/account";
+  path.search = "";
   window.history.replaceState({}, "", "/");
   push.mockReset(); vi.useRealTimers();
+});
+
+test.each(["page", "query"])("account drawer closes and releases scrolling on %s navigation", kind => {
+  const view = render(<AccountDrawer {...props} />);
+  fireEvent.click(screen.getByLabelText("Open account menu"));
+  expect(screen.getByRole("dialog")).toBeTruthy();
+  if (kind === "page") path.value = "/account/wallet";
+  else path.search = "filter=active";
+  view.rerender(<AccountDrawer {...props} />);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(document.body.style.overflow).not.toBe("hidden");
+  fireEvent.click(screen.getByLabelText("Open account menu"));
+  expect(screen.getByRole("dialog")).toBeTruthy();
 });
 
 test.each([true, false])("long-pressing the photo=%s trigger opens Profile without opening the drawer", showPhotoInMenu => {

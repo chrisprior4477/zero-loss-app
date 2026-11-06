@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { acknowledgeEntryReceipt, listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
@@ -14,10 +14,12 @@ type TimedRequest = EntryRequest & { receivedAt: number };
 // is confirmed by the server, never while money is reserved or on old receipts.
 export function PendingEntryNotice({ accountId }: { accountId: string }) {
   const pathname = usePathname();
+  const search = useSearchParams().toString();
   const router = useRouter();
   const [requests, setRequests] = useState<TimedRequest[]>([]);
   const [shareRequest, setShareRequest] = useState<EntryRequest | null>(null);
   const [manualProduct, setManualProduct] = useState<ProductShareItem | null>(null);
+  const shareDestination = useRef<string | null>(null);
   const dismissed = useRef(new Set<string>());
   const shareTrigger = useRef<HTMLElement | null>(null);
   const [now, setNow] = useState(0);
@@ -48,7 +50,10 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     const openEntry = destination.pathname === "/account/entries" && (destination.searchParams.get("filter") ?? "active") === "active"
       || destination.pathname.startsWith("/account/entries/");
     // A resolved win or purchase option should open its next step without an entry-share interruption.
-    if (!muted && openEntry) { setManualProduct(null); setShareRequest(request); }
+    if (!muted && openEntry) {
+      shareDestination.current = `${destination.pathname}${destination.search}`;
+      setManualProduct(null); setShareRequest(request);
+    }
     else setShareRequest(null);
     if (routedInActivity.current.has(request.requestId)) return true;
     try {
@@ -71,11 +76,18 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
   }, [accountId, shareRequest]);
 
   useEffect(() => {
-    if (pathname?.startsWith("/items/") || pathname?.startsWith("/account/entries")) return;
-    // Automatic entry prompts must not follow the customer into checkout or reward claims.
+    // A manually opened share belongs to the page where it was opened.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setManualProduct(null);
+    shareTrigger.current = null;
+  }, [pathname, search]);
+
+  useEffect(() => {
+    const current = `${pathname}${search ? `?${search}` : ""}`;
+    if (shareDestination.current === current) return;
+    // Preserve the intended post-entry handoff, then dismiss if they navigate away.
     setShareRequest(null);
-  }, [pathname]);
+  }, [pathname, search]);
 
   useEffect(() => {
     const openSharing = (event: Event) => {
