@@ -52,10 +52,6 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const { selected, decline, available, needsReview, updateChoice, clearChoice } = useCheckoutSelection(ownerId, options, initiallySelectedEntryId);
   const [balance, setBalance] = useState(initialBalance);
   const [lastServerBalance, setLastServerBalance] = useState(initialBalance);
-  if (lastServerBalance !== initialBalance) {
-    setLastServerBalance(initialBalance);
-    setBalance(initialBalance);
-  }
   const [card, setCard] = useState<DemoCardToken | null>(() => cards.find(card => card.isDepositDefault)?.token ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? null);
   const [extra, setExtra] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
@@ -74,6 +70,20 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
     return () => setWalletFundingContext(null);
   }, [item.slug, selectedEntryId, selected, decline, ownerId, available, needsReview]);
   const total = chosen.reduce((sum, option) => sum + option.remainingCents, 0);
+  if (lastServerBalance !== initialBalance) {
+    setLastServerBalance(initialBalance);
+    setBalance(initialBalance);
+    // A different tab can change the amount needed while a popup is open.
+    // Preserve the offers, but never reuse approval for a changed deposit.
+    if (balance !== initialBalance && !busy && !checkRequired) {
+      setAcknowledged(false);
+      if ((overlay === "fund" && initialBalance >= total) || (overlay === "purchase" && initialBalance < total)) {
+        setOverlay(null);
+        setPurchaseRequest(null);
+        setNotice("Your wallet balance updated. Review your purchase before continuing.");
+      }
+    }
+  }
   const paid = chosen.reduce((sum, option) => sum + option.paidCents, 0);
   const face = chosen.reduce((sum, option) => sum + option.priceCents, 0);
   const rest = options.length - chosen.length;

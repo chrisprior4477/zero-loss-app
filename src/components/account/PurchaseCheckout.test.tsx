@@ -13,6 +13,50 @@ function setup(balance = 13900, blocked = false) { return render(<PurchaseChecko
 function fundPopup() { fireEvent.click(screen.getByRole("button", { name: "Add $260 to continue" })); return within(screen.getByRole("dialog")); }
 beforeEach(() => { vi.clearAllMocks(); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); sessionStorage.clear(); window.history.replaceState(null, "", "/"); });
+function updatedCheckout(balance: number) {
+  // Refresh supplies new objects from the server while retaining the client component.
+  return <PurchaseCheckout ownerId="account-a" options={options.map(option => ({ ...option }))} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />;
+}
+test("another tab's funding updates the purchase without losing the exact offer or keep-for-later choice", () => {
+  const view = render(updatedCheckout(4300));
+  fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
+  fireEvent.click(screen.getByRole("button", { name: "Option 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
+  expect(screen.getByRole("button", { name: "Add $356 to continue" })).toBeTruthy();
+  view.rerender(updatedCheckout(54300));
+  expect(screen.getByText("Your wallet covers this purchase.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Review $399 purchase" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
+  expect(screen.getByRole("button", { name: "Option 3" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Option 1" }).getAttribute("aria-pressed")).toBe("false");
+  expect(mocks.fund).not.toHaveBeenCalled(); expect(mocks.purchase).not.toHaveBeenCalled();
+});
+test("a changed shortfall requires fresh deposit approval", () => {
+  const view = setup(); const popup = fundPopup();
+  fireEvent.click(popup.getByRole("checkbox"));
+  view.rerender(updatedCheckout(20000));
+  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  expect(screen.getByRole("button", { name: "Add $199 to wallet" }).hasAttribute("disabled")).toBe(true);
+  expect(mocks.fund).not.toHaveBeenCalled();
+});
+test("funding elsewhere closes the unnecessary deposit popup without buying automatically", () => {
+  const view = setup(); fundPopup();
+  view.rerender(updatedCheckout(54300));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("button", { name: "Review $399 purchase" })).toBeTruthy();
+  expect(mocks.fund).not.toHaveBeenCalled(); expect(mocks.purchase).not.toHaveBeenCalled();
+});
+test("spending elsewhere closes an uncovered purchase confirmation before showing the new shortfall", () => {
+  const view = setup(54300);
+  fireEvent.click(screen.getByRole("button", { name: "Review $399 purchase" }));
+  view.rerender(updatedCheckout(4300));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("button", { name: "Add $356 to continue" })).toBeTruthy();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+});
 test("a single purchase option has a singular decline link", () => {
   render(<PurchaseCheckout ownerId="account-a" options={[options[0]]} initialBalance={13900} cards={[]} fundingAvailable />);
   expect(screen.getByRole("link", { name: "Decline this offer" }).getAttribute("href")).toContain("decline=confirm");

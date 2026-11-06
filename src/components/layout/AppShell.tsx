@@ -17,6 +17,7 @@ import { MobileLogoSizeProvider } from "./MobileLogoSizeProvider";
 import { MobileLogoSizeTrialBar } from "./MobileLogoSizeTrialBar";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { TimeZoneProvider } from "@/components/account/TimeZoneProvider";
+import { AccountStateSync } from "@/components/account/AccountStateSync";
 
 type AppShellProps = {
   children: ReactNode;
@@ -42,6 +43,7 @@ export async function AppShell({ children }: AppShellProps) {
         Skip to content
       </a>
       <SiteHeader />
+      {account ? <AccountStateSync key={account.userId} accountId={account.userId} balanceCents={account.wallet?.balanceCents ?? null} activeCount={account.activity.activeCount} /> : null}
       <Suspense fallback={null}><SiteBreadcrumbs /></Suspense>
       <Suspense fallback={null}><ReturnToUpdates /></Suspense>
       <main id="main-content" className="flex-1">
