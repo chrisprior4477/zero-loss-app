@@ -112,6 +112,33 @@ test("returning from the wallet restores selected options and the keep-for-later
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
 });
 
+test.each(["close", "Escape", "backdrop", "refresh"])("dismissing Choose options via %s discards only the open edits", dismiss => {
+  const checkout = () => render(<PurchaseCheckout ownerId="account-a" initiallySelectedEntryId="entry-2"
+    options={options} initialBalance={4300} cards={[]} fundingAvailable />);
+  const open = () => fireEvent.click(screen.getByRole("button", { name: /Choose options/ }));
+  const option = (number: number) => screen.getByRole("button", { name: `Option ${number}` });
+  checkout();
+  open();
+  fireEvent.click(option(2));
+  expect(option(2).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Add $356 to continue" })).toBeTruthy();
+  if (dismiss === "close") fireEvent.click(screen.getByRole("button", { name: "Close purchase popup" }));
+  if (dismiss === "Escape") fireEvent.keyDown(document, { key: "Escape" });
+  if (dismiss === "backdrop") fireEvent.click(screen.getByRole("dialog").parentElement!);
+  if (dismiss === "refresh") { cleanup(); checkout(); }
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("button", { name: "Choose options · 1" })).toBeTruthy();
+  open();
+  expect(option(3).getAttribute("aria-pressed")).toBe("true");
+  expect(option(2).getAttribute("aria-pressed")).toBe("false");
+  fireEvent.click(option(2));
+  fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
+  expect(screen.getByRole("button", { name: "Add $755 to continue" })).toBeTruthy();
+  expect(mocks.fund).not.toHaveBeenCalled();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+});
+
 test.each([true, false])("refresh restores the exact offers and decline=%s, without submitting checkout", async decline => {
   mocks.purchase.mockResolvedValue({ status: "succeeded", href: "/account/entries?filter=completed" });
   setup(200000);

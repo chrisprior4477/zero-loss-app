@@ -16,6 +16,7 @@ import { FundingCardPicker } from "@/components/wallet/FundingCardPicker";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { NumberWheel, PurchaseDialog } from "./PurchaseCheckoutDialog";
+import { PurchaseOptionPicker } from "./PurchaseOptionPicker";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import styles from "./purchase-checkout.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
@@ -90,7 +91,11 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const buyLabel = `Buy ${chosen.length} ${sameValue ? usd(chosen[0]?.priceCents ?? 0) + " " : ""}gift ${chosen.length === 1 ? "card" : "cards"}`;
 
   const close = useCallback(() => { if (inFlight.current) return; setOverlay(null); setPurchaseRequest(null); setAcknowledged(false); }, []);
-  function changeSelection(ids: string[]) { if (locked || !ids.length) return; updateChoice({ selected: ids }); setError(""); setNotice(""); setPurchaseRequest(null); }
+  function changeSelection(ids: string[], reviewed = false) {
+    if (locked || !ids.length) return;
+    updateChoice({ selected: ids, needsReview: needsReview && !reviewed });
+    setError(""); setNotice(""); setPurchaseRequest(null);
+  }
   function changeQuantity(quantity: number) {
     const ids = selected.slice(0, quantity);
     for (const option of options) { if (ids.length >= quantity) break; if (!ids.includes(option.completionOptionId!)) ids.push(option.completionOptionId!); }
@@ -166,6 +171,11 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
         <label className={styles.check}><input type="checkbox" checked={acknowledged} disabled={locked} onChange={event => setAcknowledged(event.target.checked)} /><span>I confirm adding {validDeposit ? usd(deposit) : "this amount"} using {demoCardFixture(card)?.issuer ?? "my card"}.<small>Adds funds only. Confirm purchase next.</small></span></label>
         {fundingBlocked || !fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href="/account/wallet?view=history#add-funds">Open wallet</Link></p> : null}
         {feedback}<button type="button" className={styles.primary} disabled={locked || !validDeposit || !acknowledged || !card || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
-      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Tap the exact options to buy. Each entry’s credit applies only to its own option.</p><div className={styles.exact}>{options.map((option,index) => <button type="button" key={option.completionOptionId} aria-label={`Option ${index + 1}`} aria-pressed={selected.includes(option.completionOptionId!)} className={`${styles.ticket} ${styles.option}`} onClick={() => changeSelection(selected.includes(option.completionOptionId!) ? selected.filter(id => id !== option.completionOptionId) : [...selected,option.completionOptionId!])}><small>OPTION</small>{index + 1}</button>)}</div><button type="button" className={styles.primary} onClick={() => { if (needsReview) updateChoice({ needsReview: false }); close(); }}>Use these options</button><div className={styles.optionDetails}>{chosen.map(option => <p key={option.entryId}>{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining · available until {option.completionExpiresAt ? new Date(option.completionExpiresAt).toLocaleDateString("en-US", { timeZone }) : "its original deadline"}</p>)}</div></>}
+      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Tap the exact options to buy. Each entry’s credit applies only to its own option.</p>
+        <PurchaseOptionPicker optionIds={available} selected={selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}>
+          {draft => <div className={styles.optionDetails}>{options.filter(option => draft.includes(option.completionOptionId!)).map(option =>
+            <p key={option.entryId}>{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining · available until {option.completionExpiresAt ? new Date(option.completionExpiresAt).toLocaleDateString("en-US", { timeZone }) : "its original deadline"}</p>
+          )}</div>}
+        </PurchaseOptionPicker></>}
     </PurchaseDialog> : null}</div>;
 }

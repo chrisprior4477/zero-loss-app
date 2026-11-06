@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { WalletRollerPicker } from "@/components/wallet/WalletRollerPicker";
+import { PurchaseOptionPicker } from "../PurchaseOptionPicker";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import styles from "./purchase-preview.module.css";
 
@@ -281,7 +282,11 @@ export function PurchaseJourneyPreview({ initialVersion = 3, initialRefinement =
     </section>
   </div>
     {overlay ? <PreviewDialog title={overlay === "options" ? "Choose your options" : overlay === "fund" ? "Add funds to continue" : "Confirm your purchase"} onClose={overlay === "options" ? closeOptions : closeOverlay} compact={refined && overlay === "fund"}>
-      {overlay === "options" ? <><Product /><p className={styles.small}>Choose the exact options to purchase. At least one must stay selected.</p><div className={styles.exact}>{optionIds.map(id => <button type="button" key={id} aria-label={"OPTION " + id} className={styles.ticket + " " + styles.option} aria-pressed={selected.includes(id)} onClick={() => selectOptions(selected.includes(id) ? selected.filter(value => value !== id) : [...selected, id])}><small>OPTION</small>{id}</button>)}</div><button type="button" className={styles.primary} onClick={closeOptions}>Use these options</button></> : overlay === "fund" ? <><Product />{refined ? <div className={styles.purchaseRecap}><strong>Buy {selected.length} $400 gift {selected.length === 1 ? "card" : "cards"}</strong><span>{usd(selected.length * 100)} already paid + {usd(total)} remaining</span><small>{remaining ? declineAll ? `Decline & remove ${remaining} other ${remaining === 1 ? "offer" : "offers"} after purchase.` : `Keep ${remaining} in My Activity · expires in 30 days.` : "All options selected."}</small></div> : choices}<MoneySummary total={total} balance={balance} />{funding}<button type="button" className={styles.backLink} onClick={closeOverlay}>Back to purchase options</button></> : <PurchaseConfirmation total={total} balance={balance} quantity={selected.length} declined={declined} deposit={deposit} offerSummary={refined ? offerSummary : undefined} onUndo={closeOverlay} onConfirm={complete} />}
+      {overlay === "options" ? <><Product /><p className={styles.small}>Choose the exact options to purchase. At least one must stay selected.</p>
+        <PurchaseOptionPicker optionIds={optionIds} selected={selected} styles={styles} onApply={ids => {
+          if (ids !== selected) selectOptions(ids);
+          closeOptions();
+        }} /></> : overlay === "fund" ? <><Product />{refined ? <div className={styles.purchaseRecap}><strong>Buy {selected.length} $400 gift {selected.length === 1 ? "card" : "cards"}</strong><span>{usd(selected.length * 100)} already paid + {usd(total)} remaining</span><small>{remaining ? declineAll ? `Decline & remove ${remaining} other ${remaining === 1 ? "offer" : "offers"} after purchase.` : `Keep ${remaining} in My Activity · expires in 30 days.` : "All options selected."}</small></div> : choices}<MoneySummary total={total} balance={balance} />{funding}<button type="button" className={styles.backLink} onClick={closeOverlay}>Back to purchase options</button></> : <PurchaseConfirmation total={total} balance={balance} quantity={selected.length} declined={declined} deposit={deposit} offerSummary={refined ? offerSummary : undefined} onUndo={closeOverlay} onConfirm={complete} />}
     </PreviewDialog> : null}
   </div>;
 }
