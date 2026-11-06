@@ -48,6 +48,30 @@ test("Keep for later survives quantity changes and submits no decline IDs", asyn
   fireEvent.click(screen.getByRole("button", { name: "Review $798 purchase" })); fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
   await waitFor(() => expect(mocks.purchase).toHaveBeenCalledOnce()); expect(mocks.purchase.mock.calls[0][0].declineIds).toEqual([]); expect(mocks.fund).not.toHaveBeenCalled();
 });
+
+test.each([2, 4])("scrolling Buying to %i updates the review and the exact purchase and decline IDs", async quantity => {
+  const offers = Array.from({ length: 4 }, (_, i) => ({
+    ...options[0], entryId: `entry-${i}`, completionOptionId: `option-${i}`, priceCents: 2500, remainingCents: 2400,
+  }));
+  mocks.purchase.mockResolvedValue({ status: "succeeded", href: "/account/entries?filter=completed" });
+  render(<PurchaseCheckout options={offers} initialBalance={12000} cards={[]} fundingAvailable={false} />);
+  const wheel = screen.getByRole("radiogroup", { name: "Buying" });
+  fireEvent.scroll(wheel, { target: { scrollTop: (quantity - 1) * 40 } });
+  expect((screen.getByRole("radio", { name: `Buying ${quantity}` }) as HTMLInputElement).checked).toBe(true);
+  expect(screen.getByRole("heading", { name: `Buy ${quantity} $25 gift cards` })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: `Review $${quantity * 24} purchase` }));
+  const review = within(screen.getByRole("dialog"));
+  expect(review.getByText(`${quantity} gift cards`)).toBeTruthy();
+  // Late scroll events behind the confirmation must not change the order being reviewed.
+  fireEvent.scroll(wheel, { target: { scrollTop: 0 } });
+  expect(mocks.purchase).not.toHaveBeenCalled();
+  fireEvent.click(review.getByRole("button", { name: "Confirm purchase" }));
+  await waitFor(() => expect(mocks.purchase).toHaveBeenCalledOnce());
+  const ids = offers.map(offer => offer.completionOptionId);
+  expect(mocks.purchase.mock.calls[0][0]).toMatchObject({
+    purchaseIds: ids.slice(0, quantity), declineIds: ids.slice(quantity), totalCents: quantity * 2400,
+  });
+});
 test("Undo and the 30-second timeout never submit a purchase", () => {
   vi.useFakeTimers(); setup(50000); fireEvent.click(screen.getByRole("button", { name: "Review $399 purchase" })); fireEvent.click(screen.getByRole("button", { name: "Undo" }));
   expect(screen.queryByRole("dialog")).toBeNull(); fireEvent.click(screen.getByRole("button", { name: "Review $399 purchase" })); act(() => vi.advanceTimersByTime(30001));

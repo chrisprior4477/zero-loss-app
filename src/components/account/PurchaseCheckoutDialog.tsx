@@ -1,14 +1,37 @@
 "use client";
-import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styles from "./purchase-checkout.module.css";
-export function NumberWheel({ label, min, max, value, onChange }: { label: string; min: number; max: number; value: number; onChange: (value: number) => void }) {
+const wheelRowHeight = 40;
+
+export function NumberWheel({ label, min, max, value, disabled, onChange }: { label: string; min: number; max: number; value: number; disabled: boolean; onChange: (value: number) => void }) {
   const wheel = useRef<HTMLDivElement>(null);
+  const lastScrolledValue = useRef<number | null>(null);
   const name = useId();
-  useEffect(() => { if (wheel.current) wheel.current.scrollTop = (value - min) * 40; }, [value, min]);
-  return <div ref={wheel} className={styles.numberWheel} role="radiogroup" aria-label={label}>
+  useLayoutEffect(() => {
+    const element = wheel.current;
+    if (!element) return;
+    // Preserve touch momentum. Only recenter for taps, keyboard or changes from outside the wheel.
+    if (disabled || lastScrolledValue.current !== value) element.scrollTop = (value - min) * wheelRowHeight;
+    if (!disabled && element.contains(document.activeElement)) {
+      element.querySelector<HTMLInputElement>("input:checked")?.focus({ preventScroll: true });
+    }
+    lastScrolledValue.current = null;
+  }, [value, min, max, disabled]);
+  return <div ref={wheel} className={styles.numberWheel} role="radiogroup" aria-label={label} aria-disabled={disabled}
+    style={{ "--wheel-row-height": `${wheelRowHeight}px` } as CSSProperties}
+    onScroll={event => {
+      if (disabled) return;
+      const centered = Math.round(event.currentTarget.scrollTop / wheelRowHeight) + min;
+      const next = Math.max(min, Math.min(max, centered));
+      if (next !== value) {
+        lastScrolledValue.current = next;
+        onChange(next);
+      }
+    }}>
     {Array.from({ length: max - min + 1 }, (_, index) => min + index).map(number => <label key={number}>
-      <input type="radio" name={name} aria-label={label + " " + number} checked={value === number} onChange={() => onChange(number)} /><span>{number}</span>
+      <input type="radio" name={name} aria-label={label + " " + number} disabled={disabled} checked={value === number}
+        onChange={() => { lastScrolledValue.current = null; onChange(number); }} /><span>{number}</span>
     </label>)}
   </div>;
 }

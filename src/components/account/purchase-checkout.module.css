@@ -22,7 +22,8 @@
 .quantity h3 { margin:0 0 6px; font-size:18px; font-weight:850; }
 .numberWheel { box-sizing:border-box; height:104px; padding:32px 0; overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y; scroll-snap-type:y mandatory; scrollbar-width:none; border-radius:10px; background:#dff2ff; mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent); }
 .numberWheel::-webkit-scrollbar { display:none; }
-.numberWheel label { height:40px; display:flex; align-items:center; justify-content:center; gap:6px; scroll-snap-align:center; font-size:25px; font-weight:850; background:#fff; cursor:pointer; }
+.numberWheel[aria-disabled="true"] { overflow-y:hidden; }
+.numberWheel label { height:var(--wheel-row-height); display:flex; align-items:center; justify-content:center; gap:6px; scroll-snap-align:center; font-size:25px; font-weight:850; background:#fff; cursor:pointer; }
 .numberWheel label:nth-child(odd) { background:#ddf2ff; }
 .numberWheel label:has(input:checked) { background:#b9ed9c; color:#194d24; }
 .numberWheel input { appearance:none; width:16px; height:16px; flex:none; border:2px solid #7095b1; border-radius:50%; background:#fff; }
