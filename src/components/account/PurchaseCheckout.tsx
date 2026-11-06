@@ -19,7 +19,8 @@ import { NumberWheel, PurchaseDialog } from "./PurchaseCheckoutDialog";
 import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import styles from "./purchase-checkout.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
-import { purchaseFundingHref, purchaseSelectionKey, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
+import { purchaseFundingHref, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
+import { useCheckoutSelection } from "./useCheckoutSelection";
 
 function Product({ item }: { item: ActivityItem }) {
   return <div className={styles.product}><Image src={item.image} alt={item.title} width={64} height={60} /><div><p className={styles.retailer}>{item.retailer}</p><h2>{item.title}</h2><p>{usd(item.priceCents)} gift card · Each entry counts toward its own option</p></div></div>;
@@ -41,14 +42,13 @@ function ConfirmPurchase({ total, balance, quantity, summary, busy, onUndo, onCo
     <p className={styles.footnote}>Simulation only · No real payment or shipment.</p></>;
 }
 
-export function PurchaseCheckout({ options, initialBalance, cards, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId }: {
-  options: ActivityItem[]; initialBalance: number; cards: DemoCard[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string;
+export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId }: {
+  ownerId: string; options: ActivityItem[]; initialBalance: number; cards: DemoCard[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string;
 }) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
   const item = options[0];
-  const [selected, setSelected] = useState(() => [options.find(option => option.entryId === initiallySelectedEntryId)?.completionOptionId ?? item.completionOptionId!]);
-  const [decline, setDecline] = useState(true);
+  const { selected, decline, available, needsReview, updateChoice, clearChoice } = useCheckoutSelection(ownerId, options, initiallySelectedEntryId);
   const [balance, setBalance] = useState(initialBalance);
   const [lastServerBalance, setLastServerBalance] = useState(initialBalance);
   if (lastServerBalance !== initialBalance) {
@@ -69,22 +69,9 @@ export function PurchaseCheckout({ options, initialBalance, cards, fundingAvaila
   const selectedEntryId = chosen[0]?.entryId;
   useEffect(() => {
     const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined);
-    setWalletFundingContext(href ? { href, slug: item.slug, selected: [...selected], decline } : null);
+    setWalletFundingContext(href ? { href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview } : null);
     return () => setWalletFundingContext(null);
-  }, [item.slug, selectedEntryId, selected, decline]);
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("resume") !== "wallet") return;
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(purchaseSelectionKey) ?? "null") as { slug?: unknown; selected?: unknown; decline?: unknown } | null;
-      sessionStorage.removeItem(purchaseSelectionKey);
-      const validIds = new Set(options.map(option => option.completionOptionId));
-      if (saved?.slug === item.slug && Array.isArray(saved.selected) && saved.selected.length > 0 && saved.selected.every(id => typeof id === "string" && validIds.has(id)) && new Set(saved.selected).size === saved.selected.length) {
-        const restored = saved.selected as string[];
-        const restoredDecline = saved.decline;
-        queueMicrotask(() => { setSelected(restored); if (typeof restoredDecline === "boolean") setDecline(restoredDecline); });
-      }
-    } catch { /* A stale or unavailable selection never affects checkout authorization. */ }
-  }, [item.slug, options]);
+  }, [item.slug, selectedEntryId, selected, decline, ownerId, available, needsReview]);
   const total = chosen.reduce((sum, option) => sum + option.remainingCents, 0);
   const paid = chosen.reduce((sum, option) => sum + option.paidCents, 0);
   const face = chosen.reduce((sum, option) => sum + option.priceCents, 0);
@@ -103,7 +90,7 @@ export function PurchaseCheckout({ options, initialBalance, cards, fundingAvaila
   const buyLabel = `Buy ${chosen.length} ${sameValue ? usd(chosen[0]?.priceCents ?? 0) + " " : ""}gift ${chosen.length === 1 ? "card" : "cards"}`;
 
   const close = useCallback(() => { if (inFlight.current) return; setOverlay(null); setPurchaseRequest(null); setAcknowledged(false); }, []);
-  function changeSelection(ids: string[]) { if (locked || !ids.length) return; setSelected(ids); setError(""); setNotice(""); setPurchaseRequest(null); }
+  function changeSelection(ids: string[]) { if (locked || !ids.length) return; updateChoice({ selected: ids }); setError(""); setNotice(""); setPurchaseRequest(null); }
   function changeQuantity(quantity: number) {
     const ids = selected.slice(0, quantity);
     for (const option of options) { if (ids.length >= quantity) break; if (!ids.includes(option.completionOptionId!)) ids.push(option.completionOptionId!); }
@@ -111,6 +98,7 @@ export function PurchaseCheckout({ options, initialBalance, cards, fundingAvaila
   }
   function review() {
     if (locked) return;
+    if (needsReview) { setOverlay("options"); return; }
     setError(""); setNotice(""); setAcknowledged(false);
     if (shortfall) { setOverlay("fund"); return; }
     setPurchaseRequest({ slug: item.slug, purchaseIds: [...selected], declineIds: decline ? options.filter(option => !selected.includes(option.completionOptionId!)).map(option => option.completionOptionId!) : [], totalCents: total, requestId: crypto.randomUUID(), confirmed: true });
@@ -145,7 +133,7 @@ export function PurchaseCheckout({ options, initialBalance, cards, fundingAvaila
     inFlight.current = true; setBusy(true); setError("");
     try {
       const result = await completeDemoPurchaseOptions(purchaseRequest);
-      if (result.status === "succeeded") { setCheckRequired(true); window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(result.href); router.refresh(); return; }
+      if (result.status === "succeeded") { clearChoice(); setCheckRequired(true); window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(result.href); router.refresh(); return; }
       setError(result.message); setCheckRequired(result.recovery === "check"); setOverlay(null); setPurchaseRequest(null);
       if (result.recovery === "balance") { router.refresh(); setNotice("Your balance changed. Review the updated amount before continuing."); }
     } catch { setError("We couldn’t confirm the result. Check My Activity before trying again; your purchase may already be saved."); setCheckRequired(true); setOverlay(null); }
@@ -158,13 +146,13 @@ export function PurchaseCheckout({ options, initialBalance, cards, fundingAvaila
       <h1>Your {options.length} purchase {options.length === 1 ? "option" : "options"}</h1><Product item={item} />
       <div className={styles.quantity}><NumberWheel label="Buying" min={1} max={options.length} value={chosen.length} disabled={locked || overlay !== null} onChange={changeQuantity} /><div><h3>{buyLabel}</h3><p className={styles.credit}>Your <b>{usd(paid)}</b> already paid + <b>{usd(total)}</b> remaining = <b>{usd(face)}</b><small>Your entry {chosen.length === 1 ? "dollar still counts." : "dollars still count toward their own options."}</small></p></div></div>
       {rest ? <fieldset className={styles.offerChoices} disabled={locked}><legend>The other {rest} {rest === 1 ? "offer" : "offers"}</legend><div className={styles.offerTiles}>
-        <button type="button" aria-pressed={decline} onClick={() => setDecline(true)}><span className={styles.choiceMark} aria-hidden="true">{decline ? "✓" : ""}</span><span><strong>Decline &amp; remove</strong><small>{rest} {rest === 1 ? "offer" : "offers"}</small></span></button>
-        <button type="button" aria-pressed={!decline} onClick={() => setDecline(false)}><span className={styles.choiceMark} aria-hidden="true">{!decline ? "✓" : ""}</span><span><strong>Keep for later</strong><small>In My Activity</small></span></button>
+        <button type="button" aria-pressed={decline} onClick={() => updateChoice({ decline: true })}><span className={styles.choiceMark} aria-hidden="true">{decline ? "✓" : ""}</span><span><strong>Decline &amp; remove</strong><small>{rest} {rest === 1 ? "offer" : "offers"}</small></span></button>
+        <button type="button" aria-pressed={!decline} onClick={() => updateChoice({ decline: false })}><span className={styles.choiceMark} aria-hidden="true">{!decline ? "✓" : ""}</span><span><strong>Keep for later</strong><small>In My Activity</small></span></button>
       </div><p className={styles.offerHelp}>{selectionSummary}</p></fieldset> : null}
       <div className={styles.optionLine}><span>{usd(item.remainingCents)} per option</span><button type="button" disabled={locked} onClick={() => setOverlay("options")}>Choose options · {chosen.length}</button></div>
-      {money}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}
-      <button type="button" className={styles.primary} disabled={locked} onClick={review}>{shortfall ? `Add ${usd(required)} to continue` : `Review ${usd(total)} purchase`}</button>
-      <p className={styles.footnote}>{shortfall ? "Choose a card in the popup. Confirm purchase separately." : "Review and confirm your purchase in the popup."}</p>
+      {money}{needsReview && <p role="status" className={styles.status}>Your available offers changed. Check which offers you want to buy before continuing.</p>}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}
+      <button type="button" className={styles.primary} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : shortfall ? `Add ${usd(required)} to continue` : `Review ${usd(total)} purchase`}</button>
+      {!needsReview && <p className={styles.footnote}>{shortfall ? "Choose a card in the popup. Confirm purchase separately." : "Review and confirm your purchase in the popup."}</p>}
       <div className={styles.utility}><Link className={styles.activityButton} href="/account/entries?filter=completion">Go to My Activity</Link><Link className={styles.declineAll} href={`/account/purchase-options/${encodeURIComponent(item.slug)}?decline=confirm`}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</Link><Link className={styles.shoppingButton} href="/">Continue shopping</Link><ProductShareButton className={styles.shareButton} product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
     </div>{overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
@@ -178,6 +166,6 @@ export function PurchaseCheckout({ options, initialBalance, cards, fundingAvaila
         <label className={styles.check}><input type="checkbox" checked={acknowledged} disabled={locked} onChange={event => setAcknowledged(event.target.checked)} /><span>I confirm adding {validDeposit ? usd(deposit) : "this amount"} using {demoCardFixture(card)?.issuer ?? "my card"}.<small>Adds funds only. Confirm purchase next.</small></span></label>
         {fundingBlocked || !fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href="/account/wallet?view=history#add-funds">Open wallet</Link></p> : null}
         {feedback}<button type="button" className={styles.primary} disabled={locked || !validDeposit || !acknowledged || !card || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
-      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Tap the exact options to buy. Each entry’s credit applies only to its own option.</p><div className={styles.exact}>{options.map((option,index) => <button type="button" key={option.completionOptionId} aria-label={`Option ${index + 1}`} aria-pressed={selected.includes(option.completionOptionId!)} className={`${styles.ticket} ${styles.option}`} onClick={() => changeSelection(selected.includes(option.completionOptionId!) ? selected.filter(id => id !== option.completionOptionId) : [...selected,option.completionOptionId!])}><small>OPTION</small>{index + 1}</button>)}</div><button type="button" className={styles.primary} onClick={close}>Use these options</button><div className={styles.optionDetails}>{chosen.map(option => <p key={option.entryId}>{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining · available until {option.completionExpiresAt ? new Date(option.completionExpiresAt).toLocaleDateString("en-US", { timeZone }) : "its original deadline"}</p>)}</div></>}
+      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Tap the exact options to buy. Each entry’s credit applies only to its own option.</p><div className={styles.exact}>{options.map((option,index) => <button type="button" key={option.completionOptionId} aria-label={`Option ${index + 1}`} aria-pressed={selected.includes(option.completionOptionId!)} className={`${styles.ticket} ${styles.option}`} onClick={() => changeSelection(selected.includes(option.completionOptionId!) ? selected.filter(id => id !== option.completionOptionId) : [...selected,option.completionOptionId!])}><small>OPTION</small>{index + 1}</button>)}</div><button type="button" className={styles.primary} onClick={() => { if (needsReview) updateChoice({ needsReview: false }); close(); }}>Use these options</button><div className={styles.optionDetails}>{chosen.map(option => <p key={option.entryId}>{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining · available until {option.completionExpiresAt ? new Date(option.completionExpiresAt).toLocaleDateString("en-US", { timeZone }) : "its original deadline"}</p>)}</div></>}
     </PurchaseDialog> : null}</div>;
 }

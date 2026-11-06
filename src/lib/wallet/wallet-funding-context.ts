@@ -2,7 +2,7 @@ import { fundingHref } from "./funding-navigation";
 import { useEffect, useSyncExternalStore } from "react";
 
 // Navigation context only. Ownership, price and payment are verified on the server.
-type PurchaseFundingContext = { href: string; slug: string; selected: string[]; decline: boolean };
+type PurchaseFundingContext = { href: string; slug: string; selected: string[]; decline: boolean; ownerId?: string; available?: string[]; needsReview?: boolean };
 type WalletFundingContext = PurchaseFundingContext | { href: string; rememberEntry?: () => void };
 export const purchaseSelectionKey = "zero-loss-purchase-funding-selection";
 let current: WalletFundingContext | null = null;

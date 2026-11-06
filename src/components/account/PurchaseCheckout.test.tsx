@@ -9,12 +9,12 @@ vi.mock("@/lib/account/purchase-funding-actions", () => ({ fundPurchaseWallet: m
 import { PurchaseCheckout } from "./PurchaseCheckout";
 import { purchaseSelectionKey } from "@/lib/wallet/wallet-funding-context";
 const options: ActivityItem[] = Array.from({ length: 3 }, (_, i) => ({ entryId: `entry-${i}`, completionOptionId: `option-${i}`, slug: "nintendo-switch", title: "Nintendo Switch", retailer: "Best Buy", image: "/catalog/nintendo-switch-oled.jpg", status: "completion", rewardKind: "digital", priceCents: 40000, paidCents: 100, remainingCents: 39900, availability: "Available", completionExpiresAt: "2026-11-28T17:00:00Z" }));
-function setup(balance = 13900, blocked = false) { return render(<PurchaseCheckout options={options} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable fundingBlocked={blocked} />); }
+function setup(balance = 13900, blocked = false) { return render(<PurchaseCheckout ownerId="account-a" options={options} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable fundingBlocked={blocked} />); }
 function fundPopup() { fireEvent.click(screen.getByRole("button", { name: "Add $260 to continue" })); return within(screen.getByRole("dialog")); }
 beforeEach(() => { vi.clearAllMocks(); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); sessionStorage.clear(); window.history.replaceState(null, "", "/"); });
 test("a single purchase option has a singular decline link", () => {
-  render(<PurchaseCheckout options={[options[0]]} initialBalance={13900} cards={[]} fundingAvailable />);
+  render(<PurchaseCheckout ownerId="account-a" options={[options[0]]} initialBalance={13900} cards={[]} fundingAvailable />);
   expect(screen.getByRole("link", { name: "Decline this offer" }).getAttribute("href")).toContain("decline=confirm");
 });
 test("$260 needed + $50 extra funds exactly $310, then requires a separate purchase confirmation", async () => {
@@ -54,7 +54,7 @@ test.each([2, 4])("scrolling Buying to %i updates the review and the exact purch
     ...options[0], entryId: `entry-${i}`, completionOptionId: `option-${i}`, priceCents: 2500, remainingCents: 2400,
   }));
   mocks.purchase.mockResolvedValue({ status: "succeeded", href: "/account/entries?filter=completed" });
-  render(<PurchaseCheckout options={offers} initialBalance={12000} cards={[]} fundingAvailable={false} />);
+  render(<PurchaseCheckout ownerId="account-a" options={offers} initialBalance={12000} cards={[]} fundingAvailable={false} />);
   const wheel = screen.getByRole("radiogroup", { name: "Buying" });
   fireEvent.scroll(wheel, { target: { scrollTop: (quantity - 1) * 40 } });
   expect((screen.getByRole("radio", { name: `Buying ${quantity}` }) as HTMLInputElement).checked).toBe(true);
@@ -107,4 +107,70 @@ test("returning from the wallet restores selected options and the keep-for-later
   setup(100000);
   await waitFor(() => expect(screen.getByRole("button", { name: "Review $798 purchase" })).toBeTruthy());
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+  cleanup(); setup(100000);
+  expect(screen.getByRole("button", { name: "Review $798 purchase" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+});
+
+test.each([true, false])("refresh restores the exact offers and decline=%s, without submitting checkout", async decline => {
+  mocks.purchase.mockResolvedValue({ status: "succeeded", href: "/account/entries?filter=completed" });
+  setup(200000);
+  fireEvent.click(screen.getByRole("button", { name: /Choose options/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
+  fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
+  fireEvent.click(screen.getByRole("button", { name: decline ? /Decline & remove/ : /Keep for later/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Review $798 purchase" }));
+  cleanup(); setup(200000);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+  expect(mocks.fund).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: decline ? /Decline & remove/ : /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "Review $798 purchase" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
+  await waitFor(() => expect(mocks.purchase).toHaveBeenCalledOnce());
+  expect(mocks.purchase.mock.calls[0][0]).toMatchObject({ purchaseIds: ["option-0", "option-2"], declineIds: decline ? ["option-1"] : [] });
+  cleanup(); setup(200000);
+  expect(screen.getByRole("button", { name: "Review $399 purchase" })).toBeTruthy();
+});
+
+test("changed inventory keeps other offers and requires a fresh review even across another reload", () => {
+  setup(200000);
+  fireEvent.click(screen.getByRole("radio", { name: "Buying 2" }));
+  cleanup();
+  const updated = [options[2], options[1], { ...options[0], entryId: "entry-new", completionOptionId: "option-new" }];
+  const reopen = () => render(<PurchaseCheckout ownerId="account-a" options={updated} initialBalance={200000} cards={[]} fundingAvailable />);
+  reopen(); cleanup(); reopen();
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "Review updated options" }));
+  expect(screen.getByRole("button", { name: "Option 2" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Option 3" }).getAttribute("aria-pressed")).toBe("false");
+  fireEvent.click(screen.getByRole("button", { name: "Close purchase popup" }));
+  fireEvent.click(screen.getByRole("button", { name: "Review updated options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Review $399 purchase" }));
+  expect(within(screen.getByRole("dialog")).getByText(/Keep 2 offers/)).toBeTruthy();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+});
+
+test("a different account or an explicit link to a different ticket starts its own selection", () => {
+  setup(200000);
+  fireEvent.click(screen.getByRole("radio", { name: "Buying 3" }));
+  cleanup();
+  render(<PurchaseCheckout ownerId="account-b" options={options} initialBalance={200000} cards={[]} fundingAvailable />);
+  expect((screen.getByRole("radio", { name: "Buying 1" }) as HTMLInputElement).checked).toBe(true);
+  cleanup();
+  render(<PurchaseCheckout ownerId="account-a" initiallySelectedEntryId="entry-2" options={options} initialBalance={200000} cards={[]} fundingAvailable />);
+  fireEvent.click(screen.getByRole("button", { name: /Choose options/ }));
+  expect(screen.getByRole("button", { name: "Option 3" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Option 1" }).getAttribute("aria-pressed")).toBe("false");
+});
+
+test("a newly available offer is kept until the customer reviews the changed list", () => {
+  render(<PurchaseCheckout ownerId="account-a" options={options.slice(0, 2)} initialBalance={200000} cards={[]} fundingAvailable />);
+  fireEvent.click(screen.getByRole("radio", { name: "Buying 2" }));
+  cleanup(); setup(200000);
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "Review updated options" }));
+  expect(screen.getByRole("button", { name: "Option 3" }).getAttribute("aria-pressed")).toBe("false");
+  expect(screen.queryByRole("button", { name: "Confirm purchase" })).toBeNull();
 });

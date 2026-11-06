@@ -48,7 +48,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       provider.getPaymentMethods().catch(() => null),
       provider.getRequests().catch(() => null),
     ]);
-    return <PurchaseCheckout key={`${slug}:${selectedEntryId ?? "first"}`} options={options}
+    return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, options.map(option => option.completionOptionId)])} ownerId={account.userId} options={options}
       initiallySelectedEntryId={selectedEntryId} initialBalance={account.wallet.balanceCents}
       cards={cards ?? []} fundingAvailable={account.fundingEnabled && cards !== null}
       fundingBlocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} />;
