@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { SavedProductShare } from "@/lib/sharing/saved-shares";
 import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
 const mocks = vi.hoisted(() => ({ toggle: vi.fn(), state: vi.fn(), alert: vi.fn() }));
-vi.mock("./FavoritesProvider", () => ({ useFavorites: () => ({ slugs: ["nike-court-shot-shoes"], available: true, isSignedIn: true, busySlug: null, toggle: mocks.toggle }) }));
+vi.mock("./FavoritesProvider", () => ({ useFavorites: () => ({ slugs: ["nike-court-shot-shoes"], available: true, isSignedIn: true, busySlugs: [], toggle: mocks.toggle }) }));
 vi.mock("./FavoritesLandingScroll", () => ({ FavoritesLandingScroll: () => null }));
 vi.mock("@/lib/sharing/saved-share-actions", () => ({ setReceivedProductState: mocks.state }));
 vi.mock("@/lib/favorites/alert-actions", () => ({ setFavoriteCapacityAlert: mocks.alert }));

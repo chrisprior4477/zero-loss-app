@@ -11,11 +11,11 @@ type FavoriteButtonProps = {
 };
 
 export function FavoriteButton({ itemName, itemHref, className = "", size = "compact" }: FavoriteButtonProps) {
-  const { slugs, isSignedIn, busySlug, toggle } = useFavorites();
+  const { slugs, isSignedIn, busySlugs, toggle } = useFavorites();
   const slug = favoriteSlugFromHref(itemHref);
   if (!slug) return null;
   const isFavorite = slugs.includes(slug);
-  const busy = busySlug === slug;
+  const busy = busySlugs.includes(slug);
 
   return (
     <button

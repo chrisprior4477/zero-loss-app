@@ -15,7 +15,7 @@ type FavoritesContextValue = {
   slugs: string[];
   isSignedIn: boolean;
   available: boolean;
-  busySlug: string | null;
+  busySlugs: string[];
   toggle: (slug: string) => void;
 };
 
@@ -37,10 +37,22 @@ function readPendingFavorite(): string | null {
 export function FavoritesProvider({ children, initialSlugs, isSignedIn, available }: { children: ReactNode; initialSlugs: string[]; isSignedIn: boolean; available: boolean }) {
   const router = useRouter();
   const [slugs, setSlugs] = useState(initialSlugs);
-  const [busySlug, setBusySlug] = useState<string | null>(null);
+  const [busySlugs, setBusySlugs] = useState<string[]>([]);
+  const inFlight = useRef(new Set<string>());
   const [message, setMessage] = useState("");
   const syncedPending = useRef(false);
   const initialKey = initialSlugs.join("|");
+
+  function beginChange(slug: string) {
+    if (inFlight.current.has(slug)) return false;
+    inFlight.current.add(slug);
+    setBusySlugs(current => [...current, slug]);
+    return true;
+  }
+  function finishChange(slug: string) {
+    inFlight.current.delete(slug);
+    setBusySlugs(current => current.filter(item => item !== slug));
+  }
 
   useEffect(() => {
     // A refreshed server tree or another device may have changed this account list.
@@ -62,18 +74,19 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
     if (initialSlugs.includes(pending)) { sessionStorage.removeItem(pendingKey); return; }
     // The guest explicitly tapped Save. The server rechecks catalog membership and ownership.
     startTransition(() => {
+      if (!beginChange(pending)) return;
       void setFavorite(pending, true).then(result => {
         if (result.status === "saved") {
           sessionStorage.removeItem(pendingKey);
           setSlugs(current => current.includes(pending) ? current : [pending, ...current]);
           setMessage("Saved to Favorites.");
         } else setMessage(result.message ?? "Could not save this favorite. Please try again.");
-      }).catch(() => setMessage("Could not save this favorite. Please try again."));
+      }).catch(() => setMessage("Could not save this favorite. Please try again.")).finally(() => finishChange(pending));
     });
   }, [available, initialSlugs, isSignedIn]);
 
   const toggle = (slug: string) => {
-    if (!slugPattern.test(slug) || busySlug) return;
+    if (!slugPattern.test(slug) || inFlight.current.has(slug)) return;
     if (!isSignedIn) {
       try { sessionStorage.setItem(pendingKey, JSON.stringify({ slug, savedAt: Date.now() })); } catch { /* Sign-in still works without storage. */ }
       router.push(`/login?next=${encodeURIComponent(accountRoutes.favorites)}`);
@@ -81,7 +94,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
     }
     if (!available) { setMessage("Favorites are temporarily unavailable. Please try again later."); return; }
     const shouldSave = !slugs.includes(slug);
-    setBusySlug(slug);
+    if (!beginChange(slug)) return;
     startTransition(() => {
       void setFavorite(slug, shouldSave).then(result => {
         if (result.status === "saved" || result.status === "removed") {
@@ -92,11 +105,11 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
         } else if (result.status === "sign-in") {
           router.push(`/login?next=${encodeURIComponent(accountRoutes.favorites)}`);
         } else setMessage(result.message ?? "Favorites could not be updated.");
-      }).catch(() => setMessage("Favorites could not be updated. Please try again.")).finally(() => setBusySlug(null));
+      }).catch(() => setMessage("Favorites could not be updated. Please try again.")).finally(() => finishChange(slug));
     });
   };
 
-  return <FavoritesContext.Provider value={{ slugs, isSignedIn, available, busySlug, toggle }}>
+  return <FavoritesContext.Provider value={{ slugs, isSignedIn, available, busySlugs, toggle }}>
     {children}
     {message ? <div role="status" className={`${popupStyles.notice} ${popupStyles.favoriteNotice} fixed bottom-4 left-4 right-4 z-[250] mx-auto flex max-w-sm items-center justify-between gap-3 rounded-xl border border-cyan-300/50 bg-[#052b4c] px-4 py-3 text-sm font-bold text-white shadow-2xl sm:left-auto sm:right-5`}>
       <span>{message}</span>{message === "Saved to Favorites." ? <Link href={accountRoutes.favorites} className="shrink-0 text-cyan-300 underline">View</Link> : null}

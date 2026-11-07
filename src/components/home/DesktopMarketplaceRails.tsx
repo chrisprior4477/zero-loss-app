@@ -216,7 +216,7 @@ export function DesktopMarketplaceRails() {
 
   return (
     <section className="relative left-1/2 mt-3 w-screen -translate-x-1/2 space-y-4 px-4 sm:mt-8 sm:space-y-8 sm:px-6 md:mt-3 md:space-y-4 lg:px-[clamp(3rem,6vw,7rem)]">
-      <div id="popular-rewards" className="scroll-mt-28">
+      <div id="shop-by-category" className="scroll-mt-[calc(var(--site-header-height,163px)+17px)]">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Shop by category</h2>
@@ -335,7 +335,7 @@ export function DesktopMarketplaceRails() {
         </div>
       </div>
 
-      <div>
+      <div id="popular-rewards" className="scroll-mt-[calc(var(--site-header-height,163px)+17px)]">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Popular Rewards</h2>

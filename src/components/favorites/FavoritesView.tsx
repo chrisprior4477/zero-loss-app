@@ -42,7 +42,7 @@ function restoreListPosition(target?: string, top?: number) {
 
 export function FavoritesView({ availability, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem }: Props) {
   const timeZone = useAccountTimeZone();
-  const { slugs, available, toggle, busySlug: favoriteBusy } = useFavorites();
+  const { slugs, available, toggle, busySlugs: favoriteBusy } = useFavorites();
   const [tab, setTab] = useState(initialTab);
   const [shareOverrides, setShareOverrides] = useState<Record<string, SharePatch>>({});
   const shares = useMemo(() => (initialShares ?? []).map(share => ({ ...share, ...shareOverrides[share.id] })), [initialShares, shareOverrides]);
@@ -216,7 +216,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
               {price(selected.slug, true)}
               {detailProduct ? <Link className={selectedShare ? styles.productLink : styles.entryButton} href={selectedShare ? `/items/${detailProduct.slug}${selectedShare.token ? `?share=${selectedShare.token}` : ""}` : productHrefWithBrowseReturn(detailProduct.slug, "/account/favorites")}>{selectedShare ? "Open prize details →" : "Enter for $1"}</Link> : <p>This product is no longer available in the current catalog.</p>}
               <div className={styles.detailActions}>
-                <button type="button" className={styles.saveFavorite} disabled={favoriteBusy === selected.slug || !detailProduct || !available} onClick={() => toggle(selected.slug)}>{slugs.includes(selected.slug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
+                <button type="button" className={styles.saveFavorite} disabled={favoriteBusy.includes(selected.slug) || !detailProduct || !available} onClick={() => toggle(selected.slug)}>{slugs.includes(selected.slug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
                 <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={back}>Back to list</button></div>
               </div>
               {selectedShare ? <><button type="button" className={styles.declineButton} disabled={shareBusy !== null} onClick={() => void changeShare(selectedShare, selectedShare.declinedAt ? "restore" : "declined")}>{shareBusy === selectedShare.id ? "Saving…" : selectedShare.declinedAt ? "Undo decline" : "Decline this share"}</button><p className={styles.kept}>{selectedShare.declinedAt ? "Declined. This item stays in Shared with You." : "Declining keeps this item here to revisit."}</p></> : null}

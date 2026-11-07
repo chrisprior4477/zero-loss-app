@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { ProductGallery } from "./ProductGallery";
 
 const favorite = vi.hoisted(() => vi.fn());
-vi.mock("@/components/favorites/FavoritesProvider", () => ({ useFavorites: () => ({ slugs: [], isSignedIn: true, busySlug: null, toggle: favorite }) }));
+vi.mock("@/components/favorites/FavoritesProvider", () => ({ useFavorites: () => ({ slugs: [], isSignedIn: true, busySlugs: [], toggle: favorite }) }));
 
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () { this.open = true; };
