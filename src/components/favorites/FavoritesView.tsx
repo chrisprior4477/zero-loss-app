@@ -192,6 +192,8 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
   }
   const selectedShare = selected?.shareId ? shares.find(s => s.id === selected.shareId) : null;
   const detailProduct = selected ? getDemoProduct(selected.slug) : null;
+  const detailHref = detailProduct ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id) : "/account/favorites")
+    + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
     <FavoritesLandingScroll enabled />
     <div className={styles.container}>
@@ -214,7 +216,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
               <p className={styles.merchant}>{detailProduct?.retailer ?? "Zero Loss"}</p><h2>{detailProduct?.title ?? selectedShare?.title ?? "Product unavailable"}</h2>
               {selectedShare ? <span className={`${styles.badge} ${selectedShare.declinedAt ? styles.declined : ""}`}>{savedShareStatus(selectedShare)}</span> : null}
               {price(selected.slug, true)}
-              {detailProduct ? <Link className={selectedShare ? styles.productLink : styles.entryButton} href={selectedShare ? `/items/${detailProduct.slug}${selectedShare.token ? `?share=${selectedShare.token}` : ""}` : productHrefWithBrowseReturn(detailProduct.slug, "/account/favorites")}>{selectedShare ? "Open prize details →" : "Enter for $1"}</Link> : <p>This product is no longer available in the current catalog.</p>}
+              {detailHref ? <Link className={selectedShare ? styles.productLink : styles.entryButton} href={detailHref}>{selectedShare ? "Open prize details →" : "Enter for $1"}</Link> : <p>This product is no longer available in the current catalog.</p>}
               <div className={styles.detailActions}>
                 <button type="button" className={styles.saveFavorite} disabled={favoriteBusy.includes(selected.slug) || !detailProduct || !available} onClick={() => toggle(selected.slug)}>{slugs.includes(selected.slug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
                 <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={back}>Back to list</button></div>

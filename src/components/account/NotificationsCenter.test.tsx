@@ -48,7 +48,7 @@ test("notification filters, links, and read controls remain functional", () => {
   fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
   expect((screen.getByRole("button", { name: "Mark all as read" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByRole("link", { name: /Alert settings/ }).getAttribute("href")).toBe("#alert-settings");
-  expect(screen.getByRole("link", { name: /Sharing preferences/ }).getAttribute("href")).toBe("/account/crew?tab=picks#sharing");
+  expect(screen.getByRole("link", { name: /Sharing preferences/ }).getAttribute("href")).toBe("/account/crew?tab=privacy#crew-privacy");
 });
 
 test("mobile filter changes reveal the Notifications section below the sticky site header", () => {

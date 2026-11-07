@@ -1,5 +1,6 @@
 import { marketplaceCategories } from "./navigation";
 import { getPopularRewardBrand } from "./popular-rewards";
+import { savedShareHref, shareUuid } from "../sharing/saved-shares";
 
 const browseQueryKeys = new Set([
   "category", "sort", "subcategory", "q", "type", "retailer",
@@ -10,6 +11,15 @@ const browseQueryKeys = new Set([
 export function productBrowseReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 1000 || /[\\\s\u0000-\u001f]/.test(value)) return null;
   if (value === "/account/favorites") return value;
+  if (value.startsWith("/account/favorites?")) {
+    const url = new URL(value, "https://zeroloss.local");
+    const keys = [...url.searchParams.keys()];
+    const share = url.searchParams.get("share");
+    if (url.hash || url.searchParams.get("tab") !== "shared"
+      || keys.some(key => key !== "tab" && key !== "share") || new Set(keys).size !== keys.length
+      || (share !== null && !shareUuid.test(share))) return null;
+    return savedShareHref(share ?? undefined);
+  }
   const retailer = /^\/rewards\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(value);
   if (retailer) return getPopularRewardBrand(retailer[1]) ? value : null;
   if (!/^\/browse(?:\?|$)/.test(value)) return null;
@@ -42,7 +52,7 @@ export function freeEntryHref(slug: string, browseReturn: unknown): string {
 
 export function productBrowseReturnLabel(href: string): string {
   const url = new URL(productBrowseReturnHref(href), "https://zeroloss.local");
-  if (url.pathname === "/account/favorites") return "Favorites";
+  if (url.pathname === "/account/favorites") return url.searchParams.get("tab") === "shared" ? "Shared with You" : "Favorites";
   if (url.pathname.startsWith("/rewards/")) {
     const brand = getPopularRewardBrand(url.pathname.slice("/rewards/".length));
     if (brand) return `${brand.name} rewards`;

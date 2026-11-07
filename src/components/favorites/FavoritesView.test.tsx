@@ -36,6 +36,15 @@ test("declining keeps the shared card and never changes personal favorites", asy
   expect(screen.getByRole("tab", { name: "Shared with You 1" })).toBeTruthy(); expect(screen.getByRole("tab", { name: "Your Favorites 1" })).toBeTruthy();
   await waitFor(() => expect(screen.getByRole("button", { name: /View prize/ })).toBeTruthy()); expect(mocks.toggle).not.toHaveBeenCalled();
 });
+
+test.each([share.token, null])("opening a saved share preserves its exact return destination and token %s", token => {
+  show({ initialTab: "shared", initialShares: [{ ...share, token }] });
+  fireEvent.click(screen.getByRole("button", { name: /View prize/ }));
+  const link = new URL(screen.getByRole("link", { name: "Open prize details →" }).getAttribute("href")!, "https://example.test");
+  expect(link.pathname).toBe("/items/playstation-5-slim");
+  expect(link.searchParams.get("from")).toBe(`/account/favorites?tab=shared&share=${share.id}`);
+  expect(link.searchParams.get("share")).toBe(token);
+});
 test("a late viewed response cannot erase a completed decline", async () => {
   window.history.replaceState({}, "", "/account/favorites?tab=shared");
   let finishView!: (value: unknown) => void;

@@ -272,7 +272,7 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
       </div>
       <div id="alert-settings" className={styles.settingsBlock}>
         <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences === null ? null : alertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setSavedPreferenceOverrides(current => ({ ...current, [key]: enabled }))} />
-        <Link href="/account/crew?tab=picks#sharing" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>
+        <Link href="/account/crew?tab=privacy#crew-privacy" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>
         <h2>Email choices</h2>
         <p>These controls affect email only; the in-app choices above affect this notification list.</p>
         {outcomeEmailEnabled !== undefined ? <EntryOutcomeEmailPreference initialEnabled={outcomeEmailEnabled} placement="account" /> : null}

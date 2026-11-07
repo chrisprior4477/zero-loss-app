@@ -38,3 +38,17 @@ test("Favorites is a safe return destination without allowing other account rout
   expect(productHrefWithBrowseReturn("nike-court-shot-shoes", "/account/favorites")).toBe("/items/nike-court-shot-shoes?from=%2Faccount%2Ffavorites");
   for (const value of ["/account/favorites?next=/account/wallet", "/account/favorites/other", "/account/favorites#other", "//evil.test/account/favorites"]) expect(productBrowseReturnHref(value)).toBe("/browse");
 });
+
+test("a shared prize returns to the exact saved share and retains that route through free entry", () => {
+  const shared = "/account/favorites?tab=shared&share=11111111-1111-4111-8111-111111111111";
+  expect(productBrowseReturnHref(shared)).toBe(shared);
+  expect(productBrowseReturnHref("/account/favorites?tab=shared")).toBe("/account/favorites?tab=shared");
+  expect(productBrowseReturnLabel(shared)).toBe("Shared with You");
+  expect(new URL(productHrefWithBrowseReturn("playstation-5-slim", shared), "https://example.test").searchParams.get("from")).toBe(shared);
+  expect(new URL(freeEntryHref("playstation-5-slim", shared), "https://example.test").searchParams.get("from")).toBe(shared);
+  for (const invalid of [
+    shared + "&next=/account/wallet", shared + "&share=another", shared + "#other",
+    "/account/favorites?tab=shared&share=invalid", "/account/favorites?tab=shared&share=",
+    "/account/favorites?tab=shared&tab=shared", "/account/favorites?share=11111111-1111-4111-8111-111111111111",
+  ]) expect(productBrowseReturnHref(invalid)).toBe("/browse");
+});

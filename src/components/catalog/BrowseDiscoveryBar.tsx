@@ -73,6 +73,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     if (props.filters.availableOnly) url.searchParams.set("available", "1");
     if (props.filters.minValue !== null) url.searchParams.set("minValue", String(props.filters.minValue));
     if (props.filters.maxValue !== null) url.searchParams.set("maxValue", String(props.filters.maxValue));
+    const endingSoon = url.searchParams.get("sort") === "ending-soon";
+    if (props.filters.sort !== "featured" && !endingSoon) url.searchParams.set("sort", props.filters.sort);
+    if (endingSoon && props.selectedCategory === "ending-soon" && props.filters.sort !== "fewest-left") {
+      url.searchParams.set("category", "ending-soon");
+      url.searchParams.set("sort", props.filters.sort);
+    }
     choose(`${url.pathname}${url.search}#search-results`);
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {

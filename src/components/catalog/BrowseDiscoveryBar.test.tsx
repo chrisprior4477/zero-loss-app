@@ -36,6 +36,21 @@ test("All categories exits the selected collection while keeping the selected bu
   expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=50#search-results", { scroll: false });
 });
 
+test.each(["value-high", "fewest-left", "price-low"] as const)("changing departments keeps the selected %s sorting and budget", sort => {
+  render(<BrowseDiscoveryBar {...props} selectedCategory="beauty" selectedRetailerGroup={null}
+    filters={{ ...props.filters, sort, maxValue: 100 }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Categories" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /Health.*Browse prizes/ }));
+  expect(navigation.push).toHaveBeenCalledWith(`/browse?category=health&maxValue=100&sort=${sort}#search-results`, { scroll: false });
+});
+
+test("choosing Ending Soon retains its usual near-capacity ordering", () => {
+  render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} filters={{ ...props.filters, sort: "value-high" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Categories" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /Ending Soon.*Browse prizes/ }));
+  expect(navigation.push).toHaveBeenCalledWith("/browse?sort=ending-soon#search-results", { scroll: false });
+});
+
 function openPriceFilters() {
   render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} />);
   fireEvent.click(screen.getByRole("button", { name: /Filter & sort/ }));
