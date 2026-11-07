@@ -21,6 +21,7 @@ export type DemoProduct = {
 import { popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "./popular-rewards";
 import { buildDirectoryRewards } from "./directory-rewards";
 import { endingSoonProducts } from "./ending-soon-products";
+import { expansionProducts } from "./expansion-products";
 
 const popularRewardProducts: DemoProduct[] = popularRewardBrands.flatMap((brand, brandIndex) =>
   popularRewardAmounts.map((amount, amountIndex) => ({
@@ -477,4 +478,4 @@ export function getDemoProduct(slug: string) {
 }
 
 export const directoryDemoScenarios = buildDirectoryRewards(existingDemoProducts);
-export const demoProducts: DemoProduct[] = [...existingDemoProducts, ...directoryDemoScenarios.map(scenario => scenario.product), ...endingSoonProducts];
+export const demoProducts: DemoProduct[] = [...existingDemoProducts, ...directoryDemoScenarios.map(scenario => scenario.product), ...endingSoonProducts, ...expansionProducts];

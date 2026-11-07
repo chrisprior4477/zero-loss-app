@@ -9,9 +9,15 @@ import { dollarChoiceDemoItems, entryCapacityForValue, marketplaceMovementDemoIt
 import { availabilityForHref, availabilityStatus, progressAppearance } from "@/lib/catalog/availability";
 import { useOfferingAvailability, useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
 import { isResolvedCatalogHref } from "@/lib/catalog/demo-visibility";
+import { expansionProducts } from "@/lib/catalog/expansion-products";
 
 const products = dollarChoiceDemoItems;
 const mosaicLayout = [
+  // New products lead the mosaic; the established feature/compact sequence stays.
+  ...expansionProducts.map(product => ({
+    kind: "feature" as const,
+    indices: [products.findIndex(item => item.href === `/items/${product.slug}`)],
+  })),
   { kind: "feature", indices: [1] }, { kind: "compact", indices: [0, 2] },
   { kind: "feature", indices: [5] }, { kind: "compact", indices: [4, 3] },
   { kind: "feature", indices: [6] }, { kind: "compact", indices: [3, 0] },

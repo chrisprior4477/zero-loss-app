@@ -27,6 +27,7 @@
 
 import { repeatedHomepageProducts } from "@/lib/home/demo-data";
 import { endingSoonProducts } from "@/lib/catalog/ending-soon-products";
+import { expansionProducts } from "@/lib/catalog/expansion-products";
 
 /** Status pill on a card. Semantic roles only — green is live activity,
  *  orange is genuine urgency, cyan is neutral emphasis. */
@@ -94,7 +95,7 @@ export const placeholderFeaturedOpportunities: PlaceholderOpportunity[] = [
 ];
 
 export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
-  ...endingSoonProducts.map((product): PlaceholderOpportunity => ({
+  ...[...endingSoonProducts, ...expansionProducts].map((product): PlaceholderOpportunity => ({
     id: `ending-soon-${product.slug}`,
     title: product.title,
     category: product.category,

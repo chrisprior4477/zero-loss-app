@@ -5,6 +5,8 @@
  * stats pod. Keeping the values here prevents sample marketplace claims from
  * becoming buried in presentation components.
  */
+import { expansionProducts } from "@/lib/catalog/expansion-products";
+
 export const repeatedHomepageProducts = {
   tv: {
     title: 'Samsung 50" M70H Smart TV',
@@ -145,6 +147,17 @@ export const dollarChoiceDemoItems = [
     prizeValue: 2700,
     endingSoon: false,
   },
+  ...expansionProducts.map(product => ({
+    id: `dollar-${product.slug}`,
+    title: product.title,
+    image: product.gallery[0].src,
+    href: `/items/${product.slug}`,
+    accent: "#ffbd24",
+    accentSoft: "rgba(255,189,36,0.28)",
+    percentFilled: percentFilled(product.sold, product.capacity),
+    prizeValue: product.value,
+    endingSoon: true,
+  })),
 ] as const;
 
 export function entryCapacityForValue(prizeValue: number) {
