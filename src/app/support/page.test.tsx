@@ -53,6 +53,17 @@ test("authorized Ledger read uses only customer-readable columns and renders the
   expect(screen.getByTestId("support-form").getAttribute("data-transaction")).toBe(caseId);
   expect(screen.getByText(/Linked wallet transaction/).textContent).toContain("-$1");
 });
+
+test.each([
+  ["2026-01-15T17:00:00Z", "12:00 PM EST"],
+  ["2026-07-15T16:00:00Z", "12:00 PM EDT"],
+])("support transaction dates use the account zone and daylight-saving label for %s", async (created_at, expected) => {
+  mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "demo" }, timezone: "America/New_York" });
+  mocks.from.mockImplementation(table => table === "ledger_entries" ? query({ id: caseId, amount: -100, created_at }) : query([]));
+  render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
+  expect(screen.getByText(/Linked wallet transaction/).textContent).toContain(expected);
+  expect(screen.queryByText(/America\/New_York/)).toBeNull();
+});
 test("a non-demo or unavailable wallet cannot prefill a demo support transaction", async () => {
   mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "production" } });
   render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
@@ -84,6 +95,16 @@ test("the latest conversation page loads newest messages then displays them chro
   expect(screen.getAllByRole("listitem")[0].textContent).toContain("Original customer message");
   expect(screen.getAllByRole("listitem")[1].textContent).toContain("Newest support answer");
   expect(screen.getByTestId("support-form").getAttribute("data-staff")).toBe("false");
+});
+
+test("conversation dates retain an international account's time zone without technical region labels", async () => {
+  mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "demo" }, timezone: "Asia/Tokyo" });
+  mocks.from.mockImplementation(table => table === "support_cases"
+    ? query({ id: caseId, case_number: "sup_test", subject: "Funding question", status: "open", customer_id: own })
+    : query([{ id: "message", actor_kind: "customer", body: "My question", created_at: "2026-01-15T17:00:00Z" }]));
+  render(await SupportPage({ searchParams: Promise.resolve({ case: caseId }) }));
+  expect(screen.getAllByRole("listitem")[0].textContent).toContain("Jan 16, 2026, 2:00 AM GMT+9");
+  expect(screen.queryByText(/Asia\/Tokyo/)).toBeNull();
 });
 test("older conversation pages can navigate back without hiding the latest reply behind a limit", async () => {
   const events = query([]);

@@ -21,7 +21,7 @@ export type CrewInvitation = {
   status: "pending" | "accepted" | "declined" | "removed";
   created_at: string;
 };
-export type OwnCrewEntry = { id: string; offeringSlug?: string; title: string; retailer: string; image: string | null; createdAt: string; shared: boolean; sharedAt?: string | null };
+export type OwnCrewEntry = { id: string; offeringSlug?: string; title: string; retailer: string; image: string | null; createdAt: string; shared: boolean; sharedAt?: string | null; audienceSharedAt?: Record<string, string> };
 export type SharedCrewPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 export type CrewMember = { memberId: string; name: string; avatarUrl: string | null };
 
@@ -40,7 +40,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     db.from("crew_invitations").select("id,requester_id,recipient_id,requester_name,recipient_name,status,created_at")
       .or(`requester_id.eq.${account.userId},recipient_id.eq.${account.userId}`).order("created_at", { ascending: false }),
     readOwnCrewEntries(db, account.userId),
-    readOwnCrewShares(db, account.userId),
+    readOwnCrewShares(db),
     db.rpc("get_crew_member_profiles"),
     db.from("customer_profiles").select("crew_discoverable,crew_find_real_name,crew_find_email,crew_find_phone").eq("customer_id", account.userId).maybeSingle(),
     db.rpc("get_or_create_crew_invite_link"),
@@ -62,6 +62,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   const titles = new Map(account.activity.activity.map((item) => [item.slug, item]));
   const sharedIds = new Set((sharesResult.data ?? []).map((row) => row.entry_id));
   const sharedDates = new Map((sharesResult.data ?? []).map(row => [row.entry_id, row.created_at]));
+  const audienceDates = new Map((sharesResult.data ?? []).map(row => [row.entry_id, row.audience_shared_at]));
   const entries: OwnCrewEntry[] = (entriesResult.data ?? []).map((entry) => {
     const item = titles.get(entry.offering_slug);
     return {
@@ -73,6 +74,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
       createdAt: entry.created_at,
       shared: sharedIds.has(entry.id),
       sharedAt: sharedDates.get(entry.id) ?? null,
+      audienceSharedAt: audienceDates.get(entry.id),
     };
   });
 

@@ -18,7 +18,7 @@ export default async function CrewDisplayPage() {
     db.from("customer_profiles").select("crew_discoverable,crew_find_real_name,crew_find_email,crew_find_phone").eq("customer_id", account.userId).maybeSingle(),
     db.from("crew_visibility_settings").select("default_rule,groups,entry_rules").eq("owner_id", account.userId).maybeSingle(),
     db.rpc("get_crew_member_profiles"),
-    readOwnCrewShares(db, account.userId),
+    readOwnCrewShares(db),
     readOwnCrewEntries(db, account.userId),
   ]);
   const available = !profileResult.error && !settingsResult.error && !membersResult.error && !sharesResult.error && !entriesResult.error;

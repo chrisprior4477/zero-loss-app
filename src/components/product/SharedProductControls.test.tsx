@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { SharedProductContext } from "@/lib/sharing/receiving";
 const mocks = vi.hoisted(() => ({ record: vi.fn(), receiving: vi.fn(), push: vi.fn(), replace: vi.fn(), favorite: vi.fn() }));
@@ -9,7 +9,11 @@ vi.mock("@/lib/sharing/receiving-actions", () => ({ updateSharedProductReceiving
 vi.mock("@/components/favorites/FavoritesProvider", () => ({ useFavorites: () => ({ toggle: mocks.favorite }) }));
 import { SharedProductControls } from "./SharedProductControls";
 const context: SharedProductContext = { token: "11111111-1111-4111-8111-111111111111", slug: "playstation-5-slim", sender: "Alex", scope: "Alex’s Crew", isGroup: false, own: false, receiving: false, shareBack: false, hasChoice: true };
-beforeEach(() => { vi.clearAllMocks(); mocks.record.mockResolvedValue({ ok: true, href: "/account/favorites?tab=shared" }); });
+beforeEach(() => {
+  vi.clearAllMocks(); mocks.record.mockResolvedValue({ ok: true, href: "/account/favorites?tab=shared" });
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+});
 afterEach(cleanup);
 test("saving an email item goes to Shared with You without changing favorites or an opt-out", async () => {
   render(<SharedProductControls slug={context.slug} initial={context} signedIn />);
@@ -35,4 +39,36 @@ test("failed persistence stays on the item with retry feedback", async () => {
   render(<SharedProductControls slug={context.slug} initial={context} signedIn saveOnReturn />);
   expect(await screen.findByRole("status")).toHaveProperty("textContent", "Please try again.");
   expect(mocks.replace).not.toHaveBeenCalled(); expect(mocks.push).not.toHaveBeenCalled();
+});
+
+test("sharing choices and dismissal lock during a slow save, then show the submitted choices", async () => {
+  let finish!: (result: unknown) => void;
+  mocks.receiving.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  render(<SharedProductControls slug={context.slug} initial={context} signedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Sharing options" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Receive shared picks/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Save choices" }));
+  for (const input of screen.getAllByRole("checkbox")) expect(input).toHaveProperty("disabled", true);
+  expect(screen.getByRole("button", { name: "Close sharing options" })).toHaveProperty("disabled", true);
+  const cancel = new Event("cancel", { cancelable: true });
+  fireEvent(screen.getByRole("dialog"), cancel);
+  expect(cancel.defaultPrevented).toBe(true);
+  expect(mocks.receiving).toHaveBeenCalledExactlyOnceWith(context.token, true, false);
+  await act(async () => finish({ ok: true, context: { ...context, receiving: true }, message: "Saved" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Sharing options" }));
+  expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("checked", true);
+  expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("disabled", false);
+});
+
+test("a failed save unlocks the same sharing draft for retry", async () => {
+  mocks.receiving.mockRejectedValueOnce(new Error("Connection interrupted"));
+  render(<SharedProductControls slug={context.slug} initial={context} signedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Sharing options" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Receive shared picks/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Save choices" }));
+  await screen.findByText("Your choice could not be saved. Please try again.");
+  expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("checked", true);
+  expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("disabled", false);
+  expect(screen.getByRole("button", { name: "Close sharing options" })).toHaveProperty("disabled", false);
 });

@@ -4,6 +4,11 @@ import { defaultCrewVisibilityRule, type CrewVisibilityRule } from "./visibility
 export type SharingScope = "crew" | string;
 export type SharingSelection = { scope: SharingScope; offeringSlug?: string; entryId?: string; before?: string };
 
+export function entrySharedAtInScope(entry: OwnCrewEntry, scope: SharingScope) {
+  // Legacy fixtures may omit audience dates; current database rows include them.
+  return entry.audienceSharedAt ? entry.audienceSharedAt[scope] ?? null : entry.sharedAt ?? null;
+}
+
 export function entrySharedInScope(entry: OwnCrewEntry, scope: SharingScope, defaultRule: CrewVisibilityRule, rules: Record<string, CrewVisibilityRule>) {
   if (!entry.shared) return false;
   const rule = rules[entry.id] ?? defaultRule ?? defaultCrewVisibilityRule;

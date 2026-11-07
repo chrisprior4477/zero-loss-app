@@ -2,7 +2,7 @@ import type { createClient } from "@/lib/supabase/server";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 type EntryRow = { id: string; offering_slug: string; created_at: string };
-type ShareRow = { entry_id: string; created_at: string };
+type ShareRow = { entry_id: string; created_at: string; audience_shared_at?: Record<string, string> };
 
 /** Keyset batches avoid both the old 40-entry cut-off and the API row ceiling. */
 export async function readOwnCrewEntries(db: Client, owner: string) {
@@ -22,13 +22,13 @@ export async function readOwnCrewEntries(db: Client, owner: string) {
   return { data: rows, error: null };
 }
 
-export async function readOwnCrewShares(db: Client, owner: string) {
+export async function readOwnCrewShares(db: Client) {
   const rows: ShareRow[] = [];
   let after: string | null = null;
   for (;;) {
-    let query = db.from("crew_entry_shares").select("entry_id,created_at").eq("owner_id", owner).order("entry_id").limit(500);
-    if (after) query = query.gt("entry_id", after);
-    const { data, error } = await query;
+    // The RPC binds the owner to auth.uid(); private audience dates are not
+    // readable through the table's accepted-Crew share-flag permissions.
+    const { data, error } = await db.rpc("get_own_crew_shares", { p_after: after });
     if (error) return { data: [] as ShareRow[], error };
     const batch = (data ?? []) as ShareRow[];
     rows.push(...batch);

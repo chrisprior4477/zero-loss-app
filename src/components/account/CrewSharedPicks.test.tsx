@@ -52,6 +52,29 @@ test("age cleanup requires review and does not include a recently shared entry",
   fireEvent.click(within(dialog).getByRole("button", { name: "Stop sharing 43 entries" }));
   await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String), { scope: "crew", before: expect.any(String) }));
 });
+
+test("cleanup preview and displayed dates use the selected group's own sharing clock", () => {
+  const now = new Date().toISOString();
+  const scoped = { ...entries[1], audienceSharedAt: { [family]: "2026-01-01T12:00:00Z", [football]: now } };
+  render(<CrewSharedPicks {...base} entries={[scoped]} defaultRule={{ audience: "groups", memberIds: [], groupIds: [family, football] }} />);
+  fireEvent.change(screen.getByLabelText("Shared with", { selector: "select" }), { target: { value: football } });
+  fireEvent.click(screen.getByRole("button", { name: "View entries 1" }));
+  expect(screen.getByText(`Shared ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "America/New_York" }).format(new Date(now))} · Football`)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Clean up sharing" }));
+  expect(screen.getByText("0 entries match.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.change(screen.getByLabelText("Shared with", { selector: "select" }), { target: { value: family } });
+  fireEvent.click(screen.getByRole("button", { name: "Clean up sharing" }));
+  expect(screen.getByText("1 entry matches.")).toBeTruthy();
+});
+
+test("one remaining prize is singular and larger remaining counts stay plural", () => {
+  const separatePrizes = Array.from({ length: 7 }, (_, index) => ({ ...entries[index], offeringSlug: `prize-${index}`, title: `Prize ${index}` }));
+  const view = render(<CrewSharedPicks {...base} entries={separatePrizes.slice(0,6)} />);
+  expect(screen.getByRole("button", { name: "Show more · 1 prize" })).toBeTruthy();
+  view.rerender(<CrewSharedPicks {...base} entries={separatePrizes} />);
+  expect(screen.getByRole("button", { name: "Show more · 2 prizes" })).toBeTruthy();
+});
 test("uncertain cleanup retries the same operation instead of starting another", async () => {
   actions.cleanupCrewShares.mockRejectedValueOnce(new Error("offline"));
   render(<CrewSharedPicks {...base} />);

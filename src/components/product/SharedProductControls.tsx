@@ -75,12 +75,12 @@ export function SharedProductControls({ slug, initial, signedIn, saveOnReturn = 
       <button type="button" onClick={() => { if (!signedIn) signIn(); else { setReceive(context?.receiving ?? true); setShareBack(context?.shareBack ?? false); setDialogKind("options"); } }}>Sharing options</button>
     </div>
     {message && !dialogKind ? <p role="status" className={styles.status}>{message}</p> : null}
-    <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={() => setDialogKind(null)} onKeyDown={containDialogTab} aria-labelledby="shared-choice-heading">
-      <div className={styles.heading}><h2 id="shared-choice-heading">{dialogKind === "membership" ? `${context?.receiving ? "Leave" : "Rejoin"} ${scope}?` : "Sharing options"}</h2><button type="button" aria-label="Close sharing options" onClick={() => setDialogKind(null)}>×</button></div>
+    <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { if (busy) event.preventDefault(); else setDialogKind(null); }} onKeyDown={containDialogTab} aria-labelledby="shared-choice-heading">
+      <div className={styles.heading}><h2 id="shared-choice-heading">{dialogKind === "membership" ? `${context?.receiving ? "Leave" : "Rejoin"} ${scope}?` : "Sharing options"}</h2><button type="button" aria-label="Close sharing options" disabled={busy} onClick={() => setDialogKind(null)}>×</button></div>
       {context?.demo ? <p>This demo saves your choices for this sample share only. It does not contact anyone or share your picks.</p> : null}
       {dialogKind === "membership" ? <><p>{context?.receiving ? "Stop receiving shares from this Crew or group. Items already sent to you stay in Shared with You, and you can rejoin from this link." : "Receive the picks they share with you again. This does not share your own picks."}</p><button className={styles.save} type="button" disabled={busy} onClick={() => void save(!context?.receiving, null)}>{busy ? "Saving…" : context?.receiving ? "Leave" : "Rejoin"}</button></> : context ? <>
-        <label><input type="checkbox" checked={receive} onChange={e => setReceive(e.target.checked)} /><span>Receive shared picks from {scope}</span></label>
-        <label><input type="checkbox" checked={shareBack} onChange={e => setShareBack(e.target.checked)} /><span>Let {context.sender} see picks I choose to share with my Crew</span></label>
+        <label><input type="checkbox" checked={receive} disabled={busy} onChange={e => setReceive(e.target.checked)} /><span>Receive shared picks from {scope}</span></label>
+        <label><input type="checkbox" checked={shareBack} disabled={busy} onChange={e => setShareBack(e.target.checked)} /><span>Let {context.sender} see picks I choose to share with my Crew</span></label>
         <p>Receiving is separate from sharing. Your private picks and wallet are never shared. Your existing audience settings still apply.</p>
         <button className={styles.save} type="button" disabled={busy} onClick={() => void save(receive, shareBack)}>{busy ? "Saving…" : "Save choices"}</button>
       </> : <p>This link has no Crew details. <Link href="/account/crew/display#account-settings-sections">Open your sharing preferences →</Link></p>}

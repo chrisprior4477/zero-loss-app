@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { OwnCrewEntry } from "@/app/account/crew/page";
 import type { CrewVisibilityGroup, CrewVisibilityRule } from "@/lib/crew/visibility";
-import { cleanupCutoff, entrySharedInScope, type SharingSelection } from "@/lib/crew/sharing-management";
+import { cleanupCutoff, entrySharedAtInScope, entrySharedInScope, type SharingSelection } from "@/lib/crew/sharing-management";
 import { cleanupCrewShares, shareOwnedCrewEntry, undoCrewShareCleanup, type SharingResult } from "@/lib/crew/sharing-actions";
 import { CrewSharingDialog } from "./CrewSharingDialog";
 import { useAccountTimeZone } from "./TimeZoneProvider";
@@ -43,6 +43,10 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
   const inFlight = useRef(false);
   const listTop = useRef<HTMLHeadingElement>(null);
   const isShared = (entry: OwnCrewEntry) => entrySharedInScope(entry, scope, defaultRule, rules);
+  const isOlderThan = (entry: OwnCrewEntry, cutoff?: string) => {
+    const sharedAt = entrySharedAtInScope(entry, scope);
+    return !cutoff || Boolean(sharedAt && Date.parse(sharedAt) < Date.parse(cutoff));
+  };
   const buckets = useMemo(() => {
     const map = new Map<string, OwnCrewEntry[]>();
     for (const entry of entries) {
@@ -52,9 +56,9 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
     return [...map.entries()];
   }, [entries]);
   const shown = buckets.map(([key, all]) => ({ key, all, rows: all.filter(e => isShared(e) || !sharedOnly && !e.shared) })).filter(b => b.rows.length);
-  const candidates = entries.filter(e => isShared(e) && (!before || e.sharedAt && e.sharedAt < before));
+  const candidates = entries.filter(e => isShared(e) && isOlderThan(e, before));
   const previewBefore = cleanup === "review" ? before : cleanupCutoff(days);
-  const previewMatches = entries.filter(e => isShared(e) && (!previewBefore || e.sharedAt && e.sharedAt < previewBefore));
+  const previewMatches = entries.filter(e => isShared(e) && isOlderThan(e, previewBefore));
   const selectedAge = days === 0 ? "All time" : days === 180 ? "Older than six months" : `Older than ${days} days`;
 
   function resetList() { setVisible(5); setExpanded(null); setEntryLimit(5); }
@@ -131,10 +135,12 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
               <span>{open ? "Close entries" : "View entries"} <strong>{rows.length}</strong></span><span aria-hidden="true">{open ? "−" : "+"}</span>
             </button>
             {open ? <div className={styles.entries}>
-              {rows.slice(0, entryLimit).map(entry => <div key={entry.id} className={styles.entry}>
+              {rows.slice(0, entryLimit).map(entry => {
+                const sharedAt = entrySharedAtInScope(entry, scope);
+                return <div key={entry.id} className={styles.entry}>
                 <div><strong>Entry {all.findIndex(e => e.id === entry.id) + 1}</strong><button type="button" disabled={disabled} onClick={() => isShared(entry) ? stopSelection({ scope, entryId: entry.id }) : share(entry.id)}>{isShared(entry) ? "Stop sharing" : "Share here"}</button></div>
-                <p>{isShared(entry) ? `Shared ${entry.sharedAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(new Date(entry.sharedAt)) : "previously"} · ${label}` : "Private · choose Share here to share with this audience"}</p>
-              </div>)}
+                <p>{isShared(entry) ? `Shared ${sharedAt ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(new Date(sharedAt)) : "previously"} · ${label}` : "Private · choose Share here to share with this audience"}</p>
+              </div>; })}
               {rows.length > entryLimit ? <button type="button" onClick={() => setEntryLimit(n => n + 5)}>Show more entries · {rows.length - entryLimit} remaining</button> : null}
               {entryLimit > 5 ? <button type="button" onClick={() => setEntryLimit(5)}>Close to first five entries</button> : null}
               <button type="button" className={styles.orange} disabled={disabled || !sharedCount || !item.offeringSlug} onClick={() => stopSelection({ scope, offeringSlug: item.offeringSlug })}>Stop Sharing All</button>
@@ -144,7 +150,7 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
       })}
     </div>
     {!shown.length ? <p className={styles.empty}>{sharedOnly ? "No shared picks in this view. Turn off Shared only to see your private entries." : "You don’t have entries to share in this view yet."}</p> : null}
-    {shown.length > visible ? <button type="button" className={styles.orange} onClick={() => setVisible(n => n + 5)}>Show more · {shown.length - visible} prizes</button> : null}
+    {shown.length > visible ? <button type="button" className={styles.orange} onClick={() => setVisible(n => n + 5)}>Show more · {shown.length - visible} {shown.length - visible === 1 ? "prize" : "prizes"}</button> : null}
     {visible > 5 ? <button type="button" className={styles.blue} onClick={() => { resetList(); listTop.current?.scrollIntoView({ block: "start" }); }}>Close to first five</button> : null}
     {picker ? <CrewSharingDialog title="Shared with" onClose={() => setPicker(false)}>
       <div className={styles.mobileGroupList} role="group" aria-label="Sharing audiences">
