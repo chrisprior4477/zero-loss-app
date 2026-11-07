@@ -6,6 +6,7 @@ import { saveProfileDetails, saveProfilePhotoVisibility } from "./actions";
 import { PROFILE_COUNTRIES } from "./countries";
 import { addressRequirements } from "./address-requirements";
 import { countryTimeZones } from "./address-timezone";
+import { profileFields } from "./profile-edit";
 
 function profileForm() {
   const value = new FormData();
@@ -15,6 +16,7 @@ function profileForm() {
     address_line_2: "Unit 4", city: "Wilmington", region: "NC", postal_code: "28401", country: "United States",
     preferred_locale: "en-US", timezone: "America/New_York",
   })) value.set(name, field);
+  value.set("profile_baseline", JSON.stringify({ fields: Object.fromEntries(profileFields.map(key => [key, ""])), saved: Object.fromEntries(profileFields.map(key => [key, null])) }));
   return value;
 }
 
@@ -26,12 +28,13 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 test("saves only validated owner-managed profile fields and refreshes account views", async () => {
-  expect(await saveProfileDetails({ status: "idle" }, profileForm())).toEqual({ status: "succeeded", message: "Your profile information has been updated." });
+  expect(await saveProfileDetails({ status: "idle" }, profileForm())).toMatchObject({ status: "succeeded", message: "Your profile information has been updated." });
   expect(mocks.rpc).toHaveBeenCalledWith("update_customer_profile_preferences", { p_updates: {
     display_name: "Chris Prior", legal_first_name: "Chris", legal_last_name: "Prior", date_of_birth: "1990-01-01",
     phone_number: "(910) 555-0147", address_line_1: "125 Market Street",
     address_line_2: "Unit 4", city: "Wilmington", region: "NC", postal_code: "28401", country: "United States",
     preferred_locale: "en-US", timezone: "America/New_York",
+    _expected: Object.fromEntries(profileFields.map(key => [key, null])),
   } });
   expect(mocks.revalidate).toHaveBeenCalledWith("/", "layout");
   expect(mocks.revalidate).toHaveBeenCalledWith("/account/security");
@@ -123,4 +126,40 @@ test("photo visibility rejects invalid input and failed saves", async () => {
   expect(mocks.rpc).not.toHaveBeenCalled();
   mocks.rpc.mockResolvedValue({ error: new Error("database unavailable") });
   expect((await saveProfilePhotoVisibility("crew", true)).ok).toBe(false);
+});
+
+function unchangedBaseline(form: FormData) {
+  const fields=Object.fromEntries(profileFields.map(key=>[key,String(form.get(key)??'')]));
+  form.set('profile_baseline',JSON.stringify({fields,saved:fields}));
+}
+test('an unrelated older form submits only its edited language, preserving a newer alias',async()=>{
+ const form=profileForm(); unchangedBaseline(form); form.set('preferred_locale','en-GB');
+ expect((await saveProfileDetails({status:'idle'},form)).status).toBe('succeeded');
+ expect(mocks.rpc).toHaveBeenCalledWith('update_customer_profile_preferences',{p_updates:{preferred_locale:'en-GB',_expected:{preferred_locale:'en-US'}}});
+});
+test('conflicting edited fields keep the draft and offer the latest Profile',async()=>{
+ const form=profileForm(); unchangedBaseline(form); form.set('display_name','Older edited alias');
+ mocks.rpc.mockResolvedValue({error:{code:'40001'}});
+ expect(await saveProfileDetails({status:'idle'},form)).toMatchObject({status:'error',conflict:true});
+ expect(mocks.rpc).toHaveBeenCalledWith('update_customer_profile_preferences',{p_updates:{display_name:'Older edited alias',_expected:{display_name:'Chris Prior'}}});
+ expect(mocks.revalidate).not.toHaveBeenCalled();
+});
+test('older unguarded forms cannot save through the new action',async()=>{
+ const form=profileForm();form.delete('profile_baseline');
+ expect(await saveProfileDetails({status:'idle'},form)).toMatchObject({status:'error',message:expect.stringContaining('Refresh Profile')});
+ expect(mocks.rpc).not.toHaveBeenCalled();
+});
+test('saving an unchanged profile does not write a full snapshot',async()=>{
+ const form=profileForm(); unchangedBaseline(form);
+ expect(await saveProfileDetails({status:'idle'},form)).toMatchObject({status:'succeeded',appliedFields:{}});
+ expect(mocks.rpc).not.toHaveBeenCalled();
+});
+test('address edits compare and save the complete address and derived time zone together',async()=>{
+ const form=profileForm();unchangedBaseline(form);form.set('address_line_1','456 Example Street');
+ expect((await saveProfileDetails({status:'idle'},form)).status).toBe('succeeded');
+ const patch=mocks.rpc.mock.calls[0][1].p_updates;
+ expect(patch.address_line_1).toBe('456 Example Street');
+ expect(patch.timezone).toBe('America/New_York');
+ expect(patch._expected.city).toBe('Wilmington');
+ expect(patch).not.toHaveProperty('display_name');
 });

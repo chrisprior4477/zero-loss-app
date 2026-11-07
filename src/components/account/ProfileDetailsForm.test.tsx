@@ -150,3 +150,32 @@ test("an address without a postal code can resolve its country time zone", async
   expect(screen.getByText("Optional for United Arab Emirates. Leave blank if your address has no postal code.")).toBeTruthy();
   expect((screen.getByRole("button",{name:"Save profile"}) as HTMLButtonElement).disabled).toBe(false);
 });
+
+test('fresh server props never replace the original comparison snapshot of an older draft',async()=>{
+ vi.mocked(saveProfileDetails).mockResolvedValue({status:'error',conflict:true,message:'Changed elsewhere'});
+ const view=render(<ProfileDetailsForm details={details}/>);
+ fireEvent.change(screen.getByLabelText('Language'),{target:{value:'en-GB'}});
+ view.rerender(<ProfileDetailsForm details={{...details,displayName:'New alias from another tab'}}/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Save profile'})).toHaveProperty('disabled',false));
+ fireEvent.submit(screen.getByRole('form',{name:'Edit profile'}));
+ await screen.findByText('Changed elsewhere');
+ const submitted=vi.mocked(saveProfileDetails).mock.calls[0][1];
+ const baseline=JSON.parse(String(submitted.get('profile_baseline')));
+ expect(baseline.fields.display_name).toBe('Chris Prior');
+ expect(baseline.saved.display_name).toBe('Chris Prior');
+ expect(screen.getByLabelText('Language')).toHaveProperty('value','en-GB');
+ expect(screen.getByRole('link',{name:'Open latest Profile'})).toHaveProperty('target','_blank');
+});
+test('a second save compares against the confirmed first save rather than the original name',async()=>{
+ vi.mocked(saveProfileDetails).mockResolvedValueOnce({status:'succeeded',message:'First saved',appliedFields:{display_name:'First new alias'}})
+  .mockResolvedValueOnce({status:'succeeded',message:'Second saved',appliedFields:{display_name:'Second new alias'}});
+ render(<ProfileDetailsForm details={details}/>);
+ fireEvent.change(screen.getByLabelText('Display name'),{target:{value:'First new alias'}});
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Save profile'})).toHaveProperty('disabled',false));
+ fireEvent.submit(screen.getByRole('form',{name:'Edit profile'})); await screen.findByText('First saved');
+ fireEvent.change(screen.getByLabelText('Display name'),{target:{value:'Second new alias'}});
+ fireEvent.submit(screen.getByRole('form',{name:'Edit profile'})); await screen.findByText('Second saved');
+ const second=vi.mocked(saveProfileDetails).mock.calls[1][1];
+ const baseline=JSON.parse(String(second.get('profile_baseline')));
+ expect(baseline.fields.display_name).toBe('First new alias');expect(baseline.saved.display_name).toBe('First new alias');
+});

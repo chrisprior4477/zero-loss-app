@@ -16,6 +16,7 @@ import { mobileLogoSizeOrOriginal } from "@/lib/navigation/mobile-logo-size";
 import { addressTimeZone } from "./address-timezone";
 import { DEFAULT_TIME_ZONE, safeTimeZone } from "./timezone";
 import { completeMailingAddress } from "./address-requirements";
+import { profileFields, type ProfileSavedFields } from "./profile-edit";
 
 /** Request-scoped reader shared by pages, header and drawer. No writes. */
 export const getAccountContext = cache(async () => {
@@ -63,6 +64,7 @@ export const getAccountContext = cache(async () => {
     country: profile?.country ?? null,
     extraEntryExplainerAcknowledged: Boolean(profile?.extra_entry_explainer_acknowledged_at),
     displayName,
+    profileSavedFields: profile ? Object.fromEntries(profileFields.map(key => [key, profile[key] ?? null])) as ProfileSavedFields : undefined,
     initials: customerInitials(displayName),
     avatarUrl: profile?.avatar_reference ? supabase.storage.from("profile-photos").getPublicUrl(profile.avatar_reference).data.publicUrl : null,
     showPhotoInMenu: profile?.show_photo_in_menu ?? true,

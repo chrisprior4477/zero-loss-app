@@ -7,6 +7,7 @@ import { saveProfileDetails, type SaveProfileDetailsResult } from "@/lib/account
 import { PROFILE_COUNTRIES } from "@/lib/account/countries";
 import { lookupAddressTimeZone } from "@/lib/account/timezone-lookup-action";
 import { addressRequirements, completeMailingAddress } from "@/lib/account/address-requirements";
+import { profileEditBaseline, profileFields, type ProfileSavedFields } from "@/lib/account/profile-edit";
 import styles from "./profile-editor.module.css";
 
 export type ProfileDetails = {
@@ -25,6 +26,7 @@ export type ProfileDetails = {
   country: string | null;
   preferredLocale: string | null;
   timezone: string | null;
+  savedFields?: ProfileSavedFields;
 };
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] as const;
@@ -100,7 +102,22 @@ async function saveProfile(previous: SaveProfileDetailsResult, formData: FormDat
 }
 
 export function ProfileDetailsForm({ details, ticket = false }: { details: ProfileDetails; ticket?: boolean }) {
-  const [state, action, pending] = useActionState(saveProfile, { status: "idle" });
+  const [baseline, setBaseline] = useState(() => profileEditBaseline({
+    display_name: details.displayName, legal_first_name: details.legalFirstName, legal_last_name: details.legalLastName,
+    date_of_birth: details.dateOfBirth, phone_number: details.phone, address_line_1: details.addressLine1,
+    address_line_2: details.addressLine2, city: details.city, region: details.region, postal_code: details.postalCode,
+    country: details.country ?? "United States", preferred_locale: details.preferredLocale ?? "en-US", timezone: details.timezone,
+  }, details.savedFields));
+  const [state, action, pending] = useActionState(async (previous: SaveProfileDetailsResult, data: FormData) => {
+    const result = await saveProfile(previous, data);
+    if (result.status === "succeeded" && result.appliedFields) {
+      setBaseline(previous => ({
+        fields: Object.fromEntries(profileFields.map(key => [key, data.has(key) ? String(data.get(key) ?? "") : previous.fields[key]])) as typeof previous.fields,
+        saved: { ...previous.saved, ...result.appliedFields },
+      }));
+    }
+    return result;
+  }, { status: "idle" });
   const selectedCountry = details.country ?? "United States";
   const hasNonStandardCountry = !PROFILE_COUNTRIES.some(country => country === selectedCountry);
   const [address, setAddress] = useState({ country: selectedCountry, region: details.region ?? "", postalCode: details.postalCode ?? "", street: details.addressLine1 ?? "", city: details.city ?? "" });
@@ -135,6 +152,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     if (next.country !== address.country || next.region !== address.region || next.postalCode !== address.postalCode || next.city !== address.city || next.street !== address.street) setSelectedZone("");
     setAddress(next);
   }}>
+    <input type="hidden" name="profile_baseline" value={JSON.stringify(baseline)} />
     <section className={styles.formSection} aria-labelledby="personal-details-heading">
       <header><span>01</span><div><h2 id="personal-details-heading">Personal information</h2><p>Use a display name or alias, and keep your legal identity details accurate.</p></div></header>
       <div className={styles.fieldGrid}>
@@ -177,6 +195,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     </section>
 
     {state.status !== "idle" ? <p role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
+    {state.status === "error" && state.conflict ? <Link href="/account/profile#personal-details-heading" target="_blank" rel="noopener">Open latest Profile</Link> : null}
     <div className={styles.actions}>
       <button type="submit" disabled={pending || (completeAddress && (!currentLookup || currentLookup.failed))}>{pending ? "Saving profile…" : "Save profile"}<AccountIcon name="arrow" /></button>
       <Link href="/account/security">Back to Account &amp; Security</Link>

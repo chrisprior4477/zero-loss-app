@@ -187,7 +187,7 @@ select is((select count(*)::int from public.customer_profiles), 1,
 select lives_ok(
   $q$ select * from public.update_customer_profile_preferences(
         '{"display_name":"  Ada L.  ","preferred_locale":"en-GB",
-          "timezone":"Europe/London","avatar_reference":"avatars/ada.png"}'::jsonb) $q$,
+          "timezone":"Europe/London","avatar_reference":"avatars/ada.png"}'::jsonb || jsonb_build_object('_expected', (select jsonb_object_agg(k.key,to_jsonb(p)->k.key) from public.customer_profiles p cross join unnest(array['display_name','preferred_locale','timezone','avatar_reference']) k(key) where p.customer_id=auth.uid()))) $q$,
   'RPC accepts a patch of all four allowed fields');
 
 select is((select display_name     from public.customer_profiles), 'Ada L.',
@@ -202,7 +202,7 @@ select is((select record_version   from public.customer_profiles), 2,
   'record_version advanced to 2 by the trigger');
 
 select lives_ok(
-  $q$ select * from public.update_customer_profile_preferences('{"display_name":"Ada Lovelace"}'::jsonb) $q$,
+  $q$ select * from public.update_customer_profile_preferences('{"display_name":"Ada Lovelace"}'::jsonb || jsonb_build_object('_expected', (select jsonb_object_agg(k.key,to_jsonb(p)->k.key) from public.customer_profiles p cross join unnest(array['display_name']) k(key) where p.customer_id=auth.uid()))) $q$,
   'RPC accepts a single-key patch');
 
 select is((select display_name   from public.customer_profiles), 'Ada Lovelace',
@@ -213,7 +213,7 @@ select is((select record_version from public.customer_profiles), 3,
   'record_version advanced to 3');
 
 select lives_ok(
-  $q$ select * from public.update_customer_profile_preferences('{"avatar_reference":null}'::jsonb) $q$,
+  $q$ select * from public.update_customer_profile_preferences('{"avatar_reference":null}'::jsonb || jsonb_build_object('_expected', (select jsonb_object_agg(k.key,to_jsonb(p)->k.key) from public.customer_profiles p cross join unnest(array['avatar_reference']) k(key) where p.customer_id=auth.uid()))) $q$,
   'RPC accepts JSON null');
 
 select is((select avatar_reference from public.customer_profiles), null::text,
@@ -321,7 +321,7 @@ select throws_ok(
 
 select lives_ok(
   $q$ select * from public.update_customer_profile_preferences(
-        '{"display_name":"A only","timezone":"UTC"}'::jsonb) $q$,
+        '{"display_name":"A only","timezone":"UTC"}'::jsonb || jsonb_build_object('_expected', (select jsonb_object_agg(k.key,to_jsonb(p)->k.key) from public.customer_profiles p cross join unnest(array['display_name','timezone']) k(key) where p.customer_id=auth.uid()))) $q$,
   'A can still update A''s own row');
 
 select is(

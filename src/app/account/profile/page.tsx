@@ -34,6 +34,7 @@ export default async function ProfilePage() {
     <MobileLogoSizePicker />
     <NotificationBannerPicker initialPopupStyle={account.notificationPopupStyle} initialSpeed={account.notificationBannerSpeed} initialDisplaySeconds={account.notificationBannerDisplaySeconds} initialEnabled={account.headerNotificationsEnabled} initialStyle={account.notificationBannerStyle} />
     <ProfileDetailsForm ticket details={{
+        savedFields: account.profileSavedFields,
         displayName: account.displayName,
         legalFirstName: account.legalFirstName,
         legalLastName: account.legalLastName,

@@ -6,6 +6,7 @@ import { isAtLeastAge, MIN_ACCOUNT_AGE_YEARS } from "@/lib/auth/validation";
 import { addressTimeZone, countryTimeZones } from "./address-timezone";
 import { missingAddressFields } from "./address-requirements";
 import { DEFAULT_TIME_ZONE, safeTimeZone } from "./timezone";
+import { profilePatch, readProfileBaseline, type ProfileSavedFields } from "./profile-edit";
 
 const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxPhotoBytes = 5 * 1024 * 1024;
@@ -19,8 +20,8 @@ export type SavePhotoVisibilityResult = { ok: true } | { ok: false; message: str
 
 export type SaveProfileDetailsResult =
   | { status: "idle" }
-  | { status: "succeeded"; message: string }
-  | { status: "error"; message: string };
+  | { status: "succeeded"; message: string; appliedFields?: Partial<ProfileSavedFields> }
+  | { status: "error"; message: string; conflict?: boolean };
 
 const supportedLocales = new Set(["en-US", "en-GB", "es-US"]);
 
@@ -43,7 +44,8 @@ export async function saveProfileDetails(
   _previous: SaveProfileDetailsResult,
   formData: FormData,
 ): Promise<SaveProfileDetailsResult> {
-  let updates: Record<string, string | null>;
+  let updates: ProfileSavedFields;
+  let selection: ReturnType<typeof profilePatch>;
   try {
     const displayName = textField(formData, "display_name", 100);
     const legalFirstName = textField(formData, "legal_first_name", 100);
@@ -92,6 +94,7 @@ export async function saveProfileDetails(
       preferred_locale: preferredLocale,
       timezone: detectedZone ?? timezone,
     };
+    selection = profilePatch(updates, formData, readProfileBaseline(formData.get("profile_baseline")));
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "Check the profile details and try again." };
   }
@@ -99,13 +102,15 @@ export async function saveProfileDetails(
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) return { status: "error", message: "Your session expired. Sign in again before saving your profile." };
-  const { error } = await supabase.rpc("update_customer_profile_preferences", { p_updates: updates });
+  if (!Object.keys(selection.patch).length) return { status: "succeeded", message: "Your profile is already up to date.", appliedFields: {} };
+  const { error } = await supabase.rpc("update_customer_profile_preferences", { p_updates: { ...selection.patch, _expected: selection.expected } });
+  if (error?.code === "40001") return { status: "error", conflict: true, message: "Your profile changed in another tab. Your draft is still here. Open the latest Profile and review your changes there." };
   if (error) return { status: "error", message: "Your profile could not be saved. Refresh and try again." };
   revalidatePath("/", "layout");
   revalidatePath("/account/profile");
   revalidatePath("/account/security");
   revalidatePath("/account/entries");
-  return { status: "succeeded", message: "Your profile information has been updated." };
+  return { status: "succeeded", message: "Your profile information has been updated.", appliedFields: selection.patch };
 }
 
 export async function saveProfilePhoto(formData: FormData): Promise<SaveProfilePhotoResult> {

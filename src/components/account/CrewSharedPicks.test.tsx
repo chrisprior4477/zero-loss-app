@@ -95,3 +95,35 @@ test("one audience picker opens the populated group and switches back to Crew on
   expect((screen.getByLabelText("Shared with", { selector: "select" }) as HTMLSelectElement).value).toBe("crew");
   expect(screen.queryByRole("button", { name: /Stop sharing all/ })).toBeNull();
 });
+
+test('an open group review never falls back to Crew when refreshed groups remove its target',async()=>{
+ const subset=[entries[1],entries[43]];
+ const rules={ [subset[0].id]:{audience:'groups' as const,memberIds:[],groupIds:[football]},[subset[1].id]:{audience:'everyone' as const,memberIds:[],groupIds:[]} };
+ const view=render(<CrewSharedPicks {...base} entries={subset} rules={rules}/>);
+ fireEvent.change(screen.getByLabelText('Shared with',{selector:'select'}),{target:{value:football}});
+ fireEvent.click(screen.getByRole('button',{name:'Clean up sharing'}));
+ fireEvent.click(screen.getByRole('button',{name:'All time'}));
+ fireEvent.click(screen.getByRole('button',{name:'Review cleanup'}));
+ view.rerender(<CrewSharedPicks {...base} entries={subset} groups={groups.filter(g=>g.id!==football)} rules={rules}/>);
+ const dialog=screen.getByRole('dialog',{name:'Review cleanup'});
+ expect(within(dialog).getByRole('heading',{name:'Football'})).toBeTruthy();
+ expect(within(dialog).queryByRole('heading',{name:'Your Crew'})).toBeNull();
+ expect(within(dialog).getByRole('alert').textContent).toContain('This group is no longer available');
+ const confirm=within(dialog).getByRole('button',{name:'Stop sharing 1 entry'});
+ expect(confirm).toHaveProperty('disabled',true);
+ fireEvent.click(confirm);expect(actions.cleanupCrewShares).not.toHaveBeenCalled();
+ fireEvent.click(within(dialog).getByRole('button',{name:'Close review'}));
+ expect(screen.queryByRole('dialog')).toBeNull();
+ fireEvent.change(screen.getByLabelText('Shared with',{selector:'select'}),{target:{value:'crew'}});
+ expect(screen.getByRole('button',{name:'Clean up sharing'})).toHaveProperty('disabled',false);
+});
+test('a renamed group keeps the reviewed audience ID and label on confirmation',async()=>{
+ const view=render(<CrewSharedPicks {...base} defaultRule={{audience:'groups',memberIds:[],groupIds:[football]}}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Clean up sharing'}));
+ fireEvent.click(screen.getByRole('button',{name:'All time'}));
+ fireEvent.click(screen.getByRole('button',{name:'Review cleanup'}));
+ view.rerender(<CrewSharedPicks {...base} groups={groups.map(g=>g.id===football?{...g,name:'Renamed Football'}:g)} defaultRule={{audience:'groups',memberIds:[],groupIds:[football]}}/>);
+ expect(within(screen.getByRole('dialog')).getByRole('heading',{name:'Football'})).toBeTruthy();
+ fireEvent.click(screen.getByRole('button',{name:'Stop sharing 44 entries'}));
+ await waitFor(()=>expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String),{scope:football,before:undefined}));
+});

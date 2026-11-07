@@ -25,14 +25,16 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
     return groups.find(group => entries.some(entry => entrySharedInScope(entry, group.id, defaultRule, rules)))?.id ?? "crew";
   });
   const group = groups.find(g => g.id === selectedScope);
-  const scope = group?.id ?? "crew";
-  const label = group?.name ?? "Your Crew";
+  const scope = selectedScope;
+  const scopeAvailable = scope === "crew" || Boolean(group);
+  const label = scope === "crew" ? "Your Crew" : group?.name ?? "Unavailable group";
   const [sharedOnly, setSharedOnly] = useState(true);
   const [visible, setVisible] = useState(5);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [entryLimit, setEntryLimit] = useState(5);
   const [picker, setPicker] = useState(false);
   const [cleanup, setCleanup] = useState<"choose" | "review" | null>(null);
+  const [cleanupAudience, setCleanupAudience] = useState<{ scope: string; label: string } | null>(null);
   const [days, setDays] = useState(30);
   const [before, setBefore] = useState<string | undefined>();
   const [message, setMessage] = useState("");
@@ -56,9 +58,12 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
     return [...map.entries()];
   }, [entries]);
   const shown = buckets.map(([key, all]) => ({ key, all, rows: all.filter(e => isShared(e) || !sharedOnly && !e.shared) })).filter(b => b.rows.length);
-  const candidates = entries.filter(e => isShared(e) && isOlderThan(e, before));
+  const cleanupScope = cleanupAudience?.scope ?? scope;
+  const cleanupLabel = cleanupAudience?.label ?? label;
+  const cleanupAvailable = cleanupScope === "crew" || groups.some(g => g.id === cleanupScope);
+  const candidates = entries.filter(e => entrySharedInScope(e, cleanupScope, defaultRule, rules) && isOlderThan(e, before));
   const previewBefore = cleanup === "review" ? before : cleanupCutoff(days);
-  const previewMatches = entries.filter(e => isShared(e) && isOlderThan(e, previewBefore));
+  const previewMatches = entries.filter(e => entrySharedInScope(e, cleanupScope, defaultRule, rules) && isOlderThan(e, previewBefore));
   const selectedAge = days === 0 ? "All time" : days === 180 ? "Older than six months" : `Older than ${days} days`;
 
   function resetList() { setVisible(5); setExpanded(null); setEntryLimit(5); }
@@ -76,7 +81,7 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
       finally { inFlight.current = false; }
     });
   }
-  function stopSelection(selection: SharingSelection) { stop({ id: crypto.randomUUID(), selection, label }); }
+  function stopSelection(selection: SharingSelection, audienceLabel = label) { stop({ id: crypto.randomUUID(), selection, label: audienceLabel }); }
   function restore() {
     if (!undoId || inFlight.current) return;
     inFlight.current = true;
@@ -95,7 +100,7 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
       finally { inFlight.current = false; }
     });
   }
-  const disabled = pending || !available || !scope;
+  const disabled = pending || !available || !scopeAvailable;
   const status = message ? <div className={error ? styles.error : styles.notice} role={error ? "alert" : "status"}>
     <p>{message}</p><div>{undoId ? <button type="button" disabled={pending} onClick={restore}>Undo</button> : null}
       {retry ? <button type="button" disabled={pending} onClick={() => stop(retry)}>Retry cleanup</button> : null}</div>
@@ -109,14 +114,16 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
       <label id="shared-with-label" htmlFor="shared-pick-group">Shared with</label>
       <select id="shared-pick-group" className={styles.desktopPicker} value={scope} disabled={pending} onChange={e => { setSelectedScope(e.target.value); resetList(); }}>
         <option value="crew">Your Crew</option>
+        {!scopeAvailable ? <option value={scope} disabled>Unavailable group</option> : null}
         {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
       </select>
       <button className={styles.mobilePicker} type="button" disabled={pending} aria-haspopup="dialog" aria-labelledby="shared-with-label shared-with-value" onClick={() => setPicker(true)}><span id="shared-with-value">{label}</span><span aria-hidden="true">⌄</span></button>
     </div>
     <p className={styles.intro}>{scope === "crew" ? "Picks shared with your whole Crew or individually chosen people." : `Picks shared with ${label}. Cleanup applies only to this group.`}</p>
+    {!scopeAvailable ? <p role="alert">That group is no longer available. Choose another audience to continue.</p> : null}
     <div className={styles.toolbar}>
       <label><input type="checkbox" checked={sharedOnly} onChange={e => { setSharedOnly(e.target.checked); resetList(); }} /> Shared only</label>
-      <button type="button" disabled={disabled} onClick={() => { setCleanup("choose"); setBefore(undefined); }}>Clean up sharing</button>
+      <button type="button" disabled={disabled} onClick={() => { setCleanupAudience({ scope, label }); setCleanup("choose"); setBefore(undefined); }}>Clean up sharing</button>
     </div>
     {status}
     <div className={styles.list}>
@@ -160,13 +167,18 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
     </CrewSharingDialog> : null}
     {cleanup ? <CrewSharingDialog title={cleanup === "choose" ? "Clean up sharing" : "Review cleanup"} onClose={() => { if (!pending) setCleanup(null); }}>
       <div className={styles.cleanup}>
-        <div className={styles.scope}><small>CLEAN UP SHARING TO</small><h3>{label}</h3></div>
+        <div className={styles.scope}><small>CLEAN UP SHARING TO</small><h3>{cleanupLabel}</h3></div>
+        {!cleanupAvailable ? <p role="alert">This group is no longer available. Nothing will be cleaned up. Close this review and choose a current audience.</p> : null}
         {cleanup === "choose" ? <><h3>Stop sharing older picks</h3><p>Choose how long ago they were shared.</p><div className={styles.ages}>{ages.map(([age, text]) => <button type="button" key={age} aria-pressed={days === age} onClick={() => setDays(age)}>{text}</button>)}</div><p><strong>{selectedAge}</strong><br />{previewMatches.length} {previewMatches.length === 1 ? "entry matches" : "entries match"}.</p></>
-          : <><p><strong>{selectedAge}</strong><br />Stop sharing {candidates.length} {candidates.length === 1 ? "entry" : "entries"} with {label}?</p><div className={styles.reviewList}>{buckets.map(([key, all]) => { const count = candidates.filter(e => all.some(a => a.id === e.id)).length; return count ? <p key={key}><span>{all[0].title}</span><strong>{count}</strong></p> : null; })}</div></>}
+          : <><p><strong>{selectedAge}</strong><br />Stop sharing {candidates.length} {candidates.length === 1 ? "entry" : "entries"} with {cleanupLabel}?</p><div className={styles.reviewList}>{buckets.map(([key, all]) => { const count = candidates.filter(e => all.some(a => a.id === e.id)).length; return count ? <p key={key}><span>{all[0].title}</span><strong>{count}</strong></p> : null; })}</div></>}
         <p className={styles.explanation}>Your tickets, offers, rewards, and saved groups stay. Other sharing audiences stay as they are.</p>
         {status}
-        <button className={styles.orange} type="button" disabled={disabled || !previewMatches.length} onClick={() => cleanup === "choose" ? (setBefore(cleanupCutoff(days)), setCleanup("review")) : stopSelection({ scope, before })}>{cleanup === "choose" ? "Review cleanup" : `Stop sharing ${candidates.length} ${candidates.length === 1 ? "entry" : "entries"}`}</button>
-        <button type="button" disabled={pending} onClick={() => cleanup === "choose" ? setCleanup(null) : setCleanup("choose")}>{cleanup === "choose" ? "Cancel" : "Change selection"}</button>
+        <button className={styles.orange} type="button" disabled={disabled || !cleanupAvailable || !previewMatches.length} onClick={() => {
+          if (!cleanupAvailable) return;
+          if (cleanup === "choose") { setBefore(cleanupCutoff(days)); setCleanup("review"); }
+          else stopSelection({ scope: cleanupScope, before }, cleanupLabel);
+        }}>{cleanup === "choose" ? "Review cleanup" : `Stop sharing ${candidates.length} ${candidates.length === 1 ? "entry" : "entries"}`}</button>
+        <button type="button" disabled={pending} onClick={() => !cleanupAvailable || cleanup === "choose" ? setCleanup(null) : setCleanup("choose")}>{!cleanupAvailable ? "Close review" : cleanup === "choose" ? "Cancel" : "Change selection"}</button>
       </div>
     </CrewSharingDialog> : null}
   </section>;
