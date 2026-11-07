@@ -44,6 +44,12 @@ export const livePulseDemoItems = [
   { label: "193 winners", value: "TODAY!", tone: "live", href: "/#meet-winners-heading", format: "stat" },
   { label: "Publix gift card", value: "11 entries left", tone: "urgent", href: "/items/publix-100-gift-card-ending-soon", format: "entries" },
   { label: "Active prize pools", value: "142", tone: "neutral", href: "/browse#search-results", format: "stat" },
+  { label: "YETI Rambler", value: "Only 1 left", tone: "urgent", href: "/items/yeti-rambler-30-tumbler", format: "only" },
+  { label: "Sony WH-1000XM5", value: "40% full", tone: "neutral", href: "/items/sony-wh-1000xm5-headphones", format: "percent" },
+  { label: "Kobalt leaf blower", value: "2 tickets left", tone: "urgent", href: "/items/kobalt-24v-leaf-blower", format: "tickets" },
+  { label: "JBL Flip 7", value: "4 tickets left", tone: "urgent", href: "/items/jbl-flip-7-speaker", format: "tickets" },
+  { label: "KitchenAid Artisan", value: "80% full", tone: "live", href: "/items/kitchenaid-artisan-5qt-mixer", format: "percent" },
+  { label: "Lodge skillet", value: "$25", tone: "neutral", href: "/items/lodge-classic-10-inch-skillet", format: "value" },
 ] as const;
 
 export const transparencyStatsDemo = [

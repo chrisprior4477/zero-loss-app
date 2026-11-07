@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { LivePulseItem } from "@/lib/home/live-pulse";
 import { useVisibleMotion } from "@/components/home/useVisibleMotion";
@@ -39,6 +39,7 @@ function TickerSequence({ items, hidden = false }: { items: LivePulseItem[]; hid
 export function LivePulseTicker({ items }: { items: LivePulseItem[] }) {
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const [sequenceCount, setSequenceCount] = useState(2);
   const sequenceWidthRef = useRef(0);
   const offsetRef = useRef(0);
   const dragRef = useRef<{ id: number; x: number; y: number; moved: boolean } | null>(null);
@@ -56,22 +57,28 @@ export function LivePulseTicker({ items }: { items: LivePulseItem[] }) {
     track.style.transform = `translate3d(${offsetRef.current}px,0,0)`;
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
     const sequence = trackRef.current?.firstElementChild;
-    if (!sequence) return;
+    if (!section || !sequence) return;
     const measure = () => {
-      sequenceWidthRef.current = sequence.getBoundingClientRect().width;
+      const width = sequence.getBoundingClientRect().width;
+      if (width <= 0) return;
+      sequenceWidthRef.current = width;
+      // A full sequence can scroll off the left edge before the track wraps.
+      setSequenceCount(Math.max(2, Math.ceil(section.clientWidth / width) + 1));
       normalizeAndRender();
     };
     const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
     resizeObserver?.observe(sequence);
+    resizeObserver?.observe(section);
     window.addEventListener("resize", measure);
     measure();
     return () => {
       resizeObserver?.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [normalizeAndRender]);
+  }, [items, normalizeAndRender]);
 
   useEffect(() => {
     if (!canAnimate) return;
@@ -158,8 +165,9 @@ export function LivePulseTicker({ items }: { items: LivePulseItem[] }) {
         }}
         aria-label="Drag marketplace activity forward or backward"
       >
-        <TickerSequence items={items} />
-        <TickerSequence items={items} hidden />
+        {Array.from({ length: sequenceCount }, (_, index) => (
+          <TickerSequence key={index} items={items} hidden={index > 0} />
+        ))}
       </div>
       <span className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-[#020d20] to-transparent" aria-hidden="true" />
     </section>

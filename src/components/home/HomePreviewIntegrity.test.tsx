@@ -9,7 +9,7 @@ afterEach(cleanup);
 
 describe("homepage preview integrity", () => {
   test("retains the sample ticker for the working MVP", () => {
-    expect(livePulseDemoItems).toHaveLength(8);
+    expect(livePulseDemoItems).toHaveLength(14);
     expect(livePulseDemoItems).toContainEqual(expect.objectContaining({ label: "193 winners", value: "TODAY!", tone: "live" }));
     expect(livePulseDemoItems).toContainEqual(expect.objectContaining({ label: "Active prize pools", value: "142", tone: "neutral" }));
   });

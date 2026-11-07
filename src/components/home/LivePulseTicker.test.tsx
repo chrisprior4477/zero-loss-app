@@ -1,6 +1,6 @@
 import type { AnchorHTMLAttributes } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { LivePulseTicker } from "./LivePulseTicker";
 
 const navigate = vi.fn();
@@ -33,6 +33,35 @@ test("removes the Sample badge, exposes real links once for keyboard users, and 
   expect(rail.querySelectorAll("a")[1].tabIndex).toBe(-1);
   fireEvent.click(rail.querySelectorAll("a")[1]);
   expect(navigate).toHaveBeenCalledOnce();
+});
+
+test("fills the viewport up to the wrap point, including after resizing or a shorter update list", () => {
+  let viewportWidth = 5120;
+  let sequenceWidth = 1170;
+  let notifyResize: () => void = () => {};
+  const observe = vi.fn();
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(callback: () => void) { notifyResize = callback; }
+    observe = observe;
+    disconnect() {}
+  });
+  vi.spyOn(Element.prototype, "clientWidth", "get").mockImplementation(() => viewportWidth);
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(() => DOMRect.fromRect({ width: sequenceWidth }));
+  const { rail } = setup();
+  function checkCoverage() {
+    expect((rail.childElementCount - 1) * sequenceWidth).toBeGreaterThanOrEqual(viewportWidth);
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+  }
+  expect(observe).toHaveBeenCalledWith(rail.parentElement);
+  expect(observe).toHaveBeenCalledWith(rail.firstElementChild);
+  checkCoverage();
+  sequenceWidth = 425;
+  act(() => notifyResize());
+  checkCoverage();
+  viewportWidth = 390;
+  act(() => notifyResize());
+  checkCoverage();
+  expect(rail.childElementCount).toBe(2);
 });
 
 test("a click or small hand movement still opens the listing", () => {
