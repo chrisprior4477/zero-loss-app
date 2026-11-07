@@ -5,7 +5,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, 
 vi.mock("@/lib/support/actions", () => ({ saveSupportCase: mocks.save }));
 import { SupportForm } from "./SupportForm";
 const caseId = "11111111-1111-4111-8111-111111111111";
-beforeEach(() => { vi.resetAllMocks(); });
+beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); });
 afterEach(cleanup);
 test("transaction-linked form keeps the chosen transaction and exact retry after a dropped response", async () => {
   mocks.save.mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce({ status: "saved", caseId });
@@ -89,4 +89,51 @@ test("a rejected staff reply keeps its selected case status", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Send reply" }));
   await screen.findByRole("alert");
   expect(screen.getByRole("combobox", { name: "Case status" })).toHaveProperty("value", "resolved");
+});
+
+test("a draft survives leaving for help and returning, isolated by account and reference", () => {
+  let view = render(<SupportForm ownerId="customer-a" requestKey="support_request_001" transactionId={caseId} />);
+  fireEvent.change(screen.getByRole("textbox", { name: "Subject" }), { target: { value: "Nintendo receipt question" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Tell us what happened" }), { target: { value: "Please help me check this purchase receipt." } });
+  view.unmount();
+  view = render(<SupportForm ownerId="customer-b" requestKey="support_request_002" transactionId={caseId} />);
+  expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("value", "");
+  view.unmount();
+  view = render(<SupportForm ownerId="customer-a" requestKey="support_request_003" rewardId={caseId} />);
+  expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("value", "");
+  view.unmount();
+  render(<SupportForm ownerId="customer-a" requestKey="support_request_004" transactionId={caseId} />);
+  expect(screen.getByRole("textbox", { name: "Subject" })).toHaveProperty("value", "Nintendo receipt question");
+  expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("value", "Please help me check this purchase receipt.");
+  fireEvent.click(screen.getByRole("button", { name: "Clear draft" }));
+  expect(screen.getByRole("textbox", { name: "Subject" })).toHaveProperty("value", "Question about this wallet transaction");
+  expect(sessionStorage.length).toBe(0);
+});
+
+test("returning to an uncertain submission checks the original request and clears the draft only after success", async () => {
+  mocks.save.mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce({ status: "saved", caseId });
+  const view = render(<SupportForm ownerId="customer-a" requestKey="support_request_001" transactionId={caseId} />);
+  fireEvent.change(screen.getByRole("textbox", { name: "Tell us what happened" }), { target: { value: "Please check this transaction." } });
+  fireEvent.click(screen.getByRole("button", { name: "Send support request" }));
+  await screen.findByRole("alert");
+  const first = mocks.save.mock.calls[0][1] as FormData;
+  view.unmount();
+  render(<SupportForm ownerId="customer-a" requestKey="support_request_new" transactionId={caseId} />);
+  expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("disabled", true);
+  expect(screen.getByRole("button", { name: "Clear draft" })).toHaveProperty("disabled", true);
+  fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalled());
+  const retried = mocks.save.mock.calls[1][1] as FormData;
+  expect(Object.fromEntries(retried)).toEqual(Object.fromEntries(first));
+  expect(sessionStorage.length).toBe(0);
+});
+
+test("blocked browser storage does not prevent entering a support request", () => {
+  const read = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("Blocked"); });
+  const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Blocked"); });
+  try {
+    render(<SupportForm ownerId="customer-a" requestKey="support_request_001" />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Tell us what happened" }), { target: { value: "Please help me check my request." } });
+    expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("value", "Please help me check my request.");
+  } finally { read.mockRestore(); write.mockRestore(); }
 });

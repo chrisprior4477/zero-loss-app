@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRailReturn } from "./useRailReturn";
 import Link from "next/link";
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -217,6 +218,9 @@ export function DesktopMarketplaceRails() {
   const categoriesRef = useRef<HTMLDivElement>(null);
   const endingRef = useRef<HTMLDivElement>(null);
   const brandsRef = useRef<HTMLDivElement>(null);
+  useRailReturn(categoriesRef, "categories");
+  useRailReturn(endingRef, "ending-soon");
+  useRailReturn(brandsRef, "popular-rewards");
   const categoryDrag = useDragRail(categoriesRef);
   const endingDrag = useDragRail(endingRef);
   const brandsDrag = useDragRail(brandsRef);

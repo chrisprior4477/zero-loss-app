@@ -77,7 +77,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         <p className={`text-xs font-bold ${styles.eyebrow}`}>{event.actor_kind === "staff" ? "Zero Loss support" : "Customer"} · {formatOfferDeadline(event.created_at, account.timezone)}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{event.body}</p>
       </li>)}</ol>}
       {!events.error ? pageLinks(`/support?case=${validCase}`, messagePage, (events.data?.length ?? 0) > pageSize, true) : null}
-      {messagePage === 0 ? <SupportForm key={`${validCase}-${events.data?.[0]?.id ?? "new"}`} requestKey={randomUUID()} caseId={validCase} staff={staffView} /> : <Link className={button} href={`/support?case=${validCase}#conversation`}>Return to the latest messages to reply</Link>}
+      {messagePage === 0 ? <SupportForm ownerId={account.userId} key={`${validCase}-${events.data?.[0]?.id ?? "new"}`} requestKey={randomUUID()} caseId={validCase} staff={staffView} /> : <Link className={button} href={`/support?case=${validCase}#conversation`}>Return to the latest messages to reply</Link>}
     </section></PageContainer>;
   }
   // Ledger RLS already selects this customer's current wallet. wallet_scope is
@@ -98,7 +98,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         {validReward && (!reward?.data || reward.error) ? <p role="alert">That reward is unavailable for your account. Open your saved reward and try again.</p> : validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again.</p> : <>
           {transactionLabel(transaction?.data, account.timezone) ? <p className={`${note} mb-4 text-sm`}>Linked wallet transaction: {transactionLabel(transaction?.data, account.timezone)}</p> : null}
           {validReward ? <p className={`${note} mb-4 break-words text-sm`}>Linked reward: <strong>{rewardTitle ?? "Saved reward"}</strong><span className="mt-1 block break-all">Reward reference: {validReward}</span></p> : null}
-          <SupportForm key={validTransaction ?? validReward ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} />
+          <SupportForm ownerId={account.userId} key={validTransaction ?? validReward ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} />
         </>}
       </section> : null}
       <section id="case-list" className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>

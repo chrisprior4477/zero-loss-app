@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRailReturn } from "./useRailReturn";
 import Link from "next/link";
 import { type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -13,6 +14,7 @@ export function DollarChoiceCarousel() {
   const availability = useOfferingAvailability();
   const resolved = useResolvedCatalogSlugs();
   const trackRef = useRef<HTMLDivElement>(null);
+  useRailReturn(trackRef, "dollar-choice");
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
   const scroll = (direction: -1 | 1) => {

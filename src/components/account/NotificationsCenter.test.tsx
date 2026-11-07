@@ -4,17 +4,42 @@ import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { buildAccountNotifications, type AccountNotification } from "@/lib/account/notifications";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
 import { NotificationsCenter } from "./NotificationsCenter";
+import { NotificationProvider, useNotifications } from "@/components/notifications/NotificationProvider";
 
 vi.mock("next/image", () => ({ default: () => <span data-testid="notification-image" /> }));
 const actionMocks = vi.hoisted(() => ({ respond: vi.fn(), refresh: vi.fn(), push: vi.fn() }));
 const readMocks = vi.hoisted(() => ({ mark: vi.fn() }));
 const preferenceMocks = vi.hoisted(() => ({ save: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: actionMocks.refresh, push: actionMocks.push }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/account/notifications", useRouter: () => ({ refresh: actionMocks.refresh, push: actionMocks.push }) }));
 vi.mock("@/lib/crew/actions", () => ({ respondToCrewRequest: actionMocks.respond }));
 vi.mock("@/lib/account/notification-read-actions", () => ({ markNotificationsRead: readMocks.mark }));
 vi.mock("@/lib/account/notification-preference-actions", () => ({ setInAppAlertPreference: preferenceMocks.save }));
 beforeEach(() => { readMocks.mark.mockResolvedValue({ ok: true, message: "Saved." }); preferenceMocks.save.mockResolvedValue({ ok: true, message: "Off — your alert choice was saved." }); });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
+
+test("a confirmed incoming alert updates the open list, count and read controls without changing its filter", async () => {
+  const share: AccountNotification = { id: "fresh-share", category: "crew", title: "Chris shared a Walmart gift card", body: "Open this shared item.", meta: "Shared with You", href: "/account/favorites?tab=shared", action: "View shared item", visualLabel: "Your Crew", visualValue: "Shared pick", tone: "crew" };
+  function Receive() {
+    const value = useNotifications()!;
+    return <button onClick={() => value.receiveConfirmed(share, false)}>Receive share</button>;
+  }
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue({ ok: false } as Response);
+  try {
+    render(<NotificationProvider initial={{ notifications: [], readIds: [], readAvailable: true, preferences: {} }} initialStyle="capsule" initialEnabled>
+      <Receive /><NotificationsCenter notifications={[]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />
+    </NotificationProvider>);
+    fireEvent.click(screen.getByRole("button", { name: /Your Crew0/ }));
+    expect(screen.getByText("No your crew updates")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Receive share" }));
+    expect(screen.getByRole("button", { name: /Your Crew1/ })).toHaveProperty("ariaPressed", "true");
+    expect(screen.getByText(share.title)).toBeTruthy();
+    expect(screen.queryByText("No your crew updates")).toBeNull();
+    expect(screen.getByRole("link", { name: /View shared item/ }).getAttribute("href")).toBe(share.href);
+    fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
+    await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith([share.id]));
+    expect(actionMocks.refresh).not.toHaveBeenCalled();
+  } finally { fetch.mockRestore(); }
+});
 
 const wallet: WalletSnapshot = {
   walletAccountId: "11111111-1111-4111-8111-111111111111",

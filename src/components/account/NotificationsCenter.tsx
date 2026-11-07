@@ -24,6 +24,7 @@ import styles from "./notifications.module.css";
 import { useTicketBatches } from "./useTicketBatches";
 import { TicketBatchControls } from "./TicketBatchControls";
 import batchStyles from "./ticket-batches.module.css";
+import { useNotifications } from "@/components/notifications/NotificationProvider";
 
 type FilterKey = "all" | NotificationCategory;
 const groupsPerPage = 12;
@@ -39,7 +40,14 @@ const filters = [
 
 type NotificationOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function NotificationsCenter({ userId, supportEnabled = true, notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable, initialAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ userId, supportEnabled = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+  const live = useNotifications()?.liveSnapshot;
+  // The header already refreshes this verified snapshot. Reuse it for page
+  // counts, rows and read controls without remounting the customer's view.
+  const notifications = live ? live.notifications : serverNotifications;
+  const initialReadIds = live ? live.readIds : serverReadIds;
+  const initialAlertPreferences = live ? live.preferences : serverAlertPreferences;
+  const readAvailable = live ? live.readAvailable : serverReadAvailable;
   const [filter, setFilter] = useState<FilterKey>("all");
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [savedPreferenceOverrides, setSavedPreferenceOverrides] = useState<NotificationPreferences>({});
