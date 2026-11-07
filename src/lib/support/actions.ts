@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 
-export type SupportActionState = { status: "idle" } | { status: "error"; message: string; uncertain?: boolean } | { status: "saved"; caseId: string };
+export type SupportActionState = { status: "idle" } | { status: "error"; message: string; uncertain?: boolean; field?: "subject" | "body" } | { status: "saved"; caseId: string };
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const key = /^[A-Za-z0-9_-]{16,128}$/;
 
@@ -17,9 +17,11 @@ export async function saveSupportCase(_previous: SupportActionState, form: FormD
   const category = String(form.get("category") ?? "other");
   const status = String(form.get("status") ?? "open");
   if (!isPreviewDataEnvironment()) return { status: "error", message: "Support submission is unavailable in this environment." };
-  if (!key.test(requestKey) || (caseId && !uuid.test(caseId)) || (transactionId && !uuid.test(transactionId)) || body.length < 10 || body.length > 4000 ||
-    (!caseId && (subject.length < 5 || subject.length > 140 || !["wallet", "entry", "reward", "account", "other"].includes(category))) ||
-    !["open", "awaiting_customer", "resolved"].includes(status)) return { status: "error", message: "Please check the form. Include a message of 10–4,000 characters." };
+  if (!key.test(requestKey) || (caseId && !uuid.test(caseId)) || (transactionId && !uuid.test(transactionId)) ||
+    (!caseId && !["wallet", "entry", "reward", "account", "other"].includes(category)) ||
+    !["open", "awaiting_customer", "resolved"].includes(status)) return { status: "error", message: "Please check the form details and try again." };
+  if (!caseId && (subject.length < 5 || subject.length > 140)) return { status: "error", field: "subject", message: "Please enter a subject of 5–140 characters, excluding spaces at the beginning and end." };
+  if (body.length < 10 || body.length > 4000) return { status: "error", field: "body", message: "Please enter a message of 10–4,000 characters, excluding spaces at the beginning and end." };
   try {
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();

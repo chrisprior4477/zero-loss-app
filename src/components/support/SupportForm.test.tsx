@@ -44,3 +44,35 @@ test("a definitive rejection leaves message editable and does not show success",
   expect(screen.getByRole("textbox", { name: "Your reply" })).toHaveProperty("disabled", false);
   expect(mocks.replace).not.toHaveBeenCalled();
 });
+
+test("validation preserves the selected category and draft for a corrected retry", async () => {
+  mocks.save.mockResolvedValueOnce({ status: "error", field: "subject", message: "Please enter a subject of 5–140 characters." })
+    .mockResolvedValueOnce({ status: "saved", caseId });
+  render(<SupportForm requestKey="support_request_001" />);
+  fireEvent.change(screen.getByRole("combobox", { name: "What do you need help with?" }), { target: { value: "reward" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Subject" }), { target: { value: "     " } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Tell us what happened" }), { target: { value: "My reward needs a closer look." } });
+  fireEvent.click(screen.getByRole("button", { name: "Send support request" }));
+  await screen.findByRole("alert");
+  expect(screen.getByRole("combobox")).toHaveProperty("value", "reward");
+  expect(screen.getByRole("textbox", { name: "Subject" })).toHaveProperty("value", "     ");
+  expect(screen.getByRole("textbox", { name: "Subject" }).getAttribute("aria-invalid")).toBe("true");
+  expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("value", "My reward needs a closer look.");
+  fireEvent.change(screen.getByRole("textbox", { name: "Subject" }), { target: { value: "Reward question" } });
+  fireEvent.click(screen.getByRole("button", { name: "Send support request" }));
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalled());
+  const corrected = mocks.save.mock.calls[1][1] as FormData;
+  expect(corrected.get("category")).toBe("reward");
+  expect(corrected.get("subject")).toBe("Reward question");
+  expect(corrected.get("body")).toBe("My reward needs a closer look.");
+});
+
+test("a rejected staff reply keeps its selected case status", async () => {
+  mocks.save.mockResolvedValue({ status: "error", message: "Please wait a few minutes." });
+  render(<SupportForm requestKey="support_request_001" caseId={caseId} staff />);
+  fireEvent.change(screen.getByRole("combobox", { name: "Case status" }), { target: { value: "resolved" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "Your reply" }), { target: { value: "Here is more information." } });
+  fireEvent.click(screen.getByRole("button", { name: "Send reply" }));
+  await screen.findByRole("alert");
+  expect(screen.getByRole("combobox", { name: "Case status" })).toHaveProperty("value", "resolved");
+});

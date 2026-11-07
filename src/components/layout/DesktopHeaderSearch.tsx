@@ -24,7 +24,7 @@ type SearchOptions = { inputId?: string; active?: boolean; onActivate?: () => vo
 function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitted, onDismiss, navigate }: SearchOptions & { inputId: string; initialQuery: string; navigate?: (href: string) => void }) {
   const [query, setQuery] = useState(initialQuery);
   const voice = useVoiceSearch(setQuery);
-  const stopVoice = voice.stop;
+  const stopVoice = voice.cancel;
   const inputRef = useRef<HTMLInputElement>(null);
   const [suggestions, setSuggestions] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -52,13 +52,13 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
       method="get"
       onSubmit={event => {
         setSuggestions(false);
-        voice.stop();
+        voice.cancel();
         inputRef.current?.blur();
         onSubmitted?.();
         if (navigate) { event.preventDefault(); navigate(searchResultsHref(query)); }
       }}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSuggestions(false); }}
-      onKeyDown={event => { if (event.key === "Escape") { setSuggestions(false); if (onDismiss) { event.preventDefault(); voice.stop(); onDismiss(); } } }}
+      onKeyDown={event => { if (event.key === "Escape") { setSuggestions(false); if (onDismiss) { event.preventDefault(); voice.cancel(); onDismiss(); } } }}
       className="relative mx-auto flex h-9 min-w-0 max-w-[760px] flex-1 items-center rounded-full bg-[#f5f7fa] px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] sm:h-10 sm:min-w-[240px] sm:px-4"
     >
       <button type="submit" aria-label="Search catalog" title="Search catalog" className="relative mr-3 h-5 w-5 shrink-0 text-[#087feb]">
@@ -81,7 +81,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         placeholder="Search all prizes"
         className="min-w-0 flex-1 bg-transparent [&::-webkit-search-cancel-button]:hidden text-[14px] text-[#00132e] outline-none placeholder:text-slate-500"
       />
-      {query ? <button type="button" aria-label="Clear search" onClick={() => { voice.stop(); setQuery(""); setSuggestions(false); inputRef.current?.focus(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#365875] hover:bg-slate-200">×</button> : null}
+      {query ? <button type="button" aria-label="Clear search" onClick={() => { voice.cancel(); setQuery(""); setSuggestions(false); inputRef.current?.focus(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#365875] hover:bg-slate-200">×</button> : null}
       {query.trim() && !voice.listening ? (
         <button type="submit" aria-label="Go to search results" className="ml-2 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">
           Go
@@ -100,7 +100,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
       >
         <HeaderMicrophoneIcon />
       </button>}
-      {onDismiss ? <button type="button" aria-label="Close search" onClick={() => { voice.stop(); onDismiss(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#00132e] hover:bg-slate-200">×</button> : null}
+      {onDismiss ? <button type="button" aria-label="Close search" onClick={() => { voice.cancel(); onDismiss(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#00132e] hover:bg-slate-200">×</button> : null}
       {suggestions && active !== false ? <div id={`${inputId}-suggestions`} role="group" aria-label="Try a search" className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-cyan-300 bg-[#052749] p-2 text-white shadow-xl">
         <p className="px-2 py-1 text-xs font-bold text-cyan-200">Try a search</p>
         {searchExamples.map(example => <button key={example} type="button" className="block min-h-9 w-full rounded-lg px-3 py-2 text-left text-sm font-bold hover:bg-[#124674] focus-visible:bg-[#124674] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" onPointerDown={event => event.preventDefault()} onClick={() => { setQuery(example); inputRef.current?.focus(); setSuggestions(false); }}>{example}</button>)}

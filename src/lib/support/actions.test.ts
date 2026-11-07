@@ -44,6 +44,16 @@ test("signed-out requests and production fail closed", async () => {
   expect((await saveSupportCase({ status: "idle" }, form())).status).toBe("error");
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
+
+test.each([
+  ["subject", "     ", "subject", "subject of 5–140"],
+  ["body", "          ", "body", "message of 10–4,000"],
+])("identifies the invalid %s after trimming without touching the database", async (key, value, field, message) => {
+  const data = form(); data.set(key, value);
+  expect(await saveSupportCase({ status: "idle" }, data)).toMatchObject({ status: "error", field, message: expect.stringContaining(message) });
+  expect(mocks.getUser).not.toHaveBeenCalled();
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
 test.each(["P0001", "42501", "22023"])("database rejection %s is not falsely reported as saved", async code => {
   mocks.rpc.mockResolvedValue({ error: { code } });
   expect(await saveSupportCase({ status: "idle" }, form())).toMatchObject({ status: "error" });
