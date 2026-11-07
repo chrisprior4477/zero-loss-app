@@ -1,0 +1,30 @@
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+const submit = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/catalog/request-actions", () => ({ submitCatalogRequest: submit }));
+import { CatalogRequestForm } from "./CatalogRequestForm";
+beforeEach(() => vi.resetAllMocks());
+afterEach(cleanup);
+
+test.each(["validation", "connection"])("%s failure preserves the full request draft for correction and retry", async kind => {
+  if (kind === "validation") submit.mockResolvedValueOnce({ status: "error", message: "Check the product name" });
+  else submit.mockRejectedValueOnce(new Error("Connection lost"));
+  submit.mockResolvedValueOnce({ status: "succeeded", message: "Saved request" });
+  render(<CatalogRequestForm initialProduct="Kayak" />);
+  fireEvent.change(screen.getByLabelText(/What would you like/), { target: { value: "  " } });
+  fireEvent.change(screen.getByLabelText("Email", { exact: true }), { target: { value: "person@example.test" } });
+  fireEvent.change(screen.getByLabelText(/Anything else/), { target: { value: "Keep these brand and size details" } });
+  fireEvent.submit(screen.getByRole("button", { name: /Send product request/ }).closest("form")!);
+  await screen.findByRole("alert");
+  expect(screen.getByLabelText(/What would you like/)).toHaveProperty("value", "  ");
+  expect(screen.getByLabelText("Email", { exact: true })).toHaveProperty("value", "person@example.test");
+  expect(screen.getByLabelText(/Anything else/)).toHaveProperty("value", "Keep these brand and size details");
+  fireEvent.change(screen.getByLabelText(/What would you like/), { target: { value: "Tandem kayak" } });
+  fireEvent.submit(screen.getByRole("button", { name: /Send product request/ }).closest("form")!);
+  expect(await screen.findByRole("status")).toHaveProperty("textContent", expect.stringContaining("Saved request"));
+  expect(screen.queryByLabelText("Email", { exact: true })).toBeNull();
+  expect(submit.mock.calls[1][1].get("requestedItem")).toBe("Tandem kayak");
+  expect(submit.mock.calls[1][1].get("email")).toBe("person@example.test");
+  expect(submit.mock.calls[1][1].get("notes")).toBe("Keep these brand and size details");
+  expect(submit.mock.calls[1][1].get("sourceQuery")).toBe("Kayak");
+});

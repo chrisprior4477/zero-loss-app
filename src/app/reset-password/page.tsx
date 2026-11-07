@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 import { createClient } from "@/lib/supabase/server";
+import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
 
 export const metadata: Metadata = { title: "Choose a new password" };
 
-type Props = { searchParams: Promise<{ updated?: string }> };
+type Props = { searchParams: Promise<{ updated?: string; next?: string | string[] }> };
 
 export default async function ResetPasswordPage({ searchParams }: Props) {
-  const { updated } = await searchParams;
+  const { updated, next } = await searchParams;
+  const returnTo = signInReturnPath(next);
+  const signInHref = `${authNavigationHref("/login", returnTo)}${returnTo ? "&" : "?"}focus=email#login-form`;
   // This flag only selects an informational view. It never grants a session
   // or authorizes a password update; the server action still verifies the user.
   const saved = updated === "1";
@@ -20,14 +23,14 @@ export default async function ResetPasswordPage({ searchParams }: Props) {
       <h1 className="mt-3 text-3xl font-black sm:text-4xl">{saved ? "Password updated" : "Choose a new password"}</h1>
       {saved ? <>
         <p role="status" className="mt-5 rounded-xl border border-[#31e800]/35 bg-[#31e800]/10 p-4 text-sm leading-6">Your password has been changed. Sign in with your new password to continue.</p>
-        <Link href="/login?focus=email#login-form" className="mt-6 grid min-h-12 place-items-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Sign in</Link>
+        <Link href={signInHref} className="mt-6 grid min-h-12 place-items-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Sign in</Link>
       </> : user ? <>
         <p className="mb-7 mt-3 text-sm leading-6 text-white/70">Save a new password for your Zero Loss account.</p>
-        <ResetPasswordForm />
+        <ResetPasswordForm returnTo={returnTo} />
       </> : <>
         <p role="alert" className="mt-5 rounded-xl border border-orange-300/35 bg-orange-300/10 p-4 text-sm leading-6">This page needs a valid password-reset session. If you already saved a new password, try signing in with it. Otherwise, request a new reset link.</p>
-        <Link href="/login?focus=email#login-form" className="mt-6 grid min-h-12 place-items-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Sign in</Link>
-        <Link href="/forgot-password" className="mt-4 block text-center text-sm font-semibold text-cyan-300 underline-offset-4 hover:underline">Request a new reset link</Link>
+        <Link href={signInHref} className="mt-6 grid min-h-12 place-items-center rounded-xl bg-[#00b9ff] px-5 font-black text-[#00132e]">Sign in</Link>
+        <Link href={authNavigationHref("/forgot-password", returnTo)} className="mt-4 block text-center text-sm font-semibold text-cyan-300 underline-offset-4 hover:underline">Request a new reset link</Link>
       </>}
     </section>
   </main>;

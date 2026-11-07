@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
-import { authNavigationHref } from "@/lib/auth/entry-return";
+import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
 
 export const metadata: Metadata = { title: "Reset your password" };
 
@@ -13,7 +13,7 @@ export default async function ForgotPasswordPage({ searchParams }: Props) {
       <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">Account recovery</p>
       <h1 className="mt-3 text-3xl font-black sm:text-4xl">Forgot your password?</h1>
       <p className="mb-7 mt-3 text-sm leading-6 text-white/70">Enter the email you use for Zero Loss. We&apos;ll send a link to choose a new password.</p>
-      <ForgotPasswordForm expired={error === "expired"} signInHref={authNavigationHref("/login", next)} />
+      <ForgotPasswordForm expired={error === "expired"} signInHref={authNavigationHref("/login", next)} returnTo={signInReturnPath(next)} />
     </section>
   </main>;
 }

@@ -340,10 +340,11 @@ export async function requestPasswordResetAction(
 
   const supabase = await createClient();
   const origin = await getRecoveryCallbackOrigin();
+  const returnTo = signInReturnPath(formData.get("next"));
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     // The existing callback is already used by confirmation emails and can
     // exchange the PKCE code before sending recovery visitors to the form.
-    redirectTo: `${origin}/auth/confirm?flow=recovery`,
+    redirectTo: `${origin}/auth/confirm?flow=recovery${returnTo ? `&next=${encodeURIComponent(returnTo)}` : ""}`,
   });
 
   if (error) {
@@ -387,7 +388,8 @@ export async function updateRecoveredPasswordAction(
   // Signing out changes cookies and re-renders the server page. Returning a
   // client-only success state here lets the no-session branch replace it.
   // Use a separate, refresh-safe success view that doesn't require a session.
-  redirect("/reset-password?updated=1");
+  const returnTo = signInReturnPath(formData.get("next"));
+  redirect(`/reset-password?updated=1${returnTo ? `&next=${encodeURIComponent(returnTo)}` : ""}`);
 }
 
 export async function changeAccountPasswordAction(

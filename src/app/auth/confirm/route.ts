@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { signInReturnPath } from "@/lib/auth/entry-return";
+import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const recoveryAttempt = searchParams.get("flow") === "recovery" || type === "recovery";
+  const returnTo = signInReturnPath(searchParams.get("next"));
 
   // Email providers may prefetch links. A GET must never consume a one-time
   // recovery token; the visitor explicitly continues from this landing page.
@@ -16,17 +17,17 @@ export async function GET(request: NextRequest) {
     const landingUrl = new URL("/auth/recovery", origin);
     if (tokenHash) landingUrl.searchParams.set("token_hash", tokenHash);
     else if (code) landingUrl.searchParams.set("code", code);
+    if (returnTo) landingUrl.searchParams.set("next", returnTo);
     const landingResponse = NextResponse.redirect(landingUrl);
     landingResponse.headers.set("Cache-Control", "no-store");
     landingResponse.headers.set("Referrer-Policy", "no-referrer");
     return landingResponse;
   }
 
-  const returnTo = signInReturnPath(searchParams.get("next"));
   const returnQuery = returnTo ? `&next=${encodeURIComponent(returnTo)}` : "";
   const successUrl = `${origin}/login?verified=1${returnQuery}`;
   const failureUrl = recoveryAttempt
-    ? `${origin}/forgot-password?error=expired`
+    ? `${origin}/forgot-password?error=expired${returnQuery}`
     : `${origin}/login?error=verification_failed${returnQuery}`;
   const response = NextResponse.redirect(failureUrl);
   response.headers.set("Cache-Control", "private, no-store");
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
   if (isRecovery) {
     // Preserve the recovery session cookies set during verification so the
     // password form can securely update this account's password.
-    response.headers.set("Location", `${origin}/reset-password`);
+    response.headers.set("Location", `${origin}${authNavigationHref("/reset-password", returnTo)}`);
     return response;
   }
 
@@ -90,9 +91,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const origin = new URL(request.url).origin;
-  const failureUrl = `${origin}/forgot-password?error=expired`;
+  const queryReturn = signInReturnPath(new URL(request.url).searchParams.get("next"));
+  const failureUrl = `${origin}/forgot-password?error=expired${queryReturn ? `&next=${encodeURIComponent(queryReturn)}` : ""}`;
   const response = NextResponse.redirect(failureUrl, { status: 303 });
   response.headers.set("Cache-Control", "no-store");
+  response.headers.set("Referrer-Policy", "no-referrer");
 
   const requestOrigin = request.headers.get("origin");
   if (requestOrigin && requestOrigin !== origin) return response;
@@ -100,6 +103,8 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const tokenHash = formData.get("token_hash");
   const code = formData.get("code");
+  const returnTo = signInReturnPath(formData.get("next")) ?? queryReturn;
+  response.headers.set("Location", `${origin}/forgot-password?error=expired${returnTo ? `&next=${encodeURIComponent(returnTo)}` : ""}`);
   if (formData.get("flow") !== "recovery" ||
     (typeof tokenHash !== "string" || !tokenHash) && (typeof code !== "string" || !code)) {
     return response;
@@ -131,6 +136,6 @@ export async function POST(request: NextRequest) {
     if (error || redirectType !== "recovery" || !data.session?.access_token) return response;
   }
 
-  response.headers.set("Location", `${origin}/reset-password`);
+  response.headers.set("Location", `${origin}${authNavigationHref("/reset-password", returnTo)}`);
   return response;
 }

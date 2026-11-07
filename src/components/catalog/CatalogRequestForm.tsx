@@ -1,12 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState } from "react";
 import { submitCatalogRequest, type CatalogRequestState } from "@/lib/catalog/request-actions";
 
 const initialState: CatalogRequestState = { status: "idle" };
 
+async function saveRequest(previous: CatalogRequestState, formData: FormData): Promise<CatalogRequestState> {
+  try { return await submitCatalogRequest(previous, formData); }
+  catch { return { status: "error", message: "We could not confirm your request. Your details are still here. Please try again." }; }
+}
+
 export function CatalogRequestForm({ initialProduct = "" }: { initialProduct?: string }) {
-  const [state, formAction, pending] = useActionState(submitCatalogRequest, initialState);
+  const [state, formAction, pending] = useActionState(saveRequest, initialState);
 
   if (state.status === "succeeded") {
     return (
@@ -18,7 +23,12 @@ export function CatalogRequestForm({ initialProduct = "" }: { initialProduct?: s
   }
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form onSubmit={event => {
+      event.preventDefault();
+      // Keep the draft after errors; only confirmed success replaces this form.
+      const formData = new FormData(event.currentTarget);
+      startTransition(() => formAction(formData));
+    }} className="space-y-5">
       <input type="hidden" name="sourceQuery" value={initialProduct} />
       <div>
         <label htmlFor="requested-item" className="text-sm font-bold text-white">What would you like to see?</label>

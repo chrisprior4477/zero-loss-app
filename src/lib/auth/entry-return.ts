@@ -31,7 +31,7 @@ export function sharedProductReturnPath(value: unknown): string | null {
 }
 
 /** Carry the same allowlisted destination between account forms. */
-export function authNavigationHref(page: "/login" | "/signup" | "/forgot-password", value: unknown): string {
+export function authNavigationHref(page: "/login" | "/signup" | "/forgot-password" | "/reset-password", value: unknown): string {
   const returnTo = signInReturnPath(value);
   return returnTo ? `${page}?next=${encodeURIComponent(returnTo)}` : page;
 }
