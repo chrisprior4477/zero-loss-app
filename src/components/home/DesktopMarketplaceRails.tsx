@@ -368,7 +368,7 @@ export function DesktopMarketplaceRails() {
                 key={brand.name}
                 href={`/rewards/${brand.slug}`}
                 draggable={false}
-                className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 focus-visible:outline-none sm:w-[116px] sm:gap-2.5"
+                className="zl-brand-choice group flex w-[72px] shrink-0 flex-col items-center gap-1.5 focus-visible:outline-none sm:w-[116px] sm:gap-2.5"
               >
                 <span
                   className="zl-brand-disc grid h-[62px] w-[62px] place-items-center rounded-full border border-white/15 px-1.5 text-center text-[10px] font-bold leading-tight text-white shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-transform group-hover:-translate-y-1 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-cyan-300 sm:h-[104px] sm:w-[104px] sm:px-3 sm:text-[15px]"
