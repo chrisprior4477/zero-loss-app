@@ -1,9 +1,34 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { DesktopHeaderSearchFallback } from "./DesktopHeaderSearch";
+import { DesktopHeaderSearch, DesktopHeaderSearchFallback, SharedHeaderSearchDraft } from "./DesktopHeaderSearch";
 import { searchExamples } from "@/lib/navigation/search-examples";
 
+const navigation = vi.hoisted(() => ({ path: "/browse", query: "q=coffee", push: vi.fn() }));
+vi.mock("next/navigation", () => ({ usePathname: () => navigation.path, useSearchParams: () => new URLSearchParams(navigation.query), useRouter: () => ({ push: navigation.push }) }));
+
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+
+test("shared drafts reset for a new committed search or page, but survive unrelated filter changes", () => {
+  const header = () => <SharedHeaderSearchDraft><header data-testid="header-shell"><DesktopHeaderSearch inputId="desktop" /><DesktopHeaderSearch inputId="mobile" /></header></SharedHeaderSearchDraft>;
+  const view = render(header());
+  const shell = screen.getByTestId("header-shell");
+  const expectBoth = (value: string) => screen.getAllByRole("searchbox").forEach(input => expect(input).toHaveProperty("value", value));
+  expectBoth("coffee");
+  fireEvent.change(screen.getAllByRole("searchbox")[0], { target: { value: "unsent draft" } });
+  navigation.query = "q=coffee&category=groceries";
+  view.rerender(header());
+  expectBoth("unsent draft");
+  navigation.query = "q=camping";
+  view.rerender(header());
+  expectBoth("camping");
+  navigation.query = "q=coffee";
+  view.rerender(header());
+  expectBoth("coffee");
+  navigation.path = "/items/sony-wh-1000xm5-headphones";
+  view.rerender(header());
+  expectBoth("");
+  expect(screen.getByTestId("header-shell")).toBe(shell);
+});
 
 describe("header search submit cue", () => {
   test("names its all-prizes scope and submits the same unrestricted query as the catalog search", () => {

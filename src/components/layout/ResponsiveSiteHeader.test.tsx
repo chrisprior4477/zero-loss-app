@@ -23,6 +23,39 @@ function setup(layout: MenuLayout) {
   return { ...result, mobile, header: result.container.querySelector("header")! };
 }
 
+test("responsive search boxes share typing, suggestions, clearing and the submitted query", () => {
+  const { container, mobile } = setup("classic");
+  const desktopInput = container.querySelector<HTMLInputElement>("#desktop-header-search")!;
+  const mobileInput = within(mobile).getByRole("searchbox");
+  fireEvent.change(desktopInput, { target: { value: "wireless headphones" } });
+  expect(mobileInput).toHaveProperty("value", "wireless headphones");
+  fireEvent.change(mobileInput, { target: { value: "camping tent" } });
+  expect(desktopInput.value).toBe("camping tent");
+  fireEvent.submit(desktopInput.closest("form")!);
+  expect(navigation.push).toHaveBeenLastCalledWith("/browse?q=camping+tent#search-results");
+  fireEvent.click(within(mobile).getByRole("button", { name: "Clear search" }));
+  expect(desktopInput.value).toBe("");
+  fireEvent.focus(mobileInput);
+  fireEvent.click(within(mobile).getByRole("button", { name: "TV" }));
+  expect(desktopInput.value).toBe("TV");
+});
+
+test("Escape returns a category menu's keyboard focus to its trigger without reopening it", () => {
+  const { header } = setup("classic");
+  const nav = within(header).getByRole("navigation", { name: "Marketplace categories" });
+  const trigger = within(nav).getByRole("link", { name: "Games & Puzzles" });
+  act(() => trigger.focus());
+  const menu = within(nav).getByRole("menu");
+  const firstItem = within(menu).getAllByRole("menuitem")[0];
+  act(() => firstItem.focus());
+  fireEvent.keyDown(firstItem, { key: "Escape" });
+  expect(document.activeElement).toBe(trigger);
+  expect(within(nav).queryByRole("menu")).toBeNull();
+  expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  act(() => within(header).getByRole("button", { name: "My account" }).focus());
+  expect(within(nav).queryByRole("menu")).toBeNull();
+});
+
 test("desktop centering reserves the wider side and remeasures changing account controls", () => {
   let accountWidth = 245;
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {

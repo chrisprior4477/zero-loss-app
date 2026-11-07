@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { searchExamples, searchResultsHref } from "@/lib/navigation/search-examples";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
@@ -20,9 +20,33 @@ function HeaderMicrophoneIcon() {
   );
 }
 
+const SearchDraftContext = createContext<{ query: string; setQuery: Dispatch<SetStateAction<string>> } | null>(null);
+
+function SearchDraftSession({ routeKey, initialQuery, children }: { routeKey: string; initialQuery: string; children: ReactNode }) {
+  const [query, setQuery] = useState(initialQuery);
+  const [previousRouteKey, setPreviousRouteKey] = useState(routeKey);
+  if (previousRouteKey !== routeKey) {
+    setPreviousRouteKey(routeKey);
+    setQuery(initialQuery);
+  }
+  const value = useMemo(() => ({ query, setQuery }), [query]);
+  return <SearchDraftContext.Provider value={value}>{children}</SearchDraftContext.Provider>;
+}
+
+/** One route-scoped draft for both responsive search boxes, including voice and suggestions. */
+export function SharedHeaderSearchDraft({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialQuery = pathname === "/browse" ? searchParams.get("q")?.trim() ?? "" : "";
+  return <SearchDraftSession routeKey={`${pathname}:${initialQuery}`} initialQuery={initialQuery}>{children}</SearchDraftSession>;
+}
+
 type SearchOptions = { inputId?: string; active?: boolean; onActivate?: () => void; onSubmitted?: () => void; onDismiss?: () => void };
 function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitted, onDismiss, navigate }: SearchOptions & { inputId: string; initialQuery: string; navigate?: (href: string) => void }) {
-  const [query, setQuery] = useState(initialQuery);
+  const [localQuery, setLocalQuery] = useState(initialQuery);
+  const draft = useContext(SearchDraftContext);
+  const query = draft?.query ?? localQuery;
+  const setQuery = draft?.setQuery ?? setLocalQuery;
   const voice = useVoiceSearch(setQuery);
   const stopVoice = voice.cancel;
   const inputRef = useRef<HTMLInputElement>(null);

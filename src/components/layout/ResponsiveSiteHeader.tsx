@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useMenuLayout } from "./MenuLayoutProvider";
 import { useMobileLogoSize } from "./MobileLogoSizeProvider";
 import { useMenuViewport } from "./useMenuViewport";
-import { DesktopHeaderSearch, DesktopHeaderSearchFallback } from "./DesktopHeaderSearch";
+import { DesktopHeaderSearch, DesktopHeaderSearchFallback, SharedHeaderSearchDraft } from "./DesktopHeaderSearch";
 import { DesktopCategoryNav } from "./DesktopCategoryNav";
 import { HomeIcon } from "./HomeIcon";
 import { showsShoppingCategories, type MenuLayout } from "@/lib/navigation/menu-layout";
@@ -88,7 +88,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
     } : undefined,
   };
 
-  return <>
+  const header = <>
     <header ref={headerRef} data-menu-layout={layout} data-menu-viewport={viewport ?? undefined} data-search-open={expanded} data-menu-preview={preview ? "true" : undefined} style={{ "--mobile-logo-scale": 1 + logoSize / 100 } as CSSProperties} className={`${preview ? "" : "sticky"} ${styles.header}`}>
       <div className={styles.topRow}>
         <div ref={logoRef} className={styles.logo}>{logo}</div>
@@ -117,4 +117,6 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
       <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} showHome={layout !== "home-ending-search"} />
     </div> : null}
   </>;
+  // Keep URL-dependent draft state below Suspense; layout previews retain their own draft.
+  return preview ? header : <Suspense fallback={header}><SharedHeaderSearchDraft>{header}</SharedHeaderSearchDraft></Suspense>;
 }

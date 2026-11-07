@@ -62,11 +62,13 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const resolved = new Set(resolvedSlugs);
   const navRef = useRef<HTMLElement>(null);
+  const categoryLinks = useRef(new Map<string, HTMLAnchorElement>());
+  const restoringFocus = useRef(false);
   const dragRef = useRef<{ x: number; left: number; dragging: boolean } | null>(null);
   const suppressClick = useRef(false);
   const [menuTop, setMenuTop] = useState(0);
   const openMenu = (category: string) => {
-    if (preview || dragRef.current?.dragging) return;
+    if (preview || restoringFocus.current || dragRef.current?.dragging) return;
     setMenuTop(navRef.current?.getBoundingClientRect().bottom ?? 0);
     setOpenCategory(category);
   };
@@ -101,7 +103,14 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpenCategory(null);
+      if (event.key !== "Escape") return;
+      if (navRef.current?.contains(document.activeElement)) {
+        event.preventDefault();
+        restoringFocus.current = true;
+        categoryLinks.current.get(openCategory)?.focus({ preventScroll: true });
+        restoringFocus.current = false;
+      }
+      setOpenCategory(null);
     };
 
     document.addEventListener("mousedown", closeOutside);
@@ -188,6 +197,7 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
               onMouseEnter={() => openMenu(category)}
             >
               <Link
+                ref={element => { if (element) categoryLinks.current.set(category, element); else categoryLinks.current.delete(category); }}
                 href={marketplaceCategoryHref(category)}
                 data-ending-soon-link={isMerchandising || undefined}
                 aria-expanded={preview ? undefined : isOpen}
