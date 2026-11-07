@@ -108,7 +108,13 @@
 }
 @media (min-width: 1024px) { .header:not([data-menu-preview]) .topRow { gap: 24px; } .header:not([data-menu-preview]) .logo img { height: 32px; } .header:not([data-menu-preview]) .accountControls { gap: 20px; } .header:not([data-menu-preview])[data-menu-layout] .stickyCategories { padding: 0 16px; } }
 @media (min-width: 1024px) {
-  /* Center against the full header, with equal room for the wider side plus padding/gap. */
+  /* Keep the approved full-width background, with a centered band for desktop controls. */
+  .header:not([data-menu-preview]) { --desktop-header-max-width: 1920px; }
+  .header:not([data-menu-preview]) .topRow { width: 100%; max-width: var(--desktop-header-max-width); margin-inline: auto; }
+  .header:not([data-menu-preview]) .stickyCategories > nav { max-width: calc(var(--desktop-header-max-width) - 32px); margin-inline: auto; }
+  .header:not([data-menu-preview]) .mobileSearchRow { max-width: var(--desktop-header-max-width); margin-inline: auto; }
+  .header:not([data-menu-preview])[data-menu-layout="search-over"] .mobileSearchRow { max-width: calc(var(--desktop-header-max-width) - 32px); }
+  /* Equal room for the wider side keeps Search centered as the band contracts. */
   .header:not([data-menu-preview]) .desktopSearch {
     position: absolute;
     inset-inline: 0;
