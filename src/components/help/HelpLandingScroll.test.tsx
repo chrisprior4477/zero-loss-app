@@ -1,6 +1,7 @@
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { HelpLandingScroll } from "./HelpLandingScroll";
+import { faqReturnKey } from "@/lib/help/faq-return";
 
 afterEach(() => {
   cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals();
@@ -29,6 +30,14 @@ function setup(hash = "") {
 test("help landing starts beneath the measured header without animation", () => {
   const { scrollTo, flush } = setup(); render(<HelpLandingScroll target="support-intro" />); flush();
   expect(scrollTo).toHaveBeenCalledWith({ top: 508, behavior: "instant" });
+  expect(document.documentElement.style.getPropertyValue("--help-header-height")).toBe("80px");
+});
+
+test("a restored FAQ answer is not scrolled back to the introduction", () => {
+  const { scrollTo, flush } = setup();
+  window.history.replaceState({ [faqReturnKey]: { href: window.location.href, query: "pending", category: "wallet", expanded: ["funding-status"], answer: "funding-status", answerTop: 100, scrollY: 700 } }, "");
+  render(<HelpLandingScroll target="faq-intro" />); flush();
+  expect(scrollTo).not.toHaveBeenCalled();
   expect(document.documentElement.style.getPropertyValue("--help-header-height")).toBe("80px");
 });
 test("explicit cases and conversation destinations win over the default heading", () => {

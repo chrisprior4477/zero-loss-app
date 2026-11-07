@@ -26,7 +26,7 @@ import { CrewDisplaySettings } from "./CrewDisplaySettings";
 import { defaultCrewVisibilityRule, type crewVisibilitySnapshot } from "@/lib/crew/visibility";
 import { useCrewTab } from "./useCrewTab";
 import type { CrewTab } from "@/lib/crew/navigation";
-import { crewViewReturnKey, readCrewViewReturn } from "@/lib/crew/view-return";
+import { crewViewReturnKey, readCrewViewReturn, readCrewPickDestination } from "@/lib/crew/view-return";
 
 type Props = {
   visibility?: ReturnType<typeof crewVisibilitySnapshot>;
@@ -175,7 +175,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   const sampleKeys = samples.join(",");
   useLayoutEffect(() => {
     function restorePerson() {
-      const saved = readCrewViewReturn(window.history.state, currentUserId, window.location.href);
+      const saved = readCrewViewReturn(window.history.state, currentUserId, window.location.href) ?? readCrewPickDestination(window.location.href);
       if (!saved) return;
       if (saved.selectedKey.startsWith("sample-")) {
         const name = sampleKeys.split(",").find(name => `sample-${name}` === saved.selectedKey) as SampleCrewName | undefined;

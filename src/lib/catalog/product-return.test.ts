@@ -52,3 +52,14 @@ test("a shared prize returns to the exact saved share and retains that route thr
     "/account/favorites?tab=shared&tab=shared", "/account/favorites?share=11111111-1111-4111-8111-111111111111",
   ]) expect(productBrowseReturnHref(invalid)).toBe("/browse");
 });
+
+test("Crew product links return to the exact person and pick with a safe account route", () => {
+  const crew = "/account/crew?member=sample-Daniel&pick=dyson-v8-cordless-vacuum#crew-intro";
+  expect(productBrowseReturnHref(crew)).toBe(crew);
+  expect(productBrowseReturnLabel(crew)).toBe("Your Crew");
+  expect(new URL(productHrefWithBrowseReturn("dyson-v8-cordless-vacuum", crew), "https://example.test").searchParams.get("from")).toBe(crew);
+  expect(new URL(freeEntryHref("dyson-v8-cordless-vacuum", crew), "https://example.test").searchParams.get("from")).toBe(crew);
+  for (const bad of [crew + "&next=/account/wallet", crew.replace("#crew-intro", "&next=/account/wallet#crew-intro"), crew.replace("#crew-intro", "#other"),
+    crew.replace("sample-Daniel", "../wallet"), crew.replace("pick=dyson-v8-cordless-vacuum", "pick=../wallet"), crew.replace("&pick=", "&member=someone&pick="),
+    "https://evil.test" + crew, "/account/crew?member=sample-Daniel#crew-intro"]) expect(productBrowseReturnHref(bad)).toBe("/browse");
+});

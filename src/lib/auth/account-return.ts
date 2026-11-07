@@ -14,7 +14,7 @@ const routes: Record<string, ReturnRoute> = {
   "/account/declined-offers": { query: {} },
   "/account/favorites": { query: { tab: oneOf("favorites", "shared"), share: matches(uuid), item: matches(slug) }, hash: /^#(?:saved-items-heading|favorite-products)$/ },
   "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), via: oneOf("purchase"), view: oneOf("history", "card"), panel: oneOf("methods", "card"), rewards: oneOf("ready", "history"), from: matches(slug), browse: value => productBrowseReturnPath(value) !== null, entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid), choice: matches(uuid) }, hash: /^#(?:reward-pass|add-funds|payment-methods|wallet-add-card|transactions|transaction-[0-9a-f-]{36})$/i },
-  "/account/crew": { query: { member: matches(uuid), tab: oneOf("crew", "requests", "picks", "groups"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-groups|crew-request-[0-9a-f-]{36})$/i },
+  "/account/crew": { query: { member: value => uuid.test(value) || /^sample-(?:Maya|Daniel|Ari|Leo)$/.test(value), pick: matches(slug), tab: oneOf("crew", "requests", "picks", "groups"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-intro|crew-groups|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {} },
   "/account/notifications": { query: {} },
   "/account/security": { query: {} },

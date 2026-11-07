@@ -2,11 +2,13 @@
 
 import { useEffect } from "react";
 import { openEntriesAnchorId, type ActivityFilter } from "@/lib/account/activity";
+import { readActivityViewReturn } from "@/lib/account/activity-view-return";
 
 /** Every mobile activity tab lands at its filters; Open Entries also does so on desktop. */
-export function MyActivityLandingScroll({ filter, revealControls, enabled }: { filter: ActivityFilter; revealControls: boolean; enabled: boolean }) {
+export function MyActivityLandingScroll({ ownerId, filter, revealControls, enabled }: { ownerId?: string; filter: ActivityFilter; revealControls: boolean; enabled: boolean }) {
   useEffect(() => {
     if (!enabled || (filter !== "active" && !window.matchMedia?.("(max-width: 767px)").matches)) return;
+    if (ownerId && readActivityViewReturn(window.history.state, ownerId, window.location.href, filter)) return;
 
     // Allow the destination and Next's own navigation scroll to settle first.
     let secondFrame = 0;
@@ -27,7 +29,7 @@ export function MyActivityLandingScroll({ filter, revealControls, enabled }: { f
       window.cancelAnimationFrame(firstFrame);
       window.cancelAnimationFrame(secondFrame);
     };
-  }, [filter, revealControls, enabled]);
+  }, [ownerId, filter, revealControls, enabled]);
 
   return null;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { readFaqReturn } from "@/lib/help/faq-return";
 
 /** Respect deep links, and keep help destinations below the measured sticky header. */
 export function HelpLandingScroll({ target, visitKey = target }: { target: string; visitKey?: string }) {
@@ -20,6 +21,7 @@ export function HelpLandingScroll({ target, visitKey = target }: { target: strin
       first = requestAnimationFrame(() => {
         second = requestAnimationFrame(() => {
           const headerBottom = measure();
+          if (target === "faq-intro" && readFaqReturn(window.history.state, window.location.href)) return;
           const id = window.location.hash.slice(1) || target;
           const element = document.getElementById(id);
           if (!element) return;

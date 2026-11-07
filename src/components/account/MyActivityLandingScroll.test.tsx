@@ -2,12 +2,21 @@ import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { MyActivityLandingScroll } from "./MyActivityLandingScroll";
 import { activityFilters } from "@/lib/account/activity";
+import { activityViewReturnKey } from "@/lib/account/activity-view-return";
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   document.querySelectorAll("[data-scroll-fixture]").forEach(element => element.remove());
+  window.history.replaceState({}, "", "/");
+});
+
+test("an exact activity Back bookmark takes priority over the mobile first-visit scroll", () => {
+  const { scrollTo } = setup();
+  window.history.replaceState({ [activityViewReturnKey]: { ownerId: "me", href: window.location.href, filter: "active", key: "active:playstation-5-slim", left: 300, scrollY: 500, cardTop: 120, width: 390 } }, "");
+  render(<MyActivityLandingScroll ownerId="me" filter="active" revealControls={false} enabled />);
+  expect(scrollTo).not.toHaveBeenCalled();
 });
 
 test.each([true, false])("Open Entries lands at the filters on mobile=%s, without stealing detail-view scroll", matches => {

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useRef, useState } from "react";
+import { type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { activityHref, isPurchasedReward, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
@@ -12,9 +12,14 @@ import { availabilityStatus } from "@/lib/catalog/availability";
 import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
 import { RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 import { PurchaseOptionSummary } from "./PurchaseOptionSummary";
+import { activityViewReturnKey, readActivityViewReturn, type ActivityViewReturn } from "@/lib/account/activity-view-return";
 
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
 type GalleryGroup = { key: string; entries: ActivityItem[] };
+
+function returnKey(item: ActivityItem) {
+  return item.status === "active" || item.status === "completion" ? `${item.status}:${item.slug}` : item.rewardId ?? item.entryId ?? `${item.status}:${item.slug}`;
+}
 
 function groupGalleryEntries(items: ActivityItem[]): GalleryGroup[] {
   const groups: GalleryGroup[] = [];
@@ -42,7 +47,7 @@ function action(item: ActivityItem) {
   return { active: "See My Entry", completion: "Continue with Purchase", completed: "View details" }[item.status];
 }
 
-export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId }: { items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string }) {
+export function MyZeroLossGallery({ ownerId, items, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId }: { ownerId?: string; items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string }) {
   const groups = groupGalleryEntries(items);
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
@@ -51,6 +56,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
   const [recentEntry, setRecentEntry] = useState<{ slug: string; entryId: string | null } | null>(null);
   const [viewedEntry, setViewedEntry] = useState<string | null>(null);
   const galleryId = useId();
+  const groupKeys = groups.map(group => returnKey(group.entries[0])).join(",");
 
   function move(direction: number) {
     const element = track.current;
@@ -68,7 +74,46 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
     const bounds = element.getBoundingClientRect();
     const visible = cards.map((card, index) => ({ bounds: card.getBoundingClientRect(), index })).filter(({ bounds: card }) => Math.min(card.right, bounds.right) - Math.max(card.left, bounds.left) >= card.width * .5);
     setView({ start: visible[0]?.index ?? 0, end: visible.at(-1)?.index ?? groups.length - 1, previous: element.scrollLeft > 2, next: element.scrollWidth - element.clientWidth - element.scrollLeft > 2 });
-  }, [groups.length]);
+  }, [groups.length, setView]);
+
+  useLayoutEffect(() => {
+    if (!ownerId) return;
+    let first = 0, second = 0, interrupted = false;
+    const timers: number[] = [];
+    function cancel() { cancelAnimationFrame(first); cancelAnimationFrame(second); timers.splice(0).forEach(clearTimeout); }
+    function interrupt() { interrupted = true; cancel(); }
+    function restore() {
+      const saved = readActivityViewReturn(window.history.state, ownerId!, window.location.href, filter);
+      if (!saved || !groupKeys.split(",").includes(saved.key)) return;
+      cancel(); interrupted = false;
+      const align = () => {
+        if (interrupted) return;
+        cancelAnimationFrame(first); cancelAnimationFrame(second);
+        first = requestAnimationFrame(() => { second = requestAnimationFrame(() => {
+          const rail = track.current;
+          if (interrupted || !rail || window.location.href !== saved.href) return;
+          const card = Array.from(rail.querySelectorAll<HTMLElement>("[data-activity-return-key]")).find(card => card.dataset.activityReturnKey === saved.key);
+          if (!card) return;
+          rail.scrollLeft = saved.left;
+          const bounds = rail.getBoundingClientRect(), box = card.getBoundingClientRect();
+          // Keep the same ticket visible if the viewport changed while away.
+          if (box.left < bounds.left || box.right > bounds.right) rail.scrollLeft += box.left - bounds.left;
+          const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
+          const top = window.innerWidth === saved.width ? saved.cardTop : Math.max(header + 12, saved.cardTop);
+          window.scrollTo({ top: Math.max(0, window.scrollY + card.getBoundingClientRect().top - top), behavior: "instant" });
+          syncSwipe();
+        }); });
+      };
+      align();
+      for (const delay of [150, 400, 900]) timers.push(window.setTimeout(align, delay));
+    }
+    restore(); window.addEventListener("popstate", restore); window.addEventListener("pageshow", restore);
+    for (const name of ["pointerdown", "touchstart", "wheel", "keydown"]) window.addEventListener(name, interrupt, { passive: true });
+    return () => {
+      cancel(); window.removeEventListener("popstate", restore); window.removeEventListener("pageshow", restore);
+      for (const name of ["pointerdown", "touchstart", "wheel", "keydown"]) window.removeEventListener(name, interrupt);
+    };
+  }, [ownerId, filter, groupKeys, syncSwipe]);
 
   useEffect(() => {
     if (!viewedEntryId || !items.some(item => item.entryId === viewedEntryId)) return;
@@ -172,7 +217,17 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
       data-activity-gallery
       data-dragging={dragging}
       className={styles.gallery}
-      onClickCapture={preventDraggedLink}
+      onClickCapture={event => {
+        if (drag.current.moved) { preventDraggedLink(event); return; }
+        if (!ownerId || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+        if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
+        const key = anchor.dataset.activityReturnKey;
+        if (!key) return;
+        const saved: ActivityViewReturn = { ownerId, href: window.location.href, filter, key, left: track.current?.scrollLeft ?? 0,
+          scrollY: window.scrollY, cardTop: anchor.getBoundingClientRect().top, width: window.innerWidth };
+        window.history.replaceState({ ...window.history.state, [activityViewReturnKey]: saved }, "");
+      }}
       onDragStart={event => event.preventDefault()}
       onPointerCancel={endDrag}
       onPointerDown={beginDrag}
@@ -215,7 +270,7 @@ export function MyZeroLossGallery({ items, filter, metricsBySlug, canClearDemoEn
           "--stacked-row": stackedRow,
         } as CSSProperties;
         return <div key={group.key} className={styles.galleryItem} style={placement}>
-          <Link href={cardHref} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : purchaseOption ? `See My ${group.entries.length} Purchase ${group.entries.length === 1 ? "Option" : "Options"} for ${item.title}` : undefined} draggable={false} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-purchase-completed={purchasedReward ? "true" : undefined} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
+          <Link href={cardHref} data-activity-return-key={returnKey(item)} aria-label={item.status === "active" ? `See My ${group.entries.length} ${group.entries.length === 1 ? "Entry" : "Entries"} for ${item.title}` : purchaseOption ? `See My ${group.entries.length} Purchase ${group.entries.length === 1 ? "Option" : "Options"} for ${item.title}` : undefined} draggable={false} data-activity-slug={item.slug} data-activity-entry-id={item.entryId ?? undefined} data-activity-entry-ids={group.entries.map(entry => entry.entryId).filter(Boolean).join(" ")} data-status={item.status} data-purchase-completed={purchasedReward ? "true" : undefined} data-featured={featured ? "true" : undefined} data-has-progress={offerMetrics !== undefined ? "true" : undefined} data-entry-group={multipleEntries ? "true" : undefined} className={styles.productCard}>
             <div className={styles.cardInner}>
               <p className={styles.retailer}>{item.retailer}</p>
               <h2 className={styles.productTitle}>{item.title}</h2>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { readCrewViewReturn } from "@/lib/crew/view-return";
+import { readCrewPickDestination, readCrewViewReturn } from "@/lib/crew/view-return";
 
 /** Mobile Crew visits start at the heading, without overriding request or sharing links. */
 export function CrewLandingScroll({ enabled, ownerId }: { enabled: boolean; ownerId?: string }) {
@@ -17,7 +17,7 @@ export function CrewLandingScroll({ enabled, ownerId }: { enabled: boolean; owne
       && (!window.location.hash || window.location.hash === "#crew-intro");
     const revealCrew = () => {
       cancel();
-      if (!canScroll() || ownerId && readCrewViewReturn(window.history.state, ownerId, window.location.href)) return;
+      if (!canScroll() || readCrewPickDestination(window.location.href) || ownerId && readCrewViewReturn(window.history.state, ownerId, window.location.href)) return;
       // Wait for the menu to close and the chosen sticky header to finish measuring.
       firstFrame = window.requestAnimationFrame(() => {
         secondFrame = window.requestAnimationFrame(() => {

@@ -31,14 +31,14 @@ function winnerFirst(items: AccountActivity["activity"]) {
   return [...items].sort((left, right) => galleryStatusOrder[left.status] - galleryStatusOrder[right.status]);
 }
 
-export function MyZeroLossActivity({ state, filter, metricsBySlug = {}, pendingEntries = [], outcomeEmailPreference = null, selectedSlug, selectedEntryId, viewedEntryId, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { state: AccountActivity; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[]; outcomeEmailPreference?: boolean | null; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
+export function MyZeroLossActivity({ ownerId, state, filter, metricsBySlug = {}, pendingEntries = [], outcomeEmailPreference = null, selectedSlug, selectedEntryId, viewedEntryId, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { ownerId?: string; state: AccountActivity; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[]; outcomeEmailPreference?: boolean | null; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
   const verifiedState = state.source === "unavailable" ? { ...state, activity: [] } : state;
   const allItems = filterActivity(verifiedState.activity, "all");
   const items = winnerFirst(filterActivity(verifiedState.activity, filter));
   const pendingOnly = pendingEntries.length > 0 && allItems.length === 0 && (filter === "all" || filter === "active");
   return <section data-activity-source={state.source}>
     <ActivityNotificationRead filter={filter} available={state.source !== "unavailable"} detailOpen={Boolean(selectedSlug || selectedEntryId || resumePurchase)} visibleIds={buildAccountNotifications({ ...verifiedState, activity: items }, null, false).map(notification => notification.id)} />
-    <MyActivityLandingScroll filter={filter} revealControls={items.length === 0 && !pendingOnly} enabled={!selectedSlug && !selectedEntryId && !viewedEntryId && !returnToOptions && !resumePurchase} />
+    <MyActivityLandingScroll ownerId={ownerId} filter={filter} revealControls={items.length === 0 && !pendingOnly} enabled={!selectedSlug && !selectedEntryId && !viewedEntryId && !returnToOptions && !resumePurchase} />
     <nav id={openEntriesAnchorId} aria-label="Filter My Activity" className={styles.filters}>
       {activityFilters.map(([key, label]) => <Link key={key} href={key === "active" ? openEntriesHref : key === "all" ? "/account/entries" : `/account/entries?filter=${key}`} scroll={key === "active"} aria-current={filter === key ? "page" : undefined} data-filter={key} className={styles.filter}><AccountIcon name={key} /><span>{label}</span><span className={styles.filterCount}>{state.source === "unavailable" ? "—" : filterActivity(state.activity, key).length}</span></Link>)}
     </nav>
@@ -48,7 +48,7 @@ export function MyZeroLossActivity({ state, filter, metricsBySlug = {}, pendingE
       <Link href={`/items/${pendingEntries[0].slug}#enter-entry`} className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">Review pending entry <span aria-hidden="true" className="ml-2">›</span></Link>
     </div> : null}
     {items.length > 0 ? <h2 className={styles.activityHeading}>{activityHeadings[filter]}</h2> : null}
-    {items.length ? <MyZeroLossGallery key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
+    {items.length ? <MyZeroLossGallery ownerId={ownerId} key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
       <h2 className="text-xl font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : pendingOnly ? "Your entry is being confirmed" : emptyMessages[filter].title}</h2>
       <p className="mt-2 max-w-xl text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "We can’t verify your activity right now. No entries or outcomes have been assumed. Please try again shortly." : pendingOnly ? "Confirm your pending request above, or wait for the automatic result. Your activity will update when the entry is accepted." : emptyMessages[filter].detail}</p>
       {state.source !== "unavailable" && allItems.length > 0 ? <Link href="/account/entries" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-black text-[#002719]">See my other activity <span aria-hidden="true" className="ml-3">›</span></Link> : null}

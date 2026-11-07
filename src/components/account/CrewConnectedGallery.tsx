@@ -11,7 +11,8 @@ import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
 import type { CrewPersonCard } from "./CrewPeopleCarousel";
 import styles from "./crew-connected.module.css";
 import { useCrewCarousel } from "./useCrewCarousel";
-import { crewViewReturnKey, readCrewViewReturn, type CrewViewReturn } from "@/lib/crew/view-return";
+import { crewPickHref, crewViewReturnKey, readCrewPickDestination, readCrewViewReturn, type CrewViewReturn } from "@/lib/crew/view-return";
+import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 
 /** Both rails share free-gliding movement and a spring at their edges. */
 export function CrewRail({ label, children, tools, kind, count }: { label: string; children: ReactNode; tools?: ReactNode; kind: "people" | "picks"; count: number }) {
@@ -42,11 +43,12 @@ export function CrewRail({ label, children, tools, kind, count }: { label: strin
   </div>;
 }
 
-function PickCard({ pick }: { pick: CrewActivityPick }) {
+function PickCard({ pick, selectedKey }: { pick: CrewActivityPick; selectedKey: string }) {
+  const href = productHrefWithBrowseReturn(pick.slug, crewPickHref(selectedKey, pick.slug));
   return <article className={styles.pickCard} data-crew-pick={pick.slug}>
-    <Link className={styles.pickArt} href={`/items/${encodeURIComponent(pick.slug)}`} aria-label={`View ${pick.title}`}><Image src={pick.image} alt={pick.title} fill sizes="(max-width: 640px) 280px, 440px" draggable={false} /></Link>
+    <Link className={styles.pickArt} href={href} aria-label={`View ${pick.title}`}><Image src={pick.image} alt={pick.title} fill sizes="(max-width: 640px) 280px, 440px" draggable={false} /></Link>
     <div className={styles.pickCopy}><small>{pick.retailer}</small><h3>{pick.title}</h3>{pick.note ? <p>{pick.note}</p> : null}</div>
-    <div className={styles.pickActions}><Link href={`/items/${encodeURIComponent(pick.slug)}`}>View item <span aria-hidden="true">↗</span></Link><ProductShareButton product={pick} label="Share" className={styles.shareButton} /></div>
+    <div className={styles.pickActions}><Link href={href}>View item <span aria-hidden="true">↗</span></Link><ProductShareButton product={pick} label="Share" className={styles.shareButton} /></div>
   </article>;
 }
 
@@ -78,16 +80,18 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
     function interrupt() { interrupted = true; cancel(); }
     function restore() {
       const saved = readCrewViewReturn(window.history.state, ownerId, window.location.href);
-      if (!saved || saved.selectedKey !== selectedKey || loading || error || !pickKeys.split(",").includes(saved.pickSlug)) return;
+      const destination = saved ?? readCrewPickDestination(window.location.href);
+      if (!destination || destination.selectedKey !== selectedKey || loading || error || !pickKeys.split(",").includes(destination.pickSlug)) return;
+      const href = window.location.href;
       cancel(); interrupted = false;
       const align = () => {
         if (interrupted) return;
         frame = requestAnimationFrame(() => { secondFrame = requestAnimationFrame(() => {
-          if (interrupted || window.location.href !== saved.href) return;
+          if (interrupted || window.location.href !== href) return;
           const peopleRail = space.current?.querySelector<HTMLElement>('[role="group"][aria-label="People in your Crew"]');
           const picksRail = space.current?.querySelector<HTMLElement>(`.${styles.picksRail}`);
           if (peopleRail) {
-            peopleRail.scrollLeft = saved.peopleLeft;
+            if (saved) peopleRail.scrollLeft = saved.peopleLeft;
             const person = peopleRail.querySelector<HTMLElement>('[data-selected="true"]');
             if (person) {
               const card = person.getBoundingClientRect(), viewport = peopleRail.getBoundingClientRect();
@@ -95,14 +99,21 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
             }
           }
           if (picksRail) {
-            picksRail.scrollLeft = saved.picksLeft;
-            const pick = Array.from(picksRail.querySelectorAll<HTMLElement>("[data-crew-pick]")).find(pick => pick.dataset.crewPick === saved.pickSlug);
+            if (saved) picksRail.scrollLeft = saved.picksLeft;
+            const pick = Array.from(picksRail.querySelectorAll<HTMLElement>("[data-crew-pick]")).find(pick => pick.dataset.crewPick === destination.pickSlug);
             if (pick) {
               const card = pick.getBoundingClientRect(), viewport = picksRail.getBoundingClientRect();
               if (card.left < viewport.left || card.right > viewport.right) picksRail.scrollLeft += card.left - viewport.left;
             }
           }
-          window.scrollTo({ top: saved.scrollY, behavior: "instant" });
+          if (saved) window.scrollTo({ top: saved.scrollY, behavior: "instant" });
+          else {
+            const panel = picksRail?.closest<HTMLElement>("section");
+            if (panel) {
+              const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
+              window.scrollTo({ top: Math.max(0, window.scrollY + panel.getBoundingClientRect().top - header - 12), behavior: "instant" });
+            }
+          }
         }); });
       };
       align();
@@ -137,7 +148,7 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
     </CrewRail>
     <section className={styles.activityPanel} aria-label={selected ? `${selected.name}'s shared activity` : "Crew member activity"}>
       <header className={styles.personHeading}><div><span>{selected?.sample ? "SAMPLE PROFILE" : "YOUR CREW"}</span><h2>{selected ? `${selected.name}’s shared picks` : "Choose someone to explore"}</h2><p aria-live="polite">{loading ? "Loading picks…" : selected ? `${visiblePicks.length} ${visiblePicks.length === 1 ? "find" : "finds"} to explore` : "Their shared finds will appear here."}</p></div><button type="button" className={styles.headingShare} onClick={onShare} aria-label="Share a find"><ShareIcon name="share" /><span>Share a find</span></button></header>
-      {selected && !loading && !error && visiblePicks.length ? <CrewRail key={selected.key} label={`${selected.name}'s shared picks`} kind="picks" count={visiblePicks.length}>{visiblePicks.map((pick, index) => <PickCard key={`${pick.slug}-${index}`} pick={pick} />)}</CrewRail> : <div className={styles.emptyPicks} role={error ? "alert" : "status"}>{loading ? "Loading shared activity…" : error ? <><p>We couldn’t load this Crew member’s activity.</p><button type="button" onClick={onRetry}>Retry shared activity</button></> : selected ? <><p>No activity shared with Crew yet.</p><button type="button" onClick={onShare}>Share a find with them</button></> : "Select a person above to see the picks they’ve chosen to share."}</div>}
+      {selected && !loading && !error && visiblePicks.length ? <CrewRail key={selected.key} label={`${selected.name}'s shared picks`} kind="picks" count={visiblePicks.length}>{visiblePicks.map((pick, index) => <PickCard key={`${pick.slug}-${index}`} pick={pick} selectedKey={selected.key} />)}</CrewRail> : <div className={styles.emptyPicks} role={error ? "alert" : "status"}>{loading ? "Loading shared activity…" : error ? <><p>We couldn’t load this Crew member’s activity.</p><button type="button" onClick={onRetry}>Retry shared activity</button></> : selected ? <><p>No activity shared with Crew yet.</p><button type="button" onClick={onShare}>Share a find with them</button></> : "Select a person above to see the picks they’ve chosen to share."}</div>}
     </section>
   </section>;
 }

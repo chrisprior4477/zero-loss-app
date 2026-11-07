@@ -1,6 +1,7 @@
 import { marketplaceCategories } from "./navigation";
 import { getPopularRewardBrand } from "./popular-rewards";
 import { savedShareHref, shareUuid } from "../sharing/saved-shares";
+import { crewPickReturnPath } from "../crew/view-return";
 
 const browseQueryKeys = new Set([
   "category", "sort", "subcategory", "q", "type", "retailer",
@@ -11,6 +12,8 @@ const browseQueryKeys = new Set([
 export function productBrowseReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 1000 || /[\\\s\u0000-\u001f]/.test(value)) return null;
   if (value === "/account/favorites") return value;
+  const crew = crewPickReturnPath(value);
+  if (crew) return crew;
   if (value.startsWith("/account/favorites?")) {
     const url = new URL(value, "https://zeroloss.local");
     const keys = [...url.searchParams.keys()];
@@ -52,6 +55,7 @@ export function freeEntryHref(slug: string, browseReturn: unknown): string {
 
 export function productBrowseReturnLabel(href: string): string {
   const url = new URL(productBrowseReturnHref(href), "https://zeroloss.local");
+  if (url.pathname === "/account/crew") return "Your Crew";
   if (url.pathname === "/account/favorites") return url.searchParams.get("tab") === "shared" ? "Shared with You" : "Favorites";
   if (url.pathname.startsWith("/rewards/")) {
     const brand = getPopularRewardBrand(url.pathname.slice("/rewards/".length));

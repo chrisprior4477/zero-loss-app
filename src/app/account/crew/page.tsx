@@ -25,11 +25,11 @@ export type OwnCrewEntry = { id: string; offeringSlug?: string; title: string; r
 export type SharedCrewPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 export type CrewMember = { memberId: string; name: string; avatarUrl: string | null };
 
-export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; tab?: string; request?: string; invite?: string; design?: string }> }) {
+export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; pick?: string; tab?: string; request?: string; invite?: string; design?: string }> }) {
   const account = await getAccountContext();
   const params = await searchParams;
   if (!account) {
-    let section = "";
+    let section = params.pick ? "#crew-intro" : "";
     if (params.tab === "groups") section = "#crew-groups";
     if (params.tab === "picks") section = "#sharing";
     if (params.tab === "requests" && params.request) section = `#crew-request-${params.request}`;
