@@ -15,6 +15,29 @@ const details: ProfileDetails = {
 
 afterEach(() => { cleanup(); vi.mocked(saveProfileDetails).mockReset(); });
 
+test("a dropped save response preserves the profile draft and allows a successful retry", async () => {
+  vi.mocked(lookupAddressTimeZone).mockResolvedValue({ zone: "America/New_York", options: ["America/New_York"] });
+  vi.mocked(saveProfileDetails).mockRejectedValueOnce(new Error("Failed to fetch"))
+    .mockResolvedValueOnce({ status: "succeeded", message: "Your profile information has been updated." });
+  render(<ProfileDetailsForm details={details} />);
+  const changes = { "Display name": "My updated alias", "Legal first name": "Updated first", "Legal last name": "Updated last", "Phone number": "+1 910 555 0199", "Street address": "456 Example Street", "Apartment, suite, or unit (optional)": "Unit 8", "Language": "en-GB" };
+  for (const [label, value] of Object.entries(changes)) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  fireEvent.change(screen.getByLabelText("Birth month"), { target: { value: "9" } });
+  await waitFor(() => expect(screen.getByRole("button", { name: "Save profile" })).toHaveProperty("disabled", false));
+  fireEvent.submit(screen.getByRole("form", { name: "Edit profile" }));
+  expect(await screen.findByText(/We couldn’t confirm your profile changes/)).toBeTruthy();
+  for (const [label, value] of Object.entries(changes)) expect(screen.getByLabelText(label)).toHaveProperty("value", value);
+  expect(screen.getByLabelText("Birth month")).toHaveProperty("value", "9");
+  expect(screen.getByRole("button", { name: "Save profile" })).toHaveProperty("disabled", false);
+  fireEvent.submit(screen.getByRole("form", { name: "Edit profile" }));
+  expect(await screen.findByText("Your profile information has been updated.")).toBeTruthy();
+  const retried = vi.mocked(saveProfileDetails).mock.calls[1][1];
+  expect(retried.get("display_name")).toBe("My updated alias");
+  expect(retried.get("date_of_birth")).toBe("1990-09-01");
+  expect(retried.get("address_line_1")).toBe("456 Example Street");
+  expect(retried.get("preferred_locale")).toBe("en-GB");
+});
+
 test("a rejected save preserves the full draft and resubmits corrected values", async () => {
   vi.mocked(lookupAddressTimeZone).mockResolvedValue({ zone: "Europe/London", options: ["Europe/London"] });
   vi.mocked(saveProfileDetails).mockResolvedValueOnce({ status: "error", message: "Enter a valid phone number, or leave it blank." });

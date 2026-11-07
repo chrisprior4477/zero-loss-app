@@ -11,6 +11,17 @@ import { buildDirectoryRewards } from "./directory-rewards";
 import artwork from "./partner-card-art.json";
 
 describe("complete simulated retailer directory", () => {
+  test("generated titles avoid repeating Gift Card while preserving the original offer identity", () => {
+    const apple = getDemoProduct("directory-apple-gift-card-100-gift-card");
+    expect(apple?.title).toBe("$100 Apple Gift Card");
+    expect(apple?.retailer).toBe("Apple Gift Card");
+    expect(apple?.value).toBe(100);
+    expect(apple?.gallery[0].src).toBe("/catalog/partner-cards/applegiftcard.webp");
+    expect(directoryDemoScenarios.every(({ product }) => !/gift\s+card\s+gift\s+card/i.test(product.title))).toBe(true);
+    expect(getDemoProduct("directory-ace-hardware-100-gift-card")?.title).toBe("$100 Ace Hardware Gift Card");
+    expect(directoryDemoScenarios.find(({ product }) => product.retailer === "BarkBox")?.product.title).toBe("$100 BarkBox Demo Reward");
+  });
+
   test("every visible vendor has a working $100 offer without removing existing items", () => {
     const groups = retailerFilterGroups(giftCardPartnerGroups, demoProducts);
     for (const group of groups.filter(group => group.id !== "other-current-offers")) {
@@ -26,12 +37,13 @@ describe("complete simulated retailer directory", () => {
     expect(demoProducts.some(p => p.retailer === "Netflix" && p.value === 100)).toBe(true);
   });
 
-  test("legacy offers are byte-for-byte equivalent to the pre-change catalog data", () => {
-    // Literal-data fingerprint verified against 174e7ed, independent of shallow Git checkouts.
+  test("legacy offers retain their approved catalog data", () => {
+    // Original catalog from 174e7ed plus the approved shoe-sizing copy in b05b937.
+    // Keep the fixture independent of shallow Git checkouts.
     const current = readFileSync(path.join(process.cwd(),"src/lib/catalog/demo-products.ts"),"utf8");
     const array = (text:string, name:string) => text.slice(text.indexOf(`const ${name}: DemoProduct[] = [`), text.lastIndexOf("\n];") + 3).replace(name,"products").replaceAll("\r\n","\n");
     expect(createHash("sha256").update(array(current,"existingDemoProducts")).digest("hex"))
-      .toBe("c835870b6f27ea7e3c3314ed8948f85896cef85bf433cbe9037e0fbc9e634ef2");
+      .toBe("2de4f99021a36eac891e4f7261a5c0410d7c2087f019eb7b8f30fb98dedc46aa");
   });
 
   test("328 new cards have four equal mixed buckets and half of each completion outcome", () => {

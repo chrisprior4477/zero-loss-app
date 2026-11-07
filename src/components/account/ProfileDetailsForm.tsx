@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AccountIcon } from "./AccountIcon";
-import { saveProfileDetails } from "@/lib/account/actions";
+import { saveProfileDetails, type SaveProfileDetailsResult } from "@/lib/account/actions";
 import { PROFILE_COUNTRIES } from "@/lib/account/countries";
 import { lookupAddressTimeZone } from "@/lib/account/timezone-lookup-action";
 import { addressRequirements, completeMailingAddress } from "@/lib/account/address-requirements";
@@ -91,8 +91,16 @@ function ProfileDateOfBirth({ defaultValue }: { defaultValue: string | null }) {
   </fieldset>;
 }
 
+async function saveProfile(previous: SaveProfileDetailsResult, formData: FormData): Promise<SaveProfileDetailsResult> {
+  try {
+    return await saveProfileDetails(previous, formData);
+  } catch {
+    return { status: "error", message: "We couldn’t confirm your profile changes. Your details are still here. Please try saving again." };
+  }
+}
+
 export function ProfileDetailsForm({ details, ticket = false }: { details: ProfileDetails; ticket?: boolean }) {
-  const [state, action, pending] = useActionState(saveProfileDetails, { status: "idle" });
+  const [state, action, pending] = useActionState(saveProfile, { status: "idle" });
   const selectedCountry = details.country ?? "United States";
   const hasNonStandardCountry = !PROFILE_COUNTRIES.some(country => country === selectedCountry);
   const [address, setAddress] = useState({ country: selectedCountry, region: details.region ?? "", postalCode: details.postalCode ?? "", street: details.addressLine1 ?? "", city: details.city ?? "" });

@@ -45,7 +45,7 @@ export function buildDirectoryRewards(existing: readonly DemoProduct[]): Directo
       closingOutcome: (Math.floor(index / 4) + bucketIndex) % 2 === 0 ? "winner" : "purchase_option",
       product: {
         slug: `directory-${slugKey(art.name)}-100-gift-card`,
-        title: isPlan ? `$100 ${brand} Demo Reward` : `$100 ${brand} Gift Card`,
+        title: isPlan ? `$100 ${brand} Demo Reward` : `$100 ${brand}${/gift\s+card(?:[®™])?$/i.test(brand) ? "" : " Gift Card"}`,
         brand, retailer, category, value: 100, entryPrice: 1, capacity: 300, sold,
         summary: `A simulated $100 ${brand} ${isPlan ? "subscription/plan reward" : "gift-card offer"} for trying the marketplace. No real purchase or fulfillment is available in this demo.`,
         gallery: [{ src: art.image, alt: `${brand} ${isPlan ? "subscription/plan" : "gift-card"} artwork`, fit: "contain" }],
