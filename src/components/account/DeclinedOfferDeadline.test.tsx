@@ -45,3 +45,22 @@ test('new reminder statuses update the checkbox and protect an already sent remi
  await act(async()=>finish({status:'pending',message:'Saved'}));
  expect(screen.getByText('Two-day reminder sent.')).toBeTruthy();expect(screen.getByRole('checkbox')).toHaveProperty('disabled',true);
 });
+
+test.each([null,'pending'])('a lost reminder reply for %s offers a saved-status reload without changing its confirmed checkbox',async initialReminderStatus=>{
+ mocks.save.mockRejectedValueOnce(new Error('Connection lost'));
+ render(<DeclinedOfferDeadline optionId={optionId} expiresAt="2026-11-08T12:00:00Z" initialReminderStatus={initialReminderStatus} canRequestReminder/>);
+ const checkbox=screen.getByRole('checkbox');fireEvent.click(checkbox);
+ expect(await screen.findByRole('status')).toHaveProperty('textContent',expect.stringContaining('Reload its saved status'));
+ expect(checkbox).toHaveProperty('checked',initialReminderStatus==='pending');expect(checkbox).toHaveProperty('disabled',true);
+ expect(screen.getByRole('link',{name:'Reload reminder status →'})).toHaveProperty('href',expect.stringContaining(`/account/declined-offers#declined-offer-${optionId}`));
+ expect(mocks.save).toHaveBeenCalledOnce();
+});
+
+test('a normal reminder rejection remains an inline error with a safe retry',async()=>{
+ mocks.save.mockResolvedValueOnce({status:'error',message:'Reminder unavailable. Try again.'}).mockResolvedValueOnce({status:'pending',message:'Saved'});
+ render(<DeclinedOfferDeadline optionId={optionId} expiresAt="2026-11-08T12:00:00Z" initialReminderStatus={null} canRequestReminder/>);
+ fireEvent.click(screen.getByRole('checkbox'));await screen.findByText('Reminder unavailable. Try again.');
+ expect(screen.getByRole('checkbox')).toHaveProperty('disabled',false);
+ fireEvent.click(screen.getByRole('checkbox'));await screen.findByText('Saved');
+ expect(screen.getByRole('checkbox')).toHaveProperty('checked',true);
+});

@@ -17,6 +17,7 @@ export function DeclinedOfferDeadline({ optionId, expiresAt, initialReminderStat
   const preference = useServerPreference(initialReminderStatus);
   const status = preference.value;
   const [message, setMessage] = useState("");
+  const [needsCheck, setNeedsCheck] = useState(false);
   const [pending, startTransition] = useTransition();
   useEffect(() => {
     const update = () => setNow(Date.now());
@@ -31,7 +32,7 @@ export function DeclinedOfferDeadline({ optionId, expiresAt, initialReminderStat
   const tooLateToSchedule = remaining !== null && remaining <= 2 * dayMs;
   const label = days === null ? "Checking deadline…" : isExpired ? "Offer expired"
     : days === 0 ? "Less than 1 day left" : `${days} ${days === 1 ? "day" : "days"} left`;
-  const canChange = canRequestReminder && !pending && !isExpired && status !== "sent" && status !== "processing"
+  const canChange = canRequestReminder && !pending && !needsCheck && !isExpired && status !== "sent" && status !== "processing"
     && (status === "pending" || !tooLateToSchedule);
   const checked = status === "pending" || status === "sent" || status === "processing";
   return <div className={styles.declinedTiming}>
@@ -42,9 +43,14 @@ export function DeclinedOfferDeadline({ optionId, expiresAt, initialReminderStat
         const generation = preference.generation;
         setMessage("");
         startTransition(async () => {
-          const result = await setDeclinedOfferEmailReminder(optionId, enabled);
-          if (result.status !== "error") preference.confirm(result.status, generation);
-          setMessage(result.message);
+          try {
+            const result = await setDeclinedOfferEmailReminder(optionId, enabled);
+            if (result.status !== "error") preference.confirm(result.status, generation);
+            setMessage(result.message);
+          } catch {
+            setNeedsCheck(true);
+            setMessage("We couldn’t confirm your reminder choice. Reload its saved status before trying again.");
+          }
         });
       }} />
       <span>Please remind me by email two days before this offer expires.</span>
@@ -55,5 +61,6 @@ export function DeclinedOfferDeadline({ optionId, expiresAt, initialReminderStat
       : !canRequestReminder ? <small>Email reminders are unavailable for this account right now.</small>
       : tooLateToSchedule && !checked ? <small>Too close to the deadline for a two-day reminder.</small> : null}
     {message ? <small role="status">{message}</small> : null}
+    {needsCheck ? <a href={`/account/declined-offers#declined-offer-${encodeURIComponent(optionId)}`} className="text-sm font-bold text-[#0069b3] underline">Reload reminder status →</a> : null}
   </div>;
 }

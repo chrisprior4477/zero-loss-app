@@ -5,7 +5,7 @@ import { RewardClaimControl } from "./RewardClaimControl";
 const mocks = vi.hoisted(() => ({ claimReward: vi.fn(), refresh: vi.fn(), begin: vi.fn(), skip: vi.fn() }));
 vi.mock("@/lib/identity/demo-verification-actions", () => ({ beginDemoVerification: mocks.begin, skipDemoVerificationForPresentation: mocks.skip }));
 vi.mock("@/lib/account/lifecycle-actions", () => ({ claimReward: mocks.claimReward }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
+vi.mock("next/navigation", async importOriginal => ({ ...await importOriginal<typeof import('next/navigation')>(), useRouter: () => ({ refresh: mocks.refresh }) }));
 vi.mock("@/components/identity/DemoVerificationDialog", () => ({
   DemoVerificationDialog: () => <div role="dialog" aria-label="Sample identity check">Sample identity check</div>,
 }));
@@ -68,4 +68,29 @@ test("a failed demo skip keeps the choice visible and cannot claim the reward", 
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Demo skip unavailable");
   expect(mocks.claimReward).toHaveBeenCalledTimes(1);
   expect(screen.getByRole("button", { name: "Continue to identity check" })).toBeTruthy();
+});
+
+test('a dropped claim reply keeps the reward page and checks the exact saved reward before retrying',async()=>{
+ mocks.claimReward.mockRejectedValueOnce(new Error('Connection lost'));
+ const view=render(<RewardClaimControl rewardId="reward-1" previewShown/>);
+ fireEvent.submit(screen.getByRole('button',{name:'Claim reward'}).closest('form')!);
+ expect(await screen.findByRole('status')).toHaveProperty('textContent',expect.stringContaining('Check its saved status'));
+ expect(screen.getByRole('button',{name:'Claim reward'})).toHaveProperty('disabled',true);
+ expect(screen.getByRole('link',{name:'Check this reward →'})).toHaveProperty('href',expect.stringContaining('/account/wallet?rewardId=reward-1#reward-pass'));
+ expect(screen.queryByRole('dialog')).toBeNull();expect(mocks.refresh).not.toHaveBeenCalled();
+ expect(mocks.claimReward).toHaveBeenCalledOnce();
+ view.unmount();mocks.claimReward.mockResolvedValueOnce({status:'succeeded',message:'Reward claimed'});
+ render(<RewardClaimControl rewardId="reward-1" previewShown/>);
+ fireEvent.submit(screen.getByRole('button',{name:'Claim reward'}).closest('form')!);
+ await screen.findByRole('button',{name:'Reward claimed'});
+ expect(mocks.claimReward.mock.calls[1][1].get('rewardId')).toBe('reward-1');
+});
+
+test('a confirmed server claim rejection stays retryable and keeps the identity step available',async()=>{
+ mocks.claimReward.mockResolvedValueOnce({status:'error',message:'Please sign in again.'});
+ render(<RewardClaimControl rewardId="reward-1"/>);
+ fireEvent.submit(screen.getByRole('button',{name:'Claim reward'}).closest('form')!);
+ await screen.findByText('Please sign in again.');expect(screen.getByRole('button',{name:'Claim reward'})).toHaveProperty('disabled',false);
+ fireEvent.submit(screen.getByRole('button',{name:'Claim reward'}).closest('form')!);
+ await screen.findByRole('dialog',{name:'Before you claim your reward'});
 });

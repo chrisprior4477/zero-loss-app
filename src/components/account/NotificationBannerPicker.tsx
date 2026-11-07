@@ -6,30 +6,44 @@ import { bannerStyles, bannerStyleNames, type NotificationPopupStyle, type Banne
 import { saveNotificationBanner } from "@/lib/account/banner-actions";
 import { NotificationBanner, previewMessages } from "@/components/notifications/NotificationBanner";
 import { useNotifications } from "@/components/notifications/NotificationProvider";
+import { useServerPreference } from "./useServerPreference";
 import ticket from "./menu-layout-picker.module.css";
 import styles from "./notification-banner-picker.module.css";
 export function NotificationBannerPicker({ initialStyle, initialEnabled, initialSpeed = 5, initialDisplaySeconds = 6, initialPopupStyle = "rounded" }: { initialStyle: BannerStyle; initialEnabled: boolean; initialSpeed?: number; initialDisplaySeconds?: number; initialPopupStyle?: NotificationPopupStyle }) {
   const notifications = useNotifications();
-  const [popupStyle, setPopupStyle] = useState(initialPopupStyle);
-  const [savedPopupStyle, setSavedPopupStyle] = useState(initialPopupStyle);
-  const [speed, setSpeed] = useState(initialSpeed);
-  const [savedSpeed, setSavedSpeed] = useState(initialSpeed);
-  const [displaySeconds, setDisplaySeconds] = useState(initialDisplaySeconds);
-  const [savedDisplaySeconds, setSavedDisplaySeconds] = useState(initialDisplaySeconds);
-  const [enabled, setEnabled] = useState(initialEnabled);
-  const [savedEnabled, setSavedEnabled] = useState(initialEnabled);
-  const [choice, setChoice] = useState(initialStyle);
-  const [saved, setSaved] = useState(initialStyle);
+  const popupPreference = useServerPreference(initialPopupStyle);
+  const speedPreference = useServerPreference(initialSpeed);
+  const displayPreference = useServerPreference(initialDisplaySeconds);
+  const enabledPreference = useServerPreference(initialEnabled);
+  const stylePreference = useServerPreference(initialStyle);
+  const { value: popupStyle, savedValue: savedPopupStyle, setValue: setPopupStyle } = popupPreference;
+  const { value: speed, savedValue: savedSpeed, setValue: setSpeed } = speedPreference;
+  const { value: displaySeconds, savedValue: savedDisplaySeconds, setValue: setDisplaySeconds } = displayPreference;
+  const { value: enabled, savedValue: savedEnabled, setValue: setEnabled } = enabledPreference;
+  const { value: choice, savedValue: saved, setValue: setChoice } = stylePreference;
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [restoring, setRestoring] = useState(false);
   const savedPreview = useRef({ style: initialStyle, enabled: initialEnabled, speed: initialSpeed, displaySeconds: initialDisplaySeconds, popupStyle: initialPopupStyle });
+  const appliedPreview = useRef({ style: initialStyle, enabled: initialEnabled, speed: initialSpeed, displaySeconds: initialDisplaySeconds, popupStyle: initialPopupStyle });
   const setHeaderStyle = notifications?.setStyle;
   const setPreviewActive = notifications?.setPreferencesPreviewActive;
   const setHeaderPopupStyle = notifications?.setPopupStyle;
   const setHeaderEnabled = notifications?.setEnabled;
   const setHeaderSpeed = notifications?.setSpeed;
   const setHeaderDisplaySeconds = notifications?.setDisplaySeconds;
+  useEffect(() => {
+    savedPreview.current = { style: saved, enabled: savedEnabled, speed: savedSpeed, displaySeconds: savedDisplaySeconds, popupStyle: savedPopupStyle };
+  }, [saved, savedEnabled, savedSpeed, savedDisplaySeconds, savedPopupStyle]);
+  useEffect(() => {
+    const previous = appliedPreview.current;
+    if (previous.style !== choice) setHeaderStyle?.(choice);
+    if (previous.enabled !== enabled) setHeaderEnabled?.(enabled);
+    if (previous.speed !== speed) setHeaderSpeed?.(speed);
+    if (previous.displaySeconds !== displaySeconds) setHeaderDisplaySeconds?.(displaySeconds);
+    if (previous.popupStyle !== popupStyle) setHeaderPopupStyle?.(popupStyle);
+    appliedPreview.current = { style: choice, enabled, speed, displaySeconds, popupStyle };
+  }, [choice, enabled, speed, displaySeconds, popupStyle, setHeaderStyle, setHeaderEnabled, setHeaderSpeed, setHeaderDisplaySeconds, setHeaderPopupStyle]);
   useEffect(() => {
     setPreviewActive?.(true);
     return () => {
@@ -43,14 +57,25 @@ export function NotificationBannerPicker({ initialStyle, initialEnabled, initial
   }, [setPreviewActive, setHeaderStyle, setHeaderEnabled, setHeaderSpeed, setHeaderDisplaySeconds, setHeaderPopupStyle]);
   async function restore() {
     if (!notifications) return;
+    const generation = enabledPreference.generation;
     setBusy(true); setRestoring(true); setMessage("");
-    try { setMessage(await notifications.restoreBanner()); setEnabled(true); setSavedEnabled(true); savedPreview.current.enabled = true; }
+    try { setMessage(await notifications.restoreBanner()); setEnabled(true); enabledPreference.confirm(true, generation); }
     catch (reason) { setMessage(reason instanceof Error ? reason.message : "Your banner could not be restored. Please try again."); }
     finally { setBusy(false); setRestoring(false); }
   }
   async function save() {
     setBusy(true); setMessage("");
-    try { const result = await saveNotificationBanner(choice, enabled, speed, displaySeconds, popupStyle); setMessage(result.message); if (result.ok) { savedPreview.current = { style: choice, enabled, speed, displaySeconds, popupStyle }; setSavedPopupStyle(popupStyle); setHeaderPopupStyle?.(popupStyle); setSaved(choice); setSavedEnabled(enabled); setSavedSpeed(speed); setSavedDisplaySeconds(displaySeconds); notifications?.setSpeed(speed); notifications?.setDisplaySeconds(displaySeconds); notifications?.setEnabled(enabled); notifications?.setStyle(choice); } }
+    try {
+      const result = await saveNotificationBanner(choice, enabled, speed, displaySeconds, popupStyle);
+      setMessage(result.message);
+      if (result.ok) {
+        stylePreference.confirm(choice, stylePreference.generation);
+        enabledPreference.confirm(enabled, enabledPreference.generation);
+        speedPreference.confirm(speed, speedPreference.generation);
+        displayPreference.confirm(displaySeconds, displayPreference.generation);
+        popupPreference.confirm(popupStyle, popupPreference.generation);
+      }
+    }
     catch { setMessage("Your banner could not be saved. Please try again."); }
     finally { setBusy(false); }
   }

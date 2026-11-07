@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NotificationBannerPicker } from "./NotificationBannerPicker";
+import { PreferenceSnapshotProvider } from "./useServerPreference";
 const mock=vi.hoisted(()=>({save:vi.fn(),setSpeed:vi.fn(),setDisplaySeconds:vi.fn(),setStyle:vi.fn(),setPopupStyle:vi.fn(),setEnabled:vi.fn(),setBannerHidden:vi.fn(),restoreBanner:vi.fn()}));
 vi.mock("@/lib/account/banner-actions",()=>({saveNotificationBanner:mock.save}));
 vi.mock("@/components/notifications/NotificationProvider",()=>({useNotifications:()=>mock}));
@@ -64,4 +65,55 @@ test("popup shape previews immediately and saves independently of the animated s
  await waitFor(()=>expect(mock.save).toHaveBeenCalledWith('ribbon',true,5,6,'ticket'));
  await screen.findByText('Notification banner saved.');
  unmount();expect(mock.setPopupStyle).toHaveBeenLastCalledWith('ticket');
+});
+
+test('a clean picker and its leaving-page restoration follow all newly saved server settings',()=>{
+ const view=render(<NotificationBannerPicker initialStyle="capsule" initialEnabled initialSpeed={5} initialDisplaySeconds={6} initialPopupStyle="rounded"/>);
+ view.rerender(<NotificationBannerPicker initialStyle="ticket" initialEnabled={false} initialSpeed={9} initialDisplaySeconds={2} initialPopupStyle="ticket"/>);
+ expect(screen.getByRole('radio',{name:'4. Prize ticket'})).toHaveProperty('checked',true);
+ expect(screen.getByRole('radio',{name:'Ticket'})).toHaveProperty('checked',true);
+ expect(screen.getByRole('checkbox')).toHaveProperty('checked',false);
+ expect(screen.getByRole('slider',{name:/Banner speed/})).toHaveProperty('value','9');
+ expect(screen.getByRole('slider',{name:/Display time/})).toHaveProperty('value','2');
+ expect(screen.getByRole('button',{name:'Save banner'})).toHaveProperty('disabled',true);
+ view.unmount();
+ expect(mock.setStyle).toHaveBeenLastCalledWith('ticket');expect(mock.setEnabled).toHaveBeenLastCalledWith(false);
+ expect(mock.setSpeed).toHaveBeenLastCalledWith(9);expect(mock.setDisplaySeconds).toHaveBeenLastCalledWith(2);
+ expect(mock.setPopupStyle).toHaveBeenLastCalledWith('ticket');expect(mock.save).not.toHaveBeenCalled();
+});
+
+test('an unsaved trial survives new server props but leaving restores the latest saved choices',()=>{
+ const view=render(<NotificationBannerPicker initialStyle="capsule" initialEnabled initialSpeed={5}/>);
+ fireEvent.click(screen.getByRole('radio',{name:'2. Folded ribbon'}));
+ fireEvent.change(screen.getByRole('slider',{name:/Banner speed/}),{target:{value:'10'}});
+ view.rerender(<NotificationBannerPicker initialStyle="ticket" initialEnabled={false} initialSpeed={8} initialDisplaySeconds={3} initialPopupStyle="ticket"/>);
+ expect(screen.getByRole('radio',{name:'2. Folded ribbon'})).toHaveProperty('checked',true);
+ expect(screen.getByRole('slider',{name:/Banner speed/})).toHaveProperty('value','10');
+ expect(screen.getByRole('checkbox')).toHaveProperty('checked',false);
+ expect(screen.getByRole('slider',{name:/Display time/})).toHaveProperty('value','3');
+ view.unmount();
+ expect(mock.setStyle).toHaveBeenLastCalledWith('ticket');expect(mock.setSpeed).toHaveBeenLastCalledWith(8);
+ expect(mock.setEnabled).toHaveBeenLastCalledWith(false);expect(mock.setDisplaySeconds).toHaveBeenLastCalledWith(3);
+});
+
+test('a new read accepts the original value after a successful local save and a later edit elsewhere',async()=>{
+ const show=(revision:string)=><PreferenceSnapshotProvider revision={revision}><NotificationBannerPicker initialStyle="capsule" initialEnabled initialSpeed={5}/></PreferenceSnapshotProvider>;
+ const view=render(show('first'));
+ fireEvent.change(screen.getByRole('slider',{name:/Banner speed/}),{target:{value:'9'}});
+ fireEvent.click(screen.getByRole('button',{name:'Save banner'}));await screen.findByText('Notification banner saved.');
+ view.rerender(show('new-read-after-another-tab-saved-five'));
+ expect(screen.getByRole('slider',{name:/Banner speed/})).toHaveProperty('value','5');
+ expect(screen.getByRole('button',{name:'Save banner'})).toHaveProperty('disabled',true);
+ view.unmount();expect(mock.setSpeed).toHaveBeenLastCalledWith(5);
+});
+
+test('a delayed save receipt cannot replace a newer server banner setting',async()=>{
+ let finish!:(value:{ok:boolean;message:string})=>void;mock.save.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+ const view=render(<NotificationBannerPicker initialStyle="capsule" initialEnabled initialSpeed={5}/>);
+ fireEvent.change(screen.getByRole('slider',{name:/Banner speed/}),{target:{value:'9'}});
+ fireEvent.click(screen.getByRole('button',{name:'Save banner'}));
+ view.rerender(<NotificationBannerPicker initialStyle="ticket" initialEnabled={false} initialSpeed={8}/>);
+ await act(async()=>finish({ok:true,message:'Notification banner saved.'}));
+ view.unmount();
+ expect(mock.setSpeed).toHaveBeenLastCalledWith(8);expect(mock.setStyle).toHaveBeenLastCalledWith('ticket');expect(mock.setEnabled).toHaveBeenLastCalledWith(false);
 });

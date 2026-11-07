@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { saveEntryOutcomeEmailPreference, type EntryOutcomeEmailState } from "@/lib/account/entry-outcome-email-actions";
 import { useServerPreference } from "./useServerPreference";
 import styles from "./showroom.module.css";
@@ -21,6 +21,7 @@ export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry
   const preference = useServerPreference(initialEnabled);
   const enabled = preference.value ?? false;
   const setEnabled = preference.setValue;
+  const [showFeedback, setShowFeedback] = useState(false);
   const [state, action, pending] = useActionState(async (previous: typeof initialState, data: FormData) => {
     const generation = preference.generation;
     const result = await savePreference(previous, data);
@@ -31,14 +32,17 @@ export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry
     <h3 id="outcome-email-heading">{placement === "account" ? "Email preferences" : placement === "entry-page" ? "Outcome updates" : "How would you like updates?"}</h3>
     <form onSubmit={event => {
       event.preventDefault();
+      if (pending || initialEnabled === null) return;
       // Keep the controlled draft; form actions otherwise reset the checkbox.
       const formData = new FormData(event.currentTarget);
+      setShowFeedback(true);
       startTransition(() => action(formData));
     }}>
-      <label><input type="checkbox" name="enabled" value="true" checked={enabled} onChange={event => setEnabled(event.target.checked)} disabled={initialEnabled === null || pending} /> Email me when any of my entry outcomes posts</label>
+      <label><input type="checkbox" name="enabled" value="true" checked={enabled} onChange={event => { setEnabled(event.target.checked); setShowFeedback(false); }} disabled={initialEnabled === null || pending} /> Email me when any of my entry outcomes posts</label>
       <button type="submit" disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
     </form>
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "Email preference is unavailable right now. Your in-app updates remain available." : "If this is on, we'll email you when an entered prize pool closes and its result is ready. You'll also find the result in Notifications."}</p>
-    {state.status !== "idle" ? <p role="status" className={styles.outcomeEmailStatus} data-status={state.status}>{state.message}</p> : null}
+    {showFeedback && !pending && state.status !== "idle" ? <p role="status" className={styles.outcomeEmailStatus} data-status={state.status}>{state.message}</p>
+      : preference.isDirty && !pending ? <p role="status" className={styles.outcomeEmailStatus}>Unsaved changes. Save preference to keep your choice.</p> : null}
   </section>;
 }

@@ -40,3 +40,18 @@ test.each(controls)('%s keeps the submitted choice while a response is pending',
  await act(async()=>finish({status:'succeeded',ok:true,message:'Saved on'}));
  expect(screen.getByRole('checkbox')).toHaveProperty('checked',true);
 });
+
+test.each(controls.filter(([name])=>name!=='purchase'))('%s replaces an old save receipt with an unsaved notice on edit',async(_name,Control)=>{
+ render(<Control initialEnabled={false}/>);
+ fireEvent.click(screen.getByRole('checkbox'));fireEvent.click(screen.getByRole('button',{name:'Save preference'}));
+ await screen.findByText('Saved on');
+ fireEvent.click(screen.getByRole('checkbox'));
+ expect(screen.queryByText('Saved on')).toBeNull();
+ expect(screen.getByRole('status').textContent).toBe('Unsaved changes. Save preference to keep your choice.');
+ expect(screen.getByRole('checkbox')).toHaveProperty('checked',false);
+ expect(save).toHaveBeenCalledOnce();
+ fireEvent.click(screen.getByRole('button',{name:'Save preference'}));
+ await screen.findByText('Saved on');
+ expect(screen.queryByText('Unsaved changes. Save preference to keep your choice.')).toBeNull();
+ expect(save).toHaveBeenCalledTimes(2);
+});

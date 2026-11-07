@@ -8,7 +8,7 @@ export function PreferenceSnapshotProvider({ revision, children }: { revision: s
 }
 
 /** Reconcile confirmed reads without replacing an unsaved local choice. */
-export function useServerPreference<T extends boolean | string | null>(serverValue: T) {
+export function useServerPreference<T extends boolean | string | number | null>(serverValue: T) {
   const revision = useContext(PreferenceSnapshotContext);
   const [state, setState] = useState({ source: serverValue, revision, saved: serverValue, draft: null as { value: T } | null, generation: 0 });
   if (serverValue !== state.source || revision !== state.revision) {
@@ -20,6 +20,8 @@ export function useServerPreference<T extends boolean | string | null>(serverVal
   }
   return {
     value: state.draft ? state.draft.value : state.saved,
+    savedValue: state.saved,
+    isDirty: state.draft !== null,
     generation: state.generation,
     setValue(value: T) {
       setState(previous => ({ ...previous, draft: value === previous.saved ? null : { value } }));

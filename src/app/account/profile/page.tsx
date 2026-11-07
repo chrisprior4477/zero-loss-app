@@ -1,4 +1,5 @@
 import { NotificationBannerPicker } from "@/components/account/NotificationBannerPicker";
+import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ProfilePhotoCard } from "@/components/account/ProfilePhotoCard";
@@ -32,7 +33,7 @@ export default async function ProfilePage() {
     </section>
     <MenuLayoutPicker previewSearchResults={previewSearchResults} previewAccount={{ count: account.activity.activeCount, balance: account.balanceLabel, avatarUrl: account.avatarUrl, showPhoto: account.showPhotoInMenu }} />
     <MobileLogoSizePicker />
-    <NotificationBannerPicker initialPopupStyle={account.notificationPopupStyle} initialSpeed={account.notificationBannerSpeed} initialDisplaySeconds={account.notificationBannerDisplaySeconds} initialEnabled={account.headerNotificationsEnabled} initialStyle={account.notificationBannerStyle} />
+    <PreferenceSnapshot><NotificationBannerPicker initialPopupStyle={account.notificationPopupStyle} initialSpeed={account.notificationBannerSpeed} initialDisplaySeconds={account.notificationBannerDisplaySeconds} initialEnabled={account.headerNotificationsEnabled} initialStyle={account.notificationBannerStyle} /></PreferenceSnapshot>
     <ProfileDetailsForm ticket details={{
         savedFields: account.profileSavedFields,
         displayName: account.displayName,

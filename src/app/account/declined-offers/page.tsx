@@ -52,7 +52,7 @@ export default async function DeclinedOffersPage() {
     {account.activity.source === "unavailable" ? <div className={styles.empty}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p></div>
       : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href="/account/entries">Back to My Activity →</Link></div>
       : <div className={styles.declinedList}>{declined.map(item => {
-        return <article key={item.completionOptionId} className={styles.declinedRow}>
+        return <article key={item.completionOptionId} id={`declined-offer-${item.completionOptionId}`} className={styles.declinedRow}>
           <div className={styles.declinedImage}><Image src={item.image} alt="" fill sizes="(max-width: 600px) 76px, 104px" /></div>
           <div className={styles.declinedDetails}>
             <span className={styles.declinedRetailer}>{item.retailer}</span>
@@ -64,7 +64,8 @@ export default async function DeclinedOffersPage() {
           <DeclinedOfferDeadline optionId={item.completionOptionId!} expiresAt={item.completionExpiresAt ?? null}
             initialReminderStatus={reminderStatus.get(item.completionOptionId!) ?? null}
             canRequestReminder={remindersAvailable && account.emailConfirmed} />
-          <ReviveOptionButton optionId={item.completionOptionId!} expiresAt={item.completionExpiresAt ?? null} />
+          <ReviveOptionButton optionId={item.completionOptionId!} expiresAt={item.completionExpiresAt ?? null}
+            statusHref={item.entryId ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(item.entryId)}` : "/account/entries?filter=completion"} />
         </article>;
       })}</div>}
   </div></main></PreferenceSnapshot>;

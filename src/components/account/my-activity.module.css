@@ -196,7 +196,7 @@
 .declinedActions a:hover { filter: brightness(1.07); }
 .declinedBack { display: inline-flex; min-height: 44px; align-items: center; margin-bottom: 18px; color: #63dfff; font-size: 15px; font-weight: 800; }
 .declinedList { display: grid; gap: 11px; margin-top: 30px; }
-.declinedRow { --ticket-side-notch: 11px; --ticket-corner-notch: 14px; display: grid; grid-template-columns: 104px minmax(0, 1.5fr) minmax(230px, 1fr) auto; align-items: center; gap: 20px; min-height: 125px; padding: 16px 26px; background: #fffefa; color: #0b173b; }
+.declinedRow { --ticket-side-notch: 11px; --ticket-corner-notch: 14px; display: grid; grid-template-columns: 104px minmax(0, 1.5fr) minmax(230px, 1fr) auto; align-items: center; gap: 20px; min-height: 125px; padding: 16px 26px; background: #fffefa; color: #0b173b; scroll-margin-top: calc(var(--site-header-height, 140px) + 12px); }
 .declinedImage { position: relative; width: 104px; height: 80px; overflow: hidden; border-radius: 9px; background: #e1f2ff; }
 .declinedImage img { object-fit: contain; }
 .declinedRetailer { color: #1675c1; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
