@@ -29,7 +29,7 @@ function humanize(segment: string) {
 }
 
 /** Route-level wayfinding; no customer data is used to build these links. */
-export function breadcrumbItems(pathname: string, searchParams: URLSearchParams): BreadcrumbItem[] {
+export function breadcrumbItems(pathname: string, searchParams: URLSearchParams, productTitle?: string): BreadcrumbItem[] {
   if (pathname === "/") return [];
   const segments = pathname.split("/").filter(Boolean);
   const [root, second, third] = segments;
@@ -64,7 +64,7 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams)
     const returnLabel = productBrowseReturnLabel(returnHref);
     return [
       { label: returnLabel === "marketplace" ? "Browse the Marketplace" : returnLabel, href: returnHref },
-      { label: second ? humanize(second) : "Product details" },
+      { label: productTitle ?? (second ? humanize(second) : "Product details") },
     ];
   }
   if (root === "rewards") return [{ label: "Popular Rewards", href: "/#popular-rewards" }, { label: second ? humanize(second) : "Retailer" }];

@@ -11,6 +11,7 @@ import { ProductInfoDialog } from "@/components/product/ProductInfoDialog";
 import { ProductEntryAutoScroll } from "@/components/product/ProductEntryAutoScroll";
 import entryStyles from "@/components/product/product-entry-layout.module.css";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { ProductBreadcrumbTitle } from "@/components/layout/ProductBreadcrumbTitle";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { buildProductMetadata } from "@/lib/catalog/product-metadata";
@@ -105,6 +106,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   </>;
 
   return <div className={entryStyles.page}>
+    <ProductBreadcrumbTitle slug={product.slug} title={product.title} />
     {!alreadyResolved ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
     <ProductEntryAutoScroll productKey={`${product.slug}:${requestedQuantity}:${query.funded ?? ""}`} />
     <section id="product-entry-card" className={entryStyles.card} aria-label={`${product.title} entry details`}>

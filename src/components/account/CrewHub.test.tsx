@@ -1,3 +1,4 @@
+import { crewViewReturnKey } from "@/lib/crew/view-return";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { CrewHub } from "./CrewHub";
@@ -350,4 +351,38 @@ test("unknown section values fall back to Your Crew without changing saved data"
   render(crewPageAtCurrentUrl());
   expect(screen.getByRole("button", { name: "Your Crew" }).getAttribute("aria-pressed")).toBe("true");
   expect(actions.saveCrewDisplaySettings).not.toHaveBeenCalled();
+});
+
+
+test("Back restores Daniel and the shared-pick position without switching to Maya", async () => {
+  const props = { currentUserId: "me", invitations: [], members: [], discoverable: false, entries: [], selectedMemberId: null, selectedPicks: [], available: true, initialTab: "crew" as const };
+  const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  const view = render(<CrewHub {...props} />);
+  fireEvent.click(await screen.findByRole("button", { name: "See Daniel's sample shared activity" }));
+  const group = screen.getByRole("group", { name: "Daniel's shared picks" });
+  Object.defineProperty(group, "scrollLeft", { configurable: true, writable: true, value: 280 });
+  const link = within(screen.getByRole("region", { name: "Daniel's shared activity" })).getAllByRole("link", { name: "View item" })[1];
+  fireEvent.click(link);
+  expect(window.history.state[crewViewReturnKey]).toMatchObject({ ownerId: "me", selectedKey: "sample-Daniel", pickSlug: "dyson-v8-cordless-vacuum", picksLeft: 280 });
+  view.unmount();
+  render(<CrewHub {...props} />);
+  expect(await screen.findByRole("region", { name: "Daniel's shared activity" })).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Maya's shared activity" })).toBeNull();
+  await waitFor(() => expect(screen.getByRole("group", { name: "Daniel's shared picks" }).scrollLeft).toBe(280));
+  expect(scroll).toHaveBeenCalled();
+});
+
+test.each(["other account", "removed member", "valid member"])("Crew return validates and reloads a %s", async kind => {
+  const bookmark = { ownerId: kind === "other account" ? "someone-else" : "me", href: window.location.href, selectedKey: "taylor", pickSlug: "nike-court-shot-shoes", peopleLeft: 0, picksLeft: 0, scrollY: 0 };
+  window.history.replaceState({ [crewViewReturnKey]: bookmark }, "");
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  const connection = { id: "connection", requester_id: "me", recipient_id: "taylor", requester_name: "Me", recipient_name: "Taylor", status: "accepted" as const, created_at: "2026-10-23T10:00:00Z" };
+  render(<CrewHub currentUserId="me" invitations={kind === "removed member" ? [] : [connection]} members={[{ memberId: "taylor", name: "Taylor", avatarUrl: null }]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);
+  if (kind === "valid member") {
+    await waitFor(() => expect(actions.getCrewSharedPicks).toHaveBeenCalledWith("taylor"));
+    expect(screen.getByRole("region", { name: "Taylor's shared activity" })).toBeTruthy();
+  } else {
+    expect(actions.getCrewSharedPicks).not.toHaveBeenCalled();
+    expect(screen.queryByRole("region", { name: "Taylor's shared activity" })).toBeNull();
+  }
 });

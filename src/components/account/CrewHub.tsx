@@ -3,7 +3,7 @@ import { useAccountTimeZone } from "./TimeZoneProvider";
 import Link from "next/link";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
   getCrewSharedPicks, setCrewShareBack, removeCrewConnection, requestCrewInvitationFromLink, respondToCrewRequest,
 } from "@/lib/crew/actions";
@@ -26,6 +26,7 @@ import { CrewDisplaySettings } from "./CrewDisplaySettings";
 import { defaultCrewVisibilityRule, type crewVisibilitySnapshot } from "@/lib/crew/visibility";
 import { useCrewTab } from "./useCrewTab";
 import type { CrewTab } from "@/lib/crew/navigation";
+import { crewViewReturnKey, readCrewViewReturn } from "@/lib/crew/view-return";
 
 type Props = {
   visibility?: ReturnType<typeof crewVisibilitySnapshot>;
@@ -133,6 +134,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
   }
 
   function selectSample(name: SampleCrewName) {
+    forgetReturn();
     pickRequest.current += 1;
     setOpenMemberId(null);
     setMemberPicksLoading(false);
@@ -140,8 +142,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     setMemberPicksError(false);
   }
 
-  function selectMember(id: string, retry = false) {
-    if (openMemberId === id && !retry) return;
+  const loadMember = useCallback((id: string) => {
     pickRequest.current += 1;
     const request = pickRequest.current;
     setSamplePerson(null);
@@ -156,7 +157,45 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       setMemberPicksError(!result.ok);
       setMemberPicksLoading(false);
     });
+  }, []);
+
+  function selectMember(id: string, retry = false) {
+    if (openMemberId === id && !retry) return;
+    forgetReturn();
+    loadMember(id);
   }
+
+  function forgetReturn() {
+    const next = { ...window.history.state };
+    delete next[crewViewReturnKey];
+    window.history.replaceState(next, "");
+  }
+
+  const memberKeys = people.map(person => person.memberId).join(",");
+  const sampleKeys = samples.join(",");
+  useLayoutEffect(() => {
+    function restorePerson() {
+      const saved = readCrewViewReturn(window.history.state, currentUserId, window.location.href);
+      if (!saved) return;
+      if (saved.selectedKey.startsWith("sample-")) {
+        const name = sampleKeys.split(",").find(name => `sample-${name}` === saved.selectedKey) as SampleCrewName | undefined;
+        if (!name) return;
+        initialSampleSelected.current = true;
+        pickRequest.current += 1;
+        setOpenMemberId(null);
+        setMemberPicksLoading(false);
+        setMemberPicksError(false);
+        setSamplePerson(name);
+      } else if (memberKeys.split(",").includes(saved.selectedKey)) {
+        initialSampleSelected.current = true;
+        loadMember(saved.selectedKey);
+      }
+    }
+    restorePerson();
+    window.addEventListener("popstate", restorePerson);
+    window.addEventListener("pageshow", restorePerson);
+    return () => { window.removeEventListener("popstate", restorePerson); window.removeEventListener("pageshow", restorePerson); };
+  }, [currentUserId, memberKeys, sampleKeys, loadMember]);
 
   const activeMember = people.find((person) => person.memberId === openMemberId);
   const activeKey = samplePerson ? `sample-${samplePerson}` : openMemberId;
@@ -171,7 +210,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <StatusTicket variant="reward" size="top" label="Prize Ready" value={overview.activity.source === "unavailable" ? "Unavailable" : String(readyRewards.length)} action={singleReward ? "View reward" : "View rewards"} href={singleReward ? walletRewardHref(singleReward) : accountRoutes.rewards} />
         <StatusTicket variant="option" size="top" label="Purchase Options" value={optionsCount === null || optionsCount === undefined ? "Unavailable" : String(optionsCount)} action="Continue with Purchase" href={accountRoutes.purchaseOptions} />
       </div> : null}
-    <CrewLandingScroll enabled={initialTab === "crew" && !selectedMemberId && !incomingInviteToken} />
+    <CrewLandingScroll ownerId={currentUserId} enabled={initialTab === "crew" && !selectedMemberId && !incomingInviteToken} />
     <header id="crew-intro" className={connectedStyles.heading}>
         <div><h1>Your Crew</h1><p>The people you brought with you.</p><p><span>{connected.length} connected</span>{samples.length ? <span>{samples.length} sample previews</span> : null}</p></div>
         <button type="button" aria-expanded={finding} onClick={focusCrewSearch}>Add people</button>
@@ -196,7 +235,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <button type="button" className={connectedStyles.sharingButton} aria-pressed={tab === "picks"} onClick={() => selectTab("picks")}>Shared Picks &amp; Cleanup</button>
       </nav>
       {tab === "crew" ? <>
-        <CrewConnectedGallery people={people} samples={samples} selectedKey={activeKey}
+        <CrewConnectedGallery ownerId={currentUserId} people={people} samples={samples} selectedKey={activeKey}
           picks={memberPicks.map(pick => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `${pick.shareKind === "win" ? "Shared win" : "Shared"} ${formatDate(pick.sharedAt, timeZone)}` }))}
           loading={Boolean(activeMember) && memberPicksLoading} error={Boolean(activeMember) && memberPicksError} pending={pending}
           onMember={selectMember} onSample={selectSample} onRetry={() => { if (activeMember) selectMember(activeMember.memberId, true); }}

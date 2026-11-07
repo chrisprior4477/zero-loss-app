@@ -153,6 +153,9 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
       onPointerCancel={event => { dragRef.current = null; event.currentTarget.style.cursor = "grab"; event.currentTarget.style.userSelect = ""; }}
       onClickCapture={event => { if (suppressClick.current && event.detail !== 0) { event.preventDefault(); event.stopPropagation(); suppressClick.current = false; } }}
       onMouseLeave={() => setOpenCategory(null)}
+      onBlur={event => {
+        if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setOpenCategory(null);
+      }}
     >
       <ul className="flex h-full w-max min-w-full items-center justify-start gap-1 px-2 lg:justify-center lg:px-0 xl:gap-2">
         {showHome ? <li className="flex h-full shrink-0 items-center">

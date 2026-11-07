@@ -1,3 +1,4 @@
+import { ProductBreadcrumbTitle, ProductBreadcrumbTitleProvider } from "./ProductBreadcrumbTitle";
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { SiteBreadcrumbs } from "./SiteBreadcrumbs";
@@ -54,4 +55,31 @@ test("Ending Soon shows current near-full offers instead of the All menu's saved
   expect(within(menu).queryByText('Samsung 50" M70H Smart TV')).toBeNull();
   expect(within(menu).getByRole("menuitem", { name: "See all prizes in Ending Soon" }).getAttribute("href"))
     .toBe("/browse?sort=ending-soon");
+});
+
+
+test("keyboard focus can move through a category menu, then dismiss it when leaving the header", () => {
+  render(<><DesktopCategoryNav endingSoonItems={[]} /><button>Outside header</button></>);
+  const trigger = screen.getByRole("link", { name: "Games & Puzzles" });
+  fireEvent.focus(trigger);
+  const menu = screen.getByRole("menu", { name: "Games & Puzzles menu" });
+  const last = within(menu).getAllByRole("menuitem").at(-1)!;
+  fireEvent.blur(trigger, { relatedTarget: last });
+  expect(screen.getByRole("menu")).toBeTruthy();
+  fireEvent.blur(last, { relatedTarget: screen.getByRole("button", { name: "Outside header" }) });
+  expect(screen.queryByRole("menu")).toBeNull();
+});
+
+test("product breadcrumbs use the page's canonical catalog name and never carry it onto another product", () => {
+  route.pathname = "/items/sony-wh-1000xm5-headphones"; route.query = "from=%2Fbrowse%3Fcategory%3Delectronics";
+  const view = render(<ProductBreadcrumbTitleProvider><SiteBreadcrumbs /><ProductBreadcrumbTitle slug="sony-wh-1000xm5-headphones" title="Sony WH-1000XM5 Wireless Headphones" /></ProductBreadcrumbTitleProvider>);
+  expect(screen.getByText("Sony WH-1000XM5 Wireless Headphones").getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("link", { name: "Electronics" }).getAttribute("href")).toBe("/browse?category=electronics");
+  route.pathname = "/items/playstation-5-slim";
+  view.rerender(<ProductBreadcrumbTitleProvider><SiteBreadcrumbs /><ProductBreadcrumbTitle slug="playstation-5-slim" title="PlayStation 5 Slim Model" /></ProductBreadcrumbTitleProvider>);
+  expect(screen.getByText("PlayStation 5 Slim Model")).toBeTruthy();
+  expect(screen.queryByText("Sony WH-1000XM5 Wireless Headphones")).toBeNull();
+  route.pathname = "/account/wallet"; route.query = "view=history";
+  view.rerender(<ProductBreadcrumbTitleProvider><SiteBreadcrumbs /></ProductBreadcrumbTitleProvider>);
+  expect(screen.getByText("Wallet & Transactions")).toBeTruthy();
 });

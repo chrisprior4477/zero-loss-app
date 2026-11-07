@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { breadcrumbItems } from "@/lib/navigation/breadcrumbs";
 import { HomeIcon } from "./HomeIcon";
+import { useProductBreadcrumbTitle } from "./ProductBreadcrumbTitle";
 
 /** One compact escape route, shared by every non-home page. */
 export function SiteBreadcrumbs() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const items = breadcrumbItems(pathname, searchParams);
+  const title = useProductBreadcrumbTitle(pathname);
+  const items = breadcrumbItems(pathname, searchParams, title);
   if (!items.length) return null;
 
   return <nav aria-label="Breadcrumb" className="border-b border-cyan-300/15 bg-[#061d35] px-4 py-1.5 text-[12px] leading-5 text-cyan-100 sm:px-6 sm:text-[13px] lg:px-10 print:hidden">

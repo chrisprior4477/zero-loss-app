@@ -11,6 +11,7 @@ import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
 import type { CrewPersonCard } from "./CrewPeopleCarousel";
 import styles from "./crew-connected.module.css";
 import { useCrewCarousel } from "./useCrewCarousel";
+import { crewViewReturnKey, readCrewViewReturn, type CrewViewReturn } from "@/lib/crew/view-return";
 
 /** Both rails share free-gliding movement and a spring at their edges. */
 export function CrewRail({ label, children, tools, kind, count }: { label: string; children: ReactNode; tools?: ReactNode; kind: "people" | "picks"; count: number }) {
@@ -42,14 +43,15 @@ export function CrewRail({ label, children, tools, kind, count }: { label: strin
 }
 
 function PickCard({ pick }: { pick: CrewActivityPick }) {
-  return <article className={styles.pickCard}>
+  return <article className={styles.pickCard} data-crew-pick={pick.slug}>
     <Link className={styles.pickArt} href={`/items/${encodeURIComponent(pick.slug)}`} aria-label={`View ${pick.title}`}><Image src={pick.image} alt={pick.title} fill sizes="(max-width: 640px) 280px, 440px" draggable={false} /></Link>
     <div className={styles.pickCopy}><small>{pick.retailer}</small><h3>{pick.title}</h3>{pick.note ? <p>{pick.note}</p> : null}</div>
     <div className={styles.pickActions}><Link href={`/items/${encodeURIComponent(pick.slug)}`}>View item <span aria-hidden="true">↗</span></Link><ProductShareButton product={pick} label="Share" className={styles.shareButton} /></div>
   </article>;
 }
 
-export function CrewConnectedGallery({ people, samples, selectedKey, picks, loading, error, pending, onMember, onSample, onRemove, onSampleRemove, onRetry, onShare, onAdd, onShareBack }: {
+export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, picks, loading, error, pending, onMember, onSample, onRemove, onSampleRemove, onRetry, onShare, onAdd, onShareBack }: {
+  ownerId: string;
   people: CrewPersonCard[]; samples: SampleCrewName[]; selectedKey: string | null; picks: CrewActivityPick[]; loading: boolean; error: boolean; pending: boolean;
   onShareBack: (id: string, enabled: boolean) => void; onMember: (id: string) => void; onSample: (name: SampleCrewName) => void; onRemove: (id: string) => void; onSampleRemove: (name: SampleCrewName) => void; onRetry: () => void; onShare: () => void; onAdd: () => void;
 }) {
@@ -67,8 +69,66 @@ export function CrewConnectedGallery({ people, samples, selectedKey, picks, load
     ...sampleCrewPeople.filter(person => samples.includes(person.name)).map(person => ({ key: `sample-${person.name}`, name: person.name, photo: person.photo, invitationId: null, sample: true }))];
   const selected = roster.find(person => person.key === selectedKey);
   const visiblePicks = selected?.sample ? samplePicks[selected.name as SampleCrewName] : picks;
+  const pickKeys = visiblePicks.map(pick => pick.slug).join(",");
+  useEffect(() => {
+    let frame = 0, secondFrame = 0;
+    let interrupted = false;
+    const timers: number[] = [];
+    function cancel() { cancelAnimationFrame(frame); cancelAnimationFrame(secondFrame); timers.splice(0).forEach(timer => clearTimeout(timer)); }
+    function interrupt() { interrupted = true; cancel(); }
+    function restore() {
+      const saved = readCrewViewReturn(window.history.state, ownerId, window.location.href);
+      if (!saved || saved.selectedKey !== selectedKey || loading || error || !pickKeys.split(",").includes(saved.pickSlug)) return;
+      cancel(); interrupted = false;
+      const align = () => {
+        if (interrupted) return;
+        frame = requestAnimationFrame(() => { secondFrame = requestAnimationFrame(() => {
+          if (interrupted || window.location.href !== saved.href) return;
+          const peopleRail = space.current?.querySelector<HTMLElement>('[role="group"][aria-label="People in your Crew"]');
+          const picksRail = space.current?.querySelector<HTMLElement>(`.${styles.picksRail}`);
+          if (peopleRail) {
+            peopleRail.scrollLeft = saved.peopleLeft;
+            const person = peopleRail.querySelector<HTMLElement>('[data-selected="true"]');
+            if (person) {
+              const card = person.getBoundingClientRect(), viewport = peopleRail.getBoundingClientRect();
+              if (card.left < viewport.left || card.right > viewport.right) peopleRail.scrollLeft += card.left - viewport.left;
+            }
+          }
+          if (picksRail) {
+            picksRail.scrollLeft = saved.picksLeft;
+            const pick = Array.from(picksRail.querySelectorAll<HTMLElement>("[data-crew-pick]")).find(pick => pick.dataset.crewPick === saved.pickSlug);
+            if (pick) {
+              const card = pick.getBoundingClientRect(), viewport = picksRail.getBoundingClientRect();
+              if (card.left < viewport.left || card.right > viewport.right) picksRail.scrollLeft += card.left - viewport.left;
+            }
+          }
+          window.scrollTo({ top: saved.scrollY, behavior: "instant" });
+        }); });
+      };
+      align();
+      for (const delay of [150, 400, 900]) timers.push(window.setTimeout(align, delay));
+    }
+    restore();
+    window.addEventListener("popstate", restore);
+    window.addEventListener("pageshow", restore);
+    for (const name of ["pointerdown", "touchstart", "wheel", "keydown"]) window.addEventListener(name, interrupt, { passive: true });
+    return () => {
+      cancel(); window.removeEventListener("popstate", restore); window.removeEventListener("pageshow", restore);
+      for (const name of ["pointerdown", "touchstart", "wheel", "keydown"]) window.removeEventListener(name, interrupt);
+    };
+  }, [ownerId, selectedKey, pickKeys, loading, error]);
   const manage = selected ? <details className={styles.manage} key={selected.key}><summary>Manage</summary><div>{!selected.sample ? <><button type="button" disabled={pending} onClick={() => onShareBack(selected.invitationId!, true)}>Allow my shared picks</button><button type="button" disabled={pending} onClick={() => onShareBack(selected.invitationId!, false)}>Stop sharing my picks</button></> : null}<button type="button" disabled={pending} onClick={() => selected.sample ? onSampleRemove(selected.name as SampleCrewName) : onRemove(selected.invitationId!)}>{selected.sample ? "Remove preview" : `Leave connection with ${selected.name}`}</button></div></details> : null;
-  return <section ref={space} className={styles.connectedSpace} aria-label="Your Crew and shared picks">
+  return <section ref={space} className={styles.connectedSpace} aria-label="Your Crew and shared picks" onClickCapture={event => {
+    if (!selectedKey || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
+    const pickSlug = anchor.closest<HTMLElement>("[data-crew-pick]")?.dataset.crewPick;
+    if (!pickSlug) return;
+    const saved: CrewViewReturn = { ownerId, href: window.location.href, selectedKey, pickSlug,
+      peopleLeft: space.current?.querySelector<HTMLElement>('[role="group"][aria-label="People in your Crew"]')?.scrollLeft ?? 0,
+      picksLeft: space.current?.querySelector<HTMLElement>(`.${styles.picksRail}`)?.scrollLeft ?? 0, scrollY: window.scrollY };
+    window.history.replaceState({ ...window.history.state, [crewViewReturnKey]: saved }, "");
+  }}>
     <CrewRail key={roster.map(person => person.key).join(",")} label="People in your Crew" kind="people" count={roster.length + 1} tools={manage}>
       {roster.map(person => <button type="button" key={person.key} className={styles.personCard} data-selected={person.key === selectedKey} aria-expanded={person.key === selectedKey} aria-label={`See ${person.name}'s ${person.sample ? "sample " : ""}shared activity`} onClick={() => person.sample ? onSample(person.name as SampleCrewName) : onMember(person.key)}>
         <span className={styles.avatar} aria-hidden="true">{person.photo ? <Image src={person.photo} alt="" fill sizes="100px" unoptimized={!person.sample} draggable={false} /> : person.name[0]}</span><strong>{person.name}</strong><small>{person.sample ? `${samplePicks[person.name as SampleCrewName].length} sample picks` : "Connected"}</small>{person.key === selectedKey ? <span className={styles.selectedMark} aria-hidden="true">✓</span> : null}

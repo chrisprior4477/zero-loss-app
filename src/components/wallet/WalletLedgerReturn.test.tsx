@@ -1,3 +1,4 @@
+import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import type { AnchorHTMLAttributes } from "react";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -154,3 +155,22 @@ test("corrects a late browser scroll but stops immediately when the customer sta
   expect(scrollTo).not.toHaveBeenCalled();
 });
 
+
+
+test.each(["View product", "View result", "View result for Nintendo Switch", "Nintendo Switch"])("%s preserves purchase filters, dates, page and the clicked transaction", label => {
+  const item = { ...storedActivityFixture().activity[0], slug: "nintendo-switch", title: "Nintendo Switch", entryId: "ent_owned", status: "prize" as const, rewardId: "reward-owned", rewardStatus: "ready" as const };
+  const purchases = entries.map((entry, index) => ({ ...entry, id: 'purchase-' + index, entry_type: "PURCHASE_DEBIT", amount: -39900, entryIds: [item.entryId], product: { slug: item.slug, title: item.title, image: "/test.png" } }));
+  const mixed = [...entries, ...purchases];
+  const props = { walletId: "wallet-1", entries: mixed, activity: [item] };
+  const view = render(<WalletLedger {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Purchases" }));
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-01" } });
+  fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
+  fireEvent.click(screen.getAllByRole("link", { name: label })[1]);
+  expect(window.history.state[ledgerReturnKey]).toMatchObject({ filter: "purchases", from: "2026-11-01", offset: 5, rowId: "transaction-purchase-6" });
+  expect(window.history.state.frameworkState).toBe("keep");
+  view.unmount();
+  render(<WalletLedger {...props} />); flush();
+  expect(screen.getByRole("button", { name: "Purchases" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByText("Showing 6–10 of 12 transactions")).toBeTruthy();
+});

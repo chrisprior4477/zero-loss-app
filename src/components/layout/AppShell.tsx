@@ -18,6 +18,7 @@ import { MobileLogoSizeTrialBar } from "./MobileLogoSizeTrialBar";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { TimeZoneProvider } from "@/components/account/TimeZoneProvider";
 import { AccountStateSync } from "@/components/account/AccountStateSync";
+import { ProductBreadcrumbTitleProvider } from "./ProductBreadcrumbTitle";
 
 type AppShellProps = {
   children: ReactNode;
@@ -35,7 +36,7 @@ export async function AppShell({ children }: AppShellProps) {
     <MobileLogoSizeProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialSize={account?.mobileLogoSize ?? 0}>
     <MenuLayoutProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialLayout={account?.menuLayout ?? "classic"} initialTabletLayout={account?.tabletMenuLayout ?? "classic"} initialDesktopLayout={account?.desktopMenuLayout ?? "classic"}>
     <FavoritesProvider initialSlugs={favorites.slugs} isSignedIn={Boolean(account)} available={favorites.available}>
-    <div className="flex min-h-full flex-col" style={{ paddingBottom: "max(var(--menu-trial-height, 0px), var(--logo-size-trial-height, 0px))" }}>
+    <ProductBreadcrumbTitleProvider><div className="flex min-h-full flex-col" style={{ paddingBottom: "max(var(--menu-trial-height, 0px), var(--logo-size-trial-height, 0px))" }}>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-[var(--accent)] focus:px-3 focus:py-2 focus:text-sm focus:text-[var(--accent-foreground)]"
@@ -54,7 +55,7 @@ export async function AppShell({ children }: AppShellProps) {
       {account ? <Suspense fallback={null}><PendingEntryNotice accountId={account.userId} /></Suspense> : null}
       <MenuLayoutTrialBar />
       <MobileLogoSizeTrialBar />
-    </div>
+    </div></ProductBreadcrumbTitleProvider>
     </FavoritesProvider>
     </MenuLayoutProvider>
     </MobileLogoSizeProvider>

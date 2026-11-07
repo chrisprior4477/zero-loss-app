@@ -67,3 +67,11 @@ test("a missing heading is safe", () => {
   const { scrollTo, flush, heading } = setup(); heading.remove();
   render(<CrewLandingScroll enabled />); flush(); expect(scrollTo).not.toHaveBeenCalled();
 });
+
+
+test("mobile landing does not replace a returning Crew pick with the page heading", () => {
+  const { scrollTo, flush } = setup({ hash: "#crew-intro" });
+  window.history.replaceState({ zeroLossCrewViewReturn: { ownerId: "me", href: window.location.href, selectedKey: "sample-Daniel", pickSlug: "playstation-5-slim", peopleLeft: 0, picksLeft: 0, scrollY: 900 } }, "");
+  render(<CrewLandingScroll enabled ownerId="me" />); flush();
+  expect(scrollTo).not.toHaveBeenCalled();
+});

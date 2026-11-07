@@ -138,16 +138,18 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     };
   }, [compact, walletId, selectedId, restoreBatch, listRef]);
 
-  function rememberView(event: MouseEvent<HTMLAnchorElement>) {
+  function rememberView(event: MouseEvent<HTMLUListElement>) {
     if (compact || !walletId || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const row = event.currentTarget.closest("li");
+    const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
+    const row = anchor.closest("li");
     const saved: LedgerReturn = {
       walletId, href: window.location.href, selectedId, filter, from, through, showArchived,
       offset: batches.origin, scrollY: window.scrollY, rowId: row?.id ?? "", rowTop: row?.getBoundingClientRect().top ?? 0,
       expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
     };
     // Merge, rather than replace, Next's own navigation state. Keep the URL and
-    // support transaction link unchanged and don't add a Back-button step.
+    // outgoing transaction link unchanged and don't add a Back-button step.
     window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: saved }, "");
   }
   const selectedRow = useRef<HTMLLIElement>(null);
@@ -169,7 +171,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       <div className={styles.ledgerHeader} aria-hidden="true"><span>Date</span><span>Description</span><span>Status</span><span>Amount</span></div>
       {!compact && <TicketBatchControls {...controls} top />}
-      <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
+      <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
         const links = transactionLinks(entry, activity);
         const productHref = entry.product?.slug ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
           const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}`;
@@ -195,7 +197,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
             <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
           </details> : null}
           {productHref ? <Link href={productHref} className={styles.productAction}>View product</Link> : null}
-          <Link href={supportHref} onClick={rememberView} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
+          <Link href={supportHref} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
         </div>
       </li>; })}</ul>
     </div>}
