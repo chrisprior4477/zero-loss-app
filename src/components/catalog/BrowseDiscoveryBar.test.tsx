@@ -19,6 +19,23 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const searchForm = () => screen.getByRole("search", { name: "Search marketplace" });
 
+test("the category picker finds Beauty and clears a previous retailer and search when choosing it", () => {
+  render(<BrowseDiscoveryBar {...props} searchTerm="PlayStation" filters={{ ...props.filters, retailer: "AutoZone" }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Gas" }));
+  const picker = within(screen.getByRole("dialog"));
+  fireEvent.change(picker.getByRole("searchbox"), { target: { value: "Beauty" } });
+  fireEvent.click(picker.getByRole("button", { name: /Beauty.*Browse prizes/ }));
+  expect(navigation.push).toHaveBeenCalledWith("/browse?category=beauty#search-results", { scroll: false });
+});
+
+test("All categories exits the selected collection while keeping the selected budget", () => {
+  render(<BrowseDiscoveryBar {...props} selectedCategory="beauty" selectedRetailerGroup={null}
+    filters={{ ...props.filters, maxValue: 50 }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Categories" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /All categories/ }));
+  expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=50#search-results", { scroll: false });
+});
+
 function openPriceFilters() {
   render(<BrowseDiscoveryBar {...props} selectedRetailerGroup={null} />);
   fireEvent.click(screen.getByRole("button", { name: /Filter & sort/ }));

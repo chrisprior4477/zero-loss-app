@@ -3,6 +3,13 @@ import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
 
 describe("catalog search", () => {
+  test("makeup finds the pictured cosmetics before related gift cards", () => {
+    const matches = searchCatalogMatches(demoProducts, "makeup");
+    expect(matches.slice(0, 3).map(match => match.product.slug).sort()).toEqual([
+      "milani-baked-blush", "milani-color-fetish-lipstick", "milani-stay-put-eyeliner",
+    ]);
+    expect(matches.some(match => match.product.retailer === "Sephora")).toBe(true);
+  });
   test.each(["auto", "atuo", "automot", "automotvie"])("finds every automotive vendor for %s", query => {
     const retailers = searchCatalog(demoProducts, query).map(product => product.retailer);
     expect(retailers).toEqual(expect.arrayContaining(["AutoZone®", "Jiffy Lube®", "Turo"]));

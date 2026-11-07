@@ -42,7 +42,7 @@ export function ProductGallery({ gallery, title, slug, signedOutCompact = false,
             aria-pressed={selected === index}
             className={compact ? styles.thumb : `relative shrink-0 overflow-hidden rounded-xl bg-white transition ${signedOutCompact ? "h-10 w-14 lg:h-20 lg:w-24" : "h-12 w-16 sm:h-20 sm:w-24"} ${selected === index ? "ring-3 ring-cyan-300" : "border border-white/25 opacity-75 hover:opacity-100"}`}
           >
-            <Image src={galleryImage.src} alt="" fill sizes="(max-width: 640px) 64px, 96px" className={galleryImage.fit === "reward" ? "object-contain p-1" : "object-contain p-2"} />
+            <Image src={galleryImage.src} alt="" fill sizes={compact ? "44px" : "(max-width: 640px) 64px, 96px"} className={compact ? styles.thumbImage : galleryImage.fit === "reward" ? "object-contain p-1" : "object-contain p-2"} />
           </button>
         ))}
       </div> : null}

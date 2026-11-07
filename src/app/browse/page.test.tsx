@@ -7,6 +7,16 @@ import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 vi.setConfig({ testTimeout: 20000 });
 
 const account = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue(null) }));
+
+test("the Headphones menu filters Electronics and preserves its return path", async () => {
+  render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", subcategory: "Headphones" }) }));
+  expect(screen.getByRole("heading", { name: "Headphones" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Sony WH-1000XM5 Wireless Headphones/ }).getAttribute("href")).toContain("subcategory%3DHeadphones");
+  expect(screen.queryByRole("link", { name: /LG OLED/ })).toBeNull();
+  expect(screen.queryByRole("link", { name: /Fujifilm/ })).toBeNull();
+  expect(screen.queryByRole("link", { name: /JBL Flip/ })).toBeNull();
+  expect(screen.getAllByRole("link", { name: "Clear filters" })[0].getAttribute("href")).toBe("/browse?category=electronics#search-results");
+});
 vi.mock("@/lib/account/context", () => ({ getAccountContext: account.get }));
 
 vi.mock("@/components/ui/FavoriteButton", () => ({ FavoriteButton: () => null }));

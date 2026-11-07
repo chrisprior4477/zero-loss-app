@@ -9,6 +9,7 @@ import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import { searchResultsHref } from "@/lib/navigation/search-examples";
 import { browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { searchTextMatches } from "@/lib/catalog/search-text";
+import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
 import styles from "./browse-discovery.module.css";
@@ -34,9 +35,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const activeCount = Number(props.filters.type !== "all") + Number(props.filters.availableOnly)
     + Number(props.filters.minValue !== null || props.filters.maxValue !== null)
     + Number(props.filters.sort !== "featured" && !(props.selectedCategory === "ending-soon" && props.filters.sort === "fewest-left"));
+  const prizeCategories = marketplaceCategories.filter(category => !query.trim() || searchTextMatches(category.label, query));
+  const prizeCategoryLabels = new Set(prizeCategories.map(category => category.label.toLowerCase()));
   const groups = query.trim().length > 1
     ? searchRetailerDirectory(props.retailerGroups, query.trim(), props.retailerGroups.length)
     : props.retailerGroups.filter(group => !query.trim() || group.category.toLowerCase().startsWith(query.trim().toLowerCase()));
+  const distinctGroups = groups.filter(group => !prizeCategoryLabels.has(group.category.toLowerCase()));
   const retailerGroups = query.trim() ? props.retailerGroups : props.selectedRetailerGroup ? [props.selectedRetailerGroup] : props.retailerGroups;
   const retailers = Array.from(new Map(retailerGroups.flatMap(group => group.options.map(option => [option.value, { ...option, groupId: group.id }] as const))).values())
     .filter(option => !query.trim() || searchTextMatches(option.label, query))
@@ -63,6 +67,14 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     setQuery(""); setMode("categories"); setPanel(next);
   }
   function choose(href: string) { setPanel(null); router.push(href, { scroll: false }); }
+  function choosePrizeCategory(value: string) {
+    const url = new URL(marketplaceCategoryHref(value), "https://zeroloss.local");
+    if (props.filters.type !== "all") url.searchParams.set("type", props.filters.type);
+    if (props.filters.availableOnly) url.searchParams.set("available", "1");
+    if (props.filters.minValue !== null) url.searchParams.set("minValue", String(props.filters.minValue));
+    if (props.filters.maxValue !== null) url.searchParams.set("maxValue", String(props.filters.maxValue));
+    choose(`${url.pathname}${url.search}#search-results`);
+  }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // Match the header search: a new query searches all prizes, not the
@@ -95,9 +107,9 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
         Filter &amp; sort{activeCount ? <b>{activeCount}</b> : <span aria-hidden="true">↕</span>}
       </button>
     </div>
-    {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || activeCount > 0) ? <div className={styles.current}>
+    {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
-      <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.selectedRetailerGroup?.category ?? (props.searchTerm ? `Results for “${props.searchTerm}”` : "Filtered results")}</span>
+      <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.selectedRetailerGroup?.category ?? (props.searchTerm ? `Results for “${props.searchTerm}”` : props.subcategory || "Filtered results")}</span>
       {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
       <Link href={`${props.clearHref}#search-results`}>Clear filters</Link>
     </div> : null}
@@ -108,10 +120,13 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
           <div className={styles.pickerModes} role="group" aria-label="Browse by"><button type="button" aria-pressed={mode === "categories"} onClick={() => { setMode("categories"); setQuery(""); }}>Categories</button><button type="button" aria-pressed={mode === "retailers"} onClick={() => { setMode("retailers"); setQuery(""); }}>Retailers</button></div>
           <label className={styles.pickerSearch}><span className={styles.srOnly}>Find a category or retailer</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Automotive, groceries, a brand…" /></label>
           <div ref={categoryList} className={styles.wheel} role="region" aria-label={mode === "categories" ? "Scrollable categories" : "Scrollable retailers"} tabIndex={0}>
-            <button type="button" className={styles.choice} aria-current={!props.selectedRetailerGroup && !props.filters.retailer ? "true" : undefined} onClick={() => choose(discoveryCategoryHref("", props.filters, props.selectedCategory))}>All categories<span aria-hidden="true">→</span></button>
-            {mode === "categories" ? groups.map(group => <button type="button" key={group.id} className={styles.choice} aria-current={props.selectedRetailerGroup?.id === group.id ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(group.id, props.filters, props.selectedCategory))}><span>{group.category}<small>{group.options.filter(option => option.hasOffer).length} retailers with offers</small></span><span aria-hidden="true">→</span></button>)
+            <button type="button" className={styles.choice} aria-current={!props.selectedCategory && !props.selectedRetailerGroup && !props.filters.retailer ? "true" : undefined} onClick={() => choosePrizeCategory("")}>All categories<span aria-hidden="true">→</span></button>
+            {mode === "categories" ? <>
+              {prizeCategories.map(category => <button type="button" key={category.id} className={styles.choice} aria-current={props.selectedCategory === category.id && !props.selectedRetailerGroup ? "true" : undefined} onClick={() => choosePrizeCategory(category.id)}><span>{category.label}<small>Browse prizes</small></span><span aria-hidden="true">→</span></button>)}
+              {distinctGroups.map(group => <button type="button" key={group.id} className={styles.choice} aria-current={props.selectedRetailerGroup?.id === group.id ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(group.id, props.filters, props.selectedCategory))}><span>{group.category}<small>{group.options.filter(option => option.hasOffer).length} retailers with offers</small></span><span aria-hidden="true">→</span></button>)}
+            </>
               : retailers.map(option => <button type="button" key={option.value} className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value))}><span>{option.label}<small>{option.hasOffer ? "View current offers" : "No current offers"}</small></span><span aria-hidden="true">→</span></button>)}
-            {(mode === "categories" ? groups : retailers).length === 0 ? <p className={styles.noMatches}>No match. Try another category or brand.</p> : null}
+            {(mode === "categories" ? prizeCategories.length + distinctGroups.length : retailers.length) === 0 ? <p className={styles.noMatches}>No match. Try another category or brand.</p> : null}
           </div>
         </> : <div className={styles.filterBody}><FilterForm {...props} id={`${id}-filters`} onNavigate={() => setPanel(null)} /></div>}
       </div>

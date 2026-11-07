@@ -49,3 +49,11 @@ export function searchCatalogMatches(products: readonly DemoProduct[], query: st
 export function searchCatalog(products: readonly DemoProduct[], query: string) {
   return searchCatalogMatches(products, query).map(match => match.product);
 }
+
+/** A menu topic narrows its parent department using the same catalog vocabulary. */
+export function filterCatalogSubcategory(products: readonly DemoProduct[], subcategory: string): DemoProduct[] {
+  if (!subcategory) return [...products];
+  const topics = subcategory.replace(/&amp;/g, "&").split(/\s*&\s*/);
+  const matching = new Set(topics.flatMap(topic => searchCatalogMatches(products, topic).map(match => match.product.slug)));
+  return products.filter(product => matching.has(product.slug));
+}

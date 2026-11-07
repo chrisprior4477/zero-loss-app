@@ -6,6 +6,12 @@ import { giftCardPartnerGroups } from "./gift-card-partners";
 export const productSearchTerms: Readonly<Record<string, string>> = {
   "babys-essentials-bundle": "baby infant newborn diaper formula baby supplies",
   "nike-court-shot-shoes": "sneaker trainer tennis shoe footwear",
+  "milani-color-fetish-lipstick": "makeup cosmetic cosmetics lip color",
+  "milani-stay-put-eyeliner": "makeup cosmetic cosmetics eye liner eye pencil",
+  "milani-baked-blush": "makeup cosmetic cosmetics cheek color face powder",
+  "happy-salmon-card-game": "tabletop game party game",
+  "exploding-kittens-original": "tabletop game party game",
+  "a-little-wordy-game": "tabletop word puzzle game",
 };
 
 export const retailerSearchTerms: Readonly<Record<string, string>> = {
