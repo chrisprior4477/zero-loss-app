@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 vi.mock("@/lib/account/actions", () => ({ saveProfileDetails: vi.fn() }));
 vi.mock("@/lib/account/timezone-lookup-action", () => ({ lookupAddressTimeZone: vi.fn().mockResolvedValue({ zone: "America/New_York", options: ["America/New_York"] }) }));
 import { ProfileDetailsForm, type ProfileDetails } from "./ProfileDetailsForm";
@@ -178,4 +178,21 @@ test('a second save compares against the confirmed first save rather than the or
  const second=vi.mocked(saveProfileDetails).mock.calls[1][1];
  const baseline=JSON.parse(String(second.get('profile_baseline')));
  expect(baseline.fields.display_name).toBe('First new alias');expect(baseline.saved.display_name).toBe('First new alias');
+});
+
+test('every editable Profile field and clear button stays locked until its save finishes',async()=>{
+ let finish!:(value:Awaited<ReturnType<typeof saveProfileDetails>>)=>void;
+ vi.mocked(saveProfileDetails).mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+ render(<ProfileDetailsForm details={details}/>);
+ fireEvent.change(screen.getByLabelText('Display name'),{target:{value:'Submitted name'}});
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Save profile'})).toHaveProperty('disabled',false));
+ fireEvent.submit(screen.getByRole('form',{name:'Edit profile'}));
+ await screen.findByRole('button',{name:'Saving profile…'});
+ const fields=screen.getByRole('group',{name:'Profile details'});
+ for(const control of fields.querySelectorAll('input:not([type="hidden"]),select,button'))expect(control.matches(':disabled')).toBe(true);
+ await act(async()=>finish({status:'succeeded',message:'Profile saved',appliedFields:{display_name:'Submitted name'}}));
+ expect(screen.getByLabelText('Display name').matches(':disabled')).toBe(false);
+ expect(screen.getByRole('status').textContent).toBe('Profile saved');
+ fireEvent.change(screen.getByLabelText('Display name'),{target:{value:'New unsaved edit'}});
+ expect(screen.queryByRole('status')).toBeNull();
 });

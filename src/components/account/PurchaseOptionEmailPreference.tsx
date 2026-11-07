@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useState } from "react";
 import { setPurchaseOptionEmailPreference, type PurchaseOptionActionState } from "@/lib/account/lifecycle-actions";
+import { useServerPreference } from "./useServerPreference";
 import styles from "./showroom.module.css";
 
 const initialState: PurchaseOptionActionState = { status: "idle" };
@@ -15,8 +16,15 @@ async function savePreference(previous: PurchaseOptionActionState, formData: For
 }
 
 export function PurchaseOptionEmailPreference({ initialEnabled }: { initialEnabled: boolean | null }) {
-  const [enabled, setEnabled] = useState(initialEnabled ?? false);
-  const [state, action, pending] = useActionState(savePreference, initialState);
+  const preference = useServerPreference(initialEnabled);
+  const enabled = preference.value ?? false;
+  const setEnabled = preference.setValue;
+  const [state, action, pending] = useActionState(async (previous: typeof initialState, data: FormData) => {
+    const generation = preference.generation;
+    const result = await savePreference(previous, data);
+    if (result.status === "succeeded") preference.confirm(data.get("enabled") === "true", generation);
+    return result;
+  }, initialState);
   const [showFeedback, setShowFeedback] = useState(false);
   return <section id="purchase-option-email-preference" className={styles.outcomeEmail} data-placement="account" aria-labelledby="purchase-option-email-heading">
     <h3 id="purchase-option-email-heading">Purchase-option reminders</h3>

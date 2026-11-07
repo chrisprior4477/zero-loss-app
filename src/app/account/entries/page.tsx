@@ -1,3 +1,4 @@
+import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -49,7 +50,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
     } catch { /* The detail view remains usable when preferences are unavailable. */ }
   }
   const metricsBySlug = activityOfferMetrics(account.activity.activity, await availabilityPromise);
-  return <div className={styles.page}><div className={styles.pageContent}>
+  return <PreferenceSnapshot><div className={styles.page}><div className={styles.pageContent}>
     <h1 id="my-activity-heading" className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
     <MyZeroLossActivity state={account.activity} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
@@ -80,5 +81,5 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
       <p className={styles.ledgerNote}>The balance is read from your account&apos;s database ledger. {account.fundingEnabled ? "Demo funding is enabled." : "Demo funding is not enabled."} Real payments, entry purchases and rewards remain disabled.</p>
     </section>
     <p className={styles.footerNote}>SHOPPING SHOULD NEVER FEEL LIKE A LOSS.</p>
-  </div></div>;
+  </div></div></PreferenceSnapshot>;
 }

@@ -3,19 +3,24 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { setFavoriteAlertEmailPreference } from "@/lib/favorites/alert-actions";
+import { useServerPreference } from "./useServerPreference";
 import styles from "./showroom.module.css";
 
 export function FavoriteAlertEmailPreference({ initialEnabled }: { initialEnabled: boolean | null }) {
-  const [enabled, setEnabled] = useState(initialEnabled ?? false);
+  const preference = useServerPreference(initialEnabled);
+  const enabled = preference.value ?? false;
+  const setEnabled = preference.setValue;
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
 
   function save() {
+    const generation = preference.generation;
     setMessage("");
     startTransition(async () => {
       try {
         const result = await setFavoriteAlertEmailPreference(enabled);
+        if (result.ok) preference.confirm(enabled, generation);
         setError(!result.ok);
         setMessage(result.message);
       } catch {

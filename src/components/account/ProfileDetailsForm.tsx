@@ -102,6 +102,7 @@ async function saveProfile(previous: SaveProfileDetailsResult, formData: FormDat
 }
 
 export function ProfileDetailsForm({ details, ticket = false }: { details: ProfileDetails; ticket?: boolean }) {
+  const [showFeedback, setShowFeedback] = useState(false);
   const [baseline, setBaseline] = useState(() => profileEditBaseline({
     display_name: details.displayName, legal_first_name: details.legalFirstName, legal_last_name: details.legalLastName,
     date_of_birth: details.dateOfBirth, phone_number: details.phone, address_line_1: details.addressLine1,
@@ -145,14 +146,17 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     event.preventDefault();
     if (pending) return;
     const data = new FormData(event.currentTarget);
+    setShowFeedback(true);
     startTransition(() => action(data));
-  }} className={`${styles.form} ${ticket ? styles.ticketForm : ""}`} aria-label="Edit profile" onInput={event => {
+  }} className={`${styles.form} ${ticket ? styles.ticketForm : ""}`} aria-label="Edit profile" onChange={() => setShowFeedback(false)} onInput={event => {
+    setShowFeedback(false);
     const data = new FormData(event.currentTarget);
     const next = { country: String(data.get("country") ?? ""), region: String(data.get("region") ?? ""), postalCode: String(data.get("postal_code") ?? ""), street: String(data.get("address_line_1") ?? ""), city: String(data.get("city") ?? "") };
     if (next.country !== address.country || next.region !== address.region || next.postalCode !== address.postalCode || next.city !== address.city || next.street !== address.street) setSelectedZone("");
     setAddress(next);
   }}>
     <input type="hidden" name="profile_baseline" value={JSON.stringify(baseline)} />
+    <fieldset className={styles.editableFields} disabled={pending} aria-label="Profile details" aria-busy={pending}>
     <section className={styles.formSection} aria-labelledby="personal-details-heading">
       <header><span>01</span><div><h2 id="personal-details-heading">Personal information</h2><p>Use a display name or alias, and keep your legal identity details accurate.</p></div></header>
       <div className={styles.fieldGrid}>
@@ -194,8 +198,9 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
       </div>
     </section>
 
-    {state.status !== "idle" ? <p role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
-    {state.status === "error" && state.conflict ? <Link href="/account/profile#personal-details-heading" target="_blank" rel="noopener">Open latest Profile</Link> : null}
+    </fieldset>
+    {showFeedback && !pending && state.status !== "idle" ? <p role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
+    {showFeedback && state.status === "error" && state.conflict ? <Link href="/account/profile#personal-details-heading" target="_blank" rel="noopener">Open latest Profile</Link> : null}
     <div className={styles.actions}>
       <button type="submit" disabled={pending || (completeAddress && (!currentLookup || currentLookup.failed))}>{pending ? "Saving profile…" : "Save profile"}<AccountIcon name="arrow" /></button>
       <Link href="/account/security">Back to Account &amp; Security</Link>

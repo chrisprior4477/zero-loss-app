@@ -1,3 +1,4 @@
+import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,7 +36,7 @@ export default async function DeclinedOffersPage() {
       if (!error) for (const row of data ?? []) reminderStatus.set(row.completion_option_id, row.status);
     } catch { /* Show an unavailable control, not an unsaved opt-in. */ }
   }
-  return <main className={styles.page}><div className={styles.pageContent}>
+  return <PreferenceSnapshot><main className={styles.page}><div className={styles.pageContent}>
     <div className={styles.declinedHeader}>
       <div className={styles.declinedIntro}>
         <Link href="/account/entries" className={styles.declinedBack}>← My Activity</Link>
@@ -66,5 +67,5 @@ export default async function DeclinedOffersPage() {
           <ReviveOptionButton optionId={item.completionOptionId!} expiresAt={item.completionExpiresAt ?? null} />
         </article>;
       })}</div>}
-  </div></main>;
+  </div></main></PreferenceSnapshot>;
 }

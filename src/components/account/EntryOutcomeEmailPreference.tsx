@@ -1,7 +1,8 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState } from "react";
 import { saveEntryOutcomeEmailPreference, type EntryOutcomeEmailState } from "@/lib/account/entry-outcome-email-actions";
+import { useServerPreference } from "./useServerPreference";
 import styles from "./showroom.module.css";
 import entryStyles from "./entry-page.module.css";
 
@@ -17,8 +18,15 @@ async function savePreference(previous: EntryOutcomeEmailState, formData: FormDa
 }
 
 export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry" }: { initialEnabled: boolean | null; placement?: "entry" | "account" | "entry-page" }) {
-  const [enabled, setEnabled] = useState(initialEnabled ?? false);
-  const [state, action, pending] = useActionState(savePreference, initialState);
+  const preference = useServerPreference(initialEnabled);
+  const enabled = preference.value ?? false;
+  const setEnabled = preference.setValue;
+  const [state, action, pending] = useActionState(async (previous: typeof initialState, data: FormData) => {
+    const generation = preference.generation;
+    const result = await savePreference(previous, data);
+    if (result.status === "succeeded") preference.confirm(data.get("enabled") === "true", generation);
+    return result;
+  }, initialState);
   return <section id={placement === "account" ? "email-preferences" : undefined} className={placement === "entry-page" ? entryStyles.emailPreference : styles.outcomeEmail} data-placement={placement} aria-labelledby="outcome-email-heading">
     <h3 id="outcome-email-heading">{placement === "account" ? "Email preferences" : placement === "entry-page" ? "Outcome updates" : "How would you like updates?"}</h3>
     <form onSubmit={event => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { setDeclinedOfferEmailReminder } from "@/lib/account/lifecycle-actions";
+import { useServerPreference } from "./useServerPreference";
 import styles from "./my-activity.module.css";
 
 const dayMs = 24 * 60 * 60 * 1000;
@@ -13,7 +14,8 @@ export function DeclinedOfferDeadline({ optionId, expiresAt, initialReminderStat
   canRequestReminder: boolean;
 }) {
   const [now, setNow] = useState<number | null>(null);
-  const [status, setStatus] = useState(initialReminderStatus);
+  const preference = useServerPreference(initialReminderStatus);
+  const status = preference.value;
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   useEffect(() => {
@@ -37,10 +39,11 @@ export function DeclinedOfferDeadline({ optionId, expiresAt, initialReminderStat
     <label className={styles.declinedReminder}>
       <input type="checkbox" checked={checked} disabled={!canChange} onChange={event => {
         const enabled = event.target.checked;
+        const generation = preference.generation;
         setMessage("");
         startTransition(async () => {
           const result = await setDeclinedOfferEmailReminder(optionId, enabled);
-          if (result.status !== "error") setStatus(result.status);
+          if (result.status !== "error") preference.confirm(result.status, generation);
           setMessage(result.message);
         });
       }} />

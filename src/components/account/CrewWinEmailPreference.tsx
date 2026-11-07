@@ -2,18 +2,23 @@
 
 import { useState, useTransition } from "react";
 import { setCrewWinEmailPreference } from "@/lib/crew/actions";
+import { useServerPreference } from "./useServerPreference";
 import styles from "./showroom.module.css";
 
 export function CrewWinEmailPreference({ initialEnabled }: { initialEnabled: boolean | null }) {
-  const [enabled, setEnabled] = useState(initialEnabled ?? false);
+  const preference = useServerPreference(initialEnabled);
+  const enabled = preference.value ?? false;
+  const setEnabled = preference.setValue;
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   function save() {
+    const generation = preference.generation;
     setMessage("");
     startTransition(async () => {
       try {
         const result = await setCrewWinEmailPreference(enabled);
+        if (result.ok) preference.confirm(enabled, generation);
         setError(!result.ok);
         setMessage(result.message);
       } catch {

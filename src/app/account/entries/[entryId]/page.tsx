@@ -1,3 +1,4 @@
+import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import type { Metadata } from "next";
 import { randomUUID } from "node:crypto";
 import Image from "next/image";
@@ -98,7 +99,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
   const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}`;
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
-  return <main className={styles.page}>
+  return <PreferenceSnapshot><main className={styles.page}>
     <AccountSettingsLandingScroll target="entry-details-intro" initialTarget={resumeReview || initialReceipt ? "additional-entry-checkout" : undefined} visitKey={`${entryId}:${initialQuantity}:${resumeReview}`} settleAfterNavigation allScreens />
     <div className={styles.shell}>
       <div className={styles.topline} id="entry-details-intro">
@@ -136,5 +137,5 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
         <EntryPageActions key={`${entryId}:${initialQuantity}:${resumeReview}`} entryId={entryId} initialQuantity={initialQuantity} resumeReview={resumeReview} initialReceipt={initialReceipt} itemTitle={item.title} itemImage={item.image} slug={item.slug} remaining={metrics?.remaining ?? null} entryPriceCents={availability?.[item.slug]?.entryPriceCents ?? null} balanceCents={account.wallet?.balanceCents ?? null} entryEnabled={account.wallet?.scope === "demo" && account.emailConfirmed} requestKey={randomUUID()} requestHead={pendingReadReady ? requestHead : { ready: false, requestId: null }} crew={crew} senderName={account.displayName} emailEnabled={emailResult.error ? null : emailResult.data === true} returnHref={returnHref} />
       </section>
     </div>
-  </main>;
+  </main></PreferenceSnapshot>;
 }

@@ -1,3 +1,4 @@
+import { PreferenceSnapshot } from "@/components/account/PreferenceSnapshot";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { NotificationsCenter } from "@/components/account/NotificationsCenter";
@@ -17,7 +18,7 @@ export default async function NotificationsPage() {
   const { data: favoriteAlertEmailEnabled, error: favoriteAlertEmailError } = await db.rpc("get_favorite_alert_email_enabled");
   const { data: purchaseOptionEmailEnabled, error: purchaseOptionEmailError } = await db.rpc("get_purchase_option_email_enabled");
   const { data: crewWinEmailEnabled, error: crewWinEmailError } = await db.rpc("get_crew_win_email_enabled");
-  return <>{!snapshot.supportAvailable ? <p role="status" className="mx-auto max-w-6xl rounded-xl border border-cyan-300/30 bg-[#001b3d] p-4 text-sm">Support updates couldn’t be loaded. Your other notifications are still available.</p> : null}<NotificationsCenter
+  return <PreferenceSnapshot><>{!snapshot.supportAvailable ? <p role="status" className="mx-auto max-w-6xl rounded-xl border border-cyan-300/30 bg-[#001b3d] p-4 text-sm">Support updates couldn’t be loaded. Your other notifications are still available.</p> : null}<NotificationsCenter
     userId={account.userId}
     supportEnabled={snapshot.supportEnabled}
     notifications={snapshot.notifications}
@@ -33,5 +34,5 @@ export default async function NotificationsPage() {
     purchaseOptionEmailEnabled={purchaseOptionEmailError || typeof purchaseOptionEmailEnabled !== "boolean" ? null : purchaseOptionEmailEnabled}
     crewWinEmailEnabled={crewWinEmailError || typeof crewWinEmailEnabled !== "boolean" ? null : crewWinEmailEnabled}
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
-  /></>;
+  /></></PreferenceSnapshot>;
 }

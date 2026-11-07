@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ save: vi.fn() }));
@@ -30,4 +30,18 @@ test("too-late and already-sent reminders cannot be scheduled again", async () =
   render(<DeclinedOfferDeadline optionId={optionId} expiresAt="2026-11-08T12:00:00Z" initialReminderStatus="sent" canRequestReminder />);
   expect((screen.getByRole("checkbox") as HTMLInputElement).disabled).toBe(true);
   expect(mocks.save).not.toHaveBeenCalled();
+});
+
+test('new reminder statuses update the checkbox and protect an already sent reminder',async()=>{
+ let finish!:(value:unknown)=>void;mocks.save.mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
+ const props={optionId,expiresAt:'2026-11-08T12:00:00Z',canRequestReminder:true};
+ const view=render(<DeclinedOfferDeadline {...props} initialReminderStatus={null}/>);
+ view.rerender(<DeclinedOfferDeadline {...props} initialReminderStatus='pending'/>);
+ expect(screen.getByRole('checkbox')).toHaveProperty('checked',true);
+ view.rerender(<DeclinedOfferDeadline {...props} initialReminderStatus='cancelled'/>);
+ expect(screen.getByRole('checkbox')).toHaveProperty('checked',false);
+ fireEvent.click(screen.getByRole('checkbox'));
+ view.rerender(<DeclinedOfferDeadline {...props} initialReminderStatus='sent'/>);
+ await act(async()=>finish({status:'pending',message:'Saved'}));
+ expect(screen.getByText('Two-day reminder sent.')).toBeTruthy();expect(screen.getByRole('checkbox')).toHaveProperty('disabled',true);
 });
