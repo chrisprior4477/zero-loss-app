@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { buildAccountNotifications, type AccountNotification } from "@/lib/account/notifications";
 import type { WalletSnapshot } from "@/lib/wallet/snapshot";
@@ -165,7 +165,7 @@ test("a failed save restores unread status and explains the failure", async () =
   await waitFor(() => expect(document.querySelectorAll('[data-read="true"]')).toHaveLength(0));
 });
 
-test("following an unread notification saves its status before opening its destination", async () => {
+test("following an unread notification also saves its status", async () => {
   const notifications = buildAccountNotifications(storedActivityFixture(), wallet, true);
   const reward = notifications.find((notification) => notification.action === "Claim reward")!;
   render(<NotificationsCenter notifications={[reward]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
@@ -174,13 +174,35 @@ test("following an unread notification saves its status before opening its desti
   await waitFor(() => expect(actionMocks.push).toHaveBeenCalledWith(reward.href));
 });
 
+test("a slow read receipt never delays opening the exact notification destination", async () => {
+  let finish!: (value: unknown) => void;
+  readMocks.mark.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const reward = buildAccountNotifications(storedActivityFixture(), wallet, true)[0];
+  render(<NotificationsCenter notifications={[reward]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+  fireEvent.click(screen.getByRole("link", { name: reward.action }));
+  expect(actionMocks.push).toHaveBeenCalledWith(reward.href);
+  expect(readMocks.mark).toHaveBeenCalledWith([reward.id]);
+  await act(async () => finish({ ok: true, message: "Saved" }));
+  expect(actionMocks.push).toHaveBeenCalledTimes(1);
+});
+
+test("opening a notification in another tab leaves normal link behavior intact", () => {
+  const reward = buildAccountNotifications(storedActivityFixture(), wallet, true)[0];
+  render(<NotificationsCenter notifications={[reward]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+  const link = screen.getByRole("link", { name: reward.action });
+  expect(link.getAttribute("href")).toBe(reward.href);
+  fireEvent.click(link, { ctrlKey: true });
+  expect(actionMocks.push).not.toHaveBeenCalled();
+  expect(readMocks.mark).not.toHaveBeenCalled();
+});
+
 test("a failed read receipt never blocks opening the reward", async () => {
   readMocks.mark.mockRejectedValue(new Error("offline"));
   const reward = buildAccountNotifications(storedActivityFixture(), wallet, true)[0];
   render(<NotificationsCenter notifications={[reward]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
   fireEvent.click(screen.getByRole("link", { name: /Claim reward/ }));
   await waitFor(() => expect(actionMocks.push).toHaveBeenCalledWith(reward.href));
-  expect(document.querySelector('[data-read="false"]')).not.toBeNull();
+  await waitFor(() => expect(document.querySelector('[data-read="false"]')).not.toBeNull());
 });
 
 function openEntries(count: number): AccountNotification[] {

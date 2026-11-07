@@ -186,6 +186,8 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
 
   function openNotification(notification: AccountNotification) {
     setLocallyRead((previous) => new Set(previous).add(notification.id));
+    // The optional read receipt must not hold up the customer's destination.
+    router.push(notification.href);
     startReadTransition(async () => {
       const result = await saveRead([notification.id]);
       if (!result.ok) {
@@ -195,7 +197,6 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
           return next;
         });
       }
-      router.push(notification.href);
     });
   }
 

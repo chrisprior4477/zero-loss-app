@@ -51,6 +51,65 @@ test("favorites capacity alerts retain their own saved preference", async () => 
   await waitFor(() => expect(mocks.alert).toHaveBeenCalledWith("nike-court-shot-shoes", true));
   expect(mocks.state).not.toHaveBeenCalled();
 });
+
+test("refreshed shares appear and disappear without resetting the active tab", () => {
+  const view = show({ initialTab: "shared", initialShares: [] });
+  expect(screen.getByRole("tab", { name: "Shared with You 0" })).toBeTruthy();
+  view.rerender(<FavoritesView availability={null} initialAlerts={{}} emailEnabled initialTab="shared" initialShares={[share]} />);
+  expect(screen.getByRole("tab", { name: "Shared with You 1" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.getByText("From Alex")).toBeTruthy();
+  view.rerender(<FavoritesView availability={null} initialAlerts={{}} emailEnabled initialTab="shared" initialShares={[]} />);
+  expect(screen.getByRole("tab", { name: "Shared with You 0" }).getAttribute("aria-selected")).toBe("true");
+  expect(screen.queryByText("From Alex")).toBeNull();
+});
+
+test("refreshed watch alerts update in both directions and keep an opened item selected", () => {
+  const view = show({ initialAlerts: { "nike-court-shot-shoes": false } });
+  const refreshed = (enabled: boolean) => <FavoritesView availability={null} initialAlerts={{ "nike-court-shot-shoes": enabled }} emailEnabled initialShares={[share]} />;
+  view.rerender(refreshed(true));
+  expect(screen.getByRole("checkbox", { name: /Email me when/ })).toHaveProperty("checked", true);
+  view.rerender(refreshed(false));
+  expect(screen.getByRole("checkbox", { name: /Email me when/ })).toHaveProperty("checked", false);
+  fireEvent.click(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" }));
+  view.rerender(refreshed(true));
+  expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy();
+});
+
+test("a successful watch choice survives stale snapshots until acknowledged, then follows later changes", async () => {
+  let finish!: (value: unknown) => void;
+  mocks.alert.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const view = show({ initialAlerts: { "nike-court-shot-shoes": false } });
+  const refreshed = (enabled: boolean) => <FavoritesView availability={null} initialAlerts={{ "nike-court-shot-shoes": enabled }} emailEnabled initialShares={[share]} />;
+  fireEvent.click(screen.getByRole("checkbox", { name: /Email me when/ }));
+  view.rerender(refreshed(false));
+  expect(screen.getByRole("checkbox", { name: /Email me when/ })).toHaveProperty("disabled", true);
+  await act(async () => finish({ ok: true, message: "Saved" }));
+  expect(screen.getByRole("checkbox", { name: /Email me when/ })).toHaveProperty("checked", true);
+  view.rerender(refreshed(false));
+  expect(screen.getByRole("checkbox", { name: /Email me when/ })).toHaveProperty("checked", true);
+  view.rerender(refreshed(true));
+  view.rerender(refreshed(false));
+  expect(screen.getByRole("checkbox", { name: /Email me when/ })).toHaveProperty("checked", false);
+});
+
+test("fresh decline and restore states remain authoritative after a local response is acknowledged", async () => {
+  window.history.replaceState({}, "", "/account/favorites?tab=shared");
+  const viewedAt = "2026-11-06T12:01:00Z";
+  const declinedAt = "2026-11-06T12:02:00Z";
+  let finishView!: (value: unknown) => void;
+  mocks.state.mockImplementation((_id, state) => state === "viewed" ? new Promise(resolve => { finishView = resolve; }) : Promise.resolve({ ok: true, viewedAt, declinedAt, message: "Saved" }));
+  const view = show({ initialTab: "shared" });
+  fireEvent.click(screen.getByRole("button", { name: /View prize/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Decline this share" }));
+  await screen.findByText("Declined");
+  const refreshed = (declined: string | null) => <FavoritesView availability={null} initialAlerts={{}} emailEnabled initialTab="shared" initialShares={[{ ...share, viewedAt, declinedAt: declined }]} />;
+  view.rerender(refreshed(declinedAt));
+  await act(async () => finishView({ ok: true, viewedAt, declinedAt: null }));
+  expect(screen.getByText("Declined")).toBeTruthy();
+  view.rerender(refreshed(null));
+  expect(screen.queryByText("Declined")).toBeNull();
+  expect(screen.getByText("Viewed")).toBeTruthy();
+});
 test("unavailable shared history does not hide personal favorites", () => {
   show({ initialShares: null }); expect(screen.getByRole("button", { name: "Nike Men's Court Shot Shoes" })).toBeTruthy();
   fireEvent.click(screen.getByRole("tab", { name: /Shared with You/ })); expect(screen.getByRole("alert").textContent).toMatch(/couldn’t be loaded/);

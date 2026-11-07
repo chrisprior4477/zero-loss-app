@@ -2,7 +2,7 @@
 import { useAccountTimeZone } from "@/components/account/TimeZoneProvider";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { useFavorites } from "./FavoritesProvider";
@@ -20,6 +20,8 @@ type Props = {
   initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
 };
 type Selection = { slug: string; shareId?: string } | null;
+type SharePatch = Partial<Pick<SavedProductShare, "viewedAt" | "declinedAt">>;
+const sharePatchFields = ["viewedAt", "declinedAt"] as const;
 type ListPosition = { href: string; target: string; top: number };
 function savedListPosition(state: unknown): ListPosition | null {
   if (!state || typeof state !== "object" || !("zeroLossFavoritesReturn" in state)) return null;
@@ -42,18 +44,54 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
   const timeZone = useAccountTimeZone();
   const { slugs, available, toggle, busySlug: favoriteBusy } = useFavorites();
   const [tab, setTab] = useState(initialTab);
-  const [shares, setShares] = useState(initialShares ?? []);
+  const [shareOverrides, setShareOverrides] = useState<Record<string, SharePatch>>({});
+  const shares = useMemo(() => (initialShares ?? []).map(share => ({ ...share, ...shareOverrides[share.id] })), [initialShares, shareOverrides]);
   const [selected, setSelected] = useState<Selection>(() => {
     const share = initialShares?.find(s => s.id === initialShareId);
     return share ? { slug: share.slug, shareId: share.id } : initialTab === "favorites" && initialItem && slugs.includes(initialItem) ? { slug: initialItem } : null;
   });
-  const [alerts, setAlerts] = useState(initialAlerts ?? {});
+  const [alertOverrides, setAlertOverrides] = useState<Record<string, boolean>>({});
+  const alerts = useMemo(() => ({ ...initialAlerts, ...alertOverrides }), [initialAlerts, alertOverrides]);
   const [busySlug, setBusySlug] = useState<string | null>(null);
   const [shareBusy, setShareBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const tabs = useRef<HTMLDivElement>(null);
   const listPosition = useRef<ListPosition | null>(null);
+
+  useEffect(() => {
+    if (initialShares === null) return;
+    const server = new Map(initialShares.map(share => [share.id, share]));
+    // Keep only fields whose local save has not appeared in the server snapshot.
+    // A viewed response never overrides an independently confirmed decline.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShareOverrides(current => {
+      let changed = false;
+      const remaining: Record<string, SharePatch> = {};
+      for (const [id, patch] of Object.entries(current)) {
+        const latest = server.get(id);
+        if (!latest) { changed = true; continue; }
+        const kept: SharePatch = {};
+        for (const field of sharePatchFields) {
+          if (!(field in patch)) continue;
+          if (patch[field] === latest[field]) changed = true;
+          else kept[field] = patch[field];
+        }
+        if (Object.keys(kept).length) remaining[id] = kept;
+      }
+      return changed ? remaining : current;
+    });
+  }, [initialShares, shareOverrides]);
+
+  useEffect(() => {
+    if (initialAlerts === null) return;
+    // A stale refresh must not reverse a just-saved alert before acknowledgment.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAlertOverrides(current => {
+      const remaining = Object.entries(current).filter(([slug, enabled]) => Boolean(initialAlerts[slug]) !== enabled);
+      return remaining.length === Object.keys(current).length ? current : Object.fromEntries(remaining);
+    });
+  }, [initialAlerts, alertOverrides]);
   // Let Next.js copy its internal state so a server action keeps the active tab URL.
   function location(href: string) { window.history.replaceState(null, "", href); }
   function revealHeading() { requestAnimationFrame(() => document.getElementById("saved-items-heading")?.scrollIntoView?.({ block: "start", behavior: "instant" })); }
@@ -64,7 +102,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
   }
   function applyShareResult(id: string, result: Awaited<ReturnType<typeof setReceivedProductState>>, viewedOnly = false) {
     if (!result.ok) { setMessage(result.message); return; }
-    setShares(current => current.map(s => s.id === id ? { ...s, viewedAt: result.viewedAt, declinedAt: viewedOnly ? s.declinedAt : result.declinedAt } : s));
+    setShareOverrides(current => ({ ...current, [id]: { ...current[id], viewedAt: result.viewedAt, ...(!viewedOnly ? { declinedAt: result.declinedAt } : {}) } }));
     window.dispatchEvent(new Event("zero-loss-notifications-read"));
   }
   useEffect(() => {
@@ -126,7 +164,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
     if (busySlug || !initialAlerts || emailEnabled === null) return;
     const enabled = !alerts[slug]; setBusySlug(slug); setMessage("");
     startTransition(async () => {
-      try { const result = await setFavoriteCapacityAlert(slug, enabled); if (result.ok) setAlerts(current => ({ ...current, [slug]: enabled })); setMessage(result.message); }
+      try { const result = await setFavoriteCapacityAlert(slug, enabled); if (result.ok) setAlertOverrides(current => ({ ...current, [slug]: enabled })); setMessage(result.message); }
       catch { setMessage("We couldn’t confirm this change. Refresh and try again."); }
       finally { setBusySlug(null); }
     });

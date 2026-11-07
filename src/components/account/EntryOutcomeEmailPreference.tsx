@@ -1,18 +1,32 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { saveEntryOutcomeEmailPreference, type EntryOutcomeEmailState } from "@/lib/account/entry-outcome-email-actions";
 import styles from "./showroom.module.css";
 import entryStyles from "./entry-page.module.css";
 
 const initialState: EntryOutcomeEmailState = { status: "idle", message: "" };
 
+async function savePreference(previous: EntryOutcomeEmailState, formData: FormData): Promise<EntryOutcomeEmailState> {
+  try {
+    return await saveEntryOutcomeEmailPreference(previous, formData);
+  } catch {
+    // Transport failures happen outside the server action's own error handling.
+    return { status: "error", message: "We couldn’t confirm your email preference. Your choice is still here. Please try again." };
+  }
+}
+
 export function EntryOutcomeEmailPreference({ initialEnabled, placement = "entry" }: { initialEnabled: boolean | null; placement?: "entry" | "account" | "entry-page" }) {
   const [enabled, setEnabled] = useState(initialEnabled ?? false);
-  const [state, action, pending] = useActionState(saveEntryOutcomeEmailPreference, initialState);
+  const [state, action, pending] = useActionState(savePreference, initialState);
   return <section id={placement === "account" ? "email-preferences" : undefined} className={placement === "entry-page" ? entryStyles.emailPreference : styles.outcomeEmail} data-placement={placement} aria-labelledby="outcome-email-heading">
     <h3 id="outcome-email-heading">{placement === "account" ? "Email preferences" : placement === "entry-page" ? "Outcome updates" : "How would you like updates?"}</h3>
-    <form action={action}>
+    <form onSubmit={event => {
+      event.preventDefault();
+      // Keep the controlled draft; form actions otherwise reset the checkbox.
+      const formData = new FormData(event.currentTarget);
+      startTransition(() => action(formData));
+    }}>
       <label><input type="checkbox" name="enabled" value="true" checked={enabled} onChange={event => setEnabled(event.target.checked)} disabled={initialEnabled === null || pending} /> Email me when any of my entry outcomes posts</label>
       <button type="submit" disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
     </form>
