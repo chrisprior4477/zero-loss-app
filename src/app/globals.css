@@ -555,3 +555,32 @@ body:has(.auth-signup-page) .auth-demo-header-link {
     print-color-adjust: exact;
   }
 }
+
+/* Shared compact link to the full list of prizes or entries. */
+:is(a, button).zl-see-all {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 1px solid #ff873e;
+  border-radius: 8px;
+  background: #cb4300;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+}
+:is(a, button).zl-see-all:hover { background: #ad3900; }
+:is(a, button).zl-see-all:focus-visible { outline: 2px solid #67e8f9; outline-offset: 2px; }
+
+/* Keep the next tile visible when a wide or zoomed-out window fits most of a rail. */
+@media (min-width: 1024px) {
+  .zl-category-tile { width: max(210px, calc((100% + 16px) / var(--rail-visible-count) - 16px)); }
+  .zl-brand-choice { width: max(116px, calc((100% + 28px) / var(--rail-visible-count) - 28px)); }
+  .zl-brand-disc { width: calc(100% - 12px); height: auto; aspect-ratio: 1; }
+}

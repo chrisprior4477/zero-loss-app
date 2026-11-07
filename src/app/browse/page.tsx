@@ -5,6 +5,7 @@ import { demoProducts } from "@/lib/catalog/demo-products";
 import {
   marketplaceCategories,
   marketplaceCategoryId,
+  isRetailerCollection,
   productMatchesMarketplaceCategory,
 } from "@/lib/catalog/navigation";
 import { searchCatalogMatches } from "@/lib/catalog/search";
@@ -107,6 +108,19 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <BrowseDiscoveryBar key={browseReturnHref} browseHref={browseReturnHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
           {showGroceryInspiration ? <GroceryInspiration offers={groceryOffers} /> : null}
+          {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
+            <nav aria-label={`Shop ${selectedLabel} by retailer`} className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-sm font-bold text-white">Shop by retailer</span>
+              {retailers.map(retailer => {
+                const params = new URLSearchParams(returnParams);
+                const selected = filters.retailer === retailer;
+                if (selected) params.delete("retailer");
+                else params.set("retailer", retailer);
+                return <Link key={retailer} href={`/browse?${params}#search-results`} aria-current={selected ? "true" : undefined}
+                  className={`rounded-full border border-cyan-300/40 px-3 py-1.5 text-xs font-bold ${selected ? "bg-cyan-200 text-[#00132e]" : "text-cyan-100 hover:bg-white/10"}`}>{retailer}</Link>;
+              })}
+            </nav>
+          ) : null}
 
         {directoryMatches.length ? (
           <section aria-label="Matching retailer categories" className="mt-5 rounded-2xl border border-cyan-300/35 bg-[#061e3d] p-4 sm:p-5">
@@ -185,7 +199,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             </p>
             <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              {selectedCategory ? <Link href={allSearchHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e] hover:bg-cyan-200">See all search results</Link> : null}
+              {selectedCategory ? <Link href={allSearchHref} className="zl-see-all">See all search results</Link> : null}
               <Link href={requestHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Tell us what you&apos;d like to see →</Link>
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>

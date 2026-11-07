@@ -12,7 +12,7 @@ import { placeholderDiscoveryOpportunities } from "@/lib/home/placeholder-data";
 import { popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "./popular-rewards";
 
 test("the pilot is a unique pictured product discoverable through the appropriate top menus", () => {
-  expect(expansionProducts).toHaveLength(26);
+  expect(expansionProducts).toHaveLength(41);
   const drill = getDemoProduct("dewalt-20v-drill-kit")!;
   expect(demoProducts.filter(p => p.slug === drill.slug)).toHaveLength(1);
   expect(drill.retailer).toBe("The Home Depot");
@@ -44,6 +44,18 @@ test("each vendor circle resolves to four distinct gift-card values from its ret
     expect(card?.title).toMatch(/gift card/i);
   }
 });
+
+test.each(["health", "beauty", "arts-crafts", "travel", "games-puzzles"] as const)(
+  "%s opens three different pictured products and includes retailer gift cards", category => {
+    const items = expansionProducts.filter(product => productMatchesMarketplaceCategory(product, category));
+    expect(new Set(items.map(product => product.slug)).size).toBe(3);
+    expect(items.some(product => product.capacity - product.sold === 1)).toBe(true);
+    expect(items.some(product => product.capacity - product.sold > 1 && product.capacity - product.sold <= 4)).toBe(true);
+    expect(items.some(product => product.capacity - product.sold > 4)).toBe(true);
+    expect(demoProducts.some(product => /gift card/i.test(product.title) && productMatchesMarketplaceCategory(product, category))).toBe(true);
+    expect(existsSync(path.join(process.cwd(), "public/catalog/marketplace", `category-${category}.webp`))).toBe(true);
+  },
+);
 
 test("the homepage and catalog agree on the pilot value, image, and real capacity", () => {
   const drill = expansionProducts[0];

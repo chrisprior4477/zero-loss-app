@@ -106,7 +106,7 @@ export function RetailerCategoryNav(props: Props) {
           <p className="text-xs text-white/60">GiftCard Partners directory · current offers are marked</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={retailerHref(openGroup.id, props)} onClick={closeMenu} className="inline-flex min-h-10 items-center rounded-xl bg-cyan-300 px-4 text-sm font-black text-[#00132e] hover:bg-cyan-200">See all {openGroup.category}</Link>
+          <Link href={retailerHref(openGroup.id, props)} onClick={closeMenu} className="zl-see-all" aria-label={`See all prizes in ${openGroup.category}`}>See all prizes</Link>
           <button type="button" onClick={closeMenu} aria-label="Close retailer list" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 text-xl text-white hover:border-cyan-300">×</button>
         </div>
       </div>

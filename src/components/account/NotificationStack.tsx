@@ -46,7 +46,7 @@ export function NotificationStack({ group, read, categoryLabel, onOpen, children
       </div>
       <div className={styles.bottom}>
         <div className={styles.details}><strong>{categoryLabel}</strong><span>{notification.meta}</span></div>
-        {stacked ? <button type="button" className={styles.rowAction} aria-expanded={expanded} aria-controls={entriesId} aria-label={expanded ? `Collapse entries for ${title}` : `See all ${count} entries for ${title}`} onClick={() => setExpanded(!expanded)}>
+        {stacked ? <button type="button" className={expanded ? styles.rowAction : `${styles.rowAction} zl-see-all`} aria-expanded={expanded} aria-controls={entriesId} aria-label={expanded ? `Collapse entries for ${title}` : `See all ${count} entries for ${title}`} onClick={() => setExpanded(!expanded)}>
           {expanded ? "Collapse" : `See all ${count}`}<AccountIcon name={expanded ? "chevron" : "arrow"} className={expanded ? styles.collapseIcon : undefined} />
         </button> : <Link id={`notification-link-${encodeURIComponent(notification.id)}`} href={notification.href} className={styles.rowAction} onClick={event => onOpen(event, notification)}>{openEntry ? "See entry" : notification.action}<AccountIcon name="arrow" /></Link>}
       </div>

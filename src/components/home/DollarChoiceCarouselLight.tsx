@@ -82,7 +82,7 @@ export function DollarChoiceCarouselLight() {
     >
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-[7vw] bottom-[12%] top-[17%] bg-[radial-gradient(ellipse_at_center,rgba(43,125,191,0.26)_0%,rgba(12,74,130,0.17)_48%,transparent_82%)] blur-2xl" />
 
-      <div className="relative z-20 mx-auto flex max-w-[1600px] items-start justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
+      <div className="relative z-20 mx-auto flex items-start justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 id="dollar-choice-light-title" className="text-[20px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Your Next Everyday Upgrade</h2>
@@ -90,9 +90,7 @@ export function DollarChoiceCarouselLight() {
           </div>
           <p className="mt-1 text-[13px] text-white/70">A cleaner product-feed treatment designed for ordinary vendor images.</p>
         </div>
-        <Link href="/browse" className="hidden shrink-0 rounded-lg border border-cyan-200/35 bg-[#05265a] px-4 py-2.5 text-[12px] font-bold text-cyan-200 transition-colors hover:border-cyan-200 hover:text-white sm:block">
-          See all prizes
-        </Link>
+        <Link href="/browse" className="zl-see-all">See all prizes</Link>
       </div>
 
       <div className="relative mt-4">

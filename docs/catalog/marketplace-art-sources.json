@@ -1,5 +1,5 @@
 {
-  "use": "Private MVP product examples. Product cutouts were prepared using the built-in image tool from the source photographs. Category scenes are illustrations.",
+  "use": "Private MVP product examples. Product images use manufacturer photography, including native transparent packshots where available. Category scenes are illustrations.",
   "products": [
     {
       "slug": "yeti-rambler-30-tumbler",
@@ -125,6 +125,96 @@
       "slug": "cuisinart-ice-21-ice-cream-maker",
       "productInformation": "https://www.target.com/p/-/A-94720201",
       "sourcePhotograph": "https://target.scene7.com/is/image/Target/GUEST_9f6f2812-c598-474e-a438-8aa7a02aeacd?wid=1000"
+    },
+    {
+      "slug": "nature-made-vitamin-c-tablets",
+      "productInformation": "https://www.naturemade.com/products/vitamin-c-500-mg-tablets",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/0066/7569/3639/files/NM1485PK001327VITC_5A044150ccfront.png?v=1692222786",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/0066/7569/3639/files/NM1485PK001327VITC_5A044150ccfront.png?v=1692222786"
+    },
+    {
+      "slug": "ascent-chocolate-whey",
+      "productInformation": "https://ascentprotein.com/products/chocolate-protein-powder",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/0190/2411/7860/files/whey_chocolate_2lb_PDP_Render_5_4.png?v=1793826775",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/0190/2411/7860/files/Your_paragraph_text_1.png?v=1793826784"
+    },
+    {
+      "slug": "blenderbottle-classic-shaker",
+      "productInformation": "https://www.blenderbottle.com/products/classic",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/1099/1898/files/Classic_V2_Black_Angled-400x600-426df4e_1.png?v=1762439978",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/1099/1898/files/Classic_V2_Angled.png?v=1755898504"
+    },
+    {
+      "slug": "milani-color-fetish-lipstick",
+      "productInformation": "https://www.milanicosmetics.com/products/color-fetish-matte-lipstick-pleasure",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/1824/2901/products/LLS176_ColorFetishMatte_410_PDP_1_9e5d8a15-db3e-4d01-8644-15bb74ae9c81.png?v=1668026721",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/1824/2901/products/LLS176_ColorFetishMatte_410_PDP_1_9e5d8a15-db3e-4d01-8644-15bb74ae9c81.png?v=1668026721"
+    },
+    {
+      "slug": "milani-stay-put-eyeliner",
+      "productInformation": "https://www.milanicosmetics.com/products/stay-put-eyeliner-after-dark",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/1824/2901/products/MLMEP_StayPutEyeliner_1_1_eb9cbff8-5a66-4a89-8dc2-00316281ff45.png?v=1668025661",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/1824/2901/products/MLMEP_StayPutEyeliner_1_1_eb9cbff8-5a66-4a89-8dc2-00316281ff45.png?v=1668025661"
+    },
+    {
+      "slug": "milani-baked-blush",
+      "productInformation": "https://www.milanicosmetics.com/products/baked-blush-1",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/1824/2901/files/1_BakedBlush_01_PDP_PoductWithSwatch_1fd650a7-46ec-4dfe-9fe0-061252fe6056.png?v=1765489419",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/1824/2901/files/1_BakedBlush_02_PDP_PoductWithSwatch_7a64ddaf-aff6-414b-820c-6d6b8a08b019.png?v=1765840328"
+    },
+    {
+      "slug": "ooly-ocean-watercolor-kit",
+      "productInformation": "https://www.ooly.com/products/playful-painters-easy-watercolor-painting-kit-ocean-fun",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/2486/2582/files/OOLY-Playful-Painters-Easy-Watercolor-Painting-Kit-Ocean-Fun-Packaging-Front.png?v=1754581304",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/2486/2582/files/OOLY-Playful-Painters-Easy-Watercolor-Painting-Kit-Ocean-Fun-Quarter-Angle.png?v=1754581304"
+    },
+    {
+      "slug": "ooly-mechanical-colored-pencils",
+      "productInformation": "https://www.ooly.com/products/color-together-mechanical-colored-pencils-set-of-18",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/2486/2582/files/Color-Together-Mechanical-Colored-Pencils-Set-of-18-Product-Angle.png?v=1773180076",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/2486/2582/files/Color-Together-Mechanical-Colored-Pencils-Set-of-18-Product-Front.png?v=1773180077"
+    },
+    {
+      "slug": "ooly-turbo-tabby-clay-kit",
+      "productInformation": "https://www.ooly.com/products/creatibles-mini-air-dry-clay-car-kit-turbo-tabby",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/2486/2582/files/OOLY-Creatibles-Air-Dry-Clay-Car-Kit-Turbo-Tabby-Product-Angle.png?v=1773268163",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/2486/2582/files/OOLY-Creatibles-Air-Dry-Clay-Car-Kit-Turbo-Tabby-Product-Front.png?v=1773268163"
+    },
+    {
+      "slug": "corkcicle-mickey-bottle-sling",
+      "productInformation": "https://www.corkcicle.com/products/disney-sling",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/0105/8732/products/DIS92S-W23-B-1.png?v=1753904941",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/0105/8732/files/DIS92S-S24-S-1_6c8f13a4-5e9b-4629-acca-6af010ac8971.png?v=1753904941"
+    },
+    {
+      "slug": "timbuk2-division-backpack",
+      "productInformation": "https://www.timbuk2.com/products/1227-water-resistant-division-backpack",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/2572/9458/files/water-resistant-division-backpack_nautical-rain-resist_os_1227-3-1254_front.png?v=1742322090",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/2572/9458/files/water-resistant-division-backpack_white-rain-resist_os_1227-3-1251_front.png?v=1742322090"
+    },
+    {
+      "slug": "stanley-cafe-to-go-12",
+      "productInformation": "https://www.stanley1913.com/products/the-cafe-to-go-travel-mug-12-oz",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-The_Cafe-To-Go_Travel_Mug-12_oz_0.47_L-Salt_Gingerbread-Front.png?v=1791323317",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-The_Cafe-To-Go_Travel_Mug-12_oz_0.47_L-Salt_Gingerbread-Front.png?v=1791323317"
+    },
+    {
+      "slug": "exploding-kittens-original",
+      "productInformation": "https://www.explodingkittens.com/products/exploding-kittens-original-edition",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/0345/9180/1483/files/EKOEAngled.png?v=1741032953",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/0345/9180/1483/files/EKOEContents.png?v=1741033161"
+    },
+    {
+      "slug": "happy-salmon-card-game",
+      "productInformation": "https://www.explodingkittens.com/products/happy-salmon",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/0345/9180/1483/products/HappySalmon_PKG_LeftFront_028261ce-df91-4018-8420-f45254f097c4.png?v=1678406240",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/0345/9180/1483/products/HS-CORE_PDPContent_DTC_1400x1400FOB.png?v=1678406240"
+    },
+    {
+      "slug": "a-little-wordy-game",
+      "productInformation": "https://www.explodingkittens.com/products/a-little-wordy",
+      "sourcePhotograph": "https://cdn.shopify.com/s/files/1/0345/9180/1483/products/Shopify_ALittleWordy_03.png?v=1679694015",
+      "galleryPhotograph": "https://cdn.shopify.com/s/files/1/0345/9180/1483/products/WORDY-CORE_PDPContent_DTC_1400x1400FOB.png?v=1679694015"
     }
   ]
 }

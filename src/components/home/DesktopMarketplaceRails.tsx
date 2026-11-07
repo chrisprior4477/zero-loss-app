@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { type PointerEvent as ReactPointerEvent, useRef } from "react";
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, useRef } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { DollarChoiceCarousel } from "@/components/home/DollarChoiceCarousel";
 import { DollarChoiceCarouselLight } from "@/components/home/DollarChoiceCarouselLight";
@@ -35,6 +35,11 @@ const desktopCategories = [
   { id: "sports-fitness", label: "Sports & Fitness", image: "/catalog/marketplace/category-sports-fitness.webp" },
   { id: "pets", label: "Pet Supplies", image: "/catalog/marketplace/category-pets.webp" },
   { id: "fishing", label: "Fishing", image: "/catalog/marketplace/category-fishing.webp" },
+  { id: "health", label: "Health", image: "/catalog/marketplace/category-health.webp" },
+  { id: "beauty", label: "Beauty", image: "/catalog/marketplace/category-beauty.webp" },
+  { id: "arts-crafts", label: "Arts & Crafts", image: "/catalog/marketplace/category-arts-crafts.webp" },
+  { id: "travel", label: "Travel", image: "/catalog/marketplace/category-travel.webp" },
+  { id: "games-puzzles", label: "Games & Puzzles", image: "/catalog/marketplace/category-games-puzzles.webp" },
 ];
 
 const sampleEndingSoon = [
@@ -223,18 +228,18 @@ export function DesktopMarketplaceRails() {
   return (
     <section className="relative left-1/2 mt-3 w-screen -translate-x-1/2 space-y-4 px-4 sm:mt-8 sm:space-y-8 sm:px-6 md:mt-3 md:space-y-4 lg:px-[clamp(3rem,6vw,7rem)]">
       <div id="shop-by-category" className="scroll-mt-[calc(var(--site-header-height,163px)+17px)]">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Shop by category</h2>
             <p className="mt-1 text-[13px] text-white/60">Find the kinds of products you already shop for.</p>
           </div>
-          <Link href="/browse#retailer-categories-heading" className="text-[14px] font-semibold text-cyan-300 hover:text-cyan-200 lg:hidden">See all</Link>
-          <Link href="/browse" className="hidden text-[14px] font-semibold text-cyan-300 hover:text-cyan-200 lg:block">See all</Link>
+          <Link href="/browse" className="zl-see-all">See all prizes</Link>
         </div>
 
         <div className="relative">
           <div
             ref={categoriesRef}
+            style={{ "--rail-visible-count": desktopCategories.length - 0.5 } as CSSProperties}
             className="zl-noscroll flex cursor-grab touch-auto select-none gap-3 overflow-x-auto overscroll-x-contain px-1 pb-1 active:cursor-grabbing sm:gap-4"
             onDragStart={(event) => event.preventDefault()}
             {...categoryDrag}
@@ -242,7 +247,7 @@ export function DesktopMarketplaceRails() {
             {desktopCategories.map((category) => (
             <div
               key={category.id}
-              className="group relative h-[112px] w-[130px] shrink-0 overflow-hidden rounded-xl border border-white/20 bg-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:h-[178px] sm:w-[210px] sm:rounded-2xl"
+              className="zl-category-tile group relative h-[112px] w-[130px] shrink-0 overflow-hidden rounded-xl border border-white/20 bg-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 sm:h-[178px] sm:w-[210px] sm:rounded-2xl"
             >
               <Link href={marketplaceCategoryHref(category.id)} draggable={false} className="absolute inset-0">
                 <Image
@@ -265,7 +270,7 @@ export function DesktopMarketplaceRails() {
       </div>
 
       <div id="ending-soon" className="scroll-mt-[calc(var(--site-header-height,163px)+17px)] md:scroll-mt-[128px]">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-[21px] font-bold tracking-[-0.02em] text-[#ff630f] sm:text-[24px]">Ending Soon</h2>
@@ -273,7 +278,7 @@ export function DesktopMarketplaceRails() {
             </div>
             <p className="mt-1 text-[13px] text-white/60">See how many entries are filled and how many remain.</p>
           </div>
-          <Link href={marketplaceCategoryHref("ending-soon")} className="shrink-0 whitespace-nowrap text-[12px] font-semibold text-cyan-300 hover:text-cyan-200 sm:text-[14px]">See all</Link>
+          <Link href={marketplaceCategoryHref("ending-soon")} className="zl-see-all">See all prizes</Link>
         </div>
 
         <div className="relative">
@@ -342,17 +347,18 @@ export function DesktopMarketplaceRails() {
       </div>
 
       <div id="popular-rewards" className="scroll-mt-[calc(var(--site-header-height,163px)+17px)]">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Popular Rewards</h2>
             <span className="rounded-full border border-cyan-300/50 px-2 py-1 text-[9px] uppercase tracking-[0.08em] text-cyan-300">Demo order</span>
           </div>
-          <Link href="/browse" className="text-[14px] font-semibold text-cyan-300 hover:text-cyan-200">See all</Link>
+          <Link href="/browse" className="zl-see-all">See all prizes</Link>
         </div>
 
         <div className="relative">
           <div
             ref={brandsRef}
+            style={{ "--rail-visible-count": popularRewardBrands.length - 0.5 } as CSSProperties}
             className="zl-noscroll flex cursor-grab touch-auto select-none gap-3 overflow-x-auto overscroll-x-contain px-1 py-2 active:cursor-grabbing sm:gap-7"
             onDragStart={(event) => event.preventDefault()}
             {...brandsDrag}
@@ -365,7 +371,7 @@ export function DesktopMarketplaceRails() {
                 className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 focus-visible:outline-none sm:w-[116px] sm:gap-2.5"
               >
                 <span
-                  className="grid h-[62px] w-[62px] place-items-center rounded-full border border-white/15 px-1.5 text-center text-[10px] font-bold leading-tight text-white shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-transform group-hover:-translate-y-1 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-cyan-300 sm:h-[104px] sm:w-[104px] sm:px-3 sm:text-[15px]"
+                  className="zl-brand-disc grid h-[62px] w-[62px] place-items-center rounded-full border border-white/15 px-1.5 text-center text-[10px] font-bold leading-tight text-white shadow-[0_12px_26px_rgba(0,0,0,0.2)] transition-transform group-hover:-translate-y-1 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-offset-3 group-focus-visible:outline-cyan-300 sm:h-[104px] sm:w-[104px] sm:px-3 sm:text-[15px]"
                   style={{ background: brand.homeColor, color: "white" }}
                 >
                   {brand.name}

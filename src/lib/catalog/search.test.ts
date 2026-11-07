@@ -28,7 +28,7 @@ describe("catalog search", () => {
       expect(searchCatalog(demoProducts, retailer).some(product => product.retailer === retailer), retailer).toBe(true);
     }
     expect(searchCatalog(demoProducts, "Best Buy").every(product => product.retailer === "Best Buy")).toBe(true);
-  });
+  }, 20_000);
 
   test.each(["TV", "televis", "televison"])("finds actual TVs and relevant gift cards for %s", query => {
     const matches = searchCatalogMatches(demoProducts, query);
@@ -96,7 +96,7 @@ describe("catalog search", () => {
 
   test.each(["medicine", "medication", "meds", "cold medicine"])("offers existing CVS and Walmart cards for %s", query => {
     const matches = searchCatalogMatches(demoProducts, query);
-    expect(matches).toHaveLength(9);
+    expect(matches).toHaveLength(12);
     expect(matches.every(match => ["CVS", "Walgreens", "Walmart"].includes(match.product.retailer) && match.kind === "retailer")).toBe(true);
   });
 

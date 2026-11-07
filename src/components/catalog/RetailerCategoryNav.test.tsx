@@ -37,7 +37,7 @@ test("hovering a category reveals only its retailers with working brand filters"
   expect(autoZone.searchParams.get("minValue")).toBe("25");
   expect(autoZone.searchParams.get("maxValue")).toBe("100");
   expect(autoZone.searchParams.get("q")).toBe("card");
-  expect(panel.getByRole("link", { name: "See all Automotive" }).getAttribute("href")).not.toContain("retailer=");
+  expect(panel.getByRole("link", { name: "See all prizes in Automotive" }).getAttribute("href")).not.toContain("retailer=");
 });
 
 test("mobile search finds the right category from a retailer name, then tapping expands it", () => {

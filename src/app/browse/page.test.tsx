@@ -239,15 +239,16 @@ describe("Browse search results", () => {
   test("drills from a partner category into only its current offers", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy" }) }));
     expect(screen.getByRole("button", { name: "Pharmacy" }).getAttribute("aria-haspopup")).toBe("dialog");
-    expect(screen.getByText("5 products shown")).toBeTruthy();
-    expect(screen.getAllByRole("article")).toHaveLength(5);
+    expect(screen.getByText("10 products shown")).toBeTruthy();
+    expect(screen.getAllByRole("article")).toHaveLength(10);
     expect(screen.queryByRole("link", { name: /Walmart Gift Card/i })).toBeNull();
   });
 
   test("opens the added simulated Walgreens card from its retailer category", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy", retailer: "Walgreens" }) }));
     expect(screen.getByRole("link", { name: /\$100 Walgreens Gift Card/ }).getAttribute("href")).toContain("/items/directory-walgreens-100-gift-card");
-    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByRole("link", { name: /Milani Stay Put Eyeliner/ })).toBeTruthy();
+    expect(screen.getAllByRole("article")).toHaveLength(5);
   });
 
   test("filters by the displayed prize value while retaining the inline search", async () => {

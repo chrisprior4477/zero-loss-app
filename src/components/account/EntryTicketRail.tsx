@@ -136,7 +136,7 @@ export function EntryTicketRail({ title, tickets, selectedEntryId }: {
       </div>
     </article>
     {count > 1 ? <>
-      <button ref={expandRef} type="button" className={styles.expand} aria-expanded={showAll} aria-controls={`${id}-all`} onClick={() => setShowAll(value => !value)}>
+      <button ref={expandRef} type="button" className={showAll ? styles.expand : `${styles.expand} zl-see-all`} aria-expanded={showAll} aria-controls={`${id}-all`} onClick={() => setShowAll(value => !value)}>
         {showAll ? "Hide all" : "See all"} <span className={styles.countTicket}>{count}</span> entries <span aria-hidden="true" className={styles.expandArrow}>{showAll ? "⌃" : "⌄"}</span>
       </button>
       {showAll ? <div className={styles.allEntries} id={`${id}-all`}>

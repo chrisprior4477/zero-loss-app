@@ -52,6 +52,6 @@ test("Ending Soon shows current near-full offers instead of the All menu's saved
   expect(within(menu).getByRole("menuitem", { name: /Current near-full offer/ }).getAttribute("href"))
     .toBe("/items/current-offer?from=%2Fbrowse%3Fsort%3Dending-soon");
   expect(within(menu).queryByText('Samsung 50" M70H Smart TV')).toBeNull();
-  expect(within(menu).getByRole("menuitem", { name: "See all Ending Soon" }).getAttribute("href"))
+  expect(within(menu).getByRole("menuitem", { name: "See all prizes in Ending Soon" }).getAttribute("href"))
     .toBe("/browse?sort=ending-soon");
 });

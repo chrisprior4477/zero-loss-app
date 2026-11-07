@@ -88,5 +88,95 @@
     "category": "Home Furnishings & Improvement",
     "imagePath": "/catalog/partner-cards/acehardware.webp",
     "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/ace-hardware?hsLang=en-us"
+  },
+  {
+    "slug": "sephora",
+    "name": "Sephora",
+    "hundredSlug": "directory-sephora-100-gift-card",
+    "homeColor": "#221b24",
+    "category": "Specialty Retail",
+    "imagePath": "/catalog/partner-cards/sephora.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/sephora?hsLang=en-us"
+  },
+  {
+    "slug": "ulta",
+    "name": "Ulta",
+    "hundredSlug": "directory-ulta-100-gift-card",
+    "homeColor": "#bb4f20",
+    "category": "Specialty Retail",
+    "imagePath": "/catalog/partner-cards/ulta.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/ulta?hsLang=en-us"
+  },
+  {
+    "slug": "the-vitamin-shoppe",
+    "name": "The Vitamin Shoppe®",
+    "hundredSlug": "directory-the-vitamin-shoppe-100-gift-card",
+    "homeColor": "#326385",
+    "category": "Specialty Retail",
+    "imagePath": "/catalog/partner-cards/thevitaminshoppe.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/the-vitamin-shoppe?hsLang=en-us"
+  },
+  {
+    "slug": "walgreens",
+    "name": "Walgreens",
+    "hundredSlug": "directory-walgreens-100-gift-card",
+    "homeColor": "#bc2343",
+    "category": "Health & Essentials",
+    "imagePath": "/catalog/partner-cards/walgreens.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/walgreens?hsLang=en-us"
+  },
+  {
+    "slug": "gamestop",
+    "name": "Gamestop®",
+    "hundredSlug": "directory-gamestop-100-gift-card",
+    "homeColor": "#a32232",
+    "category": "Digital & Gaming",
+    "imagePath": "/catalog/partner-cards/gamestop.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/gamestop?hsLang=en-us"
+  },
+  {
+    "slug": "macys",
+    "name": "Macy's",
+    "hundredSlug": "directory-macy-s-100-gift-card",
+    "homeColor": "#ad2440",
+    "category": "Clothing & Accessories",
+    "imagePath": "/catalog/partner-cards/macys.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/macys?hsLang=en-us"
+  },
+  {
+    "slug": "kohls",
+    "name": "Kohl's",
+    "hundredSlug": "directory-kohl-s-100-gift-card",
+    "homeColor": "#59425b",
+    "category": "Clothing & Accessories",
+    "imagePath": "/catalog/partner-cards/kohls.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/kohls?hsLang=en-us"
+  },
+  {
+    "slug": "nordstrom",
+    "name": "Nordstrom",
+    "hundredSlug": "directory-nordstrom-100-gift-card",
+    "homeColor": "#1e2635",
+    "category": "Clothing & Accessories",
+    "imagePath": "/catalog/partner-cards/nordstrom.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/nordstrom?hsLang=en-us"
+  },
+  {
+    "slug": "old-navy",
+    "name": "Old Navy",
+    "hundredSlug": "directory-old-navy-100-gift-card",
+    "homeColor": "#162f55",
+    "category": "Clothing & Accessories",
+    "imagePath": "/catalog/partner-cards/oldnavy.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/old-navy?hsLang=en-us"
+  },
+  {
+    "slug": "bath-body-works",
+    "name": "Bath & Body Works",
+    "hundredSlug": "directory-bath-body-works-100-gift-card",
+    "homeColor": "#21509a",
+    "category": "Specialty Retail",
+    "imagePath": "/catalog/partner-cards/bathbodyworks.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/bath-body-works?hsLang=en-us"
   }
 ]

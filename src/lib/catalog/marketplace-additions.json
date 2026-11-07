@@ -471,5 +471,287 @@
       "1.5-quart capacity"
     ],
     "sourceUrl": "https://www.target.com/p/-/A-94720201"
+  },
+  {
+    "slug": "nature-made-vitamin-c-tablets",
+    "title": "Nature Made Vitamin C 500 mg Tablets",
+    "brand": "Nature Made",
+    "retailer": "CVS",
+    "category": "Health",
+    "collections": [
+      "health",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 1,
+    "summary": "A bottle of 500 mg vitamin C tablets.",
+    "highlights": [
+      "Vitamin C tablets",
+      "500 mg per tablet"
+    ],
+    "sourceUrl": "https://www.naturemade.com/products/vitamin-c-500-mg-tablets"
+  },
+  {
+    "slug": "ascent-chocolate-whey",
+    "title": "Ascent Chocolate Whey Protein Powder",
+    "brand": "Ascent",
+    "retailer": "Target",
+    "category": "Health",
+    "collections": [
+      "health",
+      "everyday-items"
+    ],
+    "value": 50,
+    "remaining": 2,
+    "summary": "Chocolate-flavored whey protein powder in a resealable pouch.",
+    "highlights": [
+      "Chocolate flavor",
+      "Powdered shake mix"
+    ],
+    "sourceUrl": "https://ascentprotein.com/products/chocolate-protein-powder"
+  },
+  {
+    "slug": "blenderbottle-classic-shaker",
+    "title": "BlenderBottle Classic Shaker",
+    "brand": "BlenderBottle",
+    "retailer": "Dick's Sporting Goods",
+    "category": "Health",
+    "collections": [
+      "health",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 68,
+    "summary": "A reusable shaker bottle with a flip cap and a wire mixing ball.",
+    "highlights": [
+      "Flip cap",
+      "Wire mixing ball"
+    ],
+    "sourceUrl": "https://www.blenderbottle.com/products/classic"
+  },
+  {
+    "slug": "milani-color-fetish-lipstick",
+    "title": "Milani Color Fetish Matte Lipstick",
+    "brand": "Milani",
+    "retailer": "Ulta",
+    "category": "Beauty",
+    "collections": [
+      "beauty",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 1,
+    "summary": "A matte lipstick in the shade Pleasure, packaged in a twist-up tube.",
+    "highlights": [
+      "Shade: Pleasure",
+      "Matte finish"
+    ],
+    "sourceUrl": "https://www.milanicosmetics.com/products/color-fetish-matte-lipstick-pleasure"
+  },
+  {
+    "slug": "milani-stay-put-eyeliner",
+    "title": "Milani Stay Put Eyeliner in After Dark",
+    "brand": "Milani",
+    "retailer": "Walgreens",
+    "category": "Beauty",
+    "collections": [
+      "beauty",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 3,
+    "summary": "A dark eyeliner pencil in the shade After Dark.",
+    "highlights": [
+      "Eyeliner pencil",
+      "Shade: After Dark"
+    ],
+    "sourceUrl": "https://www.milanicosmetics.com/products/stay-put-eyeliner-after-dark"
+  },
+  {
+    "slug": "milani-baked-blush",
+    "title": "Milani Baked Blush",
+    "brand": "Milani",
+    "retailer": "Target",
+    "category": "Beauty",
+    "collections": [
+      "beauty",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 41,
+    "summary": "A domed pan of baked powder blush in a compact.",
+    "highlights": [
+      "Pressed powder",
+      "Compact case"
+    ],
+    "sourceUrl": "https://www.milanicosmetics.com/products/baked-blush-1"
+  },
+  {
+    "slug": "ooly-ocean-watercolor-kit",
+    "title": "OOLY Ocean Fun Watercolor Painting Kit",
+    "brand": "OOLY",
+    "retailer": "Michaels",
+    "category": "Arts & Crafts",
+    "collections": [
+      "arts-crafts",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 1,
+    "summary": "An ocean-themed painting set with picture cards, watercolor palettes, and a paintbrush.",
+    "highlights": [
+      "12 picture cards",
+      "Paintbrush included"
+    ],
+    "sourceUrl": "https://www.ooly.com/products/playful-painters-easy-watercolor-painting-kit-ocean-fun"
+  },
+  {
+    "slug": "ooly-mechanical-colored-pencils",
+    "title": "OOLY Color Together 18 Mechanical Colored Pencils",
+    "brand": "OOLY",
+    "retailer": "Michaels",
+    "category": "Arts & Crafts",
+    "collections": [
+      "arts-crafts",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 4,
+    "summary": "Eighteen mechanical colored pencils in a range of shades for drawing and coloring.",
+    "highlights": [
+      "18 colors",
+      "Mechanical pencils"
+    ],
+    "sourceUrl": "https://www.ooly.com/products/color-together-mechanical-colored-pencils-set-of-18"
+  },
+  {
+    "slug": "ooly-turbo-tabby-clay-kit",
+    "title": "OOLY Turbo Tabby Air-Dry Clay Car Kit",
+    "brand": "OOLY",
+    "retailer": "Michaels",
+    "category": "Arts & Crafts",
+    "collections": [
+      "arts-crafts",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 26,
+    "summary": "An air-dry clay craft kit for shaping a little cat car with rolling wheels.",
+    "highlights": [
+      "Air-dry clay",
+      "Wheeled car base"
+    ],
+    "sourceUrl": "https://www.ooly.com/products/creatibles-mini-air-dry-clay-car-kit-turbo-tabby"
+  },
+  {
+    "slug": "corkcicle-mickey-bottle-sling",
+    "title": "Corkcicle Mickey Mouse Water Bottle Sling",
+    "brand": "Corkcicle",
+    "retailer": "Nordstrom",
+    "category": "Travel",
+    "collections": [
+      "travel"
+    ],
+    "value": 50,
+    "remaining": 1,
+    "summary": "A crossbody carrier for a water bottle, with a black Mickey Mouse design.",
+    "highlights": [
+      "Crossbody strap",
+      "Bottle carrier"
+    ],
+    "sourceUrl": "https://www.corkcicle.com/products/disney-sling"
+  },
+  {
+    "slug": "timbuk2-division-backpack",
+    "title": "Timbuk2 Water Resistant Division Backpack",
+    "brand": "Timbuk2",
+    "retailer": "REI",
+    "category": "Travel",
+    "collections": [
+      "travel"
+    ],
+    "value": 150,
+    "remaining": 2,
+    "summary": "A travel backpack with space for a laptop and everyday gear.",
+    "highlights": [
+      "Laptop storage",
+      "Water-resistant exterior"
+    ],
+    "sourceUrl": "https://www.timbuk2.com/products/1227-water-resistant-division-backpack"
+  },
+  {
+    "slug": "stanley-cafe-to-go-12",
+    "title": "Stanley Café-To-Go 12 oz Travel Mug",
+    "brand": "Stanley",
+    "retailer": "Dick's Sporting Goods",
+    "category": "Travel",
+    "collections": [
+      "travel"
+    ],
+    "value": 25,
+    "remaining": 53,
+    "summary": "A twelve-ounce insulated mug with a travel lid and carry handle.",
+    "highlights": [
+      "12 oz capacity",
+      "Carry handle"
+    ],
+    "sourceUrl": "https://www.stanley1913.com/products/the-cafe-to-go-travel-mug-12-oz"
+  },
+  {
+    "slug": "exploding-kittens-original",
+    "title": "Exploding Kittens Original Edition Card Game",
+    "brand": "Exploding Kittens",
+    "retailer": "Target",
+    "category": "Games & Puzzles",
+    "collections": [
+      "games-puzzles",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 1,
+    "summary": "The original illustrated card game of drawing, defusing, and dodging exploding kittens.",
+    "highlights": [
+      "Original edition",
+      "Card game"
+    ],
+    "sourceUrl": "https://www.explodingkittens.com/products/exploding-kittens-original-edition"
+  },
+  {
+    "slug": "happy-salmon-card-game",
+    "title": "Happy Salmon Card Game",
+    "brand": "Exploding Kittens",
+    "retailer": "Target",
+    "category": "Games & Puzzles",
+    "collections": [
+      "games-puzzles",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 3,
+    "summary": "A fast party game of matching cards and performing the same action as another player.",
+    "highlights": [
+      "Matching cards",
+      "Group party game"
+    ],
+    "sourceUrl": "https://www.explodingkittens.com/products/happy-salmon"
+  },
+  {
+    "slug": "a-little-wordy-game",
+    "title": "A Little Wordy Word Game",
+    "brand": "Exploding Kittens",
+    "retailer": "Barnes & Noble",
+    "category": "Games & Puzzles",
+    "collections": [
+      "games-puzzles",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 15,
+    "summary": "A two-player word puzzle in which each player tries to deduce the other player’s secret word.",
+    "highlights": [
+      "Two players",
+      "Word deduction"
+    ],
+    "sourceUrl": "https://www.explodingkittens.com/products/a-little-wordy"
   }
 ]

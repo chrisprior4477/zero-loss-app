@@ -26,6 +26,11 @@ const desktopCategories = [
   "Sports & Fitness",
   "Pet Supplies",
   "Fishing",
+  "Health",
+  "Beauty",
+  "Arts & Crafts",
+  "Travel",
+  "Games & Puzzles",
 ] as const;
 
 const desktopCategoryItems: Record<string, readonly string[]> = {
@@ -71,7 +76,7 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
     if (!nav) return;
 
     const slideWithWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+      if (event.ctrlKey || event.metaKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
       if (event.target instanceof Element && event.target.closest('[role="menu"]')) return;
 
       const maxScroll = nav.scrollWidth - nav.clientWidth;
@@ -224,9 +229,10 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
                         href={marketplaceCategoryHref(category)}
                         role="menuitem"
                         onClick={() => setOpenCategory(null)}
-                        className="col-span-full mt-2 flex min-h-11 items-center justify-center rounded-lg border border-[var(--accent)]/55 bg-[var(--accent)]/10 px-4 text-[14px] font-extrabold text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[#00132e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+                        className="zl-see-all col-span-full mt-2 justify-self-end"
+                        aria-label={category === "All" ? "See all prizes" : `See all prizes in ${category}`}
                       >
-                        {category === "All" ? "See all products" : `See all ${category}`}
+                        See all prizes
                       </Link>
                     </div>
                   </div>
