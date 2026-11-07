@@ -61,7 +61,7 @@ export function DollarChoiceCarousel() {
       <div className="relative z-20 mx-auto mb-1 flex max-w-[1600px] items-start justify-between gap-3 px-4 sm:gap-6 sm:px-6 lg:px-[clamp(3rem,6vw,7rem)]">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[20px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Where would you put your $1?</h2>
+            <h2 id="dollar-choice-title" className="scroll-mt-[calc(var(--site-header-height,163px)+17px)] text-[20px] font-extrabold tracking-[-0.035em] text-white sm:text-[26px]">Where would you put your $1?</h2>
             <span className="rounded-full border border-cyan-300/40 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-300">Demo data</span>
           </div>
           <p className="mt-1 text-[13px] text-white/60">Real products. One dollar. You choose.</p>
@@ -71,8 +71,8 @@ export function DollarChoiceCarousel() {
         </Link>
       </div>
 
-      <div className="relative mt-1">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[150px] opacity-80 mix-blend-screen sm:top-[42px] sm:h-[220px]">
+      <div className="zl-dollar-choice-products relative mt-1">
+        <div aria-hidden="true" className="zl-dollar-choice-trails pointer-events-none absolute inset-x-0 top-0 z-[1] h-[150px] opacity-80 mix-blend-screen sm:top-[42px] sm:h-[220px]">
           <Image
             src="/dollar-choice-energy-trails.png"
             alt=""

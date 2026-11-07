@@ -171,6 +171,29 @@ body {
   display: none;
 }
 
+@media (min-width: 1024px) {
+  .zl-dollar-choice-products {
+    mask-image: linear-gradient(to bottom, transparent, black 12px, black 100%);
+  }
+
+  .zl-dollar-choice-trails {
+    top: 0;
+    height: 214px;
+    opacity: 0.63;
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgb(0 0 0 / 10%) 12%,
+      rgb(0 0 0 / 65%) 30%,
+      black 44%,
+      black 54%,
+      rgb(0 0 0 / 67%) 70%,
+      rgb(0 0 0 / 16%) 86%,
+      transparent 100%
+    );
+  }
+}
+
 /*
   Staggered entrance for sequenced card groups — CSS only.
   Consumed by MechanismStory (/how-it-works); named generically because it
