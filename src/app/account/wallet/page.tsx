@@ -21,7 +21,7 @@ import { parseDemoWalletHistoryVisibility, type DemoWalletHistoryVisibility } fr
 
 export const metadata: Metadata = { title: "Gift Cards & Rewards" };
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; transaction?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; transaction?: string | string[]; choice?: string | string[] }> }) {
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
@@ -36,7 +36,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     const next = paymentPanel ? accountPageReturnPath("/account/wallet", query, query.panel === "card" ? "#wallet-add-card" : "#payment-methods")
       : history && !query.transaction ? query.review === "entry" && fromProduct
       ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity)
-      : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse)
+      : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse, query.choice)
       : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : purchaseArrival ? "#reward-pass" : "");
     redirect(`${authNavigationHref("/login", next)}&focus=email#login-form`);
   }
@@ -49,7 +49,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const fundingReturn: FundingContinuation | undefined = query.entry !== undefined
     ? fromEntry ? fromEntry.status === "active"
       ? { title: fromEntry.title, href: entryReviewHref(fromEntry.entryId!, requestedQuantity), label: "Back to entry review", entryQuantity: requestedQuantity, ...amounts }
-      : { title: fromEntry.title, href: fromEntry.status === "completion" || isPurchasedReward(fromEntry) ? purchaseOptionHref(fromEntry.slug, fromEntry.entryId!) ?? activityHref(fromEntry) : activityHref(fromEntry), label: "Back to purchase option" } : undefined
+      : { title: fromEntry.title, href: fromEntry.status === "completion" || isPurchasedReward(fromEntry) ? purchaseOptionHref(fromEntry.slug, fromEntry.entryId!, query.choice) ?? activityHref(fromEntry) : activityHref(fromEntry), label: "Back to purchase option" } : undefined
     : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity, query.browse) } : undefined;
   if (fundingReturn && forEntry) Object.assign(fundingReturn, { entryQuantity: requestedQuantity, ...amounts });
   // A URL only selects from this authenticated account's authorized data.

@@ -196,3 +196,16 @@ test("the scrolling category picker accepts misspellings and keeps its destinati
   fireEvent.click(within(dialog).getByRole("button", { name: /Automotive/ }));
   expect(navigation.push).toHaveBeenCalledWith("/browse?partnerCategory=automotive#search-results", { scroll: false });
 });
+
+
+test("Clear filters discards an unapplied range even when the destination URL is unchanged", () => {
+  const form = openPriceFilters();
+  fireEvent.change(form.getByRole("spinbutton", { name: "From ($)" }), { target: { value: "50" } });
+  fireEvent.change(form.getByRole("spinbutton", { name: "To ($)" }), { target: { value: "100" } });
+  fireEvent.click(form.getByRole("link", { name: "Clear filters" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /Filter & sort/ }));
+  const reopened = within(screen.getByRole("dialog"));
+  expect((reopened.getByRole("spinbutton", { name: "From ($)" }) as HTMLInputElement).value).toBe("");
+  expect((reopened.getByRole("spinbutton", { name: "To ($)" }) as HTMLInputElement).value).toBe("");
+});

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
 import { completeDemoPurchaseOptions, type BulkPurchaseRequest } from "@/lib/account/bulk-purchase-actions";
 import { fundPurchaseWallet } from "@/lib/account/purchase-funding-actions";
@@ -51,7 +51,7 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const timeZone = useAccountTimeZone();
   const router = useRouter();
   const item = options[0];
-  const { selected, decline, available, needsReview, updateChoice, clearChoice } = useCheckoutSelection(ownerId, options, initiallySelectedEntryId);
+  const { selected, decline, available, needsReview, handoffId, updateChoice, clearChoice } = useCheckoutSelection(ownerId, options, initiallySelectedEntryId);
   const [balance, setBalance] = useState(initialBalance);
   const [lastServerBalance, setLastServerBalance] = useState(initialBalance);
   const [card, setCard] = useState<DemoCardToken | null>(() => cards.find(card => card.isDepositDefault)?.token ?? cards.find(card => card.isDefault)?.token ?? cards[0]?.token ?? null);
@@ -67,12 +67,12 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const inFlight = useRef(false);
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
   const selectedEntryId = chosen[0]?.entryId;
-  const addCardHref = `/account/wallet?${new URLSearchParams({ view: "history", panel: "card", from: item.slug, ...(selectedEntryId ? { entry: selectedEntryId } : {}) })}#wallet-add-card`;
-  useEffect(() => {
-    const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined);
+  const addCardHref = `/account/wallet?${new URLSearchParams({ view: "history", panel: "card", from: item.slug, ...(selectedEntryId ? { entry: selectedEntryId } : {}), ...(handoffId ? { choice: handoffId } : {}) })}#wallet-add-card`;
+  useLayoutEffect(() => {
+    const href = handoffId ? purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId) : null;
     setWalletFundingContext(href ? { href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview } : null);
     return () => setWalletFundingContext(null);
-  }, [item.slug, selectedEntryId, selected, decline, ownerId, available, needsReview]);
+  }, [item.slug, selectedEntryId, selected, decline, ownerId, available, needsReview, handoffId]);
   const total = chosen.reduce((sum, option) => sum + option.remainingCents, 0);
   if (lastServerBalance !== initialBalance) {
     setLastServerBalance(initialBalance);
@@ -203,7 +203,7 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}
         <div className={styles.cardChoice}><FundingCardPicker tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); }} /></div>
         {!cards.length ? <Link className={styles.backLink} href={addCardHref} onClick={() => {
-          const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined);
+          const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId);
           if (href) rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });
         }}>Add a card in your wallet</Link> : null}
         <div className={styles.extraFunds}><div aria-label="Extra funds for later">{[0,25,50].map(value => <button type="button" key={value} disabled={locked} aria-pressed={extra === String(value) || (!extra && value === 0)} onClick={() => { setExtra(value ? String(value) : "");setAcknowledged(false); }}>{value ? `+$${value}` : "Just enough"}</button>)}</div></div>

@@ -68,3 +68,13 @@ test("Crew review links survive sign-in only for one of the eight known designs"
   expect(accountReturnPath("/account/crew?design=1&design=8")).toBeNull();
   expect(accountReturnPath("/account/crew?design=https://outside.test")).toBeNull();
 });
+
+
+test("card-editor sign-in retains a valid purchase snapshot and rejects unrelated use", () => {
+  const query = { view: "history", panel: "card", from: "nintendo-switch", entry: "ent_11111111111111111111111111111111", choice: id };
+  const path = accountPageReturnPath("/account/wallet", query, "#wallet-add-card");
+  expect(new URL(path, "https://example.test").searchParams.get("choice")).toBe(id);
+  expect(signInReturnPath(path)).toBe(path);
+  expect(accountReturnPath('/account/wallet?view=history&choice=' + id)).toBeNull();
+  expect(accountReturnPath(path.replace('&entry=' + query.entry, ''))).toBeNull();
+});

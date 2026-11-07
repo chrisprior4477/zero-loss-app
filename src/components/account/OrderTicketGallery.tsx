@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { FulfillmentRecord } from "@/lib/account/fulfillment";
 import { walletRewardHref } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -136,8 +136,34 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
   const selected = opened ? shown.find(order => order.rewardId === opened.id) : null;
   const galleryId = useId();
 
+  function rememberPage(anchor: string | null) {
+    if (window.location.pathname !== "/account/orders") return;
+    // Keep Next's router fields intact. This belongs to this history entry only.
+    window.history.replaceState({ ...window.history.state, zeroLossOrderTickets: {
+      href: window.location.href, anchor, scrollY: window.scrollY,
+    } }, "");
+  }
+
+  useLayoutEffect(() => {
+    let frame = 0;
+    function restorePage() {
+      const saved = window.history.state?.zeroLossOrderTickets;
+      if (!saved || saved.href !== window.location.href || !orders.some(order => order.rewardId === saved.anchor)
+        || !Number.isFinite(saved.scrollY) || saved.scrollY < 0) return;
+      setPageAnchor(saved.anchor);
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => window.scrollTo({ top: saved.scrollY, behavior: "instant" }));
+    }
+    restorePage();
+    window.addEventListener("popstate", restorePage);
+    window.addEventListener("pageshow", restorePage);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("popstate", restorePage); window.removeEventListener("pageshow", restorePage); };
+  }, [orders]);
+
   function changePage(page: number) {
-    setPageAnchor(orders[page * size]?.rewardId ?? null);
+    const anchor = orders[page * size]?.rewardId ?? null;
+    setPageAnchor(anchor);
+    rememberPage(anchor);
   }
 
   function openDetails(id: string, anchor: HTMLButtonElement) {
@@ -145,7 +171,13 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     setOpened({ id, anchor });
   }
 
-  return <div className={styles.gallery} data-order-gallery>
+  return <div className={styles.gallery} data-order-gallery onClickCapture={event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target?.closest("a[href]")) return;
+    const ticket = target.closest("[data-order-ticket]");
+    rememberPage(ticket?.id.replace(/^reward-/, "") ?? opened?.id ?? pageAnchor);
+  }}>
     <div className={styles.galleryBody}>
       <div className={styles.ticketWindow} data-previous={hasPrevious} data-next={hasNext}>
       {hasPrevious ? <button type="button" className={styles.peekStack} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage - 1)}>

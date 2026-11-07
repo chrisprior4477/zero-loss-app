@@ -8,9 +8,9 @@ export const purchaseSelectionKey = "zero-loss-purchase-funding-selection";
 let current: WalletFundingContext | null = null;
 const listeners = new Set<() => void>();
 
-export function purchaseFundingHref(slug: string, entryId: string | undefined): string | null {
+export function purchaseFundingHref(slug: string, entryId: string | undefined, choice?: string): string | null {
   if (!entryId || !/^ent_[a-f0-9]{32}$/.test(entryId) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
-  return fundingHref(slug, entryId).replace("#add-funds", "#balance");
+  return fundingHref(slug, entryId, undefined, undefined, choice).replace("#add-funds", "#balance");
 }
 export function setWalletFundingContext(value: WalletFundingContext | null) {
   if (current === value) return;

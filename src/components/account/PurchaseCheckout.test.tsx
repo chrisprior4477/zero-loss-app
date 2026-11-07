@@ -10,12 +10,13 @@ vi.mock("@/lib/account/bulk-decline-actions", () => ({ declineAllDemoPurchaseOpt
 import { PurchaseCheckout } from "./PurchaseCheckout";
 import { PurchaseOptionSummary } from "./PurchaseOptionSummary";
 import { TimeZoneProvider } from "./TimeZoneProvider";
+import * as requireContext from "@/lib/wallet/wallet-funding-context";
 import { purchaseSelectionKey } from "@/lib/wallet/wallet-funding-context";
 const options: ActivityItem[] = Array.from({ length: 3 }, (_, i) => ({ entryId: `entry-${i}`, completionOptionId: `option-${i}`, slug: "nintendo-switch", title: "Nintendo Switch", retailer: "Best Buy", image: "/catalog/nintendo-switch-oled.jpg", status: "completion", rewardKind: "digital", priceCents: 40000, paidCents: 100, remainingCents: 39900, availability: "Available", completionExpiresAt: "2026-11-28T17:00:00Z" }));
 function setup(balance = 13900, blocked = false) { return render(<PurchaseCheckout ownerId="account-a" options={options} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable fundingBlocked={blocked} />); }
 function fundPopup() { fireEvent.click(screen.getByRole("button", { name: "Add funds: $260 to continue" })); return within(screen.getByRole("dialog")); }
 beforeEach(() => { vi.clearAllMocks(); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); sessionStorage.clear(); window.history.replaceState(null, "", "/"); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); sessionStorage.clear(); localStorage.clear(); window.history.replaceState(null, "", "/"); });
 function updatedCheckout(balance: number) {
   // Refresh supplies new objects from the server while retaining the client component.
   return <PurchaseCheckout ownerId="account-a" options={options.map(option => ({ ...option }))} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />;
@@ -360,4 +361,37 @@ test("a newly available offer is kept until the customer reviews the changed lis
   fireEvent.click(screen.getByRole("button", { name: "Review updated options" }));
   expect(screen.getByRole("button", { name: "Option 3" }).getAttribute("aria-pressed")).toBe("false");
   expect(screen.queryByRole("button", { name: "Confirm purchase" })).toBeNull();
+});
+
+
+test("a wallet URL restores two exact offers and keep-for-later in a fresh tab, then retains later edits on refresh", () => {
+  const { getWalletFundingContext } = requireContext;
+  const renderCheckout = () => render(<PurchaseCheckout ownerId="account-a" options={options.map((option, i) => ({ ...option, entryId: `ent_${String(i + 1).padStart(32, "0")}` }))} initialBalance={13600} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />);
+  const view = renderCheckout();
+  fireEvent.click(screen.getByRole("radio", { name: "Buying 2" }));
+  fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
+  const href = getWalletFundingContext()?.href;
+  const token = new URL(href!, "https://navigation.invalid").searchParams.get("choice");
+  expect(token).toMatch(/^[0-9a-f-]{36}$/);
+  view.unmount();
+  sessionStorage.clear();
+  window.history.replaceState(null, "", "/account/purchase-options/nintendo-switch?resume=wallet&choice=" + token);
+  const returned = renderCheckout();
+  expect((screen.getByRole("radio", { name: "Buying 2" }) as HTMLInputElement).checked).toBe(true);
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Add funds: $662 to continue" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("radio", { name: "Buying 3" }));
+  returned.unmount();
+  renderCheckout();
+  expect((screen.getByRole("radio", { name: "Buying 3" }) as HTMLInputElement).checked).toBe(true);
+  expect(mocks.purchase).not.toHaveBeenCalled();
+});
+
+test.each(["missing", "foreign"])("a %s wallet snapshot requires review and keeps remaining offers", kind => {
+  const token = "11111111-1111-4111-8111-111111111111";
+  if (kind === "foreign") localStorage.setItem("zero-loss-purchase-handoff:" + token, JSON.stringify({ ownerId: "another-account", slug: "nintendo-switch", selected: ["option-1"], available: options.map(o => o.completionOptionId), decline: true, savedAt: Date.now() }));
+  window.history.replaceState(null, "", "/account/purchase-options/nintendo-switch?resume=wallet&choice=" + token);
+  setup();
+  expect(screen.getByRole("button", { name: "Review updated options" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
 });

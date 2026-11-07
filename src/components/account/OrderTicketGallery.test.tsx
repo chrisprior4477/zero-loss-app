@@ -179,3 +179,22 @@ test("exception status and unavailable checkout amounts remain visible without i
   fireEvent.click(screen.getByRole("button", { name: "Order details" }));
   expect(screen.getByText(/entitlement remains recorded/)).toBeTruthy();
 });
+
+
+test("browser return restores the later mobile order page and preserves router history fields", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  window.history.replaceState({ __NA: true, router: "untouched" }, "", "/account/orders#fulfillment-records");
+  const orders = Array.from({ length: 4 }, (_, i) => record(i + 1));
+  const first = render(<OrderTicketGallery orders={orders} />);
+  fireEvent.click(screen.getByRole("button", { name: "Next tickets" }));
+  expect(window.history.state.router).toBe("untouched");
+  first.unmount();
+  render(<OrderTicketGallery orders={orders} />);
+  expect(screen.getByText("3–4 of 4")).toBeTruthy();
+  await waitFor(() => expect(scroll).toHaveBeenCalled());
+  cleanup();
+  render(<OrderTicketGallery orders={[record(1), record(2)]} />);
+  expect(screen.getByText("1–2 of 2")).toBeTruthy();
+  window.history.replaceState(null, "", "/");
+});

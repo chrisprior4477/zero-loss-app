@@ -112,3 +112,13 @@ test.each([
 ])("rejects destinations outside the exact funding path: %s", (value) => {
   expect(fundingReturnPath(value)).toBeNull();
 });
+
+
+test("wallet choice tokens survive sign-in without accepting arbitrary redirects or malformed tokens", () => {
+  const token = "11111111-1111-4111-8111-111111111111";
+  const path = fundingHref("nintendo-switch", "ent_11111111111111111111111111111111", undefined, undefined, token);
+  expect(fundingReturnPath(path)).toBe(path);
+  expect(signInReturnPath(path)).toBe(path);
+  expect(fundingReturnPath(path.replace(token, "x"))).toBeNull();
+  expect(fundingReturnPath(path.replace(/&entry=[^&]+/, ""))).toBeNull();
+});

@@ -147,7 +147,13 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         </div>
       </fieldset>
       <button type="submit" className="min-h-11 w-full rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">Apply filters</button>
-      <Link href={clearHref} className="block text-center text-sm font-bold text-cyan-200 underline-offset-4 hover:underline">Clear filters</Link>
+      <Link href={clearHref} onClick={event => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        setMode("all");
+        setBounds({ minValue: "", maxValue: "" });
+        setSearchDraft(searchTerm);
+        onNavigate?.();
+      }} className="block text-center text-sm font-bold text-cyan-200 underline-offset-4 hover:underline">Clear filters</Link>
     </form>
   );
 }

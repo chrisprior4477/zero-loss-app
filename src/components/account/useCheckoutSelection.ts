@@ -3,6 +3,7 @@
 import { useLayoutEffect, useMemo, useState } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
 import { purchaseSelectionKey } from "@/lib/wallet/wallet-funding-context";
+import { readPurchaseHandoff, savePurchaseHandoff } from "@/lib/wallet/purchase-selection-handoff";
 
 type Choice = { selected: string[]; decline: boolean; needsReview: boolean };
 type Draft = Choice & { available: string[]; slug: string; ownerId: string };
@@ -36,34 +37,45 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
   const firstId = options.find(option => option.entryId === entryId)?.completionOptionId ?? available[0];
   const key = `zero-loss-checkout-choice:${ownerId}:${slug}:${entryId ?? "all"}`;
   const [choice, setChoice] = useState<Choice>({ selected: [firstId], decline: true, needsReview: false });
+  const [handoffId, setHandoffId] = useState<string>();
 
   useLayoutEffect(() => {
+    let saved: Choice | null = null;
+    const query = new URLSearchParams(window.location.search);
     try {
-      let saved: Choice | null = null;
-      if (new URLSearchParams(window.location.search).get("resume") === "wallet") {
+      const handoffId = query.get("choice");
+      if (handoffId !== null) {
+        const currentDraft = sessionStorage.getItem(`${key}:arrival`) === handoffId
+          ? restore(sessionStorage.getItem(key), ownerId, slug, available, firstId) : null;
+        saved = currentDraft ?? restore(readPurchaseHandoff(handoffId), ownerId, slug, available, firstId)
+          ?? { selected: [firstId], decline: false, needsReview: true };
+        sessionStorage.setItem(`${key}:arrival`, handoffId);
+      } else if (query.get("resume") === "wallet") {
         const handoff = sessionStorage.getItem(purchaseSelectionKey);
         sessionStorage.removeItem(purchaseSelectionKey);
         saved = restore(handoff, ownerId, slug, available, firstId);
       }
       saved ??= restore(sessionStorage.getItem(key), ownerId, slug, available, firstId);
-      if (saved) {
-        // Restore the checkout together before the customer can review the default selection.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setChoice(saved);
-      }
-      const initial = saved ?? { selected: [firstId], decline: true, needsReview: false };
-      sessionStorage.setItem(key, JSON.stringify({ ...initial, available, slug, ownerId }));
     } catch { /* An unreadable tab draft does not authorize a purchase. */ }
+    const returning = query.has("choice") || query.get("resume") === "wallet";
+    const initial = saved ?? { selected: [firstId], decline: !returning, needsReview: returning };
+    // Restore the selection together before the customer can review it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setChoice(initial);
+    setHandoffId(savePurchaseHandoff({ ...initial, available, slug, ownerId }));
+    try { sessionStorage.setItem(key, JSON.stringify({ ...initial, available, slug, ownerId })); }
+    catch { /* The cross-tab snapshot remains independent of tab storage. */ }
   }, [available, firstId, key, ownerId, slug]);
 
   function updateChoice(change: Partial<Choice>) {
     const next = { ...choice, ...change };
     setChoice(next);
+    setHandoffId(savePurchaseHandoff({ ...next, available, slug, ownerId }));
     try { sessionStorage.setItem(key, JSON.stringify({ ...next, available, slug, ownerId })); }
     catch { /* The selection remains usable in the current page. */ }
   }
   function clearChoice() {
     try { sessionStorage.removeItem(key); } catch { /* Purchase is already recorded. */ }
   }
-  return { ...choice, available, updateChoice, clearChoice };
+  return { ...choice, handoffId, available, updateChoice, clearChoice };
 }

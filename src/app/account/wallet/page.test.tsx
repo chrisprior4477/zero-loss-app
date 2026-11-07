@@ -179,3 +179,11 @@ test.each(["samsung-m70h-tv", "not-in-the-catalog", "https://evil.test", ["samsu
     expect(link).toBeNull();
   }
 });
+
+
+test("the wallet carries an exact selection snapshot back to an authorized purchase", async () => {
+  const choice = "22222222-2222-4222-8222-222222222222";
+  mocks.getAccountContext.mockResolvedValue({ wallet: null, fundingEnabled: false, activity: { source: "stored", activity: [purchaseActivity] } });
+  render(await WalletPage({ searchParams: Promise.resolve({ view: "history", from: purchaseActivity.slug, entry: purchaseEntry, choice }) }));
+  expect(screen.getByRole("link", { name: "Back to purchase option" }).getAttribute("href")).toBe('/account/purchase-options/' + purchaseActivity.slug + '?option=' + purchaseEntry + '&resume=wallet&choice=' + choice);
+});

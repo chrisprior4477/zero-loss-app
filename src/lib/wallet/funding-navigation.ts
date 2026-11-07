@@ -1,5 +1,6 @@
 import { isEntryQuantity, parseEntryQuantity } from "@/lib/entries/quantity";
 import { productBrowseReturnPath } from "@/lib/catalog/product-return";
+import { purchaseChoicePattern } from "./purchase-selection-handoff";
 
 const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const entryPattern = /^ent_[a-f0-9]{32}$/;
@@ -8,11 +9,11 @@ export type FundingContinuation = { title: string; href: string; label?: "Back t
 
 /** Only an exact option selector is accepted; the purchase page rechecks ownership. */
 export function purchaseOptionReturnPath(value: unknown): string | null {
-  return typeof value === "string" && /^\/account\/purchase-options\/[a-z0-9]+(?:-[a-z0-9]+)*\?option=ent_[a-f0-9]{32}(?:&resume=wallet)?$/.test(value) ? value : null;
+  return typeof value === "string" && /^\/account\/purchase-options\/[a-z0-9]+(?:-[a-z0-9]+)*\?option=ent_[a-f0-9]{32}(?:&resume=wallet)?(?:&choice=[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})?$/.test(value) ? value : null;
 }
 
-export function purchaseOptionHref(slug: string, entryId: string): string | null {
-  return purchaseOptionReturnPath(`/account/purchase-options/${slug}?option=${entryId}&resume=wallet`);
+export function purchaseOptionHref(slug: string, entryId: string, choice?: unknown): string | null {
+  return purchaseOptionReturnPath(`/account/purchase-options/${slug}?option=${entryId}&resume=wallet${typeof choice === "string" && purchaseChoicePattern.test(choice) ? `&choice=${choice}` : ""}`);
 }
 
 export function entryReviewHref(entryId: string, quantity = 1): string {
@@ -38,13 +39,14 @@ export function entryFundingAmounts(priceCents: number | null, quantity: number,
 }
 
 /** Carry catalog identifiers and an allowlisted marketplace address, never an arbitrary redirect. */
-export function fundingHref(productSlug?: string, entryId?: string, quantity?: number, browseReturn?: unknown): string {
+export function fundingHref(productSlug?: string, entryId?: string, quantity?: number, browseReturn?: unknown, choice?: unknown): string {
   const params = new URLSearchParams({ view: "history" });
   if (productSlug && productSlugPattern.test(productSlug)) params.set("from", productSlug);
   if (params.has("from") && entryId && entryPattern.test(entryId)) params.set("entry", entryId);
   else if (params.has("from") && isEntryQuantity(quantity) && quantity > 1) params.set("quantity", String(quantity));
   const browse = productBrowseReturnPath(browseReturn);
   if (params.has("from") && !params.has("entry") && browse) params.set("browse", browse);
+  if (params.has("entry") && typeof choice === "string" && purchaseChoicePattern.test(choice)) params.set("choice", choice);
   return `/account/wallet?${params}#add-funds`;
 }
 
@@ -54,9 +56,10 @@ export function fundingReturnPath(value: unknown): string | null {
   if (/^\/account\/wallet\?view=history&from=[a-z0-9]+(?:-[a-z0-9]+)*&entry=ent_[a-f0-9]{32}&quantity=[1-9]\d*&review=entry#add-funds$/.test(value)) {
     return parseEntryQuantity(new URL(value, "https://navigation.invalid").searchParams.get("quantity")) !== null ? value : null;
   }
-  if (!/^\/account\/wallet\?view=history(?:&from=[a-z0-9]+(?:-[a-z0-9]+)*(?:&entry=ent_[a-f0-9]{32}|&quantity=[1-9]\d*)?(?:&browse=[^&#]+)?)?#add-funds$/.test(value)) return null;
+  if (!/^\/account\/wallet\?view=history(?:&from=[a-z0-9]+(?:-[a-z0-9]+)*(?:&entry=ent_[a-f0-9]{32}|&quantity=[1-9]\d*)?(?:&browse=[^&#]+)?(?:&choice=[0-9a-f-]{36})?)?#add-funds$/.test(value)) return null;
   const params = new URL(value, "https://navigation.invalid").searchParams;
   if (params.has("browse") && (params.has("entry") || !productBrowseReturnPath(params.get("browse")))) return null;
+  if (params.has("choice") && (!params.has("entry") || !purchaseChoicePattern.test(params.get("choice")!))) return null;
   const selected = params.get("quantity");
   return selected === null || parseEntryQuantity(selected) !== null ? value : null;
 }
