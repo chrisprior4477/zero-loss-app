@@ -3,7 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 const mocks = vi.hoisted(() => ({ account: vi.fn(), from: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: mocks.from, rpc: mocks.rpc }) }));
-vi.mock("@/components/support/SupportForm", () => ({ SupportForm: ({ caseId, transactionId, staff }: { caseId?: string; transactionId?: string; staff?: boolean }) => <div data-testid="support-form" data-case={caseId} data-transaction={transactionId} data-staff={String(staff ?? false)}>Message form</div> }));
+vi.mock("@/components/support/SupportForm", () => ({ SupportForm: ({ caseId, transactionId, rewardId, staff }: { caseId?: string; transactionId?: string; rewardId?: string; staff?: boolean }) => <div data-testid="support-form" data-case={caseId} data-transaction={transactionId} data-reward={rewardId} data-staff={String(staff ?? false)}>Message form</div> }));
 import SupportPage from "./page";
 const caseId = "11111111-1111-4111-8111-111111111111";
 const own = "22222222-2222-4222-8222-222222222222";
@@ -29,6 +29,34 @@ test("sign-in preserves a selected wallet transaction", async () => {
   render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
   expect(screen.getByRole("link", { name: "Sign in to get help" }).getAttribute("href")).toBe(`/login?next=${encodeURIComponent(`/support?transaction=${caseId}`)}`);
   expect(mocks.from).not.toHaveBeenCalled();
+});
+
+test('sign-in preserves an exact reward support handoff',async()=>{
+ mocks.account.mockResolvedValue(null);
+ render(await SupportPage({searchParams:Promise.resolve({rewardId:caseId})}));
+ expect(screen.getByRole('link',{name:'Sign in to get help'}).getAttribute('href')).toBe(`/login?next=${encodeURIComponent(`/support?rewardId=${caseId}#report-problem`)}`);
+ expect(mocks.from).not.toHaveBeenCalled();
+});
+
+test('reward prefill authorizes ownership and never uses a wallet transaction',async()=>{
+ const reward=query({id:caseId});mocks.from.mockImplementation(table=>table==='customer_rewards'?reward:query([]));
+ render(await SupportPage({searchParams:Promise.resolve({rewardId:caseId})}));
+ expect(reward.select).toHaveBeenCalledWith('id');expect(reward.eq.mock.calls).toEqual([['id',caseId],['customer_id',own]]);
+ expect(screen.getByTestId('support-form').getAttribute('data-reward')).toBe(caseId);
+ expect(screen.getByTestId('support-form').getAttribute('data-transaction')).toBeNull();
+ expect(screen.getByText(`Reward reference: ${caseId}`)).toBeTruthy();
+ expect(mocks.from).not.toHaveBeenCalledWith('ledger_entries');
+});
+
+test.each([null,{data:null,error:{message:'Unavailable'}}])('a foreign or unavailable reward has no support form (%s)',async failure=>{
+ mocks.from.mockImplementation(table=>table==='customer_rewards'?query(null,failure):query([]));
+ render(await SupportPage({searchParams:Promise.resolve({rewardId:caseId})}));
+ expect(screen.queryByTestId('support-form')).toBeNull();expect(screen.getByRole('alert').textContent).toContain('reward is unavailable');
+});
+
+test('a reward cannot silently attach an unrelated transaction',async()=>{
+ render(await SupportPage({searchParams:Promise.resolve({rewardId:caseId,transaction:own})}));
+ expect(screen.queryByTestId('support-form')).toBeNull();expect(mocks.from).not.toHaveBeenCalled();
 });
 test("an ordinary customer cannot open the private inbox", async () => {
   render(await SupportPage({ searchParams: Promise.resolve({ view: "inbox" }) }));

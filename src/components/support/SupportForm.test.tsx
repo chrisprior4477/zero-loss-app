@@ -23,6 +23,20 @@ test("transaction-linked form keeps the chosen transaction and exact retry after
   expect(first.get("requestKey")).toBe("support_request_001");
   expect(first.get("subject")).toBe("Question about this wallet transaction");
 });
+
+test('a reward form keeps its reference and exact retry without asking for a gift-card code',async()=>{
+ mocks.save.mockRejectedValueOnce(new Error('Offline')).mockResolvedValueOnce({status:'saved',caseId});
+ render(<SupportForm requestKey="support_reward_001" rewardId={caseId}/>);
+ expect(screen.getByRole('combobox',{name:'What do you need help with?'})).toHaveProperty('value','reward');
+ expect(screen.getByRole('textbox',{name:'Subject'})).toHaveProperty('value','Question about this reward');
+ fireEvent.change(screen.getByRole('textbox',{name:'Tell us what happened'}),{target:{value:'Please check my winning reward.'}});
+ fireEvent.click(screen.getByRole('button',{name:'Send support request'}));await screen.findByRole('alert');
+ fireEvent.click(screen.getByRole('button',{name:'Check saved message'}));
+ await waitFor(()=>expect(mocks.replace).toHaveBeenCalledWith(`/support?case=${caseId}#conversation`));
+ const first=mocks.save.mock.calls[0][1] as FormData;
+ expect(first.get('rewardId')).toBe(caseId);expect(first.get('transactionId')).toBe('');
+ expect(mocks.save.mock.calls[1][1]).toBe(first);
+});
 test("ordinary customers get a reply box but no status or financial controls", () => {
   render(<SupportForm requestKey="support_request_001" caseId={caseId} />);
   expect(screen.getByRole("textbox", { name: "Your reply" })).toBeTruthy();

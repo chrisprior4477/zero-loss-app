@@ -53,6 +53,23 @@ test("age cleanup requires review and does not include a recently shared entry",
   await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String), { scope: "crew", before: expect.any(String) }));
 });
 
+test('each cleanup step starts at the top with its heading focused and without submitting cleanup',()=>{
+ render(<CrewSharedPicks {...base}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Clean up sharing'}));
+ const dialog=screen.getByRole('dialog');dialog.scrollTop=275;
+ const review=within(dialog).getByRole('button',{name:'Review cleanup'});review.focus();fireEvent.click(review);
+ expect(screen.getByRole('dialog',{name:'Review cleanup'})).toBe(dialog);
+ expect(dialog.scrollTop).toBe(0);
+ expect(document.activeElement).toBe(within(dialog).getByRole('heading',{name:'Review cleanup'}));
+ expect(within(dialog).getByRole('button',{name:'Close Review cleanup'})).toBeTruthy();
+ expect(actions.cleanupCrewShares).not.toHaveBeenCalled();
+ dialog.scrollTop=180;fireEvent.click(within(dialog).getByRole('button',{name:'Change selection'}));
+ expect(dialog.scrollTop).toBe(0);
+ expect(document.activeElement).toBe(within(dialog).getByRole('heading',{name:'Clean up sharing'}));
+ fireEvent.click(within(dialog).getByRole('button',{name:'Close Clean up sharing'}));
+ expect(screen.queryByRole('dialog')).toBeNull();expect(actions.cleanupCrewShares).not.toHaveBeenCalled();
+});
+
 test("cleanup preview and displayed dates use the selected group's own sharing clock", () => {
   const now = new Date().toISOString();
   const scoped = { ...entries[1], audienceSharedAt: { [family]: "2026-01-01T12:00:00Z", [football]: now } };

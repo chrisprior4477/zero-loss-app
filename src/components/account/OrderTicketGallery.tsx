@@ -112,7 +112,7 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
         {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd><span title={value}>{value.slice(-8).toUpperCase()}</span><button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
         <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone)}</time> : "Unavailable"}</dd></div>
       </dl>
-      {order.orderNumber ? <Link className={styles.reportSupport} href={`/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report`}>Report a problem to Support<AccountIcon name="arrow" /></Link> : null}
+      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report` : `/support?rewardId=${encodeURIComponent(order.rewardId)}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => { element?.select(); }} /> : null}

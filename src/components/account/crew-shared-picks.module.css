@@ -53,7 +53,7 @@
 .dialog { position: fixed; inset: var(--crew-dialog-top, 132px) 12px 12px; width: calc(100% - 24px); max-width: 580px; max-height: calc(100dvh - var(--crew-dialog-top, 132px) - 12px); height: fit-content; margin: 0 auto auto; border: 0; padding: 0; background: transparent; color: #143653; overflow: auto; overscroll-behavior: contain; }
 .dialog::backdrop { background: #051d37aa; backdrop-filter: blur(3px); }
 .dialogBody { padding: 24px; background: #fffefa; }
-.dialogTitle { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+.dialogTitle { position: sticky; top: 0; z-index: 2; background: #fffefa; display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; padding: 4px 0 10px; }
 .dialogTitle h2 { font-size: 27px; font-weight: 850; line-height: 1.2; }
 .dialogTitle button { flex: 0 0 42px; padding: 7px; font-size: 25px; }
 .mobileGroupList { max-height: min(360px, 46dvh); overflow-y: auto; overscroll-behavior: contain; scroll-snap-type: y proximity; display: grid; gap: 8px; padding: 4px; }

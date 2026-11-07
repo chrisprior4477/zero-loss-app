@@ -22,7 +22,7 @@ const routes: Record<string, ReturnRoute> = {
   "/account/payment-methods": { query: {} },
   "/account/orders": { query: { filter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), order: matches(identifier), rewardId: matches(uuid), support: oneOf("report") }, hash: /^#(?:fulfillment-records|order-[a-zA-Z0-9_-]{1,80})$/ },
   "/account/results": { query: {} },
-  "/support": { query: { case: matches(uuid), transaction: matches(uuid), view: oneOf("inbox"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/) }, hash: /^#(?:conversation|case-list)$/ },
+  "/support": { query: { case: matches(uuid), transaction: matches(uuid), rewardId: matches(uuid), view: oneOf("inbox"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/) }, hash: /^#(?:conversation|case-list|report-problem)$/ },
 };
 
 function returnRoute(path: string): ReturnRoute | undefined {

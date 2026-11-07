@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn(), from: vi.fn(), reward: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc, from: mocks.from }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { saveSupportCase } from "./actions";
 const caseId = "11111111-1111-4111-8111-111111111111";
@@ -17,6 +17,9 @@ beforeEach(() => {
   vi.stubEnv("VERCEL_ENV", "preview");
   mocks.getUser.mockResolvedValue({ data: { user: { id: "owner" } } });
   mocks.rpc.mockResolvedValue({ data: caseId });
+  const rewardQuery={select:vi.fn(),eq:vi.fn(),maybeSingle:mocks.reward};
+  rewardQuery.select.mockReturnValue(rewardQuery);rewardQuery.eq.mockReturnValue(rewardQuery);
+  mocks.from.mockReturnValue(rewardQuery);mocks.reward.mockResolvedValue({data:{id:caseId},error:null});
 });
 afterEach(() => vi.unstubAllEnvs());
 test("creates an authenticated, transaction-linked case with a replay key", async () => {
@@ -66,4 +69,38 @@ test("an ambiguous transport failure preserves an exact-retry state", async () =
 test("malformed success cannot redirect to an arbitrary URL", async () => {
   mocks.rpc.mockResolvedValue({ data: "https://attacker.example" });
   expect(await saveSupportCase({ status: "idle" }, form())).toMatchObject({ status: "error", uncertain: true });
+});
+
+function rewardForm(){const data=form();data.delete('transactionId');data.set('rewardId',caseId);data.set('category','reward');return data;}
+test('the opening case stores an owner-verified reward reference in its durable message without a wallet transaction',async()=>{
+ const data=rewardForm();data.set('customerId','foreign-owner');data.set('giftCardCode','never-copy-this');
+ expect(await saveSupportCase({status:'idle'},data)).toEqual({status:'saved',caseId});
+ expect(mocks.from).toHaveBeenCalledWith('customer_rewards');
+ expect(mocks.from.mock.results[0].value.eq.mock.calls).toEqual([['id',caseId],['customer_id','owner']]);
+ const args=mocks.rpc.mock.calls[0][1];
+ expect(args.p_ledger_entry_id).toBeNull();expect(args.p_category).toBe('reward');
+ expect(args.p_body).toBe(`Reward reference: ${caseId}\n\nPlease check this transaction.`);
+ expect(args.p_body).not.toContain('never-copy-this');
+ await saveSupportCase({status:'error',uncertain:true,message:'Check result'},data);
+ expect(mocks.rpc.mock.calls[1]).toEqual(mocks.rpc.mock.calls[0]);
+});
+test.each([null,{data:null,error:{message:'Unavailable'}}])('an unavailable or foreign reward cannot create a linked case (%s)',async failure=>{
+ mocks.reward.mockResolvedValue({data:null,error:failure});
+ expect(await saveSupportCase({status:'idle'},rewardForm())).toMatchObject({status:'error',message:expect.stringContaining('reward is unavailable')});
+ expect(mocks.rpc).not.toHaveBeenCalled();
+});
+test('malformed and mixed references fail before any database operation',async()=>{
+ for(const id of ['bad',caseId]){
+  const data=form();data.set('rewardId',id);
+  expect((await saveSupportCase({status:'idle'},data)).status).toBe('error');
+ }
+ expect(mocks.getUser).not.toHaveBeenCalled();expect(mocks.rpc).not.toHaveBeenCalled();
+});
+test('the message limit reserves space for the attached reward and preserves the full customer message',async()=>{
+ const data=rewardForm();data.set('body','x'.repeat(3944));
+ expect((await saveSupportCase({status:'idle'},data)).status).toBe('saved');
+ expect(mocks.rpc.mock.calls[0][1].p_body.length).toBe(4000);
+ mocks.rpc.mockClear();data.set('body','x'.repeat(3945));
+ expect(await saveSupportCase({status:'idle'},data)).toMatchObject({status:'error',field:'body'});
+ expect(mocks.rpc).not.toHaveBeenCalled();
 });

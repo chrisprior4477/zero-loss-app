@@ -72,6 +72,15 @@ test("a complete single page has no extra-ticket edges", () => {
   expect(screen.queryByRole("button", { name: /Show (next|previous) order tickets/ })).toBeNull();
 });
 
+test('a winning reward opens a direct support form with its own reward reference and no purchase transaction',()=>{
+ const reward=record(1,{source:'winner',orderNumber:null,rewardId:'11111111-1111-4111-8111-111111111111',amountPaidCents:null});
+ render(<OrderTicketGallery orders={[reward]}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Reward details'}));
+ const dialog=screen.getByRole('dialog',{name:'Reward details'});
+ expect(within(dialog).getByRole('link',{name:'Report a problem to Support'}).getAttribute('href')).toBe(`/support?rewardId=${reward.rewardId}#report-problem`);
+ expect(within(dialog).getByRole('button',{name:'Copy for Support'})).toBeTruthy();
+});
+
 test.each([0, 1])("rotation keeps the selected order from a later phone page open (card %i)", async offset => {
   let phone = true;
   let change = () => {};
