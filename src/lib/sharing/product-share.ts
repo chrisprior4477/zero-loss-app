@@ -41,9 +41,14 @@ export function isAppleMobile(userAgent: string, platform: string, maxTouchPoint
   return /iPhone|iPad|iPod/i.test(userAgent) || (platform === "MacIntel" && maxTouchPoints > 1);
 }
 
+export function isCompleteSharePhone(phone: string): boolean {
+  const clean = phone.trim();
+  return /^\+?[\d ()\-.]+$/.test(clean) && /^\d{10,15}$/.test(clean.replace(/\D/g, ""));
+}
+
 export function messageHref(phone: string, body: string, appleMobile: boolean): string {
   const clean = phone.trim();
-  if (clean && (!/^\+?[\d ()\-.]+$/.test(clean) || !/^\d{5,15}$/.test(clean.replace(/\D/g, "")))) throw new Error("Enter a valid phone number.");
+  if (clean && !isCompleteSharePhone(clean)) throw new Error("Enter a complete phone number, or leave this blank.");
   const recipient = clean.replace(/[^+\d]/g, "");
   // iOS uses &body; Android SMS handlers use the standard ?body query.
   return `sms:${recipient}${appleMobile ? "&" : "?"}body=${encodeURIComponent(body)}`;

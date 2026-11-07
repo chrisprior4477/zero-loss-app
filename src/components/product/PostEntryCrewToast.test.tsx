@@ -625,13 +625,14 @@ test("keyboard Go uses the same SMS composer as the adjacent Send Text link", ()
   expect(screen.getByRole("button", { name: "Add to Crew" }).parentElement).toBe(input.parentElement);
 });
 
-test("an incomplete phone number keeps Send Text keyboard-accessible and explains how to correct it", () => {
+test.each(["1", "12345", "123456", "1234567", "12345678", "123456789", "words2025550123"])("incomplete number %s keeps Send Text keyboard-accessible and explains how to correct it", phone => {
   open(); fireEvent.click(screen.getByRole("button", { name: "Text" }));
   const input = screen.getByLabelText(/Phone number/);
-  fireEvent.change(input, { target: { value: "1" } });
+  fireEvent.change(input, { target: { value: phone } });
   const send = screen.getByRole("link", { name: "Send text" });
   expect(send.tabIndex).toBe(0);
   expect(send.getAttribute("href")).toBeNull();
+  expect(screen.getByRole("button", { name: "Add to Crew" })).toHaveProperty("disabled", true);
   fireEvent.keyDown(send, { key: "Enter" });
   expect(screen.getByRole("alert").textContent).toBe("Please enter a complete phone number, or leave this blank.");
   expect(input.getAttribute("aria-invalid")).toBe("true");

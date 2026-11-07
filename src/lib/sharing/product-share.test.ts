@@ -1,5 +1,15 @@
 import { expect, test } from "vitest";
-import { crewLookupKind, emailHref, isAppleMobile, isProductShareItem, messageHref, nativeProductShareData, productShareUrl, shareDismissalKey, webmailHref } from "./product-share";
+import { crewLookupKind, emailHref, isAppleMobile, isCompleteSharePhone, isProductShareItem, messageHref, nativeProductShareData, productShareUrl, shareDismissalKey, webmailHref } from "./product-share";
+
+test.each(["1", "12345", "123456", "1234567", "12345678", "123456789", "1234567890123456", "name2025550123", "2025550123?body=extra"])("incomplete or malformed recipient %s cannot become an SMS link", phone => {
+  expect(isCompleteSharePhone(phone)).toBe(false);
+  expect(() => messageHref(phone, "Look", false)).toThrow();
+});
+
+test.each(["2025550123", "+1 (202) 555-0123", "123456789012345"])("complete recipient %s works for Text and Crew validation", phone => {
+  expect(isCompleteSharePhone(phone)).toBe(true);
+  expect(messageHref(phone, "Look", false)).toMatch(/^sms:/);
+});
 
 test("public exact listing excludes private account path, query and fragments", () => {
   expect(productShareUrl("https://example.test/account/entries?entry=private#receipt", "nike-court-shot")).toBe("https://example.test/items/nike-court-shot");

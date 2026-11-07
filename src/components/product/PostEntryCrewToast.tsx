@@ -8,7 +8,7 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as 
 import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, removeCrewMember, saveCrewGroup, saveCrewMemberContact, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, shareWinWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
 import type { CrewMemberContact } from "@/lib/crew/member-contact";
 import { getProductShareItem } from "@/lib/sharing/actions";
-import { crewLookupKind, emailHref, isAppleMobile, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
+import { crewLookupKind, emailHref, isAppleMobile, isCompleteSharePhone as validPhone, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
 import type { CrewGroupContact } from "@/lib/crew/visibility";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import { CrewGroupRemovalCountdown } from "@/components/account/CrewGroupRemovalCountdown";
@@ -21,7 +21,6 @@ type Step = "home" | "send" | "messages" | "email" | "crew" | "find" | "audience
 type PhoneContact = { name?: string[]; email?: string[]; tel?: string[] };
 type ContactPicker = { select: (properties: string[], options: { multiple: boolean }) => Promise<PhoneContact[]> };
 const contactKey = (value: string, kind: "id" | "email" | "phone") => kind === "phone" ? value.replace(/\D/g, "") : value.trim().toLowerCase();
-const validPhone = (value: string) => /^\d{10,15}$/.test(value.replace(/\D/g, ""));
 
 // An incomplete recipient has no draft href, so the browser won't synthesize a click.
 function activateDraftLink(event: ReactKeyboardEvent<HTMLAnchorElement>) {

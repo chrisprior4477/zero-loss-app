@@ -17,22 +17,23 @@ const choices: readonly { key: NotificationPreferenceKey; label: string; descrip
 ];
 
 export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnabled = true }: { supportEnabled?: boolean; initialPreferences: NotificationPreferences | null; onSaved: (key: NotificationPreferenceKey, enabled: boolean) => void }) {
-  const [preferences, setPreferences] = useState<NotificationPreferences>(initialPreferences ?? {});
-  const [pendingKey, setPendingKey] = useState<NotificationPreferenceKey | null>(null);
+  const [pendingChoice, setPendingChoice] = useState<{ key: NotificationPreferenceKey; enabled: boolean } | null>(null);
   const [message, setMessage] = useState("");
   const [saving, startTransition] = useTransition();
 
   function change(key: NotificationPreferenceKey, enabled: boolean) {
-    const prior = preferences[key] !== false;
-    setPreferences(current => ({ ...current, [key]: enabled }));
-    setPendingKey(key);
+    setPendingChoice({ key, enabled });
     setMessage("");
     startTransition(async () => {
-      const result = await setInAppAlertPreference(key, enabled);
-      if (!result.ok) setPreferences(current => ({ ...current, [key]: prior }));
-      else onSaved(key, enabled);
-      setMessage(result.message);
-      setPendingKey(null);
+      try {
+        const result = await setInAppAlertPreference(key, enabled);
+        if (result.ok) onSaved(key, enabled);
+        setMessage(result.message);
+      } catch {
+        setMessage("We couldn’t confirm your alert choice. Please try again.");
+      } finally {
+        setPendingChoice(null);
+      }
     });
   }
 
@@ -42,10 +43,10 @@ export function InAppAlertPreferences({ initialPreferences, onSaved, supportEnab
     <div className={styles.preferenceGrid}>
       {choices.filter(choice => supportEnabled || choice.key !== "support_replies").map(choice => <label key={choice.key} className={styles.preferenceChoice}>
         <span><strong>{choice.label}</strong><small>{choice.description}</small></span>
-        <input type="checkbox" checked={preferences[choice.key] !== false} onChange={event => change(choice.key, event.target.checked)} disabled={initialPreferences === null || saving} aria-label={`${choice.label} in-app alerts`} />
+        <input type="checkbox" checked={pendingChoice?.key === choice.key ? pendingChoice.enabled : initialPreferences?.[choice.key] !== false} onChange={event => change(choice.key, event.target.checked)} disabled={initialPreferences === null || saving} aria-label={`${choice.label} in-app alerts`} />
       </label>)}
     </div>
     {initialPreferences === null ? <p role="status">Alert settings are temporarily unavailable; all verified updates remain visible.</p> : null}
-    {message ? <p role="status" data-saving={pendingKey !== null}>{message}</p> : null}
+    {message ? <p role="status" data-saving={pendingChoice !== null}>{message}</p> : null}
   </section>;
 }

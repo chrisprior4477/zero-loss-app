@@ -42,13 +42,15 @@ type NotificationOverview = { balanceLabel: string; fundingEnabled: boolean; act
 export function NotificationsCenter({ userId, supportEnabled = true, notifications, initialReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable, initialAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
-  const [alertPreferences, setAlertPreferences] = useState<NotificationPreferences>(initialAlertPreferences ?? {});
+  const [savedPreferenceOverrides, setSavedPreferenceOverrides] = useState<NotificationPreferences>({});
+  const alertPreferences = useMemo(() => ({ ...initialAlertPreferences, ...savedPreferenceOverrides }), [initialAlertPreferences, savedPreferenceOverrides]);
   const router = useRouter();
   const [responding, startTransition] = useTransition();
   const [savingRead, startReadTransition] = useTransition();
   const [crewMessage, setCrewMessage] = useState("");
   const [readMessage, setReadMessage] = useState("");
-  const [read, setRead] = useState<Set<string>>(() => new Set(initialReadIds));
+  const [locallyRead, setLocallyRead] = useState<Set<string>>(() => new Set());
+  const read = useMemo(() => new Set([...initialReadIds, ...locallyRead]), [initialReadIds, locallyRead]);
   const headingRef = useRef<HTMLElement>(null);
   const scrollFrame = useRef<number | null>(null);
   const enabledNotifications = useMemo(() => notifications.filter(notification => notificationIsEnabled(notification, alertPreferences)), [notifications, alertPreferences]);
@@ -60,6 +62,27 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter((item) => item.status === "completion").length;
   const restoreRange = batches.restoreRange;
+
+  useEffect(() => {
+    // Retain optimistic receipts until acknowledged, then let newer snapshots own them.
+    const acknowledged = new Set(initialReadIds);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocallyRead(current => {
+      if (![...current].some(id => acknowledged.has(id))) return current;
+      return new Set([...current].filter(id => !acknowledged.has(id)));
+    });
+  }, [initialReadIds]);
+
+  useEffect(() => {
+    if (initialAlertPreferences === null) return;
+    // Discard only overrides the server has acknowledged. An older refresh must
+    // not reverse a successful local choice while its fresh response is arriving.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSavedPreferenceOverrides(current => {
+      const remaining = Object.entries(current).filter(([key, enabled]) => (initialAlertPreferences[key as NotificationPreferenceKey] !== false) !== enabled);
+      return remaining.length === Object.keys(current).length ? current : Object.fromEntries(remaining);
+    });
+  }, [initialAlertPreferences, savedPreferenceOverrides]);
 
   useLayoutEffect(() => {
     if (!userId) return;
@@ -147,11 +170,11 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
     const ids = enabledNotifications.map((notification) => notification.id).filter((id) => !read.has(id));
     if (!ids.length || !readAvailable) return;
     setReadMessage("");
-    setRead((previous) => new Set([...previous, ...ids]));
+    setLocallyRead((previous) => new Set([...previous, ...ids]));
     startReadTransition(async () => {
       const result = await saveRead(ids);
       if (!result.ok) {
-        setRead((previous) => {
+        setLocallyRead((previous) => {
           const next = new Set(previous);
           ids.forEach((id) => next.delete(id));
           return next;
@@ -162,11 +185,11 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
   }
 
   function openNotification(notification: AccountNotification) {
-    setRead((previous) => new Set(previous).add(notification.id));
+    setLocallyRead((previous) => new Set(previous).add(notification.id));
     startReadTransition(async () => {
       const result = await saveRead([notification.id]);
       if (!result.ok) {
-        setRead((previous) => {
+        setLocallyRead((previous) => {
           const next = new Set(previous);
           next.delete(notification.id);
           return next;
@@ -247,7 +270,7 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
         </section>
       </div>
       <div id="alert-settings" className={styles.settingsBlock}>
-        <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setAlertPreferences(current => ({ ...current, [key]: enabled }))} />
+        <InAppAlertPreferences supportEnabled={supportEnabled} initialPreferences={initialAlertPreferences === null ? null : alertPreferences} onSaved={(key: NotificationPreferenceKey, enabled: boolean) => setSavedPreferenceOverrides(current => ({ ...current, [key]: enabled }))} />
         <Link href="/account/crew?tab=picks#sharing" className={styles.sharingLink}>Sharing preferences <AccountIcon name="arrow" /></Link>
         <h2>Email choices</h2>
         <p>These controls affect email only; the in-app choices above affect this notification list.</p>
