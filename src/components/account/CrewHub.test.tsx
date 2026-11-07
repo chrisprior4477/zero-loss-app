@@ -176,7 +176,7 @@ test("the account Crew section expands approved people's activity in place", asy
   fireEvent.click(screen.getByRole("button", { name: "See Taylor Crew's shared activity" }));
   await waitFor(() => expect(actions.getCrewSharedPicks).toHaveBeenCalledWith("22222222-2222-4222-8222-222222222222"));
   expect(screen.getByRole("region", { name: "Taylor Crew's shared activity" })).toBeTruthy();
-  expect(await screen.findByRole("link", { name: /Nike Court Shot Shoes/ })).toHaveProperty("href", "http://localhost:3000/items/nike-court-shot-shoes?from=%2Faccount%2Fcrew%3Fmember%3D22222222-2222-4222-8222-222222222222%26pick%3Dnike-court-shot-shoes%23crew-intro");
+  expect(await screen.findByRole("link", { name: /Nike Court Shot Shoes/ })).toHaveProperty("href", "http://localhost:3000/items/nike-court-shot-shoes?from=%2Faccount%2Fcrew%3Fmember%3D22222222-2222-4222-8222-222222222222%26pick%3Dnike-court-shot-shoes");
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("button", { name: "Add to Your Crew" })).toBeTruthy();
   expect(screen.queryByRole("searchbox")).toBeNull();
@@ -394,7 +394,7 @@ test("the product's explicit Crew return selects Daniel and retains the exact pi
   const panel = await screen.findByRole("region", { name: "Daniel's shared activity" });
   const link = within(panel).getAllByRole("link", { name: "View item" })[1];
   const from = new URL(link.getAttribute("href")!, "https://example.test").searchParams.get("from");
-  expect(from).toBe("/account/crew?member=sample-Daniel&pick=dyson-v8-cordless-vacuum#crew-intro");
+  expect(from).toBe("/account/crew?member=sample-Daniel&pick=dyson-v8-cordless-vacuum");
   expect(screen.queryByRole("region", { name: "Maya's shared activity" })).toBeNull();
 });
 

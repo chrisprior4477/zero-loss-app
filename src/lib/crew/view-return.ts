@@ -6,7 +6,7 @@ export function crewPickReturnPath(value: unknown): string | null {
   try {
     const url = new URL(value, "https://zeroloss.local");
     const keys = [...url.searchParams.keys()];
-    if (url.pathname !== "/account/crew" || url.hash !== "#crew-intro" || keys.length !== 2 || new Set(keys).size !== 2
+    if (url.pathname !== "/account/crew" || (url.hash && url.hash !== "#crew-intro") || keys.length !== 2 || new Set(keys).size !== 2
       || keys.some(key => key !== "member" && key !== "pick")
       || !/^[a-zA-Z0-9_-]{1,80}$/.test(url.searchParams.get("member") ?? "")
       || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url.searchParams.get("pick") ?? "")) return null;
@@ -15,7 +15,9 @@ export function crewPickReturnPath(value: unknown): string | null {
 }
 
 export function crewPickHref(selectedKey: string, pickSlug: string): string {
-  return `/account/crew?${new URLSearchParams({ member: selectedKey, pick: pickSlug })}#crew-intro`;
+  // The gallery positions the chosen pick itself. Avoid a competing hash scroll,
+  // including Next's cached-navigation handling of an already visited anchor.
+  return `/account/crew?${new URLSearchParams({ member: selectedKey, pick: pickSlug })}`;
 }
 
 export function readCrewPickDestination(href: string): { selectedKey: string; pickSlug: string } | null {
