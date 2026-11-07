@@ -21,7 +21,13 @@ type Props = {
   preview?: { layout?: MenuLayout; expanded: boolean; query: string; pageCategoriesInPreviewBody?: boolean; onExpandedChange?: (open: boolean) => void; onSearch?: (query: string) => void };
 };
 
-export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonItems, hiddenSlugs, preview }: Props) {
+export function ResponsiveSiteHeader(props: Props) {
+  const header = <ResponsiveSiteHeaderContent {...props} />;
+  // Keep URL-dependent draft state below Suspense; layout previews retain their own draft.
+  return props.preview ? header : <Suspense fallback={header}><SharedHeaderSearchDraft>{header}</SharedHeaderSearchDraft></Suspense>;
+}
+
+function ResponsiveSiteHeaderContent({ logo, metrics, accountMenu, endingSoonItems, hiddenSlugs, preview }: Props) {
   const menu = useMenuLayout();
   const viewport = useMenuViewport();
   const layout = preview ? (preview.layout ?? menu.layout) : menu.layouts[viewport ?? "mobile"];
@@ -88,7 +94,7 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
     } : undefined,
   };
 
-  const header = <>
+  return <>
     <header ref={headerRef} data-menu-layout={layout} data-menu-viewport={viewport ?? undefined} data-search-open={expanded} data-menu-preview={preview ? "true" : undefined} style={{ "--mobile-logo-scale": 1 + logoSize / 100 } as CSSProperties} className={`${preview ? "" : "sticky"} ${styles.header}`}>
       <div className={styles.topRow}>
         <div ref={logoRef} className={styles.logo}>{logo}</div>
@@ -117,6 +123,4 @@ export function ResponsiveSiteHeader({ logo, metrics, accountMenu, endingSoonIte
       <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} showHome={layout !== "home-ending-search"} />
     </div> : null}
   </>;
-  // Keep URL-dependent draft state below Suspense; layout previews retain their own draft.
-  return preview ? header : <Suspense fallback={header}><SharedHeaderSearchDraft>{header}</SharedHeaderSearchDraft></Suspense>;
 }
