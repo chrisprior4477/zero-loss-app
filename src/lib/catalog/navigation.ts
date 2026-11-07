@@ -10,6 +10,12 @@ export const marketplaceCategories = [
   { id: "gift-cards", label: "Gift Cards" },
   { id: "home-essentials", label: "Home Essentials" },
   { id: "movie-night", label: "Movie Night" },
+  { id: "outdoors", label: "Outdoor & Camping" },
+  { id: "tools-diy", label: "Tools & DIY" },
+  { id: "kitchen", label: "Kitchen" },
+  { id: "sports-fitness", label: "Sports & Fitness" },
+  { id: "pets", label: "Pet Supplies" },
+  { id: "fishing", label: "Fishing" },
 ] as const;
 
 export type MarketplaceCategoryId = (typeof marketplaceCategories)[number]["id"];
@@ -40,7 +46,7 @@ export function marketplaceCategoryId(value: string): MarketplaceCategoryId | nu
   const normalized = value.trim().toLowerCase();
   return marketplaceCategories.some((category) => category.id === normalized)
     ? normalized as MarketplaceCategoryId
-    : categoryAliases[normalized] ?? null;
+    : marketplaceCategories.find(category => category.label.toLowerCase() === normalized)?.id ?? categoryAliases[normalized] ?? null;
 }
 
 export function marketplaceCategoryHref(value: string, subcategory?: string): string {
@@ -63,6 +69,7 @@ const includesAny = (value: string, needles: readonly string[]) =>
   needles.some((needle) => value.includes(needle));
 
 export function productMatchesMarketplaceCategory(product: DemoProduct, category: MarketplaceCategoryId): boolean {
+  if (category !== "ending-soon" && product.collections) return product.collections.includes(category);
   const haystack = `${product.category} ${product.title} ${product.brand} ${product.retailer}`.toLowerCase();
   switch (category) {
     case "ending-soon":
@@ -81,5 +88,9 @@ export function productMatchesMarketplaceCategory(product: DemoProduct, category
       return includesAny(haystack, ["home essentials", "homegoods", "home depot", "lowe", "vacuum", "baby essentials"]);
     case "movie-night":
       return movieNightSlugs.has(product.slug);
+    case "tools-diy":
+      return product.slug === "dewalt-20v-drill-kit";
+    case "outdoors": case "kitchen": case "sports-fitness": case "pets": case "fishing":
+      return false;
   }
 }

@@ -10,6 +10,22 @@ vi.mock("./SocialActivityFeed", () => ({ SocialActivityFeed: () => null }));
 
 afterEach(cleanup);
 
+test("the mosaic repacks distinct products into full compact pairs after filtering unavailable items", () => {
+  const resolved = ["samsung-m70h-tv", "babys-essentials-bundle", "nike-court-shot-shoes"];
+  const slug = "playstation-5-slim";
+  const snapshot = { [slug]: {slug, capacity: 1950, sold: 1950, remaining: 0, entryPriceCents: 100, repeatableScenario: false} };
+  render(<OfferingAvailabilityProvider snapshot={snapshot} resolvedSlugs={resolved}><DesktopMarketplaceRails /></OfferingAvailabilityProvider>);
+  const mosaic = screen.getByRole("region", {name: "Browse the marketplace"});
+  const cards = [...mosaic.querySelectorAll("article")];
+  const hrefs = cards.map(card => card.querySelector("a")?.getAttribute("href"));
+  expect(new Set(hrefs).size).toBe(cards.length);
+  expect(hrefs).not.toContain(`/items/${slug}`);
+  expect(cards.length).toBeGreaterThan(25);
+  for (const card of cards.filter(card => card.parentElement?.classList.contains("flex-col"))) {
+    expect(card.parentElement?.children).toHaveLength(2);
+  }
+});
+
 test("the homepage Ending Soon heading uses the orange accent", () => {
   render(<OfferingAvailabilityProvider snapshot={null} resolvedSlugs={[]}><DesktopMarketplaceRails /></OfferingAvailabilityProvider>);
   const heading = within(document.getElementById("ending-soon")!).getByRole("heading", { name: "Ending Soon" });

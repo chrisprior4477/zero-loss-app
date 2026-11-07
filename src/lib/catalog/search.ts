@@ -1,4 +1,5 @@
 import type { DemoProduct } from "./demo-products";
+import { isGiftCardListing } from "./navigation";
 import { productSearchTerms, retailerDiscoveryTerms } from "./search-vocabulary";
 import { normalizeSearch, queryWords, searchWords, searchWordScore } from "./search-text";
 
@@ -9,7 +10,8 @@ export function searchCatalogMatches(products: readonly DemoProduct[], query: st
   const normalizedQuery = normalizeSearch(query);
   const tokens = queryWords(query);
   if (!tokens.length || tokens.length > 32) return [];
-  const documents = products.map(product => {
+  const candidates = /\bgift card\b/.test(normalizedQuery) ? products.filter(isGiftCardListing) : products;
+  const documents = candidates.map(product => {
     const giftCard = product.slug.endsWith("-gift-card");
     const title = new Set(searchWords(product.title));
     const merchant = new Set(searchWords(`${product.brand} ${product.retailer}`));

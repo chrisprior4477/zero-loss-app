@@ -9,9 +9,10 @@ import { productMatchesMarketplaceCategory } from "./navigation";
 import { searchCatalogMatches } from "./search";
 import { dollarChoiceDemoItems } from "@/lib/home/demo-data";
 import { placeholderDiscoveryOpportunities } from "@/lib/home/placeholder-data";
+import { popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "./popular-rewards";
 
 test("the pilot is a unique pictured product discoverable through the appropriate top menus", () => {
-  expect(expansionProducts).toHaveLength(1);
+  expect(expansionProducts).toHaveLength(26);
   const drill = getDemoProduct("dewalt-20v-drill-kit")!;
   expect(demoProducts.filter(p => p.slug === drill.slug)).toHaveLength(1);
   expect(drill.retailer).toBe("The Home Depot");
@@ -20,6 +21,28 @@ test("the pilot is a unique pictured product discoverable through the appropriat
   expect(productMatchesMarketplaceCategory(drill, "electronics")).toBe(false);
   for (const query of ["DEWALT", "cordless drill", "DCD771C2"])
     expect(searchCatalogMatches(demoProducts, query)[0]?.product.slug, query).toBe(drill.slug);
+});
+
+test("every pictured addition has both gallery images, a transparent cutout and a working category", async () => {
+  for (const product of expansionProducts.slice(1)) {
+    expect(getDemoProduct(product.slug)).toBe(product);
+    expect(product.collections?.length).toBeGreaterThan(0);
+    for (const image of product.gallery)
+      expect(existsSync(path.join(process.cwd(), "public", image.src)), product.slug).toBe(true);
+    const stats = await sharp(path.join(process.cwd(), "public", product.gallery[0].src)).stats();
+    expect(stats.channels[3]?.min, product.slug).toBe(0);
+    expect(stats.channels[3]?.max, product.slug).toBeGreaterThan(240);
+    expect(dollarChoiceDemoItems.filter(item => item.href === `/items/${product.slug}`)).toHaveLength(1);
+  }
+});
+
+test("each vendor circle resolves to four distinct gift-card values from its retailer", () => {
+  for (const brand of popularRewardBrands) for (const amount of popularRewardAmounts) {
+    const card = getDemoProduct(popularRewardProductSlug(brand.slug, amount));
+    expect(card?.value, `${brand.slug} $${amount}`).toBe(amount);
+    expect(card?.retailer).toBe(brand.name);
+    expect(card?.title).toMatch(/gift card/i);
+  }
 });
 
 test("the homepage and catalog agree on the pilot value, image, and real capacity", () => {

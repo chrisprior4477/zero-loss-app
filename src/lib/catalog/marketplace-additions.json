@@ -1,0 +1,475 @@
+[
+  {
+    "slug": "yeti-rambler-30-tumbler",
+    "title": "YETI Rambler 30 oz Tumbler",
+    "brand": "YETI",
+    "retailer": "Cabela’s®",
+    "category": "Outdoor & Camping",
+    "collections": [
+      "outdoors",
+      "everyday-items"
+    ],
+    "value": 50,
+    "remaining": 1,
+    "summary": "An insulated stainless steel tumbler with a MagSlider lid for the drive to camp or a day at the lake.",
+    "highlights": [
+      "30 oz capacity",
+      "MagSlider lid"
+    ],
+    "sourceUrl": "https://www.cabelas.com/p/yeti-rambler-30-oz-tumbler"
+  },
+  {
+    "slug": "coleman-sundome-4",
+    "title": "Coleman Sundome 4-Person Tent",
+    "brand": "Coleman",
+    "retailer": "Cabela’s®",
+    "category": "Outdoor & Camping",
+    "collections": [
+      "outdoors"
+    ],
+    "value": 100,
+    "remaining": 1,
+    "summary": "A four-person dome tent with a rainfly and a compact footprint for a weekend campsite.",
+    "highlights": [
+      "Four-person design",
+      "Dome tent with rainfly"
+    ],
+    "sourceUrl": "https://www.cabelas.com/p/coleman-sundome-4-person-tent"
+  },
+  {
+    "slug": "penn-battle-iv-2500",
+    "title": "PENN Battle IV 2500 Spinning Reel",
+    "brand": "PENN",
+    "retailer": "Cabela’s®",
+    "category": "Fishing",
+    "collections": [
+      "outdoors",
+      "sports-fitness"
+    ],
+    "value": 150,
+    "remaining": 405,
+    "summary": "A 2500-size spinning reel with a metal body and a front drag for fishing from the bank or a boat.",
+    "highlights": [
+      "2500 reel size",
+      "Front drag spinning reel"
+    ],
+    "sourceUrl": "https://www.cabelas.com/shop/en/penn-battle-iv-spinning-reel-4065214"
+  },
+  {
+    "slug": "vortex-diamondback-hd-10x42",
+    "title": "Vortex Diamondback HD 10×42 Binoculars",
+    "brand": "Vortex",
+    "retailer": "Cabela’s®",
+    "category": "Outdoor & Camping",
+    "collections": [
+      "outdoors"
+    ],
+    "value": 250,
+    "remaining": 1,
+    "summary": "A pair of 10-power binoculars with 42 mm objective lenses for spotting wildlife on the trail.",
+    "highlights": [
+      "10× magnification",
+      "42 mm objective lenses"
+    ],
+    "sourceUrl": "https://www.cabelas.com/shop/en/vortex-diamondback-hd-binoculars-10x42mm-2722128"
+  },
+  {
+    "slug": "kobalt-24v-leaf-blower",
+    "title": "Kobalt 24V Cordless Leaf Blower",
+    "brand": "Kobalt",
+    "retailer": "Lowe's",
+    "category": "Tools & DIY",
+    "collections": [
+      "tools-diy",
+      "home-essentials"
+    ],
+    "value": 125,
+    "remaining": 2,
+    "summary": "A cordless handheld blower for clearing leaves from paths and patios. The pictured tool takes a Kobalt 24V battery, sold separately.",
+    "highlights": [
+      "500 CFM maximum airflow",
+      "Tool only"
+    ],
+    "sourceUrl": "https://www.lowes.com/pd/Kobalt-120-MPH-24-Volt-Max-Lithium-Ion-Brushless-Handheld-Cordless-Electric-Leaf-Blower-Battery-Not-Included/5001643659"
+  },
+  {
+    "slug": "weber-original-kettle-22",
+    "title": "Weber Original Kettle 22-inch Grill",
+    "brand": "Weber",
+    "retailer": "Lowe's",
+    "category": "Home Essentials",
+    "collections": [
+      "home-essentials",
+      "outdoors"
+    ],
+    "value": 150,
+    "remaining": 360,
+    "summary": "A charcoal kettle grill with a round cooking grate, domed lid, and wheels for moving around the patio.",
+    "highlights": [
+      "22-inch kettle",
+      "Charcoal cooking"
+    ],
+    "sourceUrl": "https://www.lowes.com/pd/Weber-Original-Kettle-22-in-W-Black-Kettle-Charcoal-Grill/3055249"
+  },
+  {
+    "slug": "little-giant-flip-n-lite-m4",
+    "title": "Little Giant Flip-N-Lite M4 Ladder",
+    "brand": "Little Giant",
+    "retailer": "Lowe's",
+    "category": "Tools & DIY",
+    "collections": [
+      "home-essentials",
+      "tools-diy"
+    ],
+    "value": 125,
+    "remaining": 1,
+    "summary": "A folding aluminum stepladder with a standing platform for reaching shelves and working around the house.",
+    "highlights": [
+      "4-foot M4 model",
+      "300 lb rated capacity"
+    ],
+    "sourceUrl": "https://www.lowes.com/pd/little-giant-ladders-flip-n-lite-4-ft-aluminum-type-1a-300-lbs-capacity-platform-step-ladder/1000318873"
+  },
+  {
+    "slug": "milwaukee-packout-large-tool-box",
+    "title": "Milwaukee PACKOUT Large Tool Box",
+    "brand": "Milwaukee",
+    "retailer": "The Home Depot",
+    "category": "Tools & DIY",
+    "collections": [
+      "tools-diy",
+      "home-essentials"
+    ],
+    "value": 100,
+    "remaining": 3,
+    "summary": "A portable tool box with a folding handle and modular connections for a PACKOUT storage stack.",
+    "highlights": [
+      "Model 48-22-8425",
+      "Modular tool storage"
+    ],
+    "sourceUrl": "https://www.homedepot.com/p/303005621"
+  },
+  {
+    "slug": "ryobi-one-plus-inflator",
+    "title": "RYOBI ONE+ Cordless High Pressure Inflator",
+    "brand": "RYOBI",
+    "retailer": "The Home Depot",
+    "category": "Tools & DIY",
+    "collections": [
+      "tools-diy",
+      "home-essentials"
+    ],
+    "value": 50,
+    "remaining": 105,
+    "summary": "An 18V cordless inflator with a digital pressure display and onboard hose. Battery and charger are sold separately.",
+    "highlights": [
+      "Model PCL001B",
+      "18V ONE+ platform"
+    ],
+    "sourceUrl": "https://www.homedepot.com/p/327406129"
+  },
+  {
+    "slug": "ridgid-nxt-6-gallon-vac",
+    "title": "RIDGID NXT 6-Gallon Wet/Dry Vac",
+    "brand": "RIDGID",
+    "retailer": "The Home Depot",
+    "category": "Tools & DIY",
+    "collections": [
+      "tools-diy",
+      "home-essentials"
+    ],
+    "value": 100,
+    "remaining": 1,
+    "summary": "A shop vacuum with a locking hose and extension wands for wet spills and dry debris.",
+    "highlights": [
+      "6-gallon drum",
+      "Model HD06001"
+    ],
+    "sourceUrl": "https://www.homedepot.com/p/306256721"
+  },
+  {
+    "slug": "jbl-flip-7-speaker",
+    "title": "JBL Flip 7 Portable Speaker",
+    "brand": "JBL",
+    "retailer": "Best Buy",
+    "category": "Electronics",
+    "collections": [
+      "electronics",
+      "outdoors"
+    ],
+    "value": 150,
+    "remaining": 4,
+    "summary": "A portable Bluetooth speaker with a textured shell and a carry loop for listening indoors or outside.",
+    "highlights": [
+      "Bluetooth audio",
+      "Portable design"
+    ],
+    "sourceUrl": "https://www.bestbuy.com/product/jbl-flip-7-portable-waterproof-and-drop-proof-speaker-black/6611482"
+  },
+  {
+    "slug": "sony-wh-1000xm5-headphones",
+    "title": "Sony WH-1000XM5 Wireless Headphones",
+    "brand": "Sony",
+    "retailer": "Best Buy",
+    "category": "Electronics",
+    "collections": [
+      "electronics"
+    ],
+    "value": 350,
+    "remaining": 630,
+    "summary": "Over-ear wireless headphones with active noise cancellation and cushioned ear cups.",
+    "highlights": [
+      "Model WH-1000XM5",
+      "Active noise cancellation"
+    ],
+    "sourceUrl": "https://www.bestbuy.com/product/sony-wh-1000xm5-wireless-noise-cancelling-over-the-ear-headphones-black/6505727"
+  },
+  {
+    "slug": "roku-streaming-stick-plus",
+    "title": "Roku Streaming Stick Plus",
+    "brand": "Roku",
+    "retailer": "Best Buy",
+    "category": "Electronics",
+    "collections": [
+      "electronics",
+      "movie-night"
+    ],
+    "value": 50,
+    "remaining": 1,
+    "summary": "A compact HDMI streaming player with a voice remote for finding shows and films on a compatible television.",
+    "highlights": [
+      "4K HDR playback",
+      "Voice remote"
+    ],
+    "sourceUrl": "https://www.bestbuy.com/product/roku-streaming-stick-plus-4k-hdr-streaming-device-for-tv-with-voice-remote-black/6619105"
+  },
+  {
+    "slug": "logitech-mx-master-3s",
+    "title": "Logitech MX Master 3S Mouse",
+    "brand": "Logitech",
+    "retailer": "Best Buy",
+    "category": "Electronics",
+    "collections": [
+      "electronics",
+      "everyday-items"
+    ],
+    "value": 100,
+    "remaining": 1,
+    "summary": "A wireless mouse with a sculpted thumb rest and a fast-scrolling wheel for desktop work.",
+    "highlights": [
+      "Wireless desktop mouse",
+      "MagSpeed scroll wheel"
+    ],
+    "sourceUrl": "https://www.bestbuy.com/product/logitech-mx-master-3s-wireless-usb-a-laser-mouse-with-ultrafast-scrolling-wireless-black/6502577"
+  },
+  {
+    "slug": "instax-mini-12-camera",
+    "title": "Fujifilm instax mini 12 Instant Camera",
+    "brand": "Fujifilm",
+    "retailer": "Best Buy",
+    "category": "Electronics",
+    "collections": [
+      "electronics"
+    ],
+    "value": 100,
+    "remaining": 150,
+    "summary": "A Clay White instant camera with a twist-to-open lens and a close-up mode. It uses instax mini film.",
+    "highlights": [
+      "Instant film camera",
+      "Close-up mode"
+    ],
+    "sourceUrl": "https://www.bestbuy.com/product/fujifilm-instax-mini-12-instant-film-camera-white/J7929VCLJ2"
+  },
+  {
+    "slug": "ninja-af101-air-fryer",
+    "title": "Ninja 4-Quart Air Fryer",
+    "brand": "Ninja",
+    "retailer": "Walmart",
+    "category": "Kitchen",
+    "collections": [
+      "kitchen",
+      "home-essentials",
+      "everyday-items"
+    ],
+    "value": 100,
+    "remaining": 1,
+    "summary": "A countertop air fryer for crisping, roasting, reheating, and dehydrating in a removable basket.",
+    "highlights": [
+      "Model AF101",
+      "4-quart basket"
+    ],
+    "sourceUrl": "https://www.walmart.com/ip/516008834"
+  },
+  {
+    "slug": "lodge-classic-10-inch-skillet",
+    "title": "Lodge 10.25-inch Cast Iron Skillet",
+    "brand": "Lodge",
+    "retailer": "Walmart",
+    "category": "Kitchen",
+    "collections": [
+      "kitchen",
+      "home-essentials",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 2,
+    "summary": "A seasoned skillet with two pour spouts and an assist handle for moving it between the stove and oven.",
+    "highlights": [
+      "10.25-inch cooking skillet",
+      "Seasoned cast iron"
+    ],
+    "sourceUrl": "https://www.lodgecastiron.com/products/round-cast-iron-classic-skillet"
+  },
+  {
+    "slug": "bissell-little-green-1400b",
+    "title": "BISSELL Little Green Portable Cleaner",
+    "brand": "BISSELL",
+    "retailer": "Walmart",
+    "category": "Home Essentials",
+    "collections": [
+      "home-essentials",
+      "everyday-items"
+    ],
+    "value": 125,
+    "remaining": 150,
+    "summary": "A portable carpet and upholstery cleaner with a flexible hose for spot cleaning chairs, stairs, and car interiors.",
+    "highlights": [
+      "Model 1400B",
+      "Portable spot cleaner"
+    ],
+    "sourceUrl": "https://www.bissell.com/en-us/product/little-green-portable-carpet-upholstery-cleaner-1400B.html"
+  },
+  {
+    "slug": "wilson-evolution-basketball",
+    "title": "Wilson Evolution Indoor Basketball",
+    "brand": "Wilson",
+    "retailer": "Dick's Sporting Goods",
+    "category": "Sports & Fitness",
+    "collections": [
+      "sports-fitness"
+    ],
+    "value": 100,
+    "remaining": 1,
+    "summary": "An indoor game basketball with a textured composite cover and recessed channels for grip on the court.",
+    "highlights": [
+      "Evolution series",
+      "Indoor play"
+    ],
+    "sourceUrl": "https://www.wilson.com/en-us/products/evolution-game-basketball-wz10012"
+  },
+  {
+    "slug": "hydro-flask-flex-straw-32",
+    "title": "Hydro Flask 32 oz Wide Mouth Bottle",
+    "brand": "Hydro Flask",
+    "retailer": "Dick's Sporting Goods",
+    "category": "Sports & Fitness",
+    "collections": [
+      "sports-fitness",
+      "outdoors",
+      "everyday-items"
+    ],
+    "value": 50,
+    "remaining": 3,
+    "summary": "An insulated wide-mouth bottle with a Flex Straw Cap and a carry handle for workouts and hikes.",
+    "highlights": [
+      "32 oz capacity",
+      "Flex Straw Cap"
+    ],
+    "sourceUrl": "https://www.hydroflask.com/32-oz-wide-mouth-with-flex-straw-cap-s"
+  },
+  {
+    "slug": "kong-classic-dog-toy",
+    "title": "KONG Classic Dog Toy",
+    "brand": "KONG",
+    "retailer": "PetSmart",
+    "category": "Pet Supplies",
+    "collections": [
+      "pets",
+      "everyday-items"
+    ],
+    "value": 25,
+    "remaining": 23,
+    "summary": "A red rubber dog toy with a hollow center that can hold treats. Choose the right size for your dog at the retailer.",
+    "highlights": [
+      "Stuffable center",
+      "Classic red rubber"
+    ],
+    "sourceUrl": "https://www.petsmart.com/dog/toys/interactive-toys/kong-classic-stuffable-treat-dispensing-dog-toy-1811626.html"
+  },
+  {
+    "slug": "catit-flower-fountain",
+    "title": "Catit Flower Fountain",
+    "brand": "Catit",
+    "retailer": "PetSmart",
+    "category": "Pet Supplies",
+    "collections": [
+      "pets",
+      "everyday-items"
+    ],
+    "value": 50,
+    "remaining": 1,
+    "summary": "A three-liter drinking fountain with a flower-shaped spout and circulating water for cats.",
+    "highlights": [
+      "3-liter reservoir",
+      "Flower-shaped spout"
+    ],
+    "sourceUrl": "https://www.petsmart.com/cat/bowls-and-feeders/automatic-feeders/catit-flower-fountain-3l-5271613.html"
+  },
+  {
+    "slug": "plano-guide-series-tackle-bag",
+    "title": "Plano Guide Series 2.0 Tackle Bag",
+    "brand": "Plano",
+    "retailer": "Bass Pro Shops®",
+    "category": "Fishing",
+    "collections": [
+      "outdoors",
+      "sports-fitness"
+    ],
+    "value": 150,
+    "remaining": 4,
+    "summary": "A tackle bag with a top-access organizer and exterior pockets for keeping fishing gear sorted.",
+    "highlights": [
+      "Guide Series 2.0",
+      "Tackle organizer storage"
+    ],
+    "sourceUrl": "https://www.basspro.com/p/plano-guide-series-20-tackle-bag"
+  },
+  {
+    "slug": "kitchenaid-artisan-5qt-mixer",
+    "title": "KitchenAid Artisan 5-Quart Stand Mixer",
+    "brand": "KitchenAid",
+    "retailer": "Target",
+    "category": "Kitchen",
+    "collections": [
+      "kitchen",
+      "home-essentials"
+    ],
+    "value": 500,
+    "remaining": 300,
+    "summary": "An Empire Red tilt-head mixer with a stainless steel bowl for mixing doughs, batters, and frosting.",
+    "highlights": [
+      "5-quart bowl",
+      "Tilt-head design"
+    ],
+    "sourceUrl": "https://www.kitchenaid.com/countertop-appliances/stand-mixers/tilt-head-stand-mixers/p.artisan-series-5-quart-tilt-head-stand-mixer.KSM150PSER.html"
+  },
+  {
+    "slug": "cuisinart-ice-21-ice-cream-maker",
+    "title": "Cuisinart Frozen Yogurt & Ice Cream Maker",
+    "brand": "Cuisinart",
+    "retailer": "Target",
+    "category": "Kitchen",
+    "collections": [
+      "kitchen",
+      "home-essentials"
+    ],
+    "value": 75,
+    "remaining": 1,
+    "summary": "A red countertop ice cream maker with a freezer bowl for making frozen yogurt, ice cream, and sorbet.",
+    "highlights": [
+      "Model ICE-21RP1",
+      "1.5-quart capacity"
+    ],
+    "sourceUrl": "https://www.target.com/p/-/A-94720201"
+  }
+]

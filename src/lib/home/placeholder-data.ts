@@ -95,7 +95,7 @@ export const placeholderFeaturedOpportunities: PlaceholderOpportunity[] = [
 ];
 
 export const placeholderDiscoveryOpportunities: PlaceholderOpportunity[] = [
-  ...[...endingSoonProducts, ...expansionProducts].map((product): PlaceholderOpportunity => ({
+  ...[...endingSoonProducts, ...expansionProducts.filter(product => product.sold / product.capacity >= 0.9)].map((product): PlaceholderOpportunity => ({
     id: `ending-soon-${product.slug}`,
     title: product.title,
     category: product.category,

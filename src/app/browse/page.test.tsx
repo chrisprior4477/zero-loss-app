@@ -217,7 +217,8 @@ describe("Browse search results", () => {
 
   test("filters to a current retailer and keeps product-type selection", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "everyday-items", retailer: "Walmart", type: "pictured" }) }));
-    expect(screen.getByText("1 product shown")).toBeTruthy();
+    expect(screen.getByText("4 products shown")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Ninja 4-Quart Air Fryer/i })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i })).toBeTruthy();
     expect(screen.getByText(/Showing Walmart/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "View all in this category" }).getAttribute("href")).toBe("/browse?category=everyday-items&type=pictured#search-results");

@@ -52,6 +52,6 @@ test("Movie Night links to the curated TV, streaming, theater and popcorn offeri
     "directory-hulu-100-gift-card", "directory-paramount-100-gift-card",
     "directory-amc-theaters-100-gift-card", "directory-cinemark-100-gift-card",
     "directory-fandango-100-gift-card", "directory-regal-100-gift-card",
-    "directory-the-popcorn-factory-100-gift-card",
+    "directory-the-popcorn-factory-100-gift-card", "roku-streaming-stick-plus",
   ].sort());
 });

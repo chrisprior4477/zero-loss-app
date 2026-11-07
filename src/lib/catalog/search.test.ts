@@ -90,7 +90,8 @@ describe("catalog search", () => {
   test.each(["pet food", "pet treats", "dog food", "cat treats", "puppy food", "pet supplies"])("offers PetSmart instead of unrelated groceries for %s", query => {
     const matches = searchCatalogMatches(demoProducts, query);
     expect(matches.some(match => match.product.retailer === "PetSmart")).toBe(true);
-    expect(matches.every(match => ["PetSmart", "Petco", "Chewy®", "1-800-PetSupplies.com"].includes(match.product.retailer) && match.kind === "retailer")).toBe(true);
+    expect(matches.every(match => ["PetSmart", "Petco", "Chewy®", "1-800-PetSupplies.com"].includes(match.product.retailer))).toBe(true);
+    expect(matches.filter(match => match.kind === "product").every(match => ["kong-classic-dog-toy", "catit-flower-fountain"].includes(match.product.slug))).toBe(true);
   });
 
   test.each(["medicine", "medication", "meds", "cold medicine"])("offers existing CVS and Walmart cards for %s", query => {
@@ -116,7 +117,7 @@ describe("catalog search", () => {
 
   test.each(["Pet Smart", "PETSMART", "petsmrat", "PetSmart giftcards"])("normalizes retailer spelling and spacing for %s", query => {
     const products = searchCatalog(demoProducts, query);
-    expect(products).toHaveLength(4);
+    expect(products).toHaveLength(query === "PetSmart giftcards" ? 4 : 6);
     expect(products.every(product => product.retailer === "PetSmart")).toBe(true);
   });
 
@@ -127,7 +128,7 @@ describe("catalog search", () => {
   test("preserves brand intent instead of expanding brands into competitors", () => {
     expect(searchCatalog(demoProducts, "Starbucks").every(product => product.brand === "Starbucks")).toBe(true);
     expect(searchCatalog(demoProducts, "Nintendo").some(product => product.slug === "playstation-5-slim")).toBe(false);
-    expect(searchCatalog(demoProducts, "PetSmart $25").map(product => product.slug)).toEqual(["petsmart-25-gift-card"]);
+    expect(searchCatalog(demoProducts, "PetSmart $25").map(product => product.slug)).toEqual(["kong-classic-dog-toy", "petsmart-25-gift-card"]);
   });
 
   test("ranks an actual product above related retailer cards and does not mutate catalog records", () => {

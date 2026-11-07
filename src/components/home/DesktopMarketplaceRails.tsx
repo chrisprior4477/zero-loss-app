@@ -29,6 +29,12 @@ const desktopCategories = [
   { id: "gift-cards", label: "Gift Cards", image: "/category-gift-cards-v3.png" },
   { id: "home-essentials", label: "Home Essentials", image: "/category-home-essentials-v2.png" },
   { id: "movie-night", label: "Movie Night", image: "/category-movie-night-v2.png" },
+  { id: "outdoors", label: "Outdoor & Camping", image: "/catalog/marketplace/category-outdoors.webp" },
+  { id: "tools-diy", label: "Tools & DIY", image: "/catalog/marketplace/category-tools-diy.webp" },
+  { id: "kitchen", label: "Kitchen", image: "/catalog/marketplace/category-kitchen.webp" },
+  { id: "sports-fitness", label: "Sports & Fitness", image: "/catalog/marketplace/category-sports-fitness.webp" },
+  { id: "pets", label: "Pet Supplies", image: "/catalog/marketplace/category-pets.webp" },
+  { id: "fishing", label: "Fishing", image: "/catalog/marketplace/category-fishing.webp" },
 ];
 
 const sampleEndingSoon = [

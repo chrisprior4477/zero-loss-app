@@ -6,7 +6,8 @@ import {
   categorySubcategories,
   endingSoonItemHrefs,
 } from "@/lib/home/placeholder-data";
-import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
+import { marketplaceCategoryHref, marketplaceCategoryId, productMatchesMarketplaceCategory } from "@/lib/catalog/navigation";
+import { expansionProducts } from "@/lib/catalog/expansion-products";
 import { isResolvedCatalogHref } from "@/lib/catalog/demo-visibility";
 import { HomeIcon } from "./HomeIcon";
 
@@ -19,6 +20,12 @@ const desktopCategories = [
   "Electronics",
   "Gift Cards",
   "Home Essentials",
+  "Outdoor & Camping",
+  "Tools & DIY",
+  "Kitchen",
+  "Sports & Fitness",
+  "Pet Supplies",
+  "Fishing",
 ] as const;
 
 const desktopCategoryItems: Record<string, readonly string[]> = {
@@ -151,6 +158,11 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
         {desktopCategories.map((category, index) => {
           const isOpen = openCategory === category;
           const isMerchandising = index === 0;
+          const categoryId = marketplaceCategoryId(category);
+          const picturedItems = expansionProducts.filter(product => !resolved.has(product.slug)
+            && (category === "All" || (categoryId && productMatchesMarketplaceCategory(product, categoryId))))
+            .map(product => ({ label: product.title,
+              href: `/items/${product.slug}?from=${encodeURIComponent(marketplaceCategoryHref(category))}`, remaining: null }));
           const items = category === "Ending Soon"
             ? endingSoonItems.map((item) => ({ label: item.title, href: item.href, remaining: item.remaining }))
             : (desktopCategoryItems[category] ?? []).filter(item => category !== "All" || !isResolvedCatalogHref(endingSoonItemHrefs[item], resolved)).map((item) => ({
@@ -159,7 +171,7 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
                   ? `${endingSoonItemHrefs[item]}?from=${encodeURIComponent("/browse")}`
                   : marketplaceCategoryHref(category, item),
                 remaining: null,
-              }));
+              })).concat(picturedItems);
 
           return (
             <li

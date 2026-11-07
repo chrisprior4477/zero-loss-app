@@ -4,6 +4,7 @@ export type DemoProduct = {
   brand: string;
   retailer: string;
   category: string;
+  collections?: readonly string[];
   value: number;
   entryPrice: number;
   capacity: number;
@@ -18,12 +19,13 @@ export type DemoProduct = {
   note?: string;
 };
 
-import { popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "./popular-rewards";
+import { originalRewardBrands, popularRewardAmounts, popularRewardBrands, popularRewardProductSlug, type PopularRewardBrand } from "./popular-rewards";
 import { buildDirectoryRewards } from "./directory-rewards";
 import { endingSoonProducts } from "./ending-soon-products";
 import { expansionProducts } from "./expansion-products";
 
-const popularRewardProducts: DemoProduct[] = popularRewardBrands.flatMap((brand, brandIndex) =>
+function rewardProducts(brands: readonly PopularRewardBrand[]): DemoProduct[] {
+  return brands.flatMap((brand, brandIndex) =>
   popularRewardAmounts.map((amount, amountIndex) => ({
     slug: popularRewardProductSlug(brand.slug, amount),
     title: `$${amount} ${brand.name} Gift Card`,
@@ -35,7 +37,7 @@ const popularRewardProducts: DemoProduct[] = popularRewardBrands.flatMap((brand,
     capacity: amount * 3,
     sold: Math.max(1, amount * 3 - (brandIndex + 1) * (amountIndex + 1)),
     summary: `A $${amount} ${brand.name} digital gift-card reward for eligible purchases through ${brand.name}, presented as a private investor-demo offering.`,
-    gallery: [{ src: `/catalog/reward-cards/${brand.artFile}`, alt: `${brand.name} gift card`, fit: "reward" }],
+    gallery: [{ src: brand.imagePath, alt: `${brand.name} gift card`, fit: "reward" as const }],
     highlights: [`$${amount} displayed card value`, `Retailer-specific ${brand.name} redemption`, "Digital delivery through Zero Loss", "Separate entry and free-entry walkthroughs"],
     specifications: [
       { label: "Card value", value: `$${amount}` },
@@ -48,7 +50,13 @@ const popularRewardProducts: DemoProduct[] = popularRewardBrands.flatMap((brand,
     sourceLabel: `${brand.name} gift-card information`,
     note: "Displayed denomination, fulfillment availability, terms, and provider authorization must be confirmed before this demo offering can become active.",
   })),
-);
+  );
+}
+const originalRewardSlugs = new Set<string>(originalRewardBrands.map(brand => brand.slug));
+const popularRewardProducts = rewardProducts(popularRewardBrands.filter(brand => originalRewardSlugs.has(brand.slug)));
+const additionalDenominations = rewardProducts(popularRewardBrands.filter(brand => !originalRewardSlugs.has(brand.slug)))
+  .filter(product => product.value !== 100)
+  .map(product => ({ ...product, sold: product.capacity - 1 }));
 
 const gasRewardProducts: DemoProduct[] = [
   {
@@ -478,4 +486,4 @@ export function getDemoProduct(slug: string) {
 }
 
 export const directoryDemoScenarios = buildDirectoryRewards(existingDemoProducts);
-export const demoProducts: DemoProduct[] = [...existingDemoProducts, ...directoryDemoScenarios.map(scenario => scenario.product), ...endingSoonProducts, ...expansionProducts];
+export const demoProducts: DemoProduct[] = [...existingDemoProducts, ...directoryDemoScenarios.map(scenario => scenario.product), ...endingSoonProducts, ...expansionProducts, ...additionalDenominations];

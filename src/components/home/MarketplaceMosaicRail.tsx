@@ -9,21 +9,11 @@ import { dollarChoiceDemoItems, entryCapacityForValue, marketplaceMovementDemoIt
 import { availabilityForHref, availabilityStatus, progressAppearance } from "@/lib/catalog/availability";
 import { useOfferingAvailability, useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
 import { isResolvedCatalogHref } from "@/lib/catalog/demo-visibility";
-import { expansionProducts } from "@/lib/catalog/expansion-products";
+import { marketplaceColumns } from "@/lib/home/marketplace-columns";
 
-const products = dollarChoiceDemoItems;
-const mosaicLayout = [
-  // New products lead the mosaic; the established feature/compact sequence stays.
-  ...expansionProducts.map(product => ({
-    kind: "feature" as const,
-    indices: [products.findIndex(item => item.href === `/items/${product.slug}`)],
-  })),
-  { kind: "feature", indices: [1] }, { kind: "compact", indices: [0, 2] },
-  { kind: "feature", indices: [5] }, { kind: "compact", indices: [4, 3] },
-  { kind: "feature", indices: [6] }, { kind: "compact", indices: [3, 0] },
-  { kind: "feature", indices: [3] }, { kind: "compact", indices: [2, 5] },
-  { kind: "feature", indices: [0] }, { kind: "compact", indices: [6, 1] },
-] as const;
+const pilotHref = "/items/dewalt-20v-drill-kit";
+const products = [...dollarChoiceDemoItems.filter(item => item.href === pilotHref),
+  ...dollarChoiceDemoItems.filter(item => item.href !== pilotHref)];
 
 function EntryButton({ compact = false }: { compact?: boolean }) {
   return <span className={compact
@@ -100,13 +90,16 @@ function CompactCard({ item: sample }: { item: (typeof products)[number] }) {
           <div className="mt-1 sm:mt-2"><EntryButton compact /></div>
         </div>
       </Link>
-      <FavoriteButton itemName={item.title} itemHref={item.href} className="absolute right-2 top-2 z-20" />
+      <FavoriteButton itemName={item.title} itemHref={item.href} className="absolute left-2 top-2 z-20" />
     </article>
   );
 }
 
 export function MarketplaceMosaicRail() {
   const resolved = useResolvedCatalogSlugs();
+  const availability = useOfferingAvailability();
+  const columns = marketplaceColumns(products.filter(item => !isResolvedCatalogHref(item.href, resolved)
+    && availabilityForHref(availability, item.href)?.remaining !== 0));
   const trackRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
@@ -169,13 +162,11 @@ export function MarketplaceMosaicRail() {
           }}
           onDragStart={(event) => event.preventDefault()}
         >
-          {mosaicLayout.map((group, groupIndex) => {
-            const visible = group.indices.filter(index => !isResolvedCatalogHref(products[index].href, resolved));
-            if (!visible.length) return null;
-            return group.kind === "feature"
-              ? <FeatureCard key={groupIndex} item={products[visible[0]]} />
-              : <div key={groupIndex} className="flex shrink-0 flex-col gap-[7px] self-stretch">{visible.map(index => <CompactCard key={index} item={products[index]} />)}</div>;
-          })}
+          {columns.map(column => column.length === 1
+            ? <FeatureCard key={column[0].href} item={column[0]} />
+            : <div key={column[0].href} className="flex shrink-0 flex-col gap-[7px] self-stretch">
+                {column.map(item => <CompactCard key={item.href} item={item} />)}
+              </div>)}
         </div>
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[8vw] bg-gradient-to-r from-[#031b44] to-transparent" />
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[8vw] bg-gradient-to-l from-[#031b44] to-transparent" />

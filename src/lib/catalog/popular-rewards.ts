@@ -1,6 +1,8 @@
+import additionalRewardBrands from "./extra-reward-brands.json";
+
 export const popularRewardAmounts = [100, 75, 50, 25] as const;
 
-export const popularRewardBrands = [
+export const originalRewardBrands = [
   { slug: "amazon", name: "Amazon", accent: "#ff9900", dark: "#131921", homeColor: "linear-gradient(145deg,#ffb11b,#ff6b00)", artFile: "amazon-card-display.png", category: "Shopping", sourceUrl: "https://www.amazon.com/gift-cards" },
   { slug: "walmart", name: "Walmart", accent: "#ffc220", dark: "#0071ce", homeColor: "linear-gradient(145deg,#1599df,#0572bd)", artFile: "walmart-card-display.png", category: "Everyday Shopping", sourceUrl: "https://www.walmart.com/cp/gift-cards/96894" },
   { slug: "starbucks", name: "Starbucks", accent: "#ffffff", dark: "#00754a", homeColor: "linear-gradient(145deg,#138f68,#006241)", artFile: "starbucks-card-final.png", category: "Dining & Coffee", sourceUrl: "https://www.starbucks.com/gift" },
@@ -13,6 +15,9 @@ export const popularRewardBrands = [
   { slug: "petsmart", name: "PetSmart", accent: "#e31837", dark: "#0877bd", homeColor: "linear-gradient(145deg,#238ed0,#005696)", artFile: "petsmart.jpg", category: "Pet Essentials", sourceUrl: "https://www.petsmart.com/gift-cards.html" },
 ] as const;
 
+export const popularRewardBrands = [...originalRewardBrands.map(brand => ({
+  ...brand, imagePath: `/catalog/reward-cards/${brand.artFile}`,
+})), ...additionalRewardBrands];
 export type PopularRewardBrand = (typeof popularRewardBrands)[number];
 
 export function getPopularRewardBrand(slug: string) {
@@ -20,5 +25,9 @@ export function getPopularRewardBrand(slug: string) {
 }
 
 export function popularRewardProductSlug(brandSlug: string, amount: number) {
+  if (amount === 100) {
+    const existing = additionalRewardBrands.find(brand => brand.slug === brandSlug);
+    if (existing) return existing.hundredSlug;
+  }
   return `${brandSlug}-${amount}-gift-card`;
 }

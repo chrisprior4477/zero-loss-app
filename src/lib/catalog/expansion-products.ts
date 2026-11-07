@@ -1,4 +1,5 @@
 import type { DemoProduct } from "./demo-products";
+import additions from "./marketplace-additions.json";
 
 /** Owner-approved catalog pilot. Uses the existing private demo lifecycle. */
 export const expansionProducts: DemoProduct[] = [
@@ -36,4 +37,22 @@ export const expansionProducts: DemoProduct[] = [
     sourceLabel: "The Home Depot product information",
     note: "Investor demo only; no real payment, product shipment, or redeemable gift card. The $150 reward value is not a current retail-price quote. Price, tax, inventory, artwork rights, and provider authorization must be confirmed before launch.",
   },
+  ...additions.map((item): DemoProduct => ({
+    slug: item.slug, title: item.title, brand: item.brand, retailer: item.retailer,
+    category: item.category, collections: item.category === "Fishing" ? [...item.collections, "fishing"] : item.collections,
+    value: item.value, entryPrice: 1, capacity: item.value * 3,
+    sold: item.value * 3 - item.remaining,
+    summary: item.summary, highlights: item.highlights,
+    gallery: [
+      { src: `/catalog/marketplace/${item.slug}.webp`, alt: item.title, fit: "contain" },
+      { src: `/catalog/marketplace/${item.slug}-photo.webp`, alt: `${item.title} product photograph`, fit: "contain" },
+    ],
+    specifications: [
+      { label: "Brand", value: item.brand }, { label: "Retailer", value: item.retailer },
+      { label: "Demo reward", value: `$${item.value} digital gift card` },
+    ],
+    included: [`One simulated $${item.value} ${item.retailer} gift card for an eligible purchase at the retailer.`],
+    sourceUrl: item.sourceUrl, sourceLabel: `${item.brand} product information`,
+    note: "The pictured item illustrates how the retailer reward could be used. Store prices and availability vary. This preview does not issue real gift cards or ship merchandise.",
+  })),
 ];

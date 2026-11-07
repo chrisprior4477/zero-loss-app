@@ -1,0 +1,92 @@
+[
+  {
+    "slug": "cabelas",
+    "name": "Cabela’s®",
+    "hundredSlug": "directory-cabela-s-100-gift-card",
+    "homeColor": "#40672a",
+    "category": "Sporting Goods",
+    "imagePath": "/catalog/partner-cards/cabelas.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/cabelas?hsLang=en-us"
+  },
+  {
+    "slug": "bass-pro-shops",
+    "name": "Bass Pro Shops®",
+    "hundredSlug": "directory-bass-pro-shops-100-gift-card",
+    "homeColor": "#a23a17",
+    "category": "Sporting Goods",
+    "imagePath": "/catalog/partner-cards/bassproshops.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/bass-pro-shops?hsLang=en-us"
+  },
+  {
+    "slug": "lowes",
+    "name": "Lowe's",
+    "hundredSlug": "directory-lowe-s-100-gift-card",
+    "homeColor": "#175aab",
+    "category": "Home Furnishings & Improvement",
+    "imagePath": "/catalog/partner-cards/lowes.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/lowes?hsLang=en-us"
+  },
+  {
+    "slug": "target",
+    "name": "Target",
+    "hundredSlug": "directory-target-100-gift-card",
+    "homeColor": "#c81e2b",
+    "category": "General Merchandise",
+    "imagePath": "/catalog/partner-cards/target.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/target?hsLang=en-us"
+  },
+  {
+    "slug": "best-buy",
+    "name": "Best Buy",
+    "hundredSlug": "best-buy-100-gift-card",
+    "homeColor": "#1746a9",
+    "category": "Electronics",
+    "imagePath": "/catalog/partner-cards/bestbuy.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/best-buy?hsLang=en-us"
+  },
+  {
+    "slug": "dicks-sporting-goods",
+    "name": "Dick's Sporting Goods",
+    "hundredSlug": "directory-dick-s-sporting-goods-100-gift-card",
+    "homeColor": "#156044",
+    "category": "Sporting Goods",
+    "imagePath": "/catalog/partner-cards/dickssportinggoods.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/dicks-sporting-goods?hsLang=en-us"
+  },
+  {
+    "slug": "rei",
+    "name": "REI",
+    "hundredSlug": "directory-rei-100-gift-card",
+    "homeColor": "#344f38",
+    "category": "Sporting Goods",
+    "imagePath": "/catalog/partner-cards/rei.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/rei?hsLang=en-us"
+  },
+  {
+    "slug": "barnes-noble",
+    "name": "Barnes & Noble",
+    "hundredSlug": "directory-barnes-noble-100-gift-card",
+    "homeColor": "#3d6453",
+    "category": "Specialty Retail",
+    "imagePath": "/catalog/partner-cards/barnesnoble.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/barnes-noble?hsLang=en-us"
+  },
+  {
+    "slug": "michaels",
+    "name": "Michaels",
+    "hundredSlug": "directory-michaels-100-gift-card",
+    "homeColor": "#ae1829",
+    "category": "Specialty Retail",
+    "imagePath": "/catalog/partner-cards/michaels.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/michaels?hsLang=en-us"
+  },
+  {
+    "slug": "ace-hardware",
+    "name": "Ace Hardware",
+    "hundredSlug": "directory-ace-hardware-100-gift-card",
+    "homeColor": "#ae282f",
+    "category": "Home Furnishings & Improvement",
+    "imagePath": "/catalog/partner-cards/acehardware.webp",
+    "sourceUrl": "https://www.giftcardpartners.com/order-gift-cards/ace-hardware?hsLang=en-us"
+  }
+]

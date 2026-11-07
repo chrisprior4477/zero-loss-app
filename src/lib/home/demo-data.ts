@@ -156,7 +156,7 @@ export const dollarChoiceDemoItems = [
     accentSoft: "rgba(255,189,36,0.28)",
     percentFilled: percentFilled(product.sold, product.capacity),
     prizeValue: product.value,
-    endingSoon: true,
+    endingSoon: product.sold / product.capacity >= 0.9,
   })),
 ] as const;
 
