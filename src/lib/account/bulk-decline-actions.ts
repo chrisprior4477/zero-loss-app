@@ -56,9 +56,8 @@ export async function declineAllDemoPurchaseOptions(slug: string, reviewedOption
   }
   const { confirmed, failed } = await runOptionAction(reviewedOptionIds, "decline");
   if (confirmed.length === 0) return { status: "error", message: "No declines were confirmed. Check your current offers before trying again.", optionIds: [] };
-  revalidatePath("/account/entries");
-  revalidatePath("/account/declined-offers");
-  revalidatePath("/account/notifications");
+  // Do not revalidate here: Next can rerender this checkout before the action's
+  // Undo receipt is shown. The client signals peers now and refreshes on exit.
   return failed.length
     ? { status: "partial", message: `${confirmed.length} ${confirmed.length === 1 ? "offer was" : "offers were"} declined, but ${failed.length} could not be confirmed. Check Declined Offers before retrying.`, optionIds: confirmed }
     : { status: "succeeded", message: `${confirmed.length} ${confirmed.length === 1 ? "offer" : "offers"} declined. You can undo this for 30 seconds. Original entries and wallet history remain saved.`, optionIds: confirmed };

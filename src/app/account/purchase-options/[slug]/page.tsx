@@ -38,8 +38,8 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     redirect(activityHref(ticket));
   }
   if (options.length === 0) {
-    if (activity.some(ticket => ticket.slug === slug && isPurchasedReward(ticket))) redirect("/account/entries?filter=completed");
     if (activity.some(ticket => ticket.slug === slug && ticket.completionOptionStatus === "declined")) redirect("/account/declined-offers");
+    if (activity.some(ticket => ticket.slug === slug && isPurchasedReward(ticket))) redirect("/account/entries?filter=completed");
     notFound();
   }
 

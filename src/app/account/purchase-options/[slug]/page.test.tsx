@@ -43,7 +43,7 @@ test("refreshing after the final offer was purchased opens completed purchases",
 });
 
 test("a second tab opens Declined Offers after the final available offer is declined", async () => {
-  getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [{ ...open, completionOptionStatus: "declined" }] } });
+  getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [paid, { ...open, completionOptionStatus: "declined" }] } });
   await expect(visit()).rejects.toThrow("/account/declined-offers");
 });
 

@@ -61,7 +61,7 @@ test("a newly available offer is never added to the reviewed decline", async () 
   const result = await declineAllDemoPurchaseOptions("gift-card", [first]);
   expect(result).toMatchObject({ status: "succeeded", optionIds: [first] });
   expect(mocks.rpc).toHaveBeenCalledOnce();
-  expect(mocks.revalidate).toHaveBeenCalledWith("/account/notifications");
+  expect(mocks.revalidate).not.toHaveBeenCalled();
 });
 
 test.each([undefined, [], [first, first], [first, "not-an-id"], [first, "33333333-3333-4333-8333-333333333333"]].map(ids => ({ ids })))("invalid, missing or foreign review $ids makes no changes", async ({ ids }) => {
