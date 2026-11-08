@@ -262,8 +262,8 @@
 .weeklyPanel { display: none; }
 @media (min-width: 1024px) {
   .fundingDashboard {
-    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 16px;
-    max-width: 1240px; margin-inline: auto; padding: 0; background: transparent; box-shadow: none;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
+    padding: 0; background: transparent; box-shadow: none;
     -webkit-mask-image: none; mask-image: none;
   }
   .fundingDashboard > .fundingBody, .fundingDashboard > .weeklyPanel, .fundingDashboard > .fundingRequests {
@@ -302,10 +302,19 @@
   .weekDetails { padding: 0 8px 8px; }
   .weekReceipt { font-size: 13px; overflow-wrap: anywhere; }
   .weekReceipt summary, .depositMeta summary { padding-block: 5px; cursor: pointer; }
-  .depositMeta { margin-top: 4px; color: #395979; font-size: 13px; }
+  .receiptCard::before { content: " · "; }
+  .depositMeta { color: #395979; font-size: 13px; }
+  .depositMeta summary { padding: 0; }
+  .depositMeta time { font-weight: 750; color: #102646; }
+  .depositMeta .receiptCard { display: block; }
+  .depositMeta .receiptCard::before { content: none; }
   .depositMeta p { overflow-wrap: anywhere; font-size: 12px; }
   .fundingDashboard > .fundingRequests { grid-column: 1 / -1; margin: 0; border: 0; }
   .fundingRequests ul { grid-auto-flow: column; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none !important; overflow: visible; scrollbar-gutter: auto; }
+  .fundingRequests li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, .65fr) minmax(0, 1fr); align-items: start; gap: 6px 12px; overflow-wrap: anywhere; }
+  .fundingRequests .depositAmounts { display: contents; }
+  .depositAmounts > span { text-align: right; font-variant-numeric: tabular-nums; }
+  .fundingRequests li > form, .fundingRequests li > [role="alert"] { grid-column: 1 / -1; }
 }
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #93dcff; outline-offset: 3px; }
 @media (max-width: 1380px) {

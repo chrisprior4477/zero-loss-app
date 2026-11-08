@@ -11,11 +11,12 @@ import styles from "./wallet-overview.module.css";
 
 export function DepositReceiptDate({ request, timeZone }: { request: DemoFundingRequest; timeZone?: string }) {
   const card = demoCardFixture(request.sampleCard);
-  return <span>{formatOfferDeadline(request.postedAt ?? request.created_at, timeZone)}{card && <> · {card.issuer} •••• {card.lastFour}</>}</span>;
+  const timestamp = request.postedAt ?? request.created_at;
+  return <span><time dateTime={timestamp}>{formatOfferDeadline(timestamp, timeZone)}</time>{card && <> <span className={styles.receiptCard}>{card.issuer} •••• {card.lastFour}</span></>}</span>;
 }
 
 function ReceiptDetails({ request, timeZone }: { request: DemoFundingRequest; timeZone?: string }) {
-  return <details className={styles.weekReceipt}><summary>{formatUsdFromCents(request.amount)} · <DepositReceiptDate request={request} timeZone={timeZone} /></summary>
+  return <details className={styles.weekReceipt}><summary><DepositReceiptDate request={request} timeZone={timeZone} /> · <strong>{formatUsdFromCents(request.amount)}</strong></summary>
     <p>Payment &amp; credit matched</p><p>Request {request.id}</p></details>;
 }
 
