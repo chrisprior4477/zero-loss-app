@@ -130,7 +130,7 @@ export function AccountSecurityDashboard({ displayName, initials, email, emailCo
         </section>
         <section className={styles.lowerTicket} aria-labelledby="crew-heading">
           <header><h2 id="crew-heading">Crew &amp; sharing</h2><Link href="/account/crew?tab=picks#sharing">Manage sharing <AccountIcon name="arrow" /></Link></header>
-          <p>Approve connections and choose which entries your Crew can see. Sharing is private by default.</p>
+          <p>Manage your Crew and choose which entries to share. Sharing is private by default.</p>
         </section>
       </div>
     </div>

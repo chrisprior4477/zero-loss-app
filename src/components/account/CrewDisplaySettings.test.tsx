@@ -179,6 +179,8 @@ test("Mom contact details save and reappear without silently inviting or grantin
   fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
   expect(screen.getByText("Mom Contact")).toBeTruthy();
   expect(screen.getByText(/mom@example.test/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Add to Crew by email" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Add to Crew by phone" })).toBeTruthy();
 });
 
 test("failed group save keeps the editor and draft available for retry", async () => {

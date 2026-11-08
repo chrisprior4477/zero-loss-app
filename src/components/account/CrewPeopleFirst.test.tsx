@@ -75,7 +75,7 @@ test("small movements remain clicks and every person and Add person stays clicka
   fireEvent.click(screen.getByRole("button", { name: "Add to Your Crew" }));
   expect(onAdd).toHaveBeenCalledOnce();
   expect(screen.queryByText("Sample preview")).toBeNull();
-  expect(screen.getByText(/Fictional sample profiles/)).toBeTruthy();
+  expect(screen.getByText(/These sample profiles are fictional/)).toBeTruthy();
 });
 
 test.each(["touch", "pen"])("%s scrolling remains native", pointerType => {

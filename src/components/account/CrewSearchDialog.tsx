@@ -106,13 +106,13 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
           <small>Only members who opted in appear in name search.</small>
         </form>
         {!compact ? <><form onSubmit={(event) => { event.preventDefault(); void sendRequest(() => inviteToCrewByPhone(phone)); }} className={styles.field}>
-          <label htmlFor="crew-search-phone">Invite by verified phone</label>
+          <label htmlFor="crew-search-phone">Verified phone number</label>
           <div className={styles.row}><input id="crew-search-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Phone with country code" autoComplete="tel" disabled={disabled} />
           <button type="submit" disabled={pending || disabled} aria-label="Add to Crew by phone"><span>Add to Crew</span></button></div>
           <small>Works only if that number is verified on a Zero Loss account.</small>
         </form>
         <form onSubmit={(event) => { event.preventDefault(); void sendRequest(() => inviteToCrew(email)); }} className={styles.field}>
-          <label htmlFor="crew-search-email">Invite by email</label>
+          <label htmlFor="crew-search-email">Email address</label>
           <div className={styles.row}><input id="crew-search-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email address" autoComplete="email" disabled={disabled} />
           <button type="submit" disabled={pending || disabled} aria-label="Add to Crew by email"><span>Add to Crew</span></button></div>
           <small>Matching accounts receive a connection notice and can opt out.</small>
@@ -125,7 +125,7 @@ export function CrewSearchPanel({ onSamplePicks, disabled, compact = false }: { 
 
       <div className={styles.results} aria-live="polite">
         <p role="status">{message}</p>
-        {compact && contactTarget ? <div className={styles.result}><div><strong>{contactTarget.value}</strong><small>Private contact lookup</small></div><button type="button" disabled={pending || disabled || requestedIds.includes(contactTarget.value)} onClick={() => void sendRequest(() => contactTarget.method === "email" ? inviteToCrew(contactTarget.value) : inviteToCrewByPhone(contactTarget.value), contactTarget.value)}>{requestedIds.includes(contactTarget.value) ? "Added" : "Add to Crew"}</button></div> : null}
+        {compact && contactTarget ? <div className={styles.result}><div><strong>{contactTarget.value}</strong><small>Private contact lookup</small></div><button type="button" disabled={pending || disabled || requestedIds.includes(contactTarget.value)} onClick={() => void sendRequest(() => contactTarget.method === "email" ? inviteToCrew(contactTarget.value) : inviteToCrewByPhone(contactTarget.value), contactTarget.value)}>{requestedIds.includes(contactTarget.value) ? "Saved" : "Add to Crew"}</button></div> : null}
         {searched && results.length ? <div className={styles.resultList}>{results.map((person) => <div key={person.memberId} className={styles.result}>
           <span className={styles.avatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="48px" unoptimized className={styles.avatarImage} /> : person.name.slice(0, 1).toUpperCase()}</span>
           <div><strong>{person.name}</strong><small>Discoverable Zero Loss member</small></div>

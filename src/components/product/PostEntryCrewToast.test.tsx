@@ -165,7 +165,7 @@ test("copy denial exposes a selectable public link instead of claiming success",
 });
 
 test("group audience shares only on explicit confirmation", async () => {
-  mocks.share.mockResolvedValue({ ok: true, message: "Shared with selected approved Crew members." }); open(); await audiences();
+  mocks.share.mockResolvedValue({ ok: true, message: "Shared with the Crew members you selected." }); open(); await audiences();
   await groups();
   fireEvent.click(screen.getByRole("checkbox", { name: "Share with Mom" })); expect(mocks.share).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Send to Mom" }));

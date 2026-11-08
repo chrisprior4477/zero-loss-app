@@ -19,21 +19,21 @@ export function CrewGroupContacts({ contacts, disabled, onChange }: { contacts: 
       setMessage("That contact is already in this group."); return;
     }
     onChange([...contacts, contact]); setName(""); setPhone(""); setEmail("");
-    setMessage(`${contact.name} added. Choose Save group to keep these details. No request has been sent.`);
+    setMessage(`Choose Save group to keep ${contact.name}’s details.`);
   }
   async function invite(contact: CrewGroupContact, method: "email" | "phone") {
     setSending(true);
     try { const result = await (method === "email" ? inviteToCrew(contact.email) : inviteToCrewByPhone(contact.phone)); setMessage(result.message); }
-    catch { setMessage("Couldn’t confirm the request. Please try again."); }
+    catch { setMessage("Couldn’t confirm the connection. Please try again."); }
     finally { setSending(false); }
   }
   return <div className={styles.contacts}>
     <strong>Add a contact to this group</strong>
-    <p>Save their details here. Send a Crew request separately; only approved members can see shared picks.</p>
+    <p><b>Save group</b> keeps their contact details here. <b>Add to Crew</b> connects you automatically if there’s a matching account that allows it.</p>
     {contacts.map(contact => <div key={contact.id} className={styles.contactRow}>
       <strong>{contact.name}</strong><span>{[contact.phone, contact.email].filter(Boolean).join(" · ")}</span>
-      <div>{contact.email ? <button type="button" disabled={disabled || sending} onClick={() => void invite(contact, "email")}>Request by email</button> : null}
-      {contact.phone ? <button type="button" disabled={disabled || sending} onClick={() => void invite(contact, "phone")}>Request by phone</button> : null}
+      <div>{contact.email ? <button type="button" disabled={disabled || sending} onClick={() => void invite(contact, "email")}>Add to Crew by email</button> : null}
+      {contact.phone ? <button type="button" disabled={disabled || sending} onClick={() => void invite(contact, "phone")}>Add to Crew by phone</button> : null}
       <button type="button" disabled={disabled || sending} onClick={() => onChange(contacts.filter(item => item.id !== contact.id))} aria-label={`Remove contact ${contact.name}`}>Remove contact</button></div>
     </div>)}
     <div className={styles.contactFields}>

@@ -80,13 +80,13 @@ export function CrewPeopleCarousel({ people, samples, selectedKey, onAdd, onRemo
 
   return <div ref={rootRef} className={`${styles.root} ${selectedKey ? styles.rootSelected : ""} ${children ? styles.combined : ""}`}>
     <div className={styles.heading}>
-      <div><h2>People in your Crew</h2><p>{people.length ? "Swipe through approved connections and sample profiles." : "The people you tried on the homepage appear below as sample previews."}</p></div>
+      <div><h2>People in your Crew</h2><p>{people.length ? "Swipe through your Crew members and sample profiles." : "The people you tried on the homepage appear below as sample previews."}</p></div>
       <div className={styles.arrows} aria-label="Crew carousel controls">
         <button type="button" aria-label="Previous Crew member" onClick={() => move(-1)}>‹</button>
         <button type="button" aria-label="Next Crew member" onClick={() => move(1)}>›</button>
       </div>
     </div>
-    {samples.length ? <p className={styles.sampleNotice}>Fictional sample profiles—no invitations sent. Real members join after approval.</p> : null}
+    {samples.length ? <p className={styles.sampleNotice}>These sample profiles are fictional. Choose Add to Crew to connect with a real member who allows connections.</p> : null}
     <div className={styles.rail} ref={railRef} aria-label="People in your Crew" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { dragRef.current.active = false; dragRef.current.moved = false; if (railRef.current) { railRef.current.style.scrollBehavior = ""; railRef.current.style.scrollSnapType = ""; } }} onClickCapture={onClickCapture} onDragStart={(event) => event.preventDefault()}>
       {people.map((person) => <div ref={selectedKey === person.memberId ? selectedRef : undefined} className={`${styles.person} ${selectedKey === person.memberId ? styles.personSelected : ""}`} key={person.memberId}>
         <button type="button" className={styles.avatar} aria-label={`See ${person.name}'s shared activity`} aria-expanded={selectedKey === person.memberId} onClick={() => onMemberPicks(person.memberId)}>

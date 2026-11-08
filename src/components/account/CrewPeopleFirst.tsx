@@ -108,6 +108,6 @@ export function CrewPeopleFirst({ people, samples, selectedKey, onAdd, onRemove,
       </button></div>)}
       <button type="button" onClick={onAdd} className={styles.addPerson} aria-label="Add to Your Crew"><span aria-hidden="true">+</span>Add person</button>
     </div>
-    {samples.length ? <p className={styles.sampleNotice}>Fictional sample profiles—no invitations sent. Real members join after approval.</p> : null}
+    {samples.length ? <p className={styles.sampleNotice}>These sample profiles are fictional. Choose Add to Crew to connect with a real member who allows connections.</p> : null}
   </div>;
 }

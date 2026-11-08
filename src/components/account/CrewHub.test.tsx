@@ -82,7 +82,7 @@ test.each([false, true])("Add to Your Crew opens one focused search without send
   fireEvent.click(screen.getByRole("button", { name: "Add to Your Crew" }));
   expect(document.activeElement).toBe(screen.getByRole("searchbox", { name: "Name, email, or phone" }));
   expect(screen.queryByRole("region", { name: "Approved Crew" })).toBeNull();
-  expect(screen.queryByRole("textbox", { name: "Invite by email" })).toBeNull();
+  expect(screen.queryByRole("textbox", { name: "Email address" })).toBeNull();
   expect(actions.inviteToCrew).not.toHaveBeenCalled();
   expect(actions.inviteToCrewByPhone).not.toHaveBeenCalled();
 });
@@ -204,8 +204,8 @@ test("phone contacts fill the fields only after selection; sending still needs a
   render(<CrewSearchPanel onSamplePicks={vi.fn()} disabled={false} />);
   fireEvent.click(screen.getByRole("button", { name: "Choose from phone contacts" }));
   await waitFor(() => expect(picker).toHaveBeenCalledWith(["name", "email", "tel"], { multiple: false }));
-  expect((screen.getByRole("textbox", { name: "Invite by email" }) as HTMLInputElement).value).toBe("pat@example.com");
-  expect((screen.getByRole("textbox", { name: "Invite by verified phone" }) as HTMLInputElement).value).toBe("+1 555 123 4567");
+  expect((screen.getByRole("textbox", { name: "Email address" }) as HTMLInputElement).value).toBe("pat@example.com");
+  expect((screen.getByRole("textbox", { name: "Verified phone number" }) as HTMLInputElement).value).toBe("+1 555 123 4567");
   expect(actions.inviteToCrew).not.toHaveBeenCalled();
   expect(actions.inviteToCrewByPhone).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Add to Crew by email" }));

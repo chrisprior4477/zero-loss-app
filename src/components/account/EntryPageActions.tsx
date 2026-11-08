@@ -295,7 +295,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
       </section>
       <section className={`${styles.actionPanel} ${styles.crewPanel}`} aria-labelledby="crew-title">
         <h3 id="crew-title">Invite your Crew to this prize</h3>
-        <p>Choose who to notify about {itemTitle}. Only selected, approved Crew members can receive email; sample people remain a visual demo.</p>
+        <p>Choose who to notify about {itemTitle}. Only the connected Crew members you select can receive email. Sample profiles are for the demo.</p>
         <div className={styles.crewRailWrap}>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew left" onClick={() => crewRail.current?.scrollBy({ left: -220, behavior: "smooth" })}>‹</button>
           <div className={styles.crewRail} ref={crewRail} aria-label="Crew members" onPointerDown={startRailDrag} onPointerMove={moveRailDrag} onPointerUp={endRailDrag} onPointerCancel={endRailDrag}>
@@ -305,7 +305,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
                 <div className={styles.crewAvatar}>{member.avatarUrl ? <Image src={member.avatarUrl} alt="" fill sizes="72px" unoptimized={member.avatarUrl.startsWith("http")} /> : <span aria-hidden="true">{member.name.charAt(0).toUpperCase()}</span>}</div>
                 <strong>{member.name}</strong>
                 <button type="button" className={`${styles.notifyButton} ${selected ? styles.notifySelected : ""}`} aria-pressed={selected} aria-label={`${selected ? "Remove" : "Notify"} ${member.name}`} onClick={() => { setSelectedCrew(current => selected ? current.filter(id => id !== member.id) : [...current, member.id]); setDemoAlertPrepared(false); setCrewShareMessage(""); }}>{selected ? "Selected ✓" : "Notify"}</button>
-                <small>{member.sample ? "Sample preview" : "Approved Crew"}</small>
+                <small>{member.sample ? "Sample preview" : "Connected Crew"}</small>
               </div>;
             })}
             <Link href="/account/crew" className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>

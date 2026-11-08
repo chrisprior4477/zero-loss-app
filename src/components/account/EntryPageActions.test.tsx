@@ -252,14 +252,14 @@ test("additional entries are reviewed and confirmed on the same page", async () 
 });
 
 test("Crew tiles save a selected real member for email without claiming delivery", async () => {
-  sharePrizeWithCrew.mockResolvedValue({ ok: true, queued: 1, alreadyShared: 0, message: "Saved for email delivery to 1 approved Crew member." });
+  sharePrizeWithCrew.mockResolvedValue({ ok: true, queued: 1, alreadyShared: 0, message: "Saved for email delivery to 1 connected Crew member." });
   render(<EntryPageActions {...props} />);
   fireEvent.click(screen.getByRole("button", { name: "Notify Jordan" }));
   expect(screen.getByRole("button", { name: "Remove Jordan" }).getAttribute("aria-pressed")).toBe("true");
   fireEvent.click(screen.getByRole("button", { name: "Send to My Crew" }));
   await waitFor(() => expect(sharePrizeWithCrew).toHaveBeenCalledWith(props.slug, [props.crew[0].id]));
   expect(screen.getByRole("button", { name: "Share request saved" }).hasAttribute("disabled")).toBe(true);
-  expect(screen.getByText("Saved for email delivery to 1 approved Crew member.")).toBeTruthy();
+  expect(screen.getByText("Saved for email delivery to 1 connected Crew member.")).toBeTruthy();
   expect(screen.getByRole("link", { name: /View the PlayStation 5 Slim Model prize page/ }).getAttribute("href"))
     .toBe("/items/playstation-5-slim");
 });

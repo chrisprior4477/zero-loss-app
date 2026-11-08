@@ -29,7 +29,7 @@ export function CrewWinEmailPreference({ initialEnabled }: { initialEnabled: boo
   }
   return <section id="crew-win-email-preference" className={styles.outcomeEmail} data-placement="account" aria-labelledby="crew-win-email-heading">
     <h3 id="crew-win-email-heading">Crew win updates</h3>
-    <p>Choose whether to receive an email when an approved Crew member explicitly shares a win with you.</p>
+    <p>Choose whether to receive an email when a connected Crew member shares a win with you.</p>
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
       <label><input type="checkbox" checked={enabled} disabled={initialEnabled === null || pending} onChange={event => { setEnabled(event.target.checked); setMessage(""); }} /> Allow Crew win-update emails</label>
       <button type="button" onClick={save} disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>

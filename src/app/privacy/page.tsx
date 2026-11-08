@@ -20,7 +20,7 @@ export default function PrivacyPage() {
           <ul className={legalCopy.list}>
             <li><strong className="text-white">Account and profile:</strong> email, password credentials handled by the authentication service, legal and display names, date of birth, and any phone number, mailing address, or profile photo you choose to add.</li>
             <li><strong className="text-white">Activity:</strong> favorites, demo wallet and entry records, purchase-option and reward status, and account preferences needed to show your history and recover interrupted actions.</li>
-            <li><strong className="text-white">Social and support features:</strong> Crew invitations, approved connections, sharing choices, support messages, and replies. Phone-contact selection, where offered by your device, shares only the contact you select and only when you take the next action.</li>
+            <li><strong className="text-white">Social and support features:</strong> Crew invitations, Crew connections, sharing choices, support messages, and replies. Phone-contact selection, where offered by your device, shares only the contact you select and only when you take the next action.</li>
             <li><strong className="text-white">Technical information:</strong> session cookies and ordinary device, browser, and request information used to keep the site working and help protect accounts. Some preview preferences and pending-action details are stored in your browser.</li>
           </ul>
           <p className={legalCopy.paragraph}>The funding flow uses supplied sample cards and simulated balances. It does not ask for a real payment-card number. The identity walkthrough uses sample details; do not upload an ID document or enter a Social Security number.</p>

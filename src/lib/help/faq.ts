@@ -102,7 +102,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "crew-sharing", category: "account", question: "Who can see what I share with my Crew?",
-    answer: "Real Crew connections require approval, and sharing is your choice. Manage invitations and your sharing preferences in Your Crew. On the homepage, See prizes opens the selected person’s shared items underneath their profile without taking you to another page. Sample profiles and activity remain part of the MVP walkthrough.",
+    answer: "Only the connected Crew members you share a pick with can see it. When you choose Add to Crew, you connect automatically if the other person’s account allows it. Either person can leave at any time and choose what to share back. Manage sharing in Your Crew. On the homepage, See prizes shows a person’s shared picks, including examples from the fictional sample profiles.",
     keywords: "privacy friends maya daniel ari leo shared picks phone contacts", action: { label: "Manage Crew sharing", href: "/account/crew?tab=picks#sharing" },
   },
   {
