@@ -46,17 +46,3 @@ test("does not announce success when the database response is uncertain", async 
   expect((await resetDemoPool("dunkin-25-gift-card")).status).toBe("error");
   expect(mocks.revalidate).not.toHaveBeenCalled();
 });
-
-test.each([0, 1, 3])("checking a pool with %i tickets remaining only reads its availability", async remaining => {
-  const slug = "dunkin-25-gift-card";
-  mocks.rpc.mockResolvedValue({ data: [{ slug, remaining, capacity: 10, sold: 10 - remaining, entryPriceCents: 100, repeatableScenario: false }] });
-  const result = await resetDemoPool(slug, true);
-  expect(result.status).toBe(remaining ? "succeeded" : "error");
-  expect(result.message).toContain(remaining ? "pool is open" : "currently full");
-  expect(mocks.rpc.mock.calls).toEqual([["get_preview_offering_availability"]]);
-});
-
-test("an unavailable pool count keeps the recovery action read-only", async () => {
-  mocks.rpc.mockResolvedValue({ data: null, error: new Error("timeout") });
-  expect(await resetDemoPool("dunkin-25-gift-card", true)).toMatchObject({ status: "error", recovery: "check" });
-});

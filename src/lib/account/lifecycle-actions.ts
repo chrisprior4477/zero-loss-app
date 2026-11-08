@@ -21,45 +21,26 @@ export async function restartPreviewReward(
   formData: FormData,
 ): Promise<PurchaseOptionActionState> {
   const rewardId = String(formData.get("rewardId") ?? "");
-  const checkOnly = formData.get("intent") === "check";
-  const unconfirmed = {
-    status: "error", recovery: "check", message: "We couldn’t confirm the restart. Check its status when you’re connected.",
-  } as const;
   if (!uuidPattern.test(rewardId) || !isPreviewDataEnvironment()) {
     return { status: "error", message: "Demo restart is unavailable for this reward." };
   }
   try {
     const db = await createClient();
     const { data: { user }, error: authError } = await db.auth.getUser();
-    if (authError || !user) return { status: "error", recovery: checkOnly ? "check" : undefined, message: "Sign in again before checking or restarting this demo." };
-    let slug: string | undefined;
-    if (checkOnly) {
-      const { data, error } = await db.from("demo_reward_restarts")
-        .select("reward_id,customer_rewards(customer_entries(offering_slug))")
-        .eq("reward_id", rewardId).eq("customer_id", user.id)
-        .maybeSingle<{ reward_id: string; customer_rewards: { customer_entries: { offering_slug: string } | null } | null }>();
-      if (error) return unconfirmed;
-      if (!data) return { status: "error", message: "No completed restart was found for this reward. You can confirm a restart or keep the reward." };
-      if (data.reward_id !== rewardId) return unconfirmed;
-      slug = data.customer_rewards?.customer_entries?.offering_slug;
-    } else {
-      const { data, error } = await db.rpc("restart_preview_reward", {
-        p_reward_id: rewardId,
-        p_idempotency_key: `restart_${rewardId.replaceAll("-", "")}`,
-      });
-      if (error?.code === "P0001" && error.message === "This sample reward cannot be restarted") {
-        return { status: "error", message: "This sample reward cannot be restarted." };
-      }
-      if (error || data?.status !== "restarted") return unconfirmed;
-      slug = data.slug;
+    if (authError || !user) return { status: "error", message: "Sign in again before restarting this demo." };
+    const { data, error } = await db.rpc("restart_preview_reward", {
+      p_reward_id: rewardId,
+      p_idempotency_key: `restart_${rewardId.replaceAll("-", "")}`,
+    });
+    if (error || data?.status !== "restarted" || typeof data.slug !== "string" || !getDemoProduct(data.slug)) {
+      return { status: "error", message: "We couldn’t restart this demo. Your reward is still saved; refresh and try again." };
     }
-    if (typeof slug !== "string" || !getDemoProduct(slug)) return unconfirmed;
     revalidatePath("/", "layout");
     revalidatePath("/account/entries");
     revalidatePath("/account/wallet");
-    return { status: "succeeded", message: "Sample reward removed from your demo view. The original entry and wallet history are preserved.", href: `/items/${slug}#enter-entry` };
+    return { status: "succeeded", message: "Sample reward removed from your demo view. The original entry and wallet history are preserved.", href: `/items/${data.slug}#enter-entry` };
   } catch {
-    return unconfirmed;
+    return { status: "error", message: "We couldn’t confirm the restart. Refresh your rewards before trying again." };
   }
 }
 
