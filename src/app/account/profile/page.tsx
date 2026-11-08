@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ProfilePhotoCard } from "@/components/account/ProfilePhotoCard";
 import { ProfileDetailsForm } from "@/components/account/ProfileDetailsForm";
+import { ProfileReadBoundary } from "@/components/account/ProfileReadBoundary";
 import { MenuLayoutPicker } from "@/components/account/MenuLayoutPicker";
 import { MobileLogoSizePicker } from "@/components/account/MobileLogoSizePicker";
 import { AccountSettingsFrame } from "@/components/account/AccountSettingsFrame";
@@ -20,6 +21,10 @@ export const metadata: Metadata = { title: "Profile" };
 export default async function ProfilePage() {
   const { account, hidden, availability } = await getShoppingCatalog();
   if (!account) redirect(authNavigationHref("/login", "/account/profile"));
+  const overview = { balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity };
+  if (!account.profileSavedFields) {
+    return <AccountSettingsFrame active="profile" overview={overview}><ProfileReadBoundary key={account.userId}>{null}</ProfileReadBoundary></AccountSettingsFrame>;
+  }
   const catalog = demoProducts.filter(product => !hidden.has(product.slug)).map(product => {
     const current = availability?.[product.slug];
     return current ? { ...product, capacity: current.capacity, sold: current.sold } : product;
@@ -27,7 +32,8 @@ export default async function ProfilePage() {
   const previewSearchResults = Object.fromEntries(searchExamples.map(query => [query.toLowerCase(), searchCatalog(catalog, query).map(product => ({ title: product.title, image: product.gallery[0].src }))]));
   previewSearchResults["@ending-soon"] = catalog.filter(product => productMatchesMarketplaceCategory(product, "ending-soon")).sort((a, b) => (a.capacity - a.sold) - (b.capacity - b.sold)).map(product => ({ title: product.title, image: product.gallery[0].src }));
   previewSearchResults["@browse"] = catalog.map(product => ({ title: product.title, image: product.gallery[0].src }));
-  return <AccountSettingsFrame active="profile" overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}>
+  return <AccountSettingsFrame active="profile" overview={overview}>
+    <ProfileReadBoundary key={account.userId}>
     <section id="profile-intro" className={styles.introTicket} aria-labelledby="profile-heading">
       <div><span className={styles.eyebrow}>PERSONAL PROFILE</span><h2 id="profile-heading">Profile</h2><p>Manage your identity, contact details, address, and preferences. Changes save only to your signed-in account.</p></div>
       <div className={styles.profileCard}><ProfilePhotoCard initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} initialVisibility={{ menu: account.showPhotoInMenu, crew: account.showPhotoToCrew }} compact emailStatus={account.emailConfirmed ? "verified" : "pending"} /></div>
@@ -53,5 +59,6 @@ export default async function ProfilePage() {
         preferredLocale: account.preferredLocale,
         timezone: account.timezone,
       }} />
+    </ProfileReadBoundary>
   </AccountSettingsFrame>;
 }

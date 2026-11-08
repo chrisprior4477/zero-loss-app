@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { drawerState } from "@/lib/account/drawer-state";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 import { MyZeroLossSummary, PlayableBalanceCard } from "./AccountSummaries";
@@ -7,10 +7,11 @@ import { WalletShortcut } from "@/components/wallet/WalletShortcut";
 import AccountPage from "@/app/account/page";
 import ProfilePage from "@/app/account/profile/page";
 import { MenuLayoutProvider } from "@/components/layout/MenuLayoutProvider";
+import { profileFields } from "@/lib/account/profile-edit";
 
-const mocks = vi.hoisted(() => ({ account: vi.fn() }));
+const mocks = vi.hoisted(() => ({ account: vi.fn(), refresh: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/account/profile", redirect: (href: string) => { throw new Error(`redirect:${href}`); } }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/account/profile", useRouter: () => ({ refresh: mocks.refresh }), redirect: (href: string) => { throw new Error(`redirect:${href}`); } }));
 vi.mock("next/image", () => ({ default: () => <span data-testid="saved-photo" /> }));
 vi.mock("./ProfilePhotoCard", () => ({ ProfilePhotoCard: ({ fullName, initialAvatarUrl }: { fullName: string; initialAvatarUrl: string | null }) => <div data-testid="profile-editor" data-avatar={initialAvatarUrl}>{fullName}</div> }));
 afterEach(cleanup);
@@ -61,7 +62,7 @@ test("retired account dashboard redirects to My Activity and preserves a selecte
 });
 
 test("profile destination preserves stored name/photo and requires authentication", async () => {
-  mocks.account.mockResolvedValue({ displayName: "O’Neill", initials: "O", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", emailConfirmed: true, activity: storedActivityFixture(), balanceLabel: "$17", fundingEnabled: false });
+  mocks.account.mockResolvedValue({ displayName: "O’Neill", initials: "O", email: "Customer@example.test", avatarUrl: "/saved-photo.webp", profileSavedFields: Object.fromEntries(profileFields.map(key => [key, null])), emailConfirmed: true, activity: storedActivityFixture(), balanceLabel: "$17", fundingEnabled: false });
   render(<MenuLayoutProvider initialLayout="classic">{await ProfilePage()}</MenuLayoutProvider>);
   expect(screen.getByTestId("profile-editor").textContent).toBe("O’Neill");
   expect(screen.getByTestId("profile-editor").getAttribute("data-avatar")).toBe("/saved-photo.webp");
@@ -69,4 +70,38 @@ test("profile destination preserves stored name/photo and requires authenticatio
   expect(screen.getByRole("link", { name: "Payment Methods" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=methods#payment-methods");
   mocks.account.mockResolvedValue(null);
   await expect(ProfilePage()).rejects.toThrow("redirect:/login");
+});
+
+test("profile retries in place until the saved row loads, then permits editing genuinely blank fields", async () => {
+  const account = { userId: "jamie-account", displayName: "Jamie", activity: storedActivityFixture(), balanceLabel: "$17", fundingEnabled: false };
+  mocks.account.mockResolvedValue(account);
+  const page = () => ProfilePage().then(content => <MenuLayoutProvider initialLayout="classic">{content}</MenuLayoutProvider>);
+  const view = render(await page());
+  for (let attempt = 0; attempt < 2; attempt++) {
+    expect(screen.getByRole("heading", { name: "We couldn’t load your profile." })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Save profile" })).toBeNull();
+    expect(screen.queryByTestId("profile-editor")).toBeNull();
+    expect(screen.queryByText("Personalize your top menu")).toBeNull();
+    expect(screen.queryByText("Change Notifications Banner")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mocks.refresh).toHaveBeenCalledTimes(attempt + 1);
+    view.rerender(await page());
+  }
+  const loaded = { ...account, legalFirstName: "Jamie", city: null,
+    profileSavedFields: Object.fromEntries(profileFields.map(key => [key, key === "legal_first_name" ? "Jamie" : null])) };
+  mocks.account.mockResolvedValue(loaded);
+  view.rerender(await page());
+  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  expect(screen.getByLabelText("Legal first name")).toHaveProperty("value", "Jamie");
+  expect(screen.getByLabelText("City")).toHaveProperty("value", "");
+  expect(screen.getByLabelText("City")).toHaveProperty("disabled", false);
+  expect(screen.getByRole("button", { name: "Save profile" })).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("City"), { target: { value: "Raleigh" } });
+  mocks.account.mockResolvedValue(account);
+  view.rerender(await page());
+  expect(screen.queryByRole("textbox", { name: "City" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Save profile" })).toBeNull();
+  mocks.account.mockResolvedValue(loaded);
+  view.rerender(await page());
+  expect(screen.getByRole("textbox", { name: "City" })).toHaveProperty("value", "Raleigh");
 });

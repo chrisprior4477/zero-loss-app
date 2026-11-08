@@ -46,6 +46,20 @@ test("snapshot failure stays unavailable and never receives visual examples", as
   expect(account?.wallet).toBeNull();
   expect(account?.balanceLabel).toBe("Unavailable");
 });
+test("a failed profile read does not masquerade as saved fields or hide the signed-in wallet", async () => {
+  mocks.maybeSingle
+    .mockResolvedValueOnce({ data: null, error: { code: "503" } })
+    .mockRejectedValueOnce(new Error("Connection interrupted"))
+    .mockResolvedValueOnce({ data: null, error: null });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const account = await getAccountContext();
+    expect(account?.profileSavedFields).toBeUndefined();
+    expect(account?.userId).toBe("own-account");
+    expect(account?.balanceLabel).toBe("$0.00");
+  }
+  mocks.maybeSingle.mockResolvedValueOnce({ data: { display_name: "Jamie", city: null }, error: null });
+  expect((await getAccountContext())?.profileSavedFields).toMatchObject({ display_name: "Jamie", city: null });
+});
 test("provisioning failure stays unavailable and never reports zero", async () => {
   mocks.rpc.mockResolvedValue({ error: { code: "XX000", message: "database unavailable" } });
   const account = await getAccountContext();

@@ -32,15 +32,15 @@ export const getAccountContext = cache(async () => {
       provisioningAvailable = false;
     }
   }
-  const [profileResult, wallet] = await Promise.all([
-    supabase.from("customer_profiles").select("display_name, legal_first_name, legal_last_name, date_of_birth, preferred_locale, timezone, avatar_reference, show_photo_in_menu, show_photo_to_crew, menu_layout, tablet_menu_layout, desktop_menu_layout, mobile_logo_size, notification_banner_style, notification_banner_speed, notification_banner_display_seconds, notification_popup_style, header_notifications_enabled, phone_number, address_line_1, address_line_2, city, region, postal_code, country, extra_entry_explainer_acknowledged_at").eq("customer_id", user.id).maybeSingle(),
+  const [profile, wallet] = await Promise.all([
+    supabase.from("customer_profiles").select("display_name, legal_first_name, legal_last_name, date_of_birth, preferred_locale, timezone, avatar_reference, show_photo_in_menu, show_photo_to_crew, menu_layout, tablet_menu_layout, desktop_menu_layout, mobile_logo_size, notification_banner_style, notification_banner_speed, notification_banner_display_seconds, notification_popup_style, header_notifications_enabled, phone_number, address_line_1, address_line_2, city, region, postal_code, country, extra_entry_explainer_acknowledged_at").eq("customer_id", user.id).maybeSingle()
+      .then(({ data, error }) => error ? null : data, () => null),
     provisioningAvailable ? getWalletSnapshot(user.id).catch(() => { console.warn("[account-load] Verified wallet snapshot unavailable"); return null; }) : Promise.resolve(null),
   ]);
   const [activity, orders] = await Promise.all([
     wallet ? getStoredAccountActivity(supabase).catch(() => drawerState(false)) : Promise.resolve(drawerState(false)),
     wallet ? getAccountOrders(supabase).catch(() => ({ source: "unavailable" as const, orders: [] })) : Promise.resolve({ source: "unavailable" as const, orders: [] }),
   ]);
-  const profile = profileResult.error ? null : profileResult.data;
   const displayName = customerDisplayName(profile);
   return {
     userId: user.id,
