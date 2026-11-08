@@ -65,7 +65,7 @@ function daysInMonth(year: string, month: string) {
   return new Date(Number(year), Number(month), 0).getDate();
 }
 
-function ProfileDateOfBirth({ defaultValue }: { defaultValue: string | null }) {
+function ProfileDateOfBirth({ defaultValue, onClear }: { defaultValue: string | null; onClear: () => void }) {
   const initial = useMemo(() => splitDate(defaultValue), [defaultValue]);
   const [year, setYear] = useState(initial.year);
   const [month, setMonth] = useState(initial.month);
@@ -78,7 +78,7 @@ function ProfileDateOfBirth({ defaultValue }: { defaultValue: string | null }) {
     const limit = daysInMonth(nextYear, nextMonth);
     if (day && Number(day) > limit) setDay(String(limit));
   };
-  const clear = () => { setYear(""); setMonth(""); setDay(""); };
+  const clear = () => { setYear(""); setMonth(""); setDay(""); onClear(); };
 
   return <fieldset className={styles.dateField}>
     <legend>Date of birth</legend>
@@ -163,7 +163,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
         <Field label="Display name" name="display_name" defaultValue={details.displayName} autoComplete="nickname" className={styles.fullField} required />
         <Field label="Legal first name" name="legal_first_name" defaultValue={details.legalFirstName} autoComplete="given-name" required />
         <Field label="Legal last name" name="legal_last_name" defaultValue={details.legalLastName} autoComplete="family-name" required />
-        <div className={styles.fullField}><ProfileDateOfBirth defaultValue={details.dateOfBirth} /></div>
+        <div className={styles.fullField}><ProfileDateOfBirth defaultValue={details.dateOfBirth} onClear={() => setShowFeedback(false)} /></div>
       </div>
       <p className={styles.identityNote}><AccountIcon name="security" /> Legal identity changes are saved only to your signed-in profile and are never exposed through direct database writes.</p>
     </section>

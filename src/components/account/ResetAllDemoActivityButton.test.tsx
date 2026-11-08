@@ -11,7 +11,7 @@ vi.mock("@/lib/account/demo-activity-reset-actions", () => ({
 import { previewAllDemoActivityReset, resetAllDemoActivity } from "@/lib/account/demo-activity-reset-actions";
 import { ResetAllDemoActivityButton } from "./ResetAllDemoActivityButton";
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.mocked(previewAllDemoActivityReset).mockReset(); vi.mocked(resetAllDemoActivity).mockReset(); });
 
 test("confirmation explains both empty histories and preserves sign-in; cancel makes no change", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
@@ -53,4 +53,35 @@ test("a refused reset preserves existing notifications", async () => {
   expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Demo entries changed. Review and confirm again.");
   expect(clearAfterDemoReset).not.toHaveBeenCalled();
   expect(refresh).not.toHaveBeenCalled();
+});
+
+test("a failed preview stays recoverable and never calls reset", async () => {
+  vi.mocked(previewAllDemoActivityReset).mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce({ status: "ready", entryCount: 47, balanceCents: 13600 });
+  render(<ResetAllDemoActivityButton />);
+  fireEvent.click(screen.getByRole("button", { name: "Reset All Demo Activity" }));
+  expect((await screen.findByRole("status")).textContent).toContain("No reset was requested");
+  expect(resetAllDemoActivity).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Reset All Demo Activity" }));
+  expect(await screen.findByRole("dialog")).toBeTruthy();
+});
+
+test("a lost reset response checks the account without resetting again or inventing empty notifications", async () => {
+  vi.mocked(previewAllDemoActivityReset).mockResolvedValueOnce({ status: "ready", entryCount: 47, balanceCents: 13600 })
+    .mockRejectedValueOnce(new Error("Still offline")).mockResolvedValueOnce({ status: "ready", entryCount: 0, balanceCents: 0 });
+  vi.mocked(resetAllDemoActivity).mockRejectedValue(new Error("Lost response"));
+  render(<ResetAllDemoActivityButton />);
+  fireEvent.click(screen.getByRole("button", { name: "Reset All Demo Activity" }));
+  await screen.findByRole("dialog");
+  fireEvent.click(screen.getByRole("dialog").querySelector("button:last-child")!);
+  expect((await screen.findByRole("alert")).textContent).toContain("may already be saved");
+  expect(screen.getByRole("dialog").querySelector("button:last-child")?.textContent).toBe("Check demo activity");
+  fireEvent.click(await screen.findByRole("button", { name: "Check demo activity" }));
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("still couldn’t check"));
+  fireEvent.click(await screen.findByRole("button", { name: "Check demo activity" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(screen.getByRole("status").textContent).toContain("0 entries and $0");
+  expect(resetAllDemoActivity).toHaveBeenCalledOnce();
+  expect(resetAllDemoActivity).toHaveBeenCalledWith(47, 13600, expect.stringMatching(/^[a-f0-9-]{36}$/));
+  expect(clearAfterDemoReset).not.toHaveBeenCalled();
+  expect(refresh).toHaveBeenCalledOnce();
 });

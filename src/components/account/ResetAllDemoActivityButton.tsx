@@ -16,6 +16,7 @@ export function ResetAllDemoActivityButton() {
   const router = useRouter();
   const notifications = useNotifications();
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [uncertain, setUncertain] = useState(false);
   const [notice, setNotice] = useState("");
   const [pending, startTransition] = useTransition();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -29,27 +30,47 @@ export function ResetAllDemoActivityButton() {
     dialog.current?.close();
     setPreview(null);
     requestKey.current = null;
+    setUncertain(false);
   }
 
   function open() {
     setNotice("");
     startTransition(async () => {
-      const result = await previewAllDemoActivityReset();
-      if (result.status === "error") { setNotice(result.message); return; }
-      requestKey.current = crypto.randomUUID();
-      setPreview({ entryCount: result.entryCount, balanceCents: result.balanceCents });
+      try {
+        const result = await previewAllDemoActivityReset();
+        if (result.status === "error") { setNotice(result.message); return; }
+        requestKey.current = crypto.randomUUID();
+        setPreview({ entryCount: result.entryCount, balanceCents: result.balanceCents });
+      } catch { setNotice("We couldn’t check your demo activity. Check your connection and try again. No reset was requested."); }
     });
   }
 
   function confirm() {
-    if (!preview || !requestKey.current) return;
+    if (!preview || !requestKey.current || uncertain) return;
     startTransition(async () => {
-      const result = await resetAllDemoActivity(preview.entryCount, preview.balanceCents, requestKey.current!);
-      if (result.status === "error") { setNotice(result.message); return; }
-      notifications?.clearAfterDemoReset();
-      close();
-      setNotice("Demo activity and notifications reset. Your account and sign-in are unchanged.");
-      router.refresh();
+      try {
+        const result = await resetAllDemoActivity(preview.entryCount, preview.balanceCents, requestKey.current!);
+        if (result.status === "error") { setNotice(result.message); setUncertain(true); return; }
+        notifications?.clearAfterDemoReset();
+        close();
+        setNotice("Demo activity and notifications reset. Your account and sign-in are unchanged.");
+        router.refresh();
+      } catch {
+        setUncertain(true);
+        setNotice("The connection was interrupted. Your reset may already be saved. Check your demo activity before trying again.");
+      }
+    });
+  }
+
+  function checkActivity() {
+    startTransition(async () => {
+      try {
+        const result = await previewAllDemoActivityReset();
+        if (result.status === "error") { setNotice(result.message); return; }
+        close();
+        setNotice(`Your current demo activity has ${result.entryCount} ${result.entryCount === 1 ? "entry" : "entries"} and ${formatUsdFromCents(result.balanceCents)} in playable funds. No additional reset was requested. Review your account before resetting again.`);
+        router.refresh();
+      } catch { setNotice("We still couldn’t check your demo activity. Reconnect and check again; no additional reset was requested."); }
     });
   }
 
@@ -66,8 +87,9 @@ export function ResetAllDemoActivityButton() {
         <p className={styles.caution}>Only this signed-in demo account is affected. Your login, profile and account settings stay. Original financial records remain safely in the back-end audit history. This cannot be undone from the normal account view.</p>
         {notice ? <p role="alert" className={styles.error}>{notice}</p> : null}
         <div className={styles.actions}>
-          <button type="button" className={styles.cancel} disabled={pending} onClick={close}>Keep my demo activity</button>
-          <button type="button" className={styles.confirm} disabled={pending} onClick={confirm}>{pending ? "Resetting…" : "Reset All Demo Activity"}</button>
+          <button type="button" className={styles.cancel} disabled={pending} onClick={close}>{uncertain ? "Close" : "Keep my demo activity"}</button>
+          {uncertain ? <button type="button" className={styles.confirm} disabled={pending} onClick={checkActivity}>{pending ? "Checking…" : "Check demo activity"}</button>
+            : <button type="button" className={styles.confirm} disabled={pending} onClick={confirm}>{pending ? "Resetting…" : "Reset All Demo Activity"}</button>}
         </div>
       </dialog>, document.body) : null}
   </>;

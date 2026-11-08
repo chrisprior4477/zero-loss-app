@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import styles from "./product-entry-layout.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
@@ -13,6 +13,17 @@ export function ProductInfoDialog({ title, label, children, className = "", trig
   const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const id = useId();
+  useLayoutEffect(() => {
+    if (!open) return;
+    const overflow = document.body.style.overflow;
+    const rootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = overflow;
+      document.documentElement.style.overflow = rootOverflow;
+    };
+  }, [open]);
   return <>
     <button ref={trigger} type="button" className={className} aria-label={triggerLabel} aria-haspopup="dialog" aria-expanded={open} onClick={() => {
       dialog.current?.showModal(); setOpen(true); close.current?.focus({ preventScroll: true });

@@ -15,6 +15,18 @@ const details: ProfileDetails = {
 
 afterEach(() => { cleanup(); vi.mocked(saveProfileDetails).mockReset(); });
 
+test("clearing the birth date dismisses saved feedback without saving the new blank draft", async () => {
+  vi.mocked(saveProfileDetails).mockResolvedValue({ status: "succeeded", message: "Your profile information has been updated." });
+  render(<ProfileDetailsForm details={{ ...details, addressLine1: null }} />);
+  fireEvent.submit(screen.getByRole("form", { name: "Edit profile" }));
+  await screen.findByText("Your profile information has been updated.");
+  fireEvent.click(screen.getByRole("button", { name: "Clear date of birth" }));
+  expect(screen.queryByRole("status")).toBeNull();
+  for (const name of ["Birth month", "Birth day", "Birth year"]) expect(screen.getByLabelText(name)).toHaveProperty("value", "");
+  expect(new FormData(screen.getByRole("form") as HTMLFormElement).get("date_of_birth")).toBe("");
+  expect(saveProfileDetails).toHaveBeenCalledOnce();
+});
+
 test("a dropped save response preserves the profile draft and allows a successful retry", async () => {
   vi.mocked(lookupAddressTimeZone).mockResolvedValue({ zone: "America/New_York", options: ["America/New_York"] });
   vi.mocked(saveProfileDetails).mockRejectedValueOnce(new Error("Failed to fetch"))
