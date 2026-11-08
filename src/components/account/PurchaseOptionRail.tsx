@@ -17,6 +17,7 @@ import styles from "./purchase-options.module.css";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import { formatOfferDeadline } from "@/lib/account/timezone";
+import { holdAccountRefresh, notifyAccountChanged } from "@/lib/account/account-state-events";
 
 export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, initiallyConfirmDecline = false, canBulkDecline = false, showSummary = false }: { title: string; options: ActivityItem[]; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean; canBulkDecline?: boolean; showSummary?: boolean }) {
   const timeZone = useAccountTimeZone();
@@ -27,6 +28,12 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   const [bulkOptionIds, setBulkOptionIds] = useState<string[]>([]);
   const [undoUntil, setUndoUntil] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(30);
+  const [reviewedOptionIds, setReviewedOptionIds] = useState(() => options.map(option => option.completionOptionId!));
+  const releaseRefresh = useRef<(() => void) | null>(null);
+  const declineInFlight = useRef(false);
+  const currentOptionIds = options.map(option => option.completionOptionId!);
+  const offersChanged = reviewedOptionIds.length !== currentOptionIds.length || reviewedOptionIds.some(id => !currentOptionIds.includes(id));
+  const declineCount = reviewedOptionIds.length;
   const count = options.length;
   const [declineRest, setDeclineRest] = useState(true);
   const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
@@ -40,6 +47,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   const canPurchase = canBulkDecline && options.every(option => Boolean(option.completionOptionId));
   const purchaseLocked = purchasePending || purchaseResult?.status === "succeeded" || (purchaseResult?.status === "error" && purchaseResult.recovery === "check");
   const item = options[0];
+  useEffect(() => () => releaseRefresh.current?.(), []);
 
   useEffect(() => {
     if (purchaseRequest) { reviewRef.current?.focus(); reviewRef.current?.scrollIntoView?.({ block: "center" }); }
@@ -92,11 +100,12 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
     onDeclineRest={setDeclineRest} onContinue={reviewPurchases} /> : null;
 
   useEffect(() => {
-    if (undoUntil === null) return;
+    if (undoUntil === null || bulkPhase !== "undo") return;
     const update = () => {
       const remaining = Math.max(0, Math.ceil((undoUntil - Date.now()) / 1000));
       setSecondsLeft(remaining);
       if (remaining === 0) {
+        releaseRefresh.current?.();
         setUndoUntil(null);
         router.replace("/account/declined-offers");
       }
@@ -104,7 +113,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
     update();
     const timer = window.setInterval(update, 250);
     return () => window.clearInterval(timer);
-  }, [undoUntil, router]);
+  }, [undoUntil, router, bulkPhase]);
 
   function toggle(entryId: string) {
     if (purchaseLocked || purchaseRequest) return;
@@ -118,34 +127,42 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   }
 
   async function declineAll() {
-    if (!canBulkDecline || bulkPhase !== "confirm") return;
+    if (!canBulkDecline || bulkPhase !== "confirm" || offersChanged || declineInFlight.current) return;
+    declineInFlight.current = true;
+    releaseRefresh.current = holdAccountRefresh();
     setBulkPhase("working");
     try {
-      const result = await declineAllDemoPurchaseOptions(options[0].slug);
+      const result = await declineAllDemoPurchaseOptions(options[0].slug, reviewedOptionIds);
       setBulkMessage(result.message);
       if (result.optionIds.length > 0) {
+        notifyAccountChanged();
         setBulkOptionIds(result.optionIds);
         setUndoUntil(Date.now() + 30_000);
         setSecondsLeft(30);
         setBulkPhase("undo");
-      } else setBulkPhase("error");
+      } else { releaseRefresh.current?.(); setBulkPhase("error"); }
     } catch {
       setBulkMessage("The connection was interrupted. Check Declined Offers before trying again; some offers may already have changed.");
+      releaseRefresh.current?.();
       setBulkPhase("error");
-    }
+    } finally { declineInFlight.current = false; }
   }
 
   function finishDecline() {
     if (bulkPhase !== "undo" || undoUntil === null) return;
+    releaseRefresh.current?.();
     setUndoUntil(null);
     router.replace("/account/declined-offers");
   }
 
   async function undoAll() {
-    if (bulkPhase !== "undo" || undoUntil === null || Date.now() >= undoUntil) return;
+    if (bulkPhase !== "undo" || undoUntil === null || Date.now() >= undoUntil || declineInFlight.current) return;
+    declineInFlight.current = true;
     setBulkPhase("undoing");
     try {
       const result = await undoBulkDemoPurchaseOptions(bulkOptionIds);
+      if (result.optionIds.length) notifyAccountChanged();
+      releaseRefresh.current?.();
       setBulkMessage(result.message);
       setUndoUntil(null);
       setBulkPhase(result.status === "succeeded" ? "idle" : "error");
@@ -154,10 +171,11 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
         router.refresh();
       }
     } catch {
+      releaseRefresh.current?.();
       setBulkMessage("The connection was interrupted. Check Declined Offers to verify what was restored.");
       setUndoUntil(null);
       setBulkPhase("error");
-    }
+    } finally { declineInFlight.current = false; }
   }
 
   return <>
@@ -168,7 +186,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
       <div className={styles.heroBulkControls}>
         <div className={styles.heroChoiceHeading}>
           <a href="#purchase-option-rail" className={styles.heroCount}><span className={styles.heroCircle}>{count}</span><span>Purchase {count === 1 ? "option" : "options"}</span></a>
-          {canBulkDecline ? <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked || bulkPhase !== "idle" || Boolean(purchaseRequest)} onClick={() => { setBulkPhase("confirm"); document.getElementById("purchase-option-rail")?.scrollIntoView({ block: "start" }); }}>{count === 1 ? "Decline this offer" : "Decline all offers"}</button> : null}
+          {canBulkDecline ? <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked || bulkPhase !== "idle" || Boolean(purchaseRequest)} onClick={() => { setReviewedOptionIds(currentOptionIds); setBulkPhase("confirm"); document.getElementById("purchase-option-rail")?.scrollIntoView({ block: "start" }); }}>{count === 1 ? "Decline this offer" : "Decline all offers"}</button> : null}
         </div>
         {quantityPicker}
         <Link href="/account/entries?filter=completion" className={styles.activityExit}>Go to My Activity</Link>
@@ -190,7 +208,9 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
       <button type="button" className={styles.heroDeclineAll} disabled={purchaseLocked} onClick={() => { setPurchaseRequest(null); setPurchaseResult(null); }}>Cancel</button>
       {purchaseResult?.status === "error" ? <div ref={purchaseErrorRef} role="alert">{purchaseResult.recovery === "balance" ? <InsufficientFundsNotice href={fundingHref(item.slug, selectedOptions[0]?.entryId ?? undefined)}>{purchaseResult.message}</InsufficientFundsNotice> : <><p>{purchaseResult.message}</p>{purchaseResult.recovery === "check" ? <a href={`/account/purchase-options/${encodeURIComponent(item.slug)}`}>Reload purchase status →</a> : null}<Link href="/account/wallet">Check Gift Cards & Rewards →</Link></>}</div> : null}
     </div> : null}
-    {bulkPhase === "confirm" ? <div className={styles.bulkPanel} role="group" aria-label={count === 1 ? "Confirm declining this offer" : "Confirm declining all offers"}><strong>{count === 1 ? `Decline this offer for ${title}?` : `Decline all ${count} offers for ${title}?`}</strong><p>{count === 1 ? "It will leave your active purchase options." : "They will leave your active purchase options."} Your original entries and wallet history will not be refunded or removed.</p><div className={styles.bulkButtons}><button type="button" onClick={() => void declineAll()}>{count === 1 ? "Confirm decline" : "Confirm decline all"}</button><button type="button" onClick={() => { setBulkPhase("idle"); router.replace(`/account/purchase-options/${encodeURIComponent(options[0].slug)}`); }}>{count === 1 ? "Keep my offer" : "Keep my offers"}</button></div></div> : null}
+    {bulkPhase === "confirm" ? <div className={styles.bulkPanel} role="group" aria-label={declineCount === 1 ? "Confirm declining this offer" : "Confirm declining all offers"}><strong>{declineCount === 1 ? `Decline this offer for ${title}?` : `Decline all ${declineCount} offers for ${title}?`}</strong><p>{declineCount === 1 ? "It will leave your active purchase options." : "They will leave your active purchase options."} Your original entries and wallet history will not be refunded or removed.</p>
+      {offersChanged ? <><p role="alert">Your available offers changed. Review them again before declining.</p><button type="button" onClick={() => setReviewedOptionIds(currentOptionIds)}>Review current offers</button></> : null}
+      <div className={styles.bulkButtons}><button type="button" disabled={offersChanged || !declineCount} onClick={() => void declineAll()}>{declineCount === 1 ? "Confirm decline" : "Confirm decline all"}</button><button type="button" onClick={() => { setBulkPhase("idle"); router.replace(`/account/purchase-options/${encodeURIComponent(options[0].slug)}`); }}>{declineCount === 1 ? "Keep my offer" : "Keep my offers"}</button></div></div> : null}
     {bulkPhase === "working" || bulkPhase === "undo" || bulkPhase === "undoing" || bulkPhase === "error" ? <div className={styles.bulkPanel} role="status">
       <div className={styles.bulkStatus}>
         <div><strong>{bulkPhase === "working" ? count === 1 ? "Declining your offer…" : "Declining your offers…" : bulkPhase === "undoing" ? count === 1 ? "Restoring your offer…" : "Restoring your offers…" : bulkPhase === "undo" ? count === 1 ? "Offer declined · Undo available" : "Offers declined · Undo available" : count === 1 ? "Check your offer" : "Check your offers"}</strong><p>{bulkMessage}</p></div>

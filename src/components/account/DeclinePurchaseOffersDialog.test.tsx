@@ -10,7 +10,7 @@ import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 
 const item = storedActivityFixture().activity[2];
 const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"];
-const setup = (count = 2) => render(<DeclinePurchaseOffersDialog item={item} count={count} onClose={mocks.close} />);
+const setup = (count = 2) => render(<DeclinePurchaseOffersDialog item={item} offeredOptionIds={ids.slice(0, count)} onClose={mocks.close} />);
 function saved() { mocks.decline.mockResolvedValue({ status: "succeeded", optionIds: ids, message: "2 offers declined." }); }
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.resetAllMocks(); });
 
@@ -36,7 +36,7 @@ test("decline requires confirmation, prevents duplicate submits and locks dismis
   fireEvent.keyDown(document, { key: "Escape" });
   fireEvent.click(screen.getByRole("dialog").parentElement!);
   expect(mocks.close).not.toHaveBeenCalled();
-  expect(mocks.decline).toHaveBeenCalledExactlyOnceWith(item.slug);
+  expect(mocks.decline).toHaveBeenCalledExactlyOnceWith(item.slug, [ids[0]]);
   await act(async () => { resolve({ status: "succeeded", optionIds: [ids[0]], message: "1 offer declined." }); });
   expect(screen.getByRole("button", { name: "Undo decline" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: /1 offer declined/ })).toBeTruthy();
@@ -111,4 +111,26 @@ test("a partial restore reports recovery instead of claiming every offer was kep
   expect((await screen.findByRole("alert")).textContent).toContain("1 could not be restored");
   expect(mocks.close).not.toHaveBeenCalled();
   expect(screen.queryByRole("button", { name: "Undo decline" })).toBeNull();
+});
+
+test.each([{ current: [...ids, "33333333-3333-4333-8333-333333333333"] }, { current: [ids[0], "33333333-3333-4333-8333-333333333333"] }])("a changed roster requires a fresh review, including replacements with the same count", async ({ current }) => {
+  saved();
+  const view = setup();
+  view.rerender(<DeclinePurchaseOffersDialog item={item} offeredOptionIds={current} onClose={mocks.close} />);
+  expect(screen.getByRole("alert").textContent).toContain("available offers changed");
+  fireEvent.click(screen.getByRole("button", { name: "Decline 2 offers" }));
+  expect(mocks.decline).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Review current offers" }));
+  fireEvent.click(screen.getByRole("button", { name: `Decline ${current.length} offers` }));
+  await screen.findByRole("button", { name: "Undo decline" });
+  expect(mocks.decline).toHaveBeenCalledExactlyOnceWith(item.slug, current);
+});
+
+test("a server refresh during Undo does not replace its saved receipt", async () => {
+  saved(); const view = setup();
+  fireEvent.click(screen.getByRole("button", { name: "Decline 2 offers" }));
+  await screen.findByRole("button", { name: "Undo decline" });
+  view.rerender(<DeclinePurchaseOffersDialog item={item} offeredOptionIds={[]} onClose={mocks.close} />);
+  expect(screen.getByRole("heading", { name: /2 offers declined/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Review current offers" })).toBeNull();
 });

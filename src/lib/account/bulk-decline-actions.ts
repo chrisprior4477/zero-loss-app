@@ -34,22 +34,31 @@ async function runOptionAction(optionIds: string[], action: "decline" | "revive"
   return { confirmed, failed };
 }
 
-export async function declineAllDemoPurchaseOptions(slug: string): Promise<BulkDeclineResult> {
+export async function declineAllDemoPurchaseOptions(slug: string, reviewedOptionIds: string[]): Promise<BulkDeclineResult> {
   if (!isPreviewDataEnvironment() || !/^[a-z0-9-]{1,120}$/.test(slug)) {
     return { status: "error", message: "Bulk decline is available only for demo purchase options.", optionIds: [] };
+  }
+  // A slug/count is not consent to decline offers created in another tab.
+  if (!Array.isArray(reviewedOptionIds) || !reviewedOptionIds.length
+    || reviewedOptionIds.some(id => typeof id !== "string" || !uuidPattern.test(id))
+    || new Set(reviewedOptionIds).size !== reviewedOptionIds.length) {
+    return { status: "error", message: "Review the exact offers you want to decline before confirming.", optionIds: [] };
   }
   const account = await getAccountContext();
   if (!account || account.wallet?.scope !== "demo" || account.activity.source === "unavailable") {
     return { status: "error", message: "Sign in to your demo account and refresh these options before trying again.", optionIds: [] };
   }
-  const options = account.activity.activity.filter(item => item.slug === slug && item.status === "completion" && item.completionOptionStatus !== "declined");
-  if (options.length === 0) return { status: "error", message: "There are no available demo offers to decline.", optionIds: [] };
-  if (options.some(item => !item.completionOptionId || !uuidPattern.test(item.completionOptionId))) {
-    return { status: "error", message: "These offers could not all be verified. Refresh and check their current status.", optionIds: [] };
+  const available = new Set(account.activity.activity
+    .filter(item => item.slug === slug && item.status === "completion" && item.completionOptionStatus === "available")
+    .map(item => item.completionOptionId));
+  if (reviewedOptionIds.some(id => !available.has(id))) {
+    return { status: "error", message: "These offers have changed. Refresh and review their current status before declining.", optionIds: [] };
   }
-  const optionIds = options.map(item => item.completionOptionId!);
-  const { confirmed, failed } = await runOptionAction([...new Set(optionIds)], "decline");
+  const { confirmed, failed } = await runOptionAction(reviewedOptionIds, "decline");
   if (confirmed.length === 0) return { status: "error", message: "No declines were confirmed. Check your current offers before trying again.", optionIds: [] };
+  revalidatePath("/account/entries");
+  revalidatePath("/account/declined-offers");
+  revalidatePath("/account/notifications");
   return failed.length
     ? { status: "partial", message: `${confirmed.length} ${confirmed.length === 1 ? "offer was" : "offers were"} declined, but ${failed.length} could not be confirmed. Check Declined Offers before retrying.`, optionIds: confirmed }
     : { status: "succeeded", message: `${confirmed.length} ${confirmed.length === 1 ? "offer" : "offers"} declined. You can undo this for 30 seconds. Original entries and wallet history remain saved.`, optionIds: confirmed };

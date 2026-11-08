@@ -2,14 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { ACCOUNT_CHANGED_EVENT, ACCOUNT_REFRESH_RELEASED_EVENT, isAccountRefreshHeld } from "@/lib/account/account-state-events";
 
 /** Tabs exchange invalidations only. All account values still come from the server. */
-export function AccountStateSync({ accountId, balanceCents, activeCount }: {
-  accountId: string; balanceCents: number | null; activeCount: number | null;
+export function AccountStateSync({ accountId, balanceCents, activeCount, offerRevision = "" }: {
+  accountId: string; balanceCents: number | null; activeCount: number | null; offerRevision?: string;
 }) {
   const router = useRouter();
   const storageKey = `zero-loss-account-changed:${accountId}`;
-  const snapshot = `${balanceCents}:${activeCount}`;
+  const snapshot = `${balanceCents}:${activeCount}:${offerRevision}`;
   const previous = useRef(snapshot);
 
   useEffect(() => {
@@ -34,11 +35,18 @@ export function AccountStateSync({ accountId, balanceCents, activeCount }: {
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let waitingForReceipt = false;
+    const broadcast = () => {
+      try { localStorage.setItem(storageKey, crypto.randomUUID()); }
+      catch { /* Returning to the tab still refreshes it. */ }
+    };
     const refresh = () => {
       if (document.visibilityState === "hidden" || !navigator.onLine || timer !== undefined) return;
+      if (isAccountRefreshHeld()) { waitingForReceipt = true; return; }
       // Returning to a tab usually fires both focus and visibilitychange.
       timer = setTimeout(() => {
         timer = undefined;
+        if (isAccountRefreshHeld()) { waitingForReceipt = true; return; }
         if (document.visibilityState !== "hidden" && navigator.onLine) router.refresh();
       }, 100);
     };
@@ -48,6 +56,11 @@ export function AccountStateSync({ accountId, balanceCents, activeCount }: {
     const onPageShow = (event: PageTransitionEvent) => {
       if (event.persisted) refresh();
     };
+    const onRelease = () => {
+      if (waitingForReceipt) { waitingForReceipt = false; refresh(); }
+    };
+    window.addEventListener(ACCOUNT_CHANGED_EVENT, broadcast);
+    window.addEventListener(ACCOUNT_REFRESH_RELEASED_EVENT, onRelease);
     window.addEventListener("storage", onStorage);
     window.addEventListener("focus", refresh);
     window.addEventListener("online", refresh);
@@ -55,6 +68,8 @@ export function AccountStateSync({ accountId, balanceCents, activeCount }: {
     document.addEventListener("visibilitychange", refresh);
     return () => {
       clearTimeout(timer);
+      window.removeEventListener(ACCOUNT_CHANGED_EVENT, broadcast);
+      window.removeEventListener(ACCOUNT_REFRESH_RELEASED_EVENT, onRelease);
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", refresh);
       window.removeEventListener("online", refresh);

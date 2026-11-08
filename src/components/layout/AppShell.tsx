@@ -44,7 +44,9 @@ export async function AppShell({ children }: AppShellProps) {
         Skip to content
       </a>
       <SiteHeader />
-      {account ? <AccountStateSync key={account.userId} accountId={account.userId} balanceCents={account.wallet?.balanceCents ?? null} activeCount={account.activity.activeCount} /> : null}
+      {account ? <AccountStateSync key={account.userId} accountId={account.userId} balanceCents={account.wallet?.balanceCents ?? null} activeCount={account.activity.activeCount}
+        offerRevision={JSON.stringify(account.activity.activity.filter(item => item.completionOptionId)
+          .map(item => [item.completionOptionId, item.completionOptionStatus, item.status]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))))} /> : null}
       <Suspense fallback={null}><SiteBreadcrumbs /></Suspense>
       <Suspense fallback={null}><ReturnToUpdates /></Suspense>
       <main id="main-content" className="flex-1">

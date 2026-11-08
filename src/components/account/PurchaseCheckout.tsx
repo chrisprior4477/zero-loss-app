@@ -198,7 +198,7 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
       <div className={styles.utility}><Link href="/account/entries?filter=completion"><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
-    </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog item={item} count={options.length} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
+    </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog item={item} offeredOptionIds={available} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}
         <div className={styles.cardChoice}><FundingCardPicker tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); }} /></div>

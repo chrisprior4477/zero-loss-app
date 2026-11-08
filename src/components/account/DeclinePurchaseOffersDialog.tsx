@@ -9,12 +9,13 @@ import { declineAllDemoPurchaseOptions, undoBulkDemoPurchaseOptions } from "@/li
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { PurchaseDialog } from "./PurchaseCheckoutDialog";
+import { holdAccountRefresh, notifyAccountChanged } from "@/lib/account/account-state-events";
 import styles from "./decline-purchase-offers.module.css";
 
 type Phase = "confirm" | "working" | "undo" | "undoing" | "error" | "leaving";
 
-export function DeclinePurchaseOffersDialog({ item, count, onClose }: {
-  item: ActivityItem; count: number; onClose: () => void;
+export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, onClose }: {
+  item: ActivityItem; offeredOptionIds: string[]; onClose: () => void;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("confirm");
@@ -25,13 +26,21 @@ export function DeclinePurchaseOffersDialog({ item, count, onClose }: {
   const inFlight = useRef(false);
   const leaving = useRef(false);
   const undoButton = useRef<HTMLButtonElement>(null);
+  const releaseRefresh = useRef<(() => void) | null>(null);
+  const [reviewedOptionIds, setReviewedOptionIds] = useState(() => [...offeredOptionIds]);
+  const offersChanged = reviewedOptionIds.length !== offeredOptionIds.length
+    || reviewedOptionIds.some(id => !offeredOptionIds.includes(id));
+  const count = reviewedOptionIds.length;
   const savedCount = optionIds.length;
   const busy = phase === "working" || phase === "undoing" || phase === "leaving";
   const offerWord = count === 1 ? "offer" : "offers";
 
+  useEffect(() => () => releaseRefresh.current?.(), []);
+
   const finish = useCallback(() => {
     if (inFlight.current || leaving.current) return;
     leaving.current = true;
+    releaseRefresh.current?.();
     setUndoUntil(null);
     setPhase("leaving");
     router.replace("/account/declined-offers");
@@ -58,20 +67,23 @@ export function DeclinePurchaseOffersDialog({ item, count, onClose }: {
   }, [phase, onClose, finish]);
 
   async function decline() {
-    if (inFlight.current || phase !== "confirm") return;
+    if (inFlight.current || phase !== "confirm" || offersChanged || !count) return;
     inFlight.current = true;
+    releaseRefresh.current = holdAccountRefresh();
     setPhase("working");
     try {
-      const result = await declineAllDemoPurchaseOptions(item.slug);
+      const result = await declineAllDemoPurchaseOptions(item.slug, reviewedOptionIds);
       setMessage(result.message);
       if (result.optionIds.length) {
+        notifyAccountChanged();
         setOptionIds(result.optionIds);
         setUndoUntil(Date.now() + 30_000);
         setSeconds(30);
         setPhase("undo");
-      } else setPhase("error");
+      } else { releaseRefresh.current?.(); setPhase("error"); }
     } catch {
       setMessage("The connection was interrupted. Check Declined Offers before trying again; some offers may already have changed.");
+      releaseRefresh.current?.();
       setPhase("error");
     } finally { inFlight.current = false; }
   }
@@ -84,7 +96,9 @@ export function DeclinePurchaseOffersDialog({ item, count, onClose }: {
     try {
       // Restore only the IDs the server confirmed, including a partial decline.
       const result = await undoBulkDemoPurchaseOptions(optionIds);
+      if (result.optionIds.length) notifyAccountChanged();
       setUndoUntil(null);
+      releaseRefresh.current?.();
       if (result.status === "succeeded") {
         onClose();
         router.refresh();
@@ -93,6 +107,7 @@ export function DeclinePurchaseOffersDialog({ item, count, onClose }: {
         setPhase("error");
       }
     } catch {
+      releaseRefresh.current?.();
       setUndoUntil(null);
       setMessage("The connection was interrupted. Check Declined Offers to verify what was restored.");
       setPhase("error");
@@ -110,11 +125,13 @@ export function DeclinePurchaseOffersDialog({ item, count, onClose }: {
       <div><p className={styles.retailer}>{item.retailer}</p><h3>{item.title}</h3><p>{formatUsdFromCents(item.priceCents)} gift card purchase {offerWord}</p></div>
     </div>
     {phase === "confirm" ? <>
+      {offersChanged ? <><p className={styles.message} role="alert">Your available offers changed. Review them again before declining.</p>
+        <button type="button" className={styles.keep} onClick={() => setReviewedOptionIds([...offeredOptionIds])}>Review current offers</button></> : null}
       <p className={styles.question}>Decline <span className={styles.count}>{count}</span> {offerWord}?</p>
       <p className={styles.message}>{count === 1 ? "This offer will" : "These offers will"} leave your active purchase options. No refund is issued. Your entry and wallet history stay.</p>
       <div className={styles.actions}>
         <button type="button" className={styles.keep} onClick={onClose}>Keep my {offerWord}</button>
-        <button type="button" className={styles.decline} onClick={() => void decline()}>Decline {count} {offerWord}</button>
+        <button type="button" className={styles.decline} disabled={offersChanged || !count} onClick={() => void decline()}>Decline {count} {offerWord}</button>
       </div>
       <p className={styles.note}>30 seconds to Undo after declining.</p>
     </> : phase === "undo" || phase === "undoing" ? <>

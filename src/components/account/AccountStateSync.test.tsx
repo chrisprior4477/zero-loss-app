@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 import { AccountStateSync } from "./AccountStateSync";
+import { holdAccountRefresh, notifyAccountChanged } from "@/lib/account/account-state-events";
 
 const sync = (balanceCents = 4300) => <AccountStateSync accountId="owner" balanceCents={balanceCents} activeCount={37} />;
 const tick = () => act(() => vi.advanceTimersByTime(100));
@@ -98,4 +99,43 @@ test("automatic recovery does not refresh hidden or offline tabs", () => {
   render(<AccountStateSync accountId="owner" balanceCents={null} activeCount={null} />);
   act(() => vi.advanceTimersByTime(15000));
   expect(router.refresh).not.toHaveBeenCalled();
+});
+
+test("offer identity/status changes broadcast even when money and ticket totals are unchanged", () => {
+  const writes = vi.spyOn(Storage.prototype, "setItem");
+  const view = render(<AccountStateSync accountId="owner" balanceCents={4300} activeCount={37} offerRevision="first:available" />);
+  view.rerender(<AccountStateSync accountId="owner" balanceCents={4300} activeCount={37} offerRevision="second:available" />);
+  expect(writes).toHaveBeenCalledOnce();
+  view.rerender(<AccountStateSync accountId="owner" balanceCents={4300} activeCount={37} offerRevision="second:declined" />);
+  expect(writes).toHaveBeenCalledTimes(2);
+});
+
+test("a confirmed decline signals other tabs without refreshing away its own Undo receipt", () => {
+  const writes = vi.spyOn(Storage.prototype, "setItem");
+  render(sync());
+  notifyAccountChanged();
+  tick();
+  expect(writes).toHaveBeenCalledOnce();
+  expect(router.refresh).not.toHaveBeenCalled();
+});
+
+test("focus and peer changes wait until an in-flight action and Undo receipt close", () => {
+  render(sync());
+  const release = holdAccountRefresh();
+  try {
+    window.dispatchEvent(new Event("focus"));
+    window.dispatchEvent(new StorageEvent("storage", { key: "zero-loss-account-changed:owner", newValue: "changed" }));
+    tick(); expect(router.refresh).not.toHaveBeenCalled();
+  } finally { release(); }
+  tick(); expect(router.refresh).toHaveBeenCalledOnce();
+  release(); tick(); expect(router.refresh).toHaveBeenCalledOnce();
+});
+
+test("a hold started after scheduling a refresh still protects the receipt", () => {
+  render(sync());
+  window.dispatchEvent(new Event("focus"));
+  const release = holdAccountRefresh();
+  try { tick(); expect(router.refresh).not.toHaveBeenCalled(); }
+  finally { release(); }
+  tick(); expect(router.refresh).toHaveBeenCalledOnce();
 });

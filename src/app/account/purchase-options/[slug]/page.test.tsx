@@ -42,6 +42,11 @@ test("refreshing after the final offer was purchased opens completed purchases",
   await expect(visit()).rejects.toThrow("/account/entries?filter=completed");
 });
 
+test("a second tab opens Declined Offers after the final available offer is declined", async () => {
+  getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [{ ...open, completionOptionStatus: "declined" }] } });
+  await expect(visit()).rejects.toThrow("/account/declined-offers");
+});
+
 test("an unknown prize with no offers still reports not found", async () => {
   getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [] } });
   await expect(visit()).rejects.toThrow("NOT_FOUND");

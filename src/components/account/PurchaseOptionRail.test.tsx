@@ -142,7 +142,7 @@ test("bulk decline confirms the current item's offers and offers a 30-second und
   expect(mocks.decline).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Confirm decline all" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Undo decline all" })).toBeTruthy());
-  expect(mocks.decline).toHaveBeenCalledWith(base.slug);
+  expect(mocks.decline).toHaveBeenCalledWith(base.slug, optionIds);
   expect(screen.getByRole("timer", { name: /seconds left to undo/ })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Undo decline all" }));
   await waitFor(() => expect(mocks.undo).toHaveBeenCalledWith(optionIds));
@@ -177,4 +177,20 @@ test("keeping offers dismisses confirmation and clears the confirmation link", (
   expect(screen.queryByRole("group", { name: "Confirm declining this offer" })).toBeNull();
   expect(screen.getByRole("button", { name: "Show purchase option 1 of 1" })).toBeTruthy();
   expect(mocks.replace).toHaveBeenCalledWith(`/account/purchase-options/${encodeURIComponent(base.slug)}`);
+});
+
+test("the older confirmation also requires review when another tab changes the offer IDs", async () => {
+  mocks.decline.mockClear();
+  const options = bulkOptions(2);
+  const view = render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline initiallyConfirmDecline />);
+  const replacement = [options[0], { ...options[1], completionOptionId: "33333333-3333-4333-8333-333333333333" }];
+  view.rerender(<PurchaseOptionRail title="Gift card" options={replacement} canBulkDecline initiallyConfirmDecline />);
+  expect(screen.getByRole("alert").textContent).toContain("available offers changed");
+  fireEvent.click(screen.getByRole("button", { name: "Confirm decline all" }));
+  expect(mocks.decline).not.toHaveBeenCalled();
+  mocks.decline.mockResolvedValueOnce({ status: "succeeded", optionIds: replacement.map(option => option.completionOptionId), message: "2 offers declined." });
+  fireEvent.click(screen.getByRole("button", { name: "Review current offers" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm decline all" }));
+  await screen.findByRole("button", { name: "Undo decline all" });
+  expect(mocks.decline).toHaveBeenCalledExactlyOnceWith(options[0].slug, replacement.map(option => option.completionOptionId));
 });
