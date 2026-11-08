@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ProfilePhotoCard } from "./ProfilePhotoCard";
 import type { CSSProperties } from "react";
 
@@ -41,7 +41,7 @@ test.each([128, 224, 256])("dragging scales correctly in a %ipx crop preview", (
   expect(savePhoto).not.toHaveBeenCalled();
 });
 
-test("saving after a small-screen drag exports the crop shown in the preview", async () => {
+function mockPhotoExport() {
   vi.stubGlobal("Image", class {
     src = "";
     naturalWidth = 1000;
@@ -51,6 +51,11 @@ test("saving after a small-screen drag exports the crop shown in the preview", a
   const drawImage = vi.fn();
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
   vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(callback => callback(new Blob(["cropped"], { type: "image/webp" })));
+  return drawImage;
+}
+
+test("saving after a small-screen drag exports the crop shown in the preview", async () => {
+  const drawImage = mockPhotoExport();
   savePhoto.mockResolvedValue({ ok: true, publicUrl: "/cropped.webp" });
   render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
   const trigger = screen.getAllByRole("button", { name: "Adjust profile photo" })[1];
@@ -64,6 +69,49 @@ test("saving after a small-screen drag exports the crop shown in the preview", a
   expect(drawImage.mock.calls[0].slice(1)).toEqual([-384, -64, 1536, 768]);
   expect(savePhoto).toHaveBeenCalledTimes(1);
   expect(document.activeElement).toBe(trigger);
+});
+
+test("blocked legacy storage cannot turn a confirmed photo save into a failure", async () => {
+  mockPhotoExport();
+  savePhoto.mockResolvedValueOnce({ ok: true, publicUrl: "/saved.webp" });
+  const remove = vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => { throw new Error("Storage blocked"); });
+  const updated = vi.fn();
+  window.addEventListener("zero-loss-avatar-updated", updated);
+  try {
+    render(<ProfilePhotoCard initials="CP" fullName="Chris" email="" initialAvatarUrl="/before.webp" />);
+    fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Save photo" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(remove).toHaveBeenCalled();
+    expect(savePhoto).toHaveBeenCalledOnce();
+    expect(updated).toHaveBeenCalledOnce();
+    const avatar = (updated.mock.calls[0][0] as CustomEvent).detail.photo;
+    expect(avatar).toMatch(/^\/saved\.webp\?v=/);
+    expect(screen.getByRole("article").querySelector("[data-photo-source]")?.getAttribute("data-photo-source")).toBe(avatar);
+    expect(screen.queryByRole("alert")).toBeNull();
+  } finally {
+    window.removeEventListener("zero-loss-avatar-updated", updated);
+  }
+});
+
+test.each(["success", "failure"])("a late %s from a previous edit leaves the reopened crop intact", async outcome => {
+  mockPhotoExport();
+  let finish!: (result: { ok: true; publicUrl: string } | { ok: false; message: string }) => void;
+  savePhoto.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  render(<ProfilePhotoCard initials="CP" fullName="Chris" email="" initialAvatarUrl="/original.webp" />);
+  const trigger = screen.getAllByRole("button", { name: "Adjust profile photo" })[0];
+  fireEvent.click(trigger);
+  fireEvent.click(screen.getByRole("button", { name: "Save photo" }));
+  await waitFor(() => expect(savePhoto).toHaveBeenCalledOnce());
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(trigger);
+  fireEvent.change(screen.getByRole("slider"), { target: { value: "2" } });
+  await act(async () => finish(outcome === "success" ? { ok: true, publicUrl: "/first-save.webp" } : { ok: false, message: "Previous save failed" }));
+  expect(screen.getByRole("slider")).toHaveProperty("value", "2");
+  expect(screen.getByRole("button", { name: "Save photo" })).toHaveProperty("disabled", false);
+  expect(screen.getByLabelText("Photo crop preview").querySelector("[data-photo-source]")?.getAttribute("data-photo-source")).toBe("/original.webp");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(savePhoto).toHaveBeenCalledOnce();
 });
 
 test.each([0, 1])("Escape closes the editor without saving and restores photo button %i", (index) => {

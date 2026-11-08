@@ -26,9 +26,9 @@ export function Barcode({ value }: { value: string }) {
   return <div className="flex h-14 w-full max-w-[250px] items-stretch justify-center overflow-hidden bg-white px-2 py-1" aria-label={`Entry reference barcode ${value}`}>{bars.map((bar) => <span key={bar.key} className={bar.dark ? "bg-black" : "bg-white"} style={{ width: `${bar.width}px` }} />)}</div>;
 }
 
-type Props = { offeringTitle: string; offeringSlug: string; browseReturn?: string | null; initialLegalName?: string; initialAccountReference?: string };
+type Props = { offeringTitle: string; offeringSlug: string; browseReturn?: string | null; quantity?: number | null; initialLegalName?: string; initialAccountReference?: string };
 
-export function FreeEntryPrintCard({ offeringTitle, offeringSlug, browseReturn, initialLegalName = "", initialAccountReference = "" }: Props) {
+export function FreeEntryPrintCard({ offeringTitle, offeringSlug, browseReturn, quantity, initialLegalName = "", initialAccountReference = "" }: Props) {
   const [name, setName] = useState(initialLegalName);
   const [accountReference, setAccountReference] = useState(initialAccountReference);
   const [addressSide, setAddressSide] = useState(true);
@@ -43,6 +43,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, browseReturn, 
       reference,
     });
     if (browseReturn) params.set("from", browseReturn);
+    if (quantity && quantity > 1) params.set("quantity", String(quantity));
     window.open(`/free-entry/print?${params.toString()}`, "_blank", "noopener,noreferrer");
   };
 

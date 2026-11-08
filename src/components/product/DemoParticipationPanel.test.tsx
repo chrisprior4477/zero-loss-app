@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 import { DemoParticipationPanel } from "./DemoParticipationPanel";
+import { FreeEntryLink, ProductEntrySelection } from "./ProductEntrySelection";
 import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
 import { readEntryIntent, saveEntryIntent } from "@/lib/entries/return-intent";
 import { readViewedProduct, rememberViewedProduct } from "@/lib/catalog/viewed-product";
@@ -14,6 +15,26 @@ beforeEach(() => {
   Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function(this: HTMLDialogElement) { this.open = true; } });
 });
 const props = { productSlug: "test-product", requestKey: "entry_request_key_01", requestHead: { ready: true as const, requestId: null }, productTitle: "Test product", retailer: "Test store", productValue: 100, entryPrice: 1, sold: 9, capacity: 20 };
+
+test.each([true, false])("both free-entry links follow the displayed quantity without submitting, signed in: %s", isSignedIn => {
+  const from = "/browse?category=fishing";
+  render(<ProductEntrySelection initialQuantity={1}>
+    <FreeEntryLink className="" slug={props.productSlug} from={from}>Free-entry instructions</FreeEntryLink>
+    <DemoParticipationPanel {...props} isSignedIn={isSignedIn} isDemoWallet browseReturnHref={from} />
+    <FreeEntryLink className="" slug={props.productSlug} from={from}>Prefer to enter without a purchase?</FreeEntryLink>
+  </ProductEntrySelection>);
+  for (const [typed, expected] of [["7", "7"], ["20", "11"], ["1", null]]) {
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Number of entries" }), { target: { value: typed } });
+    for (const link of screen.getAllByRole("link", { name: /Free-entry instructions|Prefer to enter/ })) {
+      const url = new URL(link.getAttribute("href")!, "https://example.test");
+      expect(url.pathname).toBe("/free-entry");
+      expect(url.searchParams.get("offering")).toBe(props.productSlug);
+      expect(url.searchParams.get("quantity")).toBe(expected);
+      expect(url.searchParams.get("from")).toBe(from);
+    }
+  }
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
 
 test("the sticky wallet balance follows the current prize quantity and browse filters, then clears on exit", () => {
   const browse = "/browse?category=groceries";

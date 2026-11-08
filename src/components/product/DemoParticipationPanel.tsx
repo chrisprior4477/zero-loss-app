@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { ExtraEntryExplanation } from "./ExtraEntryExplanation";
 import { EntryQuantityInput } from "./EntryQuantityInput";
+import { useEntrySelection } from "./ProductEntrySelection";
 import { PoolProgress } from "@/components/product/PoolProgress";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { InsufficientBalanceToast } from "@/components/product/InsufficientBalanceToast";
@@ -79,7 +80,7 @@ export function DemoParticipationPanel({
     try { return await createPreviewEntry(previous, payload); }
     catch { return { status: "error" as const, code: "outcome_unknown" as const, message: "The connection was interrupted. Check the saved submission before starting another entry." }; }
   }, { status: "idle" });
-  const [quantity, setQuantity] = useState(() => Math.min(Math.max(1, initialQuantity), Math.max(1, maxQuantity)));
+  const [quantity, setQuantity] = useEntrySelection(Math.min(Math.max(1, initialQuantity), Math.max(1, maxQuantity)));
   const [selectedTicketsToast, setSelectedTicketsToast] = useState<number | null>(null);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
   const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
@@ -234,7 +235,7 @@ export function DemoParticipationPanel({
     };
     window.addEventListener(ENTRY_REQUEST_EVENT, receive);
     return () => window.removeEventListener(ENTRY_REQUEST_EVENT, receive);
-  }, [productSlug]);
+  }, [productSlug, setQuantity]);
 
   useEffect(() => {
     if (state.status === "request") {

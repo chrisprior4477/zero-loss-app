@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DemoParticipationPanel } from "@/components/product/DemoParticipationPanel";
+import { FreeEntryLink, ProductEntrySelection } from "@/components/product/ProductEntrySelection";
 import { RememberViewedProduct } from "@/components/product/RememberViewedProduct";
 import { ResetDemoPoolButton } from "@/components/product/ResetDemoPoolButton";
 import { GiftCardFulfillmentNotice } from "@/components/product/GiftCardFulfillmentNotice";
@@ -19,7 +20,7 @@ import { getAccountContext } from "@/lib/account/context";
 import { randomUUID } from "node:crypto";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { parseEntryQuantity } from "@/lib/entries/return-intent";
-import { freeEntryHref, productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
+import { productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
@@ -101,7 +102,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <p>A non-selected paid entry has its own optional 30-day right to complete this {product.retailer} offer by paying the remaining ${(Math.max(0, product.value - entryPrice)).toFixed(2)}. The option and its deadline appear in My Activity after the outcome. Completing it issues the same ${product.value.toLocaleString()} {product.retailer} digital gift card.</p>
     <p>Entry payments and completion options do not stack with one another or with Playable Balance. An expired or declined option is not a general-purpose credit.</p>
     <p>{isGiftCardOffering ? "This gift card is not Playable Balance or withdrawable cash." : `Zero Loss does not ship the ${product.title} directly.`} Find an issued card in <Link href="/account/wallet" className="font-bold text-cyan-300 underline">Gift Cards &amp; Rewards</Link> and use it online or in store where accepted, subject to {product.retailer}&apos;s terms.</p>
-    <p>No purchase necessary. <Link href={freeEntryHref(product.slug, query.from)} className="font-bold text-cyan-300 underline">Free-entry instructions →</Link></p>
+    <p>No purchase necessary. <FreeEntryLink slug={product.slug} from={query.from} className="font-bold text-cyan-300 underline">Free-entry instructions →</FreeEntryLink></p>
     <p><Link href="/terms" className="font-bold text-cyan-300 underline">Preview terms and Official Rules status →</Link></p>
   </>;
 
@@ -109,6 +110,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <ProductBreadcrumbTitle slug={product.slug} title={product.title} />
     {!alreadyResolved ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
     <ProductEntryAutoScroll productKey={`${product.slug}:${requestedQuantity}:${query.funded ?? ""}`} />
+    <ProductEntrySelection key={`${product.slug}:${requestedQuantity}`} initialQuantity={Math.min(requestedQuantity, Math.max(1, current?.remaining ?? product.capacity - product.sold))}>
     <section id="product-entry-card" className={entryStyles.card} aria-label={`${product.title} entry details`}>
       <div className={entryStyles.nav}>
         <Link href={browseReturnHref}>← Back to {browseReturnLabel}</Link>
@@ -121,10 +123,11 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
       <GiftCardFulfillmentNotice compact productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
       {alreadyResolved ? <div className={entryStyles.resolved}>{participationPanel}</div> : participationPanel}
       <div className={entryStyles.more}>
-        {!alreadyResolved ? <Link className={entryStyles.freeEntry} href={freeEntryHref(product.slug, query.from)}>Prefer to enter without a purchase?</Link> : null}
+        {!alreadyResolved ? <FreeEntryLink className={entryStyles.freeEntry} slug={product.slug} from={query.from}>Prefer to enter without a purchase?</FreeEntryLink> : null}
       </div>
       {isPreviewDataEnvironment() && account?.wallet?.scope === "demo" && current?.remaining === 0 && !current.repeatableScenario ? <div className={entryStyles.poolReset}><ResetDemoPoolButton slug={product.slug} /></div> : null}
     </section>
+    </ProductEntrySelection>
     <section className={`${entryStyles.after} grid gap-4 rounded-3xl border border-white/12 bg-[#001b3d] p-6 sm:grid-cols-3 sm:p-8`}>
       <div><strong className="text-cyan-300">Transparent capacity</strong><p className="mt-2 text-sm leading-6 text-white/65">Entry totals and remaining capacity are shown directly from this demo pool.</p></div>
       <div><strong className="text-cyan-300">Official rules stay accessible</strong><p className="mt-2 text-sm leading-6 text-white/65">Eligibility, free-entry details, and completion terms will remain one tap away.</p></div>

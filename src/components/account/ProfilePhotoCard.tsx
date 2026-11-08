@@ -94,6 +94,7 @@ export function ProfilePhotoCard({
   const zoomRef = useRef<HTMLInputElement>(null);
   const editorTriggerRef = useRef<HTMLButtonElement>(null);
   const dragRef = useRef<{ x: number; y: number; cropX: number; cropY: number; scale: number } | null>(null);
+  const draftVersion = useRef(0);
   const migrationStarted = useRef(false);
   const [localPhoto, setLocalPhoto] = useState<{ original: string | null; url: string; crop: Crop } | null>(null);
   const photo = localPhoto?.url ?? initialAvatarUrl;
@@ -102,6 +103,10 @@ export function ProfilePhotoCard({
   const [draftPhoto, setDraftPhoto] = useState<string | null>(null);
   const [draftCrop, setDraftCrop] = useState<Crop>(defaultCrop);
   const [editing, setEditing] = useState(false);
+  const closeEditor = useCallback(() => {
+    draftVersion.current += 1;
+    setEditing(false);
+  }, []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedVisibility, setSavedVisibility] = useState({ source: initialVisibility, value: initialVisibility ?? defaultVisibility });
@@ -142,7 +147,7 @@ export function ProfilePhotoCard({
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
-        setEditing(false);
+        closeEditor();
         return;
       }
       if (event.key !== "Tab") return;
@@ -168,7 +173,7 @@ export function ProfilePhotoCard({
       document.documentElement.style.overflow = rootOverflow;
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
-  }, [editing]);
+  }, [editing, closeEditor]);
 
   async function changeVisibility(surface: PhotoVisibilitySurface, enabled: boolean) {
     setPendingVisibility({ surface, enabled });
@@ -196,16 +201,19 @@ export function ProfilePhotoCard({
     const refreshedUrl = `${result.publicUrl}?v=${Date.now()}`;
     setLocalPhoto({ original: initialAvatarUrl, url: refreshedUrl, crop: defaultCrop });
     notifyAccountChanged();
-    window.localStorage.removeItem(PHOTO_KEY);
-    window.localStorage.removeItem(CROP_KEY);
     window.dispatchEvent(new CustomEvent(AVATAR_EVENT, { detail: { photo: refreshedUrl } }));
-    return refreshedUrl;
+    try {
+      window.localStorage.removeItem(PHOTO_KEY);
+      window.localStorage.removeItem(CROP_KEY);
+    } catch { /* The account photo is already saved. Legacy storage is optional. */ }
   }, [initialAvatarUrl]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(async () => {
       if (initialAvatarUrl || migrationStarted.current) return;
-      const legacyPhoto = window.localStorage.getItem(PHOTO_KEY);
+      let legacyPhoto: string | null;
+      try { legacyPhoto = window.localStorage.getItem(PHOTO_KEY); }
+      catch { return; }
       if (!legacyPhoto) return;
       migrationStarted.current = true;
       try {
@@ -221,9 +229,11 @@ export function ProfilePhotoCard({
   function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    const version = ++draftVersion.current;
     const reader = new FileReader();
     reader.addEventListener("load", () => {
-      if (typeof reader.result !== "string") return;
+      if (version !== draftVersion.current || typeof reader.result !== "string") return;
+      setError(null);
       setDraftPhoto(reader.result);
       setDraftCrop(defaultCrop);
       setEditing(true);
@@ -244,23 +254,26 @@ export function ProfilePhotoCard({
   }
 
   function movePhoto(event: PointerEvent<HTMLDivElement>) {
-    if (!dragRef.current) return;
+    const drag = dragRef.current;
+    if (!drag) return;
+    draftVersion.current += 1;
+    const x = Math.max(-90, Math.min(90, drag.cropX + (event.clientX - drag.x) * drag.scale));
+    const y = Math.max(-90, Math.min(90, drag.cropY + (event.clientY - drag.y) * drag.scale));
     setDraftCrop((current) => ({
-      ...current,
-      x: Math.max(-90, Math.min(90, dragRef.current!.cropX + (event.clientX - dragRef.current!.x) * dragRef.current!.scale)),
-      y: Math.max(-90, Math.min(90, dragRef.current!.cropY + (event.clientY - dragRef.current!.y) * dragRef.current!.scale)),
+      ...current, x, y,
     }));
   }
 
   async function savePhoto() {
-    if (!draftPhoto) return;
+    if (!draftPhoto || saving) return;
+    const version = draftVersion.current;
     setSaving(true);
     setError(null);
     try {
       await persistPhoto(draftPhoto, draftCrop);
-      setEditing(false);
+      if (version === draftVersion.current) closeEditor();
     } catch (caught) {
-      setError(caught instanceof Error
+      if (version === draftVersion.current) setError(caught instanceof Error
         ? caught.message
         : "We could not sync your photo. Please check your connection and try again.");
     } finally {
@@ -269,6 +282,8 @@ export function ProfilePhotoCard({
   }
 
   function openEditor(event: MouseEvent<HTMLButtonElement>) {
+    draftVersion.current += 1;
+    setError(null);
     editorTriggerRef.current = event.currentTarget;
     if (!photo) {
       inputRef.current?.click();
@@ -355,14 +370,18 @@ export function ProfilePhotoCard({
                 max="3"
                 step="0.05"
                 value={draftCrop.zoom}
-                onChange={(event) => setDraftCrop((current) => ({ ...current, zoom: Number(event.target.value) }))}
+                onChange={(event) => {
+                  draftVersion.current += 1;
+                  const zoom = Number(event.target.value);
+                  setDraftCrop(current => ({ ...current, zoom }));
+                }}
                 className="mt-2 block min-h-6 w-full accent-cyan-300"
               />
               {error ? <p role="alert" className="mt-3 text-sm leading-5 text-amber-200">{error}</p> : null}
             </div>
             <div className={photoStyles.actions}>
               <div className="grid grid-cols-2 gap-3">
-                <button type="button" onClick={() => setEditing(false)} className="min-h-12 rounded-xl border border-white/20 text-sm font-bold text-white hover:bg-white/8">
+                <button type="button" onClick={closeEditor} className="min-h-12 rounded-xl border border-white/20 text-sm font-bold text-white hover:bg-white/8">
                   Cancel
                 </button>
                 <button type="button" disabled={saving} onClick={savePhoto} className="min-h-12 rounded-xl bg-[#31e800] text-sm font-black text-[#002719] hover:bg-[#72ff4e] disabled:cursor-wait disabled:opacity-60">

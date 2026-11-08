@@ -2,6 +2,7 @@ import { marketplaceCategories } from "./navigation";
 import { getPopularRewardBrand } from "./popular-rewards";
 import { savedShareHref, shareUuid } from "../sharing/saved-shares";
 import { crewPickReturnPath } from "../crew/view-return";
+import { isEntryQuantity } from "../entries/quantity";
 
 const browseQueryKeys = new Set([
   "category", "sort", "subcategory", "q", "type", "retailer",
@@ -46,8 +47,9 @@ export function productHrefWithBrowseReturn(slug: string, browseHref: string): s
 }
 
 /** Keep the shopping context through the free-entry instructions and print preview. */
-export function freeEntryHref(slug: string, browseReturn: unknown): string {
+export function freeEntryHref(slug: string, browseReturn: unknown, quantity?: number | null): string {
   const params = new URLSearchParams({ offering: slug });
+  if (isEntryQuantity(quantity) && quantity > 1) params.set("quantity", String(quantity));
   const browse = productBrowseReturnPath(browseReturn);
   if (browse) params.set("from", browse);
   return `/free-entry?${params.toString()}`;
