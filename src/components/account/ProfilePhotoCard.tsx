@@ -4,9 +4,10 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 import photoStyles from "./profile-photo.module.css";
 
 import Image from "next/image";
-import { ChangeEvent, MouseEvent, PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ChangeEvent, MouseEvent, PointerEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { saveProfilePhoto, saveProfilePhotoVisibility, type PhotoVisibilitySurface } from "@/lib/account/actions";
+import { notifyAccountChanged } from "@/lib/account/account-state-events";
 
 const PHOTO_KEY = "zero-loss-profile-photo";
 const CROP_KEY = "zero-loss-profile-photo-crop";
@@ -15,6 +16,8 @@ const AVATAR_EVENT = "zero-loss-avatar-updated";
 const CROP_SIZE = 256;
 
 type Crop = { x: number; y: number; zoom: number };
+type PhotoVisibility = Record<PhotoVisibilitySurface, boolean>;
+const defaultVisibility: PhotoVisibility = { menu: true, crew: true };
 const defaultCrop: Crop = { x: 0, y: 0, zoom: 1 };
 
 function readCrop(): Crop {
@@ -84,7 +87,7 @@ export function ProfilePhotoCard({
   initialAvatarUrl: string | null;
   compact?: boolean;
   emailStatus?: "verified" | "pending";
-  initialVisibility?: { menu: boolean; crew: boolean };
+  initialVisibility?: PhotoVisibility;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -92,17 +95,30 @@ export function ProfilePhotoCard({
   const editorTriggerRef = useRef<HTMLButtonElement>(null);
   const dragRef = useRef<{ x: number; y: number; cropX: number; cropY: number; scale: number } | null>(null);
   const migrationStarted = useRef(false);
-  const [photo, setPhoto] = useState<string | null>(initialAvatarUrl);
+  const [localPhoto, setLocalPhoto] = useState<{ original: string | null; url: string; crop: Crop } | null>(null);
+  const photo = localPhoto?.url ?? initialAvatarUrl;
+  const crop = localPhoto?.crop ?? defaultCrop;
+  if (localPhoto && localPhoto.original !== initialAvatarUrl) setLocalPhoto(null);
   const [draftPhoto, setDraftPhoto] = useState<string | null>(null);
-  const [crop, setCrop] = useState<Crop>(defaultCrop);
   const [draftCrop, setDraftCrop] = useState<Crop>(defaultCrop);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [menuVisible, setMenuVisible] = useState(initialVisibility?.menu ?? true);
-  const [crewVisible, setCrewVisible] = useState(initialVisibility?.crew ?? true);
-  const [savingVisibility, setSavingVisibility] = useState(false);
+  const [savedVisibility, setSavedVisibility] = useState({ source: initialVisibility, value: initialVisibility ?? defaultVisibility });
+  if (savedVisibility.source !== initialVisibility) {
+    setSavedVisibility({ source: initialVisibility, value: initialVisibility ?? defaultVisibility });
+  }
+  const [pendingVisibility, setPendingVisibility] = useState<{ surface: PhotoVisibilitySurface; enabled: boolean } | null>(null);
+  const menuVisible = pendingVisibility?.surface === "menu" ? pendingVisibility.enabled : savedVisibility.value.menu;
+  const crewVisible = pendingVisibility?.surface === "crew" ? pendingVisibility.enabled : savedVisibility.value.crew;
+  const savingVisibility = pendingVisibility !== null;
   const [visibilityMessage, setVisibilityMessage] = useState<{ error: boolean; text: string } | null>(null);
+  const previousMenuVisible = useRef(menuVisible);
+  useEffect(() => {
+    if (previousMenuVisible.current === menuVisible) return;
+    previousMenuVisible.current = menuVisible;
+    window.dispatchEvent(new CustomEvent("zero-loss-photo-menu-visibility", { detail: { enabled: menuVisible } }));
+  }, [menuVisible]);
 
   useLayoutEffect(() => {
     if (!editing) return;
@@ -155,33 +171,22 @@ export function ProfilePhotoCard({
   }, [editing]);
 
   async function changeVisibility(surface: PhotoVisibilitySurface, enabled: boolean) {
-    const previous = surface === "menu" ? menuVisible : crewVisible;
-    if (surface === "menu") {
-      setMenuVisible(enabled);
-      window.dispatchEvent(new CustomEvent("zero-loss-photo-menu-visibility", { detail: { enabled } }));
-    } else {
-      setCrewVisible(enabled);
-    }
+    setPendingVisibility({ surface, enabled });
     setVisibilityMessage({ error: false, text: "Saving photo choice…" });
-    setSavingVisibility(true);
     try {
       const result = await saveProfilePhotoVisibility(surface, enabled);
       if (!result.ok) throw new Error(result.message);
+      setSavedVisibility(current => ({ ...current, value: { ...current.value, [surface]: enabled } }));
+      notifyAccountChanged();
       setVisibilityMessage({ error: false, text: "Photo choice saved." });
     } catch (caught) {
-      if (surface === "menu") {
-        setMenuVisible(previous);
-        window.dispatchEvent(new CustomEvent("zero-loss-photo-menu-visibility", { detail: { enabled: previous } }));
-      } else {
-        setCrewVisible(previous);
-      }
       setVisibilityMessage({ error: true, text: caught instanceof Error ? caught.message : "Your photo choice could not be saved." });
     } finally {
-      setSavingVisibility(false);
+      setPendingVisibility(null);
     }
   }
 
-  async function persistPhoto(source: string, sourceCrop: Crop) {
+  const persistPhoto = useCallback(async (source: string, sourceCrop: Crop) => {
     const blob = await renderCroppedPhoto(source, sourceCrop);
     const formData = new FormData();
     formData.set("photo", new File([blob], "avatar.webp", { type: "image/webp" }));
@@ -189,13 +194,13 @@ export function ProfilePhotoCard({
     if (!result.ok) throw new Error(result.message);
 
     const refreshedUrl = `${result.publicUrl}?v=${Date.now()}`;
-    setPhoto(refreshedUrl);
-    setCrop(defaultCrop);
+    setLocalPhoto({ original: initialAvatarUrl, url: refreshedUrl, crop: defaultCrop });
+    notifyAccountChanged();
     window.localStorage.removeItem(PHOTO_KEY);
     window.localStorage.removeItem(CROP_KEY);
     window.dispatchEvent(new CustomEvent(AVATAR_EVENT, { detail: { photo: refreshedUrl } }));
     return refreshedUrl;
-  }
+  }, [initialAvatarUrl]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(async () => {
@@ -206,13 +211,12 @@ export function ProfilePhotoCard({
       try {
         await persistPhoto(legacyPhoto, readCrop());
       } catch {
-        setPhoto(legacyPhoto);
-        setCrop(readCrop());
+        setLocalPhoto({ original: initialAvatarUrl, url: legacyPhoto, crop: readCrop() });
         setError("Your existing photo is still on this device. Open the editor and save it to sync everywhere.");
       }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [initialAvatarUrl]);
+  }, [initialAvatarUrl, persistPhoto]);
 
   function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, startTransition, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { setFavorite } from "@/lib/favorites/actions";
+import { notifyAccountChanged } from "@/lib/account/account-state-events";
 import { accountRoutes } from "@/lib/account/navigation";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
@@ -41,7 +42,6 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   const inFlight = useRef(new Set<string>());
   const [message, setMessage] = useState("");
   const syncedPending = useRef(false);
-  const initialKey = initialSlugs.join("|");
 
   function beginChange(slug: string) {
     if (inFlight.current.has(slug)) return false;
@@ -55,10 +55,11 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   }
 
   useEffect(() => {
-    // A refreshed server tree or another device may have changed this account list.
+    // A fresh read may restore the original list after a local removal.
+    if (!available) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSlugs(initialSlugs);
-  }, [initialKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialSlugs, available]);
 
   useEffect(() => {
     if (!message) return;
@@ -77,6 +78,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
       if (!beginChange(pending)) return;
       void setFavorite(pending, true).then(result => {
         if (result.status === "saved") {
+          notifyAccountChanged();
           sessionStorage.removeItem(pendingKey);
           setSlugs(current => current.includes(pending) ? current : [pending, ...current]);
           setMessage("Saved to Favorites.");
@@ -98,6 +100,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
     startTransition(() => {
       void setFavorite(slug, shouldSave).then(result => {
         if (result.status === "saved" || result.status === "removed") {
+          notifyAccountChanged();
           setSlugs(current => result.status === "saved"
             ? current.includes(slug) ? current : [slug, ...current]
             : current.filter(item => item !== slug));

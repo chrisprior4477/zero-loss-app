@@ -10,6 +10,7 @@ vi.mock("@/lib/favorites/actions", () => ({ setFavorite: mocks.setFavorite }));
 
 import { FavoritesProvider, useFavorites } from "./FavoritesProvider";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { ACCOUNT_CHANGED_EVENT } from "@/lib/account/account-state-events";
 
 const productName = "Dyson V8 Cordless Pet Vacuum";
 const productHref = "/items/dyson-v8-cordless-vacuum";
@@ -45,6 +46,37 @@ test("failed save leaves the heart unchanged and reports the problem", async () 
   fireEvent.click(screen.getAllByRole("button", { name: `Add ${productName} to favorites` })[0]);
   await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Favorites could not be updated."));
   expect(screen.getAllByRole("button", { name: `Add ${productName} to favorites` })).toHaveLength(2);
+});
+
+test("another tab restoring the original favorites updates the count and hearts on a fresh read", async () => {
+  function Count() {
+    return <p>{useFavorites().slugs.length} favorites</p>;
+  }
+  const slug = "dyson-v8-cordless-vacuum";
+  const view = (slugs: string[], available = true) => (
+    <FavoritesProvider initialSlugs={slugs} isSignedIn available={available}>
+      <Count />
+      <FavoriteButton itemName={productName} itemHref={productHref} />
+    </FavoritesProvider>
+  );
+  const changed = vi.fn();
+  window.addEventListener(ACCOUNT_CHANGED_EVENT, changed);
+  try {
+    const { rerender } = render(view([slug, secondSlug]));
+    mocks.setFavorite.mockResolvedValueOnce({ status: "removed" });
+    fireEvent.click(screen.getByRole("button", { name: `Remove ${productName} from favorites` }));
+    await screen.findByText("1 favorites");
+    expect(changed).toHaveBeenCalledOnce();
+    rerender(view([slug, secondSlug]));
+    expect(screen.getByText("2 favorites")).toBeTruthy();
+    expect(screen.getByRole("button", { name: `Remove ${productName} from favorites` })).toBeTruthy();
+    rerender(view([], false));
+    expect(screen.getByText("2 favorites")).toBeTruthy();
+    expect(mocks.setFavorite).toHaveBeenCalledTimes(1);
+    expect(changed).toHaveBeenCalledTimes(1);
+  } finally {
+    window.removeEventListener(ACCOUNT_CHANGED_EVENT, changed);
+  }
 });
 
 test("guest favorite tap requests sign-in without pretending to save", () => {

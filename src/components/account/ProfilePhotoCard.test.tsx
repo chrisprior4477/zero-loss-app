@@ -131,6 +131,50 @@ test("a new photo chosen asynchronously returns to the Add photo button on Escap
   expect(savePhoto).not.toHaveBeenCalled();
 });
 
+test("a refreshed account updates the saved photo and both settings while leaving an open crop alone", () => {
+  const card = (url: string | null, visible: boolean) => (
+    <ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test"
+      initialAvatarUrl={url} initialVisibility={{ menu: visible, crew: visible }} />
+  );
+  const { rerender } = render(card("/original.webp", true));
+  const trigger = screen.getAllByRole("button", { name: "Adjust profile photo" })[0];
+  fireEvent.click(trigger);
+  const preview = screen.getByLabelText("Photo crop preview");
+  Object.defineProperty(preview, "clientWidth", { value: 256 });
+  dragPhoto(preview, 64, 32);
+  fireEvent.change(screen.getByRole("slider"), { target: { value: "2" } });
+
+  rerender(card("/updated.webp", false));
+  expect(trigger.querySelector("[data-photo-source]")?.getAttribute("data-photo-source")).toBe("/updated.webp");
+  for (const checkbox of screen.getAllByRole("checkbox")) expect(checkbox).toHaveProperty("checked", false);
+  const draft = preview.querySelector<HTMLElement>("[data-photo-source]")!;
+  expect(draft.dataset.photoSource).toBe("/original.webp");
+  expect(draft.style.transform).toBe("translate(25%, 12.5%) scale(2)");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(trigger);
+  expect(screen.getByLabelText("Photo crop preview").querySelector("[data-photo-source]")?.getAttribute("data-photo-source")).toBe("/updated.webp");
+  expect(screen.getByRole("slider")).toHaveProperty("value", "1");
+  expect(savePhoto).not.toHaveBeenCalled();
+  expect(saveVisibility).not.toHaveBeenCalled();
+});
+
+test("a failed visibility save uses the newest account settings after a refresh during the request", async () => {
+  let reply!: (value: { ok: false; message: string }) => void;
+  saveVisibility.mockReturnValueOnce(new Promise(resolve => { reply = resolve; }));
+  const card = (visible: boolean) => <ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test"
+    initialAvatarUrl="/photo.webp" initialVisibility={{ menu: visible, crew: visible }} />;
+  const { rerender } = render(card(true));
+  const menu = screen.getByRole("checkbox", { name: /account menu/ });
+  fireEvent.click(menu);
+  rerender(card(false));
+  expect(screen.getByRole("checkbox", { name: /My Crew/ })).toHaveProperty("checked", false);
+  reply({ ok: false, message: "Could not save." });
+  await screen.findByRole("alert");
+  expect(menu).toHaveProperty("checked", false);
+  expect(menu).toHaveProperty("disabled", false);
+  expect(saveVisibility).toHaveBeenCalledOnce();
+});
+
 test("replacing the draft keeps the editor active and unmounting releases its keyboard and scroll locks", async () => {
   const { unmount } = render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
   fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[1]);
