@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), revalidate: vi.fn(), preview: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), getUser: vi.fn(), revalidate: vi.fn(), preview: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc, from: mocks.from }) }));
 vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: mocks.preview }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 
@@ -55,4 +55,21 @@ test.each([
   expect(state.status).toBe("error");
   expect(JSON.stringify(state)).not.toContain("private database details");
   expect(mocks.revalidate).not.toHaveBeenCalled();
+});
+
+test.each(["restarted", "not found", "unavailable"])("a read-only check reports %s for the exact owned reward", async outcome => {
+  const receipt = { reward_id: rewardId, customer_rewards: { customer_entries: { offering_slug: "samsung-m70h-tv" } } };
+  const reader = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({
+    data: outcome === "restarted" ? receipt : null, error: outcome === "unavailable" ? { message: "read failed" } : null,
+  }) };
+  mocks.from.mockReturnValue(reader);
+  const data = form();
+  data.set("intent", "check");
+  const state = await restartPreviewReward({ status: "idle" }, data);
+  expect(mocks.rpc).not.toHaveBeenCalled();
+  expect(mocks.from).toHaveBeenCalledWith("demo_reward_restarts");
+  expect(reader.eq.mock.calls).toEqual([["reward_id", rewardId], ["customer_id", "owner"]]);
+  if (outcome === "restarted") expect(state).toMatchObject({ status: "succeeded", href: "/items/samsung-m70h-tv#enter-entry" });
+  else if (outcome === "unavailable") expect(state).toMatchObject({ status: "error", recovery: "check" });
+  else { expect(state.status).toBe("error"); expect(state).not.toHaveProperty("recovery"); }
 });

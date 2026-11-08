@@ -16,8 +16,26 @@ test("asks before changing a full demo pool and refreshes after a verified reset
   expect(mocks.reset).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Reset Pool" }));
   fireEvent.click(screen.getByRole("group", { name: "Confirm demo pool reset" }).querySelector("button:last-child")!);
-  await waitFor(() => expect(mocks.reset).toHaveBeenCalledWith("dunkin-25-gift-card"));
+  await waitFor(() => expect(mocks.reset).toHaveBeenCalledWith("dunkin-25-gift-card", false));
   expect(mocks.refresh).toHaveBeenCalledTimes(1);
+});
+
+test("a lost reply releases Cancel and checks the saved pool without a second reset", async () => {
+  mocks.reset.mockRejectedValueOnce(new Error("Lost reply"))
+    .mockRejectedValueOnce(new Error("Still offline"))
+    .mockResolvedValueOnce({ status: "succeeded", message: "The pool is open with one ticket available." });
+  render(<ResetDemoPoolButton slug="dunkin-25-gift-card" />);
+  fireEvent.click(screen.getByRole("button", { name: "Reset Pool" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset Pool" }));
+  const check = await screen.findByRole("button", { name: "Check pool" });
+  expect(screen.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", false);
+  fireEvent.click(check);
+  await screen.findByRole("button", { name: "Check pool" });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Check pool" }));
+  fireEvent.click(screen.getByRole("button", { name: "Check pool" }));
+  await waitFor(() => expect(mocks.refresh).toHaveBeenCalledOnce());
+  expect(mocks.reset.mock.calls.map(([, checkOnly]) => checkOnly)).toEqual([false, true, true]);
 });
 
 test("keeps the confirmation open when reset fails", async () => {
@@ -27,4 +45,19 @@ test("keeps the confirmation open when reset fails", async () => {
   fireEvent.click(screen.getByRole("group", { name: "Confirm demo pool reset" }).querySelector("button:last-child")!);
   expect(await screen.findByRole("status")).toHaveProperty("textContent", "An entry is being confirmed. Try again after its countdown.");
   expect(mocks.refresh).not.toHaveBeenCalled();
+});
+
+test("a full pool after a lost reply needs a new confirmation to reset", async () => {
+  mocks.reset.mockRejectedValueOnce(new Error("Lost reply"))
+    .mockResolvedValueOnce({ status: "error", message: "The pool is currently full." })
+    .mockResolvedValueOnce({ status: "succeeded", message: "Demo pool reset." });
+  render(<ResetDemoPoolButton slug="dunkin-25-gift-card" />);
+  fireEvent.click(screen.getByRole("button", { name: "Reset Pool" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset Pool" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Check pool" }));
+  const retry = await screen.findByRole("button", { name: "Reset Pool" });
+  expect(mocks.reset.mock.calls.map(([, check]) => check)).toEqual([false, true]);
+  fireEvent.click(retry);
+  await waitFor(() => expect(mocks.refresh).toHaveBeenCalledOnce());
+  expect(mocks.reset.mock.calls.map(([, check]) => check)).toEqual([false, true, false]);
 });
