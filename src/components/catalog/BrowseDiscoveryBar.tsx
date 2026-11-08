@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
@@ -46,17 +46,20 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     .filter(option => !query.trim() || searchTextMatches(option.label, query))
     .sort((left, right) => left.label.localeCompare(right.label));
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!panel) return;
     const element = dialog.current;
     element?.showModal();
     const previousOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     // Keep the chosen row in view when reopening the scrolling picker.
     const frame = requestAnimationFrame(() => categoryList.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: "center" }));
     return () => {
       cancelAnimationFrame(frame);
       document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
       element?.close();
       opener.current?.focus({ preventScroll: true });
     };

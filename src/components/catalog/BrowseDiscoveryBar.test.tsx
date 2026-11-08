@@ -209,3 +209,32 @@ test("Clear filters discards an unapplied range even when the destination URL is
   expect((reopened.getByRole("spinbutton", { name: "From ($)" }) as HTMLInputElement).value).toBe("");
   expect((reopened.getByRole("spinbutton", { name: "To ($)" }) as HTMLInputElement).value).toBe("");
 });
+
+test.each(["close", "cancel", "backdrop", "choose", "unmount"])("the category picker locks the viewport and restores its prior overflow on %s", exit => {
+  document.documentElement.style.overflow = "clip visible";
+  document.body.style.overflow = "auto";
+  const view = render(<BrowseDiscoveryBar {...props} />);
+  const trigger = screen.getByRole("button", { name: "Gas" });
+  fireEvent.click(trigger);
+  expect(document.documentElement.style.overflow).toBe("hidden");
+  expect(document.body.style.overflow).toBe("hidden");
+  const dialog = screen.getByRole("dialog");
+  if (exit === "close") fireEvent.click(screen.getByRole("button", { name: "Close browse options" }));
+  if (exit === "cancel") fireEvent(dialog, new Event("cancel", { cancelable: true }));
+  if (exit === "backdrop") fireEvent.click(dialog);
+  if (exit === "choose") fireEvent.click(within(dialog).getByRole("button", { name: /All categories/ }));
+  if (exit === "unmount") view.unmount();
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(document.documentElement.style.overflow).toBe("clip visible");
+  expect(document.body.style.overflow).toBe("auto");
+  if (exit !== "unmount") expect(document.activeElement).toBe(trigger);
+  document.documentElement.style.overflow = "";
+  document.body.style.overflow = "";
+});
+
+test("filter sorting keeps the page locked until its popup closes", () => {
+  const form = openPriceFilters();
+  expect(document.documentElement.style.overflow).toBe("hidden");
+  fireEvent.click(form.getByRole("button", { name: "Close browse options" }));
+  expect(document.documentElement.style.overflow).not.toBe("hidden");
+});

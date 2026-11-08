@@ -2,6 +2,10 @@ import { afterEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 
 const { path, push } = vi.hoisted(() => ({ path: { value: "/account", search: "" }, push: vi.fn() }));
+vi.mock("@/lib/account/demo-activity-reset-actions", () => ({
+  previewAllDemoActivityReset: vi.fn(async () => ({ status: "ready", entryCount: 2, balanceCents: 13600 })),
+  resetAllDemoActivity: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({ usePathname: () => path.value, useSearchParams: () => new URLSearchParams(path.search), useRouter: () => ({ refresh: vi.fn(), push }) }));
 vi.mock("next/image", () => ({ default: (props: Record<string, unknown>) => {
   const imageProps = { ...props };
@@ -221,6 +225,47 @@ test("Escape closes the drawer and restores body scrolling", () => {
   fireEvent.keyDown(window, { key: "Escape" });
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(document.body.style.overflow).toBe("auto");
+});
+
+test("Escape belongs to the nested reset confirmation, then to the account menu", async () => {
+  const originalShow = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "showModal");
+  const originalClose = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "close");
+  Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } });
+  Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; } });
+  try {
+    render(<AccountDrawer {...props} fundingEnabled />);
+    screen.getByLabelText("Open account menu").focus();
+    fireEvent.click(screen.getByLabelText("Open account menu"));
+    fireEvent.click(screen.getByRole("button", { name: "Reset All Demo Activity" }));
+    const confirmation = await screen.findByRole("dialog", { name: "Reset all demo activity?" });
+    expect(confirmation.hasAttribute("open")).toBe(true);
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    fireEvent(confirmation, escape);
+    // The browser must receive Escape to dispatch the top dialog's cancel event.
+    expect(escape.defaultPrevented).toBe(false);
+    expect(screen.getByRole("dialog", { name: "Your Zero Loss account menu" })).toBeTruthy();
+    fireEvent(confirmation, new Event("cancel", { cancelable: true }));
+    expect(screen.queryByRole("dialog", { name: "Reset all demo activity?" })).toBeNull();
+    expect(document.documentElement.style.overflow).toBe("hidden");
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.documentElement.style.overflow).not.toBe("hidden");
+    expect(document.activeElement).toBe(screen.getByLabelText("Open account menu"));
+  } finally {
+    if (originalShow) Object.defineProperty(HTMLDialogElement.prototype, "showModal", originalShow);
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
+    if (originalClose) Object.defineProperty(HTMLDialogElement.prototype, "close", originalClose);
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
+  }
+});
+
+test("a child popup that has consumed Escape keeps its account menu open", () => {
+  render(<AccountDrawer {...props} />);
+  fireEvent.click(screen.getByLabelText("Open account menu"));
+  const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  event.preventDefault();
+  fireEvent(window, event);
+  expect(screen.getByRole("dialog")).toBeTruthy();
 });
 
 test("wallet history and rewards get distinct active navigation states", () => {

@@ -9,17 +9,20 @@ export function HelpLandingScroll({ target, visitKey = target }: { target: strin
     let first = 0;
     let second = 0;
     let disposed = false;
+    let interrupted = false;
     const cancel = () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
+    const stop = () => { interrupted = true; cancel(); };
     const measure = () => {
       const bottom = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
       document.documentElement.style.setProperty("--help-header-height", `${bottom}px`);
       return bottom;
     };
     const reveal = () => {
-      if (disposed) return;
+      if (disposed || interrupted) return;
       cancel();
       first = requestAnimationFrame(() => {
         second = requestAnimationFrame(() => {
+          if (disposed || interrupted) return;
           const headerBottom = measure();
           if (target === "faq-intro" && readFaqReturn(window.history.state, window.location.href)) return;
           const id = window.location.hash.slice(1) || target;
@@ -33,9 +36,23 @@ export function HelpLandingScroll({ target, visitKey = target }: { target: strin
     // after that layout settles so a deep-linked ticket isn't hidden by the header.
     if (document.fonts) void document.fonts.ready.then(reveal);
     else reveal();
-    window.addEventListener("hashchange", reveal);
+    const navigate = () => { interrupted = false; reveal(); };
+    window.addEventListener("hashchange", navigate);
     window.addEventListener("resize", measure);
-    return () => { disposed = true; cancel(); window.removeEventListener("hashchange", reveal); window.removeEventListener("resize", measure); document.documentElement.style.removeProperty("--help-header-height"); };
+    window.addEventListener("pointerdown", stop, { passive: true });
+    window.addEventListener("wheel", stop, { passive: true });
+    window.addEventListener("touchstart", stop, { passive: true });
+    window.addEventListener("keydown", stop);
+    return () => {
+      disposed = true; cancel();
+      window.removeEventListener("hashchange", navigate);
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("pointerdown", stop);
+      window.removeEventListener("wheel", stop);
+      window.removeEventListener("touchstart", stop);
+      window.removeEventListener("keydown", stop);
+      document.documentElement.style.removeProperty("--help-header-height");
+    };
   }, [target, visitKey]);
   return null;
 }

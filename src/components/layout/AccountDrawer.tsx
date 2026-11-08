@@ -107,12 +107,17 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const trigger = triggerRef.current;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     const focusFrame = window.requestAnimationFrame(() => drawerRef.current?.focus());
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // A portal-mounted confirmation owns Escape and Tab until it closes.
+      // Preventing Escape here also prevents the native dialog's cancel event.
+      if (event.defaultPrevented || document.querySelector("dialog[open]")) return;
       if (event.key === "Escape") {
         event.preventDefault();
         setOpen(false);
@@ -138,6 +143,7 @@ export function AccountDrawer({ isSignedIn, displayName, email, avatarUrl, showP
     return () => {
       window.cancelAnimationFrame(focusFrame);
       document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
       window.removeEventListener("keydown", handleKeyDown);
       (previouslyFocused?.isConnected ? previouslyFocused : trigger)?.focus();
     };

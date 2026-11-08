@@ -1,4 +1,4 @@
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { NotificationsLandingScroll } from "./NotificationsLandingScroll";
 
@@ -72,4 +72,26 @@ test.each([false, true])("font loading settles before scrolling; unmounted=%s", 
     await act(async () => { fontsReady(); }); flush();
     expect(scrollTo).toHaveBeenCalledTimes(unmounted ? 0 : 1);
   } finally { Reflect.deleteProperty(document, "fonts"); }
+});
+
+test.each(["wheel", "touchstart", "pointerdown", "keydown"])("%s prevents late fonts from pulling the reader back, but a new heading link still works", async eventName => {
+  const { scrollTo, flush } = setup();
+  let fontsReady!: () => void;
+  Object.defineProperty(document, "fonts", { configurable: true, value: { ready: new Promise<void>(resolve => { fontsReady = resolve; }) } });
+  try {
+    render(<NotificationsLandingScroll />);
+    fireEvent(window, new Event(eventName));
+    await act(async () => { fontsReady(); }); flush();
+    expect(scrollTo).not.toHaveBeenCalled();
+    window.history.replaceState({}, "", "/account/notifications#notifications-intro");
+    fireEvent(window, new HashChangeEvent("hashchange")); flush();
+    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 508, behavior: "instant" });
+  } finally { Reflect.deleteProperty(document, "fonts"); }
+});
+
+test("a gesture cancels a landing jump already queued for the next frame", () => {
+  const { scrollTo, flush } = setup();
+  render(<NotificationsLandingScroll />);
+  fireEvent.touchStart(window); flush();
+  expect(scrollTo).not.toHaveBeenCalled();
 });

@@ -1,4 +1,4 @@
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { HelpLandingScroll } from "./HelpLandingScroll";
 import { faqReturnKey } from "@/lib/help/faq-return";
@@ -77,4 +77,27 @@ test("fonts finishing after unmount cannot scroll a different page", async () =>
     const view = render(<HelpLandingScroll target="support-intro" />); view.unmount();
     await act(async () => { fontsReady(); }); flush(); expect(scrollTo).not.toHaveBeenCalled();
   } finally { Reflect.deleteProperty(document, "fonts"); }
+});
+
+test.each(["wheel", "touchstart", "pointerdown", "keydown"])("%s cancels a delayed landing jump while explicit navigation still works", async eventName => {
+  const { scrollTo, flush } = setup();
+  let fontsReady!: () => void;
+  Object.defineProperty(document, "fonts", { configurable: true, value: { ready: new Promise<void>(resolve => { fontsReady = resolve; }) } });
+  try {
+    render(<HelpLandingScroll target="support-intro" />);
+    fireEvent(window, new Event(eventName));
+    await act(async () => { fontsReady(); }); flush();
+    expect(scrollTo).not.toHaveBeenCalled();
+    expect(document.documentElement.style.getPropertyValue("--help-header-height")).toBe("");
+    window.history.replaceState({}, "", "/support#conversation");
+    fireEvent(window, new HashChangeEvent("hashchange")); flush();
+    expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 708, behavior: "instant" });
+  } finally { Reflect.deleteProperty(document, "fonts"); }
+});
+
+test("interaction also cancels a jump already queued for the next frame", () => {
+  const { scrollTo, flush } = setup();
+  render(<HelpLandingScroll target="support-intro" />);
+  fireEvent.wheel(window); flush();
+  expect(scrollTo).not.toHaveBeenCalled();
 });

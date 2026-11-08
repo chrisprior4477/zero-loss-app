@@ -15,6 +15,18 @@ type BeforeInstallPromptEvent = Event & {
 
 type ManualInstall = "ios" | "safari" | null;
 
+function recentlyDismissed() {
+  try {
+    const dismissedAt = Number(window.localStorage.getItem(DISMISS_KEY) ?? 0);
+    return Date.now() - dismissedAt < DISMISS_FOR_MS;
+  } catch { return false; }
+}
+
+function rememberDismissal() {
+  try { window.localStorage.setItem(DISMISS_KEY, String(Date.now())); }
+  catch { /* Closing the suggestion must work even when storage is unavailable. */ }
+}
+
 function isStandalone() {
   const navigatorWithStandalone = navigator as Navigator & { standalone?: boolean };
   return window.matchMedia("(display-mode: standalone)").matches || navigatorWithStandalone.standalone === true;
@@ -31,6 +43,7 @@ function manualInstallPlatform(): ManualInstall {
 
 export function InstallAppPrompt() {
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
+  const dismissedThisVisit = useRef(false);
   const [canPrompt, setCanPrompt] = useState(false);
   const [manualPlatform, setManualPlatform] = useState<ManualInstall>(null);
   const [interacted, setInteracted] = useState(false);
@@ -41,8 +54,7 @@ export function InstallAppPrompt() {
 
   useEffect(() => {
     const initialize = window.setTimeout(() => {
-      const dismissedAt = Number(window.localStorage.getItem(DISMISS_KEY) ?? 0);
-      setDismissed(Date.now() - dismissedAt < DISMISS_FOR_MS);
+      setDismissed(dismissedThisVisit.current || recentlyDismissed());
       setManualPlatform(manualInstallPlatform());
       setAlreadyInstalled(isStandalone());
     }, 0);
@@ -60,6 +72,7 @@ export function InstallAppPrompt() {
     };
     const requestInstall = async () => {
       setExplicitRequest(true);
+      dismissedThisVisit.current = false;
       setInteracted(true);
       setDismissed(false);
       setManualPlatform(manualInstallPlatform());
@@ -84,7 +97,8 @@ export function InstallAppPrompt() {
         setDismissed(true);
         setExplicitRequest(false);
       } else {
-        window.localStorage.setItem(DISMISS_KEY, String(Date.now()));
+        rememberDismissal();
+        dismissedThisVisit.current = true;
         setDismissed(true);
         setExplicitRequest(false);
       }
@@ -107,7 +121,8 @@ export function InstallAppPrompt() {
   }, []);
 
   const dismiss = () => {
-    window.localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    rememberDismissal();
+    dismissedThisVisit.current = true;
     setDismissed(true);
     setExplicitRequest(false);
   };
