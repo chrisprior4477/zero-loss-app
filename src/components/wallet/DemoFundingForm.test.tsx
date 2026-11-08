@@ -459,6 +459,26 @@ test("payment deposits return to their heading when the full list is collapsed",
   }
 });
 
+test("desktop receipts start with the six most recent, and See more reveals every older receipt", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  try {
+    const requests = Array.from({ length: 15 }, (_, index) => ({
+      id: `r${index}`, amount: (index + 1) * 100, status: "succeeded", currency: "USD" as const,
+      created_at: "2026-10-01T12:00:00Z", postedAt: new Date(Date.UTC(2026, 10, 1 + index)).toISOString(),
+      idempotencyKey: `request_key_example_${index}`, reconciliation: "reconciled" as const,
+    }));
+    render(<DemoFundingRequests requests={requests} fundingEnabled />);
+    expect(screen.getAllByRole("listitem").map(item => item.querySelector("p span")?.textContent)).toEqual(
+      ["$15 USD", "$14 USD", "$13 USD", "$12 USD", "$11 USD", "$10 USD"]);
+    fireEvent.click(screen.getByRole("button", { name: "See more deposits (9 remaining)" }));
+    expect(screen.getAllByRole("listitem")).toHaveLength(15);
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
+    expect(screen.getAllByRole("listitem")).toHaveLength(6);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
 
 test("whole-dollar notice can close or save acknowledgement without changing or submitting the amount", () => {
   const view = render(<DemoFundingForm requestKey="whole_notice_check_001" walletId="notice-wallet" />);

@@ -14,6 +14,7 @@ import { WalletLedger } from "./WalletLedger";
 import { DeleteAllFundsButton } from "./DeleteAllFundsButton";
 import { WalletHistoryLandingScroll } from "./WalletLandingScroll";
 import { WalletPaymentMethods } from "./WalletPaymentMethods";
+import { WeeklyDeposits } from "./WeeklyDeposits";
 import styles from "./wallet-overview.module.css";
 import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
 import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
@@ -106,12 +107,15 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
 
       <WalletPaymentMethods initialSection={initialSection} savedCards={savedCards ?? (savedCard ? [savedCard] : undefined)} displayName={displayName} enabled={canFund} unavailable={cardUnavailable} />
 
-      <section id={canFund ? undefined : "add-funds"} className={`${styles.ticketPanel} ${styles.funding}`} aria-labelledby="funding-heading">
+      <section id={canFund ? undefined : "add-funds"} className={`${styles.ticketPanel} ${styles.funding} ${demo ? styles.fundingDashboard : ""}`} aria-labelledby="funding-heading">
+        <div className={styles.fundingBody}>
         <div className={styles.sectionHeading}><div><h2 id="funding-heading">Add funds</h2><p>{canFund ? "Choose an amount and confirm your preview deposit." : "Add playable balance when funding is available for your account."}</p></div><span className={styles.fundingBadge}>{demo ? "Demo payment" : "Funding"}</span></div>
         {returnToProduct ? <div className={styles.fundingReturn}><p>{returnToProduct.label === "Back to purchase option" ? <>Add funds to complete your purchase of {returnToProduct.title}. After your deposit, you’ll return to confirm the purchase.</> : returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}
         {returnUnavailable ? <p role="status" className={styles.fundingReturn}>We couldn’t find that purchase option in your account. <Link href="/account/entries?filter=completion">View your purchase options →</Link></p> : null}
         {canFund ? <DemoFundingForm key={returnToProduct?.href ?? "wallet-funding"} displayName={displayName} balanceLabel={balance} requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
-        {demo ? <DemoFundingRequests requests={requests} fundingEnabled={fundingEnabled} continueTo={returnToProduct} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
+        </div>
+        {demo && <WeeklyDeposits requests={demoHistoryVisibility === null ? null : requests} hiddenIds={demoHistoryVisibility?.fundingSessionIds} asOf={new Date().toISOString()} timeZone={timeZone} />}
+        {demo ? <DemoFundingRequests requests={requests} timeZone={timeZone} fundingEnabled={fundingEnabled} continueTo={returnToProduct} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
       </section>
     </div>
   </main>;

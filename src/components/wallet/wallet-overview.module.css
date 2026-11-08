@@ -1,6 +1,6 @@
 .page { min-height: calc(100svh - 140px); padding: 14px clamp(14px, 2.6vw, 44px) 64px; overflow: hidden; background: radial-gradient(ellipse at 49% 24%, #0a2d59, #061c3b 68%, #06172e); color: #fff; }
 .shell { max-width: 1550px; margin: 0 auto; }
-.ticketPanel, .ledger li, .fundingRequests li, .showAllTicket {
+.ticketPanel, .ledger li, .fundingRequests li, .showAllTicket, .fundingDashboard > .fundingBody, .weeklyPanel, .fundingDashboard > .fundingRequests {
   --corner-scoop: 16px;
   --side-scoop: 16px;
   -webkit-mask-image:
@@ -131,7 +131,7 @@
 .olderTransaction { margin-top: 16px; }
 .olderTransaction h3 { margin-bottom: 9px; color: #d6eaff; font-size: 16px; font-weight: 800; }
 .funding { --corner-scoop: 19px; --side-scoop: 19px; scroll-margin-top: 130px; margin-top: 24px; padding: 28px clamp(24px, 3vw, 46px) 34px; }
-.funding > .sectionHeading { align-items: center; padding-bottom: 18px; border-bottom: 2px dotted #bed0e1; }
+.fundingBody > .sectionHeading { align-items: center; padding-bottom: 18px; border-bottom: 2px dotted #bed0e1; }
 .funding .sectionHeading h2 { color: #08163c; font-size: clamp(31px, 2.7vw, 43px); }
 .funding .sectionHeading p { color: #506989; font-size: 17px; }
 .funding .fundingBadge { flex: 0 0 auto; padding: 8px 13px; border-radius: 9px; background: #d7f0ff; color: #0856a7; font-size: 13px; font-weight: 850; text-transform: uppercase; }
@@ -255,6 +255,58 @@
 .fundingRequests li :global([data-reconciliation]:not([data-reconciliation="reconciled"])) { color: #9b5409; }
 .fundingRequests li :global(form button) { border-color: #78b0d6; color: #075eb4; }
 .fundingRequests .archiveToggle { color: #075eb4; }
+
+@media (width < 1024px) {
+  .fundingDashboard > .fundingBody, .fundingDashboard > .fundingRequests { -webkit-mask-image: none; mask-image: none; }
+}
+.weeklyPanel { display: none; }
+@media (min-width: 1024px) {
+  .fundingDashboard {
+    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 16px;
+    max-width: 1240px; margin-inline: auto; padding: 0; background: transparent; box-shadow: none;
+    -webkit-mask-image: none; mask-image: none;
+  }
+  .fundingDashboard > .fundingBody, .fundingDashboard > .weeklyPanel, .fundingDashboard > .fundingRequests {
+    --corner-scoop: 18px; --side-scoop: 13px;
+    min-width: 0; padding: clamp(21px, 2vw, 30px); background: #fffefa; color: #0b1940;
+  }
+  .fundingDashboard .sectionHeading { gap: 8px; flex-wrap: wrap; }
+  .fundingDashboard .fundingAmountSection { scroll-margin-top: calc(var(--site-header-height, 110px) + 104px); }
+  .fundingDashboard .fundingAmountSection .addCardActions { max-width: none; }
+  .fundingAmountSection .addCardActions > button[aria-label="Use camera"] { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 8px; background: #ff8200; color: #081b3d; border-radius: 9px; font-weight: 850; }
+  .fundingAmountSection .addCardActions > button[aria-label="Use camera"] svg { width: 21px; height: 21px; }
+  .desktopCards { min-width: 0; border-top: 1px dotted #b9d2e5; padding-top: 8px; }
+  .savedHeading, .savedChoices { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .savedHeading { justify-content: space-between; }
+  .savedChoices { margin-bottom: 8px; }
+  .savedChoices button { min-height: 36px; padding: 6px 11px; border-radius: 8px; background: #e2f3fd; color: #104367; font-size: 13px; font-weight: 750; }
+  .savedChoices button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #1582c1; }
+  .manageCards { min-height: 44px; color: #075eb4; font-weight: 800; text-decoration: underline; }
+  .desktopCards .demoCardsHeading { flex-wrap: wrap; }
+  .weeklyPanel { display: flex; flex-direction: column; gap: 12px; }
+  .fundingDashboard:has(.manageCards[aria-expanded="true"]) .weeklyPanel { align-self: start; }
+  .weeklyPanel h2 { font-size: clamp(24px, 2.2vw, 32px); font-weight: 850; }
+  .weekChart { border-radius: 13px; padding: 18px; background: #0b2b4c; color: white; }
+  .weekChart > p { font-size: 14px; color: #c8deef; }
+  .weekTotal { display: block; margin: 4px 0 10px; font-size: 28px; overflow-wrap: anywhere; }
+  .weekBar { display: grid; width: 100%; grid-template-columns: 105px minmax(25px, 1fr) minmax(52px, max-content); gap: 8px; align-items: center; min-height: 44px; border-radius: 6px; text-align: left; font-size: 14px; font-weight: 750; }
+  .weekBar b { text-align: right; }
+  .weekBar:not(:disabled):hover, .weekBar[aria-expanded="true"] { background: #174064; }
+  .weekBar:focus-visible { outline: 2px solid #83daff; outline-offset: 2px; }
+  .barTrack { height: 11px; background: #395771; border-radius: 4px; overflow: hidden; }
+  .barTrack i { display: block; height: 100%; background: #67d6ff; border-radius: inherit; }
+  .weekHint { color: #47637f; font-size: 14px; }
+  .latestDeposit { margin-top: auto; border-top: 1px dotted #aac4d6; padding-top: 10px; }
+  .latestDeposit summary { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; }
+  .latestDeposit summary b { padding: 8px 12px; border-radius: 8px; background: #dff2ff; color: #105376; }
+  .weekDetails { padding: 0 8px 8px; }
+  .weekReceipt { font-size: 13px; overflow-wrap: anywhere; }
+  .weekReceipt summary, .depositMeta summary { padding-block: 5px; cursor: pointer; }
+  .depositMeta { margin-top: 4px; color: #395979; font-size: 13px; }
+  .depositMeta p { overflow-wrap: anywhere; font-size: 12px; }
+  .fundingDashboard > .fundingRequests { grid-column: 1 / -1; margin: 0; border: 0; }
+  .fundingRequests ul { grid-auto-flow: column; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none !important; overflow: visible; scrollbar-gutter: auto; }
+}
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #93dcff; outline-offset: 3px; }
 @media (max-width: 1380px) {
   .summaryGrid { grid-template-columns: minmax(0, 1.45fr) minmax(290px, 1fr); }
