@@ -1,5 +1,7 @@
 "use client";
 
+import { useHorizontalScrollEdges } from "@/components/layout/useHorizontalCategoryScroll";
+
 import Image from "next/image";
 import { useRailReturn } from "./useRailReturn";
 import Link from "next/link";
@@ -53,22 +55,25 @@ const sampleEndingSoon = [
   }))
   .sort((a, b) => a.remaining - b.remaining);
 
-function SideRailButtons({ onScroll }: { onScroll: (direction: -1 | 1) => void }) {
+function SideRailButtons({ track, onScroll }: { track: React.RefObject<HTMLDivElement | null>; onScroll: (direction: -1 | 1) => void }) {
+  const edges = useHorizontalScrollEdges(track);
   return (
     <>
       <button
         type="button"
         aria-label="Scroll left"
+        disabled={!edges.left}
         onClick={() => onScroll(-1)}
-        className="absolute left-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid"
+        className="absolute left-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300 disabled:pointer-events-none disabled:opacity-30 sm:grid"
       >
         ‹
       </button>
       <button
         type="button"
         aria-label="Scroll right"
+        disabled={!edges.right}
         onClick={() => onScroll(1)}
-        className="absolute right-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid"
+        className="absolute right-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/30 bg-[#00132e]/90 text-2xl text-white shadow-lg transition-colors hover:border-cyan-300 hover:text-cyan-300 disabled:pointer-events-none disabled:opacity-30 sm:grid"
       >
         ›
       </button>
@@ -269,7 +274,7 @@ export function DesktopMarketplaceRails() {
             </div>
             ))}
           </div>
-          <SideRailButtons onScroll={(direction) => scroll(categoriesRef.current, direction)} />
+          <SideRailButtons track={categoriesRef} onScroll={(direction) => scroll(categoriesRef.current, direction)} />
         </div>
       </div>
 
@@ -346,7 +351,7 @@ export function DesktopMarketplaceRails() {
             );
             })}
           </div>
-          <SideRailButtons onScroll={(direction) => scroll(endingRef.current, direction)} />
+          <SideRailButtons track={endingRef} onScroll={(direction) => scroll(endingRef.current, direction)} />
         </div>
       </div>
 
@@ -383,7 +388,7 @@ export function DesktopMarketplaceRails() {
               </Link>
             ))}
           </div>
-          <SideRailButtons onScroll={(direction) => scroll(brandsRef.current, direction)} />
+          <SideRailButtons track={brandsRef} onScroll={(direction) => scroll(brandsRef.current, direction)} />
         </div>
       </div>
 

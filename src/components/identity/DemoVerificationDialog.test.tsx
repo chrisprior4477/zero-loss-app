@@ -104,6 +104,15 @@ test("a saved presentation shortcut can resume or open a fresh full walkthrough"
   expect(mocks.restartDemoVerification).toHaveBeenCalledWith(id);
   expect(onComplete).not.toHaveBeenCalled();
 });
+test.each([true, false])("a saved skip labels the completion button for its destination (preview: %s)", async previewOnly => {
+  mocks.beginDemoVerification.mockResolvedValue({ verification: { ...sample, step: "demo_skipped" } });
+  const complete = vi.fn();
+  render(<DemoVerificationDialog rewardId={id} previewOnly={previewOnly} onClose={vi.fn()} onComplete={complete} />);
+  fireEvent.click(await screen.findByRole("button", { name: previewOnly ? "Back to reward" : "Continue to claim prize" }));
+  expect(complete).toHaveBeenCalledOnce();
+  expect(mocks.advanceDemoVerification).not.toHaveBeenCalled();
+  expect(mocks.restartDemoVerification).not.toHaveBeenCalled();
+});
 test("a network error preserves the current screen and offers the same step again", async () => {
   mocks.beginDemoVerification.mockResolvedValue({ verification: { ...sample, step: "details" } });
   mocks.advanceDemoVerification.mockResolvedValue({ error: "Connection interrupted. Retry this step." });

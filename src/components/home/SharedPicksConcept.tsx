@@ -1,5 +1,7 @@
 "use client";
 
+import { useHorizontalScrollEdges } from "@/components/layout/useHorizontalCategoryScroll";
+
 import Image from "next/image";
 import Link from "next/link";
 import { type MouseEvent, type PointerEvent, type RefObject, useRef } from "react";
@@ -86,6 +88,7 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
   const visiblePicks: CrewActivityPick[] = picks ?? (sample ? samplePicks[person as SampleCrewName] : []);
   const sampleAvatar = sample ? sampleCrewPeople.find((item) => item.name === person)?.photo : null;
   const railRef = useRef<HTMLDivElement>(null);
+  const edges = useHorizontalScrollEdges(railRef, visiblePicks.length > 0);
   const drag = useRef({ active: false, moved: false, x: 0, scrollLeft: 0 });
 
   function startDrag(event: PointerEvent<HTMLDivElement>) {
@@ -138,7 +141,7 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
           <span className={styles.pickCopy}><small>{pick.retailer}</small><strong>{pick.title}</strong>{pick.note ? <em>{pick.note}</em> : null}<span className={styles.viewLink}>View product →</span></span>
         </Link>)}
       </div>
-      <div className={styles.railFooter}><span>{peopleFirst ? "" : "Swipe to explore · "}{visiblePicks.length} {sample ? "sample " : ""}{visiblePicks.length === 1 ? "item" : "items"}</span>{!peopleFirst ? <div><button type="button" aria-label="Previous shared item" onClick={() => moveRail(-1)}>‹</button><button type="button" aria-label="Next shared item" onClick={() => moveRail(1)}>›</button></div> : null}</div>
+      <div className={styles.railFooter}><span>{peopleFirst ? "" : "Swipe to explore · "}{visiblePicks.length} {sample ? "sample " : ""}{visiblePicks.length === 1 ? "item" : "items"}</span>{!peopleFirst ? <div><button type="button" aria-label="Previous shared item" className="disabled:pointer-events-none disabled:opacity-30" disabled={!edges.left} onClick={() => moveRail(-1)}>‹</button><button type="button" aria-label="Next shared item" className="disabled:pointer-events-none disabled:opacity-30" disabled={!edges.right} onClick={() => moveRail(1)}>›</button></div> : null}</div>
     </> : <p className={styles.empty} role={loading ? "status" : undefined}>{loading ? "Loading shared activity…" : "No activity shared with Crew yet."}</p>}
     {sample && !compact ? <p className={styles.disclosure}>Illustrative picks from a fictional profile. No invitation or notification was sent. Real members choose which picks to share and can leave a Crew connection at any time.</p> : null}
   </section>;

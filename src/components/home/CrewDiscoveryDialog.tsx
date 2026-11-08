@@ -1,5 +1,7 @@
 "use client";
 
+import { useHorizontalScrollEdges } from "@/components/layout/useHorizontalCategoryScroll";
+
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type MouseEvent, type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -35,6 +37,7 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
   const pathRef = useRef<SVGPathElement>(null);
   const drag = useRef({ active: false, moved: false, x: 0, scrollLeft: 0 });
   const samples = nameFilter ? sampleCrewPeople.filter((person) => person.name.toLowerCase().includes(nameFilter)) : sampleCrewPeople;
+  const edges = useHorizontalScrollEdges(railRef, samples.length > 0);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
@@ -205,7 +208,7 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
       {realResults.length ? <div className={styles.realResults}><h4>Zero Loss members</h4>{realResults.map((person) => <div key={person.memberId} className={styles.realPerson}>
         <span className={styles.realAvatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="42px" unoptimized /> : person.name.slice(0, 1).toUpperCase()}</span><strong>{person.name}</strong><button type="button" disabled={pending || requestedIds.includes(person.memberId)} onClick={() => void requestRealPerson(person)}>{requestedIds.includes(person.memberId) ? "Added" : "Add to Crew"}</button>
       </div>)}</div> : null}
-      <div className={styles.resultsHeading}><div><h4>Explore sample Crew</h4><p>Four familiar faces plus ten more. These profiles and their prizes are illustrative.</p></div><div className={styles.arrows}><button type="button" aria-label="Previous sample Crew profiles" onClick={() => moveRail(-1)}>‹</button><button type="button" aria-label="Next sample Crew profiles" onClick={() => moveRail(1)}>›</button></div></div>
+      <div className={styles.resultsHeading}><div><h4>Explore sample Crew</h4><p>Four familiar faces plus ten more. These profiles and their prizes are illustrative.</p></div><div className={styles.arrows}><button type="button" aria-label="Previous sample Crew profiles" className="disabled:pointer-events-none disabled:opacity-30" disabled={!edges.left} onClick={() => moveRail(-1)}>‹</button><button type="button" aria-label="Next sample Crew profiles" className="disabled:pointer-events-none disabled:opacity-30" disabled={!edges.right} onClick={() => moveRail(1)}>›</button></div></div>
       {nameFilter ? <button type="button" className={styles.clearSearch} onClick={() => { setNameFilter(""); setValues((current) => ({ ...current, name: "" })); setSelected(null); setRealResults([]); setMessage(""); }}>Show all sample profiles</button> : null}
       {samples.length ? <div className={styles.stage} ref={stageRef}>
         <div ref={railRef} className={styles.rail} aria-label="Fictional sample Crew profiles" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={() => { drag.current.active = false; drag.current.moved = false; if (railRef.current) { railRef.current.style.scrollBehavior = ""; railRef.current.style.scrollSnapType = ""; } }} onClickCapture={preventDraggedClick} onDragStart={(event) => event.preventDefault()}>

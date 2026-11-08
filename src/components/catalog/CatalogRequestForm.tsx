@@ -22,6 +22,7 @@ function CatalogRequestSession({ initialProduct = "", ownerId }: Props) {
   const [draft, setDraft] = useState(initialDraft);
   const [showFeedback, setShowFeedback] = useState(false);
   const restored = useRef(false);
+  const sending = useRef(false);
   const draftKey = catalogRequestDraftKey(ownerId, initialProduct);
   const dirty = draft.requestedItem !== initialProduct || Boolean(draft.email || draft.notes);
   useLayoutEffect(() => {
@@ -36,14 +37,22 @@ function CatalogRequestSession({ initialProduct = "", ownerId }: Props) {
   }, [draftKey]);
   function changeDraft(change: Partial<CatalogRequestDraft>) {
     const next = { ...draft, ...change };
+    if (next.requestedItem.trim() !== draft.requestedItem.trim() || next.notes.trim() !== draft.notes.trim()
+      || next.email.trim().toLowerCase() !== draft.email.trim().toLowerCase()) delete next.requestKey;
     setDraft(next);
     setShowFeedback(false);
     writeCatalogRequestDraft(draftKey, next.requestedItem !== initialProduct || next.email || next.notes ? next : null);
   }
   const [state, formAction, pending] = useActionState(async (previous: CatalogRequestState, data: FormData) => {
-    const result = await saveRequest(previous, data);
-    if (result.status === "succeeded") writeCatalogRequestDraft(draftKey, null);
-    return result;
+    try {
+      const result = await saveRequest(previous, data);
+      if (result.status === "succeeded" && readCatalogRequestDraft(draftKey)?.requestKey === data.get("requestKey")) {
+        writeCatalogRequestDraft(draftKey, null);
+      }
+      return result;
+    } finally {
+      sending.current = false;
+    }
   }, initialState);
 
   if (state.status === "succeeded") {
@@ -58,9 +67,15 @@ function CatalogRequestSession({ initialProduct = "", ownerId }: Props) {
   return (
     <form onSubmit={event => {
       event.preventDefault();
-      if (pending) return;
+      if (sending.current || pending) return;
       // Keep the draft after errors; only confirmed success replaces this form.
       const formData = new FormData(event.currentTarget);
+      const requestKey = draft.requestKey ?? crypto.randomUUID();
+      const submitted = { ...draft, requestKey };
+      sending.current = true;
+      setDraft(submitted);
+      writeCatalogRequestDraft(draftKey, submitted);
+      formData.set("requestKey", requestKey);
       setShowFeedback(true);
       startTransition(() => formAction(formData));
     }} className="space-y-5">

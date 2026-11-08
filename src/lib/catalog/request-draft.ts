@@ -1,4 +1,8 @@
-export type CatalogRequestDraft = { requestedItem: string; email: string; notes: string };
+export type CatalogRequestDraft = { requestedItem: string; email: string; notes: string; requestKey?: string };
+
+export function isCatalogRequestKey(value: unknown): value is string {
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
 
 const lifetime = 24 * 60 * 60 * 1000;
 
@@ -17,7 +21,7 @@ export function readCatalogRequestDraft(key: string): CatalogRequestDraft | null
     const { requestedItem, email, notes } = saved;
     if (typeof requestedItem !== "string" || requestedItem.length > 160
       || typeof email !== "string" || email.length > 254 || typeof notes !== "string" || notes.length > 1000) return null;
-    return { requestedItem, email, notes };
+    return { requestedItem, email, notes, ...(isCatalogRequestKey(saved.requestKey) ? { requestKey: saved.requestKey } : {}) };
   } catch { return null; }
 }
 

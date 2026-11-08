@@ -1,5 +1,7 @@
 "use client";
 
+import { useHorizontalScrollEdges } from "@/components/layout/useHorizontalCategoryScroll";
+
 import Image from "next/image";
 import { type MouseEvent, type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./CrewAndWinnerPreview.module.css";
@@ -72,6 +74,8 @@ export function CrewAndWinnerPreview() {
   const outlineSvgRef = useRef<SVGSVGElement>(null);
   const outlinePathRef = useRef<SVGPathElement>(null);
   const storyRailRef = useRef<HTMLDivElement>(null);
+  const crewEdges = useHorizontalScrollEdges(crewRailRef);
+  const storyEdges = useHorizontalScrollEdges(storyRailRef);
   const crewDrag = useDragRail(crewRailRef);
   const storyDrag = useDragRail(storyRailRef);
   const previewRequests = useSampleCrewPreviews();
@@ -213,8 +217,8 @@ export function CrewAndWinnerPreview() {
               Add to Your Crew <span aria-hidden="true">→</span>
             </button>
             <div className={styles.arrows} aria-label="Crew carousel controls">
-              <button type="button" aria-label="Previous Crew profiles" onClick={() => moveRail(crewRailRef.current, -1)}>‹</button>
-              <button type="button" aria-label="Next Crew profiles" onClick={() => moveRail(crewRailRef.current, 1)}>›</button>
+              <button type="button" aria-label="Previous Crew profiles" disabled={!crewEdges.left} className="disabled:pointer-events-none disabled:opacity-30" onClick={() => moveRail(crewRailRef.current, -1)}>‹</button>
+              <button type="button" aria-label="Next Crew profiles" disabled={!crewEdges.right} className="disabled:pointer-events-none disabled:opacity-30" onClick={() => moveRail(crewRailRef.current, 1)}>›</button>
             </div>
           </div>
         </div>
@@ -265,8 +269,8 @@ export function CrewAndWinnerPreview() {
             <p className={styles.intro}>A place for real people to share their moments, when they choose to.</p>
           </div>
           <div className={styles.arrows} aria-label="Winner story carousel controls">
-            <button type="button" aria-label="Previous stories" onClick={() => moveRail(storyRailRef.current, -1)}>‹</button>
-            <button type="button" aria-label="Next stories" onClick={() => moveRail(storyRailRef.current, 1)}>›</button>
+            <button type="button" aria-label="Previous stories" disabled={!storyEdges.left} className="disabled:pointer-events-none disabled:opacity-30" onClick={() => moveRail(storyRailRef.current, -1)}>‹</button>
+            <button type="button" aria-label="Next stories" disabled={!storyEdges.right} className="disabled:pointer-events-none disabled:opacity-30" onClick={() => moveRail(storyRailRef.current, 1)}>›</button>
           </div>
         </div>
         <p className={styles.storyNotice}>Layout preview: these images feature fictional models, not actual winners. Verified, permission-based stories and videos will replace them.</p>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useHorizontalScrollEdges } from "@/components/layout/useHorizontalCategoryScroll";
+
 import Image from "next/image";
 import { useRailReturn } from "./useRailReturn";
 import Link from "next/link";
@@ -45,6 +47,7 @@ export function DollarChoiceCarouselLight() {
   const resolved = useResolvedCatalogSlugs();
   const trackRef = useRef<HTMLDivElement>(null);
   useRailReturn(trackRef, "everyday-upgrade");
+  const edges = useHorizontalScrollEdges(trackRef);
   const dragRef = useRef({ active: false, moved: false, startX: 0, scrollLeft: 0 });
 
   const scroll = (direction: -1 | 1) => {
@@ -158,8 +161,8 @@ export function DollarChoiceCarouselLight() {
 
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[11vw] bg-gradient-to-r from-[#031b44] via-[#031b44]/80 to-transparent" />
         <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[11vw] bg-gradient-to-l from-[#031b44] via-[#031b44]/80 to-transparent" />
-        <button type="button" aria-label="Scroll alternate prizes left" onClick={() => scroll(-1)} className="absolute left-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid">‹</button>
-        <button type="button" aria-label="Scroll alternate prizes right" onClick={() => scroll(1)} className="absolute right-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300 sm:grid">›</button>
+        <button type="button" aria-label="Scroll alternate prizes left" disabled={!edges.left} onClick={() => scroll(-1)} className="absolute left-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300 disabled:pointer-events-none disabled:opacity-30 sm:grid">‹</button>
+        <button type="button" aria-label="Scroll alternate prizes right" disabled={!edges.right} onClick={() => scroll(1)} className="absolute right-[clamp(1rem,2.5vw,3rem)] top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/45 bg-[#00132e]/95 text-2xl text-white transition-colors hover:border-cyan-300 hover:text-cyan-300 disabled:pointer-events-none disabled:opacity-30 sm:grid">›</button>
       </div>
     </section>
   );

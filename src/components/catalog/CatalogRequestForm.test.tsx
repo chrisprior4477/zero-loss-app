@@ -23,6 +23,9 @@ test.each(["validation", "connection"])("%s failure preserves the full request d
   fireEvent.change(screen.getByLabelText(/What would you like/), { target: { value: "Tandem kayak" } });
   fireEvent.submit(screen.getByRole("button", { name: /Send product request/ }).closest("form")!);
   expect(await screen.findByRole("status")).toHaveProperty("textContent", expect.stringContaining("Saved request"));
+  const firstKey = (submit.mock.calls[0][1] as FormData).get("requestKey");
+  expect(firstKey).toEqual(expect.any(String));
+  expect((submit.mock.calls[1][1] as FormData).get("requestKey")).not.toBe(firstKey);
   expect(screen.queryByLabelText("Email", { exact: true })).toBeNull();
   expect(submit.mock.calls[1][1].get("requestedItem")).toBe("Tandem kayak");
   expect(submit.mock.calls[1][1].get("email")).toBe("person@example.test");
@@ -79,6 +82,9 @@ test("a connection error survives remount, while confirmed success removes the r
   fireEvent.submit(screen.getByRole("button", { name: /Send product request/ }).closest("form")!);
   await screen.findByRole("status");
   expect(sessionStorage.getItem(catalogRequestDraftKey("customer-a", "Kayaks"))).toBeNull();
+  const originalKey = (submit.mock.calls[0][1] as FormData).get("requestKey");
+  expect(originalKey).toEqual(expect.any(String));
+  expect((submit.mock.calls[1][1] as FormData).get("requestKey")).toBe(originalKey);
   returned.unmount(); render(<CatalogRequestForm initialProduct="Kayaks" ownerId="customer-a" />);
   expect(screen.getByLabelText("Email", { exact: true })).toHaveProperty("value", "");
 });
