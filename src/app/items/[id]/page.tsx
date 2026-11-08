@@ -2,11 +2,10 @@ import { SharedProductControls } from "@/components/product/SharedProductControl
 import { getSharedProductContext } from "@/lib/sharing/receiving-reader";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { DemoParticipationPanel } from "@/components/product/DemoParticipationPanel";
 import { FreeEntryLink, ProductEntrySelection } from "@/components/product/ProductEntrySelection";
 import { RememberViewedProduct } from "@/components/product/RememberViewedProduct";
-import { ResetDemoPoolButton } from "@/components/product/ResetDemoPoolButton";
 import { GiftCardFulfillmentNotice } from "@/components/product/GiftCardFulfillmentNotice";
 import { ProductInfoDialog } from "@/components/product/ProductInfoDialog";
 import { ProductEntryAutoScroll } from "@/components/product/ProductEntryAutoScroll";
@@ -16,15 +15,13 @@ import { ProductBreadcrumbTitle } from "@/components/layout/ProductBreadcrumbTit
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { buildProductMetadata } from "@/lib/catalog/product-metadata";
-import { getAccountContext } from "@/lib/account/context";
 import { randomUUID } from "node:crypto";
-import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { parseEntryQuantity } from "@/lib/entries/return-intent";
 import { productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 import { getEntryRequestHead, type EntryRequestHead } from "@/lib/entries/request-head";
-import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { resolvedProductDestination } from "@/lib/catalog/resolved-destination";
 
 type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ share?: string | string[]; shared?: string | string[]; saveShared?: string | string[]; quantity?: string | string[]; from?: string | string[]; funded?: string | string[] }> };
@@ -48,24 +45,20 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const browseReturnLabel = productBrowseReturnLabel(browseReturnHref);
   const product = getDemoProduct(id);
   if (!product) notFound();
-  const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
-  const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
-  const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={sharedContext?.token ?? product.slug} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} /> : null;
-  const alreadyResolved = resolvedCatalogSlugs(account?.activity).includes(product.slug);
+  const { account, availability, hidden } = await getShoppingCatalog();
   const savedResult = resolvedProductDestination(account?.activity, product.slug);
-  const requestHead: EntryRequestHead = !alreadyResolved && account?.wallet?.scope === "demo" && isPreviewDataEnvironment()
+  const hiddenPool = hidden.has(product.slug);
+  const requestHead: EntryRequestHead = account && (hiddenPool || account.wallet?.scope === "demo") && isPreviewDataEnvironment()
     ? await getEntryRequestHead(await createClient(), product.slug)
     : { ready: true, requestId: null };
+  // A holder of the last ticket still needs the existing confirm and undo controls.
+  if (hiddenPool && !(requestHead.ready && requestHead.validating)) redirect(savedResult?.href ?? browseReturnHref);
+  const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
+  const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={sharedContext?.token ?? product.slug} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} /> : null;
   const current = availability?.[product.slug];
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;
-  const participationPanel = alreadyResolved ? (
-    <section className="mt-5 rounded-2xl border border-cyan-300/40 bg-[#073665] p-5" role="status">
-      <h2 className="text-lg font-extrabold">You already took part in this prize</h2>
-      <p className="mt-2 text-sm leading-6 text-white/75">{savedResult?.description}</p>
-      <Link href={savedResult?.href ?? "/account/entries"} className="mt-4 inline-flex min-h-10 max-w-full items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 py-2 text-center text-sm font-extrabold leading-5 text-[#00132e]"><span>{savedResult?.label ?? "View your saved result"}</span><span aria-hidden="true">→</span></Link>
-    </section>
-  ) : (
+  const participationPanel = (
     <DemoParticipationPanel compact key={`${product.slug}:${requestedQuantity}`} productSlug={product.slug} browseReturnHref={query.from === undefined ? undefined : browseReturnHref} requestKey={randomUUID()} requestHead={requestHead} productTitle={product.title} retailer={product.retailer} productValue={product.value} entryPrice={entryPrice} sold={current?.sold ?? product.sold} capacity={current?.capacity ?? product.capacity} initialQuantity={requestedQuantity} availabilityConfirmed={Boolean(current)} balanceLabel={account?.balanceLabel ?? "Sign in to view"} balanceCents={account?.wallet?.balanceCents ?? null} isDemoWallet={account?.wallet?.scope === "demo"} isPreviewExperience={isPreviewDataEnvironment()} isSignedIn={Boolean(account)} highlightAfterFunding={query.funded === "1"} extraEntryExplainerAcknowledged={account?.extraEntryExplainerAcknowledged ?? false} signedOutCompact={!account} />
   );
   const productDetails = (
@@ -102,13 +95,13 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <p>A non-selected paid entry has its own optional 30-day right to complete this {product.retailer} offer by paying the remaining ${(Math.max(0, product.value - entryPrice)).toFixed(2)}. The option and its deadline appear in My Activity after the outcome. Completing it issues the same ${product.value.toLocaleString()} {product.retailer} digital gift card.</p>
     <p>Entry payments and completion options do not stack with one another or with Playable Balance. An expired or declined option is not a general-purpose credit.</p>
     <p>{isGiftCardOffering ? "This gift card is not Playable Balance or withdrawable cash." : `Zero Loss does not ship the ${product.title} directly.`} Find an issued card in <Link href="/account/wallet" className="font-bold text-cyan-300 underline">Gift Cards &amp; Rewards</Link> and use it online or in store where accepted, subject to {product.retailer}&apos;s terms.</p>
-    <p>No purchase necessary. <FreeEntryLink slug={product.slug} from={query.from} className="font-bold text-cyan-300 underline">Free-entry instructions →</FreeEntryLink></p>
+    {!hiddenPool && <p>No purchase necessary. <FreeEntryLink slug={product.slug} from={query.from} className="font-bold text-cyan-300 underline">Free-entry instructions →</FreeEntryLink></p>}
     <p><Link href="/terms" className="font-bold text-cyan-300 underline">Preview terms and Official Rules status →</Link></p>
   </>;
 
   return <div className={entryStyles.page}>
     <ProductBreadcrumbTitle slug={product.slug} title={product.title} />
-    {!alreadyResolved ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
+    {!hiddenPool ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
     <ProductEntryAutoScroll productKey={`${product.slug}:${requestedQuantity}:${query.funded ?? ""}`} />
     <ProductEntrySelection key={`${product.slug}:${requestedQuantity}`} slug={product.slug} initialQuantity={requestedQuantity} remaining={current?.remaining ?? product.capacity - product.sold}>
     <section id="product-entry-card" className={entryStyles.card} aria-label={`${product.title} entry details`}>
@@ -119,13 +112,12 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
       {sharedControls ? <div className={entryStyles.shared}>{sharedControls}</div> : null}
       <ProductGallery compact gallery={product.gallery} title={product.title} slug={product.slug} productInfo={productDetails} />
       <div className={entryStyles.heading}><p>{product.category}</p><h1>{product.title}</h1></div>
-      {account ? <ProductShareButton label="Share" className={entryStyles.share} product={{ slug: product.slug, title: product.title, image: product.gallery[0]?.src, retailer: product.retailer, value: product.value }} /> : null}
+      {account && !hiddenPool ? <ProductShareButton label="Share" className={entryStyles.share} product={{ slug: product.slug, title: product.title, image: product.gallery[0]?.src, retailer: product.retailer, value: product.value }} /> : null}
       <GiftCardFulfillmentNotice compact productTitle={product.title} retailer={product.retailer} value={product.value} isGiftCardOffering={isGiftCardOffering} />
-      {alreadyResolved ? <div className={entryStyles.resolved}>{participationPanel}</div> : participationPanel}
+      {participationPanel}
       <div className={entryStyles.more}>
-        {!alreadyResolved ? <FreeEntryLink className={entryStyles.freeEntry} slug={product.slug} from={query.from}>Prefer to enter without a purchase?</FreeEntryLink> : null}
+        {!hiddenPool ? <FreeEntryLink className={entryStyles.freeEntry} slug={product.slug} from={query.from}>Prefer to enter without a purchase?</FreeEntryLink> : null}
       </div>
-      {isPreviewDataEnvironment() && account?.wallet?.scope === "demo" && current?.remaining === 0 && !current.repeatableScenario ? <div className={entryStyles.poolReset}><ResetDemoPoolButton slug={product.slug} /></div> : null}
     </section>
     </ProductEntrySelection>
     <section className={`${entryStyles.after} grid gap-4 rounded-3xl border border-white/12 bg-[#001b3d] p-6 sm:grid-cols-3 sm:p-8`}>

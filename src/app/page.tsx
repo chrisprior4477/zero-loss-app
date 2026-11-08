@@ -7,13 +7,11 @@ import { LivePulseTicker } from "@/components/home/LivePulseTicker";
 import { ShopByPrice } from "@/components/home/ShopByPrice";
 import { TransparencyStatsPod } from "@/components/home/TransparencyStatsPod";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { OfferingAvailabilityProvider } from "@/components/home/OfferingAvailabilityProvider";
 import { ContinueEntryBanner } from "@/components/home/ContinueEntryBanner";
 import { ShoppingReminderPreview } from "@/components/home/ShoppingReminderPreview";
 import { demoProducts } from "@/lib/catalog/demo-products";
-import { getAccountContext } from "@/lib/account/context";
-import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { livePulseItems } from "@/lib/home/live-pulse";
 
 /**
@@ -28,25 +26,22 @@ import { livePulseItems } from "@/lib/home/live-pulse";
  * comes from the database. No customer or ledger records enter the rail props.
  */
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const [availability, account, params] = await Promise.all([getOfferingAvailability(), getAccountContext(), searchParams]);
+  const [{ availability, hidden, account }, params] = await Promise.all([getShoppingCatalog(), searchParams]);
   const reminderVariant = params["reminder-preview"];
   const previewProduct = reminderVariant === "viewed" || reminderVariant === "entry"
-    ? demoProducts.find(product => product.slug === "playstation-5-slim") : undefined;
+    ? demoProducts.find(product => product.slug === "playstation-5-slim" && !hidden.has(product.slug)) : undefined;
   const reminderPreview = previewProduct && (reminderVariant === "viewed" || reminderVariant === "entry")
     ? <ShoppingReminderPreview key={reminderVariant} variant={reminderVariant} product={{ slug: previewProduct.slug, title: previewProduct.title, image: previewProduct.gallery[0].src }} /> : null;
   return (
-    <>
+    <OfferingAvailabilityProvider snapshot={availability} resolvedSlugs={[...hidden]}>
       {reminderPreview ?? <ContinueEntryBanner products={demoProducts
-        .filter(product => !resolvedCatalogSlugs(account?.activity).includes(product.slug)
-          && (availability?.[product.slug]?.remaining !== 0 || availability?.[product.slug]?.repeatableScenario))
+        .filter(product => !hidden.has(product.slug))
         .map(product => ({ slug: product.slug, title: product.title, image: product.gallery[0].src }))} />}
-      <LivePulseTicker items={livePulseItems(availability, account?.activity)} />
+      <LivePulseTicker items={livePulseItems(availability, account?.activity, hidden)} />
 
       <PageContainer className="pb-0 pt-0 sm:pb-12 sm:pt-0 md:pb-4">
         <HeroSection />
-        <OfferingAvailabilityProvider snapshot={availability} resolvedSlugs={resolvedCatalogSlugs(account?.activity)}>
-          <DesktopMarketplaceRails />
-        </OfferingAvailabilityProvider>
+        <DesktopMarketplaceRails />
       </PageContainer>
 
       <PageContainer wide className="space-y-3 pb-3 pt-0 sm:space-y-16 sm:pb-16 md:space-y-4 md:pb-4">
@@ -60,6 +55,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
       </PageContainer>
       <TransparencyStatsPod />
-    </>
+    </OfferingAvailabilityProvider>
   );
 }

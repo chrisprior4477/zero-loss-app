@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Barcode } from "@/components/compliance/FreeEntryPrintCard";
 import { PrintSheetButton } from "@/components/compliance/PrintSheetButton";
-import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
+import { redirect } from "next/navigation";
+import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { freeEntryHref } from "@/lib/catalog/product-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
 
@@ -26,7 +27,8 @@ function safeText(value: string | undefined, fallback: string, maxLength: number
 
 export default async function PrintFreeEntryPage({ searchParams }: Props) {
   const params = await searchParams;
-  const product = (params.offering ? getDemoProduct(params.offering) : undefined) ?? demoProducts[0];
+  const product = await freeEntryProduct(params.offering);
+  if (!product) redirect("/browse");
   const quantity = params.offering === product.slug ? parseEntryQuantity(params.quantity) : null;
   const name = safeText(params.name, "LEGAL NAME NEEDED", 80);
   const account = safeText(params.account, "DEMO ACCOUNT NEEDED", 80);

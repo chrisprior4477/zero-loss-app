@@ -16,6 +16,7 @@ import { setReceivedProductState } from "@/lib/sharing/saved-share-actions";
 import styles from "./favorites.module.css";
 
 type Props = {
+  hiddenSlugs?: string[];
   availability: AvailabilitySnapshot | null; initialAlerts: Record<string, boolean> | null; emailEnabled: boolean | null;
   initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
 };
@@ -40,16 +41,19 @@ function restoreListPosition(target?: string, top?: number) {
   });
 }
 
-export function FavoritesView({ availability, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem }: Props) {
+export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailEnabled, initialShares, initialTab = "favorites", initialShareId, initialItem }: Props) {
   const timeZone = useAccountTimeZone();
-  const { slugs, available, toggle, busySlugs: favoriteBusy } = useFavorites();
+  const { slugs: savedSlugs, available, toggle, busySlugs: favoriteBusy } = useFavorites();
+  const hidden = useMemo(() => new Set(hiddenSlugs), [hiddenSlugs]);
+  const slugs = useMemo(() => savedSlugs.filter(slug => !hidden.has(slug)), [savedSlugs, hidden]);
   const [tab, setTab] = useState(initialTab);
   const [shareOverrides, setShareOverrides] = useState<Record<string, SharePatch>>({});
-  const shares = useMemo(() => (initialShares ?? []).map(share => ({ ...share, ...shareOverrides[share.id] })), [initialShares, shareOverrides]);
-  const [selected, setSelected] = useState<Selection>(() => {
-    const share = initialShares?.find(s => s.id === initialShareId);
+  const shares = useMemo(() => (initialShares ?? []).filter(share => !hidden.has(share.slug)).map(share => ({ ...share, ...shareOverrides[share.id] })), [initialShares, hidden, shareOverrides]);
+  const [selection, setSelected] = useState<Selection>(() => {
+    const share = shares.find(s => s.id === initialShareId);
     return share ? { slug: share.slug, shareId: share.id } : initialTab === "favorites" && initialItem && slugs.includes(initialItem) ? { slug: initialItem } : null;
   });
+  const selected = selection && !hidden.has(selection.slug) ? selection : null;
   const [alertOverrides, setAlertOverrides] = useState<Record<string, boolean>>({});
   const alerts = useMemo(() => ({ ...initialAlerts, ...alertOverrides }), [initialAlerts, alertOverrides]);
   const [busySlug, setBusySlug] = useState<string | null>(null);
@@ -106,7 +110,7 @@ export function FavoritesView({ availability, initialAlerts, emailEnabled, initi
     window.dispatchEvent(new Event("zero-loss-notifications-read"));
   }
   useEffect(() => {
-    if (!initialShareId || !initialShares?.some(s => s.id === initialShareId)) return;
+    if (!initialShareId || !initialShares?.some(s => s.id === initialShareId && !hidden.has(s.slug))) return;
     let active = true;
     void setReceivedProductState(initialShareId, "viewed").then(result => { if (active) applyShareResult(initialShareId, result, true); })
       .catch(() => { if (active) setMessage("The item is available, but its viewed status could not be saved."); });

@@ -16,7 +16,7 @@ import {
   placeholderDiscoveryOpportunities,
   placeholderFeaturedOpportunities,
 } from "@/lib/home/placeholder-data";
-import { popularRewardBrands } from "@/lib/catalog/popular-rewards";
+import { popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "@/lib/catalog/popular-rewards";
 import { marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useOfferingAvailability, useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
@@ -216,6 +216,7 @@ function useDragRail(ref: React.RefObject<HTMLDivElement | null>) {
 export function DesktopMarketplaceRails() {
   const availability = useOfferingAvailability();
   const resolved = useResolvedCatalogSlugs();
+  const brands = popularRewardBrands.filter(brand => popularRewardAmounts.some(amount => !resolved.has(popularRewardProductSlug(brand.slug, amount))));
   const endingSoon = placeEndingSoonShowcases(sampleEndingSoon.filter(sample => !isResolvedCatalogHref(sample.item.href, resolved)).map(sample => {
     const current = availabilityForHref(availability, sample.item.href);
     return current ? { item: { ...sample.item, ticketCapacity: current.capacity, ticketsSold: current.sold }, remaining: current.remaining } : sample;
@@ -367,12 +368,12 @@ export function DesktopMarketplaceRails() {
         <div className="relative">
           <div
             ref={brandsRef}
-            style={{ "--rail-visible-count": popularRewardBrands.length - 0.5 } as CSSProperties}
+            style={{ "--rail-visible-count": Math.max(1, brands.length - 0.5) } as CSSProperties}
             className="zl-noscroll flex cursor-grab touch-auto select-none gap-3 overflow-x-auto overscroll-x-contain px-1 py-2 active:cursor-grabbing sm:gap-7"
             onDragStart={(event) => event.preventDefault()}
             {...brandsDrag}
           >
-            {popularRewardBrands.map((brand) => (
+            {brands.map((brand) => (
               <Link
                 key={brand.name}
                 href={`/rewards/${brand.slug}`}

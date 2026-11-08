@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FreeEntryPrintCard } from "@/components/compliance/FreeEntryPrintCard";
-import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
+import { redirect } from "next/navigation";
+import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { getAccountContext } from "@/lib/account/context";
 import { productBrowseReturnPath, productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
@@ -12,7 +13,8 @@ type Props = { searchParams: Promise<{ offering?: string; from?: string | string
 
 export default async function FreeEntryPage({ searchParams }: Props) {
   const { offering, from, quantity: rawQuantity } = await searchParams;
-  const product = (offering ? getDemoProduct(offering) : undefined) ?? demoProducts[0];
+  const product = await freeEntryProduct(offering);
+  if (!product) redirect("/browse");
   const browseReturn = productBrowseReturnPath(from);
   const quantity = offering === product.slug ? parseEntryQuantity(rawQuantity) : null;
   const backHref = quantity ? productEntryHref(product.slug, quantity, browseReturn)

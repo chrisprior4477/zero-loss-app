@@ -54,6 +54,15 @@ test("a late viewed response cannot erase a completed decline", async () => {
   await act(async () => finishView({ ok: true, viewedAt: "today", declinedAt: null }));
   expect(screen.getByText("Declined")).toBeTruthy();
 });
+test("after a pool closes a saved detail, its entry button and its list count disappear together", () => {
+  const view = show({ initialItem: "nike-court-shot-shoes" });
+  expect(screen.getByRole("link", { name: "Enter for $1" })).toBeTruthy();
+  view.rerender(<FavoritesView availability={null} hiddenSlugs={["nike-court-shot-shoes"]} initialAlerts={{}} emailEnabled initialShares={[]} />);
+  expect(screen.queryByRole("link", { name: "Enter for $1" })).toBeNull();
+  expect(screen.getByRole("tab", { name: "Your Favorites 0" })).toBeTruthy();
+  expect(mocks.toggle).not.toHaveBeenCalled();
+});
+
 test("favorites capacity alerts retain their own saved preference", async () => {
   mocks.alert.mockResolvedValue({ ok: true, message: "Saved" }); show();
   fireEvent.click(screen.getByRole("checkbox", { name: /Email me when/ }));

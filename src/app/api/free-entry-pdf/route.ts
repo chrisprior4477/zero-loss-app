@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { PDFDocument, PDFFont, StandardFonts, rgb } from "pdf-lib";
-import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
+import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 
 export const runtime = "nodejs";
 
@@ -25,7 +25,8 @@ function fitText(text: string, font: PDFFont, size: number, maxWidth: number) {
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  const product = getDemoProduct(params.get("offering") ?? "") ?? demoProducts[0];
+  const product = await freeEntryProduct(params.get("offering"));
+  if (!product) return Response.redirect(new URL("/browse", request.url), 303);
   const name = safeText(params.get("name"), "LEGAL NAME NEEDED", 80);
   const account = safeText(params.get("account"), "DEMO ACCOUNT NEEDED", 80);
   const reference = safeText(params.get("reference"), "ZL-DEMO001", 24).toUpperCase();

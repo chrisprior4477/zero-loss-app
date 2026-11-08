@@ -3,19 +3,15 @@ import Image from "next/image";
 import { ResponsiveSiteHeader } from "./ResponsiveSiteHeader";
 import { AccountDrawer } from "@/components/layout/AccountDrawer";
 import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
-import { getAccountContext } from "@/lib/account/context";
-import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { demoProducts } from "@/lib/catalog/demo-products";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
-import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 
 export async function SiteHeader() {
-  const [account, availability] = await Promise.all([getAccountContext(), getOfferingAvailability()]);
+  const { account, availability, hidden } = await getShoppingCatalog();
   const activityState = account?.activity ?? { isPreview: false, activity: [], activeCount: null, source: "unavailable" as const };
-  const hiddenSlugs = resolvedCatalogSlugs(account?.activity);
-  const resolved = new Set(hiddenSlugs);
-  const endingSoonItems = demoProducts.filter(product => !resolved.has(product.slug)).map((product) => {
+  const endingSoonItems = demoProducts.filter(product => !hidden.has(product.slug)).map((product) => {
     const current = availability?.[product.slug];
     const status = availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold);
     return { product, status };
@@ -28,7 +24,7 @@ export async function SiteHeader() {
       remaining: status.remaining,
     }));
 
-  return <ResponsiveSiteHeader endingSoonItems={endingSoonItems} hiddenSlugs={hiddenSlugs}
+  return <ResponsiveSiteHeader endingSoonItems={endingSoonItems} hiddenSlugs={[...hidden]}
       logo={<Link href="/" className="shrink-0" aria-label="ZeroLoss home">
           <Image
             src="/zeroloss-logo.svg"

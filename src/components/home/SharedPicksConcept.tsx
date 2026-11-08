@@ -1,6 +1,7 @@
 "use client";
 
 import { useHorizontalScrollEdges } from "@/components/layout/useHorizontalCategoryScroll";
+import { useResolvedCatalogSlugs } from "./OfferingAvailabilityProvider";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -85,7 +86,8 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
   panelRef?: RefObject<HTMLElement | null>;
 }) {
   const sample = person in samplePicks && !picks;
-  const visiblePicks: CrewActivityPick[] = picks ?? (sample ? samplePicks[person as SampleCrewName] : []);
+  const hidden = useResolvedCatalogSlugs();
+  const visiblePicks: CrewActivityPick[] = (picks ?? (sample ? samplePicks[person as SampleCrewName] : [])).filter(pick => !hidden.has(pick.slug));
   const sampleAvatar = sample ? sampleCrewPeople.find((item) => item.name === person)?.photo : null;
   const railRef = useRef<HTMLDivElement>(null);
   const edges = useHorizontalScrollEdges(railRef, visiblePicks.length > 0);

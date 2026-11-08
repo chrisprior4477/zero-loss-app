@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { sampleCrewPeople, type SampleCrewName } from "@/lib/crew/sample-preview";
 import { samplePicks, type CrewActivityPick } from "@/components/home/SharedPicksConcept";
+import { useResolvedCatalogSlugs } from "@/components/home/OfferingAvailabilityProvider";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { ShareIcon } from "@/components/product/ShareIcon";
 import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
@@ -70,7 +71,9 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
   const roster = [...people.map(person => ({ key: person.memberId, name: person.name, photo: person.avatarUrl, invitationId: person.invitationId, sample: false })),
     ...sampleCrewPeople.filter(person => samples.includes(person.name)).map(person => ({ key: `sample-${person.name}`, name: person.name, photo: person.photo, invitationId: null, sample: true }))];
   const selected = roster.find(person => person.key === selectedKey);
-  const visiblePicks = selected?.sample ? samplePicks[selected.name as SampleCrewName] : picks;
+  const hidden = useResolvedCatalogSlugs();
+  const sampleFinds = (name: SampleCrewName) => samplePicks[name].filter(pick => !hidden.has(pick.slug));
+  const visiblePicks = selected?.sample ? sampleFinds(selected.name as SampleCrewName) : picks.filter(pick => !hidden.has(pick.slug));
   const pickKeys = visiblePicks.map(pick => pick.slug).join(",");
   useEffect(() => {
     let frame = 0, secondFrame = 0;
@@ -142,7 +145,7 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
   }}>
     <CrewRail key={roster.map(person => person.key).join(",")} label="People in your Crew" kind="people" count={roster.length + 1} tools={manage}>
       {roster.map(person => <button type="button" key={person.key} className={styles.personCard} data-selected={person.key === selectedKey} aria-expanded={person.key === selectedKey} aria-label={`See ${person.name}'s ${person.sample ? "sample " : ""}shared activity`} onClick={() => person.sample ? onSample(person.name as SampleCrewName) : onMember(person.key)}>
-        <span className={styles.avatar} aria-hidden="true">{person.photo ? <Image src={person.photo} alt="" fill sizes="100px" unoptimized={!person.sample} draggable={false} /> : person.name[0]}</span><strong>{person.name}</strong><small>{person.sample ? `${samplePicks[person.name as SampleCrewName].length} sample picks` : "Connected"}</small>{person.key === selectedKey ? <span className={styles.selectedMark} aria-hidden="true">✓</span> : null}
+        <span className={styles.avatar} aria-hidden="true">{person.photo ? <Image src={person.photo} alt="" fill sizes="100px" unoptimized={!person.sample} draggable={false} /> : person.name[0]}</span><strong>{person.name}</strong><small>{person.sample ? `${sampleFinds(person.name as SampleCrewName).length} sample picks` : "Connected"}</small>{person.key === selectedKey ? <span className={styles.selectedMark} aria-hidden="true">✓</span> : null}
       </button>)}
       <button type="button" className={styles.addPerson} aria-label="Add to Your Crew" onClick={onAdd}><span>+</span>Add person</button>
     </CrewRail>
@@ -154,10 +157,12 @@ export function CrewConnectedGallery({ ownerId, people, samples, selectedKey, pi
 }
 
 export function CrewSharePicker({ products, onClose }: { products: CrewActivityPick[]; onClose: () => void }) {
+  const hidden = useResolvedCatalogSlugs();
+  const choices = products.filter(product => !hidden.has(product.slug));
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { const element = dialog.current; element?.showModal(); return () => element?.close(); }, []);
   return <dialog ref={dialog} className={styles.shareDialog} aria-labelledby="crew-share-title" onCancel={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <header><div><small>PASS IT ON</small><h2 id="crew-share-title">What caught your eye?</h2></div><button type="button" aria-label="Close share picker" onClick={onClose}>×</button></header><p>Choose a find, then choose who to share it with.</p>
-    <div className={styles.shareChoices}>{products.map(product => <article key={product.slug}><span><Image src={product.image} alt="" fill sizes="90px" /></span><div><small>{product.retailer}</small><strong>{product.title}</strong></div><button type="button" className={styles.shareButton} onClick={() => { dialog.current?.close(); onClose(); window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: product })); }}><ShareIcon name="share" /> Share</button></article>)}</div>
+    <div className={styles.shareChoices}>{choices.length ? choices.map(product => <article key={product.slug}><span><Image src={product.image} alt="" fill sizes="90px" /></span><div><small>{product.retailer}</small><strong>{product.title}</strong></div><button type="button" className={styles.shareButton} onClick={() => { dialog.current?.close(); onClose(); window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, { detail: product })); }}><ShareIcon name="share" /> Share</button></article>) : <Link href="/browse">Find an open prize to share →</Link>}</div>
   </dialog>;
 }

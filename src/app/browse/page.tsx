@@ -9,7 +9,7 @@ import {
   productMatchesMarketplaceCategory,
 } from "@/lib/catalog/navigation";
 import { searchCatalogMatches, filterCatalogSubcategory } from "@/lib/catalog/search";
-import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { BrowseDiscoveryBar } from "@/components/catalog/BrowseDiscoveryBar";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
@@ -18,7 +18,6 @@ import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reade
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
-import { getAccountContext } from "@/lib/account/context";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { resolvedProductDestination } from "@/lib/catalog/resolved-destination";
 import { SearchResultsAutoScroll } from "@/components/catalog/SearchResultsAutoScroll";
@@ -36,9 +35,9 @@ type BrowsePageProps = {
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const query = await searchParams;
-  const [availability, partnerGroups, account] = await Promise.all([getOfferingAvailability(), getGiftCardPartnerGroups(), getAccountContext()]);
+  const [{ availability, account, hidden, unavailable }, partnerGroups] = await Promise.all([getShoppingCatalog(), getGiftCardPartnerGroups()]);
   const resolved = new Set(resolvedCatalogSlugs(account?.activity));
-  const availableProducts = demoProducts.filter(product => !resolved.has(product.slug)).map(product => {
+  const availableProducts = demoProducts.filter(product => !hidden.has(product.slug)).map(product => {
     const current = availability?.[product.slug];
     return current ? { ...product, capacity: current.capacity, sold: current.sold, entryPrice: current.entryPriceCents / 100 } : product;
   });
@@ -174,6 +173,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>
           </section>
+        ) : unavailable ? (
+          <p role="status" className="mt-6 text-white/75">Prize availability could not be loaded. Refresh to check again.</p>
         ) : searchTerm && !selectedCategory && !selectedRetailerGroup && directoryMatches.length && matchedProducts.length === 0 ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
             <h2 className="text-2xl font-bold">No current product listings match “{searchTerm}” yet.</h2>

@@ -39,18 +39,31 @@ test("a retailer reward product returns to its retailer and keeps that path for 
   expect(new URL(instructions, "https://example.test").searchParams.get("from")).toBe(from);
 });
 
-test("a saved win keeps its details accessible but does not offer another demo entry", async () => {
+test("a stale product link takes its winner directly to the earned reward", async () => {
   mocks.availability.mockResolvedValue(null);
   const activity = storedActivityFixture();
   Object.assign(activity.activity[1], { rewardId: "saved-win", rewardStatus: "ready" });
   mocks.account.mockResolvedValue({ activity, wallet: { scope: "demo" } });
-  render(await ItemPage({ params: Promise.resolve({ id: "samsung-m70h-tv" }), searchParams: Promise.resolve({}) }));
-  expect(screen.getByRole("heading", { name: "You already took part in this prize" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Claim your reward" }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=saved-win");
-  expect(screen.queryByText(/Clear All Entries/)).toBeNull();
-  expect(screen.queryByText("Entry form")).toBeNull();
-  expect(screen.queryByRole("link", { name: /Prefer to enter without a purchase/ })).toBeNull();
+  await expect(ItemPage({ params: Promise.resolve({ id: "samsung-m70h-tv" }), searchParams: Promise.resolve({}) }))
+    .rejects.toMatchObject({ digest: expect.stringContaining("/account/wallet?reward=samsung-m70h-tv&rewardId=saved-win") });
   expect(mocks.requestHead).not.toHaveBeenCalled();
+});
+
+test("a full pool closes the old shopping link but keeps its holder's receipt accessible", async () => {
+  const slug = "best-buy-100-gift-card";
+  vi.stubEnv("APP_DATA_ENVIRONMENT", "development-test");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://ocgdfnvvjvutevgqzzgj.supabase.co");
+  try {
+    mocks.availability.mockResolvedValue({ [slug]: { capacity: 300, sold: 300, remaining: 0, entryPriceCents: 100 } });
+    mocks.account.mockResolvedValue({ activity: { source: "customer-empty", activity: [] }, wallet: { scope: "demo" } });
+    const props = { params: Promise.resolve({ id: slug }), searchParams: Promise.resolve({ from: "/rewards/best-buy" }) };
+    mocks.requestHead.mockResolvedValue({ ready: true, requestId: null });
+    await expect(ItemPage(props)).rejects.toMatchObject({ digest: expect.stringContaining("/rewards/best-buy") });
+    mocks.requestHead.mockResolvedValue({ ready: true, requestId: "my-hold", validating: true });
+    render(await ItemPage(props));
+    expect(screen.getByText("Entry form")).toBeTruthy();
+    expect(screen.queryByText(/reset pool|Prefer to enter without a purchase/i)).toBeNull();
+  } finally { vi.unstubAllEnvs(); }
 });
 
 test("after clearing entries the same prize can be entered again", async () => {

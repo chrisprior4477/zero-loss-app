@@ -7,12 +7,11 @@ import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 export type LivePulseItem = { label: string; value: string; tone: "live" | "danger" | "urgent" | "neutral"; href: string };
 
 /** Built on the server from the same offering snapshot as the homepage cards. */
-export function livePulseItems(snapshot: AvailabilitySnapshot | null, activity?: AccountActivity): LivePulseItem[] {
-  const resolved = new Set(resolvedCatalogSlugs(activity));
+export function livePulseItems(snapshot: AvailabilitySnapshot | null, activity?: AccountActivity, hidden = new Set(resolvedCatalogSlugs(activity))): LivePulseItem[] {
   return livePulseDemoItems.flatMap<LivePulseItem>(item => {
     if (item.format === "stat") return [item];
     const product = getDemoProduct(item.href.slice("/items/".length));
-    if (!product || resolved.has(product.slug)) return [];
+    if (!product || hidden.has(product.slug)) return [];
     const current = availabilityForHref(snapshot, item.href);
     const { remaining, percentFilled } = availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold);
     if (remaining === 0) return [];

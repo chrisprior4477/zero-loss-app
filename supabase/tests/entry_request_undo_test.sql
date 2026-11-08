@@ -107,5 +107,18 @@ select is((select status from public.entry_requests where idempotency_key='undo_
 select is((select count(*)::integer from public.customer_entries where customer_id='41414141-4141-4141-8141-414141414141'),5,'rejected request creates no extra entry');
 select is((select sum(amount)::integer from public.ledger_entries where customer_id='41414141-4141-4141-8141-414141414141'),9500,'system rejection releases reservation without refunding payment card');
 select is((select count(*)::integer from public.entry_requests where status='validating'),0,'no pending request abandoned');
+insert into demo_private.preview_entry_offerings(slug,title,retailer,category,image_path,value_cents,entry_price_cents,capacity,sample_entries)
+values('final-slot-test','Final slot','Test','Test','/test.png',2500,100,10,9);
+set local role authenticated;
+select set_config('request.jwt.claim.sub','42424242-4242-4242-8242-424242424242',true);
+select set_config('request.jwt.claims','{"sub":"42424242-4242-4242-8242-424242424242","iss":"https://ocgdfnvvjvutevgqzzgj.supabase.co/auth/v1"}',true);
+truncate undo_saved;
+insert into undo_saved select public.create_preview_entries('final-slot-test',1,'final_slot_confirm_01');
+select is((select a->>'remaining' from jsonb_array_elements(public.get_preview_offering_availability()) a where a->>'slug'='final-slot-test'),'0','the last reserved ticket disappears from shopping');
+select ok(exists(select 1 from jsonb_array_elements(public.list_preview_entry_requests()) r where r->>'requestId'=(select value->>'requestId' from undo_saved) and r->>'status'='pending'),'the owner can recover the final ticket receipt after refresh');
+select is(public.confirm_preview_entry_request((select (value->>'requestId')::uuid from undo_saved))->>'status','accepted','the holder can confirm a full pool');
+select is((select a->>'remaining' from jsonb_array_elements(public.get_preview_offering_availability()) a where a->>'slug'='final-slot-test'),'0','confirmation keeps the pool closed');
+select is((select count(*)::integer from public.customer_entries where offering_slug='final-slot-test'),1,'one hold produces exactly one ticket');
+reset role;
 select * from finish();
 rollback;

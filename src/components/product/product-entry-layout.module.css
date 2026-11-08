@@ -4,8 +4,6 @@
 .nav { grid-area:nav; display:flex; min-height:22px; align-items:center; justify-content:space-between; gap:10px; font-size:11px; font-weight:800; color:#ace8ff; }
 .shared { grid-area:shared; }
 .shared:empty { display:none; }
-.resolved { grid-area:panel; }
-.poolReset { grid-column:1/-1; }
 .gallery { grid-area:gallery; position:relative; }
 .media { position:relative; height:118px; overflow:hidden; border-radius:13px; background:white; }
 .galleryImage { object-fit:contain; padding:8px 35px 8px 12px; }

@@ -6,9 +6,9 @@ import { FreeEntryLink, ProductEntrySelection } from "./ProductEntrySelection";
 import { HeaderAccountMetrics } from "@/components/layout/HeaderAccountMetrics";
 import { readEntryIntent, saveEntryIntent } from "@/lib/entries/return-intent";
 import { readViewedProduct, rememberViewedProduct } from "@/lib/catalog/viewed-product";
-const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), reset: vi.fn(), enter: vi.fn(), resolve: vi.fn(), confirm: vi.fn(), replace: vi.fn() }));
+const actionMocks = vi.hoisted(() => ({ acknowledge: vi.fn(), reset: vi.fn(), enter: vi.fn(), list: vi.fn(), resolve: vi.fn(), confirm: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: actionMocks.replace, refresh: vi.fn() }) }));
-vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resetExtraEntryExplainer: actionMocks.reset, resolvePendingEntryRequest: actionMocks.resolve, confirmPendingEntryRequest: actionMocks.confirm }));
+vi.mock("@/lib/entries/actions", () => ({ createPreviewEntry: actionMocks.enter, listPendingEntryRequests: actionMocks.list, acknowledgeExtraEntryExplainer: actionMocks.acknowledge, resetExtraEntryExplainer: actionMocks.reset, resolvePendingEntryRequest: actionMocks.resolve, confirmPendingEntryRequest: actionMocks.confirm }));
 afterEach(() => { cleanup(); sessionStorage.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal"); });
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn(); actionMocks.enter.mockResolvedValue({ status: "idle" });
@@ -203,6 +203,22 @@ test("30-second Undo appears inline by the entry controls, not in a floating toa
   fireEvent.click(screen.getByRole("button", { name: "Undo entry" }));
   await waitFor(() => expect(actionMocks.resolve).toHaveBeenCalledWith(receipt.requestId, true));
 });
+test.each(["Undo entry", "Confirm entry"])("a refreshed holder can use %s on the final reserved ticket", async action => {
+  const receipt = { requestId: "41414141-4141-4141-8141-414141414141", slug: props.productSlug, title: props.productTitle,
+    quantity: 1, amountCents: 100, status: "pending", undoUntil: "2026-11-08T12:00:30Z", serverNow: "2026-11-08T12:00:05Z", href: null };
+  actionMocks.list.mockResolvedValue({ requests: [receipt] });
+  actionMocks.resolve.mockResolvedValue({ request: { ...receipt, status: "cancelled" } });
+  actionMocks.confirm.mockResolvedValue({ request: { ...receipt, status: "accepted", href: "/account/entries" } });
+  render(<DemoParticipationPanel {...props} isSignedIn sold={props.capacity} requestHead={{ ready: true, requestId: receipt.requestId, validating: true }} />);
+  const button = await screen.findByRole("button", { name: action });
+  expect(screen.queryByText("No entries remaining")).toBeNull();
+  expect(screen.queryByRole("button", { name: /Enter for/ })).toBeNull();
+  fireEvent.click(button);
+  if (action === "Undo entry") await waitFor(() => expect(actionMocks.resolve).toHaveBeenCalledWith(receipt.requestId, true));
+  else await waitFor(() => expect(actionMocks.confirm).toHaveBeenCalledWith(receipt.requestId));
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
 test("Confirm entry accepts the saved request and opens My Activity with its exact-entry marker", async () => {
   render(<DemoParticipationPanel {...props} isSignedIn />);
   const receipt = { requestId: "41414141-4141-4141-8141-414141414141", slug: props.productSlug, title: props.productTitle,

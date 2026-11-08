@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CrewHub } from "@/components/account/CrewHub";
 import { CrewInvitationPrompt } from "@/components/account/CrewInvitationPrompt";
-import { getAccountContext } from "@/lib/account/context";
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
+import { OfferingAvailabilityProvider } from "@/components/home/OfferingAvailabilityProvider";
 import { createClient } from "@/lib/supabase/server";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
@@ -26,7 +27,7 @@ export type SharedCrewPick = { title: string; retailer: string; image: string; o
 export type CrewMember = { memberId: string; name: string; avatarUrl: string | null };
 
 export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; pick?: string; tab?: string; request?: string; invite?: string; design?: string }> }) {
-  const account = await getAccountContext();
+  const { account, hidden, availability } = await getShoppingCatalog();
   const params = await searchParams;
   if (!account) {
     let section = params.pick ? "#crew-intro" : "";
@@ -82,7 +83,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   // requests there too, while an exact request link must never reveal another's.
   const incoming = invitations.find(invitation => invitation.recipient_id === account.userId
     && (params.request ? invitation.id === params.request : invitation.status === "pending"));
-  return <><CrewInvitationPrompt key={`${account.userId}:${params.request ?? "incoming"}`}
+  return <OfferingAvailabilityProvider snapshot={availability} resolvedSlugs={[...hidden]}><CrewInvitationPrompt key={`${account.userId}:${params.request ?? "incoming"}`}
     invitation={incoming ? { id: incoming.id, name: incoming.requester_name, status: incoming.status } : null}
     unavailable={Boolean(params.request) && (!incoming || Boolean(invitationsResult.error))} />
   <CrewHub
@@ -106,5 +107,5 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
     ownInviteToken={inviteLinkResult.error ? null : typeof inviteLinkResult.data === "string" ? inviteLinkResult.data : null}
     incomingInviteToken={typeof params.invite === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.invite) ? params.invite : null}
-  /></>;
+  /></OfferingAvailabilityProvider>;
 }

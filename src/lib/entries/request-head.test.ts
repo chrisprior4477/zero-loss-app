@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { expect, test, vi } from "vitest";
 import { getEntryRequestHead } from "./request-head";
 
-function reader(result: { data: { id: string } | null; error: unknown }) {
+function reader(result: { data: { id: string; status?: string } | null; error: unknown }) {
   const query = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
@@ -19,11 +19,19 @@ test("reads only the authenticated owner's latest prize request as the compare t
   const { db, from, query } = reader({ data: { id: requestId }, error: null });
   expect(await getEntryRequestHead(db, "playstation-5-slim")).toEqual({ ready: true, requestId });
   expect(from).toHaveBeenCalledWith("entry_requests");
-  expect(query.select).toHaveBeenCalledWith("id");
+  expect(query.select).toHaveBeenCalledWith("id,status");
   expect(query.eq).toHaveBeenCalledWith("offering_slug", "playstation-5-slim");
   expect(query.order).toHaveBeenNthCalledWith(1, "requested_at", { ascending: false });
   expect(query.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
   expect(query.limit).toHaveBeenCalledWith(1);
+});
+
+test("only a validating request grants access to the last ticket's receipt", async () => {
+  const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  for (const status of ["validating", "accepted", "cancelled", "rejected"]) {
+    const head = await getEntryRequestHead(reader({ data: { id, status }, error: null }).db, "last-ticket");
+    expect(head.ready && Boolean(head.validating)).toBe(status === "validating");
+  }
 });
 
 test("a first prize has no previous request, while a failed or malformed read blocks checkout", async () => {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPopularRewardBrand, popularRewardAmounts, popularRewardBrands, popularRewardProductSlug } from "@/lib/catalog/popular-rewards";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 
 type Props = { params: Promise<{ brand: string }> };
 
@@ -19,6 +20,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function RewardBrandPage({ params }: Props) {
   const brand = getPopularRewardBrand((await params).brand);
   if (!brand) notFound();
+  const { hidden, unavailable } = await getShoppingCatalog();
+  const amounts = popularRewardAmounts.filter(amount => !hidden.has(popularRewardProductSlug(brand.slug, amount)));
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12">
@@ -29,7 +32,8 @@ export default async function RewardBrandPage({ params }: Props) {
         <p className="mt-4 max-w-3xl text-lg leading-8 text-white/70">Pick a value to go to its $1 entry area. You can review the complete demo offering before you enter.</p>
 
         <section className="mt-9 grid gap-5 sm:grid-cols-2" aria-label={`${brand.name} gift-card values`}>
-          {popularRewardAmounts.map((amount) => (
+          {!amounts.length && <p role="status">{unavailable ? "Prize availability could not be loaded. Refresh to check again." : "There are no open gift-card offers for this retailer right now."} <Link href="/browse" className="font-bold text-cyan-300">Browse available prizes →</Link></p>}
+          {amounts.map((amount) => (
             <Link key={amount} href={`${productHrefWithBrowseReturn(popularRewardProductSlug(brand.slug, amount), `/rewards/${brand.slug}`)}#enter-entry`} className="group rounded-3xl border border-white/15 bg-white/6 p-4 transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300">
               <div className="relative aspect-[8/5] overflow-hidden rounded-2xl bg-white p-2 sm:p-3">
                 <Image src={brand.imagePath} alt={`${brand.name} gift card`} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-contain p-2 sm:p-3" />

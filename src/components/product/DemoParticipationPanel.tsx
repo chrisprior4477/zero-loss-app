@@ -12,7 +12,7 @@ import { InsufficientBalanceToast } from "@/components/product/InsufficientBalan
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { useEntryWalletFunding } from "@/lib/wallet/wallet-funding-context";
-import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, resetExtraEntryExplainer, resolvePendingEntryRequest } from "@/lib/entries/actions";
+import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, listPendingEntryRequests, resetExtraEntryExplainer, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { clearEntryIntent, productEntryHref, saveEntryIntent } from "@/lib/entries/return-intent";
@@ -234,8 +234,17 @@ export function DemoParticipationPanel({
       }
     };
     window.addEventListener(ENTRY_REQUEST_EVENT, receive);
-    return () => window.removeEventListener(ENTRY_REQUEST_EVENT, receive);
-  }, [productSlug, setQuantity]);
+    let active = true;
+    // On a refresh or a return from another tab, the header may already have
+    // broadcast this receipt before the product panel mounted.
+    if (requestHead.ready && requestHead.validating) {
+      void listPendingEntryRequests().then(({ requests }) => {
+        const receipt = requests.find(request => request.requestId === requestHead.requestId);
+        if (active && receipt) receive(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: receipt }));
+      }).catch(() => { /* The shared pending-entry listener also retries on focus and reconnect. */ });
+    }
+    return () => { active = false; window.removeEventListener(ENTRY_REQUEST_EVENT, receive); };
+  }, [productSlug, requestHead, setQuantity]);
 
   useEffect(() => {
     if (state.status === "request") {
@@ -379,6 +388,8 @@ export function DemoParticipationPanel({
           <p>We couldn’t refresh availability. Your balance has not been charged.</p>
           <button type="button" onClick={() => router.refresh()} className="mt-3 min-h-11 rounded-lg bg-[#00b9ff] px-4 py-2 font-bold text-[#00132e]">Refresh availability</button>
         </div>
+      ) : remaining === 0 && requestReceipt?.status === "pending" ? null : remaining === 0 && requestHead.ready && requestHead.validating && !requestReceipt ? (
+        <p role="status" className="mt-3 text-sm">Checking your reserved entry… <button type="button" onClick={() => router.refresh()} className="font-bold text-cyan-300 underline">Refresh status</button></p>
       ) : remaining === 0 ? (
         <button type="button" disabled className="mt-3 w-full rounded-xl bg-[#0b668b] px-5 py-3 text-base font-extrabold text-white/60">No entries remaining</button>
       ) : isSignedIn ? (

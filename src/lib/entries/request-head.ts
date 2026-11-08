@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type EntryRequestHead = { ready: true; requestId: string | null } | { ready: false; requestId: null };
+export type EntryRequestHead = { ready: true; requestId: string | null; validating?: true } | { ready: false; requestId: null };
 
 const requestIdPattern = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
@@ -11,7 +11,7 @@ const requestIdPattern = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 export async function getEntryRequestHead(db: SupabaseClient, slug: string): Promise<EntryRequestHead> {
   try {
     const { data, error } = await db.from("entry_requests")
-      .select("id")
+      .select("id,status")
       .eq("offering_slug", slug)
       .order("requested_at", { ascending: false })
       .order("id", { ascending: false })
@@ -20,7 +20,7 @@ export async function getEntryRequestHead(db: SupabaseClient, slug: string): Pro
     if (error || (data && (typeof data.id !== "string" || !requestIdPattern.test(data.id)))) {
       return { ready: false, requestId: null };
     }
-    return { ready: true, requestId: data?.id ?? null };
+    return { ready: true, requestId: data?.id ?? null, ...(data?.status === "validating" ? { validating: true as const } : {}) };
   } catch {
     return { ready: false, requestId: null };
   }

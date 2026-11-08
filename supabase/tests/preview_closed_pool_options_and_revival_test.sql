@@ -79,8 +79,12 @@ select is((select count(*)::integer from public.completion_option_events ce
   join public.customer_entries e on e.id=c.customer_entry_id
   where e.offering_slug='closed-pool-option-test' and ce.event_type='revived'),1,
   'one immutable revival event is recorded');
-select is(public.reset_demo_pool('closed-pool-option-test')->>'remaining','1',
-  'a full ordinary offer can be reopened with one ticket left');
+select throws_ok($$select public.reset_demo_pool('closed-pool-option-test')$$,'42501',null,
+  'a customer cannot reopen a closed pool');
+reset role;
+select is(demo_private.reset_full_preview_pool_to_one('closed-pool-option-test','99999999-9999-4999-8999-999999999991','manual')->>'remaining','1',
+  'a privileged demo reset can reopen an ordinary pool with one ticket left');
+set local role authenticated;
 select is((select count(*)::integer from public.customer_entries where offering_slug='closed-pool-option-test'),
   10,'reopening preserves every paid customer entry');
 select is((select count(*)::integer from public.completion_options c join public.customer_entries e

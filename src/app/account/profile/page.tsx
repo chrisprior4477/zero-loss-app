@@ -7,22 +7,23 @@ import { ProfileDetailsForm } from "@/components/account/ProfileDetailsForm";
 import { MenuLayoutPicker } from "@/components/account/MenuLayoutPicker";
 import { MobileLogoSizePicker } from "@/components/account/MobileLogoSizePicker";
 import { AccountSettingsFrame } from "@/components/account/AccountSettingsFrame";
-import { getAccountContext } from "@/lib/account/context";
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import styles from "@/components/account/account-settings-pages.module.css";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { demoProducts } from "@/lib/catalog/demo-products";
 import { searchCatalog } from "@/lib/catalog/search";
-import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { searchExamples } from "@/lib/navigation/search-examples";
 import { productMatchesMarketplaceCategory } from "@/lib/catalog/navigation";
 
 export const metadata: Metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
-  const account = await getAccountContext();
+  const { account, hidden, availability } = await getShoppingCatalog();
   if (!account) redirect(authNavigationHref("/login", "/account/profile"));
-  const hidden = new Set(resolvedCatalogSlugs(account.activity));
-  const catalog = demoProducts.filter(product => !hidden.has(product.slug));
+  const catalog = demoProducts.filter(product => !hidden.has(product.slug)).map(product => {
+    const current = availability?.[product.slug];
+    return current ? { ...product, capacity: current.capacity, sold: current.sold } : product;
+  });
   const previewSearchResults = Object.fromEntries(searchExamples.map(query => [query.toLowerCase(), searchCatalog(catalog, query).map(product => ({ title: product.title, image: product.gallery[0].src }))]));
   previewSearchResults["@ending-soon"] = catalog.filter(product => productMatchesMarketplaceCategory(product, "ending-soon")).sort((a, b) => (a.capacity - a.sold) - (b.capacity - b.sold)).map(product => ({ title: product.title, image: product.gallery[0].src }));
   previewSearchResults["@browse"] = catalog.map(product => ({ title: product.title, image: product.gallery[0].src }));
