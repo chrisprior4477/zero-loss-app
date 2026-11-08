@@ -339,6 +339,45 @@ test("the remembered preference is saved and prevents future explainers", async 
   expect(screen.queryByRole("dialog")).toBeNull();
   expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("3");
 });
+
+test("a lost acknowledgment reply leaves the quantity alone and allows an explicit retry", async () => {
+  actionMocks.acknowledge.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ status: "succeeded" });
+  render(<DemoParticipationPanel {...props} isDemoWallet isSignedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I understand how extra entries work/i }));
+  fireEvent.click(screen.getByRole("button", { name: /save my choice/i }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Try saving it again");
+  expect(screen.getByTestId("entry-quantity")).toHaveProperty("value", "1");
+  fireEvent.click(screen.getByRole("button", { name: /save my choice/i }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(screen.getByTestId("entry-quantity")).toHaveProperty("value", "2");
+  expect(actionMocks.acknowledge).toHaveBeenCalledTimes(2);
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
+test("finishing a save after dismissal cannot advance the dismissed quantity", async () => {
+  let finish!: (result: { status: string }) => void;
+  actionMocks.acknowledge.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  render(<DemoParticipationPanel {...props} isDemoWallet isSignedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /I understand how extra entries work/i }));
+  fireEvent.click(screen.getByRole("button", { name: /save my choice/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Close extra entry explanation" }));
+  await act(async () => finish({ status: "succeeded" }));
+  expect(screen.getByTestId("entry-quantity")).toHaveProperty("value", "1");
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
+test("a lost explanation reset reply releases Reset Entry Toast for retry", async () => {
+  actionMocks.reset.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ status: "succeeded" });
+  render(<DemoParticipationPanel {...props} isPreviewExperience isDemoWallet isSignedIn extraEntryExplainerAcknowledged />);
+  fireEvent.click(screen.getByRole("button", { name: "Reset Entry Toast" }));
+  await screen.findByText(/couldn’t confirm the explanation reset/);
+  fireEvent.click(screen.getByRole("button", { name: "Reset Entry Toast" }));
+  await screen.findByText(/Extra-entry explanation reset/);
+  expect(screen.getByTestId("entry-quantity")).toHaveProperty("value", "1");
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
 test("a stored acknowledgment adds directly without opening the explainer", () => {
   render(<DemoParticipationPanel {...props} balanceLabel="$26" isDemoWallet isSignedIn extraEntryExplainerAcknowledged />);
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));

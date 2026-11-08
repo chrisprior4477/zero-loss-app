@@ -2,14 +2,20 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { recoverAuthForm } from "./recover-auth-form";
 import { updateRecoveredPasswordAction, type PasswordRecoveryState } from "@/lib/auth/actions";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/validation";
 import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
 
 const initialState: PasswordRecoveryState = { status: "idle", message: null };
 
+const resetPassword = recoverAuthForm<PasswordRecoveryState>(updateRecoveredPasswordAction, () => ({
+  status: "error",
+  message: "We couldn’t confirm the password update. Try signing in with your new password. If it doesn’t work, request a new reset link.",
+}));
+
 export function ResetPasswordForm({ returnTo }: { returnTo?: string | null }) {
-  const [state, action, pending] = useActionState(updateRecoveredPasswordAction, initialState);
+  const [state, action, pending] = useActionState(resetPassword, initialState);
   const destination = signInReturnPath(returnTo);
   const signInHref = `${authNavigationHref("/login", destination)}${destination ? "&" : "?"}focus=email#login-form`;
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { authNavigationHref, signInReturnPath } from "@/lib/auth/entry-return";
 import { useActionState, useState } from "react";
+import { formText, recoverAuthForm } from "./recover-auth-form";
 import {
   signUpAction,
   type AuthActionState,
@@ -22,10 +23,21 @@ const initialState: AuthActionState = {
 
 const PASSWORD_MISMATCH = "Passwords do not match.";
 
+const signUp = recoverAuthForm<AuthActionState>(signUpAction, data => ({
+  ok: false,
+  message: "We couldn’t confirm whether your account was created. Check your email for a verification link before trying again.",
+  values: {
+    legal_first_name: formText(data, "legal_first_name"),
+    legal_last_name: formText(data, "legal_last_name"),
+    date_of_birth: formText(data, "date_of_birth"),
+    email: formText(data, "email"),
+  },
+}));
+
 export function SignUpForm({ idPrefix = "", compact = false, returnTo = null }: { idPrefix?: string; compact?: boolean; returnTo?: string | null } = {}) {
   const safeReturnTo = signInReturnPath(returnTo);
   const [state, formAction, pending] = useActionState(
-    signUpAction,
+    signUp,
     initialState
   );
   const [clientConfirmError, setClientConfirmError] = useState<string | null>(

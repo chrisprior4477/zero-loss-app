@@ -92,6 +92,7 @@ export function DemoParticipationPanel({
   const uncertain = state.status === "error" && state.code === "outcome_unknown";
   const entryBusy = pending || state.status === "succeeded" || requestReceipt?.status === "pending";
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
+  const explanationVisit = useRef(0);
   const requestedQuantity = useRef<number | null>(null);
   const quantityTyped = useRef(false);
   const [additionalEntryTermsSeen, setAdditionalEntryTermsSeen] = useState(false);
@@ -139,40 +140,62 @@ export function DemoParticipationPanel({
     addNextEntry();
   };
 
+  const closeExplanation = () => {
+    explanationVisit.current += 1;
+    requestedQuantity.current = null;
+    setAdditionalEntryNoticeOpen(false);
+    setPreferenceError(null);
+  };
+
   const acknowledgeAndAddEntry = async () => {
+    if (preferenceSaving || preferenceResetting) return;
     setPreferenceError(null);
     if (!rememberExplanation) {
       setPreferenceError("Check the acknowledgment before saving your choice.");
       return;
     }
     setPreferenceSaving(true);
-    const preference = await acknowledgeExtraEntryExplainer();
-    setPreferenceSaving(false);
-    if (preference.status === "error") {
-      setPreferenceError(preference.message);
-      return;
+    const visit = explanationVisit.current;
+    try {
+      const preference = await acknowledgeExtraEntryExplainer();
+      if (preference.status === "error") {
+        if (visit === explanationVisit.current) setPreferenceError(preference.message);
+        return;
+      }
+      setSkipFutureExplainer(true);
+      setAdditionalEntryTermsSeen(true);
+      if (visit === explanationVisit.current) {
+        addNextEntry();
+        closeExplanation();
+      }
+    } catch {
+      if (visit === explanationVisit.current) setPreferenceError("We couldn’t confirm your saved choice. Try saving it again.");
+    } finally {
+      setPreferenceSaving(false);
     }
-    setSkipFutureExplainer(true);
-    setAdditionalEntryTermsSeen(true);
-    addNextEntry();
-    setAdditionalEntryNoticeOpen(false);
   };
 
   const resetExplanation = async () => {
+    if (preferenceSaving || preferenceResetting) return;
     setPreferenceResetting(true);
     setPreferenceResetMessage(null);
-    const result = await resetExtraEntryExplainer();
-    setPreferenceResetting(false);
-    if (result.status === "error") {
-      setPreferenceResetMessage(result.message);
-      return;
+    try {
+      const result = await resetExtraEntryExplainer();
+      if (result.status === "error") {
+        setPreferenceResetMessage(result.message);
+        return;
+      }
+      setSkipFutureExplainer(false);
+      setAdditionalEntryTermsSeen(false);
+      setRememberExplanation(false);
+      closeExplanation();
+      setPreferenceResetMessage("Extra-entry explanation reset. Tap + to see it again.");
+      router.refresh();
+    } catch {
+      setPreferenceResetMessage("We couldn’t confirm the explanation reset. Try Reset Entry Toast again.");
+    } finally {
+      setPreferenceResetting(false);
     }
-    setSkipFutureExplainer(false);
-    setAdditionalEntryTermsSeen(false);
-    setRememberExplanation(false);
-    setAdditionalEntryNoticeOpen(false);
-    setPreferenceResetMessage("Extra-entry explanation reset. Tap + to see it again.");
-    router.refresh();
   };
 
   useEffect(() => {
@@ -277,7 +300,7 @@ export function DemoParticipationPanel({
   }
 
 
-  const resetButton = isPreviewExperience && isDemoWallet && isSignedIn && (skipFutureExplainer || compact) ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceResetting} className={`${compact ? compactStyles.reset : "mt-1"} inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60`}>{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null;
+  const resetButton = isPreviewExperience && isDemoWallet && isSignedIn && (skipFutureExplainer || compact) ? <button type="button" onClick={() => void resetExplanation()} disabled={preferenceSaving || preferenceResetting} className={`${compact ? compactStyles.reset : "mt-1"} inline-block text-xs font-semibold text-cyan-300 underline underline-offset-2 hover:text-cyan-100 disabled:opacity-60`}>{preferenceResetting ? "Resetting…" : "Reset Entry Toast"}</button> : null;
 
   return (
     <aside id="enter-entry" className={compact ? compactStyles.panel : `scroll-mt-[calc(var(--site-header-height,163px)+17px)] rounded-2xl border border-cyan-300/30 bg-[#001b3d] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] sm:p-5 md:scroll-mt-32 ${signedOutCompact && !isSignedIn ? "mt-0" : "mt-3"}`}>
@@ -414,9 +437,9 @@ export function DemoParticipationPanel({
 
       {additionalEntryNoticeOpen ? <ExtraEntryExplanation
         productTitle={productTitle} productValue={productValue} retailer={retailer} entryPrice={entryPrice}
-        isSignedIn={isSignedIn} remember={rememberExplanation} saving={preferenceSaving} error={preferenceError}
+        isSignedIn={isSignedIn} remember={rememberExplanation} saving={preferenceSaving || preferenceResetting} error={preferenceError}
         loginHref={entryLoginHref} onRemember={setRememberExplanation} onSave={() => void acknowledgeAndAddEntry()}
-        onClose={() => setAdditionalEntryNoticeOpen(false)} onSignIn={() => rememberEntry(quantity, "sign-in")}
+        onClose={closeExplanation} onSignIn={() => rememberEntry(quantity, "sign-in")}
       /> : null}
 
 

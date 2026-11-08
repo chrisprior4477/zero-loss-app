@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { useActionState, useEffect, useRef } from "react";
+import { formText, recoverAuthForm } from "./recover-auth-form";
 import {
   signInAction,
   type AuthActionState,
@@ -20,6 +21,12 @@ type LoginFormProps = {
   returnTo?: string | null;
 };
 
+const signIn = recoverAuthForm<AuthActionState>(signInAction, data => ({
+  ok: false,
+  email: formText(data, "email"),
+  message: "We couldn’t confirm your sign-in. Check your connection, re-enter your password, and try again.",
+}));
+
 export function LoginForm({
   initialError = null,
   initialNotice = null,
@@ -27,7 +34,7 @@ export function LoginForm({
   returnTo = null,
 }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(
-    signInAction,
+    signIn,
     initialState
   );
 
@@ -68,6 +75,7 @@ export function LoginForm({
           name="email"
           type="email"
           autoComplete="email"
+          defaultValue={state.email}
           autoFocus={focusOnMount}
           required
           className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none transition hover:border-white/25 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"

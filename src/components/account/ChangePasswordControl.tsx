@@ -2,14 +2,20 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import { recoverAuthForm } from "@/components/auth/recover-auth-form";
 import { changeAccountPasswordAction, type PasswordRecoveryState } from "@/lib/auth/actions";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/validation";
 import styles from "./account-security.module.css";
 
 const initialState: PasswordRecoveryState = { status: "idle", message: null };
 
+const changePassword = recoverAuthForm<PasswordRecoveryState>(changeAccountPasswordAction, () => ({
+  status: "error",
+  message: "We couldn’t confirm the password change. Try signing in with your new password before changing it again.",
+}));
+
 function ChangePasswordForm({ onCancel }: { onCancel: () => void }) {
-  const [state, action, pending] = useActionState(changeAccountPasswordAction, initialState);
+  const [state, action, pending] = useActionState(changePassword, initialState);
 
   if (state.status === "updated") {
     return <p role="status" className={styles.passwordSuccess}>{state.message}</p>;
