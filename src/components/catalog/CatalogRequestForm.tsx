@@ -1,7 +1,8 @@
 "use client";
 
-import { startTransition, useActionState } from "react";
+import { startTransition, useActionState, useLayoutEffect, useRef, useState } from "react";
 import { submitCatalogRequest, type CatalogRequestState } from "@/lib/catalog/request-actions";
+import { catalogRequestDraftKey, readCatalogRequestDraft, writeCatalogRequestDraft, type CatalogRequestDraft } from "@/lib/catalog/request-draft";
 
 const initialState: CatalogRequestState = { status: "idle" };
 
@@ -10,8 +11,40 @@ async function saveRequest(previous: CatalogRequestState, formData: FormData): P
   catch { return { status: "error", message: "We could not confirm your request. Your details are still here. Please try again." }; }
 }
 
-export function CatalogRequestForm({ initialProduct = "" }: { initialProduct?: string }) {
-  const [state, formAction, pending] = useActionState(saveRequest, initialState);
+type Props = { initialProduct?: string; ownerId?: string };
+
+export function CatalogRequestForm({ initialProduct = "", ownerId }: Props) {
+  return <CatalogRequestSession key={JSON.stringify([ownerId, initialProduct])} initialProduct={initialProduct} ownerId={ownerId} />;
+}
+
+function CatalogRequestSession({ initialProduct = "", ownerId }: Props) {
+  const initialDraft = (): CatalogRequestDraft => ({ requestedItem: initialProduct, email: "", notes: "" });
+  const [draft, setDraft] = useState(initialDraft);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const restored = useRef(false);
+  const draftKey = catalogRequestDraftKey(ownerId, initialProduct);
+  const dirty = draft.requestedItem !== initialProduct || Boolean(draft.email || draft.notes);
+  useLayoutEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    const saved = readCatalogRequestDraft(draftKey);
+    if (saved) {
+      // Restore after hydration without reading browser storage on the server.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDraft(saved);
+    }
+  }, [draftKey]);
+  function changeDraft(change: Partial<CatalogRequestDraft>) {
+    const next = { ...draft, ...change };
+    setDraft(next);
+    setShowFeedback(false);
+    writeCatalogRequestDraft(draftKey, next.requestedItem !== initialProduct || next.email || next.notes ? next : null);
+  }
+  const [state, formAction, pending] = useActionState(async (previous: CatalogRequestState, data: FormData) => {
+    const result = await saveRequest(previous, data);
+    if (result.status === "succeeded") writeCatalogRequestDraft(draftKey, null);
+    return result;
+  }, initialState);
 
   if (state.status === "succeeded") {
     return (
@@ -25,8 +58,10 @@ export function CatalogRequestForm({ initialProduct = "" }: { initialProduct?: s
   return (
     <form onSubmit={event => {
       event.preventDefault();
+      if (pending) return;
       // Keep the draft after errors; only confirmed success replaces this form.
       const formData = new FormData(event.currentTarget);
+      setShowFeedback(true);
       startTransition(() => formAction(formData));
     }} className="space-y-5">
       <input type="hidden" name="sourceQuery" value={initialProduct} />
@@ -39,7 +74,9 @@ export function CatalogRequestForm({ initialProduct = "" }: { initialProduct?: s
           required
           minLength={2}
           maxLength={160}
-          defaultValue={initialProduct}
+          value={draft.requestedItem}
+          onChange={event => changeDraft({ requestedItem: event.target.value })}
+          disabled={pending}
           placeholder="Example: Kayaks, concert tickets, or running shoes"
           className="mt-2 min-h-12 w-full rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
         />
@@ -53,6 +90,9 @@ export function CatalogRequestForm({ initialProduct = "" }: { initialProduct?: s
           required
           maxLength={254}
           autoComplete="email"
+          value={draft.email}
+          onChange={event => changeDraft({ email: event.target.value })}
+          disabled={pending}
           placeholder="you@example.com"
           className="mt-2 min-h-12 w-full rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
         />
@@ -64,14 +104,20 @@ export function CatalogRequestForm({ initialProduct = "" }: { initialProduct?: s
           name="notes"
           maxLength={1000}
           rows={4}
+          value={draft.notes}
+          onChange={event => changeDraft({ notes: event.target.value })}
+          disabled={pending}
           placeholder="A favorite brand, retailer, size, price range, or anything else that would help."
           className="mt-2 w-full resize-y rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
         />
       </div>
-      {state.status === "error" ? <p role="alert" className="rounded-xl border border-orange-400/45 bg-orange-400/10 px-4 py-3 text-sm font-semibold text-orange-100">{state.message}</p> : null}
+      {showFeedback && state.status === "error" ? <p role="alert" className="rounded-xl border border-orange-400/45 bg-orange-400/10 px-4 py-3 text-sm font-semibold text-orange-100">{state.message}</p> : null}
       <button type="submit" disabled={pending} className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] transition hover:bg-[#62ff3b] disabled:cursor-wait disabled:opacity-60 sm:w-auto">
         {pending ? "Sending request…" : "Send product request →"}
       </button>
+      {dirty ? <button type="button" disabled={pending} className="block min-h-11 text-sm font-bold text-cyan-200 underline disabled:opacity-50" onClick={() => {
+        setDraft(initialDraft()); setShowFeedback(false); writeCatalogRequestDraft(draftKey, null);
+      }}>Clear draft</button> : null}
     </form>
   );
 }

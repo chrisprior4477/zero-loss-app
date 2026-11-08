@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
+vi.mock("@/lib/account/context", () => ({ getAccountContext: vi.fn(async () => null) }));
 import ProductRequestPage from "./page";
 
 afterEach(cleanup);

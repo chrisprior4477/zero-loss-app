@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CatalogRequestForm } from "@/components/catalog/CatalogRequestForm";
 import { productBrowseReturnPath } from "@/lib/catalog/product-return";
+import { getAccountContext } from "@/lib/account/context";
 
 export const metadata: Metadata = {
   title: "Request a Product",
@@ -13,7 +14,7 @@ export default async function ProductRequestPage({
 }: {
   searchParams: Promise<{ product?: string | string[]; from?: string | string[] }>;
 }) {
-  const query = await searchParams;
+  const [query, account] = await Promise.all([searchParams, getAccountContext()]);
   const initialProduct = (Array.isArray(query.product) ? query.product[0] : query.product)?.trim().slice(0, 160) ?? "";
   const browseReturn = productBrowseReturnPath(query.from);
   const backHref = browseReturn?.startsWith("/browse")
@@ -30,7 +31,7 @@ export default async function ProductRequestPage({
           <p className="mt-4 max-w-2xl leading-7 text-white/70">We review customer requests when deciding which products, retailers, and rewards to add next.</p>
           <p className="mt-5 text-lg font-black">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
           <div className="my-7 h-px bg-cyan-300/18" />
-          <CatalogRequestForm initialProduct={initialProduct} />
+          <CatalogRequestForm initialProduct={initialProduct} ownerId={account?.userId} />
         </section>
       </div>
     </main>

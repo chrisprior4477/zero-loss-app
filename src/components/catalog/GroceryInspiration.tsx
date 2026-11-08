@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { groceryThemes, groceryThemeImage, type GroceryTheme } from "@/lib/catalog/grocery-themes";
 import { useCrewCarousel } from "@/components/account/useCrewCarousel";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
@@ -37,13 +37,20 @@ export function GroceryInspiration({ offers }: { offers: GroceryInspirationOffer
   const [selected, setSelected] = useState<GroceryTheme | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!selected) return;
     const element = dialog.current;
     const overflow = document.body.style.overflow;
+    const rootOverflow = document.documentElement.style.overflow;
     element?.showModal();
     document.body.style.overflow = "hidden";
-    return () => { element?.close(); document.body.style.overflow = overflow; opener.current?.focus({ preventScroll: true }); };
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      element?.close();
+      document.body.style.overflow = overflow;
+      document.documentElement.style.overflow = rootOverflow;
+      if (opener.current?.isConnected) opener.current.focus({ preventScroll: true });
+    };
   }, [selected]);
   function choose(theme: GroceryTheme) { opener.current = document.activeElement as HTMLElement; setSelected(theme); }
   return <>
