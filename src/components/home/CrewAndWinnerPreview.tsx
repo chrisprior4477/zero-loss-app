@@ -174,7 +174,7 @@ export function CrewAndWinnerPreview() {
 
   function previewCrewRequest(name: (typeof people)[number]["name"]) {
     addSampleCrewPreview(name);
-    setCrewMessage(`Preview only: no invitation was sent to ${name}. A real Crew connection would require their approval.`);
+    setCrewMessage(`Preview only: no invitation was sent to ${name}. Real members can leave at any time, and sharing back is their choice.`);
   }
 
   function moveRail(rail: HTMLDivElement | null, direction: -1 | 1) {
@@ -206,7 +206,7 @@ export function CrewAndWinnerPreview() {
           <div>
             <span className={styles.eyebrow}>FRIENDS & FAMILY · FEATURE PREVIEW</span>
             <h2 id="find-your-crew-heading" className={styles.title}>Find your Crew</h2>
-            <p className={styles.intro}>Keep your favorite people close. Share your picks only when you both choose to connect.</p>
+            <p className={styles.intro}>Keep your favorite people close. Choose what you share; sharing back is their choice.</p>
           </div>
           <div className={styles.crewActions}>
             <button ref={crewSearchButtonRef} className={styles.outlineButton} type="button" onClick={openCrewSearch} aria-expanded={crewSearchOpen}>

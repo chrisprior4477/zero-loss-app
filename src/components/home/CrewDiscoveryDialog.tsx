@@ -171,7 +171,7 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
       const [contact] = await picker.select(["name", "email", "tel"], { multiple: false });
       if (!contact) return;
       setValues((current) => ({ name: contact.name?.[0] ?? current.name, phone: contact.tel?.[0] ?? current.phone, email: contact.email?.[0] ?? current.email }));
-      setMessage("Contact selected. Review their details, then choose whether to send a request. Your address book was not uploaded.");
+      setMessage("Contact selected. Review their details, then choose whether to add them to your Crew. Your address book was not uploaded.");
     } catch { setMessage("No contact was selected. You can enter their details manually."); }
   }
 
@@ -181,7 +181,7 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
       const result = await inviteToCrewById(person.memberId);
       setMessage(result.message);
       if (result.ok) { setRequestedIds((current) => [...current, person.memberId]); router.refresh(); }
-    } catch { setMessage("The request couldn’t be saved right now. Please try again."); }
+    } catch { setMessage("The connection couldn’t be saved right now. Please try again."); }
     finally { setPending(false); }
   }
 
@@ -191,19 +191,19 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
         <span className={base.searchHeadingIcon} aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="27" cy="22" r="7" /><path d="M14 45c0-7 6-12 13-12s13 5 13 12M48 21v14m-7-7h14" /></svg></span>
         <div><span className={base.eyebrow}>FRIENDS &amp; FAMILY · FEATURE PREVIEW</span><h3 id="crew-search-title">Add to Your Crew</h3></div>
       </div>
-      <p className={base.searchIntro}>Explore sample people below, or find a real Zero Loss member by name. A phone number or email sends a private request to a matching account. Real connections require their approval.</p>
+      <p className={base.searchIntro}>Explore sample people below, or find a real Zero Loss member by name. Add matching members where their settings allow. They can leave at any time, and sharing back is their choice.</p>
       <div className={base.searchFields}>
         {(["name", "phone", "email"] as const).map((kind) => <form key={kind} className={`${base.searchRow} ${kind === "name" ? "" : styles.inviteRow}`} onSubmit={(event) => { event.preventDefault(); void submitSearch(kind); }}>
           <label className={base.srOnly} htmlFor={`crew-search-${kind}`}>Search by {kind === "phone" ? "phone number" : kind === "email" ? "email address" : "name"}</label>
           <input id={`crew-search-${kind}`} type={kind === "email" ? "email" : kind === "phone" ? "tel" : "search"} autoComplete={kind === "name" ? "off" : kind === "phone" ? "tel" : "email"} placeholder={`Search by ${kind === "phone" ? "phone number" : kind === "email" ? "email address" : "name"}...`} value={values[kind]} onChange={(event) => setValues((current) => ({ ...current, [kind]: event.target.value }))} disabled={pending} />
-          <button type="submit" disabled={pending} aria-label={kind === "name" ? "Search Crew by name" : `Send Crew request by ${kind}`} title={kind === "name" ? "Search" : "Send a private Crew request"}>{kind === "name" ? <SearchIcon /> : "Invite"}</button>
+          <button type="submit" disabled={pending} aria-label={kind === "name" ? "Search Crew by name" : `Add to Crew by ${kind}`} title={kind === "name" ? "Search" : "Add a matching member to your Crew"}>{kind === "name" ? <SearchIcon /> : "Add"}</button>
         </form>)}
       </div>
       <button type="button" className={styles.contactButton} onClick={() => void chooseContact()}>Choose from phone contacts</button>
-      <p className={styles.contactNote}>On supported phones, you select one contact. Nothing is sent until you press a request button; your address book is never uploaded.</p>
+      <p className={styles.contactNote}>On supported phones, you select one contact. Nothing is sent until you press Add; your address book is never uploaded.</p>
       {message ? <p className={styles.message} role="status">{message}</p> : null}
       {realResults.length ? <div className={styles.realResults}><h4>Zero Loss members</h4>{realResults.map((person) => <div key={person.memberId} className={styles.realPerson}>
-        <span className={styles.realAvatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="42px" unoptimized /> : person.name.slice(0, 1).toUpperCase()}</span><strong>{person.name}</strong><button type="button" disabled={pending || requestedIds.includes(person.memberId)} onClick={() => void requestRealPerson(person)}>{requestedIds.includes(person.memberId) ? "Request sent" : "Add to Crew"}</button>
+        <span className={styles.realAvatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="42px" unoptimized /> : person.name.slice(0, 1).toUpperCase()}</span><strong>{person.name}</strong><button type="button" disabled={pending || requestedIds.includes(person.memberId)} onClick={() => void requestRealPerson(person)}>{requestedIds.includes(person.memberId) ? "Added" : "Add to Crew"}</button>
       </div>)}</div> : null}
       <div className={styles.resultsHeading}><div><h4>Explore sample Crew</h4><p>Four familiar faces plus ten more. These profiles and their prizes are illustrative.</p></div><div className={styles.arrows}><button type="button" aria-label="Previous sample Crew profiles" onClick={() => moveRail(-1)}>‹</button><button type="button" aria-label="Next sample Crew profiles" onClick={() => moveRail(1)}>›</button></div></div>
       {nameFilter ? <button type="button" className={styles.clearSearch} onClick={() => { setNameFilter(""); setValues((current) => ({ ...current, name: "" })); setSelected(null); setRealResults([]); setMessage(""); }}>Show all sample profiles</button> : null}
@@ -219,6 +219,6 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
         {selected ? <SharedPicksConcept key={selected} person={selected} onClose={() => setSelected(null)} accent="orange" connectedOutline panelRef={panelRef} /> : null}
         {selected ? <svg ref={svgRef} className={styles.outline} aria-hidden="true" preserveAspectRatio="none"><path ref={pathRef} fill="none" stroke="#ff7417" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" /></svg> : null}
       </div> : <p className={styles.noSamples}>No sample profiles match that name. You can still invite a real person by phone or email.</p>}
-      <div className={base.searchFooter}><p>Sample profiles stay in your browser preview, not the real member database. Real requests appear only after you choose to send one, and the other person must approve.</p><button type="button" onClick={onClose}>Done <span aria-hidden="true">✓</span></button></div>
+      <div className={base.searchFooter}><p>Sample profiles stay in your browser preview, not the real member database. Real members are added only when you choose Add and their settings allow it. They can leave at any time; their own picks stay private until they share back.</p><button type="button" onClick={onClose}>Done <span aria-hidden="true">✓</span></button></div>
   </section>;
 }

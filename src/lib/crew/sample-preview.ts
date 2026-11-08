@@ -26,6 +26,8 @@ export type SampleCrewName = (typeof sampleCrewPeople)[number]["name"];
 const key = "zero-loss-sample-crew-v1";
 const changed = "zero-loss-sample-crew-changed";
 const empty = "[]";
+// Client-only fallback for browsers that cannot save preview choices.
+let memory: string | null = null;
 
 function isSampleName(value: unknown): value is SampleCrewName {
   return sampleCrewPeople.some((person) => person.name === value);
@@ -41,14 +43,19 @@ function parse(value: string): SampleCrewName[] {
 }
 
 function read() {
+  if (typeof window === "undefined") return empty;
+  if (memory !== null) return memory;
   try { return localStorage.getItem(key) ?? empty; } catch { return empty; }
 }
 
 function write(names: SampleCrewName[]) {
+  if (typeof window === "undefined") return;
+  const next = JSON.stringify([...new Set(names)]);
   try {
-    localStorage.setItem(key, JSON.stringify([...new Set(names)]));
-    window.dispatchEvent(new Event(changed));
-  } catch { /* The visual preview remains usable when storage is unavailable. */ }
+    localStorage.setItem(key, next);
+    memory = null;
+  } catch { memory = next; }
+  window.dispatchEvent(new Event(changed));
 }
 
 function subscribe(callback: () => void) {
@@ -73,7 +80,8 @@ export function removeSampleCrewPreview(name: SampleCrewName) {
 // state cannot be recovered after navigation, so show the four pictured sample
 // profiles once in the account preview and retain later edits in this browser.
 export function initializeSampleCrewPreview() {
+  if (typeof window === "undefined" || memory !== null) return;
   try {
     if (localStorage.getItem(key) === null) write(featuredCrewPeople.map((person) => person.name));
-  } catch { /* Browser storage can be disabled. */ }
+  } catch { write(featuredCrewPeople.map((person) => person.name)); }
 }

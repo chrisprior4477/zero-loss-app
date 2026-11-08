@@ -48,7 +48,8 @@ test("Crew discovery shows ten extra sample people and keeps their prizes in an 
   fireEvent.click(screen.getAllByRole("button", { name: "Add to Your Crew" })[1]);
   const discovery = screen.getByRole("region", { name: "Add to Your Crew discovery" });
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(discovery.textContent).toContain("Real connections require their approval");
+  expect(discovery.textContent).toContain("sharing back is their choice");
+  expect(discovery.textContent).not.toMatch(/require.*approval|must approve/i);
   expect(within(discovery).getAllByRole("button", { name: /'s sample prizes/ })).toHaveLength(14);
 
   fireEvent.click(screen.getByRole("button", { name: "See Mateo's sample prizes" }));
@@ -114,7 +115,7 @@ test("Crew activity expands beneath the portraits without opening a page or dial
   expect(screen.queryByRole("region", { name: "Daniel's shared activity" })).toBeNull();
 });
 
-test("a discoverable real member receives a request, while sample profiles remain previews", async () => {
+test("a discoverable real member is shown as added, while sample profiles remain previews", async () => {
   actions.searchCrewByName.mockResolvedValue({ ok: true, message: "Choose someone to send a Crew request.", people: [{ memberId: "33333333-3333-4333-8333-333333333333", name: "Sam Test", avatarUrl: null }] });
   render(<CrewAndWinnerPreview />);
   fireEvent.click(screen.getAllByRole("button", { name: "Add to Your Crew" })[0]);
@@ -123,5 +124,5 @@ test("a discoverable real member receives a request, while sample profiles remai
   const result = await screen.findByText("Sam Test");
   fireEvent.click(within(result.parentElement!).getByRole("button", { name: "Add to Crew" }));
   await waitFor(() => expect(actions.inviteToCrewById).toHaveBeenCalledWith("33333333-3333-4333-8333-333333333333"));
-  expect(screen.getByRole("button", { name: "Request sent" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Added" })).toBeTruthy();
 });

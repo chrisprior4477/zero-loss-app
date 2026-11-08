@@ -10,10 +10,15 @@ import { signInReturnPath } from "@/lib/auth/entry-return";
 
 const initialState: ResendVerificationState = { ok: false, message: null };
 
+async function resendVerification(previous: ResendVerificationState, data: FormData): Promise<ResendVerificationState> {
+  try { return await resendVerificationAction(previous, data); }
+  catch { return { ok: false, message: "We couldn’t confirm the verification email request. Check your connection, wait a minute, and try again." }; }
+}
+
 export function ResendVerificationForm({ email, returnTo = null }: { email: string; returnTo?: string | null }) {
   const safeReturnTo = signInReturnPath(returnTo);
   const [state, formAction, pending] = useActionState(
-    resendVerificationAction,
+    resendVerification,
     initialState
   );
   const hasEmail = email.trim().length > 0;

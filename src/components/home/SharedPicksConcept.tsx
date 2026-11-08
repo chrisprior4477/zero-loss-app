@@ -140,6 +140,6 @@ export function SharedPicksConcept({ person, onClose, picks, avatarUrl, loading 
       </div>
       <div className={styles.railFooter}><span>{peopleFirst ? "" : "Swipe to explore · "}{visiblePicks.length} {sample ? "sample " : ""}{visiblePicks.length === 1 ? "item" : "items"}</span>{!peopleFirst ? <div><button type="button" aria-label="Previous shared item" onClick={() => moveRail(-1)}>‹</button><button type="button" aria-label="Next shared item" onClick={() => moveRail(1)}>›</button></div> : null}</div>
     </> : <p className={styles.empty} role={loading ? "status" : undefined}>{loading ? "Loading shared activity…" : "No activity shared with Crew yet."}</p>}
-    {sample && !compact ? <p className={styles.disclosure}>Illustrative picks from a fictional profile. No invitation or notification was sent. Real Crew activity requires approval and an explicit sharing choice for each entry.</p> : null}
+    {sample && !compact ? <p className={styles.disclosure}>Illustrative picks from a fictional profile. No invitation or notification was sent. Real members choose which picks to share and can leave a Crew connection at any time.</p> : null}
   </section>;
 }
