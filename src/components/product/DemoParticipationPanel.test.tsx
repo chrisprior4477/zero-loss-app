@@ -18,7 +18,7 @@ const props = { productSlug: "test-product", requestKey: "entry_request_key_01",
 
 test.each([true, false])("both free-entry links follow the displayed quantity without submitting, signed in: %s", isSignedIn => {
   const from = "/browse?category=fishing";
-  render(<ProductEntrySelection initialQuantity={1}>
+  render(<ProductEntrySelection slug={props.productSlug} initialQuantity={1} remaining={11}>
     <FreeEntryLink className="" slug={props.productSlug} from={from}>Free-entry instructions</FreeEntryLink>
     <DemoParticipationPanel {...props} isSignedIn={isSignedIn} isDemoWallet browseReturnHref={from} />
     <FreeEntryLink className="" slug={props.productSlug} from={from}>Prefer to enter without a purchase?</FreeEntryLink>
@@ -34,6 +34,20 @@ test.each([true, false])("both free-entry links follow the displayed quantity wi
     }
   }
   expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
+test("browser Back restores the draft for this prize within current availability", () => {
+  window.history.replaceState({ unrelated: true, freeEntryDraft: { slug: props.productSlug, quantity: 7 } }, "");
+  try {
+    render(<ProductEntrySelection slug={props.productSlug} initialQuantity={1} remaining={5}>
+      <DemoParticipationPanel {...props} sold={15} isSignedIn />
+    </ProductEntrySelection>);
+    expect(screen.getByRole("spinbutton", { name: "Number of entries" })).toHaveProperty("value", "5");
+    expect(window.history.state).toEqual({ unrelated: true });
+    expect(actionMocks.enter).not.toHaveBeenCalled();
+  } finally {
+    window.history.replaceState(null, "");
+  }
 });
 
 test("the sticky wallet balance follows the current prize quantity and browse filters, then clears on exit", () => {

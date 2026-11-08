@@ -110,7 +110,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <ProductBreadcrumbTitle slug={product.slug} title={product.title} />
     {!alreadyResolved ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
     <ProductEntryAutoScroll productKey={`${product.slug}:${requestedQuantity}:${query.funded ?? ""}`} />
-    <ProductEntrySelection key={`${product.slug}:${requestedQuantity}`} initialQuantity={Math.min(requestedQuantity, Math.max(1, current?.remaining ?? product.capacity - product.sold))}>
+    <ProductEntrySelection key={`${product.slug}:${requestedQuantity}`} slug={product.slug} initialQuantity={requestedQuantity} remaining={current?.remaining ?? product.capacity - product.sold}>
     <section id="product-entry-card" className={entryStyles.card} aria-label={`${product.title} entry details`}>
       <div className={entryStyles.nav}>
         <Link href={browseReturnHref}>← Back to {browseReturnLabel}</Link>
