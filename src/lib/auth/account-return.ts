@@ -5,6 +5,7 @@ type Query = Record<string, string | string[] | undefined>;
 const slug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const identifier = /^[a-zA-Z0-9_-]{1,80}$/;
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const purchaseOptionsPath = /^\/account\/purchase-options\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const oneOf = (...values: string[]) => (value: string) => values.includes(value);
 const matches = (pattern: RegExp) => (value: string) => pattern.test(value);
 type ReturnRoute = { query: Record<string, (value: string) => boolean>; hash?: RegExp };
@@ -26,6 +27,9 @@ const routes: Record<string, ReturnRoute> = {
 };
 
 function returnRoute(path: string): ReturnRoute | undefined {
+  if (purchaseOptionsPath.test(path)) return {
+    query: { option: matches(/^ent_[a-f0-9]{32}$/), resume: oneOf("wallet"), choice: matches(uuid), decline: oneOf("confirm") },
+  };
   return routes[path] ?? (/^\/account\/entries\/ent_[a-f0-9]{32}$/i.test(path) ? {
     query: { entries: oneOf("first"), quantity: selected => parseEntryQuantity(selected) !== null, review: oneOf("entry") },
     hash: /^#(?:entry-details-intro|add-entries-title|additional-entry-checkout)$/,
@@ -36,7 +40,6 @@ function returnRoute(path: string): ReturnRoute | undefined {
 export function accountReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 2048 || !value.startsWith("/") || value.startsWith("//") || /[\\\s\u0000-\u001f]/.test(value)) return null;
   const url = new URL(value, "https://navigation.invalid");
-  if (/^\/account\/purchase-options\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) return value;
   const route = returnRoute(url.pathname);
   // Reject normalized paths, duplicate selectors, unknown keys and foreign origins.
   if (!route || url.origin !== "https://navigation.invalid" || value.split(/[?#]/, 1)[0] !== url.pathname || (url.hash && !route.hash?.test(url.hash))) return null;

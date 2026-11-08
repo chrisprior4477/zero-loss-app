@@ -366,31 +366,35 @@ test("a newly available offer is kept until the customer reviews the changed lis
 
 test("a wallet URL restores two exact offers and keep-for-later in a fresh tab, then retains later edits on refresh", () => {
   const { getWalletFundingContext } = requireContext;
-  const renderCheckout = () => render(<PurchaseCheckout ownerId="account-a" options={options.map((option, i) => ({ ...option, entryId: `ent_${String(i + 1).padStart(32, "0")}` }))} initialBalance={13600} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />);
+  const renderCheckout = (entryId?: string) => render(<PurchaseCheckout ownerId="account-a" initiallySelectedEntryId={entryId} options={options.map((option, i) => ({ ...option, entryId: `ent_${String(i + 1).padStart(32, "0")}` }))} initialBalance={13600} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />);
   const view = renderCheckout();
   fireEvent.click(screen.getByRole("radio", { name: "Buying 2" }));
   fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
   const href = getWalletFundingContext()?.href;
-  const token = new URL(href!, "https://navigation.invalid").searchParams.get("choice");
+  const walletParams = new URL(href!, "https://navigation.invalid").searchParams;
+  const token = walletParams.get("choice");
+  const entry = walletParams.get("entry")!;
+  expect(entry).toMatch(/^ent_[a-f0-9]{32}$/);
   expect(token).toMatch(/^[0-9a-f-]{36}$/);
   view.unmount();
   sessionStorage.clear();
-  window.history.replaceState(null, "", "/account/purchase-options/nintendo-switch?resume=wallet&choice=" + token);
-  const returned = renderCheckout();
+  window.history.replaceState(null, "", `/account/purchase-options/nintendo-switch?option=${entry}&resume=wallet&choice=${token}`);
+  const returned = renderCheckout(entry);
   expect((screen.getByRole("radio", { name: "Buying 2" }) as HTMLInputElement).checked).toBe(true);
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("button", { name: "Add funds: $662 to continue" })).toBeTruthy();
   fireEvent.click(screen.getByRole("radio", { name: "Buying 3" }));
   returned.unmount();
-  renderCheckout();
+  renderCheckout(entry);
   expect((screen.getByRole("radio", { name: "Buying 3" }) as HTMLInputElement).checked).toBe(true);
   expect(mocks.purchase).not.toHaveBeenCalled();
 });
 
-test.each(["missing", "foreign"])("a %s wallet snapshot requires review and keeps remaining offers", kind => {
+test.each(["missing", "foreign", "expired"])("a %s wallet snapshot requires review and keeps remaining offers", kind => {
   const token = "11111111-1111-4111-8111-111111111111";
   if (kind === "foreign") localStorage.setItem("zero-loss-purchase-handoff:" + token, JSON.stringify({ ownerId: "another-account", slug: "nintendo-switch", selected: ["option-1"], available: options.map(o => o.completionOptionId), decline: true, savedAt: Date.now() }));
-  window.history.replaceState(null, "", "/account/purchase-options/nintendo-switch?resume=wallet&choice=" + token);
+  if (kind === "expired") localStorage.setItem("zero-loss-purchase-handoff:" + token, JSON.stringify({ ownerId: "account-a", slug: "nintendo-switch", selected: ["option-1"], available: options.map(o => o.completionOptionId), decline: true, savedAt: Date.now() - 25 * 3_600_000 }));
+  window.history.replaceState(null, "", "/account/purchase-options/nintendo-switch?option=ent_11111111111111111111111111111111&resume=wallet&choice=" + token);
   setup();
   expect(screen.getByRole("button", { name: "Review updated options" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");

@@ -6,6 +6,7 @@ import { AccountSettingsLandingScroll } from "@/components/account/AccountSettin
 import { activityHref, findActivityItem, isPurchasedReward, openPrizeOptions, purchasedRewardHref } from "@/lib/account/activity";
 import { getAccountContext } from "@/lib/account/context";
 import { authNavigationHref } from "@/lib/auth/entry-return";
+import { accountReturnPath } from "@/lib/auth/account-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import styles from "@/components/account/purchase-options.module.css";
 import { PurchaseCheckout } from "@/components/account/PurchaseCheckout";
@@ -14,14 +15,35 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
-export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ option?: string; decline?: string }> }) {
+type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline", string | string[]>>;
+
+export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<OfferQuery> }) {
   const { slug } = await params;
-  const { option: selectedEntryId, decline } = await searchParams;
-  const account = await getAccountContext();
+  const query = await searchParams;
+  const { option: selectedEntryId, decline } = query;
   const prizePath = `/account/purchase-options/${encodeURIComponent(slug)}`;
-  const returnPath = selectedEntryId === undefined ? prizePath : `${prizePath}?option=${encodeURIComponent(selectedEntryId)}`;
+  const selectors = new URLSearchParams();
+  for (const key of ["option", "resume", "choice", "decline"] as const) {
+    const value = query[key];
+    if (Array.isArray(value)) notFound();
+    if (value !== undefined) selectors.set(key, value);
+  }
+  const returnPath = accountReturnPath(selectors.size ? `${prizePath}?${selectors}` : prizePath);
+  if (!returnPath || Array.isArray(selectedEntryId)) notFound();
+  const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", returnPath));
-  if (account.activity.source === "unavailable") notFound();
+  if (account.activity.source === "unavailable") {
+    return <section className={styles.page} aria-labelledby="offers-unavailable-title">
+      <div className={styles.shell}><div className={styles.topline}>
+        <div><h1 id="offers-unavailable-title">We couldn’t load your purchase options</h1>
+          <p>Try again to check the current status of your offers.</p></div>
+        <div className={styles.topActions}>
+          <a href={returnPath} className={styles.shopping}>Try again</a>
+          <Link href="/account/entries?filter=completion" className={styles.return}>Go to My Activity</Link>
+        </div>
+      </div></div>
+    </section>;
+  }
 
   // The authenticated account read model is owner-scoped. Never fetch options
   // by a user ID or trust a count supplied through the URL.
