@@ -12,9 +12,12 @@ import type { ActivityItem } from "@/lib/account/activity";
 import { transactionLinks } from "@/lib/wallet/transaction-links";
 import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
+import { useMenuViewport } from "@/components/layout/useMenuViewport";
+import { WalletColumnHeadings } from "./WalletColumnHeadings";
 import { ledgerReturnKey, readLedgerReturn, type LedgerFilter, type LedgerReturn } from "@/lib/wallet/ledger-return";
 
 const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["purchases", "Purchases"], ["refunds", "Refunds"]];
+const noHiddenIds: string[] = [];
 
 function category(entry: LedgerEntryRow): LedgerFilter {
   if (entry.entry_type === "DEPOSIT") return "funding";
@@ -36,6 +39,17 @@ function dateLabel(value: string, timeZone: string) {
   return new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone, timeZoneName: "short" }).format(new Date(value));
 }
 
+function inDateRange(entries: LedgerEntryRow[], from: string, through: string, timeZone: string) {
+  if ((!from && !through) || (from && through && from > through)) return entries;
+  const formatter = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
+  return entries.filter(entry => {
+    const parts = formatter.formatToParts(new Date(entry.created_at));
+    const part = (type: string) => parts.find(value => value.type === type)?.value ?? "";
+    const day = `${part("year")}-${part("month")}-${part("day")}`;
+    return (!from || day >= from) && (!through || day <= through);
+  });
+}
+
 function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   if (entry.entry_type === "DEPOSIT") return { name: "wallet", tone: "funding" };
   if (entry.entry_type === "ENTRY_HOLD_RELEASE" || (entry.entry_type === "REFUND" && entry.amount > 0)) return { name: "arrow", tone: "credit" };
@@ -43,7 +57,8 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = [], canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string }) {
+  const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
@@ -57,21 +72,11 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   }
   const archived = useMemo(() => new Set(hiddenIds), [hiddenIds]);
   const displayEntries = useMemo(() => compact || (showArchived && !hideArchived) ? entries : entries.filter(entry => !archived.has(entry.id)), [compact, showArchived, hideArchived, entries, archived]);
-  const dated = useMemo(() => {
-    // A reversed range must not make existing transactions disappear.
-    // Category and archive choices still apply while the date filter is invalid.
-    if (compact || invalidDateRange || (!from && !through)) return displayEntries;
-    const formatter = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
-    return displayEntries.filter(entry => {
-      const parts = formatter.formatToParts(new Date(entry.created_at));
-      const part = (type: string) => parts.find(value => value.type === type)?.value ?? "";
-      const day = `${part("year")}-${part("month")}-${part("day")}`;
-      return (!from || day >= from) && (!through || day <= through);
-    });
-  }, [displayEntries, from, through, compact, timeZone, invalidDateRange]);
+  const dated = useMemo(() => compact ? displayEntries : inDateRange(displayEntries, from, through, timeZone), [displayEntries, from, through, compact, timeZone]);
   const matching = useMemo(() => filter === "all" ? dated : dated.filter(entry => category(entry) === filter), [dated, filter]);
-  const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(matching.length, 5, matching.findIndex(entry => entry.id === selectedId), "pages");
+  const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(matching.length, desktop ? 6 : 5, matching.findIndex(entry => entry.id === selectedId), "pages");
   const visible = compact ? matching : matching.slice(batches.origin, batches.end);
+  const twoColumns = !compact && desktop && visible.length > 3;
   const controls = { ...batches, close, listId: "wallet-transaction-list", noun: "transactions" };
   const restoreBatch = batches.restore;
   useLayoutEffect(() => {
@@ -95,7 +100,9 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       setFrom(saved.from);
       setThrough(saved.through);
       setShowArchived(saved.showArchived);
-      restoreBatch(saved.offset);
+      const savedEntries = entries.filter(entry => ((!hideArchived && saved.showArchived) || !archived.has(entry.id)) && (saved.filter === "all" || category(entry) === saved.filter));
+      const rowIndex = inDateRange(savedEntries, saved.from, saved.through, timeZone).findIndex(entry => `transaction-${entry.id}` === saved.rowId);
+      restoreBatch(rowIndex === -1 ? saved.offset : rowIndex);
       cancelScroll();
       interrupted = false;
       const align = () => {
@@ -136,7 +143,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       window.removeEventListener("wheel", interrupt);
       window.removeEventListener("keydown", interrupt);
     };
-  }, [compact, walletId, selectedId, restoreBatch, listRef]);
+  }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone]);
 
   function rememberView(event: MouseEvent<HTMLUListElement>) {
     if (compact || !walletId || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -169,27 +176,26 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     </div> : null}
     {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? dated.length : dated.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
     {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
-      <div className={styles.ledgerHeader} aria-hidden="true"><span>Date</span><span>Description</span><span>Status</span><span>Amount</span></div>
       {!compact && <TicketBatchControls {...controls} top />}
-      <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
+      {twoColumns && <WalletColumnHeadings />}
+      <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
         const links = transactionLinks(entry, activity);
         const productHref = entry.product?.slug ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
           const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}`;
         const selected = entry.id === selectedId;
         return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={selected}
           ref={selected ? selectedRow : undefined} tabIndex={selected ? -1 : undefined} aria-current={selected || undefined}>
+        <time dateTime={entry.created_at}>{dateLabel(entry.created_at, timeZone)}</time>
         <span className={styles.ledgerVisuals}>
           {entry.product ? <span className={styles.ledgerProduct}><Image src={entry.product.image} alt={entry.product.title} width={43} height={43} sizes="43px" /></span> : null}
           <span className={styles.ledgerIcon} data-tone={artwork.tone}><AccountIcon name={artwork.name} /></span>
         </span>
-        <span className={styles.ledgerDivider} aria-hidden="true" />
         <div className={styles.ledgerDescription}><strong>{title}</strong>{productHref && !compact ? <Link className={styles.productTitle} href={productHref} title={detail}>{detail}</Link> : <span>{detail}</span>}</div>
-        <span className={styles.ledgerDivider} aria-hidden="true" />
-        <time dateTime={entry.created_at}>{dateLabel(entry.created_at, timeZone)}</time>
-        <span className={styles.ledgerDivider} aria-hidden="true" />
+        <div className={styles.transactionValue}>
         <strong className={entry.amount > 0 ? styles.positive : styles.amount}>{entry.amount > 0 ? "+" : ""}{formatUsdFromCents(entry.amount)}</strong>
-        <span className={styles.posted}>Posted</span>
         {links.length === 1 ? <Link href={links[0].href} className={styles.reportLink} aria-label={`${links[0].label} for ${detail}`} title={links[0].label}><AccountIcon name="chevron" /></Link> : null}
+        </div>
+        <span className={styles.posted}>Posted</span>
         <div className={styles.transactionActions}>
           {links.length === 1 ? <Link href={links[0].href}>{links[0].label}<AccountIcon name="arrow" /></Link> : null}
           {links.length > 1 ? <details className={styles.relatedEntries}>

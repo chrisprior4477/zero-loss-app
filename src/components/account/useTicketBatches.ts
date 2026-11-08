@@ -5,10 +5,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 /** Fit whole tickets to the screen, or replace them one fixed-size page at a time. */
 export function useTicketBatches<T extends HTMLElement>(total: number, fallbackSize: number, initialIndex = 0, mode: "fit" | "pages" = "fit") {
   const index = Math.max(0, initialIndex);
-  const initial = mode === "pages" ? index - index % fallbackSize : index;
-  const [origin, setOrigin] = useState(initial);
-  const [start, setStart] = useState(initial);
-  const [size, setSize] = useState(fallbackSize);
+  const [origin, setOrigin] = useState(index);
+  const [anchor, setStart] = useState(index);
+  const [fitSize, setSize] = useState(fallbackSize);
+  // Keep the chosen ticket on the page when the number of tickets per page changes.
+  const start = mode === "pages" ? anchor - anchor % fallbackSize : anchor;
+  const size = mode === "pages" ? fallbackSize : fitSize;
   const list = useRef<T>(null);
   const measuredLimit = useRef({ start: -1, room: 0, width: 0, count: 0 });
   const moveToStart = useRef(false);
@@ -122,14 +124,15 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
     if (list.current) list.current.scrollTop = 0;
   }, [fallbackSize]);
   // Restore a navigation bookmark without moving focus or scrolling to the top.
+  const restoreFitSize = mode === "pages" ? null : fallbackSize;
   const restore = useCallback((offset: number) => {
-    const next = Math.max(0, Math.floor(offset / fallbackSize) * fallbackSize);
+    const next = Math.max(0, restoreFitSize === null ? offset : Math.floor(offset / restoreFitSize) * restoreFitSize);
     moveToStart.current = false;
     measuredLimit.current.start = -1;
     setOrigin(next);
     setStart(next);
-    setSize(fallbackSize);
-  }, [fallbackSize]);
+    if (restoreFitSize !== null) setSize(restoreFitSize);
+  }, [restoreFitSize]);
 
   // Expanding lists have variable-size batches; keep their exact loaded range.
   const restoreRange = useCallback((nextStart: number, nextSize: number) => {

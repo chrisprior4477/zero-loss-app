@@ -21,7 +21,7 @@ beforeEach(() => {
   scrollTo = vi.fn();
   vi.stubGlobal("scrollTo", scrollTo);
   vi.stubGlobal("scrollY", 1300);
-  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
+  vi.stubGlobal("matchMedia", vi.fn((query: string) => ({ matches: query.includes("max-width") })));
   frames = new Map();
   let id = 0;
   vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { frames.set(++id, callback); return id; });
@@ -46,6 +46,26 @@ function saveView() {
   fireEvent.click(screen.getAllByRole("link", { name: "Report a problem" })[2]);
   return page;
 }
+
+test("a mobile Support bookmark reopens the exact ticket on its six-ticket desktop page", () => {
+  const mobile = saveView();
+  mobile.unmount();
+  vi.stubGlobal("matchMedia", vi.fn((query: string) => ({ matches: query.includes("min-width") })));
+  render(<WalletLedger walletId="wallet-1" entries={allEntries} />);
+  flush();
+  expect(screen.getByText("Showing 7–12 of 12 transactions")).toBeTruthy();
+  expect(document.getElementById("transaction-funding-7")).toBeTruthy();
+  expect(screen.getByText("Most recent ↓")).toBeTruthy();
+  expect(screen.getByText("Earlier ↓")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+  expect(screen.getByText("Showing 1–6 of 12 transactions")).toBeTruthy();
+  const tickets = screen.getAllByRole("listitem");
+  expect(tickets.map(row => row.id)).toEqual(entries.slice(0, 6).map(entry => `transaction-${entry.id}`));
+  expect(tickets.every(row => row.firstElementChild?.tagName === "TIME")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Entries" }));
+  expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  expect(screen.queryByText("Earlier ↓")).toBeNull();
+});
 
 test("Support Back restores both dates, category, the five-ticket page and position without changing the support link", () => {
   const page = saveView();
