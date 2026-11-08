@@ -1,7 +1,8 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LoginForm } from "./LoginForm";
 import ForgotPasswordPage from "@/app/forgot-password/page";
+import { signInAction } from "@/lib/auth/actions";
 
 vi.mock("@/lib/auth/actions", () => ({ signInAction: vi.fn(), requestPasswordResetAction: vi.fn() }));
 
@@ -9,6 +10,29 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+test("an invalid password keeps the email for retry, clears the password and preserves the destination", async () => {
+  const submit = vi.mocked(signInAction);
+  submit.mockClear().mockResolvedValue({ ok: false, message: "Invalid email or password." });
+  const destination = "/account/orders?order=ord_123";
+  render(<LoginForm returnTo={destination} />);
+  const email = screen.getByLabelText("Email");
+  const password = screen.getByLabelText("Password");
+  const form = screen.getByRole("button", { name: "Sign in" }).closest("form")!;
+  fireEvent.change(email, { target: { value: "person@example.test" } });
+  fireEvent.change(password, { target: { value: "first-try" } });
+  fireEvent.submit(form);
+  expect((await screen.findByRole("alert")).textContent).toBe("Invalid email or password.");
+  expect(email).toHaveProperty("value", "person@example.test");
+  expect(password).toHaveProperty("value", "");
+  fireEvent.change(password, { target: { value: "second-try" } });
+  fireEvent.submit(form);
+  expect(submit).toHaveBeenCalledTimes(2);
+  const retry = submit.mock.calls[1][1];
+  expect(retry.get("email")).toBe("person@example.test");
+  expect(retry.get("returnTo")).toBe(destination);
+  expect(retry.get("password")).toBe("second-try");
 });
 
 test("ordinary mobile sign-in links land the form just below the sticky header", () => {

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { authNavigationHref } from "@/lib/auth/entry-return";
-import { useActionState, useEffect, useRef } from "react";
-import { formText, recoverAuthForm } from "./recover-auth-form";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { recoverAuthForm } from "./recover-auth-form";
 import {
   signInAction,
   type AuthActionState,
@@ -21,9 +21,8 @@ type LoginFormProps = {
   returnTo?: string | null;
 };
 
-const signIn = recoverAuthForm<AuthActionState>(signInAction, data => ({
+const signIn = recoverAuthForm<AuthActionState>(signInAction, () => ({
   ok: false,
-  email: formText(data, "email"),
   message: "We couldn’t confirm your sign-in. Check your connection, re-enter your password, and try again.",
 }));
 
@@ -40,6 +39,7 @@ export function LoginForm({
 
   const message = state.message ?? initialError;
   const notice = state.message ? null : initialNotice;
+  const [email, setEmail] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export function LoginForm({
   }, [focusOnMount]);
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form action={formAction} onSubmit={() => setEmail(emailRef.current?.value ?? email)} className="space-y-5" noValidate>
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <div>
         <label
@@ -75,7 +75,8 @@ export function LoginForm({
           name="email"
           type="email"
           autoComplete="email"
-          defaultValue={state.email}
+          value={email}
+          onChange={event => setEmail(event.target.value)}
           autoFocus={focusOnMount}
           required
           className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-[#00132e]/75 px-4 text-base text-white outline-none transition hover:border-white/25 focus:border-cyan-300 focus:ring-4 focus:ring-cyan-300/10"
