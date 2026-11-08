@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 const mocks = vi.hoisted(() => ({ beginDemoVerification: vi.fn(), advanceDemoVerification: vi.fn(), restartDemoVerification: vi.fn(), skipDemoVerificationForPresentation: vi.fn() }));
 vi.mock("@/lib/identity/demo-verification-actions", () => mocks);
-import { DemoVerificationDialog } from "./DemoVerificationDialog";
+import { DemoIdentityPreviewButton, DemoVerificationDialog } from "./DemoVerificationDialog";
 const id = "97999999-9999-4999-8999-999999999971";
 const sample = { id, reference: "ver_abcdef", provider: "demo", step: "start" };
 beforeEach(() => {
@@ -121,4 +121,49 @@ test("a failed initial request leaves a clear retry action instead of a stuck lo
   render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={vi.fn()} />);
   expect(await screen.findByRole("heading", { name: "Couldn’t open the demo check" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Retry opening check" })).toBeTruthy();
+});
+
+test.each(["Close identity check", "Finish later", "Escape"])("%s dismisses an opening check and its late reply cannot replace a reopened check", async exit => {
+  let finishRead!: (value: unknown) => void;
+  mocks.beginDemoVerification.mockReturnValueOnce(new Promise(resolve => { finishRead = resolve; }));
+  mocks.beginDemoVerification.mockResolvedValueOnce({ verification: { ...sample, step: "submitted" } });
+  render(<DemoIdentityPreviewButton rewardId={id} />);
+  fireEvent.click(screen.getByRole("button", { name: "Preview identity check" }));
+  const dialog = screen.getByRole("dialog", { name: "Opening your saved check…" });
+  if (exit === "Escape") fireEvent(dialog, new Event("cancel", { cancelable: true }));
+  else fireEvent.click(screen.getByRole("button", { name: exit }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Preview identity check" }));
+  await screen.findByRole("heading", { name: "Ready for the demo check" });
+  await act(async () => finishRead({ verification: sample }));
+  expect(screen.getByRole("heading", { name: "Ready for the demo check" })).toBeTruthy();
+  expect(mocks.advanceDemoVerification).not.toHaveBeenCalled();
+  expect(mocks.skipDemoVerificationForPresentation).not.toHaveBeenCalled();
+});
+
+test("retrying an unavailable opening request also leaves Finish later enabled", async () => {
+  mocks.beginDemoVerification.mockRejectedValueOnce(new Error("offline")).mockReturnValueOnce(new Promise(() => {}));
+  render(<DemoIdentityPreviewButton rewardId={id} />);
+  fireEvent.click(screen.getByRole("button", { name: "Preview identity check" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Retry opening check" }));
+  expect(mocks.beginDemoVerification).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole("button", { name: "Finish later" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("dismissal waits for a step that is being saved", async () => {
+  let finishSave!: (value: unknown) => void;
+  mocks.advanceDemoVerification.mockReturnValueOnce(new Promise(resolve => { finishSave = resolve; }));
+  const onClose = vi.fn();
+  render(<DemoVerificationDialog rewardId={id} onClose={onClose} onComplete={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: "Start demo check" }));
+  for (const name of ["Close identity check", "Finish later"]) {
+    expect((screen.getByRole("button", { name }) as HTMLButtonElement).disabled).toBe(true);
+  }
+  fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+  expect(onClose).not.toHaveBeenCalled();
+  await act(async () => finishSave({ verification: { ...sample, step: "consent" } }));
+  fireEvent.click(screen.getByRole("button", { name: "Finish later" }));
+  expect(onClose).toHaveBeenCalledOnce();
 });

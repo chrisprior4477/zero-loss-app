@@ -78,7 +78,10 @@ function HeadshotSample({ disabled, onUse }: { disabled: boolean; onUse: () => v
 export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewOnly = false }: { rewardId: string; onClose: () => void; onComplete: () => void; previewOnly?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [verification, setVerification] = useState<DemoVerification | null>(null);
-  const [busy, setBusy] = useState(true);
+  const [phase, setPhase] = useState<"opening" | "saving" | "idle">("opening");
+  const [openAttempt, setOpenAttempt] = useState(0);
+  const busy = phase !== "idle";
+  const saving = phase === "saving";
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -88,41 +91,53 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
   useEffect(() => {
     const modal = dialog.current;
     if (modal && !modal.open) modal.showModal();
+    return () => { if (modal?.open && typeof modal.close === "function") modal.close(); };
+  }, []);
+
+  useEffect(() => {
     let active = true;
     beginDemoVerification(rewardId).then(result => {
       if (!active) return;
       if (result.verification) setVerification(result.verification); else setError(result.error);
-      setBusy(false);
+      setPhase("idle");
     }).catch(() => {
       if (!active) return;
       setError("We couldn’t open the demo check. Please retry.");
-      setBusy(false);
+      setPhase("idle");
     });
-    return () => { active = false; if (modal?.open && typeof modal.close === "function") modal.close(); };
-  }, [rewardId]);
+    return () => { active = false; };
+  }, [rewardId, openAttempt]);
   useEffect(() => { if (step) heading.current?.focus(); }, [step]);
 
   async function advance(next: DemoVerificationStep) {
     if (!verification || inFlight.current) return;
-    inFlight.current = true; setBusy(true); setError(null);
+    inFlight.current = true; setPhase("saving"); setError(null);
     try {
       const result = await advanceDemoVerification(verification.id, next);
       if (result.verification) setVerification(result.verification); else setError(result.error);
     } catch { setError("The connection was interrupted. Retry this step; your saved progress is safe."); }
-    finally { setBusy(false); inFlight.current = false; }
+    finally { setPhase("idle"); inFlight.current = false; }
   }
-  async function restart(replay = false) {
+  function retryOpening() {
+    setPhase("opening");
+    setError(null);
+    setOpenAttempt(attempt => attempt + 1);
+  }
+  function dismiss() {
+    if (!inFlight.current) onClose();
+  }
+  async function restart() {
     if (inFlight.current) return;
-    inFlight.current = true; setBusy(true); setError(null);
+    inFlight.current = true; setPhase("saving"); setError(null);
     try {
-      const result = await (replay ? restartDemoVerification(rewardId) : beginDemoVerification(rewardId));
+      const result = await restartDemoVerification(rewardId);
       if (result.verification) { setVerification(result.verification); setConsent(false); } else setError(result.error);
     } catch { setError("The connection was interrupted. Please retry opening the demo check."); }
-    finally { setBusy(false); inFlight.current = false; }
+    finally { setPhase("idle"); inFlight.current = false; }
   }
   async function skipForPresentation() {
     if (!verification || inFlight.current) return;
-    inFlight.current = true; setBusy(true); setError(null);
+    inFlight.current = true; setPhase("saving"); setError(null);
     try {
       const result = await skipDemoVerificationForPresentation(rewardId, verification.id);
       if (result.verification?.step === "demo_skipped") {
@@ -130,21 +145,21 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
         onComplete();
       } else setError(result.error ?? "We couldn’t continue this demo claim. Please retry.");
     } catch { setError("The connection was interrupted. Retry this demo step; your saved progress is safe."); }
-    finally { setBusy(false); inFlight.current = false; }
+    finally { setPhase("idle"); inFlight.current = false; }
   }
   const titles: Record<DemoVerificationStep, string> = { start: "Confirm your identity", consent: "Review your details", details: "Photograph the front of your ID", document_front: "Now, the back of your ID", document_back: "Record a short headshot video", selfie: "Review before submitting", submitted: "Ready for the demo check", demo_passed: "Demo identity check complete", demo_skipped: "Demo walkthrough skipped", requires_input: "Let’s try that photo again" };
   const canSkipForPresentation = !previewOnly && step && !["demo_passed", "demo_skipped", "requires_input"].includes(step);
 
-  return <dialog ref={dialog} aria-labelledby="identity-demo-title" className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>
+  return <dialog ref={dialog} aria-labelledby="identity-demo-title" className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); dismiss(); }}>
     <header className={styles.header}>
       <span className={styles.headerIcon} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4.5 5v6.1c0 5.2 3.2 8.7 7.5 10.9 4.3-2.2 7.5-5.7 7.5-10.9V5L12 2Z" /><path d="m8.5 11.7 2.3 2.3 4.8-4.9" /></svg></span>
       <div className={styles.headingBlock}><p className={styles.eyebrow}>PRIZE CLAIM · IDENTITY CHECK</p><h2 ref={heading} tabIndex={-1} id="identity-demo-title">{step ? titles[step] : error ? "Couldn’t open the demo check" : "Opening your saved check…"}</h2></div>
-      <button type="button" className={styles.close} aria-label="Save progress and close identity check" disabled={busy} onClick={onClose}>×</button>
+      <button type="button" className={styles.close} aria-label="Close identity check" disabled={saving} onClick={dismiss}>×</button>
     </header>
     <div className={styles.body}>
       {step ? <nav aria-label="Verification progress"><p className={styles.mobileProgress}>Step {stageIndex[step] + 1} of 7 · {stages[stageIndex[step]]}</p><ol className={styles.progress}>{stages.map((label, index) => <li key={label} aria-current={stageIndex[step] === index ? "step" : undefined} data-complete={index < stageIndex[step]}><span>{index < stageIndex[step] ? "✓" : index + 1}</span>{label}</li>)}</ol></nav> : null}
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
-      {!step && !busy ? <button type="button" className={styles.primary} onClick={() => restart()}>Retry opening check</button> : null}
+      {!step && !busy ? <button type="button" className={styles.primary} onClick={retryOpening}>Retry opening check</button> : null}
       {step === "start" ? <>
         <p className={styles.copy}>Before claiming a first prize, this walkthrough shows how an identity check could work. In a live service, the required checks depend on the approved provider and eligibility rules.</p>
         <div className={styles.notice}><strong>Try the complete experience—using a sample person.</strong><p>We supply every photo and detail. Do not upload an ID, enter a Social Security number, or turn on your camera. No actual identity verification takes place.</p></div>
@@ -171,13 +186,13 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
           <button type="button" className={styles.retakeChoice} disabled={busy} onClick={() => advance("requires_input")}><span aria-hidden="true">↻</span><strong>Try the “photo needs retaking” example</strong></button>
         </div>
       </> : null}
-      {step === "requires_input" ? <><div className={`${styles.notice} ${styles.retakeNotice}`}><strong>Sample outcome: photo not clear enough.</strong><p>In a real check, you could be asked to retake a photo. {previewOnly ? "Replaying does not change an existing claim." : "Your prize has not been claimed."} This failed demo attempt remains in the audit history.</p></div><button type="button" className={styles.primary} disabled={busy} onClick={() => restart(true)}>Try again with sample ID</button></> : null}
-      {step === "demo_passed" ? <><div className={styles.success}><span aria-hidden="true">✓</span><div><strong>Demo check passed</strong><p>Saved to your account. {previewOnly ? "Your existing prize claim is unchanged." : "You can now continue claiming this demo prize."} This is not real KYC approval.</p></div></div><p className={styles.hint}>Later demo wins can use this saved result under the same demo policy. Live verification may need to be repeated.</p><div className={styles.actions}><button type="button" className={styles.primary} disabled={busy} onClick={onComplete}>{previewOnly ? "Back to reward" : "Continue to claim prize"}</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => restart(true)}>Replay the demo walkthrough</button></div></> : null}
-      {step === "demo_skipped" ? <><div className={styles.success}><span aria-hidden="true">✓</span><div><strong>Walkthrough skipped for this demo</strong><p>This presentation shortcut was saved. No identity check was performed or approved.</p></div></div><div className={styles.actions}><button type="button" className={styles.primary} disabled={busy} onClick={onComplete}>Continue to claim prize</button><button type="button" className={styles.secondary} disabled={busy} onClick={() => restart(true)}>Show the full walkthrough</button></div></> : null}
-      {busy ? <p role="status" className={styles.saving}>Saving securely…</p> : null}
+      {step === "requires_input" ? <><div className={`${styles.notice} ${styles.retakeNotice}`}><strong>Sample outcome: photo not clear enough.</strong><p>In a real check, you could be asked to retake a photo. {previewOnly ? "Replaying does not change an existing claim." : "Your prize has not been claimed."} This failed demo attempt remains in the audit history.</p></div><button type="button" className={styles.primary} disabled={busy} onClick={restart}>Try again with sample ID</button></> : null}
+      {step === "demo_passed" ? <><div className={styles.success}><span aria-hidden="true">✓</span><div><strong>Demo check passed</strong><p>Saved to your account. {previewOnly ? "Your existing prize claim is unchanged." : "You can now continue claiming this demo prize."} This is not real KYC approval.</p></div></div><p className={styles.hint}>Later demo wins can use this saved result under the same demo policy. Live verification may need to be repeated.</p><div className={styles.actions}><button type="button" className={styles.primary} disabled={busy} onClick={onComplete}>{previewOnly ? "Back to reward" : "Continue to claim prize"}</button><button type="button" className={styles.secondary} disabled={busy} onClick={restart}>Replay the demo walkthrough</button></div></> : null}
+      {step === "demo_skipped" ? <><div className={styles.success}><span aria-hidden="true">✓</span><div><strong>Walkthrough skipped for this demo</strong><p>This presentation shortcut was saved. No identity check was performed or approved.</p></div></div><div className={styles.actions}><button type="button" className={styles.primary} disabled={busy} onClick={onComplete}>Continue to claim prize</button><button type="button" className={styles.secondary} disabled={busy} onClick={restart}>Show the full walkthrough</button></div></> : null}
+      {saving ? <p role="status" className={styles.saving}>Saving securely…</p> : null}
       {verification ? <p className={styles.reference}>Demo session {verification.reference}</p> : null}
     </div>
-    <footer className={styles.footer}><span><strong>DEMO DATA · NO PERSONAL DATA COLLECTED</strong><small>Progress is saved to your account.</small></span><div className={styles.footerActions}>{canSkipForPresentation ? <button type="button" className={styles.skipDemo} disabled={busy} onClick={skipForPresentation}>{busy ? "Continuing demo…" : "Continue with Demo as if completed"}</button> : null}<button type="button" disabled={busy} onClick={onClose}>Finish later</button></div></footer>
+    <footer className={styles.footer}><span><strong>DEMO DATA · NO PERSONAL DATA COLLECTED</strong><small>Progress is saved to your account.</small></span><div className={styles.footerActions}>{canSkipForPresentation ? <button type="button" className={styles.skipDemo} disabled={busy} onClick={skipForPresentation}>{busy ? "Continuing demo…" : "Continue with Demo as if completed"}</button> : null}<button type="button" disabled={saving} onClick={dismiss}>Finish later</button></div></footer>
   </dialog>;
 }
 
