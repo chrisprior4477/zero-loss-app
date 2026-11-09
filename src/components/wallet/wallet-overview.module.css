@@ -81,7 +81,6 @@
 .ledger ul { display: grid; gap: 8px; }
 .walletColumnHeadings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 6px; font-size: 13px; font-weight: 750; }
 .walletColumnHeadings span { padding-inline-start: 16px; }
-.depositDate { display: block; margin-bottom: 3px; color: #425f7f; font-size: 12px; font-weight: 700; }
 .transactionPage { min-width: 0; scroll-margin-top: calc(var(--site-header-height, 110px) + 8px); }
 .transactionPage:focus-visible { outline: 2px solid #008de7; outline-offset: 2px; }
 .ledger li { --corner-scoop: 12px; --side-scoop: 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) fit-content(35%); grid-template-areas: "date date amount" "visual description status" "actions actions actions"; min-width: 0; align-items: center; gap: 4px 10px; padding: 10px 18px 6px; background: #fffefa; color: #0b1940; scroll-margin-top: 190px; }
@@ -257,9 +256,17 @@
 .fundingRequests li :global([data-reconciliation]:not([data-reconciliation="reconciled"])) { color: #9b5409; }
 .fundingRequests li :global(form button) { border-color: #78b0d6; color: #075eb4; }
 .fundingRequests .archiveToggle { color: #075eb4; }
+.depositMeta { color: #395979; font-size: 13px; }
+.depositMeta summary { cursor: pointer; }
+.depositMeta summary:focus-visible { outline: 2px solid #0872fb; outline-offset: 2px; }
+.depositMeta time { font-weight: 750; color: #102646; }
+.depositMeta .receiptCard { display: block; }
+.depositMeta p { overflow-wrap: anywhere; font-size: 12px; }
 
 @media (width < 1024px) {
   .fundingDashboard > .fundingBody, .fundingDashboard > .fundingRequests { -webkit-mask-image: none; mask-image: none; }
+  .depositMeta summary { min-height: 44px; padding-block: 3px; }
+  .depositMeta[open] { margin-bottom: 4px; }
 }
 .weeklyPanel { display: none; }
 @media (min-width: 1024px) {
@@ -303,14 +310,9 @@
   .latestDeposit summary b { padding: 8px 12px; border-radius: 8px; background: #dff2ff; color: #105376; }
   .weekDetails { padding: 0 8px 8px; }
   .weekReceipt { font-size: 13px; overflow-wrap: anywhere; }
-  .weekReceipt summary, .depositMeta summary { padding-block: 5px; cursor: pointer; }
+  .weekReceipt summary { padding-block: 5px; cursor: pointer; }
   .receiptCard::before { content: " · "; }
-  .depositMeta { color: #395979; font-size: 13px; }
-  .depositMeta summary { padding: 0; }
-  .depositMeta time { font-weight: 750; color: #102646; }
-  .depositMeta .receiptCard { display: block; }
   .depositMeta .receiptCard::before { content: none; }
-  .depositMeta p { overflow-wrap: anywhere; font-size: 12px; }
   .fundingDashboard > .fundingRequests { grid-column: 1 / -1; margin: 0; border: 0; }
   .fundingRequests ul { max-height: none !important; overflow: visible; scrollbar-gutter: auto; }
   .ledger ul[data-columns="2"], .fundingRequests ul[data-columns="2"] { grid-auto-flow: column; grid-template-columns: repeat(2, minmax(0, 1fr)); }

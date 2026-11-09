@@ -6,7 +6,6 @@ import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { DepositReceiptDate } from "./WeeklyDeposits";
 import { WalletColumnHeadings } from "./WalletColumnHeadings";
-import { formatOfferDeadline } from "@/lib/account/timezone";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import batchStyles from "@/components/account/ticket-batches.module.css";
 import Link from "next/link";
@@ -460,10 +459,11 @@ export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hidd
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
       : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>
       : <><TicketBatchControls {...controls} top />{twoColumns && <WalletColumnHeadings />}<ul id={controls.listId} tabIndex={-1} ref={listRef} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(end / 2)}, auto)` } : undefined} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, end).map(request => <li key={request.id} className="p-4">
-        {desktop ? <details className={styles.depositMeta}><summary><DepositReceiptDate request={request} timeZone={timeZone} /></summary><p>Request {request.id}</p></details>
-          : <time className={styles.depositDate} dateTime={request.postedAt ?? request.created_at}>{formatOfferDeadline(request.postedAt ?? request.created_at, timeZone)}</time>}
+        <details className={styles.depositMeta}>
+          <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
+          <p>Request {request.id}</p>
+        </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
-        {!desktop && <p className="mt-2 break-all text-[10px] text-[#b5cce4]">Request {request.id}</p>}
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it.</p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} continueTo={continueTo} /> : null}
       </li>)}</ul></>}
     <TicketBatchControls {...controls} />
