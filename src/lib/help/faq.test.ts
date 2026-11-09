@@ -30,3 +30,10 @@ test("question matches rank before incidental mentions and common apostrophes wo
   expect(filterFaqs("password", "all")[0].id).toBe("password");
   expect(filterFaqs("can’t sign in", "all")[0].id).toBe("password");
 });
+
+test("wallet answers use the live transaction button name and the exact reward-history section", () => {
+  const refund = faqItems.find(item => item.id === "withdrawals")!;
+  expect(refund.answer).toContain("use Report a problem on the relevant wallet transaction");
+  expect(refund.answer).not.toContain("Get help");
+  expect(faqItems.find(item => item.id === "reward-unavailable")!.action.href).toBe("/account/wallet?rewards=history#reward-history");
+});

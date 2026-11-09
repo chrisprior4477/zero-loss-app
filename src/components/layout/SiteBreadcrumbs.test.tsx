@@ -1,4 +1,4 @@
-import { ProductBreadcrumbTitle, ProductBreadcrumbTitleProvider } from "./ProductBreadcrumbTitle";
+import { renderToString } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { SiteBreadcrumbs } from "./SiteBreadcrumbs";
@@ -72,14 +72,26 @@ test("keyboard focus can move through a category menu, then dismiss it when leav
 
 test("product breadcrumbs use the page's canonical catalog name and never carry it onto another product", () => {
   route.pathname = "/items/sony-wh-1000xm5-headphones"; route.query = "from=%2Fbrowse%3Fcategory%3Delectronics";
-  const view = render(<ProductBreadcrumbTitleProvider><SiteBreadcrumbs /><ProductBreadcrumbTitle slug="sony-wh-1000xm5-headphones" title="Sony WH-1000XM5 Wireless Headphones" /></ProductBreadcrumbTitleProvider>);
+  const view = render(<><SiteBreadcrumbs /><SiteBreadcrumbs product={{ slug: "sony-wh-1000xm5-headphones", title: "Sony WH-1000XM5 Wireless Headphones" }} /></>);
+  expect(screen.getAllByRole("navigation", { name: "Breadcrumb" })).toHaveLength(1);
   expect(screen.getByText("Sony WH-1000XM5 Wireless Headphones").getAttribute("aria-current")).toBe("page");
   expect(screen.getByRole("link", { name: "Electronics" }).getAttribute("href")).toBe("/browse?category=electronics");
   route.pathname = "/items/playstation-5-slim";
-  view.rerender(<ProductBreadcrumbTitleProvider><SiteBreadcrumbs /><ProductBreadcrumbTitle slug="playstation-5-slim" title="PlayStation 5 Slim Model" /></ProductBreadcrumbTitleProvider>);
+  view.rerender(<><SiteBreadcrumbs /><SiteBreadcrumbs product={{ slug: "playstation-5-slim", title: "PlayStation 5 Slim Model" }} /></>);
   expect(screen.getByText("PlayStation 5 Slim Model")).toBeTruthy();
   expect(screen.queryByText("Sony WH-1000XM5 Wireless Headphones")).toBeNull();
   route.pathname = "/account/wallet"; route.query = "view=history";
-  view.rerender(<ProductBreadcrumbTitleProvider><SiteBreadcrumbs /></ProductBreadcrumbTitleProvider>);
+  view.rerender(<><SiteBreadcrumbs /><SiteBreadcrumbs product={{ slug: "playstation-5-slim", title: "PlayStation 5 Slim Model" }} /></>);
   expect(screen.getByText("Wallet & Transactions")).toBeTruthy();
+  expect(screen.getAllByRole("navigation", { name: "Breadcrumb" })).toHaveLength(1);
+});
+
+test("the server's first product breadcrumb contains the canonical name without a client title update", () => {
+  route.pathname = "/items/bath-body-works-25-gift-card";
+  route.query = "from=%2Fbrowse%3Fcategory%3Dbeauty";
+  const html = renderToString(<><SiteBreadcrumbs /><SiteBreadcrumbs product={{ slug: "bath-body-works-25-gift-card", title: "$25 Bath & Body Works Gift Card" }} /></>);
+  expect(html).toContain("$25 Bath &amp; Body Works Gift Card");
+  expect(html).not.toContain("Bath Body Works 25 Gift Card");
+  expect(html.match(/aria-label="Breadcrumb"/g)).toHaveLength(1);
+  route.pathname = "/account/wallet"; route.query = "view=history";
 });

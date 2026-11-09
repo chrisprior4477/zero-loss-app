@@ -11,7 +11,7 @@ import { ProductInfoDialog } from "@/components/product/ProductInfoDialog";
 import { ProductEntryAutoScroll } from "@/components/product/ProductEntryAutoScroll";
 import entryStyles from "@/components/product/product-entry-layout.module.css";
 import { ProductGallery } from "@/components/product/ProductGallery";
-import { ProductBreadcrumbTitle } from "@/components/layout/ProductBreadcrumbTitle";
+import { SiteBreadcrumbs } from "@/components/layout/SiteBreadcrumbs";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { demoProducts, getDemoProduct } from "@/lib/catalog/demo-products";
 import { buildProductMetadata } from "@/lib/catalog/product-metadata";
@@ -99,8 +99,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
     <p><Link href="/terms" className="font-bold text-cyan-300 underline">Preview terms and Official Rules status →</Link></p>
   </>;
 
-  return <div className={entryStyles.page}>
-    <ProductBreadcrumbTitle slug={product.slug} title={product.title} />
+  return <><SiteBreadcrumbs product={{ slug: product.slug, title: product.title }} /><div className={entryStyles.page}>
     {!hiddenPool ? <RememberViewedProduct slug={product.slug} browseReturn={query.from === undefined ? undefined : browseReturnHref} /> : null}
     <ProductEntryAutoScroll productKey={`${product.slug}:${requestedQuantity}:${query.funded ?? ""}`} />
     <ProductEntrySelection key={`${product.slug}:${requestedQuantity}`} slug={product.slug} initialQuantity={requestedQuantity} remaining={current?.remaining ?? product.capacity - product.sold}>
@@ -125,5 +124,5 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
       <div><strong className="text-cyan-300">Official rules stay accessible</strong><p className="mt-2 text-sm leading-6 text-white/65">Eligibility, free-entry details, and completion terms will remain one tap away.</p></div>
       <div><strong className="text-cyan-300">Retailer gift-card fulfillment</strong><p className="mt-2 text-sm leading-6 text-white/65">Zero Loss issues the advertised retailer gift-card value. Product selection, inventory, checkout and shipping remain with the retailer.</p></div>
     </section>
-  </div>;
+  </div></>;
 }

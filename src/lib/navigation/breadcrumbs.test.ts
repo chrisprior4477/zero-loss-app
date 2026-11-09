@@ -9,6 +9,19 @@ test("home has no duplicate breadcrumb", () => {
   expect(trail("/")).toEqual([]);
 });
 
+test("the print breadcrumb retains the selected prize, quantity and safe shopping return", () => {
+  const source = "/browse?category=beauty#prize-bath-body-works-25-gift-card";
+  const query = new URLSearchParams({ offering: "bath-body-works-25-gift-card", from: source, quantity: "7", name: "Private name", account: "Private reference" });
+  const href = breadcrumbItems("/free-entry/print", query)[0].href!;
+  const destination = new URL(href, "https://example.test");
+  expect(destination.pathname).toBe("/free-entry");
+  expect(Object.fromEntries(destination.searchParams)).toEqual({ offering: "bath-body-works-25-gift-card", from: source, quantity: "7" });
+  query.set("from", "https://evil.test"); query.set("quantity", "-2");
+  expect(breadcrumbItems("/free-entry/print", query)[0].href).toBe("/free-entry?offering=bath-body-works-25-gift-card");
+  query.set("offering", "../wallet");
+  expect(breadcrumbItems("/free-entry/print", query)[0].href).toBe("/free-entry");
+});
+
 test("account destinations lead back through Your Account", () => {
   expect(trail("/account/crew")).toEqual([
     { label: "Your Account", href: "/account/entries" },

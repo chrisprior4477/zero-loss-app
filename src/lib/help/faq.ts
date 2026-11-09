@@ -67,7 +67,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "withdrawals", category: "wallet", question: "Can I withdraw a deposit or request a refund?",
-    answer: "Deposits are intended to stay in your Zero Loss balance and cannot normally be withdrawn. Exceptional refund requests are reviewed separately. This does not limit rights for unauthorized charges or payment errors. An entry undone within its pending window returns to your playable balance, not your payment card. To report an issue, use Get help on the relevant wallet transaction.",
+    answer: "Deposits are intended to stay in your Zero Loss balance and cannot normally be withdrawn. Exceptional refund requests are reviewed separately. This does not limit rights for unauthorized charges or payment errors. An entry undone within its pending window returns to your playable balance, not your payment card. To report an issue, use Report a problem on the relevant wallet transaction.",
     keywords: "cash out child kid stolen chargeback refund accidental", action: { label: "Find the transaction", href: "/account/wallet?view=history" },
   },
   {
@@ -83,7 +83,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "reward-unavailable", category: "rewards", question: "Why is a reward not ready, or no longer usable?",
     answer: "Open its details to check the current status and any claim deadline. Rewards that are redeemed, expired, cancelled, or still being issued stay in reward history. A pending or unavailable reward does not have a usable code; contact support if the status needs attention.",
-    keywords: "failed issuance expired cancelled redeemed missing barcode history", action: { label: "Open reward history", href: "/account/wallet?rewards=history" },
+    keywords: "failed issuance expired cancelled redeemed missing barcode history", action: { label: "Open reward history", href: "/account/wallet?rewards=history#reward-history" },
   },
   {
     id: "demo-identity", category: "rewards", question: "What happens in the identity-check preview?",
