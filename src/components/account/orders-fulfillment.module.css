@@ -91,8 +91,7 @@
 .empty a svg, .empty button svg, .helpCard > a svg { width: 16px; height: 16px; }
 
 .sideRail { display: grid; grid-area: rail; gap: 10px; }
-.helpCard, .relatedLinks { background: #fcfbf8; color: #0a1741; }
-.helpCard { padding: 20px 20px 23px; }
+.helpCard { padding: 20px 20px 23px; background: #fcfbf8; color: #0a1741; }
 .helpCard > span { display: grid; width: 58px; height: 58px; place-items: center; margin: 0 auto 12px; border-radius: 50%; background: #bfeaff; color: #102c61; }
 .helpCard > span svg { width: 29px; height: 29px; }
 .helpCard h2 { font-size: 23px; font-weight: 850; line-height: 1.04; letter-spacing: -.035em; }
@@ -103,24 +102,35 @@
 .relatedLinks {
   --corner-scoop: 12px;
   --side-scoop: 5px;
+  --perforation: 2px dotted #96acc1;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 5px 10px;
+  grid-auto-rows: 1fr;
 }
 .relatedLinks a {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   min-width: 0;
-  min-height: 44px;
-  padding: 8px 9px;
+  min-height: 54px;
+  padding: 8px 12px;
+  background: #fcfbf8;
   color: #0a1741;
   font-size: 14px;
   font-weight: 750;
   line-height: 1.2;
+  text-align: center;
   text-decoration: none;
+  /* Adjacent corners form a round notch where each dotted divider meets the edge. */
+  --notch: transparent 6.5px, #000 7.5px;
+  mask-image: radial-gradient(circle at top left, var(--notch)), radial-gradient(circle at top right, var(--notch)),
+    radial-gradient(circle at bottom left, var(--notch)), radial-gradient(circle at bottom right, var(--notch));
+  mask-position: top left, top right, bottom left, bottom right;
+  mask-size: 51% 51%;
+  mask-repeat: no-repeat;
 }
-.relatedLinks a + a { border-inline-start: 1px solid #d2e2ed; }
+.relatedLinks a + a { border-inline-start: var(--perforation); }
 .relatedLinks a:hover, .relatedLinks a:focus-visible, .relatedLinks a[aria-current="page"] { background: #deeff9; }
 .relatedLinks svg { flex: 0 0 17px; width: 17px; height: 17px; color: #0061ad; }
 .retailerNote { margin-top: 10px; color: #b8cce7; font-size: 12px; line-height: 1.45; }
@@ -156,7 +166,7 @@
   .productStage { min-height: 195px; }
   .relatedLinks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .relatedLinks a:nth-child(odd) { border-inline-start: 0; }
-  .relatedLinks a:nth-child(n + 3) { border-top: 1px solid #d2e2ed; }
+  .relatedLinks a:nth-child(n + 3) { border-top: var(--perforation); }
 }
 @media (max-width: 460px) {
   .orderCard { grid-template-columns: 1fr; grid-template-rows: 120px auto auto; }
