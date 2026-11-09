@@ -28,7 +28,7 @@ test("shows only real retailer gift-card orders", () => {
   expect(screen.getByText("ready gift card")).toBeTruthy();
   expect(screen.getByText("exception gift card")).toBeTruthy();
   expect(screen.queryByText(/UPS|FedEx|USPS|estimated delivery:/i)).toBeNull();
-  expect(screen.getByText(/Retailer shopping and shipping happen on the retailer’s site/)).toBeTruthy();
+  expect(screen.getByText(/checkout, shipping and retailer fees remain on the retailer’s site/)).toBeTruthy();
 });
 
 test("connects orders to rewards, activity and support", () => {
@@ -39,6 +39,13 @@ test("connects orders to rewards, activity and support", () => {
   const helpLinks = screen.getAllByRole("link", { name: "Choose a transaction to report" });
   expect(helpLinks).toHaveLength(2);
   for (const link of helpLinks) expect(link.getAttribute("href")).toBe("/account/wallet?view=history#transactions");
+  const related = within(screen.getByRole("navigation", { name: "Related pages" }));
+  expect(related.getAllByRole("link").map(link => [link.textContent, link.getAttribute("href")])).toEqual([
+    ["My Activity", "/account/entries"],
+    ["Gift Cards & Rewards", "/account/wallet"],
+    ["Wallet & Transactions", "/account/wallet?view=history"],
+    ["Confirmed payments", "/account/orders?filter=payment#fulfillment-records"],
+  ]);
 });
 
 test("both order help links open the selected transaction's problem form", () => {
@@ -95,11 +102,6 @@ test("winning rewards appear without a purchase order and link to the exact acti
   expect(screen.getByText("You won")).toBeTruthy();
   expect(screen.queryByText("No purchase required")).toBeNull();
   expect(screen.getByRole("link", { name: "View winning reward" }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=winner-id");
-  const journey = within(screen.getByRole("list", { name: "Gift-card fulfillment journey" }));
-  expect(journey.getByRole("link", { name: /Payment confirmed/ }).getAttribute("href")).toBe("/account/orders?filter=payment#fulfillment-records");
-  expect(journey.getByRole("link", { name: /Issuance/ }).getAttribute("href")).toBe("/account/orders?filter=processing#fulfillment-records");
-  expect(journey.getByRole("link", { name: /Reward wallet/ }).getAttribute("href")).toBe("/account/wallet");
-  expect(journey.getByRole("link", { name: /Exceptions/ }).getAttribute("href")).toBe("/account/orders?filter=exceptions#fulfillment-records");
 });
 
 test("an unknown selected reward never falls back to another customer's or product's card", () => {

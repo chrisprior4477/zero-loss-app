@@ -7,7 +7,7 @@
 
 .shell { max-width: 1440px; margin-inline: auto; }
 .heading { display: flex; align-items: end; justify-content: space-between; gap: 22px; margin-top: 18px; }
-.heading > div > p, .heroCopy > p, .sectionHeading p, .sideEyebrow { color: #a8d5f5; font-size: 10px; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; }
+.heading > div > p, .sectionHeading p { color: #a8d5f5; font-size: 10px; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; }
 .heading h1 { margin-top: 3px; font-size: clamp(38px, 4.6vw, 65px); font-weight: 850; line-height: 1; letter-spacing: -.055em; }
 .heading > div > span { display: block; margin-top: 7px; color: #c1d5ef; font-size: clamp(14px, 1.4vw, 20px); }
 .headingActions { display: flex; gap: 8px; flex: 0 0 auto; }
@@ -15,7 +15,7 @@
 .headingActions svg { width: 18px; height: 18px; }
 
 /* The same concave corner and side scoops are used by every ticket surface. */
-.headingActions a, .summary a, .orderCard, .empty, .warning, .helpCard, .linksCard, .truthNote, .fulfillmentHero, .journey li {
+.headingActions a, .summary a, .orderCard, .empty, .warning, .helpCard, .relatedLinks {
   --corner-scoop: 13px;
   --side-scoop: 12px;
   -webkit-mask-image:
@@ -39,20 +39,6 @@
 /* Short tickets need separated scoops; larger side bites merge into their corners. */
 .headingActions a { --corner-scoop: 11px; --side-scoop: 4px; }
 .summary a { --corner-scoop: 16px; --side-scoop: 7px; }
-.truthNote {
-  --corner-scoop: 14px;
-  /* This shallow full-width ticket has corner scoops only; a middle bite reads as an arrow. */
-  -webkit-mask-image:
-    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
-    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
-    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
-    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%);
-  mask-image:
-    radial-gradient(circle var(--corner-scoop) at 0 0, transparent 99%, #000 103%),
-    radial-gradient(circle var(--corner-scoop) at 100% 0, transparent 99%, #000 103%),
-    radial-gradient(circle var(--corner-scoop) at 0 100%, transparent 99%, #000 103%),
-    radial-gradient(circle var(--corner-scoop) at 100% 100%, transparent 99%, #000 103%);
-}
 
 .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 17px; }
 .summary a { display: flex; min-width: 0; min-height: 65px; align-items: center; gap: 12px; padding: 11px 19px; background: #c5f0ff; color: #0a1741; font-size: clamp(13px, 1.3vw, 18px); font-weight: 820; text-align: left; text-decoration: none; }
@@ -105,38 +91,39 @@
 .empty a svg, .empty button svg, .helpCard > a svg { width: 16px; height: 16px; }
 
 .sideRail { display: grid; grid-area: rail; gap: 10px; }
-.extraLinks { display: grid; gap: 10px; margin-top: 10px; }
-.helpCard, .linksCard, .truthNote { background: #fcfbf8; color: #0a1741; }
-.helpCard, .linksCard { padding: 20px 20px 23px; }
+.helpCard, .relatedLinks { background: #fcfbf8; color: #0a1741; }
+.helpCard { padding: 20px 20px 23px; }
 .helpCard > span { display: grid; width: 58px; height: 58px; place-items: center; margin: 0 auto 12px; border-radius: 50%; background: #bfeaff; color: #102c61; }
 .helpCard > span svg { width: 29px; height: 29px; }
 .helpCard h2 { font-size: 23px; font-weight: 850; line-height: 1.04; letter-spacing: -.035em; }
 .helpCard p { margin-top: 9px; color: #506887; font-size: 13px; line-height: 1.4; }
 .helpCard > a { width: 100%; background: #bde8ff; }
-.linksCard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 16px; }
-.linksCard > p, .linksCard > h2 { grid-column: 1 / -1; }
-.linksCard h2 { margin-top: 5px; font-size: 17px; font-weight: 820; }
-.linksCard > a { display: grid; grid-template-columns: 32px minmax(0, 1fr) 16px; align-items: center; gap: 7px; min-height: 48px; padding: 8px 0; border-top: 1px solid #d8e0e8; color: #0a1741; text-decoration: none; }
-.linksCard > a:first-of-type { margin-top: 8px; }
-.linksCard > a > span:first-child { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 7px; background: #d5f2ff; color: #0d4f80; }
-.linksCard > a svg { width: 18px; height: 18px; }
-.linksCard > a > span:nth-child(2) { display: grid; min-width: 0; }
-.linksCard strong { font-size: 11px; }
-.linksCard small { color: #536d8d; font-size: 9px; line-height: 1.3; }
-.truthNote { padding: 19px 23px; color: #536d8d; font-size: 11px; line-height: 1.45; }
-
-.fulfillmentHero { display: grid; grid-template-columns: minmax(190px, .35fr) minmax(0, .65fr); align-items: center; gap: 18px; margin-top: 18px; padding: 24px; background: #fcfbf8; color: #0a1741; }
-.heroCopy h2 { margin-top: 5px; font-size: clamp(20px, 2vw, 28px); font-weight: 850; line-height: 1.1; }
-.heroCopy > span { display: block; margin-top: 8px; color: #526b88; font-size: 12px; line-height: 1.4; }
-.journey { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
-.journey li { display: grid; min-height: 107px; background: #e3f1fc; text-align: center; }
-.journey li > a { display: grid; place-items: center; align-content: center; gap: 4px; padding: 14px 12px; color: inherit; text-decoration: none; }
-.journey li > a:hover { background: #c5f0ff; }
-.journey li[data-active="true"] { background: #b9eafe; }
-.journey li > a > span { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 7px; background: #fff; color: #0d4076; }
-.journey li > a > span svg { width: 21px; height: 21px; }
-.journey strong { font-size: 11px; line-height: 1.2; }
-.journey small { color: #506887; font-size: 9px; }
+.relatedPages { margin-top: 18px; scroll-margin-top: calc(var(--site-header-height, 110px) + 12px); }
+.relatedPages h2 { margin: 0 0 9px; font-size: 19px; font-weight: 820; line-height: 1.2; }
+.relatedLinks {
+  --corner-scoop: 12px;
+  --side-scoop: 5px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 5px 10px;
+}
+.relatedLinks a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 9px;
+  color: #0a1741;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-decoration: none;
+}
+.relatedLinks a + a { border-inline-start: 1px solid #d2e2ed; }
+.relatedLinks a:hover, .relatedLinks a:focus-visible, .relatedLinks a[aria-current="page"] { background: #deeff9; }
+.relatedLinks svg { flex: 0 0 17px; width: 17px; height: 17px; color: #0061ad; }
+.retailerNote { margin-top: 10px; color: #b8cce7; font-size: 12px; line-height: 1.45; }
 .footerNote { margin-top: 25px; color: #95bdd8; font-size: 10px; font-weight: 800; letter-spacing: .2em; text-align: center; }
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #075fce; outline-offset: -4px; }
 
@@ -145,7 +132,6 @@
   .orderCard { grid-template-columns: minmax(110px, 31%) minmax(0, 1fr); }
   .orderCopy { padding-inline: 12px; }
   .orderActions { padding-inline: 10px; }
-  .fulfillmentHero { grid-template-columns: 1fr; }
 }
 @media (max-width: 930px) {
   .heading { align-items: start; flex-direction: column; }
@@ -168,8 +154,9 @@
   .orderList { grid-template-columns: 1fr; }
   .orderCard { min-height: 215px; }
   .productStage { min-height: 195px; }
-  .linksCard { grid-template-columns: 1fr; }
-  .journey { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .relatedLinks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .relatedLinks a:nth-child(odd) { border-inline-start: 0; }
+  .relatedLinks a:nth-child(n + 3) { border-top: 1px solid #d2e2ed; }
 }
 @media (max-width: 460px) {
   .orderCard { grid-template-columns: 1fr; grid-template-rows: 120px auto auto; }
@@ -185,6 +172,5 @@
   .orderCopy h3 { font-size: 17px; }
   .orderFacts { gap: 6px 10px; }
   .secondaryAction { font-size: 10px; }
-  .fulfillmentHero { padding: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .summary a, .orderActions a { transition: none; } }

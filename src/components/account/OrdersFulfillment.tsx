@@ -22,7 +22,6 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
   const processing = records.filter(order => matchesFulfillmentFilter(order, "processing")).length;
   const fulfilled = records.filter(order => matchesFulfillmentFilter(order, "fulfilled")).length;
   const exceptions = records.filter(order => matchesFulfillmentFilter(order, "exceptions")).length;
-  const payments = records.filter(order => matchesFulfillmentFilter(order, "payment")).length;
   const hasSelection = Boolean(selectedOrderNumber || selectedRewardId);
   // A notification identifies an exact order, even if its status has since changed.
   const visibleOrders = records.filter(order => (selectedOrderNumber ? order.orderNumber === selectedOrderNumber : matchesFulfillmentFilter(order, filter)) && (!selectedRewardId || order.rewardId === selectedRewardId));
@@ -88,33 +87,18 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
         </aside>
       </div>
 
-      <div className={styles.extraLinks}>
-          <section className={styles.linksCard}>
-            <p className={styles.sideEyebrow}>KEEP MOVING</p>
-            <h2>Every destination has one job.</h2>
-            <Link href="/account/entries"><span><AccountIcon name="layers" /></span><span><strong>My Activity</strong><small>Entries, outcomes and purchase options</small></span><AccountIcon name="chevron" /></Link>
-            <Link href="/account/wallet"><span><AccountIcon name="gift" /></span><span><strong>Gift Cards &amp; Rewards</strong><small>Open ready and historical retailer cards</small></span><AccountIcon name="chevron" /></Link>
-            <Link href={walletHistoryHref}><span><AccountIcon name="wallet" /></span><span><strong>Wallet &amp; Transactions</strong><small>Funding, entry payments and purchase history</small></span><AccountIcon name="chevron" /></Link>
-            <Link href={accountRoutes.openEntries}><span><AccountIcon name="active" /></span><span><strong>Open entries</strong><small>See tickets still awaiting an outcome</small></span><AccountIcon name="chevron" /></Link>
-            <Link href={accountRoutes.purchaseOptions}><span><AccountIcon name="completion" /></span><span><strong>Purchase Options</strong><small>Review options before checkout</small></span><AccountIcon name="chevron" /></Link>
-            <Link href="/account/notifications"><span><AccountIcon name="bell" /></span><span><strong>Notifications</strong><small>See verified account updates</small></span><AccountIcon name="chevron" /></Link>
-          </section>
-          <p className={styles.truthNote}>Zero Loss issues retailer gift cards. Product selection, inventory, checkout, shipping and retailer fees remain on the retailer’s site.</p>
-      </div>
-
-      <section className={styles.fulfillmentHero} aria-labelledby="fulfillment-overview-heading">
-        <div className={styles.heroCopy}>
-          <p>FULFILLMENT CENTER</p>
-          <h2 id="fulfillment-overview-heading">From a win or confirmed payment to your reward wallet.</h2>
-          <span>Zero Loss tracks the retailer gift-card order. Retailer shopping and shipping happen on the retailer’s site.</span>
+      <nav id="related-pages" aria-labelledby="related-pages-heading" className={styles.relatedPages}>
+        <h2 id="related-pages-heading">Related pages</h2>
+        <div className={styles.relatedLinks}>
+          <Link href={accountRoutes.activity}><AccountIcon name="layers" /><span>My Activity</span></Link>
+          <Link href={accountRoutes.rewards}><AccountIcon name="gift" /><span>Gift Cards &amp; Rewards</span></Link>
+          <Link href={walletHistoryHref}><AccountIcon name="wallet" /><span>Wallet &amp; Transactions</span></Link>
+          <Link href={fulfillmentHref(undefined, "payment")} aria-current={!hasSelection && filter === "payment" ? "page" : undefined}>
+            <AccountIcon name="completion" /><span>Confirmed payments</span>
+          </Link>
         </div>
-        <ol className={styles.journey} aria-label="Gift-card fulfillment journey">
-          <li data-active={payments > 0}><Link href={fulfillmentHref(undefined, "payment")}><span><AccountIcon name="completion" /></span><strong>Payment confirmed</strong><small>{countLabel(payments)} recorded checkouts</small></Link></li>
-          <li data-active={processing > 0}><Link href={fulfillmentHref(undefined, "processing")}><span><AccountIcon name="orders" /></span><strong>Issuance</strong><small>{countLabel(processing)} in progress</small></Link></li>
-          <li data-active={fulfilled > 0}><Link href={accountRoutes.rewards}><span><AccountIcon name="gift" /></span><strong>Reward wallet</strong><small>Open gifts &amp; reward history</small></Link></li>
-          <li data-active={exceptions > 0}><Link href={fulfillmentHref(undefined, "exceptions")}><span><AccountIcon name="bell" /></span><strong>Exceptions</strong><small>{countLabel(exceptions)} status updates</small></Link></li>
-        </ol>
-      </section>
+      </nav>
+      <p className={styles.retailerNote}>Zero Loss issues retailer gift cards. Product selection, inventory, checkout, shipping and retailer fees remain on the retailer’s site.</p>
 
       <p className={styles.footerNote}>SHOPPING SHOULD NEVER FEEL LIKE A LOSS.</p>
     </div>
