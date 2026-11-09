@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { entryTicketReturnKey, readEntryTicketReturn, type EntryTicketReturn } from "@/lib/account/entry-ticket-return";
 import styles from "./entry-ticket-browser.module.css";
 
 export type SavedTicket = {
@@ -15,7 +16,8 @@ export type SavedTicket = {
   amountLabel: string;
 };
 
-export function EntryTicketRail({ title, tickets, selectedEntryId }: {
+export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId }: {
+  ownerId: string;
   title: string;
   tickets: SavedTicket[];
   selectedEntryId: string;
@@ -36,6 +38,38 @@ export function EntryTicketRail({ title, tickets, selectedEntryId }: {
   const ticket = tickets[index];
   const windowStart = Math.max(0, Math.min(index - 4, count - 9));
   const visibleTickets = tickets.slice(windowStart, windowStart + 9);
+
+  useLayoutEffect(() => {
+    function restore() {
+      const saved = readEntryTicketReturn(window.history.state, ownerId, window.location.pathname + window.location.search, selectedEntryId, tickets.map(item => item.entryId));
+      if (!saved) return;
+      lastWheelIndex.current = null;
+      setSelected(saved.selectedEntryId);
+      setShowAll(saved.showAll);
+    }
+    restore();
+    window.addEventListener("popstate", restore);
+    window.addEventListener("pageshow", restore);
+    return () => {
+      window.removeEventListener("popstate", restore);
+      window.removeEventListener("pageshow", restore);
+    };
+  }, [ownerId, selectedEntryId, tickets]);
+
+  function remember(entryId: string, expanded = showAll) {
+    const saved: EntryTicketReturn = {
+      ownerId, href: window.location.pathname + window.location.search,
+      initialEntryId: selectedEntryId, selectedEntryId: entryId, showAll: expanded,
+    };
+    // Keep Next's routing state and URL intact, without adding a Back-button step.
+    try { window.history.replaceState({ ...window.history.state, [entryTicketReturnKey]: saved }, ""); }
+    catch { /* The viewer still works if history storage is unavailable. */ }
+  }
+
+  function expand(expanded: boolean) {
+    setShowAll(expanded);
+    remember(ticket.entryId, expanded);
+  }
 
   useEffect(() => {
     if (wheelRef.current && lastWheelIndex.current !== index) wheelRef.current.scrollTop = index * 44;
@@ -58,6 +92,7 @@ export function EntryTicketRail({ title, tickets, selectedEntryId }: {
     lastWheelIndex.current = null;
     if (wheelRef.current) wheelRef.current.scrollTop = next * 44;
     setSelected(tickets[next].entryId);
+    remember(tickets[next].entryId);
   }
 
   async function copyEntryId(entryId: string) {
@@ -97,7 +132,10 @@ export function EntryTicketRail({ title, tickets, selectedEntryId }: {
             if (!event.currentTarget.clientHeight) return;
             const next = Math.max(0, Math.min(count - 1, Math.round(event.currentTarget.scrollTop / 44)));
             lastWheelIndex.current = next;
-            if (next !== index) setSelected(tickets[next].entryId);
+            if (next !== index) {
+              setSelected(tickets[next].entryId);
+              remember(tickets[next].entryId);
+            }
           }}
           onKeyDown={event => {
             if (!["ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(event.key)) return;
@@ -136,13 +174,13 @@ export function EntryTicketRail({ title, tickets, selectedEntryId }: {
       </div>
     </article>
     {count > 1 ? <>
-      <button ref={expandRef} type="button" className={showAll ? styles.expand : `${styles.expand} zl-see-all`} aria-expanded={showAll} aria-controls={`${id}-all`} onClick={() => setShowAll(value => !value)}>
+      <button ref={expandRef} type="button" className={showAll ? styles.expand : `${styles.expand} zl-see-all`} aria-expanded={showAll} aria-controls={`${id}-all`} onClick={() => expand(!showAll)}>
         {showAll ? "Hide all" : "See all"} <span className={styles.countTicket}>{count}</span> entries <span aria-hidden="true" className={styles.expandArrow}>{showAll ? "⌃" : "⌄"}</span>
       </button>
       {showAll ? <div className={styles.allEntries} id={`${id}-all`}>
         <p>All {count} entries · Tap a ticket to view its details.</p>
         <div className={styles.allGrid} role="group" aria-label={`All ${count} saved entries`}>{tickets.map((item, itemIndex) => ticketButton(item, itemIndex, true))}</div>
-        <button type="button" className={styles.collapse} onClick={() => { setShowAll(false); expandRef.current?.focus({ preventScroll: true }); expandRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" }); }}>Hide all entries <span aria-hidden="true">⌃</span></button>
+        <button type="button" className={styles.collapse} onClick={() => { expand(false); expandRef.current?.focus({ preventScroll: true }); expandRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" }); }}>Hide all entries <span aria-hidden="true">⌃</span></button>
       </div> : null}
     </> : null}
   </section>

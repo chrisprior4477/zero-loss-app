@@ -129,7 +129,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <ProductShareButton product={shareItem} className={styles.desktopShare} />
         </div>
       </section>
-      <EntryTicketRail key={`${entryId}:${entryView}`} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} />
+      <EntryTicketRail key={`${account.userId}:${entryId}:${entryView}`} ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>

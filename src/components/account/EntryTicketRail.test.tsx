@@ -1,17 +1,57 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { EntryTicketRail, type SavedTicket } from "./EntryTicketRail";
+import { entryTicketReturnKey } from "@/lib/account/entry-ticket-return";
 
 const tickets: SavedTicket[] = Array.from({ length: 6 }, (_, index) => ({
   entryId: `ent_${index + 1}`, number: index + 1, title: "Gift card", image: "/card.png",
   enteredAt: null, enteredLabel: "Today", amountLabel: "$1",
 }));
-const props = { title: "Gift card", selectedEntryId: tickets[0].entryId };
+const props = { ownerId: "owner-1", title: "Gift card", selectedEntryId: tickets[0].entryId };
 
 beforeEach(() => {
+  window.history.replaceState({ frameworkState: "keep" }, "", "/account/entries/ent_1");
   vi.useFakeTimers();
   vi.stubGlobal("requestAnimationFrame", (callback: () => void) => setTimeout(callback, 0));
   vi.stubGlobal("cancelAnimationFrame", clearTimeout);
+});
+
+test("refresh restores the selected ticket and expanded list while preserving router state", () => {
+  const view = render(<EntryTicketRail {...props} tickets={tickets} />);
+  fireEvent.click(screen.getByRole("button", { name: "View entry 4 of 6" }));
+  fireEvent.click(screen.getByRole("button", { name: "See all 6 entries" }));
+  expect(window.history.state.frameworkState).toBe("keep");
+  expect(window.location.pathname).toBe("/account/entries/ent_1");
+  expect(window.history.state[entryTicketReturnKey]).toMatchObject({ selectedEntryId: "ent_4", showAll: true });
+  view.unmount();
+  render(<EntryTicketRail {...props} tickets={tickets} />);
+  expect(screen.getByRole("article", { name: "Entry 4 of 6" })).toBeTruthy();
+  expect(screen.getByRole("group", { name: "All 6 saved entries" })).toBeTruthy();
+});
+
+test("Back restores the outgoing selection without replacing the destination's ticket", () => {
+  const view = render(<EntryTicketRail {...props} tickets={tickets} />);
+  fireEvent.click(screen.getByRole("button", { name: "View entry 4 of 6" }));
+  const outgoing = window.history.state;
+  view.unmount();
+  window.history.replaceState({}, "", "/account/entries/ent_4?entries=open");
+  const destination = render(<EntryTicketRail {...props} selectedEntryId="ent_4" tickets={tickets} />);
+  expect(screen.getByRole("article", { name: "Entry 4 of 6" })).toBeTruthy();
+  destination.unmount();
+  window.history.replaceState(outgoing, "", "/account/entries/ent_1");
+  render(<EntryTicketRail {...props} tickets={tickets} />);
+  expect(screen.getByRole("article", { name: "Entry 4 of 6" })).toBeTruthy();
+});
+
+test("ignores a bookmark for another account, page, initial ticket or removed ticket", () => {
+  const saved = { ownerId: props.ownerId, href: "/account/entries/ent_1", initialEntryId: "ent_1", selectedEntryId: "ent_4", showAll: true };
+  for (const change of [{ ownerId: "another-owner" }, { href: "/account/entries/another" }, { initialEntryId: "ent_2" }, { selectedEntryId: "removed" }]) {
+    window.history.replaceState({ [entryTicketReturnKey]: { ...saved, ...change } }, "");
+    const view = render(<EntryTicketRail {...props} tickets={tickets} />);
+    expect(screen.getByRole("article", { name: "Entry 1 of 6" })).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "All 6 saved entries" })).toBeNull();
+    view.unmount();
+  }
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
