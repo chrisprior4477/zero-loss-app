@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { randomUUID } from "node:crypto";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { SupportForm } from "@/components/support/SupportForm";
 import { createClient } from "@/lib/supabase/server";
 import { getAccountContext } from "@/lib/account/context";
+import { exactOrderHref } from "@/lib/account/fulfillment";
+import { getSupportOrder } from "@/lib/account/order-support";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { formatOfferDeadline } from "@/lib/account/timezone";
@@ -36,11 +39,15 @@ function pageLinks(base: string, page: number, more: boolean, conversation = fal
     {more ? <Link href={href(page + 1)}>Older {conversation ? "messages" : "cases"} →</Link> : null}
   </nav>;
 }
-function transactionLabel(value: unknown, timeZone: string) {
+function transactionDetails(value: unknown, timeZone: string) {
   if (!value || typeof value !== "object") return null;
   const r = value as Record<string, unknown>;
   if (typeof r.amount !== "number" || !Number.isSafeInteger(r.amount) || typeof r.created_at !== "string" || !Number.isFinite(Date.parse(r.created_at))) return null;
-  return `${r.amount > 0 ? "+" : ""}${formatUsdFromCents(r.amount)} · ${formatOfferDeadline(r.created_at, timeZone)}`;
+  return {
+    amount: `${r.amount > 0 ? "+" : ""}${formatUsdFromCents(r.amount)}`,
+    date: formatOfferDeadline(r.created_at, timeZone),
+    timestamp: r.created_at,
+  };
 }
 
 export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; rewardId?: string; view?: string; page?: string; messages?: string }> }) {
@@ -68,10 +75,11 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     const messages = (events.data ?? []).slice(0, pageSize).reverse();
     const staffView = staff && supportCase.customer_id !== account.userId;
     const transaction = supportCase.ledger_entry_id ? await db.rpc("get_support_case_transaction", { p_case_id: validCase }) : null;
+    const charge = transactionDetails(transaction?.data, account.timezone);
     return <PageContainer>{heading}{navigation}<section id="conversation" className={`${card} ${styles.anchor}`}>
       <p className={`break-all text-xs font-bold uppercase tracking-wide ${styles.eyebrow}`}>Case {supportCase.case_number}</p>
       <h2 className="mt-3 break-words text-2xl font-black">{supportCase.subject}</h2><p className={`mt-2 font-bold ${styles.status}`}>{statusLabel(supportCase.status, staffView)}</p>
-      {transactionLabel(transaction?.data, account.timezone) ? <p className={`${note} mt-3 text-sm`}>Linked wallet transaction: {transactionLabel(transaction?.data, account.timezone)}</p> : null}
+      {charge && <p className={`${note} mt-3 text-sm`}>Linked wallet transaction: {charge.amount} · {charge.date}</p>}
       <p className={`mt-3 text-sm ${styles.muted}`}>Check this case for the next reply. If more information is needed, you can add it below. No email is sent by this preview.</p>
       {events.error ? <p role="alert" className="mt-5">We couldn’t load the conversation. Refresh to try again.</p> : <ol className="my-6 space-y-4">{messages.map(event => <li key={event.id} data-staff={event.actor_kind === "staff"} className={`${styles.ticket} ${styles.message}`}>
         <p className={`text-xs font-bold ${styles.eyebrow}`}>{event.actor_kind === "staff" ? "Zero Loss support" : "Customer"} · {formatOfferDeadline(event.created_at, account.timezone)}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{event.body}</p>
@@ -84,7 +92,10 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   // deliberately not a customer-readable column (including WHERE filters).
   // Scope comes from the authenticated wallet snapshot; the write RPC checks it
   // again independently before attaching the transaction.
-  const transaction = validTransaction && account.wallet?.scope === "demo" ? await db.from("ledger_entries").select("id,amount,created_at").eq("id", validTransaction).eq("customer_id", account.userId).maybeSingle() : null;
+  const transaction = validTransaction && account.wallet?.scope === "demo" ? await db.from("ledger_entries").select("id,amount,created_at,entry_type,source_event").eq("id", validTransaction).eq("customer_id", account.userId).maybeSingle() : null;
+  const charge = transactionDetails(transaction?.data, account.timezone);
+  const linkedOrder = !inbox && !transaction?.error && transaction?.data?.entry_type === "PURCHASE_DEBIT"
+    ? await getSupportOrder(db, account.userId, transaction.data.source_event, account.orders.orders) : undefined;
   const reward = validReward ? await db.from("customer_rewards").select("id").eq("id", validReward).eq("customer_id", account.userId).maybeSingle() : null;
   const rewardTitle = validReward ? account.activity?.activity.find(item => item.rewardId === validReward)?.title : undefined;
   const casePage = pageIndex(query.page);
@@ -96,7 +107,14 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     <div className="grid gap-6 lg:grid-cols-2">
       {!inbox ? <section id="report-problem" className={`${card} ${styles.anchor}`}><h2 className="mb-4 text-xl font-black">Report a problem</h2>
         {validReward && (!reward?.data || reward.error) ? <p role="alert">That reward is unavailable for your account. Open your saved reward and try again.</p> : validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again.</p> : <>
-          {transactionLabel(transaction?.data, account.timezone) ? <p className={`${note} mb-4 text-sm`}>Linked wallet transaction: {transactionLabel(transaction?.data, account.timezone)}</p> : null}
+          {charge && (linkedOrder ? <div className={`${note} ${styles.linkedOrder} mb-4 text-sm`}>
+            <div className={styles.linkedOrderTitle}>
+              <Image src={linkedOrder.image} alt="" width={36} height={36} />
+              <strong>{linkedOrder.title}</strong>
+            </div>
+            <p className={styles.orderCharge}><strong>{charge.amount}</strong><time dateTime={charge.timestamp}>{charge.date}</time></p>
+            <Link href={exactOrderHref(linkedOrder.orderNumber)}>Back to this order</Link>
+          </div> : <p className={`${note} mb-4 text-sm`}>Linked wallet transaction: {charge.amount} · {charge.date}</p>)}
           {validReward ? <p className={`${note} mb-4 break-words text-sm`}>Linked reward: <strong>{rewardTitle ?? "Saved reward"}</strong><span className="mt-1 block break-all">Reward reference: {validReward}</span></p> : null}
           <SupportForm ownerId={account.userId} key={validTransaction ?? validReward ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} />
         </>}

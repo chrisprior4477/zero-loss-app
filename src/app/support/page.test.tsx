@@ -70,16 +70,43 @@ test("foreign transaction fails closed instead of rendering a misleading linked 
   expect(ledger.eq).toHaveBeenCalledWith("customer_id", own);
   expect(ledger.eq).not.toHaveBeenCalledWith("wallet_scope", expect.anything());
   expect(screen.queryByTestId("support-form")).toBeNull();
+  expect(mocks.from).not.toHaveBeenCalledWith("customer_orders");
   expect(screen.getByRole("alert").textContent).toContain("transaction is unavailable");
 });
 test("authorized Ledger read uses only customer-readable columns and renders the linked form", async () => {
-  const ledger = query({ id: caseId, amount: -100, created_at: "2026-09-21T12:00:00Z" });
+  const ledger = query({ id: caseId, amount: 100, created_at: "2026-09-21T12:00:00Z", entry_type: "DEPOSIT", source_event: "funding-event" });
   mocks.from.mockImplementation(table => table === "ledger_entries" ? ledger : query([]));
   render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
-  expect(ledger.select).toHaveBeenCalledWith("id,amount,created_at");
+  expect(ledger.select).toHaveBeenCalledWith("id,amount,created_at,entry_type,source_event");
   expect(ledger.eq.mock.calls).toEqual([["id", caseId], ["customer_id", own]]);
   expect(screen.getByTestId("support-form").getAttribute("data-transaction")).toBe(caseId);
-  expect(screen.getByText(/Linked wallet transaction/).textContent).toContain("-$1");
+  expect(screen.getByText(/Linked wallet transaction/).textContent).toContain("+$1");
+  expect(mocks.from).not.toHaveBeenCalledWith("customer_orders");
+  expect(screen.queryByRole("link", { name: "Back to this order" })).toBeNull();
+});
+
+test.each(["matched", "archived", "unavailable"] as const)("a purchase report keeps the exact charge when its order is %s", async state => {
+  const title = "Nintendo Switch – OLED Model";
+  const orders = ["ord_first", "ord_second"].map(orderNumber => ({ orderNumber, title, image: "/catalog/nintendo-switch-oled.jpg" }));
+  mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "demo" }, timezone: "America/New_York", orders: { orders } });
+  const ledger = query({ id: caseId, amount: -39900, created_at: "2026-11-06T17:46:00Z", entry_type: "PURCHASE_DEBIT", source_event: "second-checkout" });
+  const order = query(state === "unavailable" ? null : { order_number: state === "matched" ? "ord_second" : "ord_archived" },
+    state === "unavailable" ? { message: "Unavailable" } : null);
+  mocks.from.mockImplementation(table => table === "ledger_entries" ? ledger : table === "customer_orders" ? order : query([]));
+  render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
+  expect(order.eq.mock.calls).toEqual([["customer_id", own], ["provider_event_id", "second-checkout"]]);
+  expect(screen.getByTestId("support-form").getAttribute("data-transaction")).toBe(caseId);
+  expect(screen.getByText(/-\$399/)).toBeTruthy();
+  expect(screen.getByText(/Nov 6, 2026, 12:46 PM EST/)).toBeTruthy();
+  const back = screen.queryByRole("link", { name: "Back to this order" });
+  if (state === "matched") {
+    expect(screen.getByText(title)).toBeTruthy();
+    expect(document.querySelector("#report-problem img")?.getAttribute("width")).toBe("36");
+    expect(back?.getAttribute("href")).toBe("/account/orders?order=ord_second#order-ord_second");
+  } else {
+    expect(screen.queryByText(title)).toBeNull();
+    expect(back).toBeNull();
+  }
 });
 
 test.each([

@@ -23,6 +23,11 @@ export function fulfillmentHref(rewardId?: string, filter: FulfillmentFilter = "
   return `/account/orders${query.size ? `?${query}` : ""}#fulfillment-records`;
 }
 
+export function exactOrderHref(orderNumber: string) {
+  const id = encodeURIComponent(orderNumber);
+  return `/account/orders?order=${id}#order-${id}`;
+}
+
 export function fulfillmentActivityHref(record: Pick<FulfillmentRecord, "entryId">) {
   // `viewed` reveals the exact card without redirecting a winning entry back to
   // its wallet pass (the legacy `entry`/`item` detail URL does redirect there).

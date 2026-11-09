@@ -73,6 +73,12 @@
 .message { --corner: 14px; --side: 8px; }
 .message[data-staff="true"] { background: #c5f0ff; }
 .note { background: #e3f4fc; }
+.linkedOrder { padding-block: 12px; }
+.linkedOrderTitle { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.linkedOrderTitle img { width: 36px; height: 36px; flex: none; object-fit: contain; }
+.linkedOrderTitle strong { min-width: 0; }
+.orderCharge { display: flex; flex-wrap: wrap; column-gap: 8px; align-items: baseline; }
+.linkedOrder > a { display: inline-flex; min-height: 44px; align-items: center; color: #07578c; font-weight: 750; text-decoration: underline; }
 .error { background: #fff0d5; color: #6c3710; }
 .field {
   --field-fill: #e3f4fc;

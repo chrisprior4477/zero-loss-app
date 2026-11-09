@@ -1,7 +1,20 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AccountOrder } from "./orders";
 
 export const walletTransactionHelpHref = "/account/wallet?view=history#transactions";
+
+/** Resolve the reverse of the order-to-Support handoff against the customer's visible orders. */
+export async function getSupportOrder(db: SupabaseClient, userId: string, purchaseEvent: string, orders: AccountOrder[]) {
+  if (!purchaseEvent || !orders.length) return;
+  try {
+    const { data, error } = await db.from("customer_orders").select("order_number")
+      .eq("customer_id", userId).eq("provider_event_id", purchaseEvent).maybeSingle();
+    if (!error && data) return orders.find(order => order.orderNumber === data.order_number);
+  } catch {
+    // An order lookup failure must not prevent reporting the verified charge.
+  }
+}
 
 /** Match the saved purchase event, never a similar product, amount or date.
  * Both reads use the signed-in customer's client and existing wallet RLS. */
