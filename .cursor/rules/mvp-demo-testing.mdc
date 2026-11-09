@@ -10,6 +10,7 @@ alwaysApply: true
 - Preserve features and sample data, including fictional profiles, prizes, winners, balances, and illustrative figures. Do not remove or reset them as test cleanup or to make the MVP appear production-ready.
 - Ask before removing a feature, relabeling existing content, or materially changing how a workflow operates, unless the user explicitly requested that specific change.
 - Leave every "How It Works" button, link, and experience untouched unless explicitly authorized otherwise.
+- Exclude the homepage winner-story placeholders and their pop-ups from audits and fixes unless the owner explicitly asks to revisit them. They are provisional and may be removed; do not treat their behavior as an MVP defect.
 - Make focused repairs in small batches. Favor working links, direct paths back to the selected prize, clear feedback, and fewer unnecessary clicks.
 - Style customer-facing prompts and toasts like the main website, not the hamburger/sidebar menu.
 - Report demo funds or ticket records added during testing and distinguish simulated checks from real transactions. Do not claim an end-to-end flow passed unless its relevant steps were verified.
