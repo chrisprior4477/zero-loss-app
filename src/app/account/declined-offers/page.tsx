@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
+import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { formatOfferDeadline } from "@/lib/account/timezone";
@@ -19,12 +20,7 @@ export default async function DeclinedOffersPage() {
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", "/account/declined-offers"));
   const declined = account.activity.activity.filter(item => item.completionOptionStatus === "declined" && item.completionOptionId);
-  // Match the eight characters used on entry tickets. If two match, show their full references.
-  const suffixCounts = new Map<string, number>();
-  for (const item of account.activity.activity) {
-    const suffix = (item.entryId || item.completionOptionId)?.slice(-8);
-    if (suffix) suffixCounts.set(suffix, (suffixCounts.get(suffix) ?? 0) + 1);
-  }
+  const labels = offerTicketLabels(declined, account.activity.activity);
   const reminderStatus = new Map<string, string>();
   let remindersAvailable = false;
   if (isPreviewDataEnvironment() && declined.length > 0) {
@@ -58,9 +54,7 @@ export default async function DeclinedOffersPage() {
     {account.activity.source === "unavailable" ? <div className={styles.empty}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p></div>
       : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href="/account/entries">Back to My Activity →</Link></div>
       : <div className={styles.declinedList}>{declined.map(item => {
-        const reference = item.entryId || item.completionOptionId!;
-        const suffix = reference.slice(-8);
-        const ticketLabel = `${item.entryId ? "Ticket" : "Offer"} #${suffixCounts.get(suffix) === 1 ? suffix : reference}`;
+        const ticketLabel = labels[item.completionOptionId!];
         return <article key={item.completionOptionId} id={`declined-offer-${item.completionOptionId}`} className={styles.declinedRow}>
           <div className={styles.declinedImage}><Image src={item.image} alt="" fill sizes="(max-width: 600px) 76px, 104px" /></div>
           <div className={styles.declinedDetails}>

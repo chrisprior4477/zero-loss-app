@@ -5,6 +5,7 @@ import { PurchaseOptionRail } from "@/components/account/PurchaseOptionRail";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { activityHref, findActivityItem, isPurchasedReward, openPrizeOptions, purchasedRewardHref } from "@/lib/account/activity";
 import { getAccountContext } from "@/lib/account/context";
+import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountReturnPath } from "@/lib/auth/account-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
@@ -75,7 +76,7 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       provider.getRequests().catch(() => null),
     ]);
     return <PurchaseCheckout key={JSON.stringify([account.userId, slug, selectedEntryId, decline === "confirm", options.map(option => option.completionOptionId)])} ownerId={account.userId} options={options}
-      initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={decline === "confirm"} initialBalance={account.wallet.balanceCents}
+      ticketLabels={offerTicketLabels(options, activity)} initiallySelectedEntryId={selectedEntryId} initiallyConfirmDecline={decline === "confirm"} initialBalance={account.wallet.balanceCents}
       cards={cards ?? []} fundingAvailable={account.fundingEnabled && cards !== null}
       fundingBlocked={requests === null || requests.some(request => request.reconciliation !== "reconciled")} />;
   }

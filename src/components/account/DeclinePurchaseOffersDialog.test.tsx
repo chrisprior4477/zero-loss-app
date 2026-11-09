@@ -26,6 +26,17 @@ test.each(["keep", "close", "escape", "backdrop"])("%s cancels without declining
   expect(mocks.router.replace).not.toHaveBeenCalled();
 });
 
+test("if a selected ticket disappears, it cannot be replaced by a new ticket", () => {
+  const props = { item, selectedOptionIds: [ids[1]], onClose: mocks.close, onBackToSelection: vi.fn() };
+  const view = render(<DeclinePurchaseOffersDialog {...props} offeredOptionIds={ids} />);
+  view.rerender(<DeclinePurchaseOffersDialog {...props} offeredOptionIds={[ids[0], "third"]} />);
+  expect(screen.getByRole("button", { name: "Decline 1 offer" })).toHaveProperty("disabled", true);
+  expect(screen.getByRole("alert")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Back to selection" }));
+  expect(props.onBackToSelection).toHaveBeenCalledOnce();
+  expect(mocks.decline).not.toHaveBeenCalled();
+});
+
 test("decline requires confirmation, prevents duplicate submits and locks dismissal while saving", async () => {
   let resolve!: (value: unknown) => void;
   mocks.decline.mockReturnValue(new Promise(done => { resolve = done; }));

@@ -14,6 +14,12 @@
 .keep,.decline,.finish,.recovery { display:flex; align-items:center; justify-content:center; width:100%; min-height:50px; padding:12px 10px; border:0; border-radius:12px; color:#0b2545; font-size:16px; font-weight:850; line-height:1.2; text-align:center; text-decoration:none; cursor:pointer; }
 .keep { background:#def3ff; }
 .decline { background:#ff7900; }
+.decline[data-selective="true"] { color:#fff; background:#a62a2e; }
+.reviewTickets { max-height:11rem; overflow:auto; }
+.ticketList { margin:0; padding:0; list-style:none; }
+.ticketList li { display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:7px 0; border-bottom:1px dotted #b8cedf; font-size:13px; }
+.ticketList strong { min-width:0; overflow-wrap:anywhere; }
+.ticketList span { flex:none; color:#42617c; }
 .finish { background:#42e600; }
 .recovery { background:#def3ff; margin-top:20px; }
 .note { margin:14px 0 0; text-align:center; color:#52718f; font-size:12px; line-height:1.4; }

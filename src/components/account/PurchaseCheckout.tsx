@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
+import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { completeDemoPurchaseOptions, type BulkPurchaseRequest } from "@/lib/account/bulk-purchase-actions";
 import { fundPurchaseWallet } from "@/lib/account/purchase-funding-actions";
 import type { DemoCard, DemoCardToken } from "@/lib/payments/demo-card";
@@ -45,8 +46,8 @@ function ConfirmPurchase({ total, balance, quantity, summary, busy, onUndo, onCo
     <p className={styles.footnote}>Simulation only · No real payment or shipment.</p></>;
 }
 
-export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false }: {
-  ownerId: string; options: ActivityItem[]; initialBalance: number; cards: DemoCard[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
+export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false }: {
+  ownerId: string; options: ActivityItem[]; ticketLabels?: Record<string, string>; initialBalance: number; cards: DemoCard[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
 }) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
@@ -58,6 +59,8 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const [extra, setExtra] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [overlay, setOverlay] = useState<"fund" | "purchase" | "options" | "decline" | null>(initiallyConfirmDecline ? "decline" : null);
+  const [declineDraft, setDeclineDraft] = useState<string[] | null>(null);
+  const backToSelection = useCallback(() => setOverlay("options"), []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [recovery, setRecovery] = useState<"deposit" | "purchase" | "offers" | null>(null);
@@ -107,7 +110,7 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
   const closeHref = `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
   const close = useCallback(() => {
     if (inFlight.current) return;
-    setOverlay(null); setPurchaseRequest(null); setAcknowledged(false);
+    setOverlay(null); setDeclineDraft(null); setPurchaseRequest(null); setAcknowledged(false);
     // Old saved decline links now open this same ticket, and cancel returns here.
     if (initiallyConfirmDecline) router.replace(closeHref, { scroll: false });
   }, [initiallyConfirmDecline, router, closeHref]);
@@ -198,7 +201,8 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
       <div className={styles.utility}><Link href="/account/entries?filter=completion"><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
-    </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog item={item} offeredOptionIds={available} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
+    </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog item={item} offeredOptionIds={available} ticketLabels={ticketLabels}
+      selectedOptionIds={declineDraft} onBackToSelection={backToSelection} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}
         <div className={styles.cardChoice}><FundingCardPicker tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); }} /></div>
@@ -212,10 +216,11 @@ export function PurchaseCheckout({ ownerId, options, initialBalance, cards, fund
         <label className={styles.check}><input type="checkbox" checked={acknowledged} disabled={locked} onChange={event => setAcknowledged(event.target.checked)} /><span>I confirm adding {validDeposit ? usd(deposit) : "this amount"} using {demoCardFixture(card)?.issuer ?? "my card"}.<small>Adds funds only. Confirm purchase next.</small></span></label>
         {fundingBlocked || !fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href="/account/wallet?view=history#add-funds">Open wallet</Link></p> : null}
         {feedback}<button type="button" className={styles.primary} disabled={locked || !validDeposit || !acknowledged || !card || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
-      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Tap the exact options to buy. Each entry’s credit applies only to its own option.</p>
-        <PurchaseOptionPicker optionIds={available} selected={selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}>
+      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
+        <PurchaseOptionPicker optionIds={available} selected={declineDraft ?? selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}
+          onDecline={ids => { setDeclineDraft(ids); setOverlay("decline"); }}>
           {draft => <div className={styles.optionDetails}>{options.filter(option => draft.includes(option.completionOptionId!)).map(option =>
-            <p key={option.entryId}>{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining<br />Available until {option.completionExpiresAt ? <time dateTime={option.completionExpiresAt}>{formatOfferDeadline(option.completionExpiresAt, timeZone)}</time> : "its original deadline"}</p>
+            <p key={option.completionOptionId}><strong>{ticketLabels[option.completionOptionId!]}</strong><br />{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining<br />Available until {option.completionExpiresAt ? <time dateTime={option.completionExpiresAt}>{formatOfferDeadline(option.completionExpiresAt, timeZone)}</time> : "its original deadline"}</p>
           )}</div>}
         </PurchaseOptionPicker></>}
     </PurchaseDialog> : null}</div>;

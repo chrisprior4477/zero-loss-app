@@ -241,6 +241,8 @@
 .extraEquation b { align-self:center; font-size:22px; }
 .extraEquation input { display:block; width:100%; min-width:0; min-height:38px; padding:6px 10px; border:1px solid #a6c5dd; border-radius:7px; font-size:16px; color:#10234a; background:#fff; }
 .exact { flex-wrap:wrap; }
+.declineSelected { display:block; width:100%; min-height:44px; border:0; background:transparent; color:#a62a2e; font-size:14px; font-weight:750; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+.optionDetails strong { overflow-wrap:anywhere; }
 .optionDetails { font-size:12px; color:#42617c; }
 .optionDetails p { padding:7px 0; border-bottom:1px dotted #c6dce9; }
 .page button:disabled,.backdrop button:disabled { opacity:.55; cursor:default; }

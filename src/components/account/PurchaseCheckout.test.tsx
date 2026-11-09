@@ -1,12 +1,12 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { ActivityItem } from "@/lib/account/activity";
-const mocks = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), fund: vi.fn(), purchase: vi.fn() }));
+const mocks = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), fund: vi.fn(), purchase: vi.fn(), decline: vi.fn(), undo: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
 vi.mock("next/image", () => ({ default: () => <span /> }));
 vi.mock("@/lib/account/bulk-purchase-actions", () => ({ completeDemoPurchaseOptions: mocks.purchase }));
 vi.mock("@/lib/account/purchase-funding-actions", () => ({ fundPurchaseWallet: mocks.fund }));
-vi.mock("@/lib/account/bulk-decline-actions", () => ({ declineAllDemoPurchaseOptions: vi.fn(), undoBulkDemoPurchaseOptions: vi.fn() }));
+vi.mock("@/lib/account/bulk-decline-actions", () => ({ declineAllDemoPurchaseOptions: mocks.decline, undoBulkDemoPurchaseOptions: mocks.undo }));
 import { PurchaseCheckout } from "./PurchaseCheckout";
 import { PurchaseOptionSummary } from "./PurchaseOptionSummary";
 import { TimeZoneProvider } from "./TimeZoneProvider";
@@ -21,6 +21,42 @@ function updatedCheckout(balance: number) {
   // Refresh supplies new objects from the server while retaining the client component.
   return <PurchaseCheckout ownerId="account-a" options={options.map(option => ({ ...option }))} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />;
 }
+
+test.each(["undo", "finish"])("decline just the second offer without buying, then %s", async exit => {
+  setup(200000);
+  const button = (name: string | RegExp) => screen.getByRole("button", { name });
+  expect(screen.queryByRole("button", { name: /Decline selected/ })).toBeNull();
+  fireEvent.click(button(/Choose offers to complete/));
+  fireEvent.click(button("Option 2")); fireEvent.click(button("Option 1"));
+  fireEvent.click(button("Decline selected (1)"));
+  const review = within(screen.getByRole("dialog"));
+  expect(within(review.getByRole("list", { name: "Decline" })).getByText("Ticket #entry-1")).toBeTruthy();
+  expect(within(review.getByRole("list", { name: "Keep available" })).getAllByRole("listitem")).toHaveLength(2);
+  fireEvent.click(button("Back to selection"));
+  expect(button("Option 2").getAttribute("aria-pressed")).toBe("true");
+  expect(button("Option 1").getAttribute("aria-pressed")).toBe("false");
+  fireEvent.keyDown(document, { key: "Escape" });
+  fireEvent.click(button(/Choose offers to complete/));
+  expect(button("Option 1").getAttribute("aria-pressed")).toBe("true");
+  expect(mocks.decline).not.toHaveBeenCalled();
+  fireEvent.click(button("Option 2")); fireEvent.click(button("Option 1"));
+  fireEvent.click(button("Decline selected (1)"));
+  mocks.decline.mockResolvedValue({ status: "succeeded", optionIds: ["option-1"], message: "1 offer declined." });
+  fireEvent.click(button("Decline 1 offer"));
+  await screen.findByRole("button", { name: "Undo decline" });
+  expect(mocks.decline).toHaveBeenCalledExactlyOnceWith("nintendo-switch", ["option-1"]);
+  if (exit === "undo") {
+    mocks.undo.mockResolvedValue({ status: "succeeded", optionIds: ["option-1"], message: "Restored." });
+    fireEvent.click(button("Undo decline"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(mocks.undo).toHaveBeenCalledExactlyOnceWith(["option-1"]);
+  } else {
+    fireEvent.click(button("View remaining offers"));
+    expect(mocks.replace).toHaveBeenCalledWith("/account/purchase-options/nintendo-switch");
+    expect(mocks.undo).not.toHaveBeenCalled();
+  }
+  expect(mocks.fund).not.toHaveBeenCalled(); expect(mocks.purchase).not.toHaveBeenCalled();
+});
 
 test.each([
   ["2026-11-28T02:30:00Z", "America/Los_Angeles", "Nov 27, 2026, 6:30 PM PST"],

@@ -1,14 +1,16 @@
 import { useState, type ReactNode } from "react";
 
-export function PurchaseOptionPicker<Id extends string | number>({ optionIds, selected, styles, onApply, children }: {
+export function PurchaseOptionPicker<Id extends string | number>({ optionIds, selected, styles, onApply, onDecline, children }: {
   optionIds: Id[];
   selected: Id[];
   styles: Record<string, string>;
   onApply: (ids: Id[]) => void;
+  onDecline?: (ids: Id[]) => void;
   children?: (draft: Id[]) => ReactNode;
 }) {
   // The dialog owns these edits until Apply. Dismissing it unmounts the draft.
   const [draft, setDraft] = useState(selected);
+  const picked = draft.filter(id => optionIds.includes(id));
 
   function toggle(id: Id) {
     setDraft(current => {
@@ -24,7 +26,8 @@ export function PurchaseOptionPicker<Id extends string | number>({ optionIds, se
         <small>OPTION</small>{index + 1}
       </button>
     )}</div>
-    <button type="button" className={styles.primary} onClick={() => onApply(draft)}>Use these options</button>
-    {children?.(draft)}
+    <button type="button" className={styles.primary} disabled={!picked.length} onClick={() => onApply(picked)}>Use these options</button>
+    {onDecline && <button type="button" className={styles.declineSelected} disabled={!picked.length} onClick={() => onDecline(picked)}>Decline selected ({picked.length})</button>}
+    {children?.(picked)}
   </>;
 }
