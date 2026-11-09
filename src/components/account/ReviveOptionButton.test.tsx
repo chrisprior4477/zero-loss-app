@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { Component, type ReactNode } from "react";
 
@@ -8,19 +8,22 @@ import { ReviveOptionButton } from "./ReviveOptionButton";
 
 beforeEach(() => vi.resetAllMocks());
 afterEach(cleanup);
+const ticket = { ticketLabel: "Ticket #aabbcc11", productTitle: "Nintendo Switch – OLED Model" };
 
 test("a declined demo option can be revived before its original deadline", async () => {
   mocks.revive.mockResolvedValue({ status: "succeeded", message: "Revived" });
-  render(<ReviveOptionButton optionId="11111111-1111-4111-8111-111111111111" expiresAt="2099-01-01T00:00:00Z" />);
+  render(<ReviveOptionButton {...ticket} optionId="11111111-1111-4111-8111-111111111111" expiresAt="2099-01-01T00:00:00Z" />);
   const button = await screen.findByRole("button", { name: "Revive" });
   await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(button);
+  expect(mocks.revive).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm revive" }));
   await waitFor(() => expect(mocks.revive).toHaveBeenCalledOnce());
   expect(mocks.revive.mock.calls[0][1].get("completionOptionId")).toBe("11111111-1111-4111-8111-111111111111");
 });
 
 test("an expired declined option cannot be revived from the page", async () => {
-  render(<ReviveOptionButton optionId="11111111-1111-4111-8111-111111111111" expiresAt="2020-01-01T00:00:00Z" />);
+  render(<ReviveOptionButton {...ticket} optionId="11111111-1111-4111-8111-111111111111" expiresAt="2020-01-01T00:00:00Z" />);
   const button = await screen.findByRole("button", { name: "Expired" });
   expect((button as HTMLButtonElement).disabled).toBe(true);
   expect(mocks.revive).not.toHaveBeenCalled();
@@ -28,17 +31,18 @@ test("an expired declined option cannot be revived from the page", async () => {
 
 test('a dropped revive reply stays inline and checks the exact offer before another attempt',async()=>{
  mocks.revive.mockRejectedValueOnce(new Error('Failed to fetch')).mockResolvedValueOnce({status:'succeeded',message:'Revived'});
- const props={optionId:'11111111-1111-4111-8111-111111111111',expiresAt:'2099-01-01T00:00:00Z',statusHref:'/account/purchase-options/nintendo-switch?option=ent_saved'};
+ const props={...ticket,optionId:'11111111-1111-4111-8111-111111111111',expiresAt:'2099-01-01T00:00:00Z',statusHref:'/account/purchase-options/nintendo-switch?option=ent_saved'};
  const view=render(<ReviveOptionButton {...props}/>);
  await waitFor(()=>expect(screen.getByRole('button',{name:'Revive'})).toHaveProperty('disabled',false));
  fireEvent.click(screen.getByRole('button',{name:'Revive'}));
+ fireEvent.click(screen.getByRole('button',{name:'Confirm revive'}));
  expect(await screen.findByRole('status')).toHaveProperty('textContent',expect.stringContaining('Check its saved status'));
  expect(screen.getByRole('link',{name:'Check this offer →'})).toHaveProperty('href',expect.stringContaining(props.statusHref));
  expect(screen.getByRole('button',{name:'Revive'})).toHaveProperty('disabled',true);
  expect(mocks.revive).toHaveBeenCalledOnce();
  view.unmount();render(<ReviveOptionButton {...props}/>);
  await waitFor(()=>expect(screen.getByRole('button',{name:'Revive'})).toHaveProperty('disabled',false));
- fireEvent.click(screen.getByRole('button',{name:'Revive'}));await screen.findByText('Revived');
+ fireEvent.click(screen.getByRole('button',{name:'Revive'}));fireEvent.click(screen.getByRole('button',{name:'Confirm revive'}));await screen.findByText('Revived');
  expect(mocks.revive.mock.calls[1][1].get('completionOptionId')).toBe(props.optionId);
 });
 
@@ -52,10 +56,32 @@ test('the successful revival redirect still reaches the framework instead of bec
  mocks.revive.mockRejectedValueOnce(redirect);
  const log=vi.spyOn(console,'error').mockImplementation(()=>{});
  try {
-  render(<RedirectBoundary><ReviveOptionButton optionId="11111111-1111-4111-8111-111111111111" expiresAt="2099-01-01T00:00:00Z"/></RedirectBoundary>);
+  render(<RedirectBoundary><ReviveOptionButton {...ticket} optionId="11111111-1111-4111-8111-111111111111" expiresAt="2099-01-01T00:00:00Z"/></RedirectBoundary>);
   await waitFor(()=>expect(screen.getByRole('button',{name:'Revive'})).toHaveProperty('disabled',false));
   fireEvent.click(screen.getByRole('button',{name:'Revive'}));
+  fireEvent.click(screen.getByRole('button',{name:'Confirm revive'}));
   expect(await screen.findByRole('alert')).toHaveProperty('textContent','Framework handled redirect');
   expect(screen.queryByText(/couldn’t confirm/)).toBeNull();
  } finally {log.mockRestore();}
+});
+
+test("cancelling one Switch and confirming the other only submits the second option", async () => {
+  const first = "11111111-1111-4111-8111-111111111111", second = "22222222-2222-4222-8222-222222222222";
+  mocks.revive.mockResolvedValue({ status: "succeeded", message: "Revived" });
+  render(<><ReviveOptionButton {...ticket} optionId={first} expiresAt="2099-01-01" />
+    <ReviveOptionButton {...ticket} ticketLabel="Ticket #aabbcc22" optionId={second} expiresAt="2099-01-01" /></>);
+  const [firstButton, secondButton] = screen.getAllByRole("button", { name: /Revive|Checking/ });
+  await waitFor(() => expect(secondButton).toHaveProperty("disabled", false));
+  fireEvent.click(firstButton);
+  expect(within(screen.getByRole("dialog")).getByText(ticket.ticketLabel)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(secondButton);
+  const review = within(screen.getByRole("dialog"));
+  expect(review.getByText(ticket.productTitle)).toBeTruthy();
+  expect(review.getByText("Ticket #aabbcc22")).toBeTruthy();
+  expect(mocks.revive).not.toHaveBeenCalled();
+  fireEvent.click(review.getByRole("button", { name: "Confirm revive" }));
+  await waitFor(() => expect(mocks.revive).toHaveBeenCalledOnce());
+  expect(mocks.revive.mock.calls[0][1].get("completionOptionId")).toBe(second);
 });

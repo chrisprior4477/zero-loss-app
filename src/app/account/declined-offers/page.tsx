@@ -19,6 +19,12 @@ export default async function DeclinedOffersPage() {
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", "/account/declined-offers"));
   const declined = account.activity.activity.filter(item => item.completionOptionStatus === "declined" && item.completionOptionId);
+  // Match the eight characters used on entry tickets. If two match, show their full references.
+  const suffixCounts = new Map<string, number>();
+  for (const item of account.activity.activity) {
+    const suffix = (item.entryId || item.completionOptionId)?.slice(-8);
+    if (suffix) suffixCounts.set(suffix, (suffixCounts.get(suffix) ?? 0) + 1);
+  }
   const reminderStatus = new Map<string, string>();
   let remindersAvailable = false;
   if (isPreviewDataEnvironment() && declined.length > 0) {
@@ -52,11 +58,15 @@ export default async function DeclinedOffersPage() {
     {account.activity.source === "unavailable" ? <div className={styles.empty}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p></div>
       : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href="/account/entries">Back to My Activity →</Link></div>
       : <div className={styles.declinedList}>{declined.map(item => {
+        const reference = item.entryId || item.completionOptionId!;
+        const suffix = reference.slice(-8);
+        const ticketLabel = `${item.entryId ? "Ticket" : "Offer"} #${suffixCounts.get(suffix) === 1 ? suffix : reference}`;
         return <article key={item.completionOptionId} id={`declined-offer-${item.completionOptionId}`} className={styles.declinedRow}>
           <div className={styles.declinedImage}><Image src={item.image} alt="" fill sizes="(max-width: 600px) 76px, 104px" /></div>
           <div className={styles.declinedDetails}>
             <span className={styles.declinedRetailer}>{item.retailer}</span>
             <h2>{item.title}</h2>
+            <p className="break-all"><strong>{ticketLabel}</strong></p>
             <p>Offer value: <strong>{formatUsdFromCents(item.priceCents)}</strong> · Entry applied: <strong>{formatUsdFromCents(item.paidCents)}</strong></p>
             <p>Cost to revive: <strong>$0.00</strong> · Remaining to complete: <strong>{formatUsdFromCents(item.remainingCents)}</strong></p>
             {item.completionExpiresAt ? <p>Original deadline: <time dateTime={item.completionExpiresAt}>{formatOfferDeadline(item.completionExpiresAt, account.timezone)}</time></p> : null}
@@ -64,7 +74,7 @@ export default async function DeclinedOffersPage() {
           <DeclinedOfferDeadline optionId={item.completionOptionId!} expiresAt={item.completionExpiresAt ?? null}
             initialReminderStatus={reminderStatus.get(item.completionOptionId!) ?? null}
             canRequestReminder={remindersAvailable && account.emailConfirmed} />
-          <ReviveOptionButton optionId={item.completionOptionId!} expiresAt={item.completionExpiresAt ?? null}
+          <ReviveOptionButton optionId={item.completionOptionId!} ticketLabel={ticketLabel} productTitle={item.title} expiresAt={item.completionExpiresAt ?? null}
             statusHref={item.entryId ? `/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(item.entryId)}` : "/account/entries?filter=completion"} />
         </article>;
       })}</div>}

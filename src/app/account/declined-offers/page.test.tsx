@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({ account: vi.fn() }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
 vi.mock("next/navigation", () => ({ redirect: (href: string) => { throw new Error(`redirect:${href}`); }, useRouter: () => ({ replace: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: () => <span data-testid="product-image" /> }));
-vi.mock("@/components/account/ReviveOptionButton", () => ({ ReviveOptionButton: ({ expired }: { expired: boolean }) => <button disabled={expired}>Revive</button> }));
+vi.mock("@/components/account/ReviveOptionButton", () => ({ ReviveOptionButton: ({ ticketLabel }: { ticketLabel: string }) => <button data-review-ticket={ticketLabel}>Revive</button> }));
 vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: () => true }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => {
   const query = {
@@ -43,4 +43,18 @@ test("declined entries retain their own credit, original deadline and free reviv
   expect(screen.getByText("Dec 31, 2098, 4:00 PM PST").getAttribute("dateTime")).toBe("2099-01-01T00:00:00.000Z");
   expect((screen.getByRole("button", { name: "Revive" }) as HTMLButtonElement).disabled).toBe(false);
   expect((screen.getByRole("checkbox", { name: /Please remind me by email/ }) as HTMLInputElement).checked).toBe(true);
+});
+
+test("each declined row and its review share the same distinct ticket reference", async () => {
+  const offer = { completionOptionStatus: "declined", title: "Nintendo Switch – OLED Model", retailer: "Best Buy",
+    slug: "nintendo-switch", image: "/catalog/switch.jpg", priceCents: 40000, paidCents: 100, remainingCents: 39900 };
+  const entries = ["ent_111111110000aabb", "ent_222222220000aabb", "ent_12345678abcd1234", null];
+  const activity = entries.map((entryId, i) => ({ ...offer, entryId, completionOptionId: `11111111-1111-4111-8111-11111111111${i}` }));
+  mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity } });
+  render(await DeclinedOffersPage());
+  const expected = ["Ticket #ent_111111110000aabb", "Ticket #ent_222222220000aabb", "Ticket #abcd1234", "Offer #11111113"];
+  screen.getAllByRole("article").forEach((row, i) => {
+    expect(within(row).getByText(expected[i])).toBeTruthy();
+    expect(within(row).getByRole("button", { name: "Revive" }).getAttribute("data-review-ticket")).toBe(expected[i]);
+  });
 });
