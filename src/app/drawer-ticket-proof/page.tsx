@@ -38,7 +38,7 @@ export default function DrawerTicketProofPage() {
           </div>
         </div>
         <div className={styles.tickets} aria-label="Account status ticket visual proof">
-          <StatusTicket variant="wallet" label="Playable Wallet" value="$193" action="Add funds" href="/account/wallet?view=history#add-funds" />
+          <StatusTicket variant="wallet" label="Playable Wallet" value="$193" action="Add funds" href="/account/wallet?view=history&panel=funding#add-funds" />
           <StatusTicket variant="reward" label="Prize Ready" value="1" action="View reward" href="/account/wallet" />
           <StatusTicket variant="option" label="Purchase Options" value="0" action="Review options" href="/account/entries?filter=completion" />
         </div>

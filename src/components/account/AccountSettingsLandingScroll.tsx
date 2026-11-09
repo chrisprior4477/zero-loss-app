@@ -13,10 +13,16 @@ export function AccountSettingsLandingScroll({ target, initialTarget, visitKey =
     let settlingUntil = 0;
     let requestedId = "";
     const settlingTimers: number[] = [];
-    const header = document.querySelector<HTMLElement>("header.sticky");
+    let header: HTMLElement | null = null;
     const scope = document.getElementById(target)?.closest("main");
     const cancel = () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
     const measure = () => {
+      const currentHeader = document.querySelector<HTMLElement>("header.sticky");
+      if (currentHeader !== header) {
+        observer?.disconnect();
+        header = currentHeader;
+        if (header) observer?.observe(header);
+      }
       const bottom = Math.max(0, header?.getBoundingClientRect().bottom ?? 0);
       scope?.style.setProperty("--settings-header-bottom", `${bottom}px`);
       return bottom;
@@ -60,8 +66,15 @@ export function AccountSettingsLandingScroll({ target, initialTarget, visitKey =
       // it settles, but never pull the user back after they start interacting.
       if (Date.now() < settlingUntil) align();
     });
-    if (header) observer?.observe(header);
     measure();
+    // Streaming navigation may replace the header after this effect mounted.
+    // Follow that live node instead of measuring a detached loading header.
+    const headerReplacement = new MutationObserver(() => {
+      if (document.querySelector("header.sticky") === header) return;
+      measure();
+      if (!interrupted) align();
+    });
+    headerReplacement.observe(document.body, { childList: true, subtree: true });
     const onScroll = () => { if (settleAfterNavigation && Date.now() < settlingUntil) align(); };
     const ready = () => {
       if (disposed || interrupted) return;
@@ -81,7 +94,7 @@ export function AccountSettingsLandingScroll({ target, initialTarget, visitKey =
     window.addEventListener("keydown", interrupt);
     document.addEventListener("click", onAnchor, true);
     return () => {
-      disposed = true; cancel(); observer?.disconnect();
+      disposed = true; cancel(); observer?.disconnect(); headerReplacement.disconnect();
       settlingTimers.forEach(timer => window.clearTimeout(timer));
       window.removeEventListener("hashchange", onHash);
       window.removeEventListener("resize", onResize);

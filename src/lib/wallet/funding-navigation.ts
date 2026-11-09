@@ -47,6 +47,9 @@ export function fundingHref(productSlug?: string, entryId?: string, quantity?: n
   const browse = productBrowseReturnPath(browseReturn);
   if (params.has("from") && !params.has("entry") && browse) params.set("browse", browse);
   if (params.has("entry") && typeof choice === "string" && purchaseChoicePattern.test(choice)) params.set("choice", choice);
+  // Fragments never reach the server. Mark generic funding links explicitly so
+  // sign-in can distinguish Add funds from an ordinary Wallet History visit.
+  if (!params.has("from")) params.set("panel", "funding");
   return `/account/wallet?${params}#add-funds`;
 }
 
@@ -56,7 +59,7 @@ export function fundingReturnPath(value: unknown): string | null {
   if (/^\/account\/wallet\?view=history&from=[a-z0-9]+(?:-[a-z0-9]+)*&entry=ent_[a-f0-9]{32}&quantity=[1-9]\d*&review=entry#add-funds$/.test(value)) {
     return parseEntryQuantity(new URL(value, "https://navigation.invalid").searchParams.get("quantity")) !== null ? value : null;
   }
-  if (!/^\/account\/wallet\?view=history(?:&from=[a-z0-9]+(?:-[a-z0-9]+)*(?:&entry=ent_[a-f0-9]{32}|&quantity=[1-9]\d*)?(?:&browse=[^&#]+)?(?:&choice=[0-9a-f-]{36})?)?#add-funds$/.test(value)) return null;
+  if (!/^\/account\/wallet\?view=history(?:&panel=funding|&from=[a-z0-9]+(?:-[a-z0-9]+)*(?:&entry=ent_[a-f0-9]{32}|&quantity=[1-9]\d*)?(?:&browse=[^&#]+)?(?:&choice=[0-9a-f-]{36})?)?#add-funds$/.test(value)) return null;
   const params = new URL(value, "https://navigation.invalid").searchParams;
   if (params.has("browse") && (params.has("entry") || !productBrowseReturnPath(params.get("browse")))) return null;
   if (params.has("choice") && (!params.has("entry") || !purchaseChoicePattern.test(params.get("choice")!))) return null;

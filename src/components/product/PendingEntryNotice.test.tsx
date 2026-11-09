@@ -197,6 +197,35 @@ test("expired pending request is checked with the server, not accepted by the br
   expect(mocks.replace).not.toHaveBeenCalled();
 });
 
+test("a hold omitted after another tab acknowledges Undo is reconciled and broadcast", async () => {
+  const observed = vi.fn();
+  window.addEventListener(ENTRY_REQUEST_EVENT, observed);
+  try {
+    render(<PendingEntryNotice />);
+    await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+    act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request })));
+    mocks.resolve.mockResolvedValue({ request: { ...request, status: "cancelled" } });
+    act(() => window.dispatchEvent(new Event("focus")));
+    await waitFor(() => expect(mocks.resolve).toHaveBeenCalledWith(request.requestId, false));
+    await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId));
+    expect(observed.mock.calls.some(([event]) => event.detail.status === "cancelled")).toBe(true);
+    expect(mocks.replace).not.toHaveBeenCalled();
+  } finally { window.removeEventListener(ENTRY_REQUEST_EVENT, observed); }
+});
+
+test("a failed missing-hold check remains pending and is checked again on reconnect", async () => {
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request })));
+  mocks.resolve.mockResolvedValueOnce({ error: "Connection interrupted" });
+  act(() => window.dispatchEvent(new Event("focus")));
+  await waitFor(() => expect(mocks.resolve).toHaveBeenCalledTimes(1));
+  expect(mocks.acknowledge).not.toHaveBeenCalled();
+  mocks.resolve.mockResolvedValue({ request: { ...request, status: "cancelled" } });
+  act(() => window.dispatchEvent(new Event("online")));
+  await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId));
+});
+
 test("automatic confirmation navigates before a refresh can hide the result", async () => {
   mocks.list.mockResolvedValue({ requests: [] });
   mocks.resolve.mockResolvedValue({ request: { ...request, status: "accepted",

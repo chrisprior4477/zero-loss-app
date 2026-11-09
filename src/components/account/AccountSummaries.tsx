@@ -12,7 +12,7 @@ export function PlayableBalanceCard({ balanceLabel, fundingEnabled = false, comp
       {!compact ? <p className="mt-1 hidden text-sm text-[#b5cce4] sm:block">Funds available for entries</p> : null}
     </Link>
     <div className={compact ? "contents" : "flex flex-wrap items-center justify-end gap-2 lg:mt-auto lg:justify-between lg:pt-2"}>
-      {fundingEnabled ? <Link href={`${walletHistoryHref}#add-funds`} onClick={onNavigate} className={`inline-flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-black text-[#002719] ${compact ? "col-start-2 row-start-1 row-span-2" : ""}`}>Add funds</Link> : <button type="button" disabled title="Funding is not available" className={`min-h-11 cursor-not-allowed rounded-xl bg-[#31e800] px-4 text-sm font-black text-[#002719] ${compact ? "col-start-2 row-start-1 row-span-2" : ""}`}>Add funds</button>}
+      {fundingEnabled ? <Link href={`${walletHistoryHref}&panel=funding#add-funds`} onClick={onNavigate} className={`inline-flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-black text-[#002719] ${compact ? "col-start-2 row-start-1 row-span-2" : ""}`}>Add funds</Link> : <button type="button" disabled title="Funding is not available" className={`min-h-11 cursor-not-allowed rounded-xl bg-[#31e800] px-4 text-sm font-black text-[#002719] ${compact ? "col-start-2 row-start-1 row-span-2" : ""}`}>Add funds</button>}
       {!compact ? <Link href={walletHistoryHref} onClick={onNavigate} className="hidden min-h-11 items-center gap-1 rounded-lg text-sm font-bold text-cyan-300 hover:text-white focus-visible:outline-2 focus-visible:outline-cyan-300 sm:inline-flex">View transactions <span aria-hidden="true">›</span></Link> : null}
     </div>
   </article>;

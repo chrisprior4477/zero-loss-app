@@ -19,7 +19,7 @@ test("card screen is editable but submits only the safe preview token", () => {
   expect(form.get("makeDefault")).toBe("true");
   expect([...form.values()]).not.toContain("4242 4242 4242 4242");
   expect([...form.values()]).not.toContain("123");
-  expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("/account/wallet?view=history#add-funds");
+  expect(screen.getByRole("link", { name: "Back to wallet" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=funding#add-funds");
 });
 
 test("real card details are stopped in the browser and never sent", () => {

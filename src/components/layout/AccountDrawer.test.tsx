@@ -184,7 +184,7 @@ test("approved drawer controls keep their real routes and one mounted dialog", (
   fireEvent.click(screen.getByLabelText("Open account menu"));
   const dialog = within(screen.getByRole("dialog"));
   expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
-  expect(dialog.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("/account/wallet?view=history#add-funds");
+  expect(dialog.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=funding#add-funds");
   expect(dialog.getByRole("link", { name: "Open notifications" }).getAttribute("href")).toBe("/account/notifications");
   expect(dialog.getByRole("link", { name: "1 active entry" }).getAttribute("href")).toBe("/account/entries?filter=active#my-activity-filters");
   expect(dialog.getByText("Real prizes. Real possibilities.")).toBeTruthy();

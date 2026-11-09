@@ -240,7 +240,7 @@ export function DemoParticipationPanel({
     if (requestHead.ready && requestHead.validating) {
       void listPendingEntryRequests().then(({ requests }) => {
         const receipt = requests.find(request => request.requestId === requestHead.requestId);
-        if (active && receipt) receive(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: receipt }));
+        if (active && receipt) window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: receipt }));
       }).catch(() => { /* The shared pending-entry listener also retries on focus and reconnect. */ });
     }
     return () => { active = false; window.removeEventListener(ENTRY_REQUEST_EVENT, receive); };

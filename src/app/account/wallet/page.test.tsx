@@ -14,6 +14,27 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const purchaseEntry = "ent_11111111111111111111111111111111";
 
+test.each([
+  [{ view: "history" }, "/account/wallet?view=history"],
+  [{ view: "history", panel: "funding" }, "/account/wallet?view=history&panel=funding#add-funds"],
+])("history and explicit funding have distinct sign-in returns: %j", async (query, expected) => {
+  mocks.getAccountContext.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(WalletPage({ searchParams: Promise.resolve(query) })).rejects.toThrow("NEXT_REDIRECT");
+  expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe(expected);
+});
+
+test("failed activity reads offer a full retry of the exact saved reward without claiming it is missing", async () => {
+  mocks.getAccountContext.mockResolvedValue({ userId: "owner", activity: { source: "unavailable", activity: [], isPreview: true }, wallet: null });
+  const rewardId = "11111111-1111-4111-8111-111111111111";
+  render(await WalletPage({ searchParams: Promise.resolve({ reward: "samsung-m70h-tv", rewardId, via: "purchase" }) }));
+  expect(screen.getByRole("heading", { name: "We couldn’t load your reward" })).toBeTruthy();
+  expect(screen.queryByText("That reward is not available in your account.")).toBeNull();
+  expect(screen.getByRole("link", { name: "Try again" }).getAttribute("href"))
+    .toBe(`/account/wallet?reward=samsung-m70h-tv&rewardId=${rewardId}&via=purchase#reward-pass`);
+  expect(mocks.rpc).not.toHaveBeenCalled();
+});
+
 test.each(["ready", "used", "expired", "history"])("the %s reward view survives an expired session", async rewards => {
   mocks.getAccountContext.mockResolvedValue(null);
   mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });

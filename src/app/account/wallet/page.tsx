@@ -36,7 +36,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     const rewardSection = !requestedReward && !history && ["ready", "used", "expired", "history"].includes(String(query.rewards))
       ? query.rewards === "ready" ? "#ready-rewards" : "#reward-history" : "";
     const next = paymentPanel ? accountPageReturnPath("/account/wallet", query, query.panel === "card" ? "#wallet-add-card" : "#payment-methods")
-      : history && !query.transaction ? query.review === "entry" && fromProduct
+      : history && !query.transaction && (fromProduct || query.panel === "funding") ? query.review === "entry" && fromProduct
       ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity)
       : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse, query.choice)
       : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : purchaseArrival ? "#reward-pass" : rewardSection);
@@ -79,6 +79,10 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     }
   }
   if (requestedReward) {
+    if (account.activity.source === "unavailable") {
+      const retryHref = accountPageReturnPath("/account/wallet", query, query.via === "purchase" ? "#reward-pass" : "");
+      return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">We couldn’t load your reward</h1><p className="mt-2 text-sm text-[#b5cce4]">Your reward information is temporarily unavailable. Try again to check this saved reward.</p><a href={retryHref} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]">Try again</a><Link href="/account/wallet" className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
+    }
     let claimedCode: string | null = null;
     let crewMembers: { id: string; name: string }[] = [];
     if (reward?.status === "prize" && reward.rewardId) {

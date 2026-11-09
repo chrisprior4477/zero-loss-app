@@ -87,7 +87,7 @@ export function DemoCardManager({ displayName, savedCard = null, savedCards, car
             {state.status !== "idle" ? <p role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
             <div className={styles.actions}>
               <button type="submit" disabled={pending || !enabled}>{pending ? "Saving card…" : firstCard ? "Update card" : "Save card"}<AccountIcon name="arrow" /></button>
-              <Link href="/account/wallet?view=history#add-funds">{state.status === "succeeded" ? "Continue to Add funds" : "Back to wallet"}</Link>
+              <Link href="/account/wallet?view=history&panel=funding#add-funds">{state.status === "succeeded" ? "Continue to Add funds" : "Back to wallet"}</Link>
             </div>
           </form>
           <p className={styles.disclaimer}>Simulation only. This screen accepts no real card and creates no charge, funding request or balance change.</p>

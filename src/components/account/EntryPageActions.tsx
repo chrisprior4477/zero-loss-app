@@ -85,7 +85,13 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
   useEntryWalletFunding(entryId && canEnter && quantityAvailable && reviewing && !busy && !uncertain ? addFundsHref : null);
 
   useEffect(() => {
-    if (initialReceipt) window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_ROUTED_EVENT, { detail: initialReceipt.requestId }));
+    if (!initialReceipt) return;
+    // Let the shared listener mount before registering a server-restored hold.
+    const timer = window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_ROUTED_EVENT, { detail: initialReceipt.requestId }));
+      window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: initialReceipt }));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [initialReceipt]);
   useEffect(() => {
     if (!checkoutOpen) return;

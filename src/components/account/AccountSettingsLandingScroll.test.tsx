@@ -103,6 +103,32 @@ test("header settling corrects the landing until the user starts scrolling", () 
   expect(scrollTo).toHaveBeenCalledTimes(2);
 });
 
+test("a replaced streaming header is measured for the next section shortcut", async () => {
+  const { scrollTo, flush, container } = setup();
+  render(<AccountSettingsLandingScroll target="account-settings-intro" />); flush();
+  const previous = document.querySelector<HTMLElement>("header.sticky")!;
+  previous.getBoundingClientRect = () => new DOMRect();
+  const replacement = previous.cloneNode() as HTMLElement;
+  replacement.getBoundingClientRect = () => new DOMRect(0, 0, 390, 104);
+  await act(async () => previous.replaceWith(replacement)); flush();
+  const anchor = document.createElement("a"); anchor.href = "#security-controls";
+  anchor.addEventListener("click", event => event.preventDefault()); container.append(anchor);
+  scrollTo.mockClear(); fireEvent.pointerDown(anchor); fireEvent.click(anchor); flush();
+  expect(scrollTo).toHaveBeenLastCalledWith({ top: 884, behavior: "instant" });
+  expect(container.style.getPropertyValue("--settings-header-bottom")).toBe("104px");
+});
+
+test("header replacement never pulls back someone who has started reading", async () => {
+  const { scrollTo, flush } = setup();
+  render(<AccountSettingsLandingScroll target="account-settings-intro" />); flush();
+  fireEvent.touchStart(window); scrollTo({ top: 900 }); scrollTo.mockClear();
+  const previous = document.querySelector<HTMLElement>("header.sticky")!;
+  const replacement = previous.cloneNode() as HTMLElement;
+  replacement.getBoundingClientRect = () => new DOMRect(0, 0, 390, 104);
+  await act(async () => previous.replaceWith(replacement)); flush();
+  expect(scrollTo).not.toHaveBeenCalled();
+});
+
 test("reopening the current account page from any plain link returns to its heading", () => {
   const { scrollTo, flush } = setup({ hash: "#security-controls" });
   render(<AccountSettingsLandingScroll target="account-settings-intro" />); flush();

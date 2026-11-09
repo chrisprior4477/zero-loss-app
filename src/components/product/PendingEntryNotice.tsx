@@ -31,8 +31,12 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
   const refreshing = useRef(false);
   const generation = useRef(0);
   const revision = useRef(0);
+  const knownPending = useRef(new Map<string, TimedRequest>());
+  const nextResolveAt = useRef(new Map<string, number>());
 
   const storeReceipt = useCallback((request: EntryRequest) => {
+    if (request.status === "pending") knownPending.current.set(request.requestId, { ...request, receivedAt: performance.now() });
+    else knownPending.current.delete(request.requestId);
     if (request.status === "pending" || request.status === "accepted") clearEntryIntent(request.slug);
     revision.current += 1;
     setRequests(previous => [...previous.filter(r => r.requestId !== request.requestId), { ...request, receivedAt: performance.now() }]);
@@ -108,8 +112,20 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     try {
       const result = await listPendingEntryRequests();
       if (epoch !== generation.current || readRevision !== revision.current || result.error) return;
-      for (const request of result.requests) window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request }));
-      setRequests(result.requests.map(r => ({ ...r, receivedAt: performance.now() })));
+      // Another tab can acknowledge a terminal receipt before this list is read.
+      // Absence is not proof of cancellation or success: check the known hold by
+      // ID through the existing authenticated, idempotent database resolver.
+      const returnedIds = new Set(result.requests.map(request => request.requestId));
+      const missing = [...knownPending.current.values()].filter(request => !returnedIds.has(request.requestId));
+      const recovered = await Promise.all(missing.map(async request => {
+        try { return (await resolvePendingEntryRequest(request.requestId, false)).request; }
+        catch { return undefined; }
+      }));
+      if (epoch !== generation.current || readRevision !== revision.current) return;
+      const receipts = [...result.requests, ...recovered.filter((request): request is EntryRequest => Boolean(request))];
+      for (const request of receipts) window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request }));
+      const unresolved = missing.filter((_, index) => !recovered[index]);
+      setRequests([...receipts.map(r => ({ ...r, receivedAt: performance.now() })), ...unresolved]);
       setNow(performance.now());
     } catch {
       // A reconnect or next poll retries the owner-scoped database read.
@@ -158,14 +174,17 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
     for (const request of requests) {
       if (request.status !== "pending" || inFlight.current.has(request.requestId)) continue;
       const remaining = Date.parse(request.undoUntil) - Date.parse(request.serverNow) - (now - request.receivedAt);
-      if (remaining > 0) continue;
+      if (remaining > 0 || performance.now() < (nextResolveAt.current.get(request.requestId) ?? 0)) continue;
       inFlight.current.add(request.requestId);
       void resolvePendingEntryRequest(request.requestId, false).then(result => {
         if (result.request) {
           window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: result.request }));
           if (!routeAccepted(result.request)) router.refresh();
         } else void refresh();
-      }).catch(() => { void refresh(); }).finally(() => inFlight.current.delete(request.requestId));
+      }).catch(() => { void refresh(); }).finally(() => {
+        nextResolveAt.current.set(request.requestId, performance.now() + 5000);
+        inFlight.current.delete(request.requestId);
+      });
     }
   }, [requests, now, refresh, routeAccepted, router]);
 

@@ -81,7 +81,8 @@ test("funding retains one exact purchase entry, never an arbitrary return URL", 
 
 test("funding links target the form and retain the originating prize", () => {
   expect(fundingHref("samsung-m70h-tv")).toBe("/account/wallet?view=history&from=samsung-m70h-tv#add-funds");
-  expect(fundingHref()).toBe("/account/wallet?view=history#add-funds");
+  expect(fundingHref()).toBe("/account/wallet?view=history&panel=funding#add-funds");
+  expect(fundingReturnPath(fundingHref())).toBe(fundingHref());
   expect(fundingReturnPath(fundingHref("samsung-m70h-tv"))).toBe(fundingHref("samsung-m70h-tv"));
   expect(fundingHref("samsung-m70h-tv", undefined, 4)).toBe("/account/wallet?view=history&from=samsung-m70h-tv&quantity=4#add-funds");
   expect(fundingReturnPath(fundingHref("samsung-m70h-tv", undefined, 4))).toBe(fundingHref("samsung-m70h-tv", undefined, 4));
@@ -91,7 +92,7 @@ test("funding links target the form and retain the originating prize", () => {
 
 test("invalid prize identifiers cannot turn into URL parameters or redirects", () => {
   for (const value of ["//evil.test", "../account", "thing&next=https://evil.test", "", "thing#other"]) {
-    expect(fundingHref(value)).toBe("/account/wallet?view=history#add-funds");
+    expect(fundingHref(value)).toBe("/account/wallet?view=history&panel=funding#add-funds");
   }
 });
 
