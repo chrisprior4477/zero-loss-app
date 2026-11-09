@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
@@ -15,7 +15,7 @@ import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
 import styles from "./browse-discovery.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
-export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: string }) {
+export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: string; searchField?: ReactNode }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const categoryList = useRef<HTMLDivElement>(null);
@@ -102,12 +102,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
 
   return <div className={styles.discovery}>
     <span id="retailer-categories-heading" className={styles.anchor} />
-    <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}>
+    {props.searchField ?? <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>Search all prizes</label>
       <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search all prizes" enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
       {search.trim() ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : <VoiceSearchButton onTranscript={setSearch} />}
-    </form>
+    </form>}
     <div className={styles.controls}>
       <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories"} onClick={event => open("categories", event.currentTarget)}>
         <span aria-hidden="true">☷</span><span>{props.selectedRetailerGroup?.category ?? "Categories"}</span>

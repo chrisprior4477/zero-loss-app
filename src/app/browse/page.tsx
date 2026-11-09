@@ -9,9 +9,13 @@ import {
   productMatchesMarketplaceCategory,
 } from "@/lib/catalog/navigation";
 import { searchCatalogMatches, filterCatalogSubcategory } from "@/lib/catalog/search";
+import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { BrowseDiscoveryBar } from "@/components/catalog/BrowseDiscoveryBar";
+import { EndingSoonSearch, EndingSoonSearchSession } from "@/components/catalog/EndingSoonSearch";
+import { EndingSoonPrizeLink } from "@/components/catalog/EndingSoonPrizeLink";
+import browseStyles from "@/components/catalog/browse-discovery.module.css";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { searchResultsHref } from "@/lib/navigation/search-examples";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
@@ -30,8 +34,9 @@ export const metadata: Metadata = {
 };
 
 type BrowsePageProps = {
-  searchParams: Promise<{ category?: string; sort?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; partnerCategory?: string; available?: string; minValue?: string; maxValue?: string }>;
+  searchParams: Promise<{ category?: string; sort?: string; batch?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; partnerCategory?: string; available?: string; minValue?: string; maxValue?: string }>;
 };
+const batchSize = 24;
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const query = await searchParams;
@@ -43,18 +48,20 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   });
   const searchTerm = (Array.isArray(query.q) ? query.q[0] : query.q)?.trim() ?? "";
   const selectedCategory = marketplaceCategoryId(query.category ?? (query.sort === "ending-soon" ? "ending-soon" : ""));
+  const endingSoon = selectedCategory === "ending-soon";
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
   const subcategory = query.subcategory?.trim().slice(0, 128) ?? "";
   const categoryProducts = filterCatalogSubcategory(availableProducts.filter((product) => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory)), subcategory);
   const retailers = browseRetailers(categoryProducts);
   const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts);
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
-  const directoryMatches = searchTerm ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
+  const denomination = searchDenominations(searchTerm, demoProducts);
+  const directoryMatches = searchTerm && !endingSoon && !denomination.values.size ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const budgetLabel = browsePrizeValueLabel(filters);
   const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts);
-  const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm) : [];
-  const savedMatches = searchTerm ? searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm) : [];
+  const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm, denomination) : [];
+  const savedMatches = searchTerm ? searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm, denomination) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
   const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
   const allowedRetailers = selectedRetailerGroup
@@ -64,6 +71,10 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const products = selectedCategory === "groceries" && !searchTerm && filters.sort === "featured"
     ? groceryStoreFirst(filteredProducts, retailerGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
     : filteredProducts;
+  const requestedBatch = Number(query.batch);
+  const batch = Number.isSafeInteger(requestedBatch) && requestedBatch > 1
+    ? Math.min(requestedBatch, Math.max(1, Math.ceil(products.length / batchSize))) : 1;
+  const visibleProducts = endingSoon ? products.slice(0, batch * batchSize) : products;
   const activeFilters = Boolean(subcategory) || filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
     || Boolean(selectedRetailerGroup)
     || filters.minValue !== null || filters.maxValue !== null
@@ -79,7 +90,12 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     if (value) returnParams.set(key, value);
   }
   if (searchTerm) returnParams.set("q", searchTerm);
+  const searchHref = `/browse${returnParams.size ? `?${returnParams}` : ""}`;
+  if (endingSoon && batch > 1) returnParams.set("batch", String(batch));
   const browseReturnHref = `/browse${returnParams.size ? `?${returnParams}` : ""}`;
+  const nextProduct = products[visibleProducts.length];
+  const nextBatchParams = new URLSearchParams(returnParams);
+  nextBatchParams.set("batch", String(batch + 1));
   const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}`;
   const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;
   const groceryOffers = products.filter(product => groceryInspirationOfferSlugs.has(product.slug)).flatMap(product => {
@@ -87,13 +103,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     return remaining > 0 ? [{ slug: product.slug, title: product.title, entryPrice: product.entryPrice, remaining, href: productHrefWithBrowseReturn(product.slug, browseReturnHref) }] : [];
   });
 
-  return (
+  const page = (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12 lg:px-12">
       <div className="mx-auto max-w-7xl">
         <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Zero Loss Marketplace</p>
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{searchTerm ? "Search results" : subcategory || selectedLabel || selectedRetailerGroup?.category || "Browse every product"}</h1>
+            <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{endingSoon ? "Ending Soon" : searchTerm ? "Search results" : subcategory || selectedLabel || selectedRetailerGroup?.category || "Browse every product"}</h1>
             <p className="mt-2 text-white/65">
               {searchTerm
                 ? <>{products.length} {products.length === 1 ? "product" : "products"}{directoryMatches.length ? ` · ${directoryMatches.length} matching retailer ${directoryMatches.length === 1 ? "category" : "categories"}` : ""} for <strong className="text-white">“{searchTerm}”</strong></>
@@ -104,7 +120,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         </div>
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
-          <BrowseDiscoveryBar key={browseReturnHref} browseHref={browseReturnHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref} />
+          <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
+            searchField={endingSoon ? <EndingSoonSearch position="top" /> : undefined} />
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
           {showGroceryInspiration ? <GroceryInspiration offers={groceryOffers} /> : null}
           {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
@@ -136,14 +153,17 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
         {showGroceryInspiration ? <div id="more-groceries" className="mt-4" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}><h2 className="text-2xl font-black leading-tight tracking-tight">More groceries &amp;<span className="block sm:inline"> rewards</span></h2></div> : null}
-            <p aria-live="polite" className={`${showGroceryInspiration ? "mt-2" : "mt-4"} text-sm font-bold text-white/75`}>{products.length} {products.length === 1 ? "product" : "products"} shown</p>
+        <p aria-live="polite" className={`${showGroceryInspiration ? "mt-2" : "mt-4"} text-sm font-bold text-white/75`}>{endingSoon
+          ? `Showing ${visibleProducts.length} of ${products.length} ${products.length === 1 ? "prize" : "prizes"}`
+          : `${products.length} ${products.length === 1 ? "product" : "products"} shown`}{denomination.values.size > 0 &&
+            <span className="ml-2">· Exact prize value: {Array.from(denomination.values, value => `$${value.toLocaleString("en-US")}`).join(" or ")}</span>}</p>
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-            {products.map((product) => {
+            {visibleProducts.map((product) => {
               const status = availabilityStatus(product.capacity, product.sold);
-              return (
-                <article key={product.slug} className="relative overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
-                  <Link href={productHrefWithBrowseReturn(product.slug, browseReturnHref)} className="group flex h-full flex-col p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan-500 sm:p-4">
+              const anchor = `prize-${product.slug}`;
+              const cardClass = "group flex h-full flex-col p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan-500 sm:p-4";
+              const card = <>
                     <div className="relative aspect-[1.28/1] overflow-hidden rounded-xl bg-[#f1f4f7]">
                       <Image src={product.gallery[0].src} alt="" fill sizes="(max-width: 640px) 50vw, 25vw" className="object-contain p-2 transition-transform group-hover:scale-105" />
                     </div>
@@ -154,7 +174,12 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                       <span><strong className="block text-sm">${product.entryPrice.toFixed(2)}</strong>per entry</span>
                       <span className="text-right text-slate-500"><strong className="block" style={{ color: status.color }}>{status.remaining === 0 ? "Pool full" : `${status.remaining.toLocaleString()} left`}</strong>${product.value.toLocaleString()} value</span>
                     </div>
-                  </Link>
+              </>;
+              return (
+                <article key={product.slug} id={endingSoon ? anchor : undefined} style={endingSoon ? { scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" } : undefined}
+                  className="relative overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
+                  {endingSoon ? <EndingSoonPrizeLink href={productHrefWithBrowseReturn(product.slug, `${browseReturnHref}#${anchor}`)} anchor={anchor} className={cardClass}>{card}</EndingSoonPrizeLink>
+                    : <Link href={productHrefWithBrowseReturn(product.slug, browseReturnHref)} className={cardClass}>{card}</Link>}
                   <FavoriteButton itemName={product.title} itemHref={`/items/${product.slug}`} size="large" className="absolute right-5 top-5 z-10" />
                 </article>
               );
@@ -212,8 +237,16 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <Link href="/browse" className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">View all products</Link>
           </section>
         )}
+        {endingSoon && <section className={browseStyles.batchSearch} aria-labelledby="ending-soon-search-again">
+          <h2 id="ending-soon-search-again">Didn’t find what you were looking for?</h2>
+          <EndingSoonSearch position="bottom" />
+          <p className="text-sm text-white/75">Try a retailer and prize value, like “Walmart $100”.</p>
+          {nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
+            href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {Math.min(batchSize, products.length - visibleProducts.length)} more {products.length - visibleProducts.length === 1 ? "prize" : "prizes"}</Link>}
+        </section>}
         </div>
       </div>
     </main>
   );
+  return endingSoon ? <EndingSoonSearchSession key={searchHref} browseHref={searchHref} searchTerm={searchTerm}>{page}</EndingSoonSearchSession> : page;
 }

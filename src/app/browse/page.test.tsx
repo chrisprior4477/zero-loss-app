@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import BrowsePage from "./page";
 import ProductRequestPage from "../contact/product-request/page";
@@ -33,6 +33,29 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); account.get.mockResolvedValue(null); });
 
 describe("Browse search results", () => {
+  test("both Ending Soon bars share a voice draft and clear the search inside the current filters", async () => {
+    let speak!: (text: string) => void;
+    vi.stubGlobal("SpeechRecognition", class {
+      onresult?: (event: unknown) => void;
+      start() { speak = text => this.onresult?.({ results: [[{ transcript: text }]] }); }
+      stop() {}
+    });
+    render(await BrowsePage({ searchParams: Promise.resolve({ sort: "ending-soon", maxValue: "100", q: "Walmart", batch: "2" }) }));
+    const top = within(screen.getByRole("search", { name: "Search Ending Soon at the top" }));
+    const bottom = within(screen.getByRole("search", { name: "Search Ending Soon at the bottom" }));
+    fireEvent.click(bottom.getByRole("button", { name: "Start voice search" }));
+    act(() => speak("Walmart one hundred dollars"));
+    expect((top.getByRole("searchbox") as HTMLInputElement).value).toBe("Walmart one hundred dollars");
+    fireEvent.click(bottom.getByRole("button", { name: "Go to search results" }));
+    expect(navigation.push).toHaveBeenLastCalledWith("/browse?sort=ending-soon&maxValue=100&q=Walmart+one+hundred+dollars#search-results", { scroll: false });
+    fireEvent.focus(top.getByRole("searchbox"));
+    fireEvent.change(top.getByRole("searchbox"), { target: { value: "unsubmitted" } });
+    fireEvent.click(top.getByRole("button", { name: "Close search" }));
+    expect((bottom.getByRole("searchbox") as HTMLInputElement).value).toBe("Walmart");
+    fireEvent.click(bottom.getByRole("button", { name: "Clear search" }));
+    expect((top.getByRole("searchbox") as HTMLInputElement).value).toBe("");
+    expect(navigation.push).toHaveBeenLastCalledWith("/browse?sort=ending-soon&maxValue=100#search-results", { scroll: false });
+  });
   test("Movie Night opens the selected collection and preserves it in product links", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "movie-night" }) }));
     expect(screen.getByRole("heading", { name: "Movie Night" })).toBeTruthy();
@@ -72,7 +95,17 @@ describe("Browse search results", () => {
     expect(document.getElementById("search-results")?.contains(screen.getByRole("button", { name: "Categories" }))).toBe(true);
     expect(screen.getByRole("button", { name: "Filter & sort" })).toBeTruthy();
     expect(screen.queryByRole("complementary", { name: "Filter products" })).toBeNull();
-    expect(screen.getAllByRole("article").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("article")).toHaveLength(24);
+    expect(screen.getAllByRole("searchbox", { name: "Search all Ending Soon prizes" })).toHaveLength(2);
+    const more = screen.getByRole("link", { name: "Show 24 more prizes" }).getAttribute("href")!;
+    expect(more).toMatch(/batch=2#prize-/);
+    cleanup();
+    render(await BrowsePage({ searchParams: Promise.resolve({ sort: "ending-soon", batch: "2" }) }));
+    expect(screen.getAllByRole("article")).toHaveLength(48);
+    expect(document.getElementById(more.split("#")[1])).toBeTruthy();
+    const card = screen.getAllByRole("article")[34];
+    const productHref = new URL(within(card).getByRole("link").getAttribute("href")!, "https://example.test");
+    expect(productHref.searchParams.get("from")).toBe(`/browse?sort=ending-soon&batch=2#${card.id}`);
   });
 
   test("shows matching catalog items for familiar wording", async () => {
@@ -160,7 +193,7 @@ describe("Browse search results", () => {
   test.each(["everyday-items", "electronics", "home-essentials", "ending-soon"])(
     "puts pictured items before gift cards in %s",
     async category => {
-      render(await BrowsePage({ searchParams: Promise.resolve(category === "ending-soon" ? { sort: "ending-soon" } : { category }) }));
+      render(await BrowsePage({ searchParams: Promise.resolve(category === "ending-soon" ? { sort: "ending-soon", batch: "2" } : { category }) }));
       const headings = Array.from(document.querySelectorAll('section[aria-label="Products"] article h2'), heading => heading.textContent ?? "");
       const firstGiftCard = headings.findIndex(title => /gift card|demo reward|bed bath & beyond \+ wayfair bundle/i.test(title));
       expect(firstGiftCard).toBeGreaterThan(0);

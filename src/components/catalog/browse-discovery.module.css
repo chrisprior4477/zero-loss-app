@@ -62,6 +62,12 @@
 .search .clearSearch { display: grid; width: 32px; min-height: 40px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #536d8b; font-size: 25px; cursor: pointer; }
 .search .go { min-height: 36px; border: 0; border-radius: 10px; background: #087feb; color: #fff; padding: 7px 14px; cursor: pointer; }
 .search .go:hover { background: #005fc4; }
+.search .closeSearch { width: 32px; border-left: 1px solid #d5e4ef; color: #153658; font-size: 21px; }
+.endingSearch { column-gap: 4px; padding-inline: 8px; }
+.batchSearch { margin-top: 20px; padding-top: 16px; border-top: 1px solid #547491; }
+.batchSearch .search { max-width: 760px; }
+.batchSearch h2 { margin-bottom: 8px; scroll-margin-top: calc(var(--site-header-height, 149px) + 12px); font-size: 16px; font-weight: 800; }
+.morePrizes { display: flex; justify-content: center; align-items: center; min-height: 44px; margin-top: 10px; border-radius: 10px; background: #ff8618; color: #071c35; font-weight: 850; }
 .search button:focus-visible { outline: 2px solid #087feb; outline-offset: 2px; }
 .control:focus:not(:focus-visible), .choice:focus:not(:focus-visible) { outline: none; }
 .dialog, .sheetHeader > button, .pickerModes button, .pickerSearch input { border-radius: 12px; }

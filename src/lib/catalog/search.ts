@@ -2,15 +2,21 @@ import type { DemoProduct } from "./demo-products";
 import { isGiftCardListing } from "./navigation";
 import { productSearchTerms, retailerDiscoveryTerms } from "./search-vocabulary";
 import { normalizeSearch, queryWords, searchWords, searchWordScore } from "./search-text";
+import { searchDenominations } from "./search-denomination";
 
 export type CatalogSearchMatch = { product: DemoProduct; kind: "product" | "retailer" };
 
-export function searchCatalogMatches(products: readonly DemoProduct[], query: string): CatalogSearchMatch[] {
+export function searchCatalogMatches(products: readonly DemoProduct[], query: string, denomination = searchDenominations(query, products)): CatalogSearchMatch[] {
   if (query.length > 512) return [];
-  const normalizedQuery = normalizeSearch(query);
-  const tokens = queryWords(query);
-  if (!tokens.length || tokens.length > 32) return [];
-  const candidates = /\bgift card\b/.test(normalizedQuery) ? products.filter(isGiftCardListing) : products;
+  const { text, values, merchant } = denomination;
+  const normalizedQuery = normalizeSearch(text);
+  const tokens = queryWords(text);
+  if ((!tokens.length && !values.size) || tokens.length > 32) return [];
+  const giftCards = /\bgift card\b/.test(normalizedQuery);
+  const candidates = products.filter(product => (!values.size || values.has(product.value))
+    && (!giftCards || isGiftCardListing(product))
+    && (!merchant || normalizeSearch(product.retailer) === merchant || normalizeSearch(product.retailer).startsWith(merchant + " ")));
+  if (!tokens.length) return candidates.map(product => ({ product, kind: "product" }));
   const documents = candidates.map(product => {
     const giftCard = product.slug.endsWith("-gift-card");
     const title = new Set(searchWords(product.title));

@@ -3,6 +3,23 @@ import { demoProducts, type DemoProduct } from "./demo-products";
 import { searchCatalog, searchCatalogMatches } from "./search";
 
 describe("catalog search", () => {
+  test.each(["Walmart $100", "Walmart 100", "Walmart 100 dollars", "Walmart one hundred dollars", "Walmart for like a hundred dollars"])("matches the retailer and exact prize value for %s", query => {
+    const matches = searchCatalog(demoProducts, query);
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches.every(product => product.value === 100 && product.retailer.startsWith("Walmart"))).toBe(true);
+  });
+  test("spoken and numeric values filter even when another number appears in an item's description or title", () => {
+    const sample = demoProducts.slice(0, 2).map((p, i) => ({ ...p, title: "Walmart 300-piece kit", retailer: "Walmart", value: i ? 300 : 100 }));
+    expect(searchCatalog(sample, "Walmart three hundred dollars")).toEqual([sample[1]]);
+    expect(searchCatalog(sample, "$300")).toEqual([sample[1]]);
+    expect(searchCatalog(sample, "Walmart $25")).toEqual([]);
+    expect(searchCatalog(demoProducts, "AirPods Pro 3")[0]?.slug).toBe("airpods-pro");
+  });
+  test.each(["Walmart 100 gift card", "100 Walmart gift cards", "Walmart $100 gift card"])("applies a gift-card denomination in either word order: %s", query => {
+    const matches = searchCatalog(demoProducts, query);
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches.every(product => product.value === 100 && product.title.includes("Gift Card") && product.retailer.startsWith("Walmart"))).toBe(true);
+  });
   test("makeup finds the pictured cosmetics before related gift cards", () => {
     const matches = searchCatalogMatches(demoProducts, "makeup");
     expect(matches.slice(0, 3).map(match => match.product.slug).sort()).toEqual([

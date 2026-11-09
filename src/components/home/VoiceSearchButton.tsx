@@ -4,6 +4,10 @@ import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 
 export function VoiceSearchButton({ onTranscript }: { onTranscript: (text: string) => void }) {
   const voice = useVoiceSearch(onTranscript);
+  return <VoiceSearchControl {...voice} />;
+}
+
+export function VoiceSearchControl(voice: Pick<ReturnType<typeof useVoiceSearch>, "listening" | "error" | "toggle">) {
   return <span className="relative flex shrink-0 items-center">
     <button type="button" onClick={voice.toggle} aria-pressed={voice.listening}
       aria-label={voice.listening ? "Stop voice search" : "Start voice search"}
