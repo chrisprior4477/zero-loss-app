@@ -10,6 +10,7 @@ afterEach(() => { cleanup(); sessionStorage.clear(); });
 
 test("Contact restores only the current account's product draft, including same-tab account changes", async () => {
   sessionStorage.clear();
+  sessionStorage.setItem("zero-loss-catalog-request-draft:guest:", JSON.stringify({ requestedItem: "Unowned legacy draft", email: "legacy@example.test", notes: "", savedAt: Date.now() }));
   mocks.account.mockResolvedValue({ userId: "owner-a" });
   let view = render(await ContactPage());
   fireEvent.change(screen.getByLabelText("What would you like to see?"), { target: { value: "Kayak request" } });

@@ -8,7 +8,9 @@ const lifetime = 24 * 60 * 60 * 1000;
 
 /** Unsent text belongs to this tab, account and original search only. */
 export function catalogRequestDraftKey(ownerId: string | undefined, sourceQuery: string) {
-  return `zero-loss-catalog-request-draft:${ownerId ?? "guest"}:${encodeURIComponent(sourceQuery)}`;
+  // Older Contact forms wrote signed-in drafts into the guest slot. Its owner
+  // cannot be established, so never expose that legacy text to a new guest.
+  return `zero-loss-catalog-request-draft:${ownerId ?? "guest-v2"}:${encodeURIComponent(sourceQuery)}`;
 }
 
 export function readCatalogRequestDraft(key: string): CatalogRequestDraft | null {
