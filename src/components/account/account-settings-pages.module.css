@@ -25,9 +25,44 @@
 .profileCard [data-status="pending"] { color: #946011; }
 .profileCard article button:last-child { color: #005cbe; border-color: #a6cfe7; background: #fff; }
 .profileCard article button:first-child { color: #fff; background: #006dff; }
+.profileShortcuts {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  border-top: 1px dotted #bdd4e6;
+  padding-top: 12px;
+  font-size: 14px;
+}
+.profileShortcuts > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.profileShortcuts a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: #e4f4ff;
+  color: #075486;
+  font-weight: 750;
+  text-align: center;
+  text-decoration: none;
+  line-height: 1.2;
+}
+.profileShortcuts a:hover { background: #c9eaff; }
+.profileShortcuts a:focus-visible { outline: 3px solid #006dff; outline-offset: 2px; }
+@media (pointer: coarse) {
+  .profileShortcuts a { min-height: 40px; }
+}
 @media (max-width: 1000px) {
   .introTicket { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
   .introTicket { --corner-scoop: 14px; padding: 21px 19px; scroll-margin-top: calc(var(--site-header-height, 163px) + 7px); }
+}
+@media (max-width: 520px) {
+  .profileShortcuts { display: grid; }
+  .profileShortcuts > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profileShortcuts a { min-height: 40px; }
 }

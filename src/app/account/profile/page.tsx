@@ -37,6 +37,15 @@ export default async function ProfilePage() {
     <section id="profile-intro" className={styles.introTicket} aria-labelledby="profile-heading">
       <div><span className={styles.eyebrow}>PERSONAL PROFILE</span><h2 id="profile-heading">Profile</h2><p>Manage your identity, contact details, address, and preferences. Changes save only to your signed-in account.</p></div>
       <div className={styles.profileCard}><ProfilePhotoCard initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} initialVisibility={{ menu: account.showPhotoInMenu, crew: account.showPhotoToCrew }} compact emailStatus={account.emailConfirmed ? "verified" : "pending"} /></div>
+      <nav className={styles.profileShortcuts} aria-label="Profile shortcuts">
+        <strong>Jump to</strong>
+        <div>
+          <a href="#personal-details-heading">Personal info</a>
+          <a href="#contact-details-heading">Contact</a>
+          <a href="#mailing-address-heading">Mailing address</a>
+          <a href="#personalize-menu-heading">Appearance</a>
+        </div>
+      </nav>
     </section>
     <MenuLayoutPicker previewSearchResults={previewSearchResults} previewAccount={{ count: account.activity.activeCount, balance: account.balanceLabel, avatarUrl: account.avatarUrl, showPhoto: account.showPhotoInMenu }} />
     <MobileLogoSizePicker />
