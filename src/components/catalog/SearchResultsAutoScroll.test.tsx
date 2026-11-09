@@ -9,6 +9,18 @@ beforeEach(() => {
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
 });
 
+test.each([true, false])("a returned prize takes priority over the category landing on mobile=%s", mobile => {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: mobile })));
+  window.history.replaceState(null, "", "/browse?category=beauty#prize-mac-lipstick");
+  render(<><article id="prize-mac-lipstick" /><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse?category=beauty" /></>);
+  const prize = vi.fn(), search = vi.fn();
+  document.getElementById("prize-mac-lipstick")!.scrollIntoView = prize;
+  document.getElementById("search-results")!.scrollIntoView = search;
+  act(() => vi.runAllTimers());
+  expect(prize).toHaveBeenCalledTimes(2);
+  expect(search).not.toHaveBeenCalled();
+});
+
 test("Browse targets retailer categories rather than products and settles after the menu closes", () => {
   window.history.replaceState(null, "", "/browse#retailer-categories-heading");
   render(<><h2 id="retailer-categories-heading" /><div id="search-results" /><SearchResultsAutoScroll searchKey="" /></>);

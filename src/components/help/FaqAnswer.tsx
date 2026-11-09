@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { FaqItem } from "@/lib/help/faq";
 import styles from "./help-tickets.module.css";

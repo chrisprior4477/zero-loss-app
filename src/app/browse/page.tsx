@@ -14,7 +14,7 @@ import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { BrowseDiscoveryBar } from "@/components/catalog/BrowseDiscoveryBar";
 import { EndingSoonSearch, EndingSoonSearchSession } from "@/components/catalog/EndingSoonSearch";
-import { EndingSoonPrizeLink } from "@/components/catalog/EndingSoonPrizeLink";
+import { BrowsePrizeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { searchResultsHref } from "@/lib/navigation/search-examples";
@@ -176,10 +176,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     </div>
               </>;
               return (
-                <article key={product.slug} id={endingSoon ? anchor : undefined} style={endingSoon ? { scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" } : undefined}
+                <article key={product.slug} id={anchor} style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}
                   className="relative overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
-                  {endingSoon ? <EndingSoonPrizeLink href={productHrefWithBrowseReturn(product.slug, `${browseReturnHref}#${anchor}`)} anchor={anchor} className={cardClass}>{card}</EndingSoonPrizeLink>
-                    : <Link href={productHrefWithBrowseReturn(product.slug, browseReturnHref)} className={cardClass}>{card}</Link>}
+                  <BrowsePrizeLink href={productHrefWithBrowseReturn(product.slug, `${browseReturnHref}#${anchor}`)} anchor={anchor} className={cardClass}>{card}</BrowsePrizeLink>
                   <FavoriteButton itemName={product.title} itemHref={`/items/${product.slug}`} size="large" className="absolute right-5 top-5 z-10" />
                 </article>
               );

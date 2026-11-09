@@ -26,12 +26,12 @@ export function productBrowseReturnPath(value: unknown): string | null {
   }
   const retailer = /^\/rewards\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(value);
   if (retailer) return getPopularRewardBrand(retailer[1]) ? value : null;
-  if (!/^\/browse(?:\?|$)/.test(value)) return null;
+  if (!/^\/browse(?:[?#]|$)/.test(value)) return null;
   try {
     const url = new URL(value, "https://zeroloss.local");
     if (url.origin !== "https://zeroloss.local" || url.pathname !== "/browse") return null;
     const endingSoon = (url.searchParams.get("category") ?? (url.searchParams.get("sort") === "ending-soon" ? "ending-soon" : "")) === "ending-soon";
-    if (url.hash && (!endingSoon || !/^#prize-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url.hash))) return null;
+    if (url.hash && !/^#prize-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url.hash)) return null;
     const batch = url.searchParams.get("batch");
     if (batch !== null && (!endingSoon || !/^[1-9]\d*$/.test(batch) || !Number.isSafeInteger(Number(batch)))) return null;
     const keys = [...url.searchParams.keys()];

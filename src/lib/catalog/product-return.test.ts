@@ -17,12 +17,24 @@ test("a product cannot use an external or unrelated return destination", () => {
   }
 });
 
-test("only an Ending Soon prize anchor and valid batch survive a product round trip", () => {
+test("an Ending Soon prize anchor and valid batch survive a product round trip", () => {
   const source = "/browse?category=ending-soon&q=Walmart&maxValue=100&batch=2#prize-walmart-100-gift-card";
   const detail = new URL(productHrefWithBrowseReturn("walmart-100-gift-card", source), "https://example.test");
   expect(productBrowseReturnHref(detail.searchParams.get("from"))).toBe(source);
   for (const invalid of [source.replace("ending-soon", "groceries"), source.replace("batch=2", "batch=0"),
     source.replace("#prize-walmart-100-gift-card", "#arbitrary"), source.replace("batch=2", "batch=2&batch=3")]) {
+    expect(productBrowseReturnHref(invalid)).toBe("/browse");
+  }
+});
+
+test("ordinary Browse cards retain their anchor and exact search without allowing unrelated destinations", () => {
+  for (const source of ["/browse#prize-bath-body-works-25-gift-card", "/browse?category=beauty#prize-bath-body-works-25-gift-card",
+    "/browse?q=lipstick&category=beauty&maxValue=100#prize-mac-lipstick"]) {
+    const detail = new URL(productHrefWithBrowseReturn("mac-lipstick", source), "https://example.test");
+    expect(productBrowseReturnHref(detail.searchParams.get("from"))).toBe(source);
+  }
+  for (const invalid of ["/browse#arbitrary", "/browse#prize-../wallet", "/browse?category=beauty&batch=2#prize-mac-lipstick",
+    "/browse?category=beauty&category=electronics#prize-mac-lipstick", "//evil.test/browse#prize-mac-lipstick"]) {
     expect(productBrowseReturnHref(invalid)).toBe("/browse");
   }
 });

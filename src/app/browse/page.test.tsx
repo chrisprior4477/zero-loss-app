@@ -61,7 +61,7 @@ describe("Browse search results", () => {
     expect(screen.getByRole("heading", { name: "Movie Night" })).toBeTruthy();
     for (const name of [/Samsung 50.*M70H/i, /65-inch LG OLED/i, /\$25 Netflix Gift Card/i, /\$100 Regal Gift Card/i, /\$100 The Popcorn Factory Gift Card/i]) {
       const link = screen.getByRole("link", { name });
-      expect(new URL(link.getAttribute("href")!, "https://example.test").searchParams.get("from")).toBe("/browse?category=movie-night");
+      expect(new URL(link.getAttribute("href")!, "https://example.test").searchParams.get("from")).toBe(`/browse?category=movie-night#${link.closest("article")!.id}`);
     }
     expect(screen.queryByRole("link", { name: /Dyson V8/i })).toBeNull();
   });
@@ -181,7 +181,7 @@ describe("Browse search results", () => {
   test("finds baby essentials using everyday language", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "baby stuff" }) }));
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i }).getAttribute("href"))
-      .toBe("/items/babys-essentials-bundle?from=%2Fbrowse%3Fq%3Dbaby%2Bstuff");
+      .toBe("/items/babys-essentials-bundle?from=%2Fbrowse%3Fq%3Dbaby%2Bstuff%23prize-babys-essentials-bundle");
   });
 
   test("uses the available mobile width for one search result", async () => {
@@ -235,7 +235,7 @@ describe("Browse search results", () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "reciprocating saw" }) }));
     expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.").length).toBeGreaterThanOrEqual(4);
     expect(screen.getByRole("link", { name: /\$25 The Home Depot Gift Card/i }).getAttribute("href"))
-      .toBe("/items/home-depot-25-gift-card?from=%2Fbrowse%3Fq%3Dreciprocating%2Bsaw");
+      .toBe("/items/home-depot-25-gift-card?from=%2Fbrowse%3Fq%3Dreciprocating%2Bsaw%23prize-home-depot-25-gift-card");
     expect(screen.queryByRole("heading", { name: "Reciprocating Saw" })).toBeNull();
   });
 
@@ -270,7 +270,7 @@ describe("Browse search results", () => {
   test("product links preserve the chosen category and filters for a return trip", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "groceries", type: "gift-cards", available: "1" }) }));
     expect(screen.getByRole("link", { name: /\$100 Walmart Gift Card/i }).getAttribute("href"))
-      .toBe("/items/walmart-100-gift-card?from=%2Fbrowse%3Fcategory%3Dgroceries%26type%3Dgift-cards%26available%3D1");
+      .toBe("/items/walmart-100-gift-card?from=%2Fbrowse%3Fcategory%3Dgroceries%26type%3Dgift-cards%26available%3D1%23prize-walmart-100-gift-card");
   });
 
   test("shows an honest no-offer state for a directory-only retailer", async () => {
