@@ -8,6 +8,7 @@ import { supportNotifications } from "@/lib/support/notifications";
 import { parseDemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { getRecentLedgerHistory } from "@/lib/wallet/history";
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 export const getNotificationSnapshot = cache(async () => {
   const account = await getAccountContext();
   if (!account) return null;
@@ -48,7 +49,11 @@ export const getNotificationSnapshot = cache(async () => {
     crewRequestId: request.automatic_connection ? undefined : request.id,
     preferenceKey: "crew_updates" as const,
   }));
-  const sharedNotifications = (Array.isArray(shares.data) ? shares.data : []).filter(share => afterReset(share.createdAt)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "An item shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared with You", href: `/account/favorites?tab=shared&share=${encodeURIComponent(share.id)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
+  const receivedShares = (Array.isArray(shares.data) ? shares.data : []).filter(share => afterReset(share.createdAt));
+  // Apply the same discovery rules as the destination. Keep the receipt and its
+  // read state in storage, but never offer a closed prize as a clickable update.
+  const hiddenSharedPrizes = receivedShares.length ? (await getShoppingCatalog()).hidden : new Set<string>();
+  const sharedNotifications = receivedShares.filter(share => !hiddenSharedPrizes.has(share.slug)).map((share: { id: string; title: string; sender: string; slug: string; token: string; createdAt: string }) => ({ id: `shared-${share.id}`, category: "crew" as const, tone: "crew" as const, title: `${share.sender} shared ${share.title}`, body: "An item shared with you.", image: getDemoProduct(share.slug)?.gallery[0]?.src, meta: "Shared with You", href: `/account/favorites?tab=shared&share=${encodeURIComponent(share.id)}`, action: "View shared item", preferenceKey: "crew_updates" as const }));
   const notifications: AccountNotification[] = [...sharedNotifications, ...supportNotifications((support.data ?? []).filter(row => afterReset(row.updated_at)), account.timezone), ...crewNotifications,
     ...buildOrderNotifications(orders?.orders ?? []),
     ...buildAccountNotifications(account.activity, account.wallet && ledger ? { ...account.wallet, entries: ledger } : account.wallet, account.emailConfirmed, hiddenWalletIds, account.timezone)

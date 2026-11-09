@@ -3,6 +3,9 @@ import { accountPageReturnPath, accountReturnPath } from "./account-return";
 import { authNavigationHref, signInReturnPath, signupVerificationPath } from "./entry-return";
 const id = "11111111-1111-4111-8111-111111111111";
 const destinations = [
+  "/account/wallet?rewards=ready#ready-rewards", "/account/wallet?rewards=used#reward-history",
+  "/account/wallet?rewards=expired#reward-history", "/account/wallet?rewards=history#reward-history",
+  "/account/crew?tab=privacy#crew-privacy",
   `/account/orders?order=ord_123&support=report#order-ord_123`,
   `/account/orders?order=ord_123#order-ord_123`,
   `/account/orders?filter=fulfilled&rewardId=${id}#fulfillment-records`,
@@ -34,6 +37,8 @@ test.each(destinations)("preserves the approved destination through every auth s
   }
 });
 test.each([
+  "/account/wallet?rewards=admin#reward-history", "/account/wallet?rewards=used&rewards=expired#reward-history",
+  "/account/crew?tab=privacy&tab=crew#crew-privacy", "/account/crew?tab=privacy#outside",
   "/account/orders?order=ord_1&support=https%3A%2F%2Fevil.test", "/account/orders?order=ord_1&support=report&support=report",
   "/account/orders?order=ord_1&order=ord_2", "/account/orders?order=https%3A%2F%2Fevil.test", "/account/orders?rewardId=bad", "/account/orders?filter=admin",
   "/account/wallet?panel=methods", "/account/wallet?view=history&panel=admin", "/account/wallet?view=history&panel=methods&panel=card",

@@ -21,6 +21,13 @@ test("old generic email links surface the signed-in recipient's pending request"
   const page = await CrewPage({ searchParams: Promise.resolve({}) });
   expect(page.props.children[0].props.invitation).toEqual({ id, name: "Alex", status: "pending" });
 });
+
+test("privacy settings retain their selected view and section through sign-in", async () => {
+ mocks.account.mockResolvedValue(null);
+ await expect(CrewPage({ searchParams: Promise.resolve({ tab: "privacy" }) })).rejects.toMatchObject({
+   digest: expect.stringContaining(encodeURIComponent("/account/crew?tab=privacy#crew-privacy")),
+ });
+});
 test("a request link cannot show an invitation to its sender or another recipient", async () => {
   mocks.from.mockImplementation(table => query(table === "crew_invitations" ? [{ id, requester_id: "recipient", recipient_id: "someone-else", requester_name: "Private", status: "pending" }] : []));
   const page = await CrewPage({ searchParams: Promise.resolve({ request: id }) });

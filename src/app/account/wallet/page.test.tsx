@@ -14,6 +14,14 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const purchaseEntry = "ent_11111111111111111111111111111111";
 
+test.each(["ready", "used", "expired", "history"])("the %s reward view survives an expired session", async rewards => {
+  mocks.getAccountContext.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  await expect(WalletPage({searchParams:Promise.resolve({rewards})})).rejects.toThrow("NEXT_REDIRECT");
+  expect(new URL(mocks.redirect.mock.calls[0][0],"https://example.test").searchParams.get("next"))
+    .toBe(`/account/wallet?rewards=${rewards}#${rewards === "ready" ? "ready-rewards" : "reward-history"}`);
+});
+
 test.each([ ["methods", "payment-methods"], ["card", "wallet-add-card"] ])("the %s payment panel survives signed-out navigation", async (panel, anchor) => {
   mocks.getAccountContext.mockResolvedValue(null);
   mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
@@ -83,7 +91,7 @@ test("sign-in preserves the exact funding return entry", async () => {
 test.each([
   [{ reward: "samsung-m70h-tv", rewardId: "11111111-1111-4111-8111-111111111111" }, "/account/wallet?reward=samsung-m70h-tv&rewardId=11111111-1111-4111-8111-111111111111"],
   [{ view: "card" }, "/account/wallet?view=card"],
-  [{ rewards: "history" }, "/account/wallet?rewards=history"],
+  [{ rewards: "history" }, "/account/wallet?rewards=history#reward-history"],
   [{ view: "history", transaction: "11111111-1111-4111-8111-111111111111" }, "/account/wallet?view=history&transaction=11111111-1111-4111-8111-111111111111#transaction-11111111-1111-4111-8111-111111111111"],
   [{}, "/account/wallet"],
 ] as const)("expired sessions preserve the exact wallet view: %j", async (query, expected) => {

@@ -45,6 +45,7 @@ test('reward prefill authorizes ownership and never uses a wallet transaction',a
  expect(screen.getByTestId('support-form').getAttribute('data-reward')).toBe(caseId);
  expect(screen.getByTestId('support-form').getAttribute('data-transaction')).toBeNull();
  expect(screen.getByText(`Reward reference: ${caseId}`)).toBeTruthy();
+ expect(screen.getByRole('link',{name:'Back to this reward'}).getAttribute('href')).toBe(`/account/wallet?rewardId=${caseId}#reward-pass`);
  expect(mocks.from).not.toHaveBeenCalledWith('ledger_entries');
 });
 
@@ -52,6 +53,7 @@ test.each([null,{data:null,error:{message:'Unavailable'}}])('a foreign or unavai
  mocks.from.mockImplementation(table=>table==='customer_rewards'?query(null,failure):query([]));
  render(await SupportPage({searchParams:Promise.resolve({rewardId:caseId})}));
  expect(screen.queryByTestId('support-form')).toBeNull();expect(screen.getByRole('alert').textContent).toContain('reward is unavailable');
+ expect(screen.queryByRole('link',{name:'Back to this reward'})).toBeNull();
 });
 
 test('a reward cannot silently attach an unrelated transaction',async()=>{

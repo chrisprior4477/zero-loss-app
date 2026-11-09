@@ -55,6 +55,7 @@
   text-decoration: none;
 }
 .button:hover, .caseLink:hover { background: #a5e6ff; }
+.rewardReturn { --corner: 10px; min-height: 44px; margin-top: 12px; padding: 8px 16px; }
 .button[aria-pressed="true"], .primary { background: #48ff00; }
 .button:disabled { opacity: .6; }
 .shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-block: 24px; }

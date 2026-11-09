@@ -1,14 +1,15 @@
 import { beforeEach, expect, test, vi } from "vitest";
-const mock = vi.hoisted(() => ({ preview: true, resetAt: null as string | null, getAccount: vi.fn(), from: vi.fn(), shares: [] as {id:string;createdAt:string}[], crew: [] as {id:string;created_at:string;requester_name:string;automatic_connection?:boolean;status?:string}[] }));
+const mock = vi.hoisted(() => ({ hidden: new Set<string>(), preview: true, resetAt: null as string | null, getAccount: vi.fn(), from: vi.fn(), shares: [] as {id:string;createdAt:string;slug?:string}[], crew: [] as {id:string;created_at:string;requester_name:string;automatic_connection?:boolean;status?:string}[] }));
 vi.mock("server-only", () => ({}));
 vi.mock("react", () => ({ cache: (fn: unknown) => fn }));
 vi.mock("./context", () => ({ getAccountContext: mock.getAccount }));
+vi.mock("@/lib/catalog/shopping-catalog", () => ({ getShoppingCatalog: async () => ({ hidden: mock.hidden }) }));
 vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: () => mock.preview }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: mock.from, rpc: async (name: string) => ({error:null,data: name === "get_demo_wallet_history_visibility" ? {ledgerEntryIds:[],fundingSessionIds:[],fullReset:!!mock.resetAt,notificationResetAt:mock.resetAt} : name === "get_received_product_shares" ? mock.shares : {}}) }) }));
 import { getNotificationSnapshot } from "./notification-snapshot";
 import { storedActivityFixture } from "./activity.test-fixture";
 beforeEach(() => {
- vi.clearAllMocks(); mock.preview=true; mock.resetAt=null;mock.shares=[];mock.crew=[];
+ vi.clearAllMocks(); mock.hidden=new Set(); mock.preview=true; mock.resetAt=null;mock.shares=[];mock.crew=[];
  mock.getAccount.mockResolvedValue({userId:"owner",emailConfirmed:true,wallet:{scope:"demo",entries:[],balanceCents:0},activity:{source:"customer-empty",activity:[]},orders:{source:"customer-empty",orders:[]}});
  mock.from.mockImplementation((table: string) => {
    const result={error:null,data:table === "crew_invitations" ? mock.crew : table === "support_cases" ? [{id:"11111111-1111-4111-8111-111111111111",subject:"Old support case",status:"open",updated_at:"2026-01-01"}] : []};
@@ -42,6 +43,15 @@ test("support and existing account notices stay available outside the MVP", asyn
  expect(snapshot?.supportEnabled).toBe(true);
  expect(snapshot?.notifications.map(n=>n.id)).toContain("account-email-confirmed");
  expect(snapshot?.notifications.some(n=>n.id.startsWith("support-"))).toBe(true);
+});
+
+test("closed shared prizes have no clickable notification while available shares keep their exact receipt", async () => {
+ mock.shares=[{id:"closed",slug:"walmart-100-gift-card",createdAt:"2026-11-07"},{id:"open",slug:"playstation-5-slim",createdAt:"2026-11-07"}];
+ mock.hidden.add("walmart-100-gift-card");
+ const snapshot=await getNotificationSnapshot();
+ expect(snapshot?.notifications.some(n=>n.id==="shared-closed")).toBe(false);
+ expect(snapshot?.notifications.find(n=>n.id==="shared-open")?.href).toBe("/account/favorites?tab=shared&share=open");
+ expect(mock.shares).toHaveLength(2);
 });
 
 test("saved claim completion acknowledges its alert without a separate read click", async () => {

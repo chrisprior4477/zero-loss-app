@@ -49,6 +49,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const [tab, setTab] = useState(initialTab);
   const [shareOverrides, setShareOverrides] = useState<Record<string, SharePatch>>({});
   const shares = useMemo(() => (initialShares ?? []).filter(share => !hidden.has(share.slug)).map(share => ({ ...share, ...shareOverrides[share.id] })), [initialShares, hidden, shareOverrides]);
+  const requestedShareUnavailable = Boolean(initialShareId && initialShares !== null && !shares.some(share => share.id === initialShareId));
   const [selection, setSelected] = useState<Selection>(() => {
     const share = shares.find(s => s.id === initialShareId);
     return share ? { slug: share.slug, shareId: share.id } : initialTab === "favorites" && initialItem && slugs.includes(initialItem) ? { slug: initialItem } : null;
@@ -243,8 +244,9 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
               })}</div>}
         </> : <>
           <p className={styles.note}>Includes items you’ve declined.</p>
+          {requestedShareUnavailable ? <div role="status" className={styles.empty}><h2>This shared prize is no longer available</h2><p>You can browse other prizes or view any other available items shared with you.</p><Link href="/browse">Browse products →</Link></div> : null}
           {initialShares === null ? <p role="alert" className={styles.empty}>Shared items couldn’t be loaded. Refresh to try again; nothing has been removed.</p>
-            : !shares.length ? <div className={styles.empty}><h2>Nothing shared with you yet</h2><p>Items people send you will appear here.</p></div>
+            : !shares.length ? requestedShareUnavailable ? null : <div className={styles.empty}><h2>Nothing shared with you yet</h2><p>Items people send you will appear here.</p></div>
               : <div aria-label="Items shared with you" className={styles.grid}>{shares.map(share => {
                 const product = getDemoProduct(share.slug);
                 return <article key={share.id} className={styles.card}>{art(share.slug, false, share.id)}<div className={styles.cardBody}>{sender(share)}<span className={`${styles.badge} ${share.declinedAt ? styles.declined : ""}`}>{savedShareStatus(share)}</span><p className={styles.merchant}>{product?.retailer ?? "Zero Loss"}</p><h2>{product?.title ?? share.title}</h2><button type="button" className={styles.viewButton} data-saved-item={share.id} onClick={() => openItem(share.slug, share.id)}>View prize <span aria-hidden="true">→</span></button></div></article>;

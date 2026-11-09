@@ -70,6 +70,21 @@ test("favorites capacity alerts retain their own saved preference", async () => 
   expect(mocks.state).not.toHaveBeenCalled();
 });
 
+test("an old closed-share link explains the unavailable prize without exposing it or claiming no shares", () => {
+ show({initialTab:"shared",initialShareId:share.id,hiddenSlugs:[share.slug]});
+ expect(screen.getByRole("heading",{name:"This shared prize is no longer available"})).toBeTruthy();
+ expect(screen.queryByText("Nothing shared with you yet")).toBeNull();
+ expect(screen.queryByRole("button",{name:/View prize/})).toBeNull();
+ expect(screen.queryByRole("link",{name:"Enter for $1"})).toBeNull();
+ expect(mocks.state).not.toHaveBeenCalled();
+});
+
+test("a share-loading failure stays retryable instead of being described as a closed prize", () => {
+ show({initialTab:"shared",initialShareId:share.id,initialShares:null});
+ expect(screen.getByRole("alert").textContent).toContain("couldn’t be loaded");
+ expect(screen.queryByText("This shared prize is no longer available")).toBeNull();
+});
+
 test("refreshed shares appear and disappear without resetting the active tab", () => {
   const view = show({ initialTab: "shared", initialShares: [] });
   expect(screen.getByRole("tab", { name: "Shared with You 0" })).toBeTruthy();

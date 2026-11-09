@@ -33,6 +33,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     let section = params.pick ? "#crew-intro" : "";
     if (params.tab === "groups") section = "#crew-groups";
     if (params.tab === "picks") section = "#sharing";
+    if (params.tab === "privacy") section = "#crew-privacy";
     if (params.tab === "requests" && params.request) section = `#crew-request-${params.request}`;
     redirect(authNavigationHref("/login", accountPageReturnPath("/account/crew", params, section)));
   }

@@ -115,7 +115,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
             <p className={styles.orderCharge}><strong>{charge.amount}</strong><time dateTime={charge.timestamp}>{charge.date}</time></p>
             <Link href={exactOrderHref(linkedOrder.orderNumber)}>Back to this order</Link>
           </div> : <p className={`${note} mb-4 text-sm`}>Linked wallet transaction: {charge.amount} · {charge.date}</p>)}
-          {validReward ? <p className={`${note} mb-4 break-words text-sm`}>Linked reward: <strong>{rewardTitle ?? "Saved reward"}</strong><span className="mt-1 block break-all">Reward reference: {validReward}</span></p> : null}
+          {validReward ? <div className={`${note} mb-4 break-words text-sm`}><p>Linked reward: <strong>{rewardTitle ?? "Saved reward"}</strong><span className="mt-1 block break-all">Reward reference: {validReward}</span></p><Link className={`${button} ${styles.rewardReturn}`} href={`/account/wallet?rewardId=${validReward}#reward-pass`}>Back to this reward</Link></div> : null}
           <SupportForm ownerId={account.userId} key={validTransaction ?? validReward ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} />
         </>}
       </section> : null}

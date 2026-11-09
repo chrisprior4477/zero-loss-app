@@ -33,11 +33,13 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   if (!account) {
     const purchaseArrival = requestedReward && query.via === "purchase" && typeof query.rewardId === "string";
     const paymentPanel = history && (query.panel === "methods" || query.panel === "card");
+    const rewardSection = !requestedReward && !history && ["ready", "used", "expired", "history"].includes(String(query.rewards))
+      ? query.rewards === "ready" ? "#ready-rewards" : "#reward-history" : "";
     const next = paymentPanel ? accountPageReturnPath("/account/wallet", query, query.panel === "card" ? "#wallet-add-card" : "#payment-methods")
       : history && !query.transaction ? query.review === "entry" && fromProduct
       ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity)
       : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse, query.choice)
-      : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : purchaseArrival ? "#reward-pass" : "");
+      : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : purchaseArrival ? "#reward-pass" : rewardSection);
     redirect(`${authNavigationHref("/login", next)}&focus=email#login-form`);
   }
   if (cardView) redirect("/account/wallet?view=history&panel=card");
