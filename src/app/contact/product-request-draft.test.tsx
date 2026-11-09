@@ -1,0 +1,33 @@
+import { afterEach, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+const mocks = vi.hoisted(() => ({ account: vi.fn() }));
+vi.mock("@/lib/account/context", () => ({ getAccountContext: mocks.account }));
+vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: () => false }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/catalog/request-actions", () => ({ submitCatalogRequest: vi.fn() }));
+import ContactPage from "./page";
+afterEach(() => { cleanup(); sessionStorage.clear(); });
+
+test("Contact restores only the current account's product draft, including same-tab account changes", async () => {
+  sessionStorage.clear();
+  mocks.account.mockResolvedValue({ userId: "owner-a" });
+  let view = render(await ContactPage());
+  fireEvent.change(screen.getByLabelText("What would you like to see?"), { target: { value: "Kayak request" } });
+  fireEvent.change(screen.getByLabelText("Email", { exact: true }), { target: { value: "owner-a@example.test" } });
+  view.unmount();
+  view = render(await ContactPage());
+  expect(screen.getByLabelText("What would you like to see?")).toHaveProperty("value", "Kayak request");
+  view.unmount();
+  mocks.account.mockResolvedValue({ userId: "owner-b" });
+  view = render(await ContactPage());
+  expect(screen.getByLabelText("What would you like to see?")).toHaveProperty("value", "");
+  expect(screen.getByLabelText("Email", { exact: true })).toHaveProperty("value", "");
+  view.unmount();
+  mocks.account.mockResolvedValue(null);
+  view = render(await ContactPage());
+  expect(screen.getByLabelText("Email", { exact: true })).toHaveProperty("value", "");
+  view.unmount();
+  mocks.account.mockResolvedValue({ userId: "owner-a" });
+  render(await ContactPage());
+  expect(screen.getByLabelText("Email", { exact: true })).toHaveProperty("value", "owner-a@example.test");
+});

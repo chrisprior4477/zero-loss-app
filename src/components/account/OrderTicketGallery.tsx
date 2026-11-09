@@ -135,12 +135,13 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
   const hasNext = currentPage < lastPage;
   const selected = opened ? shown.find(order => order.rewardId === opened.id) : null;
   const galleryId = useId();
+  const gallery = useRef<HTMLDivElement>(null);
 
-  function rememberPage(anchor: string | null) {
+  function rememberPage(anchor: string | null, openId: string | null = opened?.id ?? null) {
     if (window.location.pathname !== "/account/orders") return;
     // Keep Next's router fields intact. This belongs to this history entry only.
     window.history.replaceState({ ...window.history.state, zeroLossOrderTickets: {
-      href: window.location.href, anchor, scrollY: window.scrollY,
+      href: window.location.href, anchor, openId, scrollY: window.scrollY,
     } }, "");
   }
 
@@ -151,8 +152,19 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
       if (!saved || saved.href !== window.location.href || !orders.some(order => order.rewardId === saved.anchor)
         || !Number.isFinite(saved.scrollY) || saved.scrollY < 0) return;
       setPageAnchor(saved.anchor);
+      setOpened(null);
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => window.scrollTo({ top: saved.scrollY, behavior: "instant" }));
+      frame = requestAnimationFrame(() => {
+        if (window.location.href !== saved.href) return;
+        window.scrollTo({ top: saved.scrollY, behavior: "instant" });
+        // The page containing this ticket has now rendered. Recover only a
+        // details button for a record still present in the authorized list.
+        if (typeof saved.openId !== "string" || saved.openId !== saved.anchor) return;
+        const ticket = Array.from(gallery.current?.querySelectorAll<HTMLElement>("[data-order-ticket]") ?? [])
+          .find(element => element.id === `reward-${saved.openId}`);
+        const anchor = ticket?.querySelector<HTMLButtonElement>("[data-order-details]");
+        if (anchor) setOpened({ id: saved.openId, anchor });
+      });
     }
     restorePage();
     window.addEventListener("popstate", restorePage);
@@ -163,15 +175,21 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
   function changePage(page: number) {
     const anchor = orders[page * size]?.rewardId ?? null;
     setPageAnchor(anchor);
-    rememberPage(anchor);
+    rememberPage(anchor, null);
   }
 
   function openDetails(id: string, anchor: HTMLButtonElement) {
     setPageAnchor(id);
     setOpened({ id, anchor });
+    rememberPage(id, id);
   }
 
-  return <div className={styles.gallery} data-order-gallery onClickCapture={event => {
+  function closeDetails() {
+    setOpened(null);
+    rememberPage(opened?.id ?? pageAnchor, null);
+  }
+
+  return <div ref={gallery} className={styles.gallery} data-order-gallery onClickCapture={event => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const target = event.target instanceof Element ? event.target : null;
     if (!target?.closest("a[href]")) return;
@@ -191,7 +209,7 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
             <Link href={href} className={styles.art} aria-label={`View ${order.title} reward`}><Image src={order.image} alt="" fill sizes="(max-width: 700px) 64px, 200px" /></Link>
             <div className={styles.copy}><p className={styles.retailer}>{order.retailer}</p><h3><Link href={href} title={order.title}>{order.title}</Link></h3><div className={styles.statuses}><span className={styles.source} data-source={order.source}><AccountIcon name={order.source === "winner" ? "prize" : "orders"} />{order.source === "winner" ? "You won" : order.source === "purchase" ? "Purchased" : "Reward"}</span><span className={styles.status}>{detail.label}</span></div></div>
             <dl className={styles.money}><div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>{order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}</dl>
-            <div className={styles.actions}><button type="button" className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
+            <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
           </article>;
         })}
       </div>
@@ -199,7 +217,7 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
         {Array.from({ length: Math.min(phone ? 2 : 3, Math.ceil((orders.length - start - size) / (phone ? 1 : 2))) }, (_, index) => <span key={index} className={`${styles.card} ${styles.peekCard}`} aria-hidden="true" />)}
       </button> : null}
       </div>
-      {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} anchor={opened.anchor} onClose={() => setOpened(null)} /> : null}
+      {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
     <nav className={styles.paging} aria-label="Order tickets"><span role="status">{start + 1}–{Math.min(start + size, orders.length)} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={currentPage === 0 || Boolean(selected)} onClick={() => changePage(currentPage - 1)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={currentPage === lastPage || Boolean(selected)} onClick={() => changePage(currentPage + 1)}><AccountIcon name="chevron" /></button></div></nav>
   </div>;

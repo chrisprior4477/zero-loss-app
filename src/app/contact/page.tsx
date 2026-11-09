@@ -51,6 +51,6 @@ export default async function ContactPage() {
         <section aria-labelledby="quick-answers-heading"><h2 id="quick-answers-heading" className="mb-4 text-xl font-black">You might not need to wait</h2><div className="space-y-3">{quickAnswers.map(item => <FaqAnswer key={item.id} item={item} />)}</div><Link href="/faq" className="mt-3 inline-flex min-h-11 items-center font-bold text-cyan-300">Search all questions →</Link></section>
       </div>
     </div>
-    <ProductSuggestion />
+    <ProductSuggestion ownerId={account?.userId} />
   </PageContainer>;
 }

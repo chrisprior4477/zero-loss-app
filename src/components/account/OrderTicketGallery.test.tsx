@@ -1,12 +1,13 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { OrderTicketGallery, orderSupportSummary } from "./OrderTicketGallery";
 import type { FulfillmentRecord } from "@/lib/account/fulfillment";
 import { activityHref } from "@/lib/account/activity";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 
 vi.mock("next/image", () => ({ default: () => null }));
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+beforeEach(() => { window.history.replaceState({}, "", "/account/orders"); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); window.history.replaceState({}, "", "/"); });
 const record = (id: number, changes: Partial<FulfillmentRecord> = {}): FulfillmentRecord => ({
   orderNumber: `order-full-reference-${id}`, rewardSlug: "same-product", rewardId: `reward-full-reference-${id}`,
   title: `Reward ${id}`, retailer: "Retailer", image: "/test.png", faceValueCents: 10000, amountPaidCents: 9900,
@@ -197,4 +198,45 @@ test("browser return restores the later mobile order page and preserves router h
   render(<OrderTicketGallery orders={[record(1), record(2)]} />);
   expect(screen.getByText("1–2 of 2")).toBeTruthy();
   window.history.replaceState(null, "", "/");
+});
+
+test.each([true, false])("refresh and Support return reopen the same order; explicit close stays closed (phone: %s)", async phone => {
+  vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  vi.stubGlobal("requestAnimationFrame", (callback: () => void) => window.setTimeout(callback, 0));
+  vi.stubGlobal("cancelAnimationFrame", window.clearTimeout);
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  window.history.replaceState({ router: "keep" }, "", "/account/orders");
+  const orders = Array.from({ length: 8 }, (_, i) => record(i + 1));
+  let view = render(<OrderTicketGallery orders={orders} />);
+  fireEvent.click(screen.getByRole("button", { name: "Next tickets" }));
+  fireEvent.click(screen.getAllByRole("button", { name: "Order details" })[1]);
+  const number = phone ? 4 : 8;
+  expect(window.history.state.zeroLossOrderTickets.openId).toBe(record(number).rewardId);
+  expect(window.history.state.router).toBe("keep");
+  view.unmount();
+  view = render(<OrderTicketGallery orders={orders} />);
+  await waitFor(() => expect(within(screen.getByRole("dialog")).getByText(`Reward ${number} · Retailer`)).toBeTruthy());
+  const outgoing = window.history.state;
+  view.unmount();
+  window.history.replaceState({}, "", "/support?transaction=example");
+  window.history.replaceState(outgoing, "", "/account/orders");
+  view = render(<OrderTicketGallery orders={orders} />);
+  await waitFor(() => expect(within(screen.getByRole("dialog")).getByText(`Reward ${number} · Retailer`)).toBeTruthy());
+  fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+  expect(window.history.state.zeroLossOrderTickets.openId).toBeNull();
+  view.unmount();
+  render(<OrderTicketGallery orders={orders} />);
+  await new Promise(resolve => window.setTimeout(resolve, 20));
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("a return hint cannot reopen a missing or unrelated order", async () => {
+  vi.stubGlobal("requestAnimationFrame", (callback: () => void) => window.setTimeout(callback, 0));
+  vi.stubGlobal("cancelAnimationFrame", window.clearTimeout);
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  const orders = [record(1)];
+  window.history.replaceState({ zeroLossOrderTickets: { href: window.location.href, anchor: orders[0].rewardId, openId: record(2).rewardId, scrollY: 0 } }, "");
+  render(<OrderTicketGallery orders={orders} />);
+  await new Promise(resolve => window.setTimeout(resolve, 20));
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
