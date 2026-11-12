@@ -16,6 +16,8 @@ import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { WalletColumnHeadings } from "./WalletColumnHeadings";
 import { ledgerReturnKey, readLedgerReturn, type LedgerFilter, type LedgerReturn } from "@/lib/wallet/ledger-return";
 import { searchLedger } from "@/lib/wallet/ledger-search";
+import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
+import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 
 const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["purchases", "Purchases"], ["refunds", "Refunds"]];
 const noHiddenIds: string[] = [];
@@ -62,7 +64,13 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [query, setQuery] = useState("");
+  const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [searchSubmissions, setSearchSubmissions] = useState(0);
+  const voice = useVoiceSearch(setDraft);
+  const cancelVoice = voice.cancel;
   const searchInput = useRef<HTMLInputElement>(null);
+  const emptyResults = useRef<HTMLDivElement>(null);
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
   const dateErrorId = useId();
@@ -88,6 +96,12 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const restoreBatch = batches.restore;
   const restoredView = useRef<string | null>(null);
   useLayoutEffect(() => {
+    if (!searchSubmissions) return;
+    const target = listRef.current ?? emptyResults.current;
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView?.({ block: "start", behavior: "instant" });
+  }, [searchSubmissions, listRef]);
+  useLayoutEffect(() => {
     if (compact || !walletId) return;
     let firstFrame = 0;
     let secondFrame = 0;
@@ -108,8 +122,11 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       if (!saved) return;
       // Restore the whole view before painting the returned wallet, then let
       // Next/browser navigation settle before restoring the transaction's position.
+      cancelVoice();
+      setEditing(false);
       setFilter(saved.filter);
       setQuery(saved.query ?? "");
+      setDraft(saved.query ?? "");
       setFrom(saved.from);
       setThrough(saved.through);
       setShowArchived(saved.showArchived);
@@ -157,7 +174,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       window.removeEventListener("wheel", interrupt);
       window.removeEventListener("keydown", interrupt);
     };
-  }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone]);
+  }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone, cancelVoice]);
 
   function updateBookmark(changes: Partial<LedgerReturn>) {
     if (compact || !walletId) return;
@@ -185,14 +202,24 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     // outgoing transaction link unchanged and don't add a Back-button step.
     window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: saved }, "");
   }
-  function changeSearch(next: string) {
+  function applySearch(next: string) {
+    cancelVoice();
     updateBookmark({ query: next, offset: 0 });
     setQuery(next);
+    setDraft(next);
     batches.reset();
   }
+  function closeSearch() {
+    cancelVoice();
+    setDraft(query);
+    setEditing(false);
+    searchInput.current?.blur();
+  }
   function resetFilters() {
+    cancelVoice();
     updateBookmark({ query: "", filter: "all", from: "", through: "", offset: 0 });
     setQuery("");
+    setDraft("");
     setFilter("all");
     setFrom("");
     setThrough("");
@@ -206,18 +233,24 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   }, [selectedId]);
   return <>
     {!compact ? <div className={styles.historyControls}>
-      <form role="search" aria-label="Search wallet transactions" className={styles.ledgerSearch} onSubmit={event => {
-        event.preventDefault();
-        const list = listRef.current;
-        if (!list) return;
-        list.focus({ preventScroll: true });
-        list.scrollIntoView?.({ block: "start", behavior: "instant" });
-      }}>
+      <form role="search" aria-label="Search wallet transactions" className={styles.ledgerSearch}
+        onSubmit={event => {
+          event.preventDefault();
+          if (!draft.trim() || voice.listening) return;
+          searchInput.current?.blur();
+          setEditing(false);
+          applySearch(draft.trim());
+          setSearchSubmissions(count => count + 1);
+        }}
+        onKeyDown={event => { if (event.key === "Escape" && editing) { event.preventDefault(); closeSearch(); } }}>
         <label htmlFor={`${dateErrorId}-search`}>Search transactions</label>
         <div className={styles.ledgerSearchField}>
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>
-          <input ref={searchInput} id={`${dateErrorId}-search`} type="search" autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={query} onChange={event => changeSearch(event.target.value)} />
-          {query ? <button type="button" aria-label="Clear transaction search" onClick={() => { changeSearch(""); searchInput.current?.focus({ preventScroll: true }); }}>×</button> : null}
+          <input ref={searchInput} id={`${dateErrorId}-search`} type="search" autoComplete="off" enterKeyHint="search" placeholder="Product, retailer, or amount" value={draft}
+            onFocus={() => setEditing(true)} onChange={event => { cancelVoice(); setEditing(true); setDraft(event.target.value); }} />
+          {draft || query ? <button className={styles.ledgerSearchClear} type="button" aria-label="Clear transaction search" title="Clear search" onClick={() => { applySearch(""); searchInput.current?.focus({ preventScroll: true }); }}>×</button> : null}
+          {draft.trim() && !voice.listening ? <button className={styles.ledgerSearchGo} type="submit" aria-label="Go to transaction search results">Go</button> : null}
+          <VoiceSearchControl listening={voice.listening} error={editing ? voice.error : ""} toggle={() => { searchInput.current?.blur(); setEditing(true); voice.toggle(); }} />
+          {editing ? <button className={`${styles.ledgerSearchClear} ${styles.ledgerSearchClose}`} type="button" aria-label="Close transaction search" title="Close search" onClick={closeSearch}>×</button> : null}
         </div>
       </form>
       <div className={styles.dateRange} role="group" aria-label="Transaction date range">
@@ -232,7 +265,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       </div>
     </div> : null}
     {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { updateBookmark({ filter: key, offset: 0 }); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? searched.length : searched.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
-    {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : query.trim() || filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : query.trim() ? "Try a different product, retailer, or amount, or reset your filters." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
+    {visible.length === 0 ? <div ref={emptyResults} tabIndex={-1} className={`${styles.empty} ${styles.transactionPage}`}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : query.trim() || filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : query.trim() ? "Try a different product, retailer, or amount, or reset your filters." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       {!compact && <TicketBatchControls {...controls} top />}
       {twoColumns && <WalletColumnHeadings />}
       <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);

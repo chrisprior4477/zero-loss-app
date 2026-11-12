@@ -1,9 +1,9 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { WalletLedger } from "./WalletLedger";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 test("searches past the visible batch by product, retailer, and exact posted amount", () => {
   const created_at = "2026-11-05T17:00:00Z";
@@ -14,7 +14,10 @@ test("searches past the visible batch by product, retailer, and exact posted amo
   const refund = { ...purchase, id: "refund", entry_type: "REFUND", amount: 24950 };
   render(<WalletLedger entries={[...deposits, purchase, card, refund]} />);
   const input = screen.getByRole("searchbox", { name: "Search transactions" });
-  const type = (value: string) => fireEvent.change(input, { target: { value } });
+  const type = (value: string) => {
+    fireEvent.change(input, { target: { value } });
+    fireEvent.click(screen.getByRole("button", { name: "Go to transaction search results" }));
+  };
   const rows = () => screen.getAllByRole("listitem").map(row => row.id);
   expect(screen.queryByText(purchase.product.title)).toBeNull();
   type("AIRPODS PRO 3");
@@ -39,6 +42,53 @@ test("searches past the visible batch by product, retailer, and exact posted amo
   fireEvent.click(screen.getByRole("button", { name: "Clear transaction search" }));
   expect(input).toHaveProperty("value", "");
   expect(document.activeElement).toBe(input);
+});
+
+test("voice search reviews the transcript before Go, and the two X buttons clear or close it", () => {
+  class Speech {
+    static active: Speech;
+    onresult: ((event: { results: { transcript: string }[][] }) => void) | null = null;
+    onerror = null;
+    onend = null;
+    constructor() { Speech.active = this; }
+    start() {}
+    stop() {}
+    abort = vi.fn();
+  }
+  vi.stubGlobal("SpeechRecognition", Speech);
+  const created_at = "2026-11-05T17:00:00Z";
+  render(<WalletLedger entries={[
+    { id: "other", entry_type: "DEPOSIT", amount: 2500, created_at },
+    { id: "best-buy", entry_type: "PURCHASE_DEBIT", amount: -24900, created_at,
+      product: { title: "Apple AirPods Pro 3", retailer: "Best Buy", image: "/test.png" } },
+  ]} />);
+  const form = within(screen.getByRole("search", { name: "Search wallet transactions" }));
+  const input = form.getByRole("searchbox");
+  const mic = () => form.getByRole("button", { name: "Start voice search" });
+  const close = () => form.getByRole("button", { name: "Close transaction search" });
+  const clear = () => form.getByRole("button", { name: "Clear transaction search" });
+
+  fireEvent.click(mic());
+  expect(form.getByRole("button", { name: "Stop voice search" })).toBeTruthy();
+  act(() => Speech.active.onresult?.({ results: [[{ transcript: "Best Buy" }]] }));
+  expect(input).toHaveProperty("value", "Best Buy");
+  expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  expect(clear()).toBeTruthy();
+  expect(close()).toBeTruthy();
+  fireEvent.click(form.getByRole("button", { name: "Go to transaction search results" }));
+  expect(screen.getByRole("listitem").id).toBe("transaction-best-buy");
+  expect(document.activeElement).toBe(screen.getByRole("list", { name: "Transaction tickets" }));
+
+  fireEvent.click(mic());
+  const late = Speech.active.onresult!;
+  fireEvent.click(close());
+  act(() => late({ results: [[{ transcript: "Canceled search" }]] }));
+  expect(input).toHaveProperty("value", "Best Buy");
+  expect(Speech.active.abort).toHaveBeenCalledOnce();
+  expect(screen.getByRole("listitem").id).toBe("transaction-best-buy");
+  fireEvent.click(clear());
+  expect(input).toHaveProperty("value", "");
+  expect(screen.getAllByRole("listitem")).toHaveLength(2);
 });
 
 test("Purchases isolates gift-card charges, including older records without product metadata, and keeps exact result links", () => {
