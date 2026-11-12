@@ -150,3 +150,39 @@ test("denied camera permission offers the native photo fallback", async () => {
   expect(screen.getByRole("button", { name: "Use phone camera / choose photo" })).toBeTruthy();
   expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
 });
+
+
+test.each(['resolve', 'reject'] as const)('interrupted photo %s cannot lock or overwrite a retry', async outcome => {
+  const decodes: { resolve: () => void; reject: (error: Error) => void }[] = [];
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:pretend-card');
+  const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+  vi.stubGlobal('Image', class {
+    src = '';
+    decode() { return new Promise<void>((resolve, reject) => decodes.push({ resolve, reject })); }
+  });
+  const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+  render(<MobileCardCamera token="demo_card_5556" onSaved={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Use camera' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Take front photo' })).toBeTruthy());
+  fireEvent.click(screen.getByRole('button', { name: 'Take front photo' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Use phone camera / choose photo' }));
+  const file = new File(['pretend'], 'sample.png', { type: 'image/png' });
+  fireEvent.change(screen.getByLabelText('Back of card photo'), { target: { files: [file] } });
+  expect(screen.getByRole('button', { name: 'Creating sample colors…' })).toHaveProperty('disabled', true);
+  hidden.mockReturnValue(true);
+  fireEvent(document, new Event('visibilitychange'));
+  hidden.mockReturnValue(false);
+  fireEvent(document, new Event('visibilitychange'));
+  expect(screen.getByRole('button', { name: 'Use phone camera / choose photo' })).toHaveProperty('disabled', false);
+  expect(screen.getByRole('alert').textContent).toContain('Photo processing was interrupted');
+  expect(screen.getByRole('heading', { name: 'Now capture the back' })).toBeTruthy();
+  // Retry before the stale decode finishes. Its finally must not release the new busy state.
+  fireEvent.change(screen.getByLabelText('Back of card photo'), { target: { files: [file] } });
+  await act(async () => outcome === 'resolve' ? decodes[0].resolve() : decodes[0].reject(new Error('Interrupted')));
+  expect(screen.getByRole('button', { name: 'Creating sample colors…' })).toHaveProperty('disabled', true);
+  expect(screen.queryByRole('heading', { name: 'Your sample card' })).toBeNull();
+  await act(async () => decodes[1].resolve());
+  expect(screen.getByRole('button', { name: 'Save this card' })).toHaveProperty('disabled', false);
+  expect(revoke).toHaveBeenCalledTimes(2);
+  expect(saveDemoPaymentMethod).not.toHaveBeenCalled();
+});

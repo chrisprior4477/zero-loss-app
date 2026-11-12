@@ -103,8 +103,9 @@ test.each(["fresh visit", "different account", "different URL"])("does not reuse
 });
 
 test("Back and Forward restore a retained component; fewer current records do not leave a blank list", () => {
-  const { page } = depart();
+  const { page, saved } = depart();
   fireEvent.click(screen.getByRole("button", { name: /All32/ }));
+  window.history.replaceState(saved, "", href);
   act(() => window.dispatchEvent(new PopStateEvent("popstate"))); flush();
   expect(screen.getByRole("button", { name: /Orders30/ }).getAttribute("aria-pressed")).toBe("true");
   page.unmount(); render(<Page notifications={orders.slice(0, 2)} />); flush();
@@ -140,4 +141,19 @@ test("late Back scroll corrections stop as soon as the user interacts", () => {
 test.each([{ filter: "bad" }, { start: -1 }, { size: 0 }, { scrollY: Infinity }, { listScrollTop: -2 }, { expandedGroups: [42] }])("invalid bookmarks are ignored: %o", invalid => {
   const valid: NotificationReturn = { userId: "owner", href: window.location.href, filter: "orders", start: 0, size: 12, expandedGroups: [], scrollY: 0, listScrollTop: 0, linkId: "", linkTop: 0 };
   expect(readNotificationReturn({ [notificationReturnKey]: { ...valid, ...invalid } }, "owner", window.location.href)).toBeNull();
+});
+
+
+test('updated notification filter and collapsed batches survive refresh after Back', () => {
+  const first = depart(); first.page.unmount();
+  let page = render(<Page />); flush();
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+  page.unmount(); page = render(<Page />); flush();
+  expect(screen.getAllByRole('article')).toHaveLength(12);
+  fireEvent.click(screen.getByRole('button', { name: /Activity2/ }));
+  page.rerender(<Page notifications={data.map(row => ({ ...row }))} />); flush();
+  expect(screen.getByRole('button', { name: /Activity2/ }).getAttribute('aria-pressed')).toBe('true');
+  expect(window.history.state[notificationReturnKey]).toMatchObject({ filter: 'activity', start: 0, linkId: '' });
+  page.unmount(); render(<Page />); flush();
+  expect(screen.getByRole('button', { name: /Activity2/ }).getAttribute('aria-pressed')).toBe('true');
 });

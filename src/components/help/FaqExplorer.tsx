@@ -14,7 +14,15 @@ export function FaqExplorer() {
   const panel = useRef<HTMLElement>(null);
   const items = filterFaqs(query, category);
   const searching = Boolean(query.trim());
-  function reset() { setQuery(""); setCategory("all"); setExpanded([]); }
+  function updateBookmark(changes: Partial<FaqReturn>) {
+    const saved = readFaqReturn(window.history.state, window.location.href);
+    if (!saved) return;
+    window.history.replaceState({ ...window.history.state, [faqReturnKey]: {
+      ...saved, query, category, expanded, scrollY: window.scrollY, answer: null, answerTop: 0, ...changes,
+    } }, "");
+  }
+  function changeQuery(value: string) { updateBookmark({ query: value }); setQuery(value); }
+  function reset() { updateBookmark({ query: "", category: "all", expanded: [] }); setQuery(""); setCategory("all"); setExpanded([]); }
   useLayoutEffect(() => {
     let first = 0, second = 0, interrupted = false;
     const timers: number[] = [];
@@ -57,13 +65,17 @@ export function FaqExplorer() {
   }}>
     <div className={`${styles.ticket} ${styles.panel}`}>
       <label htmlFor="faq-search" className="block text-lg font-extrabold">What do you need help with?</label>
-      <div className={styles.searchRow}><div className={`${styles.ticket} ${styles.field}`}><input id="faq-search" type="search" maxLength={200} value={query} onChange={event => setQuery(event.target.value)} placeholder="Try ‘undo’, ‘gift card’, or ‘password’" aria-controls="faq-results" /></div>{searching ? <button type="button" onClick={() => setQuery("")} className={`${styles.ticket} ${styles.button}`}>Clear</button> : null}</div>
+      <div className={styles.searchRow}><div className={`${styles.ticket} ${styles.field}`}><input id="faq-search" type="search" maxLength={200} value={query} onChange={event => changeQuery(event.target.value)} placeholder="Try ‘undo’, ‘gift card’, or ‘password’" aria-controls="faq-results" /></div>{searching ? <button type="button" onClick={() => changeQuery("")} className={`${styles.ticket} ${styles.button}`}>Clear</button> : null}</div>
       <p className={`mt-2 text-xs leading-5 ${styles.muted}`}>Answers update as you type. No search button or extra page.</p>
     </div>
-    <div aria-label="Question topics" className={styles.topics}>{faqCategories.map(([key, label]) => <button key={key} type="button" aria-controls="faq-results" aria-pressed={category === key} onClick={() => setCategory(key)} className={`${styles.ticket} ${styles.button}`}>{label}</button>)}</div>
+    <div aria-label="Question topics" className={styles.topics}>{faqCategories.map(([key, label]) => <button key={key} type="button" aria-controls="faq-results" aria-pressed={category === key} onClick={() => { updateBookmark({ category: key }); setCategory(key); }} className={`${styles.ticket} ${styles.button}`}>{label}</button>)}</div>
     <p role="status" className="mb-4 text-sm text-white/65">{items.length} {items.length === 1 ? "answer" : "answers"}{searching ? " matching your search" : ""}</p>
     <div id="faq-results" className="space-y-3">{items.length ? items.map(item => <FaqAnswer key={`${item.id}-${searching}`} item={item} expanded={searching || expanded.includes(item.id)} onToggle={open => {
-      if (!searching) setExpanded(current => open ? current.includes(item.id) ? current : [...current, item.id] : current.filter(id => id !== item.id));
+      if (!searching && open !== expanded.includes(item.id)) {
+        const next = open ? expanded.includes(item.id) ? expanded : [...expanded, item.id] : expanded.filter(id => id !== item.id);
+        // Ignore a native toggle caused by restoring the same controlled state.
+        if (next !== expanded) { updateBookmark({ expanded: next }); setExpanded(next); }
+      }
     }} />) : <div className={`${styles.ticket} ${styles.panel}`}><h2 className="text-xl font-extrabold">Let’s find another way to help.</h2><p className={`mt-2 ${styles.muted}`}>Try a shorter phrase or another topic. You can also send us a message.</p><div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={reset} className={`${styles.ticket} ${styles.button}`}>Show all questions</button><Link href="/contact#message" className={`${styles.ticket} ${styles.button}`}>Contact support →</Link></div></div>}</div>
   </section>;
 }

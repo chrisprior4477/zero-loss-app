@@ -46,6 +46,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
   const guide = useRef<HTMLDivElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const captureVersion = useRef(0);
+  const decodingVersion = useRef<number | null>(null);
   const savingRef = useRef(false);
   const [cameraToken, setCameraToken] = useState(token);
   const [futureTransactions, setFutureTransactions] = useState(makeDefault);
@@ -66,7 +67,13 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
     function suspend() {
       if (!document.hidden) return;
       captureVersion.current++;
+      if (decodingVersion.current !== null) {
+        decodingVersion.current = null;
+        setBusy(false);
+        setError("Photo processing was interrupted. Choose the photo again to continue.");
+      }
       stream.current?.getTracks().forEach(track => track.stop()); stream.current = null;
+      if (video.current) video.current.srcObject = null;
       setCameraStatus("off");
     }
     document.addEventListener("visibilitychange", suspend);
@@ -97,7 +104,7 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
         : "The live camera couldn’t open. Try again, or use your phone’s camera or a photo below.");
     }
   }
-  function reset() { captureVersion.current++; stopCamera(); setFront(null); setArtwork(null); setBack(false); setBusy(false); setError(""); if (input.current) input.current.value = ""; }
+  function reset() { captureVersion.current++; decodingVersion.current = null; stopCamera(); setFront(null); setArtwork(null); setBack(false); setBusy(false); setError(""); if (input.current) input.current.value = ""; }
   function close() { if (savingRef.current) return; reset(); dialog.current?.close(); }
   function acceptColors(colors: number[]) {
     if (front) { setArtwork([...front, ...colors] as Artwork); stopCamera(); }
@@ -160,13 +167,14 @@ export function MobileCardCamera({ token, savedCard, disabled, displayName, make
         const file = event.currentTarget.files?.[0]; event.currentTarget.value = "";
         if (!file) return;
         const version = ++captureVersion.current;
+        decodingVersion.current = version;
         setBusy(true); setError("");
         try {
           const colors = await sampleColors(file);
           if (version !== captureVersion.current) return;
           acceptColors(colors);
         } catch { if (version === captureVersion.current) setError("We couldn’t read that photo. Try a JPG or PNG, or add a sample card manually."); }
-        finally { if (version === captureVersion.current) setBusy(false); }
+        finally { if (version === captureVersion.current) { decodingVersion.current = null; setBusy(false); } }
       }} />
       {artwork ? <div className={styles.preferences}>
         <label><input type="checkbox" checked={futureTransactions} disabled={saving} onChange={event => setFutureTransactions(event.target.checked)} />Use this card for future transactions</label>

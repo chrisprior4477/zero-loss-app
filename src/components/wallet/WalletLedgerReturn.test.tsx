@@ -124,6 +124,7 @@ test("Back/Forward can restore a retained wallet component and refresh uses the 
   const page = saveView();
   const saved = window.history.state;
   fireEvent.click(screen.getByRole("button", { name: "All" }));
+  window.history.replaceState(saved, "", href);
   act(() => window.dispatchEvent(new PopStateEvent("popstate", { state: saved })));
   expect(screen.getByRole("button", { name: "Funding" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByText("Showing 6–10 of 12 transactions")).toBeTruthy();
@@ -193,4 +194,31 @@ test.each(["View product", "View result", "View result for Nintendo Switch", "Ni
   render(<WalletLedger {...props} />); flush();
   expect(screen.getByRole("button", { name: "Purchases" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByText("Showing 6–10 of 12 transactions")).toBeTruthy();
+});
+
+
+test('new filters, dates and page replace the Back bookmark and survive data refresh and reload', () => {
+  const first = saveView(); first.unmount();
+  let page = render(<WalletLedger walletId="wallet-1" entries={allEntries} />); flush();
+  fireEvent.click(screen.getByRole('button', { name: 'Entries' }));
+  fireEvent.change(screen.getByLabelText('From date'), { target: { value: '2026-11-02' } });
+  page.rerender(<WalletLedger walletId="wallet-1" entries={allEntries.map(row => ({ ...row }))} />); flush();
+  expect(screen.getByRole('button', { name: 'Entries' }).getAttribute('aria-pressed')).toBe('true');
+  expect(window.history.state[ledgerReturnKey]).toMatchObject({ filter: 'entries', from: '2026-11-02', offset: 0, rowId: '' });
+  page.unmount(); page = render(<WalletLedger walletId="wallet-1" entries={allEntries} />); flush();
+  expect(screen.getByRole('button', { name: 'Entries' }).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.getByLabelText('From date')).toHaveProperty('value', '2026-11-02');
+  fireEvent.click(screen.getByRole('button', { name: 'Funding' }));
+  fireEvent.click(screen.getByRole('button', { name: /See more transactions/ }));
+  page.unmount(); page = render(<WalletLedger walletId="wallet-1" entries={allEntries} />); flush();
+  expect(screen.getByText('Showing 6–10 of 12 transactions')).toBeTruthy();
+  fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0]);
+  page.unmount(); render(<WalletLedger walletId="wallet-1" entries={allEntries} />); flush();
+  expect(screen.getByText('Showing 1–5 of 12 transactions')).toBeTruthy();
+});
+
+test('data-only refresh does not scroll the customer back to the departed ticket', () => {
+  const page = saveView(); flush(); scrollTo.mockClear();
+  page.rerender(<WalletLedger walletId="wallet-1" entries={allEntries.map(row => ({ ...row }))} />); flush();
+  expect(scrollTo).not.toHaveBeenCalled();
 });

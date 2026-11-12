@@ -66,6 +66,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const invalidDateRange = Boolean(from && through && from > through);
   const [showArchived, setShowArchived] = useState(() => !hideArchived && Boolean(selectedId && hiddenIds.includes(selectedId)));
   function close() {
+    updateBookmark({ offset: 0 });
     batches.reset();
     document.getElementById("transactions-heading")?.focus({ preventScroll: true });
     document.getElementById("transactions")?.scrollIntoView?.({ block: "start", behavior: "auto" });
@@ -77,8 +78,11 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(matching.length, desktop ? 6 : 5, matching.findIndex(entry => entry.id === selectedId), "pages");
   const visible = compact ? matching : matching.slice(batches.origin, batches.end);
   const twoColumns = !compact && desktop && visible.length > 3;
-  const controls = { ...batches, close, listId: "wallet-transaction-list", noun: "transactions" };
+  const controls = { ...batches, close, listId: "wallet-transaction-list", noun: "transactions",
+    more: () => { updateBookmark({ offset: batches.end }); batches.more(); },
+    previousPage: batches.previousPage ? () => { updateBookmark({ offset: Math.max(0, batches.start - batches.size) }); batches.previousPage?.(); } : undefined };
   const restoreBatch = batches.restore;
+  const restoredView = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (compact || !walletId) return;
     let firstFrame = 0;
@@ -91,7 +95,11 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       settlingTimers.splice(0).forEach(timer => window.clearTimeout(timer));
     }
     function interrupt() { interrupted = true; cancelScroll(); }
-    function restoreView() {
+    function restoreView(event?: Event) {
+      const viewKey = JSON.stringify([walletId, window.location.href, selectedId]);
+      // Server refreshes keep this mounted view. Only navigation may replay its bookmark.
+      if (!event && restoredView.current === viewKey) return;
+      restoredView.current = viewKey;
       const saved = readLedgerReturn(window.history.state, walletId!, window.location.href, selectedId);
       if (!saved) return;
       // Restore the whole view before painting the returned wallet, then let
@@ -145,6 +153,18 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     };
   }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone]);
 
+  function updateBookmark(changes: Partial<LedgerReturn>) {
+    if (compact || !walletId) return;
+    const saved = readLedgerReturn(window.history.state, walletId, window.location.href, selectedId);
+    if (!saved) return;
+    window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: {
+      ...saved, filter, from, through, showArchived, offset: batches.origin,
+      scrollY: window.scrollY, rowId: "", rowTop: 0,
+      expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
+      ...changes,
+    } }, "");
+  }
+
   function rememberView(event: MouseEvent<HTMLUListElement>) {
     if (compact || !walletId || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
@@ -167,14 +187,14 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   return <>
     {!compact ? <div className={styles.historyControls}>
       <div className={styles.dateRange} role="group" aria-label="Transaction date range">
-        <label>From date<input aria-label="From date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={from} max={through || undefined} onChange={event => { setFrom(event.target.value); batches.reset(); }} /></label>
-        <label>To date<input aria-label="To date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={through} min={from || undefined} onChange={event => { setThrough(event.target.value); batches.reset(); }} /></label>
-        {(from || through) ? <button type="button" onClick={() => { setFrom(""); setThrough(""); batches.reset(); }}>Clear dates</button> : null}
+        <label>From date<input aria-label="From date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={from} max={through || undefined} onChange={event => { updateBookmark({ from: event.target.value, offset: 0 }); setFrom(event.target.value); batches.reset(); }} /></label>
+        <label>To date<input aria-label="To date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={through} min={from || undefined} onChange={event => { updateBookmark({ through: event.target.value, offset: 0 }); setThrough(event.target.value); batches.reset(); }} /></label>
+        {(from || through) ? <button type="button" onClick={() => { updateBookmark({ from: "", through: "", offset: 0 }); setFrom(""); setThrough(""); batches.reset(); }}>Clear dates</button> : null}
         {invalidDateRange ? <p id={dateErrorId} role="alert" className={styles.dateRangeError}>From date must be on or before To date.</p> : null}
       </div>
       <p aria-live="polite">Showing {matching.length > visible.length ? `${batches.origin + 1}–${batches.end}` : visible.length} of {matching.length}{totalCount && totalCount > entries.length ? ` available (${totalCount - (showArchived ? 0 : hiddenIds.length)} total)` : ""} transactions</p>
     </div> : null}
-    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? dated.length : dated.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
+    {!compact ? <nav id="wallet-transaction-list-filters" aria-label="Transaction filters" className={styles.ledgerFilters}>{filters.map(([key, label]) => <button key={key} type="button" aria-label={label} aria-pressed={filter === key} onClick={() => { updateBookmark({ filter: key, offset: 0 }); setFilter(key); batches.reset(); }}><AccountIcon name={key === "funding" ? "wallet" : key === "entries" ? "completion" : key === "purchases" ? "orders" : key === "refunds" ? "gift" : "all"} /><span>{label}</span><b>{key === "all" ? dated.length : dated.filter(entry => category(entry) === key).length}</b></button>)}</nav> : null}
     {visible.length === 0 ? <div className={styles.empty}><h3>{displayEntries.length === 0 ? hiddenIds.length ? "No transactions in this demo view" : "No transactions yet" : filter === "all" ? "No matching transactions" : filter === "purchases" ? "No gift-card purchases" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} transactions`}</h3><p>{displayEntries.length === 0 ? hiddenIds.length ? hideArchived ? "Your demo transaction history has been reset." : "Earlier demo transactions are archived below and can be viewed again." : "Nothing has been added or spent. Your first posted transaction will appear here." : "No posted ledger activity matches this filter."}</p></div> : <div className={styles.ledger}>
       {!compact && <TicketBatchControls {...controls} top />}
       {twoColumns && <WalletColumnHeadings />}
@@ -209,6 +229,6 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     </div>}
     {!compact && <TicketBatchControls {...controls} />}
     {!compact && canResetDemoHistory && entries.some(entry => !archived.has(entry.id)) ? <DemoHistoryClearButton kind="transactions" /> : null}
-    {!compact && !hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setShowArchived(value => !value); batches.reset(); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo transactions" : `View archived demo transactions (${hiddenIds.length})`}</button> : null}
+    {!compact && !hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { updateBookmark({ showArchived: !showArchived, offset: 0 }); setShowArchived(value => !value); batches.reset(); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo transactions" : `View archived demo transactions (${hiddenIds.length})`}</button> : null}
   </>;
 }

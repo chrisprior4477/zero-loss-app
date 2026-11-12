@@ -50,3 +50,21 @@ test("a different FAQ history entry ignores a previous search bookmark", () => {
   expect(screen.getByRole("searchbox")).toHaveProperty("value", "");
   expect(screen.getByRole("button", { name: "All questions" }).getAttribute("aria-pressed")).toBe("true");
 });
+
+
+test('search and topic changes after Back survive reload without restoring the old answer', () => {
+  let page = render(<FaqExplorer />);
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'pending' } });
+  fireEvent.click(screen.getByRole('link', { name: 'Check funds & history' }));
+  page.unmount(); page = render(<FaqExplorer />);
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'password' } });
+  expect(window.history.state[faqReturnKey]).toMatchObject({ query: 'password', answer: null });
+  page.unmount(); page = render(<FaqExplorer />);
+  expect(screen.getByRole('searchbox')).toHaveProperty('value', 'password');
+  expect(screen.getByRole('status').textContent).toContain('2 answers');
+  fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Wallet & funding' }));
+  page.unmount(); render(<FaqExplorer />);
+  expect(screen.getByRole('searchbox')).toHaveProperty('value', '');
+  expect(screen.getByRole('button', { name: 'Wallet & funding' }).getAttribute('aria-pressed')).toBe('true');
+});

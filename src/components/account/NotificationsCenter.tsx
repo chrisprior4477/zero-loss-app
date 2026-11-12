@@ -70,6 +70,7 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter((item) => item.status === "completion").length;
   const restoreRange = batches.restoreRange;
+  const restoredView = useRef<string | null>(null);
 
   useEffect(() => {
     // Retain optimistic receipts until acknowledged, then let newer snapshots own them.
@@ -104,7 +105,10 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
       timers.splice(0).forEach(timer => window.clearTimeout(timer));
     }
     function interrupt() { interrupted = true; cancelScroll(); }
-    function restoreView() {
+    function restoreView(event?: Event) {
+      const viewKey = JSON.stringify([userId, window.location.href]);
+      if (!event && restoredView.current === viewKey) return;
+      restoredView.current = viewKey;
       const saved = readNotificationReturn(window.history.state, userId!, window.location.href);
       if (!saved) return;
       setFilter(saved.filter);
@@ -154,7 +158,19 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
     if (scrollFrame.current !== null) window.cancelAnimationFrame(scrollFrame.current);
   }, []);
 
+  function updateBookmark(changes: Partial<NotificationReturn>) {
+    if (!userId) return;
+    const saved = readNotificationReturn(window.history.state, userId, window.location.href);
+    if (!saved) return;
+    window.history.replaceState({ ...window.history.state, [notificationReturnKey]: {
+      ...saved, filter, start: batches.start, size: batches.size, expandedGroups,
+      scrollY: window.scrollY, listScrollTop: listRef.current?.scrollTop ?? 0,
+      linkId: "", linkTop: 0, ...changes,
+    } }, "");
+  }
+
   function selectFilter(nextFilter: FilterKey) {
+    updateBookmark({ filter: nextFilter, start: 0, size: groupsPerPage, listScrollTop: 0 });
     setFilter(nextFilter);
     batches.reset();
     if (!window.matchMedia?.("(max-width: 620px)").matches) return;
@@ -264,14 +280,20 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
           </div> : <div id="notification-tickets" ref={listRef} tabIndex={-1} className={`${styles.list} ${batchStyles.rows}`}>{groups.slice(0, batches.end).map(group => {
             const notification = group.notifications[0];
             return <NotificationStack key={group.key} group={group} read={read} categoryLabel={filters.find(([key]) => key === notification.category)?.[1] ?? ""} onOpen={handleNotificationClick}
-              expanded={expandedGroups.includes(group.key)} onExpandedChange={expanded => setExpandedGroups(current => expanded ? [...current, group.key] : current.filter(key => key !== group.key))}>
+              expanded={expandedGroups.includes(group.key)} onExpandedChange={expanded => {
+                const next = expanded ? [...expandedGroups, group.key] : expandedGroups.filter(key => key !== group.key);
+                updateBookmark({ expandedGroups: next }); setExpandedGroups(next);
+              }}>
               {notification.crewRequestId ? <div className={styles.crewActions}>
                 <button type="button" disabled={responding} onClick={() => startTransition(async () => { const result = await respondToCrewRequest(notification.crewRequestId!, true); setCrewMessage(result.message); if (result.ok) router.refresh(); })}>Approve</button>
                 <button type="button" disabled={responding} onClick={() => startTransition(async () => { const result = await respondToCrewRequest(notification.crewRequestId!, false); setCrewMessage(result.message); if (result.ok) router.refresh(); })}>Decline</button>
               </div> : null}
             </NotificationStack>;
           })}</div>}
-          <TicketBatchControls {...batches} listId="notification-tickets" noun="updates" close={() => {
+          <TicketBatchControls {...batches} listId="notification-tickets" noun="updates" more={() => {
+            updateBookmark({ start: batches.end }); batches.more();
+          }} close={() => {
+            updateBookmark({ start: 0, size: groupsPerPage, listScrollTop: 0 });
             batches.reset();
             listRef.current?.focus({ preventScroll: true });
             listRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
