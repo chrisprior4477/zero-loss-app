@@ -345,6 +345,21 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=paper+towels");
   });
 
+  test("retries an empty category search in place without removing existing actions", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "PetSmart", maxValue: "500", batch: "3" }) }));
+    const retry = screen.getByRole<HTMLFormElement>("search", { name: "Search Electronics again" });
+    expect(retry.getAttribute("action")).toBe("/browse#search-results");
+    const field = within(retry).getByRole<HTMLInputElement>("searchbox", { name: "Search Electronics again" });
+    expect(field.value).toBe("");
+    fireEvent.change(field, { target: { value: "Sony" } });
+    expect(Object.fromEntries(new FormData(retry))).toEqual({ category: "electronics", maxValue: "500", q: "Sony" });
+    expect(within(retry).getByRole("button", { name: "Go" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=PetSmart");
+    expect(screen.getByRole("link", { name: /Tell us what you'd like to see/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Browse available rewards" })).toBeTruthy();
+    expect(screen.getByRole("search", { name: "Search marketplace" })).toBeTruthy();
+  });
+
   test("filters to a current retailer and keeps product-type selection", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "everyday-items", retailer: "Walmart", type: "pictured" }) }));
     expect(screen.getByText("4 products shown")).toBeTruthy();

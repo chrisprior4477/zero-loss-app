@@ -113,6 +113,17 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const nextBatchParams = new URLSearchParams(returnParams);
   nextBatchParams.set("batch", String(batch + 1));
   const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}`;
+  const retryScope = selectedLabel ?? selectedRetailerGroup?.category;
+  const categorySearchRetry = searchTerm && retryScope && !endingSoon && !unavailable ? (
+    <form action="/browse#search-results" method="get" role="search" aria-labelledby="category-retry-label" className="mt-5 max-w-lg text-left">
+      {Array.from(searchParamsForView, ([name, value]) => name !== "q" && <input key={name} type="hidden" name={name} value={value} />)}
+      <label id="category-retry-label" htmlFor="category-retry-query" className="mb-2 block text-sm font-bold">Search {retryScope} again</label>
+      <div className={`${browseStyles.search} ${browseStyles.resultsSearch}`}>
+        <input id="category-retry-query" type="search" name="q" placeholder="Enter a new search" enterKeyHint="search" autoComplete="off" required />
+        <button type="submit" className={browseStyles.go}>Go</button>
+      </div>
+    </form>
+  ) : null;
   const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;
   const groceryOffers = products.filter(product => groceryInspirationOfferSlugs.has(product.slug)).flatMap(product => {
     const { remaining } = availabilityStatus(product.capacity, product.sold);
@@ -209,6 +220,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Already in your activity</p>
             <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">No open offers match “{searchTerm}” here.</h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">You have saved results for this search. Open your reward or purchase option below.</p>
+            {categorySearchRetry}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {savedMatches.map(({ product }) => {
                 const result = resolvedProductDestination(account?.activity, product.slug);
@@ -228,6 +240,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
             <h2 className="text-2xl font-bold">{filters.retailer ? `No current ${filters.retailer} offer matches here.` : selectedRetailerGroup ? `No current ${selectedRetailerGroup.category} offers match here.` : "No products match these filters."}</h2>
             <p className="mt-2 text-white/65">{budgetLabel ? `Your prize-value filter is ${budgetLabel}. This is the prize value, not the cost to enter. Clear filters or search all prizes to see more.` : "Try another retailer or clear your filters to see more prizes."}</p>
+            {categorySearchRetry}
             {searchTerm ? <Link href={searchResultsHref(searchTerm)} className="mr-3 mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e]">Search all prizes</Link> : null}
             <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link>
           </section>
@@ -243,6 +256,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 : "We’re adding new rewards regularly, and what our customers ask for helps decide what comes next. Tell us what you’d love a chance to win."}
             </p>
             <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
+            {categorySearchRetry}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               {selectedCategory ? <Link href={allSearchHref} className="zl-see-all">See all search results</Link> : null}
               <Link href={requestHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Tell us what you&apos;d like to see →</Link>
