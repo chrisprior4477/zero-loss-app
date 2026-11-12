@@ -57,7 +57,7 @@ begin
   begin
     perform public.patch_crew_display_preferences(stale,desired);
     raise exception 'Conflicting audience was accepted';
-  exception when serialization_failure then passed:=passed+1; end;
+  exception when sqlstate 'PT409' then passed:=passed+1; end;
   -- A newer rename cannot be overwritten by an older group editor in this form.
   stale:=saved;
   perform public.save_crew_group_checked(jsonb_build_object('id',a,'name','Newer group name','memberIds','[]'::jsonb,'contacts','[]'::jsonb),false,(select g from jsonb_array_elements(stale->'groups') g where g->>'id'=a::text));
@@ -65,7 +65,7 @@ begin
   begin
     perform public.patch_crew_display_preferences(stale,desired);
     raise exception 'Conflicting group was accepted';
-  exception when serialization_failure then passed:=passed+1; end;
+  exception when sqlstate 'PT409' then passed:=passed+1; end;
   -- An older deployed action must not restore an unsafe full snapshot.
   begin
     perform public.save_crew_display_preferences(stale->'defaultRule',stale->'groups',stale->'entryRules',true,true,true,true);

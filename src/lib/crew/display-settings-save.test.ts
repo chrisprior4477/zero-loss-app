@@ -12,8 +12,8 @@ test("sends the draft baseline and returns the authoritative merged settings", a
   expect(result).toMatchObject({ ok: true, settings });
   expect(m.rpc).toHaveBeenCalledWith("patch_crew_display_preferences", { p_expected: baseline, p_desired: settings });
 });
-test("stale-edit conflicts explain the refresh and do not fall back to replacing the snapshot", async () => {
-  m.rpc.mockResolvedValue({ error: { code: "40001" } });
+test.each(["PT409", "40001"])("stale privacy conflict %s keeps the draft and does not replace the snapshot", async (code) => {
+  m.rpc.mockResolvedValue({ error: { code } });
   expect(await saveCrewDisplaySettings({ ...baseline, expected: baseline })).toMatchObject({ ok: false, message: expect.stringContaining("another tab") });
   expect(m.rpc).toHaveBeenCalledTimes(1);
 });
@@ -23,10 +23,10 @@ test("signed-out saves never reach the write", async () => {
   expect(m.rpc).not.toHaveBeenCalled();
 });
 
-test("a group editor save sends the saved group and reports a competing change", async () => {
+test.each(["PT409", "40001"])("a group editor sends the saved group and reports conflict %s", async (code) => {
   const family = { id: "11111111-1111-4111-8111-111111111111", name: "Family", memberIds: [] };
   const group = { ...family, name: "Family weekend" };
-  m.rpc.mockResolvedValue({ error: { code: "40001" } });
+  m.rpc.mockResolvedValue({ error: { code } });
   expect(await saveCrewGroup({ group, remove: false, expected: family })).toMatchObject({ ok: false, conflict: true });
   expect(m.rpc).toHaveBeenCalledExactlyOnceWith("save_crew_group_checked", {
     p_expected: { ...family, contacts: [] },

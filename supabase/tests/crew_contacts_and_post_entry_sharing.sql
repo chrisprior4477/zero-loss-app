@@ -40,12 +40,12 @@ begin
   perform public.save_crew_group_checked(original,false,null);
   perform public.save_crew_group_checked(original,false,null); -- identical create retry
   perform public.save_crew_group_checked(newer,false,original);
-  perform pg_temp.expect_error(format('select public.save_crew_group_checked(%L,false,%L)',older_draft,original),'40001');
-  perform pg_temp.expect_error(format('select public.save_crew_group_checked(%L,true,%L)',original,original),'40001');
-  perform pg_temp.expect_error(format('select public.save_crew_visibility_group(%L,false)',older_draft),'40001');
+  perform pg_temp.expect_error(format('select public.save_crew_group_checked(%L,false,%L)',older_draft,original),'PT409');
+  perform pg_temp.expect_error(format('select public.save_crew_group_checked(%L,true,%L)',original,original),'PT409');
+  perform pg_temp.expect_error(format('select public.save_crew_visibility_group(%L,false)',older_draft),'PT409');
   perform pg_temp.assert_true((select groups @> jsonb_build_array(newer) from public.crew_visibility_settings),'newer membership survives stale writes');
   perform public.save_crew_group_checked(newer,true,newer);
-  perform pg_temp.expect_error(format('select public.save_crew_group_checked(%L,false,%L)',older_draft,original),'40001');
+  perform pg_temp.expect_error(format('select public.save_crew_group_checked(%L,false,%L)',older_draft,original),'PT409');
   perform pg_temp.assert_true((select groups='[]'::jsonb from public.crew_visibility_settings),'a stale editor cannot recreate the removed group');
 end;
 $$;

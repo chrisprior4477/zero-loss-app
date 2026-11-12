@@ -145,7 +145,7 @@ export async function saveCrewDisplaySettings(input: {
       entryRules: input.entryRules,
     },
   });
-  if (error?.code === "40001") return { ok: false, conflict: true, message: "These settings changed in another tab. Review the latest choices before saving. Your draft is still here." };
+  if (error?.code === "PT409" || error?.code === "40001") return { ok: false, conflict: true, message: "These settings changed in another tab. Review the latest choices before saving. Your draft is still here." };
   if (error) return { ok: false, message: "We couldn’t save those settings. Check that each person is still in your Crew, then try again." };
   refreshCrew();
   return { ok: true, message: "Saved to your profile. Your search visibility and pick audiences are updated.", settings: data as CrewDisplaySnapshot };
@@ -169,7 +169,7 @@ export async function saveCrewGroup(input: { group: CrewVisibilityGroup; remove:
     p_remove: input.remove,
     p_expected: expected === null ? null : { id: expected.id, name: expected.name, memberIds: expected.memberIds, contacts: expected.contacts ?? [] },
   });
-  if (error?.code === "40001") return { ok: false, conflict: true, message: "This group changed or was removed in another tab. Review the saved version before trying again." };
+  if (error?.code === "PT409" || error?.code === "40001") return { ok: false, conflict: true, message: "This group changed or was removed in another tab. Review the saved version before trying again." };
   if (error) return { ok: false, message: "We couldn’t save that group. Check that everyone is still in your Crew, then try again." };
   refreshCrew();
   return { ok: true, message: input.remove ? "Group removed from your profile." : `${group.name} saved to your profile.` };
