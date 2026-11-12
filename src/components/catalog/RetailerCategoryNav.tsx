@@ -148,7 +148,7 @@ export function RetailerCategoryNav(props: Props) {
           closeMenu();
         }} enterKeyHint="search" placeholder="Search categories or retailers" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
         {search ? <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
-          : <VoiceSearchButton onTranscript={text => { setMobileSearch(text); closeMenu(); }} />}
+          : <VoiceSearchButton key={mobileSearch} onTranscript={text => { setMobileSearch(text); closeMenu(); }} />}
       </form>
       <nav aria-label="Retailer categories" className="grid grid-cols-2 gap-2 lg:grid-cols-6">
         {!search ? <Link href={retailerHref("", props)} aria-current={!props.selectedGroupId ? "page" : undefined} onPointerEnter={() => { if (!pinnedId) setOpenId(null); }} onClick={closeMenu} className={`flex min-h-11 items-center justify-center rounded-xl border px-4 py-2 text-center text-sm font-bold transition-colors lg:min-h-14 lg:px-3 ${!openId && !props.selectedGroupId ? "border-cyan-300 bg-cyan-300 text-[#00132e]" : "border-white/25 bg-[#0d2b50] text-white hover:border-cyan-300"}`}>All retailers</Link> : null}

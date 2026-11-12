@@ -1,11 +1,12 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getUser: vi.fn(), from: vi.fn(), insert: vi.fn(), delete: vi.fn(), customerEq: vi.fn(), slugEq: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getUser: vi.fn(), snapshot: vi.fn(), from: vi.fn(), insert: vi.fn(), delete: vi.fn(), customerEq: vi.fn(), slugEq: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, from: mocks.from }) }));
 vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: () => false }));
 vi.mock("@/lib/preview/provisioning", () => ({ ensurePreviewCustomer: vi.fn() }));
 
-import { setFavorite } from "./actions";
+vi.mock("./reader", () => ({ getFavoriteSnapshot: mocks.snapshot }));
+import { getCurrentFavorites, setFavorite } from "./actions";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -41,4 +42,15 @@ test("duplicate saves are safe but other database errors are reported", async ()
   mocks.insert.mockResolvedValueOnce({ error: { code: "23505" } }).mockResolvedValueOnce({ error: { code: "42501" } });
   expect((await setFavorite("dyson-v8-cordless-vacuum", true)).status).toBe("saved");
   expect((await setFavorite("dyson-v8-cordless-vacuum", true)).status).toBe("error");
+});
+
+test("a favorites recheck only reads the verified account and reports failed reads", async () => {
+  mocks.snapshot.mockResolvedValue({ slugs: ["dyson-v8-cordless-vacuum"], available: true });
+  expect(await getCurrentFavorites()).toEqual({ slugs: ["dyson-v8-cordless-vacuum"], available: true, accountId: "signed-in-customer" });
+  expect(mocks.snapshot).toHaveBeenCalledExactlyOnceWith("signed-in-customer");
+  mocks.snapshot.mockRejectedValueOnce(new Error("offline"));
+  expect((await getCurrentFavorites()).available).toBe(false);
+  mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+  expect(await getCurrentFavorites()).toEqual({ slugs: [], available: false, accountId: null });
+  expect(mocks.snapshot).toHaveBeenCalledTimes(2);
 });

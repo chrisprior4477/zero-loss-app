@@ -4,9 +4,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   setFavorite: vi.fn(),
+  getCurrentFavorites: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
-vi.mock("@/lib/favorites/actions", () => ({ setFavorite: mocks.setFavorite }));
+vi.mock("@/lib/favorites/actions", () => ({ setFavorite: mocks.setFavorite, getCurrentFavorites: mocks.getCurrentFavorites }));
 
 import { FavoritesProvider, useFavorites } from "./FavoritesProvider";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -16,7 +17,7 @@ const productName = "Dyson V8 Cordless Pet Vacuum";
 const productHref = "/items/dyson-v8-cordless-vacuum";
 
 function renderButtons(isSignedIn = true, initialSlugs: string[] = []) {
-  render(<FavoritesProvider initialSlugs={initialSlugs} isSignedIn={isSignedIn} available>
+  render(<FavoritesProvider accountId={isSignedIn ? "customer" : null} initialSlugs={initialSlugs} isSignedIn={isSignedIn} available>
     <FavoriteButton itemName={productName} itemHref={productHref} />
     <FavoriteButton itemName={productName} itemHref={productHref} />
   </FavoritesProvider>);
@@ -25,6 +26,7 @@ function renderButtons(isSignedIn = true, initialSlugs: string[] = []) {
 beforeEach(() => {
   mocks.push.mockReset();
   mocks.setFavorite.mockReset();
+  mocks.getCurrentFavorites.mockReset().mockResolvedValue({ available: false, slugs: [], accountId: "customer" });
   sessionStorage.clear();
 });
 afterEach(cleanup);
@@ -54,7 +56,7 @@ test("another tab restoring the original favorites updates the count and hearts 
   }
   const slug = "dyson-v8-cordless-vacuum";
   const view = (slugs: string[], available = true) => (
-    <FavoritesProvider initialSlugs={slugs} isSignedIn available={available}>
+    <FavoritesProvider accountId="customer" initialSlugs={slugs} isSignedIn available={available}>
       <Count />
       <FavoriteButton itemName={productName} itemHref={productHref} />
     </FavoritesProvider>
@@ -67,8 +69,9 @@ test("another tab restoring the original favorites updates the count and hearts 
     fireEvent.click(screen.getByRole("button", { name: `Remove ${productName} from favorites` }));
     await screen.findByText("1 favorites");
     expect(changed).toHaveBeenCalledOnce();
+    mocks.getCurrentFavorites.mockResolvedValue({ slugs: [slug, secondSlug], available: true, accountId: "customer" });
     rerender(view([slug, secondSlug]));
-    expect(screen.getByText("2 favorites")).toBeTruthy();
+    await screen.findByText("2 favorites");
     expect(screen.getByRole("button", { name: `Remove ${productName} from favorites` })).toBeTruthy();
     rerender(view([], false));
     expect(screen.getByText("2 favorites")).toBeTruthy();
@@ -96,7 +99,7 @@ function delayedReply() {
 const secondName = 'PlayStation 5 Slim Model';
 const secondSlug = 'playstation-5-slim';
 function twoProducts(initialSlugs: string[] = []) {
-  return render(<FavoritesProvider initialSlugs={initialSlugs} isSignedIn available>
+  return render(<FavoritesProvider accountId="customer" initialSlugs={initialSlugs} isSignedIn available>
     <FavoriteButton itemName={productName} itemHref={productHref}/>
     <FavoriteButton itemName={productName} itemHref={productHref}/>
     <FavoriteButton itemName={secondName} itemHref={`/items/${secondSlug}`}/>
@@ -155,7 +158,7 @@ function SameEventDoubleTap() {
 }
 test('the same product cannot enqueue duplicate writes before the disabled button renders', async () => {
   const reply = delayedReply();mocks.setFavorite.mockReturnValue(reply.promise);
-  render(<FavoritesProvider initialSlugs={[]} isSignedIn available><SameEventDoubleTap/></FavoritesProvider>);
+  render(<FavoritesProvider accountId="customer" initialSlugs={[]} isSignedIn available><SameEventDoubleTap/></FavoritesProvider>);
   fireEvent.click(screen.getByRole('button',{name:'Double tap'}));
   expect(mocks.setFavorite).toHaveBeenCalledOnce();
   await act(async()=>reply.resolve({status:'saved'}));
@@ -173,4 +176,64 @@ test('the guest sign-in handoff and another product save are both retained', asy
   expect(sessionStorage.getItem('zero-loss-pending-favorite-v1')).toBeNull();
   expect(screen.getAllByRole('button',{name:`Remove ${productName} from favorites`})).toHaveLength(2);
   expect(screen.getByRole('button',{name:`Remove ${secondName} from favorites`})).toHaveProperty('disabled',false);
+});
+
+function snapshotView(slugs: string[], accountId = "customer") {
+  return <FavoritesProvider key={accountId} accountId={accountId} initialSlugs={slugs} isSignedIn available>
+    <FavoriteButton itemName={productName} itemHref={productHref} />
+  </FavoritesProvider>;
+}
+const favoriteSlug = "dyson-v8-cordless-vacuum";
+function delayedSnapshot() {
+  let resolve!: (value: { slugs: string[]; available: boolean; accountId: string }) => void;
+  const promise = new Promise<Parameters<typeof resolve>[0]>(finish => { resolve = finish; });
+  return { promise, resolve };
+}
+
+test.each([true, false])("an older snapshot cannot reverse a confirmed favorite save=%s", async saved => {
+  const initial = saved ? [] : [favoriteSlug];
+  const result = saved ? [favoriteSlug] : [];
+  mocks.setFavorite.mockResolvedValue({ status: saved ? "saved" : "removed" });
+  const pending = delayedSnapshot();
+  mocks.getCurrentFavorites.mockReturnValue(pending.promise);
+  const view = render(snapshotView(initial));
+  fireEvent.click(screen.getByRole("button"));
+  await screen.findByText(saved ? "Saved to Favorites." : "Removed from Favorites.");
+  view.rerender(snapshotView([...initial]));
+  expect(screen.getByRole("button").getAttribute("aria-label")).toContain(saved ? "Remove" : "Add");
+  await act(async () => pending.resolve({ slugs: result, available: true, accountId: "customer" }));
+  expect(screen.getByRole("button").getAttribute("aria-label")).toContain(saved ? "Remove" : "Add");
+});
+
+test("a newer write invalidates an earlier recheck, and a later cross-tab removal is accepted", async () => {
+  mocks.setFavorite.mockResolvedValueOnce({ status: "saved" }).mockResolvedValueOnce({ status: "removed" });
+  const stale = delayedSnapshot();
+  mocks.getCurrentFavorites.mockReturnValue(stale.promise);
+  const view = render(snapshotView([]));
+  fireEvent.click(screen.getByRole("button"));
+  await screen.findByRole("button", { name: `Remove ${productName} from favorites` });
+  fireEvent.click(screen.getByRole("button"));
+  await screen.findByRole("button", { name: `Add ${productName} to favorites` });
+  await act(async () => stale.resolve({ slugs: [favoriteSlug], available: true, accountId: "customer" }));
+  expect(screen.getByRole("button").getAttribute("aria-label")).toContain("Add");
+  mocks.getCurrentFavorites.mockResolvedValue({ slugs: [favoriteSlug], available: true, accountId: "customer" });
+  view.rerender(snapshotView([favoriteSlug]));
+  await screen.findByRole("button", { name: `Remove ${productName} from favorites` });
+  mocks.getCurrentFavorites.mockResolvedValue({ slugs: [], available: true, accountId: "customer" });
+  view.rerender(snapshotView([]));
+  await screen.findByRole("button", { name: `Add ${productName} to favorites` });
+});
+
+test("an unavailable or wrong-account recheck does not erase a confirmed heart or leak into the next account", async () => {
+  const pending = delayedSnapshot();
+  mocks.setFavorite.mockResolvedValue({ status: "saved" });
+  mocks.getCurrentFavorites.mockReturnValue(pending.promise);
+  const view = render(snapshotView([]));
+  fireEvent.click(screen.getByRole("button"));
+  await screen.findByRole("button", { name: `Remove ${productName} from favorites` });
+  await act(async () => pending.resolve({ slugs: [], available: true, accountId: "someone-else" }));
+  expect(screen.getByRole("button").getAttribute("aria-label")).toContain("Remove");
+  view.rerender(snapshotView([], "next-account"));
+  expect(screen.getByRole("button").getAttribute("aria-label")).toContain("Add");
+  expect(screen.queryByRole("status")).toBeNull();
 });

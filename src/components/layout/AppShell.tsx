@@ -34,7 +34,7 @@ export async function AppShell({ children }: AppShellProps) {
     <NotificationProvider key={account?.userId ?? "guest"} initial={notifications} initialPopupStyle={account?.notificationPopupStyle ?? "rounded"} initialSpeed={account?.notificationBannerSpeed ?? 5} initialDisplaySeconds={account?.notificationBannerDisplaySeconds ?? 6} initialEnabled={account?.headerNotificationsEnabled ?? true} initialStyle={account?.notificationBannerStyle ?? "capsule"}>
     <MobileLogoSizeProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialSize={account?.mobileLogoSize ?? 0}>
     <MenuLayoutProvider key={account?.userId ?? "guest"} accountId={account?.userId} initialLayout={account?.menuLayout ?? "classic"} initialTabletLayout={account?.tabletMenuLayout ?? "classic"} initialDesktopLayout={account?.desktopMenuLayout ?? "classic"}>
-    <FavoritesProvider initialSlugs={favorites.slugs} isSignedIn={Boolean(account)} available={favorites.available}>
+    <FavoritesProvider key={account?.userId ?? "guest"} accountId={account?.userId ?? null} initialSlugs={favorites.slugs} isSignedIn={Boolean(account)} available={favorites.available}>
     <div className="flex min-h-full flex-col" style={{ paddingBottom: "max(var(--menu-trial-height, 0px), var(--logo-size-trial-height, 0px))" }}>
       <a
         href="#main-content"

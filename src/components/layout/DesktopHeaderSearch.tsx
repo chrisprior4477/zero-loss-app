@@ -53,6 +53,10 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
   const [suggestions, setSuggestions] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
+    // The other responsive search box can edit this same draft.
+    stopVoice();
+  }, [query, stopVoice]);
+  useEffect(() => {
     if (!suggestions) return;
     const outside = (event: PointerEvent) => {
       if (event.target instanceof Node && !formRef.current?.contains(event.target)) setSuggestions(false);
@@ -97,7 +101,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
         type="search"
         autoComplete="off"
         value={query}
-        onChange={(event) => { setQuery(event.target.value); setSuggestions(false); }}
+        onChange={(event) => { voice.cancel(); setQuery(event.target.value); setSuggestions(false); }}
         onFocus={() => { onActivate?.(); setSuggestions(true); }}
         onClick={() => setSuggestions(true)}
         aria-controls={suggestions && active !== false ? `${inputId}-suggestions` : undefined}
@@ -127,7 +131,7 @@ function HeaderSearchForm({ inputId, initialQuery, active, onActivate, onSubmitt
       {onDismiss ? <button type="button" aria-label="Close search" onClick={() => { voice.cancel(); onDismiss(); }} className="ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-[#00132e] hover:bg-slate-200">×</button> : null}
       {suggestions && active !== false ? <div id={`${inputId}-suggestions`} role="group" aria-label="Try a search" className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-cyan-300 bg-[#052749] p-2 text-white shadow-xl">
         <p className="px-2 py-1 text-xs font-bold text-cyan-200">Try a search</p>
-        {searchExamples.map(example => <button key={example} type="button" className="block min-h-9 w-full rounded-lg px-3 py-2 text-left text-sm font-bold hover:bg-[#124674] focus-visible:bg-[#124674] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" onPointerDown={event => event.preventDefault()} onClick={() => { setQuery(example); inputRef.current?.focus(); setSuggestions(false); }}>{example}</button>)}
+        {searchExamples.map(example => <button key={example} type="button" className="block min-h-9 w-full rounded-lg px-3 py-2 text-left text-sm font-bold hover:bg-[#124674] focus-visible:bg-[#124674] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" onPointerDown={event => event.preventDefault()} onClick={() => { voice.cancel(); setQuery(example); inputRef.current?.focus(); setSuggestions(false); }}>{example}</button>)}
       </div> : null}
       {voice.error ? <span role="status" className="absolute left-2 right-2 top-full rounded-lg bg-white p-3 text-sm text-[#00132e] shadow-lg">{voice.error}</span> : null}
     </form>

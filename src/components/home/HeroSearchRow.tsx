@@ -127,7 +127,7 @@ export function HeroSearchRow({ winnerCount = null }: HeroSearchRowProps) {
         />
         {query.trim() ? (
           <button type="submit" aria-label="Go to search results" className="min-h-9 shrink-0 rounded-md bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
-        ) : <VoiceSearchButton onTranscript={setQuery} />}
+        ) : <VoiceSearchButton key={query} onTranscript={setQuery} />}
       </form>
       <p
         id="hero-search-status"

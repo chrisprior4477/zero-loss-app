@@ -92,7 +92,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           <input id={`${id}-search`} type="search" name="q" value={searchDraft} onChange={event => setSearchDraft(event.target.value)} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
           {searchDraft.trim() ? (
             <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
-          ) : <VoiceSearchButton onTranscript={setSearchDraft} />}
+          ) : <VoiceSearchButton key={searchDraft} onTranscript={setSearchDraft} />}
         </div>
         {directoryMatches.length ? (
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">

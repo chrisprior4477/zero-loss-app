@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, startTransition, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { setFavorite } from "@/lib/favorites/actions";
+import { getCurrentFavorites, setFavorite } from "@/lib/favorites/actions";
 import { notifyAccountChanged } from "@/lib/account/account-state-events";
 import { accountRoutes } from "@/lib/account/navigation";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
@@ -35,16 +35,19 @@ function readPendingFavorite(): string | null {
   return null;
 }
 
-export function FavoritesProvider({ children, initialSlugs, isSignedIn, available }: { children: ReactNode; initialSlugs: string[]; isSignedIn: boolean; available: boolean }) {
+export function FavoritesProvider({ children, initialSlugs, isSignedIn, available, accountId }: { children: ReactNode; initialSlugs: string[]; isSignedIn: boolean; available: boolean; accountId: string | null }) {
   const router = useRouter();
   const [slugs, setSlugs] = useState(initialSlugs);
   const [busySlugs, setBusySlugs] = useState<string[]>([]);
   const inFlight = useRef(new Set<string>());
+  const confirmed = useRef(new Map<string, boolean>());
+  const mutationGeneration = useRef(0);
   const [message, setMessage] = useState("");
   const syncedPending = useRef(false);
 
   function beginChange(slug: string) {
     if (inFlight.current.has(slug)) return false;
+    mutationGeneration.current += 1;
     inFlight.current.add(slug);
     setBusySlugs(current => [...current, slug]);
     return true;
@@ -55,11 +58,33 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
   }
 
   useEffect(() => {
-    // A fresh read may restore the original list after a local removal.
     if (!available) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSlugs(initialSlugs);
-  }, [initialSlugs, available]);
+    // RSC refreshes can have started before a successful write. Keep confirmed
+    // hearts until a read started here verifies a conflicting snapshot. This
+    // also accepts genuine later changes from another tab, without polling or
+    // relying on clocks on different servers being synchronized.
+    const next = new Set(initialSlugs);
+    let conflicts = false;
+    for (const [slug, saved] of confirmed.current) {
+      if (next.has(slug) !== saved) conflicts = true;
+      if (saved) next.add(slug); else next.delete(slug);
+    }
+    setSlugs(current => {
+      for (const slug of inFlight.current) {
+        if (current.includes(slug)) next.add(slug); else next.delete(slug);
+      }
+      return [...next];
+    });
+    if (!conflicts || inFlight.current.size || !accountId) return;
+    let cancelled = false;
+    const generation = mutationGeneration.current;
+    void getCurrentFavorites().then(snapshot => {
+      if (cancelled || generation !== mutationGeneration.current || !snapshot.available || snapshot.accountId !== accountId) return;
+      for (const slug of confirmed.current.keys()) confirmed.current.set(slug, snapshot.slugs.includes(slug));
+      setSlugs(snapshot.slugs);
+    }).catch(() => { /* Keep confirmed hearts; the next refresh can retry. */ });
+    return () => { cancelled = true; };
+  }, [initialSlugs, available, accountId, busySlugs]);
 
   useEffect(() => {
     if (!message) return;
@@ -78,6 +103,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
       if (!beginChange(pending)) return;
       void setFavorite(pending, true).then(result => {
         if (result.status === "saved") {
+          confirmed.current.set(pending, true);
           notifyAccountChanged();
           sessionStorage.removeItem(pendingKey);
           setSlugs(current => current.includes(pending) ? current : [pending, ...current]);
@@ -100,6 +126,7 @@ export function FavoritesProvider({ children, initialSlugs, isSignedIn, availabl
     startTransition(() => {
       void setFavorite(slug, shouldSave).then(result => {
         if (result.status === "saved" || result.status === "removed") {
+          confirmed.current.set(slug, result.status === "saved");
           notifyAccountChanged();
           setSlugs(current => result.status === "saved"
             ? current.includes(slug) ? current : [slug, ...current]

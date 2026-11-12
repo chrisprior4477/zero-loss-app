@@ -57,7 +57,7 @@ export function EndingSoonSearch({ position }: { position: Position }) {
     onKeyDown={event => { if (event.key === "Escape" && editing) { event.preventDefault(); close(); } }}>
     <label className={styles.srOnly} htmlFor={id}>{label}</label>
     <input id={id} ref={field} type="search" name="q" value={draft} placeholder={label}
-      enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => setDraft(event.target.value)} />
+      enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { voice.cancel(); setDraft(event.target.value); }} />
     {draft || applied ? <button className={styles.clearSearch} type="button" aria-label="Clear search" title="Clear search"
       onClick={() => { voice.cancel(); setDraft(""); field.current?.focus(); if (applied) search(""); }}>×</button> : null}
     {draft.trim() && !(editing && voice.listening) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}

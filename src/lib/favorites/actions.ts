@@ -2,9 +2,21 @@
 
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
+import { getFavoriteSnapshot } from "./reader";
 import { ensurePreviewCustomer } from "@/lib/preview/provisioning";
 import { createClient } from "@/lib/supabase/server";
 
+/** Recheck a conflicting refresh against the current authenticated account. */
+export async function getCurrentFavorites() {
+  try {
+    const db = await createClient();
+    const { data: { user }, error } = await db.auth.getUser();
+    if (error || !user) return { slugs: [], available: false, accountId: null };
+    return { ...await getFavoriteSnapshot(user.id), accountId: user.id };
+  } catch {
+    return { slugs: [], available: false, accountId: null };
+  }
+}
 export type FavoriteResult = { status: "saved" | "removed" | "error" | "sign-in"; message?: string };
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

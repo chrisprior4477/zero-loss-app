@@ -112,3 +112,34 @@ test("closing search cancels recognition and ignores a delayed result", () => {
   expect(speech.abort).toHaveBeenCalledOnce();
   expect(screen.getByRole("searchbox")).toHaveProperty("value", "");
 });
+
+test.each(["type", "clear", "suggestion"])("%s supersedes the final transcript after Stop", mode => {
+  class Speech {
+    static last: Speech;
+    onresult: ((event: { results: { transcript: string }[][] }) => void) | null = null;
+    onerror = null; onend = null;
+    constructor() { Speech.last = this; }
+    start() {} stop() {} abort = vi.fn();
+  }
+  vi.stubGlobal("SpeechRecognition", Speech);
+  render(<DesktopHeaderSearchFallback />);
+  fireEvent.click(screen.getByRole("button", { name: "Start voice search" }));
+  const late = Speech.last.onresult!;
+  fireEvent.click(screen.getByRole("button", { name: "Stop voice search" }));
+  const input = screen.getByRole("searchbox");
+  let expected = "Walmart $100";
+  if (mode === "suggestion") {
+    fireEvent.focus(input);
+    expected = searchExamples[0];
+    fireEvent.click(screen.getByRole("button", { name: expected }));
+  } else {
+    fireEvent.change(input, { target: { value: expected } });
+    if (mode === "clear") {
+      fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+      expected = "";
+    }
+  }
+  act(() => late({ results: [[{ transcript: "Old spoken search" }]] }));
+  expect(input).toHaveProperty("value", expected);
+  expect(Speech.last.abort).toHaveBeenCalledOnce();
+});
