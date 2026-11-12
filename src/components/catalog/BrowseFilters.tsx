@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { MAX_PRIZE_VALUE, type BrowseFilterState } from "@/lib/catalog/browse-filters";
 import type { RetailerFilterGroup } from "@/lib/catalog/browse-filters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
+import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import type { MarketplaceCategoryId } from "@/lib/catalog/navigation";
 import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
 import { PrizeDollarField } from "./PrizeDollarField";
@@ -97,7 +98,12 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">
             <p className="px-2 py-1 text-[11px] font-black uppercase tracking-[.1em] text-cyan-200">Retailer categories</p>
             {directoryMatches.map(group => (
-              <Link key={group.id} href={`/browse?${new URLSearchParams({ partnerCategory: group.id })}`} className="flex min-h-10 items-center justify-between gap-2 rounded-lg px-2 py-1 text-sm font-bold text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cyan-300">
+              <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory)} onClick={event => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                const drawer = event.currentTarget.closest("details");
+                if (drawer) drawer.open = false;
+                onNavigate?.();
+              }} className="flex min-h-10 items-center justify-between gap-2 rounded-lg px-2 py-1 text-sm font-bold text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-cyan-300">
                 <span>{group.category}</span><span aria-hidden="true">→</span>
               </Link>
             ))}

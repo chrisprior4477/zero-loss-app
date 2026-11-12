@@ -239,6 +239,49 @@ test("automatic confirmation navigates before a refresh can hide the result", as
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd"));
 });
 
+test.each(["wallet", "another prize", "query", "away and back"])("confirmation stays in the background after navigating to %s", async destination => {
+  const view = render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => {
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: request }));
+  });
+  if (destination === "query") mocks.search = "another-task=1";
+  else mocks.path = destination === "another prize" ? "/items/another-prize" : "/account/wallet";
+  view.rerender(<PendingEntryNotice />);
+  if (destination === "away and back") {
+    mocks.path = "/items/test-prize";
+    view.rerender(<PendingEntryNotice />);
+  }
+  act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: {
+    ...request, status: "accepted", href: "/account/entries?entry=ent_confirmed",
+  } })));
+  await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId));
+  expect(mocks.replace).not.toHaveBeenCalled();
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
+  expect(sessionStorage.getItem(RECENT_ENTRY_STORAGE_KEY)).toBeNull();
+});
+
+test("a resolver already in flight cannot redirect over a wallet draft", async () => {
+  let finish!: (value: { request: EntryRequest }) => void;
+  mocks.resolve.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  const view = render(<><PendingEntryNotice /><input aria-label="Deposit draft" defaultValue="" /></>);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  act(() => {
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_CREATED_EVENT, { detail: request.requestId }));
+    window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: { ...request, serverNow: request.undoUntil } }));
+  });
+  await waitFor(() => expect(mocks.resolve).toHaveBeenCalledWith(request.requestId, false));
+  mocks.path = "/account/wallet"; mocks.search = "view=history&panel=funding";
+  view.rerender(<><PendingEntryNotice /><input aria-label="Deposit draft" defaultValue="" /></>);
+  fireEvent.change(screen.getByLabelText("Deposit draft"), { target: { value: "73" } });
+  await act(async () => finish({ request: { ...request, status: "accepted", href: "/account/entries?entry=ent_confirmed" } }));
+  await waitFor(() => expect(mocks.acknowledge).toHaveBeenCalledWith(request.requestId));
+  expect(mocks.replace).not.toHaveBeenCalled();
+  expect((screen.getByLabelText("Deposit draft") as HTMLInputElement).value).toBe("73");
+  expect(screen.queryByRole("heading", { name: "Share this find" })).toBeNull();
+});
+
 test("automatic confirmation does not refresh over an Activity-detail redirect", async () => {
   mocks.resolve.mockResolvedValue({ request: { ...request, status: "accepted",
     href: "/account/entries?filter=completion&item=dunkin-25-gift-card&entry=ent_abcd" } });

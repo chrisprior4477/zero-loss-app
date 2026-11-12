@@ -20,6 +20,7 @@ import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailer
 import { searchResultsHref } from "@/lib/navigation/search-examples";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
+import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
@@ -144,7 +145,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <p className="mt-1 text-sm text-white/65">Explore the retailer directory. Current offers are marked separately.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {directoryMatches.map(group => (
-                <Link key={group.id} href={`/browse?${new URLSearchParams({ partnerCategory: group.id })}`} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">{group.category} →</Link>
+                <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory)} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">{group.category} →</Link>
               ))}
             </div>
           </section>

@@ -172,10 +172,18 @@ describe("Browse search results", () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: query }) }));
     const matches = within(screen.getByRole("region", { name: "Matching retailer categories" }));
     expect(matches.getByRole("link", { name: /Automotive/ }).getAttribute("href"))
-      .toBe("/browse?partnerCategory=automotive");
+      .toBe("/browse?partnerCategory=automotive#search-results");
     expect(screen.getByRole("link", { name: /\$100 AutoZone.*Gift Card/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: /\$100 Jiffy Lube.*Gift Card/ })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: `No current product listings match “${query}” yet.` })).toBeNull();
+  });
+
+  test("result-page category suggestions retain value, type, availability and sort", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "auto", minValue: "5", maxValue: "25", type: "gift-cards", available: "1", sort: "value-high" }) }));
+    const matches = within(screen.getByRole("region", { name: "Matching retailer categories" }));
+    const url = new URL(matches.getByRole("link", { name: /Automotive/ }).getAttribute("href")!, "https://example.test");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ partnerCategory: "automotive", type: "gift-cards", available: "1", minValue: "5", maxValue: "25", sort: "value-high" });
+    expect(url.hash).toBe("#search-results");
   });
 
   test("finds baby essentials using everyday language", async () => {

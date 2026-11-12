@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { acknowledgeEntryReceipt, listPendingEntryRequests, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, ENTRY_REQUEST_ROUTED_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 import { PostEntryCrewToast } from "./PostEntryCrewToast";
@@ -33,6 +33,14 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
   const revision = useRef(0);
   const knownPending = useRef(new Map<string, TimedRequest>());
   const nextResolveAt = useRef(new Map<string, number>());
+
+  useLayoutEffect(() => () => {
+    // Keep resolving saved holds after navigation, but stop owning the next
+    // page. Refs also protect against a resolver already awaiting its response.
+    // Returning later must not restore an abandoned automatic redirect.
+    createdHere.current.clear();
+    routedInActivity.current.clear();
+  }, [pathname, search]);
 
   const storeReceipt = useCallback((request: EntryRequest) => {
     if (request.status === "pending") knownPending.current.set(request.requestId, { ...request, receivedAt: performance.now() });
