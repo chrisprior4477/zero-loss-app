@@ -31,19 +31,19 @@ function Product({ item }: { item: ActivityItem }) {
   return <div className={styles.product}><Image src={item.image} alt={item.title} width={64} height={60} /><div><p className={styles.retailer}>{item.retailer}</p><h2>{item.title}</h2><p>{usd(item.priceCents)} gift card · Each entry counts toward its own option</p></div></div>;
 }
 
-function ConfirmPurchase({ total, balance, quantity, summary, busy, onUndo, onConfirm }: {
-  total: number; balance: number; quantity: number; summary: string; busy: boolean; onUndo: () => void; onConfirm: () => void;
+function ConfirmPurchase({ total, balance, quantity, summary, busy, onUndo, onExpire, onConfirm }: {
+  total: number; balance: number; quantity: number; summary: string; busy: boolean; onUndo: () => void; onExpire: () => void; onConfirm: () => void;
 }) {
   const [deadline] = useState(() => Date.now() + 30_000);
   const [seconds, setSeconds] = useState(30);
   useEffect(() => {
     if (busy) return;
-    const timer = window.setInterval(() => { const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000)); setSeconds(left); if (!left) onUndo(); }, 250);
+    const timer = window.setInterval(() => { const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000)); setSeconds(left); if (!left) onExpire(); }, 250);
     return () => window.clearInterval(timer);
-  }, [deadline, busy, onUndo]);
+  }, [deadline, busy, onExpire]);
   return <><div className={styles.facts}><div><span>{quantity} gift {quantity === 1 ? "card" : "cards"}</span><strong>{usd(total)}</strong></div><div><span>Wallet after purchase</span><strong>{usd(balance - total)}</strong></div></div>
     <p className={styles.small}>{summary}</p><div className={styles.countdown}><p>Confirm or undo.<small>Time runs out? Nothing is purchased. Added funds stay in your wallet.</small></p><EntryUndoCountdown seconds={seconds} /></div>
-    <div className={styles.twoButtons}><button type="button" className={styles.secondary} disabled={busy} onClick={onUndo}>Undo</button><button type="button" className={styles.primary} disabled={busy} onClick={() => { if (Date.now() >= deadline) onUndo(); else onConfirm(); }}>{busy ? "Completing…" : "Confirm purchase"}</button></div>
+    <div className={styles.twoButtons}><button type="button" className={styles.secondary} disabled={busy} onClick={onUndo}>Undo</button><button type="button" className={styles.primary} disabled={busy} onClick={() => { if (Date.now() >= deadline) onExpire(); else onConfirm(); }}>{busy ? "Completing…" : "Confirm purchase"}</button></div>
     <p className={styles.footnote}>Simulation only · No real payment or shipment.</p></>;
 }
 
@@ -68,6 +68,7 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
   const [depositRequestKey, setDepositRequestKey] = useState<string>();
   const checkRequired = recovery !== null;
   const [notice, setNotice] = useState("");
+  const [purchaseExpired, setPurchaseExpired] = useState(false);
   const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
   const inFlight = useRef(false);
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
@@ -131,10 +132,15 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
     // Old saved decline links now open this same ticket, and cancel returns here.
     if (initiallyConfirmDecline) router.replace(closeHref, { scroll: false });
   }, [initiallyConfirmDecline, router, closeHref]);
+  const expirePurchase = useCallback(() => {
+    if (inFlight.current) return;
+    close();
+    setPurchaseExpired(true);
+  }, [close]);
   function changeSelection(ids: string[], reviewed = false) {
     if (locked || !ids.length) return;
     updateChoice({ selected: ids, needsReview: needsReview && !reviewed });
-    setError(""); setNotice(""); setPurchaseRequest(null);
+    setError(""); setNotice(""); setPurchaseRequest(null); setPurchaseExpired(false);
   }
   function changeQuantity(quantity: number) {
     const ids = selected.slice(0, quantity);
@@ -143,6 +149,7 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
   }
   function review() {
     if (locked) return;
+    setPurchaseExpired(false);
     if (needsReview) { setOverlay("options"); return; }
     setError(""); setNotice(""); setAcknowledged(false);
     if (shortfall) { setOverlay("fund"); return; }
@@ -215,8 +222,9 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
       </div><p className={styles.offerHelp}>{selectionSummary}</p></fieldset> : null}
       <div className={styles.optionLine}><span>{usd(item.remainingCents)} per option</span><button type="button" disabled={locked} onClick={() => setOverlay("options")}>Choose offers to complete · {chosen.length} selected</button></div>
       {money(true)}{needsReview && <p role="status" className={styles.status}>Your available offers changed. Check which offers you want to buy before continuing.</p>}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}
-      <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Review purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Review purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>
-      {!needsReview && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Review first. Confirm your purchase next."}</p>}
+      <p className={styles.purchaseExpired} role="status">{purchaseExpired ? "Time ran out. No purchase was made." : ""}</p>
+      <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>
+      {!needsReview && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Confirm your purchase in the next step."}</p>}
       <div className={styles.utility}><Link href="/account/entries?filter=completion"><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
@@ -236,7 +244,7 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
         <label className={styles.check}><input type="checkbox" checked={acknowledged} disabled={locked || !selectedCard} onChange={event => setAcknowledged(event.target.checked)} /><span>I confirm adding {validDeposit ? usd(deposit) : "this amount"} using {demoCardFixture(card)?.issuer ?? "my card"}.<small>Adds funds only. Confirm purchase next.</small></span></label>
         {fundingBlocked || !fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href={walletHref} onClick={rememberSelection}>Open wallet</Link></p> : null}
         {feedback}<button type="button" className={styles.primary} disabled={locked || !validDeposit || !acknowledged || !selectedCard || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
-      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
+      </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onExpire={expirePurchase} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
         <PurchaseOptionPicker optionIds={available} selected={declineDraft ?? selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}
           onDecline={ids => { setDeclineDraft(ids); setOverlay("decline"); }}>
           {draft => <div className={styles.optionDetails}>{options.filter(option => draft.includes(option.completionOptionId!)).map(option =>

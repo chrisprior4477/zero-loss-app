@@ -132,7 +132,7 @@ test("another tab's funding updates the purchase without losing the exact offer 
   expect(screen.getByRole("button", { name: "Add funds: $356 to continue" })).toBeTruthy();
   view.rerender(updatedCheckout(54300));
   expect(screen.getByText("Your wallet covers this purchase.")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Review purchase: $399" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Make purchase: $399" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
   fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
   expect(screen.getByRole("button", { name: "Option 3" }).getAttribute("aria-pressed")).toBe("true");
@@ -151,12 +151,12 @@ test("funding elsewhere closes the unnecessary deposit popup without buying auto
   const view = setup(); fundPopup();
   view.rerender(updatedCheckout(54300));
   expect(screen.queryByRole("dialog")).toBeNull();
-  expect(screen.getByRole("button", { name: "Review purchase: $399" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Make purchase: $399" })).toBeTruthy();
   expect(mocks.fund).not.toHaveBeenCalled(); expect(mocks.purchase).not.toHaveBeenCalled();
 });
 test("spending elsewhere closes an uncovered purchase confirmation before showing the new shortfall", () => {
   const view = setup(54300);
-  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" }));
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
   view.rerender(updatedCheckout(4300));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.getByRole("button", { name: "Add funds: $356 to continue" })).toBeTruthy();
@@ -178,7 +178,7 @@ test("canceling decline keeps the exact purchase choices, quantity and wallet in
   fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
   fireEvent.click(screen.getByRole("button", { name: "Decline all offers" }));
   fireEvent.click(screen.getByRole("button", { name: "Close and keep my offers" }));
-  expect(screen.getByRole("button", { name: "Review purchase: $798" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Make purchase: $798" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
   expect(mocks.replace).not.toHaveBeenCalled();
   expect(mocks.fund).not.toHaveBeenCalled();
@@ -222,7 +222,7 @@ test("Keep for later survives quantity changes and submits no decline IDs", asyn
   expect(screen.getByRole("button", { name: "Keep for later Accepting 2 Keeping for later 1" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Decline & remove Accepting 2 Declining & removing 1" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
-  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $798" })); fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $798" })); fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
   await waitFor(() => expect(mocks.purchase).toHaveBeenCalledOnce()); expect(mocks.purchase.mock.calls[0][0].declineIds).toEqual([]); expect(mocks.fund).not.toHaveBeenCalled();
 });
 
@@ -236,7 +236,7 @@ test.each([2, 4])("scrolling Buying to %i updates the review and the exact purch
   fireEvent.scroll(wheel, { target: { scrollTop: (quantity - 1) * 40 } });
   expect((screen.getByRole("radio", { name: `Buying ${quantity}` }) as HTMLInputElement).checked).toBe(true);
   expect(screen.getByRole("heading", { name: `Buy ${quantity} $25 gift cards` })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: `Review purchase: $${quantity * 24}` }));
+  fireEvent.click(screen.getByRole("button", { name: `Make purchase: $${quantity * 24}` }));
   const review = within(screen.getByRole("dialog"));
   expect(review.getByText(`${quantity} gift cards`)).toBeTruthy();
   // Late scroll events behind the confirmation must not change the order being reviewed.
@@ -249,10 +249,35 @@ test.each([2, 4])("scrolling Buying to %i updates the review and the exact purch
     purchaseIds: ids.slice(0, quantity), declineIds: ids.slice(quantity), totalCents: quantity * 2400,
   });
 });
-test("Undo and the 30-second timeout never submit a purchase", () => {
-  vi.useFakeTimers(); setup(50000); fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" })); fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-  expect(screen.queryByRole("dialog")).toBeNull(); fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" })); act(() => vi.advanceTimersByTime(30001));
-  expect(screen.queryByRole("dialog")).toBeNull(); expect(mocks.purchase).not.toHaveBeenCalled(); expect(mocks.fund).not.toHaveBeenCalled();
+test("the 30-second timeout shows a notice and retains the offers for a new confirmation", () => {
+  vi.useFakeTimers();
+  setup(90000);
+  fireEvent.click(screen.getByRole("button", { name: "Choose offers to complete · 1 selected" }));
+  const picker = within(screen.getByRole("dialog"));
+  fireEvent.click(picker.getByRole("button", { name: /Option 2/ }));
+  fireEvent.click(picker.getByRole("button", { name: "Use these options" }));
+  const purchase = screen.getByRole("button", { name: "Make purchase: $798" });
+  const message = "Time ran out. No purchase was made.";
+
+  fireEvent.click(purchase);
+  fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText(message)).toBeNull();
+
+  fireEvent.click(purchase);
+  act(() => vi.advanceTimersByTime(30001));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  const notice = screen.getByText(message);
+  expect(notice.getAttribute("role")).toBe("status");
+  expect(notice.nextElementSibling).toBe(purchase);
+  expect(screen.getByRole("button", { name: "Choose offers to complete · 2 selected" })).toBeTruthy();
+
+  fireEvent.click(purchase);
+  const confirmation = within(screen.getByRole("dialog", { name: "Confirm your purchase" }));
+  expect(confirmation.getByText("2 gift cards", { exact: true })).toBeTruthy();
+  expect(screen.queryByText(message)).toBeNull();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+  expect(mocks.fund).not.toHaveBeenCalled();
 });
 test("uncertain funding is locked for recovery rather than submitting a second deposit", async () => {
   mocks.fund.mockResolvedValue({ status: "pending", message: "Check this deposit." }); setup(); const popup = fundPopup();
@@ -292,14 +317,14 @@ test("changed offers show a fresh navigation and completed purchases without off
   mocks.purchase.mockResolvedValue({ status: "error", recovery: "offers", message: "These offers changed. No new purchases or declines were made." });
   setup(200000);
   fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" }));
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
   await screen.findByRole("alert");
   expect(screen.getByRole("link", { name: "Refresh available offers" }).getAttribute("href")).toBe("/account/purchase-options/nintendo-switch");
   expect(screen.getByRole("link", { name: "View completed purchases" }).getAttribute("href")).toBe("/account/entries?filter=completed");
   expect(screen.queryByRole("link", { name: "Check this deposit" })).toBeNull();
-  expect(screen.getByRole("button", { name: "Review purchase: $399" }).hasAttribute("disabled")).toBe(true);
-  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" }));
+  expect(screen.getByRole("button", { name: "Make purchase: $399" }).hasAttribute("disabled")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
   expect(mocks.purchase).toHaveBeenCalledOnce();
   // A full navigation mounts the server's remaining options and reconciles the saved draft.
   cleanup();
@@ -315,7 +340,7 @@ test.each(["uncertain receipt", "connection lost"])("%s points to completed purc
   if (outcome === "connection lost") mocks.purchase.mockRejectedValue(new Error("Lost response"));
   else mocks.purchase.mockResolvedValue({ status: "error", recovery: "check", message: "Check your purchases; they may already be saved." });
   const view = setup(50000);
-  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" }));
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
   await screen.findByRole("link", { name: "View completed purchases" });
   view.rerender(updatedCheckout(10100));
@@ -332,7 +357,7 @@ test("uses the returned ledger balance even if another action changed it during 
 test("the funded and unfunded instructions match the next step and the four actions stay inside the ticket", () => {
   const view = setup(50000);
   const ticket = screen.getByRole("region", { name: "Your purchase options" });
-  expect(within(ticket).getByText("Review first. Confirm your purchase next.")).toBeTruthy();
+  expect(within(ticket).getByText("Confirm your purchase in the next step.")).toBeTruthy();
   expect(within(ticket).getByRole("link", { name: "My Activity" })).toBeTruthy();
   expect(within(ticket).getByRole("button", { name: "Decline all offers" })).toBeTruthy();
   expect(within(ticket).getByRole("link", { name: "Continue shopping" })).toBeTruthy();
@@ -344,10 +369,10 @@ test("returning from the wallet restores selected options and the keep-for-later
   window.history.replaceState(null, "", "/account/purchase-options/nintendo-switch?option=ent_11111111111111111111111111111111&resume=wallet");
   sessionStorage.setItem(purchaseSelectionKey, JSON.stringify({ slug: "nintendo-switch", selected: ["option-0", "option-2"], decline: false }));
   setup(100000);
-  await waitFor(() => expect(screen.getByRole("button", { name: "Review purchase: $798" })).toBeTruthy());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Make purchase: $798" })).toBeTruthy());
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
   cleanup(); setup(100000);
-  expect(screen.getByRole("button", { name: "Review purchase: $798" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Make purchase: $798" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
 });
 
@@ -413,18 +438,18 @@ test.each([true, false])("refresh restores the exact offers and decline=%s, with
   fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
   fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
   fireEvent.click(screen.getByRole("button", { name: decline ? /Decline & remove/ : /Keep for later/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $798" }));
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $798" }));
   cleanup(); setup(200000);
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(mocks.purchase).not.toHaveBeenCalled();
   expect(mocks.fund).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: decline ? /Decline & remove/ : /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
-  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $798" }));
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $798" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
   await waitFor(() => expect(mocks.purchase).toHaveBeenCalledOnce());
   expect(mocks.purchase.mock.calls[0][0]).toMatchObject({ purchaseIds: ["option-0", "option-2"], declineIds: decline ? ["option-1"] : [] });
   cleanup(); setup(200000);
-  expect(screen.getByRole("button", { name: "Review purchase: $399" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Make purchase: $399" })).toBeTruthy();
 });
 
 test("changed inventory keeps other offers and requires a fresh review even across another reload", () => {
@@ -441,7 +466,7 @@ test("changed inventory keeps other offers and requires a fresh review even acro
   fireEvent.click(screen.getByRole("button", { name: "Close purchase popup" }));
   fireEvent.click(screen.getByRole("button", { name: "Review updated options" }));
   fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
-  fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" }));
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
   expect(within(screen.getByRole("dialog")).getByText(/Keep 2 offers/)).toBeTruthy();
   expect(mocks.purchase).not.toHaveBeenCalled();
 });
