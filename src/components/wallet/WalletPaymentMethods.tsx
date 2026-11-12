@@ -84,11 +84,14 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   function acceptSavedCard(card: DemoCard) {
     setCards(current => [...current.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault, isDepositDefault: card.isDepositDefault ? false : item.isDepositDefault })), card]);
     setMessage(`${demoCardFixture(card.token)?.issuer} •••• ${card.lastFour} saved. Your wallet balance has not changed.`);
-    showMethods(); router.refresh();
+    router.refresh();
   }
   return <section id="payment-methods" hidden={!panelOpen} className={`${walletStyles.ticketPanel} ${walletStyles.funding} ${styles.panel}`} aria-label="Payment methods">
     {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. Refresh before changing them.</p> : null}
-    {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onCancel={showMethods} onSaved={acceptSavedCard} /> : <>
+    {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onCancel={showMethods} onSaved={(card, source) => {
+      if (source === "camera" || !isEdit || card.token !== editorToken) showMethods();
+      acceptSavedCard(card);
+    }} /> : <>
       <h2>Payment methods</h2><p>Your saved cards, ready when you need them.</p>
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
       <div id="payment-methods-controls">
