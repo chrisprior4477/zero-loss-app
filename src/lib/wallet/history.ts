@@ -9,7 +9,7 @@ const ledgerTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\
 
 function product(slug: string | undefined) {
   const item = slug ? getDemoProduct(slug) : undefined;
-  return item?.gallery[0] ? { title: item.title, image: item.gallery[0].src, slug: item.slug } : undefined;
+  return item?.gallery[0] ? { title: item.title, image: item.gallery[0].src, slug: item.slug, retailer: item.retailer } : undefined;
 }
 
 /** Only use identities recorded on the ledger or their owner-scoped records. */

@@ -222,3 +222,36 @@ test('data-only refresh does not scroll the customer back to the departed ticket
   page.rerender(<WalletLedger walletId="wallet-1" entries={allEntries.map(row => ({ ...row }))} />); flush();
   expect(scrollTo).not.toHaveBeenCalled();
 });
+
+test("mobile search keeps focus while typing and returns to the exact filtered ticket", () => {
+  const purchases = entries.map((entry, index) => ({ ...entry, id: `search-${index}`, entry_type: "PURCHASE_DEBIT", amount: -24900,
+    product: { title: "Apple AirPods Pro 3", retailer: index % 2 ? "Best Buy" : "Target", image: "/test.png" } }));
+  const props = { walletId: "wallet-1", entries: [...entries, ...purchases] };
+  const view = render(<WalletLedger {...props} />);
+  const input = screen.getByRole("searchbox", { name: "Search transactions" });
+  const list = screen.getByRole("list", { name: "Transaction tickets" });
+  const scrollIntoView = vi.fn();
+  list.scrollIntoView = scrollIntoView;
+  input.focus();
+  fireEvent.change(input, { target: { value: "Best Buy $249" } });
+  expect(document.activeElement).toBe(input);
+  expect(scrollIntoView).not.toHaveBeenCalled();
+  expect(scrollTo).not.toHaveBeenCalled();
+  fireEvent.submit(screen.getByRole("search", { name: "Search wallet transactions" }));
+  expect(document.activeElement).toBe(list);
+  expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "instant" });
+
+  fireEvent.click(screen.getByRole("button", { name: "Purchases" }));
+  fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
+  expect(scrollIntoView).toHaveBeenCalledTimes(2);
+  expect(screen.getByText("Showing 6–6 of 6 transactions")).toBeTruthy();
+  fireEvent.click(screen.getByRole("link", { name: "Report a problem" }));
+  expect(window.history.state[ledgerReturnKey]).toMatchObject({ query: "Best Buy $249", filter: "purchases", offset: 5, rowId: "transaction-search-11" });
+  view.unmount();
+  render(<WalletLedger {...props} />);
+  flush();
+  expect(screen.getByRole("searchbox", { name: "Search transactions" })).toHaveProperty("value", "Best Buy $249");
+  expect(screen.getByText("Showing 6–6 of 6 transactions")).toBeTruthy();
+  expect(document.getElementById("transaction-search-11")).toBeTruthy();
+  expect(scrollTo).toHaveBeenLastCalledWith({ top: 1300, behavior: "instant" });
+});

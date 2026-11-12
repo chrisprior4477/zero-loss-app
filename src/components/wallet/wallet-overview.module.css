@@ -65,8 +65,20 @@
 .sectionHeading { display: flex; align-items: end; justify-content: space-between; gap: 15px; }
 .sectionHeading h2 { font-size: clamp(28px, 2.2vw, 39px); font-weight: 850; line-height: 1.05; letter-spacing: -.03em; }
 .sectionHeading p, .sectionHeading > span { margin-top: 2px; color: #c7dcf7; font-size: 15px; }
-.historyControls { display: flex; grid-column: 1 / -1; align-items: end; justify-content: space-between; gap: 12px; margin-top: 14px; }
-.historyControls p { color: #c7dcf7; font-size: 13px; text-align: right; }
+.historyControls { display: flex; flex-wrap: wrap; grid-column: 1 / -1; align-items: end; gap: 10px 12px; min-width: 0; margin-top: 14px; }
+.ledgerSearch { display: grid; flex: 1 1 235px; gap: 4px; min-width: 0; max-width: 420px; }
+.ledgerSearch label { color: #d8eaff; font-size: 13px; font-weight: 800; }
+.ledgerSearchField { display: flex; align-items: center; gap: 7px; min-width: 0; min-height: 46px; padding-left: 10px; border: 1px solid #67b5e3; border-radius: 8px; background: #fffefa; color: #075fae; }
+.ledgerSearchField svg { flex: none; width: 19px; height: 19px; }
+.ledgerSearchField input { flex: 1; width: 0; min-width: 0; min-height: 44px; padding: 4px 8px 4px 0; border: 0; background: transparent; color: #0b1940; font-size: 16px; }
+.ledgerSearchField input::placeholder { color: #536d8b; }
+.ledgerSearchField input::-webkit-search-cancel-button { display: none; }
+.ledgerSearchField input:focus { outline: none; }
+.ledgerSearchField:focus-within { outline: 2px solid #93dcff; outline-offset: 2px; }
+.ledgerSearchField button { flex: none; width: 44px; height: 44px; border: 0; border-radius: 7px; background: #dff2ff; color: #075fae; font-size: 24px; cursor: pointer; }
+.historyResultCount { display: flex; align-items: center; flex-wrap: wrap; justify-content: end; gap: 4px 12px; margin-left: auto; }
+.historyResultCount p { color: #c7dcf7; font-size: 13px; text-align: right; }
+.historyResultCount button { min-height: 44px; padding: 3px 0; border: 0; background: transparent; color: #93dcff; font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .dateRange { display: flex; flex-wrap: wrap; align-items: end; gap: 9px; }
 .dateRange label { display: grid; gap: 4px; color: #d8eaff; font-size: 13px; font-weight: 800; }
 .dateRange input { min-width: 160px; min-height: 44px; padding: 7px 11px; border: 1px solid #67b5e3; border-radius: 8px; background: #fffefa; color: #0b1940; font: inherit; color-scheme: light; }
@@ -339,8 +351,8 @@
   .summaryRow { border-bottom: 0; }
   .transactions { grid-template-columns: 1fr; row-gap: 10px; }
   .ledgerFilters { grid-column: 1; grid-row: auto; width: 100%; }
-  .historyControls { align-items: flex-start; flex-direction: column; }
-  .historyControls p { text-align: left; }
+  .historyResultCount { margin-left: 0; }
+  .historyResultCount p { text-align: left; }
   .ledger { margin-top: 0; }
 }
 @media (max-width: 767px) {
@@ -368,6 +380,7 @@
   .demoCardsHeading { align-items: flex-start; flex-direction: column; }
   .demoCardsHeading .addCardActions { width: 100%; }
   .demoCardsGrid { grid-template-columns: 1fr; }
+  .ledgerSearch { flex-basis: 100%; max-width: none; }
   .dateRange { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
   .dateRange input { width: 100%; min-width: 0; }
   .dateRange button { grid-column: 1 / -1; }

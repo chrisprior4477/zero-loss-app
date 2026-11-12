@@ -10,7 +10,7 @@ const requestId = "22222222-2222-4222-8222-222222222222";
 
 test("debits use only their recorded pool, not a nearby transaction", () => {
   const item = ledgerProduct({ ...base, entry_type: "ENTRY_DEBIT", source_event: "preview_entry", related_pool_id: "preview_best-buy-100-gift-card" }, new Map(), new Map());
-  expect(item).toMatchObject({ title: "$100 Best Buy Gift Card", image: "/catalog/best-buy-100-gift-card.svg" });
+  expect(item).toMatchObject({ title: "$100 Best Buy Gift Card", image: "/catalog/best-buy-100-gift-card.svg", retailer: "Best Buy" });
   expect(ledgerProduct({ ...base, entry_type: "ENTRY_DEBIT", source_event: "preview_entry", related_pool_id: null }, new Map(), new Map())).toBeUndefined();
 });
 

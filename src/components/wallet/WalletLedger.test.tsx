@@ -5,6 +5,42 @@ import { WalletLedger } from "./WalletLedger";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 afterEach(cleanup);
 
+test("searches past the visible batch by product, retailer, and exact posted amount", () => {
+  const created_at = "2026-11-05T17:00:00Z";
+  const deposits = Array.from({ length: 12 }, (_, index) => ({ id: `deposit-${index}`, entry_type: "DEPOSIT", amount: 24900, created_at }));
+  const purchase = { id: "older-purchase", entry_type: "PURCHASE_DEBIT", amount: -24900, created_at: "2026-11-01T17:00:00Z",
+    product: { title: "Apple AirPods Pro 3", retailer: "Best Buy", image: "/test.png", slug: "airpods-pro-3" } };
+  const card = { ...purchase, id: "gift-card", amount: -9900, product: { ...purchase.product, title: "$100 Publix Gift Card", retailer: "Publix" } };
+  const refund = { ...purchase, id: "refund", entry_type: "REFUND", amount: 24950 };
+  render(<WalletLedger entries={[...deposits, purchase, card, refund]} />);
+  const input = screen.getByRole("searchbox", { name: "Search transactions" });
+  const type = (value: string) => fireEvent.change(input, { target: { value } });
+  const rows = () => screen.getAllByRole("listitem").map(row => row.id);
+  expect(screen.queryByText(purchase.product.title)).toBeNull();
+  type("AIRPODS PRO 3");
+  expect(rows()).toEqual(["transaction-older-purchase", "transaction-refund"]);
+  type("Best Buy");
+  expect(rows()).toEqual(["transaction-older-purchase", "transaction-refund"]);
+  type("$249");
+  expect(screen.getByRole("button", { name: "All" }).textContent).toBe("All13");
+  fireEvent.click(screen.getByRole("button", { name: "Purchases" }));
+  expect(rows()).toEqual(["transaction-older-purchase"]);
+  type("AirPods −$249.00");
+  expect(rows()).toEqual(["transaction-older-purchase"]);
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-02" } });
+  expect(screen.getByRole("heading", { name: "No matching transactions" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
+  expect(input).toHaveProperty("value", "");
+  expect(screen.getByLabelText("From date")).toHaveProperty("value", "");
+  type("$100 Publix Gift Card");
+  expect(rows()).toEqual(["transaction-gift-card"]);
+  type("+$249.50");
+  expect(rows()).toEqual(["transaction-refund"]);
+  fireEvent.click(screen.getByRole("button", { name: "Clear transaction search" }));
+  expect(input).toHaveProperty("value", "");
+  expect(document.activeElement).toBe(input);
+});
+
 test("Purchases isolates gift-card charges, including older records without product metadata, and keeps exact result links", () => {
   const item = { ...storedActivityFixture().activity[0], entryId: `ent_${"4".repeat(32)}`, status: "completed" as const, rewardId: "purchased-reward", rewardStatus: "ready" as const };
   const created_at = "2026-11-05T17:00:00Z";

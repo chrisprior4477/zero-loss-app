@@ -7,6 +7,7 @@ export type LedgerReturn = {
   href: string;
   selectedId?: string;
   filter: LedgerFilter;
+  query?: string;
   from: string;
   through: string;
   showArchived: boolean;
@@ -24,6 +25,7 @@ export function readLedgerReturn(state: unknown, walletId: string, href: string,
   const date = (value: unknown) => typeof value === "string" && (value === "" || /^\d{4}-\d{2}-\d{2}$/.test(value));
   if (!saved || saved.walletId !== walletId || saved.href !== href || saved.selectedId !== selectedId
     || !["all", "funding", "entries", "purchases", "refunds"].includes(saved.filter ?? "")
+    || (saved.query !== undefined && typeof saved.query !== "string")
     || !date(saved.from) || !date(saved.through) || typeof saved.showArchived !== "boolean"
     || !Number.isSafeInteger(saved.offset) || saved.offset! < 0
     || !Number.isFinite(saved.scrollY) || saved.scrollY! < 0
