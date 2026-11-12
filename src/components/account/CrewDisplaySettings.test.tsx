@@ -184,6 +184,63 @@ test("search discoverability remains separate from pick audience", async () => {
   await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledWith(expect.objectContaining({ discoverable: true, defaultRule: { audience: "everyone", memberIds: [], groupIds: [] } })));
 });
 
+test.each(["saved", "offline"] as const)("privacy locks every audience input during a slow save (%s)", async outcome => {
+  let finish!: (value: { ok: boolean; message: string }) => void;
+  let disconnect!: (reason: Error) => void;
+  saveCrewDisplaySettings.mockImplementationOnce(() => new Promise((resolve, reject) => {
+    finish = resolve;
+    disconnect = reject;
+  }));
+  saveCrewDisplaySettings.mockResolvedValueOnce({ ok: true, message: "Saved to your profile." });
+  render(<CrewDisplaySettings available embedded section="privacy" initialDiscoverable={false}
+    initialDefaultRule={{ audience: "people", memberIds: [first], groupIds: [] }}
+    initialGroups={[{ id: second, name: "Football", memberIds: [first] }]}
+    initialEntryRules={{ [pick]: { audience: "groups", memberIds: [], groupIds: [second] } }}
+    members={[{ id: first, name: "Ari" }]}
+    sharedPicks={[{ id: pick, title: "Gift card", retailer: "Walmart", image: null }]} />);
+
+  const discover = screen.getByLabelText(/Find me by display name/) as HTMLInputElement;
+  const everyone = screen.getByRole("radio", { name: /Everyone in my Crew/ }) as HTMLInputElement;
+  const person = screen.getByRole("checkbox", { name: "Ari" }) as HTMLInputElement;
+  const group = screen.getByRole("checkbox", { name: "Football" }) as HTMLInputElement;
+  const pickAudience = screen.getByRole("combobox", { name: "Who can see this pick?" }) as HTMLSelectElement;
+  const save = screen.getByRole("button", { name: "OK · Save to my profile" }) as HTMLButtonElement;
+  fireEvent.click(discover);
+  fireEvent.click(save);
+
+  const controls = [...screen.getAllByRole<HTMLInputElement>("radio"), discover, person, group, pickAudience, save];
+  for (const control of controls) expect(control.disabled).toBe(true);
+  expect(screen.getByRole("status").textContent).toContain("temporarily locked");
+  everyone.click();
+  person.click();
+  group.click();
+  save.click();
+  expect(everyone.checked).toBe(false);
+  expect(person.checked).toBe(true);
+  expect(group.checked).toBe(true);
+  expect(saveCrewDisplaySettings).toHaveBeenCalledOnce();
+
+  await act(async () => {
+    if (outcome === "saved") finish({ ok: true, message: "Saved to your profile." });
+    else disconnect(new Error("offline"));
+  });
+  for (const control of controls) expect(control.disabled).toBe(false);
+  expect(discover.checked).toBe(true);
+  expect(person.checked).toBe(true);
+  expect(pickAudience.value).toBe("groups");
+  expect(group.checked).toBe(true);
+  if (outcome === "offline") expect(screen.getByRole("alert").textContent).toContain("Your edits are still here");
+  else expect(screen.getByRole("status").textContent).toBe("Saved to your profile.");
+
+  fireEvent.click(everyone);
+  expect(screen.queryByText("Saved to your profile.")).toBeNull();
+  fireEvent.click(save);
+  expect(await screen.findByText("Saved to your profile.")).toBeTruthy();
+  expect(saveCrewDisplaySettings).toHaveBeenNthCalledWith(2, expect.objectContaining({
+    discoverable: true, defaultRule: expect.objectContaining({ audience: "everyone" }),
+  }));
+});
+
 test("Mom contact details save and reappear without silently inviting or granting access", async () => {
   saveCrewGroup.mockResolvedValue({ ok: true, message: "Saved." });
   const props = { available: true, embedded: true, initialDiscoverable: false, initialDefaultRule: { audience: "everyone" as const, memberIds: [], groupIds: [] }, initialEntryRules: {}, members: [], sharedPicks: [] };

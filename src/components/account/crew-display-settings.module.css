@@ -55,6 +55,7 @@
 .audienceGrid + .targets { margin-left: 58px; }
 .target { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 7px 11px; border: 1px solid #a8cce1; border-radius: 999px; background: #eaf6fd; color: #0b3155; font-size: 12px; font-weight: 750; cursor: pointer; }
 .target:has(input:checked) { border-color: #31bf56; background: #dfffe4; }
+.discoveryToggle:has(input:disabled), .audienceOption:has(input:disabled), .target:has(input:disabled) { cursor: not-allowed; }
 .target input { width: 15px; height: 15px; }
 .emptyTargets { margin: 16px 0 0 58px; color: #536b86; font-size: 13px; line-height: 1.5; }
 .emptyTargets a { color: #005fc0; font-weight: 800; }
@@ -113,6 +114,7 @@
 .page input:focus-visible, .page select:focus-visible, .page button:focus-visible, .page a:focus-visible { outline: 3px solid #38e34e; outline-offset: 3px; }
 .success, .error, .unavailable { margin-top: 17px; padding: 12px 15px; border-radius: 8px; font-size: 13px; font-weight: 750; }
 .success { background: #dffce7; color: #085c26; }
+.saving { margin-top: 12px; color: #526b87; font-size: 13px; }
 .error { background: #ffece8; color: #9c342d; }
 .unavailable { border: 1px solid #e7ad5d; background: #392a20; color: #ffdda2; }
 @media (max-width: 760px) {
