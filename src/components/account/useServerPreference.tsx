@@ -23,6 +23,7 @@ export function useServerPreference<T extends boolean | string | number | null>(
     savedValue: state.saved,
     isDirty: state.draft !== null,
     generation: state.generation,
+    snapshotRevision: state.revision,
     setValue(value: T) {
       setState(previous => ({ ...previous, draft: value === previous.saved ? null : { value } }));
     },
@@ -31,6 +32,13 @@ export function useServerPreference<T extends boolean | string | number | null>(
         // A newer read (for example a reminder already sent) beats an older response.
         const saved = previous.generation === startedAt ? value : previous.saved;
         const draft = previous.draft && previous.draft.value !== value && previous.draft.value !== saved ? previous.draft : null;
+        return { ...previous, saved, draft };
+      });
+    },
+    finishSave(submitted: T, verified?: T) {
+      setState(previous => {
+        const saved = verified === undefined ? previous.saved : verified;
+        const draft = previous.draft && previous.draft.value !== submitted && previous.draft.value !== saved ? previous.draft : null;
         return { ...previous, saved, draft };
       });
     },

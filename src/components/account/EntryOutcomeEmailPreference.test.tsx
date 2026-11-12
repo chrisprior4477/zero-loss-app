@@ -2,6 +2,9 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 const save = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/account/entry-outcome-email-actions", () => ({ saveEntryOutcomeEmailPreference: save }));
+vi.mock("@/lib/account/read-saved-email-preference", () => ({
+  readSavedEmailPreference: async () => save.mock.lastCall?.[1]?.get("enabled") === "true",
+}));
 import { EntryOutcomeEmailPreference } from "./EntryOutcomeEmailPreference";
 beforeEach(() => vi.resetAllMocks());
 afterEach(cleanup);

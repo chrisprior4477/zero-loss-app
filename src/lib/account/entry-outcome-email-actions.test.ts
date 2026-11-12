@@ -5,6 +5,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { g
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 
 import { saveEntryOutcomeEmailPreference } from "./entry-outcome-email-actions";
+import { readSavedEmailPreference } from "./read-saved-email-preference";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -34,4 +35,19 @@ test("does not claim to save if storage fails", async () => {
   const result = await saveEntryOutcomeEmailPreference({ status: "idle", message: "" }, new FormData());
   expect(result.status).toBe("error");
   expect(mocks.revalidate).not.toHaveBeenCalled();
+});
+
+test.each([
+  ["outcome", "get_entry_outcome_email_enabled", false],
+  ["purchase", "get_purchase_option_email_enabled", true],
+] as const)("verifies the current %s choice through its existing account reader", async (kind, getter, enabled) => {
+  mocks.rpc.mockResolvedValueOnce({ data: enabled, error: null });
+  expect(await readSavedEmailPreference(kind)).toBe(enabled);
+  expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith(getter);
+  expect(mocks.revalidate).not.toHaveBeenCalled();
+});
+
+test("a failed preference read never supplies a guessed value", async () => {
+  mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: "Authentication required" } });
+  expect(await readSavedEmailPreference("outcome")).toBeNull();
 });

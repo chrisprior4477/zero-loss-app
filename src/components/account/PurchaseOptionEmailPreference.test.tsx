@@ -3,6 +3,9 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 
 const save = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/account/lifecycle-actions", () => ({ setPurchaseOptionEmailPreference: save }));
+vi.mock("@/lib/account/read-saved-email-preference", () => ({
+  readSavedEmailPreference: async () => save.mock.lastCall?.[1]?.get("enabled") === "true",
+}));
 import { PurchaseOptionEmailPreference } from "./PurchaseOptionEmailPreference";
 
 beforeEach(() => vi.resetAllMocks());
