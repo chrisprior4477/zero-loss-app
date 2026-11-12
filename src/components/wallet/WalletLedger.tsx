@@ -53,6 +53,10 @@ function inDateRange(entries: LedgerEntryRow[], from: string, through: string, t
   });
 }
 
+function reversedDates(from: string, through: string) {
+  return Boolean(from && through && from > through);
+}
+
 function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   if (entry.entry_type === "DEPOSIT") return { name: "wallet", tone: "funding" };
   if (entry.entry_type === "ENTRY_HOLD_RELEASE" || (entry.entry_type === "REFUND" && entry.amount > 0)) return { name: "arrow", tone: "credit" };
@@ -73,8 +77,9 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   const emptyResults = useRef<HTMLDivElement>(null);
   const [from, setFrom] = useState("");
   const [through, setThrough] = useState("");
+  const [appliedDates, setAppliedDates] = useState({ from: "", through: "" });
   const dateErrorId = useId();
-  const invalidDateRange = Boolean(from && through && from > through);
+  const invalidDateRange = reversedDates(from, through);
   const [showArchived, setShowArchived] = useState(() => !hideArchived && Boolean(selectedId && hiddenIds.includes(selectedId)));
   function close() {
     updateBookmark({ offset: 0 });
@@ -84,7 +89,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
   }
   const archived = useMemo(() => new Set(hiddenIds), [hiddenIds]);
   const displayEntries = useMemo(() => compact || (showArchived && !hideArchived) ? entries : entries.filter(entry => !archived.has(entry.id)), [compact, showArchived, hideArchived, entries, archived]);
-  const dated = useMemo(() => compact ? displayEntries : inDateRange(displayEntries, from, through, timeZone), [displayEntries, from, through, compact, timeZone]);
+  const dated = useMemo(() => compact ? displayEntries : inDateRange(displayEntries, appliedDates.from, appliedDates.through, timeZone), [displayEntries, appliedDates, compact, timeZone]);
   const searched = useMemo(() => searchLedger(dated, query, description), [dated, query]);
   const matching = useMemo(() => filter === "all" ? searched : searched.filter(entry => category(entry) === filter), [searched, filter]);
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(matching.length, desktop ? 6 : 5, matching.findIndex(entry => entry.id === selectedId), "pages");
@@ -129,6 +134,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       setDraft(saved.query ?? "");
       setFrom(saved.from);
       setThrough(saved.through);
+      setAppliedDates({ from: saved.from, through: saved.through });
       setShowArchived(saved.showArchived);
       const savedEntries = entries.filter(entry => ((!hideArchived && saved.showArchived) || !archived.has(entry.id)) && (saved.filter === "all" || category(entry) === saved.filter));
       const savedMatches = searchLedger(inDateRange(savedEntries, saved.from, saved.through, timeZone), saved.query ?? "", description);
@@ -181,7 +187,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     const saved = readLedgerReturn(window.history.state, walletId, window.location.href, selectedId);
     if (!saved) return;
     window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: {
-      ...saved, filter, query, from, through, showArchived, offset: batches.origin,
+      ...saved, filter, query, ...appliedDates, showArchived, offset: batches.origin,
       scrollY: window.scrollY, rowId: "", rowTop: 0,
       expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
       ...changes,
@@ -194,7 +200,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     if (!(anchor instanceof HTMLAnchorElement) || anchor.target && anchor.target !== "_self") return;
     const row = anchor.closest("li");
     const saved: LedgerReturn = {
-      walletId, href: window.location.href, selectedId, filter, query, from, through, showArchived,
+      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, showArchived,
       offset: batches.origin, scrollY: window.scrollY, rowId: row?.id ?? "", rowTop: row?.getBoundingClientRect().top ?? 0,
       expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
     };
@@ -223,8 +229,18 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     setFilter("all");
     setFrom("");
     setThrough("");
+    setAppliedDates({ from: "", through: "" });
     batches.reset();
     searchInput.current?.focus({ preventScroll: true });
+  }
+  function changeDates(nextFrom: string, nextThrough: string) {
+    setFrom(nextFrom);
+    setThrough(nextThrough);
+    if (reversedDates(nextFrom, nextThrough)) return;
+    const dates = { from: nextFrom, through: nextThrough };
+    setAppliedDates(dates);
+    updateBookmark({ ...dates, offset: 0 });
+    batches.reset();
   }
   const selectedRow = useRef<HTMLLIElement>(null);
   useEffect(() => {
@@ -254,10 +270,10 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         </div>
       </form>
       <div className={styles.dateRange} role="group" aria-label="Transaction date range">
-        <label>From date<input aria-label="From date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={from} max={through || undefined} onChange={event => { updateBookmark({ from: event.target.value, offset: 0 }); setFrom(event.target.value); batches.reset(); }} /></label>
-        <label>To date<input aria-label="To date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={through} min={from || undefined} onChange={event => { updateBookmark({ through: event.target.value, offset: 0 }); setThrough(event.target.value); batches.reset(); }} /></label>
-        {(from || through) ? <button type="button" onClick={() => { updateBookmark({ from: "", through: "", offset: 0 }); setFrom(""); setThrough(""); batches.reset(); }}>Clear dates</button> : null}
-        {invalidDateRange ? <p id={dateErrorId} role="alert" className={styles.dateRangeError}>From date must be on or before To date.</p> : null}
+        <label>From date<input aria-label="From date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={from} max={through || undefined} onChange={event => changeDates(event.target.value, through)} /></label>
+        <label>To date<input aria-label="To date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={through} min={from || undefined} onChange={event => changeDates(from, event.target.value)} /></label>
+        {(from || through) ? <button type="button" onClick={() => changeDates("", "")}>Clear dates</button> : null}
+        {invalidDateRange ? <p id={dateErrorId} role="alert" className={styles.dateRangeError}>From date must be on or before To date. Showing results from the last valid range.</p> : null}
       </div>
       <div className={styles.historyResultCount}>
         {query || from || through || filter !== "all" ? <button type="button" onClick={resetFilters}>Reset filters</button> : null}

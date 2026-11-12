@@ -116,6 +116,7 @@ export async function revivePurchaseOption(
 export async function setDeclinedOfferEmailReminder(optionId: string, enabled: boolean): Promise<{
   status: "pending" | "cancelled" | "sent" | "error";
   message: string;
+  needsCheck?: boolean;
 }> {
   if (!uuidPattern.test(optionId) || typeof enabled !== "boolean" || !isPreviewDataEnvironment()) {
     return { status: "error", message: "This reminder is available only for a declined demo offer." };
@@ -128,17 +129,14 @@ export async function setDeclinedOfferEmailReminder(optionId: string, enabled: b
     const { data, error } = await db.rpc("set_declined_offer_email_reminder", {
       p_completion_option_id: optionId, p_enabled: enabled,
     });
-    if (error || !["pending", "cancelled", "sent"].includes(data?.status)) {
-      return { status: "error", message: error?.code === "P0001"
-        ? "This reminder is unavailable or too close to the offer deadline."
-        : "We couldn’t save your reminder choice. Please try again." };
-    }
+    if (error?.code === "P0001") return { status: "error", message: "This reminder is unavailable or too close to the offer deadline." };
+    if (error || !["pending", "cancelled", "sent"].includes(data?.status)) throw new Error("Reminder status could not be verified");
     revalidatePath("/account/declined-offers");
     return { status: data.status, message: data.status === "pending"
       ? "Two-day email reminder saved."
       : data.status === "sent" ? "Your two-day reminder was already sent." : "Email reminder turned off." };
   } catch {
-    return { status: "error", message: "We couldn’t confirm your reminder choice. Refresh before trying again." };
+    return { status: "error", needsCheck: true, message: "We couldn’t confirm your reminder choice. Reload its saved status before trying again." };
   }
 }
 

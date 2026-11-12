@@ -20,6 +20,13 @@ test("reviving an offer returns it to My Activity and Purchase Options", () => {
   expect(filterActivity([revived], "completion")).toEqual([revived]);
 });
 
+test("each declined offer has its own destination inside the product stack", () => {
+  const first = { ...declined, completionOptionId: "option-one" };
+  const second = { ...declined, completionOptionId: "option-two" };
+  expect(activityHref(first)).toBe("/account/declined-offers#declined-offer-option-one");
+  expect(activityHref(second)).toBe("/account/declined-offers#declined-offer-option-two");
+});
+
 test("each active saved entry opens its own page", () => {
   const first: ActivityItem = { ...base, entryId: "ent_11111111111111111111111111111111", status: "active" };
   const second: ActivityItem = { ...first, entryId: "ent_22222222222222222222222222222222" };

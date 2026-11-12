@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { setDeclinedOfferEmailReminder } from "@/lib/account/lifecycle-actions";
+import { declinedOfferHref } from "@/lib/account/activity";
 import { useServerPreference } from "./useServerPreference";
 import styles from "./my-activity.module.css";
 
@@ -63,6 +64,7 @@ export function DeclinedOfferReminder({ optionId, expiresAt, initialReminderStat
           try {
             const result = await setDeclinedOfferEmailReminder(optionId, enabled);
             if (result.status !== "error") preference.confirm(result.status, generation);
+            if (result.needsCheck) setNeedsCheck(true);
             setMessage(result.message);
           } catch {
             setNeedsCheck(true);
@@ -78,6 +80,11 @@ export function DeclinedOfferReminder({ optionId, expiresAt, initialReminderStat
       : !canRequestReminder ? <small>Email reminders are unavailable for this account right now.</small>
       : tooLateToSchedule && !checked ? <small>Too close to the deadline for a two-day reminder.</small> : null}
     {message ? <small role="status">{message}</small> : null}
-    {needsCheck ? <a href={`/account/declined-offers#declined-offer-${encodeURIComponent(optionId)}`} className="text-sm font-bold text-[#0069b3] underline">Reload reminder status →</a> : null}
+    {needsCheck ? <a href={declinedOfferHref(optionId)} onClick={event => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      window.history.replaceState(window.history.state, "", declinedOfferHref(optionId));
+      window.location.reload();
+    }} className="text-sm font-bold text-[#0069b3] underline">Reload reminder status →</a> : null}
   </div>;
 }

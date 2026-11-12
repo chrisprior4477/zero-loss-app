@@ -93,7 +93,7 @@ describe("Browse search results", () => {
     expect((bottom.getByRole("searchbox") as HTMLInputElement).value).toBe("Walmart");
     fireEvent.click(bottom.getByRole("button", { name: "Clear search" }));
     expect((top.getByRole("searchbox") as HTMLInputElement).value).toBe("");
-    expect(navigation.push).toHaveBeenLastCalledWith("/browse?sort=ending-soon&maxValue=100#search-results", { scroll: false });
+    expect(navigation.push).toHaveBeenLastCalledWith("/browse?sort=ending-soon&maxValue=100#ending-soon-search-input", { scroll: false });
   });
   test("Movie Night opens the selected collection and preserves it in product links", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "movie-night" }) }));

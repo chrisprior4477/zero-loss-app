@@ -24,12 +24,22 @@ test("signed-out preview does not show a different person's sample name or accou
   expect((screen.getByRole("textbox", { name: "Zero Loss account reference" }) as HTMLInputElement).value).toBe("");
 });
 
-test("print preview keeps the shopping context for its return journey", () => {
-  const open = vi.spyOn(window, "open").mockImplementation(() => null);
-  const browse = "/browse?category=electronics&sort=fewest-left";
-  render(<FreeEntryPrintCard offeringTitle="AirPods" offeringSlug="airpods-pro" browseReturn={browse} />);
-  fireEvent.click(screen.getByRole("button", { name: "Print entry insert" }));
-  const href = open.mock.calls[0]?.[0];
-  expect(new URL(String(href), "https://example.test").searchParams.get("from")).toBe(browse);
-  open.mockRestore();
+test("the letter preview keeps personal fields in the PDF form body and restores edited instructions", () => {
+  const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+  try {
+    render(<FreeEntryPrintCard offeringTitle="AirPods" offeringSlug="airpods-pro" initialAccountReference="DEMO-123" />);
+    const initialUrl = window.location.href;
+    fireEvent.change(screen.getByRole("textbox", { name: "Your full legal name" }), { target: { value: "Sample Tester" } });
+    fireEvent.click(screen.getByRole("button", { name: "Print entry insert" }));
+    expect(screen.getByRole("region", { name: "Letter-size print preview" })).toBeTruthy();
+    expect(window.location.href).toBe(initialUrl);
+    const pdf = screen.getByRole("button", { name: "Open printable PDF" }).closest("form")!;
+    expect(pdf.getAttribute("action")).toBe("/api/free-entry-pdf");
+    expect(pdf.method).toBe("post");
+    expect(new FormData(pdf).get("name")).toBe("Sample Tester");
+    expect(new FormData(pdf).get("account")).toBe("DEMO-123");
+    fireEvent.click(screen.getByRole("button", { name: /Back to entry instructions/ }));
+    expect(screen.getByRole("textbox", { name: "Your full legal name" })).toHaveProperty("value", "Sample Tester");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Print entry insert" }));
+  } finally { scroll.mockRestore(); }
 });

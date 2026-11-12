@@ -39,6 +39,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       ? query.rewards === "ready" ? "#ready-rewards" : "#reward-history" : "";
     const next = recoveryKey ? accountPageReturnPath("/account/wallet", query, "#purchase-deposit")
       : paymentPanel ? accountPageReturnPath("/account/wallet", query, query.panel === "card" ? "#wallet-add-card" : "#payment-methods")
+      : history && !query.transaction && (query.panel === "transactions" || query.panel === "deposits")
+      ? accountPageReturnPath("/account/wallet", query, query.panel === "transactions" ? "#transactions" : "#payment-deposits")
       : history && !query.transaction && (fromProduct || query.panel === "funding") ? query.review === "entry" && fromProduct
       ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity)
       : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse, query.choice)

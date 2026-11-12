@@ -22,12 +22,13 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
     let restoring = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
     const children = () => Array.from(track.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
+    const links = (child: HTMLElement) => child.matches("a[href]") ? [child] : Array.from(child.querySelectorAll("a[href]"));
     function save() {
       clearTimeout(saving);
       if (restoring || !track || !track.clientWidth || path !== window.location.pathname + window.location.search) return;
       const bounds = track.getBoundingClientRect();
       const first = children().find(child => child.getBoundingClientRect().right > bounds.left);
-      const position: Position = { left: track.scrollLeft, anchor: first?.querySelector("a[href]")?.getAttribute("href") ?? null, inset: first ? first.getBoundingClientRect().left - bounds.left : 0 };
+      const position: Position = { left: track.scrollLeft, anchor: first ? links(first)[0]?.getAttribute("href") ?? null : null, inset: first ? first.getBoundingClientRect().left - bounds.left : 0 };
       try {
         window.history.replaceState({ ...window.history.state, [stateKey]: { path, rows: { ...bookmark()?.rows, [id]: position } } }, "");
       } catch { /* A restricted history API must never block product navigation. */ }
@@ -39,12 +40,15 @@ export function useRailReturn(ref: RefObject<HTMLDivElement | null>, id: string)
     }
     function restore() {
       stopRestoring();
-      const saved = bookmark()?.rows[id];
+      const brand = id === "popular-rewards" && window.location.hash === "#popular-rewards"
+        ? new URLSearchParams(window.location.search).get("reward-brand") : null;
+      const retailer = brand && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(brand) ? `/rewards/${brand}` : null;
+      const saved = bookmark()?.rows[id] ?? (retailer ? { left: 0, anchor: retailer, inset: 4 } : null);
       if (!saved || !Number.isFinite(saved.left) || saved.left < 0 || !Number.isFinite(saved.inset)) return;
       restoring = true;
       const align = () => {
         if (!restoring || !track?.clientWidth) return;
-        const anchor = typeof saved.anchor === "string" ? children().find(child => Array.from(child.querySelectorAll("a[href]")).some(link => link.getAttribute("href") === saved.anchor)) : null;
+        const anchor = typeof saved.anchor === "string" ? children().find(child => links(child).some(link => link.getAttribute("href") === saved.anchor)) : null;
         const left = anchor ? track.scrollLeft + anchor.getBoundingClientRect().left - track.getBoundingClientRect().left - saved.inset : saved.left;
         track.scrollLeft = Math.max(0, Math.min(left, track.scrollWidth - track.clientWidth));
       };

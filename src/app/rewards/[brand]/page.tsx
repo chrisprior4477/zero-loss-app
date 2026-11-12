@@ -27,7 +27,7 @@ export default async function RewardBrandPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12">
       <div className="mx-auto max-w-6xl">
-        <Link href="/#popular-rewards" className="text-sm font-bold text-cyan-300 hover:text-white">← Back to Popular Rewards</Link>
+        <Link href={`/?reward-brand=${encodeURIComponent(brand.slug)}#popular-rewards`} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to Popular Rewards</Link>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#31e800]">Popular Reward · Digital fulfillment</p>
         <h1 className="mt-2 text-4xl font-black sm:text-6xl">Choose your {brand.name} reward</h1>
         <p className="mt-4 max-w-3xl text-lg leading-8 text-white/70">Pick a value to go to its $1 entry area. You can review the complete demo offering before you enter.</p>

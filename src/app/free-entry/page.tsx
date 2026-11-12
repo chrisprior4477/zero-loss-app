@@ -24,8 +24,7 @@ export default async function FreeEntryPage({ searchParams }: Props) {
   const demoAccountReference = account ? `DEMO-${account.userId.replace(/-/g, "").slice(0, 12).toUpperCase()}` : "";
 
   return (
-    <main className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
-      <div className="mx-auto max-w-4xl">
+    <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} initialLegalName={legalName} initialAccountReference={demoAccountReference} intro={<>
         <Link href={backHref} className="text-sm font-bold text-cyan-300 hover:text-white">← Back to {product.title}</Link>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.15em] text-[#31e800]">Alternative method of entry prototype</p>
         <h1 className="mt-2 text-3xl font-black sm:text-5xl">Enter without a purchase</h1>
@@ -42,13 +41,11 @@ export default async function FreeEntryPage({ searchParams }: Props) {
           </ol>
         </section>
 
-        <FreeEntryPrintCard offeringTitle={product.title} offeringSlug={product.slug} browseReturn={browseReturn} quantity={quantity} initialLegalName={legalName} initialAccountReference={demoAccountReference} />
-
+      </>} footer={
         <section className="print:hidden mt-8 rounded-3xl border border-white/12 bg-white/5 p-5 text-sm leading-6 text-white/65">
           <h2 className="text-lg font-extrabold text-white">Still awaiting approval</h2>
           <p className="mt-2">Counsel must approve eligibility, equal treatment, the maximum number of entries across paid and free methods, timing, required handwriting or printing, duplicate prevention, privacy disclosures, and state-specific restrictions. Operations must approve the physical address, scanning equipment, exception handling, audit trail, and retention policy.</p>
         </section>
-      </div>
-    </main>
+      } />
   );
 }

@@ -7,6 +7,7 @@ import { SupportForm } from "@/components/support/SupportForm";
 import { createClient } from "@/lib/supabase/server";
 import { getAccountContext } from "@/lib/account/context";
 import { exactOrderHref } from "@/lib/account/fulfillment";
+import { walletTransactionsHref } from "@/lib/account/activity";
 import { getSupportOrder } from "@/lib/account/order-support";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -69,7 +70,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const access = await db.rpc("has_support_access");
   const staff = access.data === true;
   const inbox = query.view === "inbox" && staff;
-  const navigation = <nav aria-label="Support navigation" className={styles.navigation}><Link className={button} data-tone="support" href="/support#case-list">My support cases</Link><Link className={button} data-tone="wallet" href="/account/wallet?view=history">Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href="/support?view=inbox#case-list">Private support inbox</Link> : null}</nav>;
+  const navigation = <nav aria-label="Support navigation" className={styles.navigation}><Link className={button} data-tone="support" href="/support#case-list">My support cases</Link><Link className={button} data-tone="wallet" href={walletTransactionsHref}>Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href="/support?view=inbox#case-list">Private support inbox</Link> : null}</nav>;
   if ((query.case && !validCase) || (query.transaction && !validTransaction) || (query.rewardId && !validReward) || (query.deposit !== undefined && !validDeposit) ||
     (validReward && (validTransaction || validCase)) || (validDeposit && (validCase || validTransaction || validReward || inbox)) ||
     (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;

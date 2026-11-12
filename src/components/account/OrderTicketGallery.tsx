@@ -9,6 +9,7 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./order-ticket-gallery.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
+import { containDialogTab } from "./dialog-keyboard";
 
 function subscribePhone(change: () => void) {
   const query = window.matchMedia?.("(max-width: 700px)");
@@ -93,6 +94,16 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
     return () => { observer?.disconnect(); window.removeEventListener("resize", position); if (anchor.isConnected) anchor.focus({ preventScroll: true }); };
   }, [anchor]);
 
+  useEffect(() => {
+    function dismiss(event: KeyboardEvent) {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      onClose();
+    }
+    document.addEventListener("keydown", dismiss);
+    return () => document.removeEventListener("keydown", dismiss);
+  }, [onClose]);
+
   async function copy(value: string) {
     try { await navigator.clipboard.writeText(value); setCopyStatus("Copied. Ready to paste into Support."); }
     catch { setManualCopy(value); setCopyStatus("Copy the selected text below."); }
@@ -104,7 +115,7 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
     ...(order.entryId ? [{ label: "Entry reference", value: order.entryId }] : []),
   ];
   return <div className={styles.detailsLayer} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <section ref={panel} className={styles.detailsPanel} role="dialog" aria-modal="false" aria-labelledby={titleId} onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); onClose(); } }}>
+    <section ref={panel} className={styles.detailsPanel} role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={containDialogTab}>
       <header className={styles.detailsHeading}><h2 id={titleId}>{order.source === "winner" ? "Reward details" : "Order details"}</h2><button ref={close} className={styles.close} type="button" onClick={onClose} aria-label="Close details">×</button></header>
       <p className={styles.detailsProduct}>{order.title} · {order.retailer}</p>
       {detail.tone !== "reward" ? <p className={styles.detailsNotice}>{detail.message}</p> : null}

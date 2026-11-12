@@ -20,6 +20,10 @@ describe("catalog search", () => {
     expect(matches.length).toBeGreaterThan(0);
     expect(matches.every(product => product.value === 100 && product.title.includes("Gift Card") && product.retailer.startsWith("Walmart"))).toBe(true);
   });
+  test.each(["Home Depot 25", "Home Depot $25", "Home Depot twenty‑five dollars"])("recognizes a Home Depot denomination in %s", query => {
+    const matches = searchCatalog(demoProducts, query);
+    expect(matches.map(product => product.title)).toEqual(["$25 The Home Depot Gift Card"]);
+  });
   test("makeup finds the pictured cosmetics before related gift cards", () => {
     const matches = searchCatalogMatches(demoProducts, "makeup");
     expect(matches.slice(0, 3).map(match => match.product.slug).sort()).toEqual([

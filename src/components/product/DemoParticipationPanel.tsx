@@ -369,7 +369,7 @@ export function DemoParticipationPanel({
           <strong className="block text-[#8aff6f]">{selectedTicketsToast} tickets selected</strong>
           <span>Separate chances. Nothing is entered until you press Enter for ${(selectedTicketsToast * entryPrice).toFixed(2)}.</span>
         </div> : null}
-        <fieldset disabled={uncertain} data-testid="entry-quantity-ticket" className={`${quantityTicketStyles.ticket} ${compact ? compactStyles.quantity : ""}`}>
+        <fieldset disabled={uncertain || !availabilityConfirmed} data-testid="entry-quantity-ticket" className={`${quantityTicketStyles.ticket} ${compact ? compactStyles.quantity : ""}`}>
           <p className={quantityTicketStyles.label}>Add extra entries</p>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>

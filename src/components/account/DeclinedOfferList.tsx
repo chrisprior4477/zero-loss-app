@@ -13,10 +13,13 @@ export function DeclinedOfferList({ children }: { children: ReactNode }) {
       const offer = document.getElementById(id);
       if (!offer || !list.current?.contains(offer)) return;
       const details = offer.closest("details");
-      if (!details || details.open) return;
+      if (!details) return;
       details.open = true;
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => offer.scrollIntoView({ block: "start" }));
+      frame = requestAnimationFrame(() => {
+        offer.focus({ preventScroll: true });
+        offer.scrollIntoView?.({ block: "start" });
+      });
     }
     revealLinkedOffer();
     window.addEventListener("hashchange", revealLinkedOffer);

@@ -20,6 +20,10 @@ function spokenValue(amount: string) {
   return thousands + group;
 }
 
+function retailerName(value: string) {
+  return normalizeSearch(value).replace(/^the /, "");
+}
+
 /** Currency is an exact prize value. Bare numbers beside model names remain product keywords. */
 function extractValues(query: string, products: readonly { retailer: string }[]) {
   const values = new Set<number>();
@@ -33,7 +37,7 @@ function extractValues(query: string, products: readonly { retailer: string }[])
   if (bare) {
     const text = query.replace(bare[0], " ").trim();
     const qualifier = normalizeSearch(text).replace(/\b(?:gift card|for)\b/g, "").trim();
-    if (!qualifier || products.some(p => normalizeSearch(p.retailer) === qualifier)) {
+    if (!qualifier || products.some(p => retailerName(p.retailer) === retailerName(qualifier))) {
       values.add(Number(bare[1].replaceAll(",", "")));
       return { text, values };
     }
@@ -42,10 +46,10 @@ function extractValues(query: string, products: readonly { retailer: string }[])
 }
 
 export function searchDenominations(query: string, products: readonly { retailer: string }[]) {
-  const { text, values } = extractValues(query, products);
+  const { text, values } = extractValues(query.replace(/[\u2010-\u2015]/g, "-"), products);
   const merchantWords = normalizeSearch(text).replace(/\b(?:gift card|for|from|at|a|an|the)\b/g, " ").replace(/\s+/g, " ").trim();
   const merchant = values.size && merchantWords
-    ? products.find(product => normalizeSearch(product.retailer).replace(/^the /, "") === merchantWords)?.retailer
+    ? products.find(product => retailerName(product.retailer) === merchantWords)?.retailer
     : undefined;
   const keywords = merchant ? merchant + (/\bgift card\b/.test(normalizeSearch(text)) ? " gift card" : "") : text;
   return { text: keywords, values, merchant: merchant ? normalizeSearch(merchant) : null };

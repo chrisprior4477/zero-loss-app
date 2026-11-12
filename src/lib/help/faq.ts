@@ -1,3 +1,5 @@
+import { walletDepositsHref, walletTransactionsHref } from "@/lib/account/activity";
+
 export const faqCategories = [
   ["all", "All questions"],
   ["entries", "Entries & purchases"],
@@ -63,12 +65,12 @@ export const faqItems: FaqItem[] = [
   {
     id: "funding-status", category: "wallet", question: "My funding looks pending. Should I add it again?",
     answer: "Check the funding request in Wallet & Transactions first. Use Finish / check or Retry same request when offered, so the existing request is checked rather than creating another one. If it needs review or still looks wrong, open support from that transaction.",
-    keywords: "deposit missing duplicate charged twice processing payment retry", action: { label: "Check funds & history", href: "/account/wallet?view=history" },
+    keywords: "deposit missing duplicate charged twice processing payment retry", action: { label: "Check funds & history", href: walletDepositsHref },
   },
   {
     id: "withdrawals", category: "wallet", question: "Can I withdraw a deposit or request a refund?",
     answer: "Deposits are intended to stay in your Zero Loss balance and cannot normally be withdrawn. Exceptional refund requests are reviewed separately. This does not limit rights for unauthorized charges or payment errors. An entry undone within its pending window returns to your playable balance, not your payment card. To report an issue, use Report a problem on the relevant wallet transaction.",
-    keywords: "cash out child kid stolen chargeback refund accidental", action: { label: "Find the transaction", href: "/account/wallet?view=history" },
+    keywords: "cash out child kid stolen chargeback refund accidental", action: { label: "Find the transaction", href: walletTransactionsHref },
   },
   {
     id: "open-reward", category: "rewards", question: "Where is my prize or gift-card number?",

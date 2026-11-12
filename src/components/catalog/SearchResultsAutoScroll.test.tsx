@@ -44,6 +44,17 @@ test("a category hash navigation works on the existing browse page and stops for
   fireEvent.touchStart(window); act(() => vi.runAllTimers());
   expect(scroll).toHaveBeenCalledTimes(2);
 });
+
+test.each([
+  ["/browse?batch=2#prize-new", "prize-new"],
+  ["/browse?category=gift-cards#browse-search-input", "browse-search-input"],
+])("browse lands keyboard focus at the selected destination %s", (url, focusId) => {
+  window.history.replaceState(null, "", url);
+  render(<><article tabIndex={-1} id="prize-new" /><h2 id="browse-search-again">Search again</h2>
+    <input id="browse-search-input" /><SearchResultsAutoScroll searchKey={url} /></>);
+  act(() => vi.runAllTimers());
+  expect(document.activeElement?.id).toBe(focusId);
+});
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 test("search lands at items, settles header height, and runs again for a new query", () => {
   const view = render(<><div id="search-results" /><SearchResultsAutoScroll searchKey="TV" /></>);

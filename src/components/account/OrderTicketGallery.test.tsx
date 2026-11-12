@@ -68,6 +68,19 @@ test("ticket edges navigate to the adjacent phone page and never suggest a nonex
   expect((screen.getByRole("button", { name: "Show next order tickets" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
+test("Tab and Shift+Tab wrap within the open details", () => {
+  vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([new DOMRect(0, 0, 1, 1)] as unknown as DOMRectList);
+  render(<OrderTicketGallery orders={[record(1)]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Order details" }));
+  const dialog = within(screen.getByRole("dialog"));
+  const close = dialog.getByRole("button", { name: "Close details" });
+  const last = dialog.getByRole("button", { name: "Copy for Support" });
+  fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+  expect(document.activeElement).toBe(last);
+  fireEvent.keyDown(last, { key: "Tab" });
+  expect(document.activeElement).toBe(close);
+});
+
 test("a complete single page has no extra-ticket edges", () => {
   render(<OrderTicketGallery orders={[record(1)]} />);
   expect(screen.queryByRole("button", { name: /Show (next|previous) order tickets/ })).toBeNull();

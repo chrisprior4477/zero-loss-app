@@ -37,6 +37,10 @@ test("searches past the visible batch by product, retailer, and exact posted amo
   expect(screen.getByLabelText("From date")).toHaveProperty("value", "");
   type("$100 Publix Gift Card");
   expect(rows()).toEqual(["transaction-gift-card"]);
+  type("Publix $100");
+  expect(rows()).toEqual(["transaction-gift-card"]);
+  type("Publix -$100");
+  expect(screen.getByRole("heading", { name: "No matching transactions" })).toBeTruthy();
   type("+$249.50");
   expect(rows()).toEqual(["transaction-refund"]);
   fireEvent.click(screen.getByRole("button", { name: "Clear transaction search" }));
@@ -171,19 +175,20 @@ const dateEntries = [
   { id: "entry-between", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-11-05T12:00:00Z" },
 ];
 
-test.each(["From date", "To date"])("reversed dates keep records visible when %s is entered first", first => {
+test.each(["From date", "To date"])("reversed dates keep the last valid results when %s is entered first", first => {
   render(<WalletLedger entries={dateEntries} />);
   const setDate = (label: string) => fireEvent.change(screen.getByLabelText(label), { target: { value: label === "From date" ? "2026-11-06" : "2026-11-01" } });
   setDate(first);
   setDate(first === "From date" ? "To date" : "From date");
   const message = screen.getByRole("alert");
-  expect(message.textContent).toBe("From date must be on or before To date.");
+  expect(message.textContent).toBe("From date must be on or before To date. Showing results from the last valid range.");
   for (const label of ["From date", "To date"]) {
     expect(screen.getByLabelText(label).getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByLabelText(label).getAttribute("aria-describedby")).toBe(message.id);
   }
-  expect(screen.getByText("Showing 3 of 3 transactions")).toBeTruthy();
-  expect(screen.getAllByRole("link", { name: "Report a problem" })).toHaveLength(3);
+  expect(screen.getByText("Showing 1 of 1 transactions")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href"))
+    .toBe(first === "From date" ? "/support?transaction=funding-after" : "/support?transaction=funding-before");
   expect(screen.queryByText("No all transactions")).toBeNull();
   // Correcting one date immediately reapplies an inclusive range.
   fireEvent.change(screen.getByLabelText("To date"), { target: { value: "2026-11-07" } });

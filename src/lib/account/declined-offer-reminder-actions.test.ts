@@ -29,3 +29,8 @@ test("invalid, signed-out, or unverified requests do not save an opt-in", async 
   expect((await setDeclinedOfferEmailReminder(optionId, true)).status).toBe("error");
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
+
+test("an interrupted save requires a read-back before another attempt", async () => {
+  mocks.rpc.mockRejectedValueOnce(new Error("Connection interrupted"));
+  expect(await setDeclinedOfferEmailReminder(optionId, true)).toMatchObject({ status: "error", needsCheck: true });
+});

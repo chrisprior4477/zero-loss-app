@@ -82,7 +82,7 @@ function activityNotification(item: ActivityItem): AccountNotification {
     id: `completion-${item.completionOptionId ?? item.entryId ?? item.slug}-declined`,
     category: "orders", title: `Your ${item.retailer} gift-card option was declined`,
     body: "Review it in Declined Offers. Revival is available only before the original deadline.",
-    meta: "Purchase option update", href: "/account/declined-offers", action: "Review declined offers",
+    meta: "Purchase option update", href: activityHref(item), action: "Review declined offers",
     image: item.image, visualLabel: item.retailer, tone: "order",
     preferenceKey: "purchase_options",
   };

@@ -76,7 +76,8 @@ test.each(["declined", "purchased", "expired", "cancelled"] as CompletionOptionS
   state.activity[2].completionOptionStatus = status;
   const item = buildAccountNotifications(state, null, true).find(item => item.id.endsWith(status))!;
   expect(item.action).toBe(status === "declined" ? "Review declined offers" : "View details");
-  if (status === "declined") expect(item.href).toBe("/account/declined-offers");
+  if (status === "declined") expect(item.href).toBe(state.activity[2].completionOptionId
+    ? `/account/declined-offers#declined-offer-${state.activity[2].completionOptionId}` : "/account/declined-offers");
   expect(item.body).not.toContain("Pay $");
   expect(item.id.endsWith(status)).toBe(true);
 });

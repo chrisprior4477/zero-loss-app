@@ -91,7 +91,7 @@ export default async function DeclinedOffersPage() {
                 const optionId = offer.completionOptionId;
                 const ticketLabel = labels[optionId];
                 const expiresAt = offer.completionExpiresAt ?? null;
-                return <article key={optionId} id={`declined-offer-${optionId}`} className={styles.declinedRow}>
+                return <article key={optionId} id={`declined-offer-${optionId}`} tabIndex={-1} className={styles.declinedRow}>
                   <div className={styles.declinedDetails}>
                     <h3>{ticketLabel}</h3>
                     <p><strong>{formatUsdFromCents(offer.remainingCents)}</strong> to complete</p>

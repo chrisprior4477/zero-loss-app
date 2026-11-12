@@ -162,7 +162,7 @@ test("case list always has an explicit owner filter outside the staff inbox", as
   expect(screen.queryByText("Question 50")).toBeNull();
   expect(screen.getByRole("link", { name: "My support cases" }).getAttribute("href")).toBe("/support#case-list");
   expect(document.getElementById("case-list")).not.toBeNull();
-  expect(screen.getByRole("link", { name: "Wallet history" }).getAttribute("href")).toBe("/account/wallet?view=history");
+  expect(screen.getByRole("link", { name: "Wallet history" }).getAttribute("href")).toBe("/account/wallet?view=history&panel=transactions#transactions");
   expect(screen.getByRole("link", { name: "Quick answers" }).getAttribute("href")).toBe("/faq#faq-intro");
 });
 test("the latest conversation page loads newest messages then displays them chronologically", async () => {

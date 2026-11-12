@@ -45,14 +45,14 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const browseReturnLabel = productBrowseReturnLabel(browseReturnHref);
   const product = getDemoProduct(id);
   if (!product) notFound();
-  const { account, availability, hidden } = await getShoppingCatalog();
+  const { account, availability, hidden, unavailable } = await getShoppingCatalog();
   const savedResult = resolvedProductDestination(account?.activity, product.slug);
   const hiddenPool = hidden.has(product.slug);
   const requestHead: EntryRequestHead = account && (hiddenPool || account.wallet?.scope === "demo") && isPreviewDataEnvironment()
     ? await getEntryRequestHead(await createClient(), product.slug)
     : { ready: true, requestId: null };
   // A holder of the last ticket still needs the existing confirm and undo controls.
-  if (hiddenPool && !(requestHead.ready && requestHead.validating)) redirect(savedResult?.href ?? browseReturnHref);
+  if (hiddenPool && (!unavailable || savedResult) && !(requestHead.ready && requestHead.validating)) redirect(savedResult?.href ?? browseReturnHref);
   const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
   const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} /> : null;
   const current = availability?.[product.slug];

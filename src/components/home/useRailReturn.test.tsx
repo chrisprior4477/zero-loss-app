@@ -12,11 +12,20 @@ function Rail({ id = "marketplace", width = 300 }: { id?: string; width?: number
     Object.defineProperties(element, { clientWidth: { configurable: true, value: 500 }, scrollWidth: { configurable: true, value: width * 8 } });
     element.getBoundingClientRect = () => new DOMRect(0, 0, 500, 200);
     Array.from(element.children).forEach((child, index) => { child.getBoundingClientRect = () => new DOMRect(index * width - element.scrollLeft, 0, width, 200); });
-  }}>{Array.from({ length: 8 }, (_, index) => <article key={index}><a href={`/items/product-${index}`} onClick={event => event.preventDefault()}>Product {index}</a></article>)}</div>;
+  }}>{Array.from({ length: 8 }, (_, index) => {
+    const link = <a key={index} href={id === "popular-rewards" ? `/rewards/brand-${index}` : `/items/product-${index}`} onClick={event => event.preventDefault()}>Product {index}</a>;
+    return id === "popular-rewards" ? link : <article key={index}>{link}</article>;
+  })}</div>;
 }
 
 beforeEach(() => { window.history.replaceState({ __NA: true, tree: "next-router-state" }, "", "/"); vi.useFakeTimers(); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+
+test("an explicit retailer return opens that retailer without a history bookmark", () => {
+  window.history.replaceState(null, "", "/?reward-brand=brand-5#popular-rewards");
+  render(<Rail id="popular-rewards" />);
+  expect(screen.getByTestId("popular-rewards").scrollLeft).toBe(1496);
+});
 
 test("product navigation and remount restore the row while preserving Next history state", () => {
   const view = render(<Rail />);

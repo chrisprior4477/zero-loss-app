@@ -12,8 +12,13 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
     const start = () => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       const mobileBrowse = mobileBrowseKey && window.matchMedia?.("(max-width: 1023px)").matches;
+      const hashId = window.location.hash.slice(1);
+      const footerField = hashId === "browse-search-input" || hashId === "ending-soon-search-input"
+        ? document.getElementById(hashId) : null;
+      const footerHeading = footerField ? hashId.replace(/-input$/, "-again") : null;
       const target = window.location.hash === "#retailer-categories-heading"
         ? "retailer-categories-heading"
+        : footerHeading ? footerHeading
         : window.location.hash === "#ending-soon-search-again" && document.getElementById("ending-soon-search-again") ? "ending-soon-search-again"
         : window.location.hash === "#browse-search-again" && document.getElementById("browse-search-again") ? "browse-search-again"
         : window.location.hash.startsWith("#prize-") && document.getElementById(window.location.hash.slice(1)) ? window.location.hash.slice(1)
@@ -22,7 +27,17 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
             : searchKey || mobileBrowse || window.location.hash === "#search-results" ? "search-results" : null;
       if (!target) return;
       cancelled = false;
-      const scroll = () => { if (!cancelled) document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "auto" }); };
+      const focusTarget = footerField ?? (target.startsWith("prize-") && new URLSearchParams(window.location.search).has("batch")
+        ? document.getElementById(target) : null);
+      let focused = false;
+      const scroll = () => {
+        if (cancelled) return;
+        document.getElementById(target)?.scrollIntoView?.({ block: "start", behavior: "auto" });
+        if (focusTarget && !focused) {
+          focused = true;
+          focusTarget.focus({ preventScroll: true });
+        }
+      };
       first = requestAnimationFrame(() => { second = requestAnimationFrame(scroll); });
       settle = setTimeout(scroll, 280);
     };

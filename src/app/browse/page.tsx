@@ -193,7 +193,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     </div> : <p className="mt-auto border-t border-slate-200 pt-3 text-xs font-bold text-slate-600">No open entries</p>}
               </>;
               return (
-                <article key={product.slug} id={anchor} style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}
+                <article key={product.slug} id={anchor} tabIndex={-1} style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}
                   className="relative overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
                   {open ? <>
                     <BrowsePrizeLink href={productHrefWithBrowseReturn(product.slug, `${browseReturnHref}#${anchor}`)} anchor={anchor} className={cardClass}>{card}</BrowsePrizeLink>

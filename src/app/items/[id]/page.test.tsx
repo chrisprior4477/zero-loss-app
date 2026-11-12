@@ -74,3 +74,18 @@ test("after clearing entries the same prize can be entered again", async () => {
   expect(screen.getByText("Entry form")).toBeTruthy();
   expect(screen.getByRole("link", { name: /Prefer to enter without a purchase/ })).toBeTruthy();
 });
+
+test("an availability outage keeps the same product and its shopping return visible", async () => {
+  vi.stubEnv("APP_DATA_ENVIRONMENT", "development-test");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://ocgdfnvvjvutevgqzzgj.supabase.co");
+  try {
+    const from = "/browse?category=electronics&sort=fewest-left";
+    mocks.availability.mockResolvedValue(null);
+    mocks.account.mockResolvedValue({ activity: { source: "customer-empty", activity: [] }, wallet: { scope: "demo" } });
+    mocks.requestHead.mockResolvedValue({ ready: true, requestId: null });
+    render(await ItemPage({ params: Promise.resolve({ id: "airpods-pro" }), searchParams: Promise.resolve({ from }) }));
+    expect(screen.getByRole("heading", { name: /Apple AirPods/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "← Back to Electronics" }).getAttribute("href")).toBe(from);
+    expect(screen.queryByRole("link", { name: /Prefer to enter without a purchase/ })).toBeNull();
+  } finally { vi.unstubAllEnvs(); }
+});

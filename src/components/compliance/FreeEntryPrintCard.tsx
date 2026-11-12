@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { PrintSheetButton } from "./PrintSheetButton";
 
 const CODE39: Record<string, string> = {
   "0": "nnnwwnwnn", "1": "wnnwnnnnw", "2": "nnwwnnnnw", "3": "wnwwnnnnn", "4": "nnnwwnnnw", "5": "wnnwwnnnn", "6": "nnwwwnnnn", "7": "nnnwnnwnw", "8": "wnnwnnwnn", "9": "nnwwnnwnn",
@@ -26,28 +27,39 @@ export function Barcode({ value }: { value: string }) {
   return <div className="flex h-14 w-full max-w-[250px] items-stretch justify-center overflow-hidden bg-white px-2 py-1" aria-label={`Entry reference barcode ${value}`}>{bars.map((bar) => <span key={bar.key} className={bar.dark ? "bg-black" : "bg-white"} style={{ width: `${bar.width}px` }} />)}</div>;
 }
 
-type Props = { offeringTitle: string; offeringSlug: string; browseReturn?: string | null; quantity?: number | null; initialLegalName?: string; initialAccountReference?: string };
+type Props = { offeringTitle: string; offeringSlug: string; intro?: ReactNode; footer?: ReactNode; initialLegalName?: string; initialAccountReference?: string };
 
-export function FreeEntryPrintCard({ offeringTitle, offeringSlug, browseReturn, quantity, initialLegalName = "", initialAccountReference = "" }: Props) {
+export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer, initialLegalName = "", initialAccountReference = "" }: Props) {
   const [name, setName] = useState(initialLegalName);
   const [accountReference, setAccountReference] = useState(initialAccountReference);
   const [addressSide, setAddressSide] = useState(true);
   const [demoNoteVisible, setDemoNoteVisible] = useState(false);
+  const [printPreview, setPrintPreview] = useState(false);
+  const printTrigger = useRef<HTMLButtonElement>(null);
+  const backButton = useRef<HTMLButtonElement>(null);
+  const instructionScroll = useRef<number | null>(null);
   const reference = useMemo(() => shortReference(`${offeringSlug}-${accountReference}`), [accountReference, offeringSlug]);
 
-  const openPrintWindow = () => {
-    const params = new URLSearchParams({
-      offering: offeringSlug,
-      name,
-      account: accountReference,
-      reference,
-    });
-    if (browseReturn) params.set("from", browseReturn);
-    if (quantity && quantity > 1) params.set("quantity", String(quantity));
-    window.open(`/free-entry/print?${params.toString()}`, "_blank", "noopener,noreferrer");
-  };
+  useLayoutEffect(() => {
+    if (instructionScroll.current === null) return;
+    if (printPreview) {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      backButton.current?.focus({ preventScroll: true });
+    } else {
+      window.scrollTo({ top: instructionScroll.current, behavior: "instant" });
+      printTrigger.current?.focus({ preventScroll: true });
+      instructionScroll.current = null;
+    }
+  }, [printPreview]);
 
-  return <>
+  if (printPreview) return <FreeEntryPrintSheet offering={offeringSlug} title={offeringTitle}
+    name={name.trim().slice(0, 80) || "LEGAL NAME NEEDED"} account={accountReference.trim().slice(0, 80) || "DEMO ACCOUNT NEEDED"}
+    reference={reference} back={<button type="button" ref={backButton} onClick={() => setPrintPreview(false)}
+      className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</button>} />;
+
+  return <main className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
+    <div className="mx-auto max-w-4xl">
+    {intro}
     <div className="print:hidden grid gap-4 rounded-2xl border border-white/15 bg-white/5 p-5 sm:grid-cols-2">
       <label className="text-sm font-bold">Your full legal name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="Enter your legal name" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
       <label className="text-sm font-bold">Zero Loss account reference<input value={accountReference} onChange={(event) => setAccountReference(event.target.value)} readOnly={Boolean(initialAccountReference)} placeholder="Sign in to fill your reference" className="mt-2 w-full rounded-xl border border-white/20 bg-[#00132e] px-3 py-2.5 font-normal text-white" /></label>
@@ -86,7 +98,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, browseReturn, 
       </div>
     </div>
 
-    <div className="print:hidden mt-5 grid gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 sm:grid-cols-[auto_auto_1fr] sm:items-center"><button type="button" onClick={openPrintWindow} className="rounded-xl bg-[#00b9ff] px-5 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">Print entry insert</button><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/8">Flip postcard</button><p className="text-xs leading-5 text-white/60"><strong className="text-white">How to use it:</strong> Print on standard 8.5 × 11 paper, cut around the dotted line, and securely attach the insert to a standard postcard. Protect the paper from moisture where practical, but leave the Zero Loss barcode, mailing address, postal barcode area, and stamp uncovered. After an approved AMOE request is received and validated, Zero Loss will send a confirmation email.</p></div>
+    <div className="print:hidden mt-5 grid gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 sm:grid-cols-[auto_auto_1fr] sm:items-center"><button type="button" ref={printTrigger} onClick={() => { instructionScroll.current = window.scrollY; setPrintPreview(true); }} className="rounded-xl bg-[#00b9ff] px-5 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">Print entry insert</button><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/8">Flip postcard</button><p className="text-xs leading-5 text-white/60"><strong className="text-white">How to use it:</strong> Print on standard 8.5 × 11 paper, cut around the dotted line, and securely attach the insert to a standard postcard. Protect the paper from moisture where practical, but leave the Zero Loss barcode, mailing address, postal barcode area, and stamp uncovered. After an approved AMOE request is received and validated, Zero Loss will send a confirmation email.</p></div>
 
     <div className="amo-print-sheet" aria-hidden="true">
       <section className="amo-print-insert">
@@ -98,5 +110,40 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, browseReturn, 
         <p className="mt-2 text-center text-[8pt] font-black uppercase tracking-[0.12em] text-[#b43d00]">Prototype — do not mail</p>
       </section>
     </div>
-  </>;
+    {footer}
+    </div>
+  </main>;
+}
+
+export function FreeEntryPrintSheet({ offering, title, name, account, reference, back }: {
+  offering: string; title: string; name: string; account: string; reference: string; back: ReactNode;
+}) {
+  return <main className="amo-print-document-page min-h-screen bg-slate-200 px-4 py-6 text-[#00132e]">
+    <div className="amo-print-controls mx-auto mb-5 flex max-w-[8.5in] flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#001b3d] p-4 text-white shadow-lg">
+      <div>
+        {back}
+        <p className="mt-1 text-xs text-white/65">The white page below represents one actual letter-size 8.5 × 11 sheet. If this preview blocks printing, open the PDF.</p>
+      </div>
+      <PrintSheetButton offering={offering} name={name} account={account} reference={reference} />
+    </div>
+    <section className="amo-paper-preview" aria-label="Letter-size print preview">
+      <article className="amo-postcard-cutout">
+        <div className="amo-postcard-inner">
+          <p className="text-center text-[8pt] font-black uppercase tracking-[0.18em] text-[#067abb]">Zero Loss AMOE entry insert</p>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-center text-[8pt] leading-4 text-slate-700">
+            <strong className="text-[#00132e]">Entrant:</strong><span>{name}</span><span aria-hidden="true">•</span>
+            <strong className="text-[#00132e]">Account:</strong><span>{account}</span><span aria-hidden="true">•</span>
+            <strong className="text-[#00132e]">Offering:</strong><span>{title}</span>
+          </div>
+          <div className="mt-2 flex flex-col items-center">
+            <Barcode value={reference} />
+            <span className="mt-0.5 font-mono text-[8pt] font-bold">{reference}</span>
+          </div>
+          <p className="mt-1 text-center text-[6.5pt] leading-3 text-slate-600">Attach securely to a standard postcard. Keep the barcode flat, uncovered, and readable.</p>
+          <p className="mt-1 text-center text-[6.5pt] font-black uppercase tracking-[0.1em] text-[#b43d00]">Prototype — do not mail</p>
+        </div>
+        <span className="amo-cut-label">Cut along dotted line</span>
+      </article>
+    </section>
+  </main>;
 }

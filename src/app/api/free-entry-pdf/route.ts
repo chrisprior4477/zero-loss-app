@@ -24,12 +24,31 @@ function fitText(text: string, font: PDFFont, size: number, maxWidth: number) {
 }
 
 export async function GET(request: NextRequest) {
-  const params = request.nextUrl.searchParams;
-  const product = await freeEntryProduct(params.get("offering"));
+  const offering = request.nextUrl.searchParams.get("offering");
+  if (["name", "account", "reference"].some(key => request.nextUrl.searchParams.has(key))) {
+    const instructions = new URL("/free-entry", request.url);
+    if (offering) instructions.searchParams.set("offering", offering);
+    return Response.redirect(instructions, 303);
+  }
+  return printPdf(request, offering, null, null, null);
+}
+
+export async function POST(request: NextRequest) {
+  const form = await request.formData().catch(() => null);
+  if (!form) return new Response("Print details could not be read.", { status: 400 });
+  const field = (key: string) => {
+    const value = form.get(key);
+    return typeof value === "string" ? value : null;
+  };
+  return printPdf(request, field("offering"), field("name"), field("account"), field("reference"));
+}
+
+async function printPdf(request: NextRequest, offering: string | null, entrant: string | null, accountReference: string | null, entryReference: string | null) {
+  const product = await freeEntryProduct(offering);
   if (!product) return Response.redirect(new URL("/browse", request.url), 303);
-  const name = safeText(params.get("name"), "LEGAL NAME NEEDED", 80);
-  const account = safeText(params.get("account"), "DEMO ACCOUNT NEEDED", 80);
-  const reference = safeText(params.get("reference"), "ZL-DEMO001", 24).toUpperCase();
+  const name = safeText(entrant, "LEGAL NAME NEEDED", 80);
+  const account = safeText(accountReference, "DEMO ACCOUNT NEEDED", 80);
+  const reference = safeText(entryReference, "ZL-DEMO001", 24).toUpperCase();
 
   const document = await PDFDocument.create();
   const page = document.addPage([612, 792]);
