@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type MouseEvent } from "react";
-import { respondToCrewRequest } from "@/lib/crew/actions";
+import { getCrewRequestStatus, respondToCrewRequest } from "@/lib/crew/actions";
 import { markNotificationsRead } from "@/lib/account/notification-read-actions";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
@@ -18,6 +18,7 @@ import { InAppAlertPreferences } from "./InAppAlertPreferences";
 import { NotificationStack } from "./NotificationStack";
 import { groupNotifications } from "@/lib/account/notification-groups";
 import { notificationReturnKey, readNotificationReturn, type NotificationReturn } from "@/lib/account/notification-return";
+import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import stripStyles from "./account-status-strip.module.css";
 import { notificationIsEnabled, type AccountNotification, type NotificationCategory, type NotificationPreferenceKey, type NotificationPreferences } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
@@ -27,6 +28,7 @@ import batchStyles from "./ticket-batches.module.css";
 import { useNotifications } from "@/components/notifications/NotificationProvider";
 
 type FilterKey = "all" | NotificationCategory;
+type CrewRequestFeedback = { state: "unconfirmed" | "pending" | "resolved"; message: string };
 const groupsPerPage = 12;
 
 const filters = [
@@ -54,6 +56,7 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
   const alertPreferences = useMemo(() => ({ ...initialAlertPreferences, ...savedPreferenceOverrides }), [initialAlertPreferences, savedPreferenceOverrides]);
   const router = useRouter();
   const [responding, startTransition] = useTransition();
+  const [crewFeedback, setCrewFeedback] = useState<Record<string, CrewRequestFeedback>>({});
   const [savingRead, startReadTransition] = useTransition();
   const [crewMessage, setCrewMessage] = useState("");
   const [readMessage, setReadMessage] = useState("");
@@ -190,6 +193,42 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
     catch { return { ok: false, message: "We couldn’t save your notification status. Please try again." }; }
   }
 
+  function updateCrewRequest(id: string, accept?: boolean) {
+    setCrewMessage("");
+    startTransition(async () => {
+      let feedback: CrewRequestFeedback;
+      if (accept !== undefined) {
+        const result = await respondToCrewRequest(id, accept).catch(() => null);
+        feedback = result?.ok
+          ? { state: "resolved", message: result.message }
+          : { state: "unconfirmed", message: "We couldn’t confirm your response. Check the request status before trying again." };
+      } else {
+        const status = await getCrewRequestStatus(id).catch(() => null);
+        switch (status) {
+          case null:
+            feedback = { state: "unconfirmed", message: "We couldn’t check this request. Check your connection and try again." };
+            break;
+          case "pending":
+            feedback = { state: "pending", message: "This request is still pending. You can respond now." };
+            break;
+          default:
+            feedback = {
+              state: "resolved",
+              message: status === "accepted" ? "This Crew request was already approved."
+                : status === "declined" ? "This Crew request was already declined."
+                : "This Crew request is no longer available.",
+            };
+        }
+      }
+      setCrewFeedback(current => ({ ...current, [id]: feedback }));
+      if (feedback.state === "resolved") {
+        setCrewMessage(feedback.message);
+        window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+        router.refresh();
+      }
+    });
+  }
+
   function markAllRead() {
     const ids = enabledNotifications.map((notification) => notification.id).filter((id) => !read.has(id));
     if (!ids.length || !readAvailable) return;
@@ -279,15 +318,22 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
             <p>New verified updates will appear here automatically.</p>
           </div> : <div id="notification-tickets" ref={listRef} tabIndex={-1} className={`${styles.list} ${batchStyles.rows}`}>{groups.slice(0, batches.end).map(group => {
             const notification = group.notifications[0];
+            const requestId = notification.crewRequestId;
+            const feedback = requestId ? crewFeedback[requestId] : undefined;
             return <NotificationStack key={group.key} group={group} read={read} categoryLabel={filters.find(([key]) => key === notification.category)?.[1] ?? ""} onOpen={handleNotificationClick}
               expanded={expandedGroups.includes(group.key)} onExpandedChange={expanded => {
                 const next = expanded ? [...expandedGroups, group.key] : expandedGroups.filter(key => key !== group.key);
                 updateBookmark({ expandedGroups: next }); setExpandedGroups(next);
               }}>
-              {notification.crewRequestId ? <div className={styles.crewActions}>
-                <button type="button" disabled={responding} onClick={() => startTransition(async () => { const result = await respondToCrewRequest(notification.crewRequestId!, true); setCrewMessage(result.message); if (result.ok) router.refresh(); })}>Approve</button>
-                <button type="button" disabled={responding} onClick={() => startTransition(async () => { const result = await respondToCrewRequest(notification.crewRequestId!, false); setCrewMessage(result.message); if (result.ok) router.refresh(); })}>Decline</button>
-              </div> : null}
+              {requestId && feedback?.state !== "resolved" ? <>
+                <div className={styles.crewActions}>
+                  {feedback?.state === "unconfirmed" ? <button type="button" disabled={responding} onClick={() => updateCrewRequest(requestId)}>Check request status</button> : <>
+                    <button type="button" disabled={responding} onClick={() => updateCrewRequest(requestId, true)}>Approve</button>
+                    <button type="button" disabled={responding} onClick={() => updateCrewRequest(requestId, false)}>Decline</button>
+                  </>}
+                </div>
+                {feedback ? <p role={feedback.state === "unconfirmed" ? "alert" : "status"} className={styles.body}>{feedback.message}</p> : null}
+              </> : null}
             </NotificationStack>;
           })}</div>}
           <TicketBatchControls {...batches} listId="notification-tickets" noun="updates" more={() => {

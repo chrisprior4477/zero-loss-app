@@ -308,6 +308,17 @@ export async function respondToCrewRequest(id: string, accept: boolean): Promise
   return { ok: true, message: accept ? "You’re connected. Only picks each of you chooses to share are visible." : "Request declined." };
 }
 
+export async function getCrewRequestStatus(id: string): Promise<"pending" | "accepted" | "declined" | "unavailable" | null> {
+  if (typeof id !== "string" || !crewUuid.test(id)) return "unavailable";
+  const session = await signedInClient();
+  if (!session) return null;
+  const { data, error } = await session.db.from("crew_invitations").select("status")
+    .eq("id", id).eq("recipient_id", session.user.id).maybeSingle();
+  if (error) return null;
+  const status = data?.status;
+  return status === "pending" || status === "accepted" || status === "declined" ? status : "unavailable";
+}
+
 export async function removeCrewConnection(id: string): Promise<CrewActionResult> {
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to manage your Crew." };

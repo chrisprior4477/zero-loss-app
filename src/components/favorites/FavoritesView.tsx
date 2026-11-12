@@ -163,9 +163,18 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   }
   async function changeShare(share: SavedProductShare, state: "declined" | "restore") {
     if (shareBusy) return;
+    const previewHref = window.location.href;
     setShareBusy(share.id); setMessage("");
-    try { const result = await setReceivedProductState(share.id, state); applyShareResult(share.id, result); if (result.ok) { setMessage(result.message); back(); } }
-    catch { setMessage("We couldn’t confirm this change. Please try again."); }
+    try {
+      const result = await setReceivedProductState(share.id, state);
+      const stillViewing = window.location.href === previewHref;
+      if (result.ok || stillViewing) applyShareResult(share.id, result);
+      if (result.ok && stillViewing) {
+        setMessage(result.message);
+        back();
+      }
+    }
+    catch { if (window.location.href === previewHref) setMessage("We couldn’t confirm this change. Please try again."); }
     finally { setShareBusy(null); }
   }
   function toggleAlert(slug: string) {

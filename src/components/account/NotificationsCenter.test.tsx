@@ -7,14 +7,19 @@ import { NotificationsCenter } from "./NotificationsCenter";
 import { NotificationProvider, useNotifications } from "@/components/notifications/NotificationProvider";
 
 vi.mock("next/image", () => ({ default: () => <span data-testid="notification-image" /> }));
-const actionMocks = vi.hoisted(() => ({ respond: vi.fn(), refresh: vi.fn(), push: vi.fn() }));
+const actionMocks = vi.hoisted(() => ({ respond: vi.fn(), requestStatus: vi.fn(), refresh: vi.fn(), push: vi.fn() }));
 const readMocks = vi.hoisted(() => ({ mark: vi.fn() }));
 const preferenceMocks = vi.hoisted(() => ({ save: vi.fn() }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/account/notifications", useRouter: () => ({ refresh: actionMocks.refresh, push: actionMocks.push }) }));
-vi.mock("@/lib/crew/actions", () => ({ respondToCrewRequest: actionMocks.respond }));
+vi.mock("@/lib/crew/actions", () => ({ respondToCrewRequest: actionMocks.respond, getCrewRequestStatus: actionMocks.requestStatus }));
 vi.mock("@/lib/account/notification-read-actions", () => ({ markNotificationsRead: readMocks.mark }));
 vi.mock("@/lib/account/notification-preference-actions", () => ({ setInAppAlertPreference: preferenceMocks.save }));
-beforeEach(() => { readMocks.mark.mockResolvedValue({ ok: true, message: "Saved." }); preferenceMocks.save.mockResolvedValue({ ok: true, message: "Off — your alert choice was saved." }); });
+beforeEach(() => {
+  actionMocks.respond.mockReset();
+  actionMocks.requestStatus.mockReset();
+  readMocks.mark.mockResolvedValue({ ok: true, message: "Saved." });
+  preferenceMocks.save.mockResolvedValue({ ok: true, message: "Off — your alert choice was saved." });
+});
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 test("a confirmed incoming alert updates the open list, count and read controls without changing its filter", async () => {
@@ -153,19 +158,59 @@ test("in-app choices persist and hide only the selected optional updates", async
   expect(screen.getByText("Your email is confirmed")).toBeTruthy();
 });
 
+const invitation: AccountNotification = {
+  id: "crew-request-1", category: "crew", title: "Sam wants to join your Crew",
+  body: "Approve or decline this request.", meta: "Crew request", href: "/account/crew?tab=requests",
+  action: "Review request", visualLabel: "Your Crew", visualValue: "Approval needed",
+  tone: "crew", crewRequestId: "33333333-3333-4333-8333-333333333333",
+};
+
 test.each([["approve", true, "Approve"], ["decline", false, "Decline"]] as const)("a Crew request links to the requests tab and can %s", async (_label, accept, button) => {
-  const invitation: AccountNotification = {
-    id: "crew-request-1", category: "crew", title: "Sam wants to join your Crew",
-    body: "Approve or decline this request.", meta: "Crew request", href: "/account/crew?tab=requests",
-    action: "Review request", visualLabel: "Your Crew", visualValue: "Approval needed",
-    tone: "crew", crewRequestId: "33333333-3333-4333-8333-333333333333",
-  };
   actionMocks.respond.mockResolvedValue({ ok: true, message: "Request updated." });
   render(<NotificationsCenter notifications={[invitation]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
   expect(screen.getByRole("link", { name: /Review request/ }).getAttribute("href")).toBe("/account/crew?tab=requests");
-  fireEvent.click(screen.getByRole("button", { name: button }));
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: button })); });
   await waitFor(() => expect(actionMocks.respond).toHaveBeenCalledWith(invitation.crewRequestId, accept));
   await waitFor(() => expect(actionMocks.refresh).toHaveBeenCalledTimes(1));
+});
+
+test.each([["Approve", true], ["Decline", false]] as const)("a connection loss during %s preserves the card and checks status before another response", async (button, accept) => {
+  actionMocks.respond.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({ ok: true, message: "Request updated." });
+  actionMocks.requestStatus.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce("pending");
+  render(<NotificationsCenter notifications={[invitation]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: button })); });
+  const card = within(screen.getByRole("heading", { name: invitation.title }).closest("article")!);
+  expect((await card.findByRole("alert")).textContent).toContain("Check the request status");
+  expect(screen.getByRole("heading", { name: "Notifications" })).toBeTruthy();
+  expect(card.queryByRole("button", { name: "Approve" })).toBeNull();
+  expect(card.queryByRole("button", { name: "Decline" })).toBeNull();
+
+  await act(async () => { fireEvent.click(card.getByRole("button", { name: "Check request status" })); });
+  expect(await card.findByText(/Check your connection/)).toBeTruthy();
+  await act(async () => { fireEvent.click(card.getByRole("button", { name: "Check request status" })); });
+  expect(await card.findByText(/This request is still pending/)).toBeTruthy();
+  expect(actionMocks.requestStatus).toHaveBeenNthCalledWith(2, invitation.crewRequestId);
+  expect(actionMocks.respond).toHaveBeenCalledExactlyOnceWith(invitation.crewRequestId, accept);
+
+  await act(async () => { fireEvent.click(card.getByRole("button", { name: button })); });
+  expect(await screen.findByText("Request updated.")).toBeTruthy();
+  expect(actionMocks.respond).toHaveBeenNthCalledWith(2, invitation.crewRequestId, accept);
+  expect(actionMocks.refresh).toHaveBeenCalledTimes(1);
+});
+
+test.each([["accepted", "approved"], ["declined", "declined"]] as const)("a lost response that already committed as %s never sends another write", async (status, label) => {
+  actionMocks.respond.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+  actionMocks.requestStatus.mockResolvedValueOnce(status);
+  render(<NotificationsCenter notifications={[invitation]} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: status === "accepted" ? "Approve" : "Decline" })); });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Check request status" })); });
+  expect(await screen.findByText(`This Crew request was already ${label}.`)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Decline" })).toBeNull();
+  expect(actionMocks.respond).toHaveBeenCalledTimes(1);
+  expect(actionMocks.refresh).toHaveBeenCalledTimes(1);
 });
 
 test("read status survives a return visit when loaded from the account record", async () => {

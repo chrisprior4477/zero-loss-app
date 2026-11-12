@@ -37,6 +37,27 @@ test("declining keeps the shared card and never changes personal favorites", asy
   await waitFor(() => expect(screen.getByRole("button", { name: /View prize/ })).toBeTruthy()); expect(mocks.toggle).not.toHaveBeenCalled();
 });
 
+test("a delayed decline saves the share without closing a newly opened favorite", async () => {
+  let finishDecline!: (value: unknown) => void;
+  mocks.state.mockImplementation((_id, state) => state === "declined"
+    ? new Promise(resolve => { finishDecline = resolve; })
+    : Promise.resolve({ ok: true, viewedAt: "today", declinedAt: null, message: "" }));
+  window.history.replaceState({}, "", `/account/favorites?tab=shared&share=${share.id}`);
+  show({ initialTab: "shared", initialShareId: share.id });
+  fireEvent.click(screen.getByRole("button", { name: "Decline this share" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Your Favorites 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" }));
+
+  await act(async () => finishDecline({ ok: true, viewedAt: "today", declinedAt: "today", message: "Declined." }));
+  expect(window.location.search).toBe("?item=nike-court-shot-shoes");
+  expect(screen.getByRole("heading", { name: "Nike Men's Court Shot Shoes" })).toBeTruthy();
+  expect(screen.queryByText("Declined.")).toBeNull();
+
+  fireEvent.click(screen.getByRole("tab", { name: "Shared with You 1" }));
+  expect(screen.getByText("Declined")).toBeTruthy();
+  expect(mocks.toggle).not.toHaveBeenCalled();
+});
+
 test.each([share.token, null])("opening a saved share preserves its exact return destination and token %s", token => {
   show({ initialTab: "shared", initialShares: [{ ...share, token }] });
   fireEvent.click(screen.getByRole("button", { name: /View prize/ }));
