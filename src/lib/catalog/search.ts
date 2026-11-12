@@ -6,14 +6,22 @@ import { searchDenominations } from "./search-denomination";
 
 export type CatalogSearchMatch = { product: DemoProduct; kind: "product" | "retailer" };
 
-export function searchCatalogMatches(products: readonly DemoProduct[], query: string, denomination = searchDenominations(query, products)): CatalogSearchMatch[] {
+export function searchCatalogMatches(
+  products: readonly DemoProduct[],
+  query: string,
+  denomination = searchDenominations(query, products),
+  { includeLowerGiftCards = false } = {},
+): CatalogSearchMatch[] {
   if (query.length > 512) return [];
   const { text, values, merchant } = denomination;
   const normalizedQuery = normalizeSearch(text);
   const tokens = queryWords(text);
   if ((!tokens.length && !values.size) || tokens.length > 32) return [];
   const giftCards = /\bgift card\b/.test(normalizedQuery);
-  const candidates = products.filter(product => (!values.size || values.has(product.value))
+  const includeLower = includeLowerGiftCards && Boolean(merchant) && values.size > 0;
+  const requestedMax = Math.max(...values);
+  const candidates = products.filter(product => (!values.size || values.has(product.value)
+      || (includeLower && product.value < requestedMax && isGiftCardListing(product)))
     && (!giftCards || isGiftCardListing(product))
     && (!merchant || normalizeSearch(product.retailer) === merchant || normalizeSearch(product.retailer).startsWith(merchant + " ")));
   if (!tokens.length) return candidates.map(product => ({ product, kind: "product" }));
@@ -44,9 +52,12 @@ export function searchCatalogMatches(products: readonly DemoProduct[], query: st
       + matchWord(token, category) * 8 + matchWord(token, direct ? document : expanded);
     if (` ${normalizeSearch(product.title)} `.includes(` ${normalizedQuery} `)) score += 100;
     if (normalizeSearch(product.brand) === normalizedQuery || normalizeSearch(product.retailer) === normalizedQuery) score += 120;
-    return { product, kind, score };
-  }).filter((match): match is CatalogSearchMatch & { score: number } => match !== null)
-    .sort((left, right) => Number(left.kind === "retailer") - Number(right.kind === "retailer")
+    const giftCardRank = includeLower && isGiftCardListing(product) ? values.has(product.value) ? 0 : 1 : 2;
+    return { product, kind, score, giftCardRank };
+  }).filter((match): match is NonNullable<typeof match> => match !== null)
+    .sort((left, right) => left.giftCardRank - right.giftCardRank
+      || (left.giftCardRank < 2 && right.giftCardRank < 2 ? right.product.value - left.product.value : 0)
+      || Number(left.kind === "retailer") - Number(right.kind === "retailer")
       || Number(left.product.slug.endsWith("-gift-card")) - Number(right.product.slug.endsWith("-gift-card"))
       || right.score - left.score || left.product.title.localeCompare(right.product.title))
     .map(({ product, kind }) => ({ product, kind }));

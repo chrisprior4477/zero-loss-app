@@ -7,6 +7,8 @@ import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 vi.setConfig({ testTimeout: 20000 });
 
 const account = vi.hoisted(() => ({ get: vi.fn().mockResolvedValue(null) }));
+const availability = vi.hoisted(() => vi.fn().mockResolvedValue(null));
+vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailability: availability }));
 
 test("the Headphones menu filters Electronics and preserves its return path", async () => {
   render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", subcategory: "Headphones" }) }));
@@ -30,9 +32,37 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
 });
 
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); account.get.mockResolvedValue(null); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); account.get.mockResolvedValue(null); availability.mockResolvedValue(null); });
 
 describe("Browse search results", () => {
+  test.each([
+    ["Best Buy one hundred dollars", [100, 75, 50, 25]],
+    ["Best Buy seventy-five dollar gift cards", [75, 50, 25]],
+    ["Walmart $100", [100, 75, 50, 25]],
+  ])("shows the requested gift-card amount first, then lower values for %s", async (q, amounts) => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ q }) }));
+    const cards = within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading").map(card => card.textContent);
+    const retailer = q.startsWith("Best Buy") ? "Best Buy" : "Walmart";
+    const expected = amounts.map(amount => `$${amount} ${retailer} Gift Card`);
+    expect(cards[0]).toBe(expected[0]);
+    expect(cards.filter(title => expected.includes(title))).toEqual(expected);
+    expect(screen.getByText(/Includes lower-value gift cards/)).toBeTruthy();
+    if (amounts[0] === 75) expect(screen.queryByRole("heading", { name: "$100 Best Buy Gift Card" })).toBeNull();
+  });
+
+  test("shows open lower Best Buy cards when the exact pool is closed and respects the current value filter", async () => {
+    availability.mockResolvedValue(Object.fromEntries([100, 75, 50, 25].map(value => {
+      const slug = `best-buy-${value}-gift-card`;
+      const capacity = value * 3;
+      const remaining = value === 100 ? 0 : 1;
+      return [slug, { slug, capacity, sold: capacity - remaining, remaining, entryPriceCents: 100 }];
+    })));
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "Best Buy one hundred dollars", minValue: "50" }) }));
+    const cards = within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading");
+    expect(cards.map(card => card.textContent)).toEqual(["$75 Best Buy Gift Card", "$50 Best Buy Gift Card"]);
+    expect(screen.getByText(/Requested value \$100/)).toBeTruthy();
+  });
+
   test("both Ending Soon bars share a voice draft and clear the search inside the current filters", async () => {
     let speak!: (text: string) => void;
     vi.stubGlobal("SpeechRecognition", class {

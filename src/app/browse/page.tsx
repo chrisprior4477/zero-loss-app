@@ -5,6 +5,7 @@ import { demoProducts } from "@/lib/catalog/demo-products";
 import {
   marketplaceCategories,
   marketplaceCategoryId,
+  isGiftCardListing,
   isRetailerCollection,
   productMatchesMarketplaceCategory,
 } from "@/lib/catalog/navigation";
@@ -61,7 +62,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const budgetLabel = browsePrizeValueLabel(filters);
   const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts);
-  const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm, denomination) : [];
+  const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm, denomination, { includeLowerGiftCards: !endingSoon }) : [];
   const savedMatches = searchTerm ? searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm, denomination) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
   const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
@@ -72,6 +73,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const products = selectedCategory === "groceries" && !searchTerm && filters.sort === "featured"
     ? groceryStoreFirst(filteredProducts, retailerGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
     : filteredProducts;
+  const includesLowerGiftCards = denomination.values.size > 0
+    && products.some(product => isGiftCardListing(product) && !denomination.values.has(product.value));
+  const requestedValues = Array.from(denomination.values, value => `$${value.toLocaleString("en-US")}`).join(" or ");
   const requestedBatch = typeof query.batch === "string" && /^[1-9]\d*$/.test(query.batch) ? Number(query.batch) : 1;
   const batch = Number.isSafeInteger(requestedBatch) && requestedBatch > 1
     ? Math.min(requestedBatch, Math.max(1, Math.ceil(products.length / batchSize))) : 1;
@@ -161,7 +165,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <p aria-live="polite" className={`${showGroceryInspiration ? "mt-2" : "mt-4"} text-sm font-bold text-white/75`}>{endingSoon || products.length > batchSize
           ? `Showing ${visibleProducts.length} of ${products.length} ${resultNoun}`
           : `${products.length} ${resultNoun} shown`}{denomination.values.size > 0 &&
-            <span className="ml-2">· Exact prize value: {Array.from(denomination.values, value => `$${value.toLocaleString("en-US")}`).join(" or ")}</span>}</p>
+            <span className="ml-2">· {includesLowerGiftCards ? <>Requested value {requestedValues} · Includes lower-value gift cards</> : <>Exact prize value: {requestedValues}</>}</span>}</p>
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {visibleProducts.map((product) => {
