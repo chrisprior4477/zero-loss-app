@@ -6,7 +6,7 @@ import { notifyAccountChanged } from "@/lib/account/account-state-events";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, removeCrewMember, saveCrewGroup, saveCrewMemberContact, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, shareWinWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
+import { getCrewShareOptions, inviteToCrew, inviteToCrewById, inviteToCrewByPhone, removeCrewMember, saveCrewGroup, saveCrewMemberContact, searchCrewByName, shareConfirmedEntryWithCrew, sharePrizeWithCrew, sharePrizeWithCrewGroups, shareWinWithCrew, type CrewSearchPerson, type CrewShareOptions } from "@/lib/crew/actions";
 import type { CrewMemberContact } from "@/lib/crew/member-contact";
 import { getProductShareItem } from "@/lib/sharing/actions";
 import { crewLookupKind, emailHref, isAppleMobile, isCompleteSharePhone as validPhone, messageHref, nativeProductShareData, productShareText, productShareUrl, webmailHref, type WebmailProvider, type ProductShareItem } from "@/lib/sharing/product-share";
@@ -91,13 +91,19 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const smsLink = useRef<HTMLAnchorElement>(null);
   const previousStep = useRef<Step | null>(null);
   const id = useId();
-  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [preparedLink, setPreparedLink] = useState<{ slug: string; groupId: string | null; token: string | null } | null>(null);
+  const shareSlug = item.slug;
+  const singleLinkAudience = selectedGroupIds.length < 2;
   const shareGroupId = selectedGroupIds.length === 1 ? selectedGroupIds[0] : null;
+  const shareToken = singleLinkAudience && preparedLink?.slug === shareSlug && preparedLink.groupId === shareGroupId ? preparedLink.token : null;
   useEffect(() => {
+    if (!singleLinkAudience) return;
     let cancelled = false;
-    void prepareProductShareLink(item.slug, shareGroupId).then(token => { if (!cancelled) { setShareToken(token); } }).catch(() => { if (!cancelled) { setShareToken(null); } });
+    void prepareProductShareLink(shareSlug, shareGroupId).catch(() => null).then(token => {
+      if (!cancelled) setPreparedLink({ slug: shareSlug, groupId: shareGroupId, token });
+    });
     return () => { cancelled = true; };
-  }, [item.slug, shareGroupId]);
+  }, [shareSlug, shareGroupId, singleLinkAudience]);
   const url = origin ? productShareUrl(origin, item.slug, shareToken) : `/items/${item.slug}`;
   const text = productShareText(item.title, item);
   const body = `${text}\n${url}`;
@@ -525,8 +531,9 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     if (!recipients.length || target && groups.length !== target.length) return;
     await run(async () => {
       const singleGroup = groups.length === 1 ? groups[0].id : null;
-      let result = { ok: true, message: "Your share is saved." };
+      let result: { ok: boolean; message: string; groupCount?: number } = { ok: true, message: "Your share is saved." };
       if (request && !item.win) result = await shareConfirmedEntryWithCrew(request.requestId, target && target.length > 1 ? target : singleGroup);
+      else if (groups.length > 1 && !item.win) result = await sharePrizeWithCrewGroups(item.slug, groups.map(({ id, memberIds }) => ({ id, memberIds })));
       else {
         let completed = 0;
         // Keep the existing server batch bound; a person in several groups is
@@ -540,7 +547,14 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         }
         if (recipients.length > 20) result = { ok: true, message: `Share saved for ${recipients.length} selected Crew members.` };
       }
-      if (alive.current) { feedback(result.message, !result.ok); if (result.ok) setSharedGroupName(groups.length > 1 ? `${groups.length} groups` : groups[0]?.name ?? ""); setShared(result.ok); }
+      if (alive.current) {
+        feedback(result.message, !result.ok);
+        if (result.ok) {
+          const deliveredToAllGroups = result.groupCount === undefined || result.groupCount === groups.length;
+          setSharedGroupName(deliveredToAllGroups ? groups.length > 1 ? `${groups.length} groups` : groups[0]?.name ?? "" : "");
+        }
+        setShared(result.ok);
+      }
     });
   }
 
@@ -576,7 +590,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     else feedback("Review the subject, message, and link in your email draft, then send. If you need to sign in first, return here and choose your email again.");
   }}>{tile ? <ShareIcon name="mail" /> : null}<span>{label}{provider === "outlook" && tile ? <small>Hotmail too</small> : null}</span>{!tile ? " ↗" : null}</a>;
   const titles: Record<Step, string> = { home: item.win ? "Share your win" : "Share this find", send: "Send to anyone", messages: "Send a text", email: item.win ? "Email your win" : "Email this item", crew: "Who would you like to share with?", find: findTargetGroup ? `Add people to ${options?.groups.find(group => group.id === findTargetGroup)?.name ?? "your group"}` : "Add people", audience: "Share with your Crew", group: editingGroup ? "Edit your group" : "Create a new group", copy: "Copy this item’s link", contacts: "Add people from your phone", contactGroup: "Save contact to a group", roster: "People in your Crew", contactEdit: "Save this contact" };
-  const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{shared ? sharedGroupName ? `Shared with ${sharedGroupName}` : "Shared with your Crew" : step === "audience" && groupsOnly ? "Share with my groups" : titles[step]}</h2>;
+  const titleHeading = <h2 id={`${id}-title`} ref={heading} tabIndex={-1}>{shared ? sharedGroupName ? `Shared with ${sharedGroupName}` : groupsOnly ? "Group share saved" : "Shared with your Crew" : step === "audience" && groupsOnly ? "Share with my groups" : titles[step]}</h2>;
   const compact = step === "home" || step === "email";
   const journey = true;
   const personAdded = (memberId: string) => findTargetGroup ? Boolean(options?.groups.find(group => group.id === findTargetGroup)?.memberIds.includes(memberId)) : members.some(member => member.id === memberId) || requested.includes(contactKey(memberId, "id"));

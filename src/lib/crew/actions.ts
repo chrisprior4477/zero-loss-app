@@ -71,6 +71,33 @@ export async function sharePrizeWithCrew(offeringSlug: string, recipientIds: str
     message: data.queued ? `Saved for email delivery to ${data.queued} connected Crew ${data.queued === 1 ? "member" : "members"}.` : "This prize was already shared with the selected Crew members." };
 }
 
+export async function sharePrizeWithCrewGroups(offeringSlug: string, groups: { id: string; memberIds: string[] }[]): Promise<CrewActionResult & { groupCount?: number }> {
+  if (!/^[a-z0-9-]{2,100}$/.test(offeringSlug) || !Array.isArray(groups) || !groups.length || groups.length > 500
+    || !groups.every(group => group && crewUuid.test(group.id) && Array.isArray(group.memberIds) && group.memberIds.every(id => crewUuid.test(id)))
+    || new Set(groups.map(group => group.id)).size !== groups.length) {
+    return { ok: false, message: "Choose saved Crew groups before sharing this prize." };
+  }
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in before sharing this prize with your Crew." };
+  const { data, error } = await session.db.rpc("share_prize_with_crew_groups", {
+    p_offering_slug: offeringSlug,
+    p_groups: Object.fromEntries(groups.map(group => [group.id, group.memberIds])),
+  });
+  if (error?.code === "PT409") {
+    return { ok: false, message: "These groups changed or can’t receive this share. Reopen the group chooser and review your selection." };
+  }
+  if (error || !data || typeof data.groupCount !== "number" || data.groupCount < 1) {
+    return { ok: false, message: "We couldn’t save this group share. Try again in a moment." };
+  }
+  return {
+    ok: true,
+    groupCount: data.groupCount,
+    message: data.partial
+      ? "Share saved. Some selected people or groups could not receive it."
+      : "Share saved for the connected people in your selected groups.",
+  };
+}
+
 export async function shareWinWithCrew(rewardId: string, recipientIds: string[]): Promise<CrewActionResult & { queued?: number; alreadyShared?: number }> {
   if (!crewUuid.test(rewardId) || !Array.isArray(recipientIds) || recipientIds.length < 1 || recipientIds.length > 20
     || new Set(recipientIds).size !== recipientIds.length || !recipientIds.every(id => crewUuid.test(id))) {

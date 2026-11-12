@@ -3,9 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { PostEntryCrewToast } from "./PostEntryCrewToast";
 import type { EntryRequest } from "@/lib/entries/request";
 
-const mocks = vi.hoisted(() => ({ options: vi.fn(), share: vi.fn(), prize: vi.fn(), win: vi.fn(), search: vi.fn(), invite: vi.fn(), phone: vi.fn(), email: vi.fn(), save: vi.fn(), item: vi.fn(), contact: vi.fn(), remove: vi.fn() }));
-vi.mock("@/lib/crew/actions", () => ({ getCrewShareOptions: mocks.options, shareConfirmedEntryWithCrew: mocks.share, sharePrizeWithCrew: mocks.prize, shareWinWithCrew: mocks.win, searchCrewByName: mocks.search, inviteToCrewById: mocks.invite, inviteToCrewByPhone: mocks.phone, inviteToCrew: mocks.email, saveCrewGroup: mocks.save, saveCrewMemberContact: mocks.contact, removeCrewMember: mocks.remove }));
-vi.mock("@/lib/sharing/receiving-actions", () => ({ prepareProductShareLink: vi.fn(async () => null) }));
+const mocks = vi.hoisted(() => ({ options: vi.fn(), share: vi.fn(), prize: vi.fn(), prizeGroups: vi.fn(), prepareLink: vi.fn(), win: vi.fn(), search: vi.fn(), invite: vi.fn(), phone: vi.fn(), email: vi.fn(), save: vi.fn(), item: vi.fn(), contact: vi.fn(), remove: vi.fn() }));
+vi.mock("@/lib/crew/actions", () => ({ getCrewShareOptions: mocks.options, shareConfirmedEntryWithCrew: mocks.share, sharePrizeWithCrew: mocks.prize, sharePrizeWithCrewGroups: mocks.prizeGroups, shareWinWithCrew: mocks.win, searchCrewByName: mocks.search, inviteToCrewById: mocks.invite, inviteToCrewByPhone: mocks.phone, inviteToCrew: mocks.email, saveCrewGroup: mocks.save, saveCrewMemberContact: mocks.contact, removeCrewMember: mocks.remove }));
+vi.mock("@/lib/sharing/receiving-actions", () => ({ prepareProductShareLink: mocks.prepareLink }));
 vi.mock("@/lib/sharing/actions", () => ({ getProductShareItem: mocks.item }));
 const request: EntryRequest = { requestId: "11111111-1111-4111-8111-111111111111", slug: "test-prize", title: "Test prize", quantity: 1, amountCents: 100, status: "accepted", duplicate: false, undoUntil: "2026-10-22T12:00:30Z", serverNow: "2026-10-22T12:01:00Z", href: "/account/entries" };
 const groupId = "22222222-2222-4222-8222-222222222222";
@@ -14,6 +14,7 @@ const options = { ok: true, message: "", memberCount: 1, members: [{ id: memberI
 beforeEach(() => {
   vi.stubGlobal("scrollTo", vi.fn());
   vi.resetAllMocks(); mocks.item.mockResolvedValue(null); mocks.options.mockResolvedValue(options);
+  mocks.prepareLink.mockResolvedValue(null);
   Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
@@ -253,18 +254,48 @@ test("several selected groups stay checked and confirmed entries share with ever
   expect(await screen.findByRole("heading", { name: "Shared with 2 groups" })).toBeTruthy();
 });
 
-test("item sharing combines overlapping groups into one unique recipient list", async () => {
+test("item sharing sends one request with the exact audience of every selected group", async () => {
   const second = "44444444-4444-4444-8444-444444444444";
   mocks.options.mockResolvedValue({ ...options, groups: [...options.groups, { id: second, name: "Friends", memberIds: [memberId], memberCount: 1 }] });
-  mocks.prize.mockResolvedValue({ ok: true, message: "Saved." });
+  mocks.prizeGroups.mockResolvedValue({ ok: true, message: "Saved.", groupCount: 2 });
   render(<PostEntryCrewToast product={{ slug: request.slug, title: request.title }} onClose={vi.fn()} />);
   fireEvent.click(screen.getByRole("button", { name: "Share with group(s)" }));
   await screen.findByRole("checkbox", { name: "Share with Mom" });
   fireEvent.click(screen.getByRole("checkbox", { name: "Share with Mom" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Share with Friends" }));
   fireEvent.click(screen.getByRole("button", { name: "Send to 2 groups" }));
-  await waitFor(() => expect(mocks.prize).toHaveBeenCalledWith(request.slug, [memberId], null));
-  expect(mocks.prize).toHaveBeenCalledOnce();
+  await waitFor(() => expect(mocks.prizeGroups).toHaveBeenCalledExactlyOnceWith(request.slug, [
+    { id: groupId, memberIds: [memberId] },
+    { id: second, memberIds: [memberId] },
+  ]));
+  expect(mocks.prize).not.toHaveBeenCalled();
+  expect(await screen.findByRole("heading", { name: "Shared with 2 groups" })).toBeTruthy();
+});
+
+test("copy uses the plain prize link while the newly selected audience link is loading", async () => {
+  const groupToken = "55555555-5555-4555-8555-555555555555";
+  const crewToken = "66666666-6666-4666-8666-666666666666";
+  let finishLink!: (token: string) => void;
+  mocks.prepareLink.mockResolvedValueOnce(crewToken).mockResolvedValueOnce(groupToken)
+    .mockReturnValueOnce(new Promise<string>(resolve => { finishLink = resolve; }));
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+  open();
+  fireEvent.click(screen.getByRole("button", { name: "Share with group(s)" }));
+  const checkbox = await screen.findByRole("checkbox", { name: "Share with Mom" });
+  await act(async () => fireEvent.click(checkbox));
+  fireEvent.click(screen.getByRole("button", { name: "← Back" }));
+  fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+  await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/items/${request.slug}?share=${groupToken}`));
+
+  fireEvent.click(screen.getByRole("button", { name: "Share with group(s)" }));
+  await waitFor(() => expect(screen.getByRole("checkbox", { name: "Share with Mom" })).toHaveProperty("disabled", false));
+  fireEvent.click(screen.getByRole("button", { name: "← Back" }));
+  fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+  await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/items/${request.slug}`));
+  await act(async () => finishLink(crewToken));
+  fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+  await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/items/${request.slug}?share=${crewToken}`));
 });
 
 test("larger audiences use safe delivery batches without an audience selection cap", async () => {
