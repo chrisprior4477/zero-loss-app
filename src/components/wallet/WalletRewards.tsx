@@ -217,7 +217,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, clai
   const optionCount = accountOverview?.activity.source === "unavailable" ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;
   const singleReady = ready.length === 1 ? ready[0] : null;
 
-  return <main className={styles.detailPage}>
+  return <main key={item.rewardId ?? item.slug} className={styles.detailPage}>
     {fromPurchase
       ? <AccountSettingsLandingScroll target="reward-pass" initialTarget="reward-pass" visitKey={item.rewardId ?? item.slug} settleAfterNavigation allScreens />
       : <RewardPassAutoScroll rewardKey={item.rewardId ?? item.slug} />}

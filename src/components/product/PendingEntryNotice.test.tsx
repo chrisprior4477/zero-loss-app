@@ -34,6 +34,20 @@ test.each(["page", "query"])("manual Share closes on %s navigation without mutin
   expect(await screen.findByRole("heading", { name: "Share this find" })).toBeTruthy();
 });
 
+test("opening Share for another win of the same product starts a fresh dialog", async () => {
+  render(<PendingEntryNotice />);
+  await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+  const open = (rewardId: string) => act(() => window.dispatchEvent(new CustomEvent(PRODUCT_SHARE_EVENT, {
+    detail: { slug: request.slug, title: request.title, win: { rewardId, demo: true } },
+  })));
+
+  open(request.requestId);
+  const firstDialog = await screen.findByRole("heading", { name: "Share your win" });
+  open("51515151-5151-4151-8151-515151515151");
+  expect(await screen.findByRole("heading", { name: "Share your win" })).not.toBe(firstDialog);
+  expect(firstDialog.isConnected).toBe(false);
+});
+
 test("automatic sharing survives its entry handoff but closes when Back leaves that entry", async () => {
   const view = render(<PendingEntryNotice />);
   await waitFor(() => expect(mocks.list).toHaveBeenCalled());

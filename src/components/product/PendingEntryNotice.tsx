@@ -209,5 +209,5 @@ export function PendingEntryNotice({ accountId }: { accountId: string }) {
 
   const entryScreen = pathname?.startsWith("/items/") || pathname?.startsWith("/account/entries");
   return shareRequest && entryScreen ? <PostEntryCrewToast key={shareRequest.requestId} request={shareRequest} onClose={closeSharing} />
-    : manualProduct ? <PostEntryCrewToast key={`manual-${manualProduct.slug}`} product={manualProduct} onClose={closeSharing} focusOnOpen /> : null;
+    : manualProduct ? <PostEntryCrewToast key={manualProduct.win ? `manual-win-${manualProduct.win.rewardId}` : `manual-${manualProduct.slug}`} product={manualProduct} onClose={closeSharing} focusOnOpen /> : null;
 }

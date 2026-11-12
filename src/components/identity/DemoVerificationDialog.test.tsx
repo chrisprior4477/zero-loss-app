@@ -63,6 +63,18 @@ test("presentation shortcut saves an explicit skip and continues the claim witho
   expect(mocks.skipDemoVerificationForPresentation).toHaveBeenCalledWith(id, id);
   expect(mocks.advanceDemoVerification).not.toHaveBeenCalled();
 });
+test("a verification result after leaving the reward cannot continue the claim", async () => {
+  let finish!: (result: { verification: typeof sample }) => void;
+  mocks.skipDemoVerificationForPresentation.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  const onComplete = vi.fn();
+  const view = render(<DemoVerificationDialog rewardId={id} onClose={vi.fn()} onComplete={onComplete} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Continue with Demo as if completed" }));
+  expect(mocks.skipDemoVerificationForPresentation).toHaveBeenCalledWith(id, id);
+
+  view.unmount();
+  await act(async () => finish({ verification: { ...sample, step: "demo_skipped" } }));
+  expect(onComplete).not.toHaveBeenCalled();
+});
 test("a failed shortcut stays open and can be retried; Finish later still only pauses", async () => {
   mocks.skipDemoVerificationForPresentation.mockResolvedValueOnce({ error: "Could not save demo shortcut." });
   const onComplete = vi.fn();

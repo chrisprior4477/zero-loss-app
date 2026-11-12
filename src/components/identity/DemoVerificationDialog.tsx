@@ -141,6 +141,7 @@ export function DemoVerificationDialog({ rewardId, onClose, onComplete, previewO
     inFlight.current = true; setPhase("saving"); setError(null);
     try {
       const result = await skipDemoVerificationForPresentation(rewardId, verification.id);
+      if (!dialog.current) return;
       if (result.verification?.step === "demo_skipped") {
         setVerification(result.verification);
         onComplete();

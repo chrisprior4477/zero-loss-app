@@ -38,15 +38,17 @@ export function RewardClaimControl({ rewardId, previewShown = false }: { rewardI
     skipInFlight.current = true; setSkipping(true); setSkipError(null);
     try {
       const started = await beginDemoVerification(rewardId);
+      if (!form.current) return;
       if (!started.verification) { setSkipError(started.error); return; }
       const result = ["demo_passed", "demo_skipped"].includes(started.verification.step)
         ? started : await skipDemoVerificationForPresentation(rewardId, started.verification.id);
+      if (!form.current) return;
       if (!result.verification || !["demo_passed", "demo_skipped"].includes(result.verification.step)) {
         setSkipError(result.error ?? "We couldn’t confirm this demo step. Please try again."); return;
       }
       setIntroOpen(false);
       // Claim through the same owner-checked, idempotent server action as the full walkthrough.
-      form.current?.requestSubmit();
+      form.current.requestSubmit();
     } catch { setSkipError("The connection was interrupted. Retry to check your saved demo progress."); }
     finally { skipInFlight.current = false; setSkipping(false); }
   }

@@ -1,13 +1,28 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { PRODUCT_SHARE_EVENT } from "@/lib/sharing/product-share";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { ActivityItem, RewardStatus } from "@/lib/account/activity";
+import type { RewardClaimActionState } from "@/lib/account/lifecycle-actions";
 import { WalletRewardDetail } from "./WalletRewards";
 
+const mocks = vi.hoisted(() => ({
+  claim: vi.fn(), share: vi.fn(), refresh: vi.fn(), beginVerification: vi.fn(), skipVerification: vi.fn(),
+}));
 vi.mock("next/image", () => ({ default: () => null }));
-vi.mock("./RewardClaimControl", () => ({ RewardClaimControl: () => <button>Claim reward</button> }));
-vi.mock("@/components/identity/DemoVerificationDialog", () => ({ DemoIdentityPreviewButton: () => <button>Preview identity check</button> }));
+vi.mock("next/navigation", async importOriginal => ({
+  ...await importOriginal<typeof import("next/navigation")>(), useRouter: () => ({ refresh: mocks.refresh }),
+}));
+vi.mock("@/lib/account/lifecycle-actions", () => ({ claimReward: mocks.claim }));
+vi.mock("@/lib/crew/actions", () => ({ shareWinWithCrew: mocks.share }));
+vi.mock("@/lib/identity/demo-verification-actions", () => ({
+  beginDemoVerification: mocks.beginVerification, skipDemoVerificationForPresentation: mocks.skipVerification,
+}));
 vi.mock("./DemoRewardRestartControl", () => ({ DemoRewardRestartControl: () => <button>Remove sample reward &amp; restart demo</button> }));
+beforeEach(() => {
+  vi.resetAllMocks();
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+});
 afterEach(cleanup);
 
 const item: ActivityItem = {
@@ -16,6 +31,73 @@ const item: ActivityItem = {
   availability: "Reward ready", rewardId: "11111111-1111-4111-8111-111111111111",
   rewardStatus: "ready", rewardClaimedAt: "2026-09-21T12:00:00Z",
 };
+
+const nextRewardId = "22222222-2222-4222-8222-222222222222";
+const unclaimed = { ...item, rewardClaimedAt: null };
+
+test.each(["succeeded", "verification_required"] as const)("a late claim result (%s) stays with the original reward", async status => {
+  let finish!: (result: RewardClaimActionState) => void;
+  mocks.claim.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  const view = render(<WalletRewardDetail item={unclaimed} isPreview />);
+  fireEvent.submit(screen.getByRole("button", { name: "Claim reward" }).closest("form")!);
+  expect(await screen.findByRole("button", { name: "Claiming…" })).toHaveProperty("disabled", true);
+
+  view.rerender(<WalletRewardDetail item={{ ...unclaimed, rewardId: nextRewardId }} isPreview />);
+  expect(screen.getByRole("button", { name: "Claim reward" })).toHaveProperty("disabled", false);
+  await act(async () => finish({ status, message: "Response for the first reward" }));
+  expect(screen.getByRole("button", { name: "Claim reward" })).toHaveProperty("disabled", false);
+  expect(screen.queryByText("Response for the first reward")).toBeNull();
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(mocks.refresh).not.toHaveBeenCalled();
+  expect(mocks.claim).toHaveBeenCalledOnce();
+  expect(mocks.claim.mock.calls[0][1].get("rewardId")).toBe(item.rewardId);
+
+  mocks.claim.mockResolvedValueOnce({ status: "succeeded", message: "Second reward claimed" });
+  fireEvent.submit(screen.getByRole("button", { name: "Claim reward" }).closest("form")!);
+  expect(await screen.findByText("Second reward claimed")).toBeTruthy();
+  expect(mocks.claim.mock.calls[1][1].get("rewardId")).toBe(nextRewardId);
+});
+
+test("leaving a reward during the identity shortcut stops the follow-up actions", async () => {
+  let finish!: (result: { verification: { id: string; step: string } }) => void;
+  mocks.claim.mockResolvedValueOnce({ status: "verification_required", message: "Verify this reward" });
+  mocks.beginVerification.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  const view = render(<WalletRewardDetail item={unclaimed} isPreview />);
+  fireEvent.submit(screen.getByRole("button", { name: "Claim reward" }).closest("form")!);
+  fireEvent.click(await screen.findByRole("button", { name: "Skip check & claim demo reward" }));
+  expect(mocks.beginVerification).toHaveBeenCalledWith(item.rewardId);
+
+  view.rerender(<WalletRewardDetail item={{ ...unclaimed, rewardId: nextRewardId }} isPreview />);
+  await act(async () => finish({ verification: { id: "first-check", step: "start" } }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(mocks.skipVerification).not.toHaveBeenCalled();
+  expect(mocks.claim).toHaveBeenCalledOnce();
+});
+
+test("Crew selections and share feedback stay with the exact reward, even for the same prize", async () => {
+  let finish!: (result: { ok: boolean; message: string }) => void;
+  mocks.share.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  const members = [{ id: "crew-a", name: "Ari" }, { id: "crew-b", name: "Sam" }];
+  const reward = (rewardId: string) => <WalletRewardDetail item={{ ...item, rewardId }} isPreview claimedCode="123456789012" crewMembers={members} />;
+  const view = render(reward(item.rewardId!));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Ari" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share win with selected Crew" }));
+  expect(mocks.share).toHaveBeenCalledWith(item.rewardId, ["crew-a"]);
+
+  view.rerender(reward(nextRewardId));
+  await act(async () => finish({ ok: true, message: "First share saved" }));
+  expect(screen.getByRole("checkbox", { name: "Ari" })).toHaveProperty("checked", false);
+  expect(screen.queryByText("First share saved")).toBeNull();
+  expect(mocks.share).toHaveBeenCalledOnce();
+
+  mocks.share.mockResolvedValueOnce({ ok: true, message: "Second share saved" });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Sam" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share win with selected Crew" }));
+  expect(await screen.findByText("Second share saved")).toBeTruthy();
+  expect(mocks.share).toHaveBeenLastCalledWith(nextRewardId, ["crew-b"]);
+  view.rerender(reward(nextRewardId));
+  expect(screen.getByRole("button", { name: "Share saved" })).toHaveProperty("disabled", true);
+});
 
 test.each(["prize", "completed"] as const)("%s reward sharing is a manual compact button and never includes the gift-card number", status => {
   const share = vi.fn();
