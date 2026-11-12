@@ -87,7 +87,7 @@ test.each(["undo", "finish"])("decline just the second offer without buying, the
   expect(mocks.decline).not.toHaveBeenCalled();
   fireEvent.click(button("Option 2")); fireEvent.click(button("Option 1"));
   fireEvent.click(button("Decline selected (1)"));
-  mocks.decline.mockResolvedValue({ status: "succeeded", optionIds: ["option-1"], message: "1 offer declined." });
+  mocks.decline.mockResolvedValue({ status: "succeeded", optionIds: ["option-1"], receipts: [{ optionId: "option-1", declineEventId: "event-1" }], message: "1 offer declined." });
   fireEvent.click(button("Decline 1 offer"));
   await screen.findByRole("button", { name: "Undo decline" });
   expect(mocks.decline).toHaveBeenCalledExactlyOnceWith("nintendo-switch", ["option-1"]);
@@ -95,7 +95,7 @@ test.each(["undo", "finish"])("decline just the second offer without buying, the
     mocks.undo.mockResolvedValue({ status: "succeeded", optionIds: ["option-1"], message: "Restored." });
     fireEvent.click(button("Undo decline"));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(mocks.undo).toHaveBeenCalledExactlyOnceWith(["option-1"]);
+    expect(mocks.undo).toHaveBeenCalledExactlyOnceWith([{ optionId: "option-1", declineEventId: "event-1" }]);
   } else {
     fireEvent.click(button("View remaining offers"));
     expect(mocks.replace).toHaveBeenCalledWith("/account/purchase-options/nintendo-switch");

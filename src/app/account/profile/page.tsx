@@ -36,7 +36,7 @@ export default async function ProfilePage() {
     <ProfileReadBoundary key={account.userId}>
     <section id="profile-intro" className={styles.introTicket} aria-labelledby="profile-heading">
       <div><span className={styles.eyebrow}>PERSONAL PROFILE</span><h2 id="profile-heading">Profile</h2><p>Manage your identity, contact details, address, and preferences. Changes save only to your signed-in account.</p></div>
-      <div className={styles.profileCard}><ProfilePhotoCard initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} initialVisibility={{ menu: account.showPhotoInMenu, crew: account.showPhotoToCrew }} compact emailStatus={account.emailConfirmed ? "verified" : "pending"} /></div>
+      <div className={styles.profileCard}><ProfilePhotoCard key={account.userId} accountId={account.userId} initials={account.initials} fullName={account.displayName} email={account.email ?? "—"} initialAvatarUrl={account.avatarUrl} initialVisibility={{ menu: account.showPhotoInMenu, crew: account.showPhotoToCrew }} compact emailStatus={account.emailConfirmed ? "verified" : "pending"} /></div>
       <nav className={styles.profileShortcuts} aria-label="Profile shortcuts">
         <strong>Jump to</strong>
         <div>

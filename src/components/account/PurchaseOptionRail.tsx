@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
-import { declineAllDemoPurchaseOptions, undoBulkDemoPurchaseOptions } from "@/lib/account/bulk-decline-actions";
+import { declineAllDemoPurchaseOptions, undoBulkDemoPurchaseOptions, type DeclineReceipt } from "@/lib/account/bulk-decline-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { PurchaseQuantityPicker } from "./PurchaseQuantityPicker";
@@ -25,7 +25,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set([initiallySelectedEntryId && options.some(option => option.entryId === initiallySelectedEntryId) ? initiallySelectedEntryId : options[0]?.entryId].filter((id): id is string => Boolean(id))));
   const [bulkPhase, setBulkPhase] = useState<"idle" | "confirm" | "working" | "undo" | "undoing" | "error">(initiallyConfirmDecline && canBulkDecline ? "confirm" : "idle");
   const [bulkMessage, setBulkMessage] = useState("");
-  const [bulkOptionIds, setBulkOptionIds] = useState<string[]>([]);
+  const [declineReceipts, setDeclineReceipts] = useState<DeclineReceipt[]>([]);
   const [undoUntil, setUndoUntil] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(30);
   const [reviewedOptionIds, setReviewedOptionIds] = useState(() => options.map(option => option.completionOptionId!));
@@ -134,9 +134,9 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
     try {
       const result = await declineAllDemoPurchaseOptions(options[0].slug, reviewedOptionIds);
       setBulkMessage(result.message);
-      if (result.optionIds.length > 0) {
+      if (result.receipts.length > 0) {
         notifyAccountChanged();
-        setBulkOptionIds(result.optionIds);
+        setDeclineReceipts(result.receipts);
         setUndoUntil(Date.now() + 30_000);
         setSecondsLeft(30);
         setBulkPhase("undo");
@@ -160,7 +160,7 @@ export function PurchaseOptionRail({ title, options, initiallySelectedEntryId, i
     declineInFlight.current = true;
     setBulkPhase("undoing");
     try {
-      const result = await undoBulkDemoPurchaseOptions(bulkOptionIds);
+      const result = await undoBulkDemoPurchaseOptions(declineReceipts);
       if (result.optionIds.length) notifyAccountChanged();
       releaseRefresh.current?.();
       setBulkMessage(result.message);

@@ -10,6 +10,7 @@ do $$
 declare
   owner_id uuid:=gen_random_uuid(); other_id uuid:=gen_random_uuid(); wallet uuid; ids uuid[]; many_ids uuid[];
   request_id uuid:=gen_random_uuid(); answer jsonb; baseline integer; result jsonb;
+  first_decline uuid; second_decline uuid;
 begin
   insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data)
     values(owner_id,'bulk-'||owner_id||'@example.test',now(),'{"legal_first_name":"Bulk","legal_last_name":"Test","date_of_birth":"1990-01-01"}'),
@@ -78,6 +79,39 @@ begin
   perform public.complete_preview_purchase_options('bulk-checkout-rollback',ids[1:2],ids[3:8],29800,request_id);
   if demo_private.option_status(ids[3])<>'available' then raise exception 'Replay declined a revived option'; end if;
   if (select count(*) from public.customer_orders where customer_id=owner_id)<>2 then raise exception 'Duplicate purchase written'; end if;
+
+  execute 'set local role authenticated';
+  answer:=public.decline_preview_purchase_option_with_receipt(ids[3],'checked_decline_first_fixture');
+  first_decline:=(answer->>'declineEventId')::uuid;
+  result:=public.decline_preview_purchase_option_with_receipt(ids[3],'checked_decline_first_fixture');
+  assert first_decline is not null and result->>'duplicate'='true'
+    and (result->>'declineEventId')::uuid=first_decline,'Same decline retry returns the same event';
+  begin
+    perform public.decline_preview_purchase_option_with_receipt(ids[3],'other_confirmation_fixture');
+    raise exception 'A second confirmation received the first decline receipt';
+  exception when sqlstate 'PT409' then null; end;
+  perform public.revive_preview_purchase_option(ids[3],'explicit_revival_fixture');
+  begin
+    perform public.decline_preview_purchase_option_with_receipt(ids[3],'checked_decline_first_fixture');
+    raise exception 'A replay reversed an intervening revival';
+  exception when invalid_parameter_value then null; end;
+  answer:=public.decline_preview_purchase_option_with_receipt(ids[3],'checked_decline_second_fixture');
+  second_decline:=(answer->>'declineEventId')::uuid;
+  assert second_decline is not null and second_decline<>first_decline,'New decline has a new receipt';
+  begin
+    perform public.undo_preview_purchase_option_decline(ids[3],first_decline);
+    raise exception 'Old Undo restored the newer decline';
+  exception when sqlstate 'PT409' then null; end;
+  execute 'reset role';
+  assert demo_private.option_status(ids[3])='declined','Stale Undo leaves the newer decision intact';
+  execute 'set local role authenticated';
+  answer:=public.undo_preview_purchase_option_decline(ids[3],second_decline);
+  assert answer->>'status'='available' and answer->>'duplicate'='false','Matching Undo restores the offer';
+  answer:=public.undo_preview_purchase_option_decline(ids[3],second_decline);
+  assert answer->>'status'='available' and answer->>'duplicate'='true','Matching Undo is retry-safe';
+  execute 'reset role';
+  assert not has_function_privilege('anon','public.undo_preview_purchase_option_decline(uuid,uuid)','execute'),'Anonymous Undo denied';
+
   begin
     perform public.complete_preview_purchase_options('bulk-checkout-rollback',many_ids[1:1],'{}',14900,request_id);
     raise exception 'Changed request key accepted';

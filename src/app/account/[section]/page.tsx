@@ -75,6 +75,7 @@ export default async function LiveAccountSection({
 
   if (section === "security") {
     return <AccountSecurityDashboard
+      accountId={account.userId}
       timeZone={account.timezone}
       displayName={account.displayName}
       initials={account.initials}

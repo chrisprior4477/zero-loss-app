@@ -8,6 +8,7 @@ vi.mock("./ProfilePhotoCard", () => ({ ProfilePhotoCard: ({ fullName, email, ema
 afterEach(cleanup);
 
 const props = {
+  accountId: "photo-owner",
   displayName: "Chris Prior",
   initials: "CP",
   email: "chris@example.test",

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
-import { declineAllDemoPurchaseOptions, undoBulkDemoPurchaseOptions } from "@/lib/account/bulk-decline-actions";
+import { declineAllDemoPurchaseOptions, undoBulkDemoPurchaseOptions, type DeclineReceipt } from "@/lib/account/bulk-decline-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { PurchaseDialog } from "./PurchaseCheckoutDialog";
@@ -21,7 +21,8 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("confirm");
   const [message, setMessage] = useState("");
-  const [optionIds, setOptionIds] = useState<string[]>([]);
+  const [receipts, setReceipts] = useState<DeclineReceipt[]>([]);
+  const optionIds = receipts.map(receipt => receipt.optionId);
   const [undoUntil, setUndoUntil] = useState<number | null>(null);
   const [seconds, setSeconds] = useState(30);
   const inFlight = useRef(false);
@@ -81,9 +82,9 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
     try {
       const result = await declineAllDemoPurchaseOptions(item.slug, reviewedOptionIds);
       setMessage(result.message);
-      if (result.optionIds.length) {
+      if (result.receipts.length) {
         notifyAccountChanged();
-        setOptionIds(result.optionIds);
+        setReceipts(result.receipts);
         setUndoUntil(Date.now() + 30_000);
         setSeconds(30);
         setPhase("undo");
@@ -101,8 +102,7 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
     inFlight.current = true;
     setPhase("undoing");
     try {
-      // Restore only the IDs the server confirmed, including a partial decline.
-      const result = await undoBulkDemoPurchaseOptions(optionIds);
+      const result = await undoBulkDemoPurchaseOptions(receipts);
       if (result.optionIds.length) notifyAccountChanged();
       setUndoUntil(null);
       releaseRefresh.current?.();

@@ -130,6 +130,9 @@ export async function saveProfilePhoto(formData: FormData): Promise<SaveProfileP
   if (userError || !user) {
     return { ok: false, message: "Your session expired. Sign in again before saving your photo." };
   }
+  if (formData.get("profile_owner") !== user.id) {
+    return { ok: false, message: "Your signed-in account changed. Open Profile again before saving a photo." };
+  }
 
   // Never overwrite the file currently referenced by the profile.
   const reference = `${user.id}/avatar-${crypto.randomUUID()}.webp`;

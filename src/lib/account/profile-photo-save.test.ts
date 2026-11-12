@@ -3,7 +3,12 @@ const m = vi.hoisted(() => ({ upload: vi.fn(), remove: vi.fn(), rpc: vi.fn(), ge
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: m.getUser }, rpc: m.rpc, storage: { from: () => ({ upload: m.upload, remove: m.remove, getPublicUrl: m.publicUrl }) } }) }));
 import { saveProfilePhoto } from "./actions";
-function photo() { const data = new FormData(); data.set("photo", new File(["mock photo"], "avatar.webp", { type: "image/webp" })); return data; }
+function photo() {
+  const data = new FormData();
+  data.set("photo", new File(["mock photo"], "avatar.webp", { type: "image/webp" }));
+  data.set("profile_owner", "photo-owner");
+  return data;
+}
 beforeEach(() => {
   vi.resetAllMocks();
   m.getUser.mockResolvedValue({ data: { user: { id: "photo-owner" } } });
@@ -37,5 +42,12 @@ test("successful uploads get distinct references and switch the profile only aft
 test("upload failure does not change the profile", async () => {
   m.upload.mockResolvedValue({ error: { message: "Storage unavailable" } });
   expect((await saveProfilePhoto(photo())).ok).toBe(false);
+  expect(m.rpc).not.toHaveBeenCalled();
+});
+
+test("a photo prepared for a previous account is rejected before uploading", async () => {
+  m.getUser.mockResolvedValue({ data: { user: { id: "other-owner" } } });
+  expect(await saveProfilePhoto(photo())).toMatchObject({ ok: false, message: expect.stringContaining("account changed") });
+  expect(m.upload).not.toHaveBeenCalled();
   expect(m.rpc).not.toHaveBeenCalled();
 });

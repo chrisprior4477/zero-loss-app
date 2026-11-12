@@ -135,7 +135,7 @@ test("bulk decline confirms the current item's offers and offers a 30-second und
   const base = storedActivityFixture().activity[2];
   const options = [base, { ...base, entryId: `ent_${"2".repeat(32)}`, completionOptionId: `22222222-2222-4222-8222-222222222222` }];
   const optionIds = options.map(option => option.completionOptionId!);
-  mocks.decline.mockResolvedValueOnce({ status: "succeeded", message: "2 offers declined. You can undo this for 30 seconds.", optionIds });
+  mocks.decline.mockResolvedValueOnce({ status: "succeeded", message: "2 offers declined. You can undo this for 30 seconds.", optionIds, receipts: optionIds.map(optionId => ({ optionId, declineEventId: `event-${optionId}` })) });
   mocks.undo.mockResolvedValueOnce({ status: "succeeded", message: "All offers restored.", optionIds });
   render(<PurchaseOptionRail title={base.title} options={options} canBulkDecline initiallyConfirmDecline />);
   expect(screen.getByText(`Decline all 2 offers for ${base.title}?`)).toBeTruthy();
@@ -145,7 +145,7 @@ test("bulk decline confirms the current item's offers and offers a 30-second und
   expect(mocks.decline).toHaveBeenCalledWith(base.slug, optionIds);
   expect(screen.getByRole("timer", { name: /seconds left to undo/ })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Undo decline all" }));
-  await waitFor(() => expect(mocks.undo).toHaveBeenCalledWith(optionIds));
+  await waitFor(() => expect(mocks.undo).toHaveBeenCalledWith(optionIds.map(optionId => ({ optionId, declineEventId: `event-${optionId}` }))));
   expect(mocks.replace).toHaveBeenCalledWith(`/account/purchase-options/${encodeURIComponent(base.slug)}`);
   expect(mocks.refresh).toHaveBeenCalled();
 });
@@ -154,7 +154,7 @@ test("confirming a saved decline leaves immediately without another write or cou
   vi.useFakeTimers();
   try {
     const options = bulkOptions(1);
-    mocks.decline.mockResolvedValueOnce({ status: "succeeded", message: "1 offer declined.", optionIds: [options[0].completionOptionId] });
+    mocks.decline.mockResolvedValueOnce({ status: "succeeded", message: "1 offer declined.", receipts: [{ optionId: options[0].completionOptionId, declineEventId: "event-1" }] });
     render(<PurchaseOptionRail title="Gift card" options={options} canBulkDecline initiallyConfirmDecline />);
     expect(screen.getByText("Decline this offer for Gift card?")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Keep my offer" })).toBeTruthy();
@@ -188,7 +188,7 @@ test("the older confirmation also requires review when another tab changes the o
   expect(screen.getByRole("alert").textContent).toContain("available offers changed");
   fireEvent.click(screen.getByRole("button", { name: "Confirm decline all" }));
   expect(mocks.decline).not.toHaveBeenCalled();
-  mocks.decline.mockResolvedValueOnce({ status: "succeeded", optionIds: replacement.map(option => option.completionOptionId), message: "2 offers declined." });
+  mocks.decline.mockResolvedValueOnce({ status: "succeeded", receipts: replacement.map(option => ({ optionId: option.completionOptionId, declineEventId: `event-${option.completionOptionId}` })), message: "2 offers declined." });
   fireEvent.click(screen.getByRole("button", { name: "Review current offers" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm decline all" }));
   await screen.findByRole("button", { name: "Undo decline all" });

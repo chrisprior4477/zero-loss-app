@@ -22,10 +22,16 @@ const defaultCrop: Crop = { x: 0, y: 0, zoom: 1 };
 
 function readCrop(): Crop {
   try {
-    return JSON.parse(window.localStorage.getItem(CROP_KEY) ?? "") as Crop;
+    const crop = JSON.parse(window.localStorage.getItem(CROP_KEY) ?? "") as Partial<Crop> | null;
+    if (crop && typeof crop.x === "number" && Math.abs(crop.x) <= 90
+      && typeof crop.y === "number" && Math.abs(crop.y) <= 90
+      && typeof crop.zoom === "number" && crop.zoom >= 1 && crop.zoom <= 3) {
+      return { x: crop.x, y: crop.y, zoom: crop.zoom };
+    }
   } catch {
-    return defaultCrop;
+    // Older drafts can be missing a crop.
   }
+  return defaultCrop;
 }
 
 function AvatarImage({ photo, crop }: { photo: string; crop: Crop }) {
@@ -73,6 +79,7 @@ async function renderCroppedPhoto(photo: string, crop: Crop): Promise<Blob> {
 }
 
 export function ProfilePhotoCard({
+  accountId,
   initials,
   fullName,
   email,
@@ -81,6 +88,7 @@ export function ProfilePhotoCard({
   emailStatus,
   initialVisibility,
 }: {
+  accountId: string;
   initials: string;
   fullName: string;
   email: string;
@@ -95,7 +103,9 @@ export function ProfilePhotoCard({
   const editorTriggerRef = useRef<HTMLButtonElement>(null);
   const dragRef = useRef<{ x: number; y: number; cropX: number; cropY: number; scale: number } | null>(null);
   const draftVersion = useRef(0);
-  const migrationStarted = useRef(false);
+  const mounted = useRef(false);
+  const [hasDevicePhoto, setHasDevicePhoto] = useState(false);
+  const [devicePhotoDraft, setDevicePhotoDraft] = useState<string | null>(null);
   const [localPhoto, setLocalPhoto] = useState<{ original: string | null; url: string; crop: Crop } | null>(null);
   const photo = localPhoto?.url ?? initialAvatarUrl;
   const crop = localPhoto?.crop ?? defaultCrop;
@@ -119,6 +129,10 @@ export function ProfilePhotoCard({
   const savingVisibility = pendingVisibility !== null;
   const [visibilityMessage, setVisibilityMessage] = useState<{ error: boolean; text: string } | null>(null);
   const previousMenuVisible = useRef(menuVisible);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   useEffect(() => {
     if (previousMenuVisible.current === menuVisible) return;
     previousMenuVisible.current = menuVisible;
@@ -191,40 +205,57 @@ export function ProfilePhotoCard({
     }
   }
 
-  const persistPhoto = useCallback(async (source: string, sourceCrop: Crop) => {
+  async function persistPhoto(source: string, sourceCrop: Crop, recoveredPhoto: string | null) {
     const blob = await renderCroppedPhoto(source, sourceCrop);
     const formData = new FormData();
     formData.set("photo", new File([blob], "avatar.webp", { type: "image/webp" }));
+    formData.set("profile_owner", accountId);
     const result = await saveProfilePhoto(formData);
     if (!result.ok) throw new Error(result.message);
+    if (!mounted.current) return;
 
     const refreshedUrl = `${result.publicUrl}?v=${Date.now()}`;
     setLocalPhoto({ original: initialAvatarUrl, url: refreshedUrl, crop: defaultCrop });
     notifyAccountChanged();
     window.dispatchEvent(new CustomEvent(AVATAR_EVENT, { detail: { photo: refreshedUrl } }));
-    try {
-      window.localStorage.removeItem(PHOTO_KEY);
-      window.localStorage.removeItem(CROP_KEY);
-    } catch { /* The account photo is already saved. Legacy storage is optional. */ }
-  }, [initialAvatarUrl]);
+    if (recoveredPhoto) {
+      try {
+        if (window.localStorage.getItem(PHOTO_KEY) === recoveredPhoto) {
+          window.localStorage.removeItem(PHOTO_KEY);
+          window.localStorage.removeItem(CROP_KEY);
+          setHasDevicePhoto(false);
+        }
+      } catch { /* The photo is already saved. */ }
+    }
+  }
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(async () => {
-      if (initialAvatarUrl || migrationStarted.current) return;
-      let legacyPhoto: string | null;
-      try { legacyPhoto = window.localStorage.getItem(PHOTO_KEY); }
-      catch { return; }
-      if (!legacyPhoto) return;
-      migrationStarted.current = true;
+    if (initialAvatarUrl) return;
+    const frame = window.requestAnimationFrame(() => {
       try {
-        await persistPhoto(legacyPhoto, readCrop());
-      } catch {
-        setLocalPhoto({ original: initialAvatarUrl, url: legacyPhoto, crop: readCrop() });
-        setError("Your existing photo is still on this device. Open the editor and save it to sync everywhere.");
-      }
+        setHasDevicePhoto(Boolean(window.localStorage.getItem(PHOTO_KEY)));
+      } catch { /* Browser storage may be blocked. */ }
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [initialAvatarUrl, persistPhoto]);
+  }, [initialAvatarUrl]);
+
+  function reviewDevicePhoto(event: MouseEvent<HTMLButtonElement>) {
+    let storedPhoto: string | null = null;
+    try { storedPhoto = window.localStorage.getItem(PHOTO_KEY); }
+    catch { /* Browser storage may be blocked. */ }
+    if (!storedPhoto || !/^data:image\/(?:png|jpeg|webp);base64,/i.test(storedPhoto)) {
+      setHasDevicePhoto(false);
+      setError("The saved photo couldn’t be opened. Choose a photo to continue.");
+      return;
+    }
+    draftVersion.current += 1;
+    editorTriggerRef.current = event.currentTarget;
+    setError(null);
+    setDraftPhoto(storedPhoto);
+    setDraftCrop(readCrop());
+    setDevicePhotoDraft(storedPhoto);
+    setEditing(true);
+  }
 
   function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -236,6 +267,7 @@ export function ProfilePhotoCard({
       setError(null);
       setDraftPhoto(reader.result);
       setDraftCrop(defaultCrop);
+      setDevicePhotoDraft(null);
       setEditing(true);
     });
     reader.readAsDataURL(file);
@@ -270,7 +302,7 @@ export function ProfilePhotoCard({
     setSaving(true);
     setError(null);
     try {
-      await persistPhoto(draftPhoto, draftCrop);
+      await persistPhoto(draftPhoto, draftCrop, devicePhotoDraft);
       if (version === draftVersion.current) closeEditor();
     } catch (caught) {
       if (version === draftVersion.current) setError(caught instanceof Error
@@ -291,6 +323,7 @@ export function ProfilePhotoCard({
     }
     setDraftPhoto(photo);
     setDraftCrop(crop);
+    setDevicePhotoDraft(null);
     setEditing(true);
   }
 
@@ -321,6 +354,9 @@ export function ProfilePhotoCard({
             </button>
           </div>
         </div>
+        {!photo && hasDevicePhoto ? <button type="button" onClick={reviewDevicePhoto} className="mt-3 min-h-11 self-start rounded-full border border-cyan-300/40 px-4 text-sm font-bold text-cyan-200">
+          Review photo saved on this device
+        </button> : null}
         {initialVisibility ? <fieldset className="mt-4 border-t border-[#b9d7ea] pt-4 text-[#0b1c4d]">
           <legend className="sr-only">Where to show your photo</legend>
           <p className="mb-2 text-sm font-extrabold">Where to show your photo</p>
@@ -346,6 +382,7 @@ export function ProfilePhotoCard({
             <div className={photoStyles.heading}>
               <h2 id="photo-editor-title" className="text-2xl font-black text-white">Adjust your photo</h2>
               <p className="mt-2 text-sm text-white/60">Drag to reposition it, then use the slider to resize it.</p>
+              {devicePhotoDraft ? <p className="mt-2 text-sm text-white/80">Save photo to use this image on your signed-in account.</p> : null}
             </div>
             <div
               className={`${photoStyles.cropArea} relative touch-none cursor-move overflow-hidden rounded-full border-4 border-cyan-300 bg-[#00132e]`}

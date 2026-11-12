@@ -12,6 +12,7 @@ afterEach(() => {
   saveVisibility.mockClear();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  localStorage.clear();
   document.body.style.overflow = "";
   document.documentElement.style.overflow = "";
 });
@@ -24,7 +25,7 @@ function dragPhoto(preview: HTMLElement, dx: number, dy: number) {
 }
 
 test.each([128, 224, 256])("dragging scales correctly in a %ipx crop preview", (width) => {
-  render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
+  render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
   fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[1]);
   const preview = screen.getByLabelText("Photo crop preview");
   Object.defineProperty(preview, "clientWidth", { configurable: true, value: width });
@@ -57,7 +58,7 @@ function mockPhotoExport() {
 test("saving after a small-screen drag exports the crop shown in the preview", async () => {
   const drawImage = mockPhotoExport();
   savePhoto.mockResolvedValue({ ok: true, publicUrl: "/cropped.webp" });
-  render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
+  render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
   const trigger = screen.getAllByRole("button", { name: "Adjust profile photo" })[1];
   fireEvent.click(trigger);
   const preview = screen.getByLabelText("Photo crop preview");
@@ -72,14 +73,15 @@ test("saving after a small-screen drag exports the crop shown in the preview", a
 });
 
 test("blocked legacy storage cannot turn a confirmed photo save into a failure", async () => {
+  localStorage.setItem("zero-loss-profile-photo", "data:image/png;base64,cGhvdG8=");
   mockPhotoExport();
   savePhoto.mockResolvedValueOnce({ ok: true, publicUrl: "/saved.webp" });
   const remove = vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => { throw new Error("Storage blocked"); });
   const updated = vi.fn();
   window.addEventListener("zero-loss-avatar-updated", updated);
   try {
-    render(<ProfilePhotoCard initials="CP" fullName="Chris" email="" initialAvatarUrl="/before.webp" />);
-    fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[0]);
+    render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris" email="" initialAvatarUrl={null} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Review photo saved on this device" }));
     fireEvent.click(screen.getByRole("button", { name: "Save photo" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(remove).toHaveBeenCalled();
@@ -94,11 +96,33 @@ test("blocked legacy storage cannot turn a confirmed photo save into a failure",
   }
 });
 
+test("an unowned device photo stays local until explicitly reviewed and saved", async () => {
+  const stored = "data:image/png;base64,cGhvdG8=";
+  localStorage.setItem("zero-loss-profile-photo", stored);
+  localStorage.setItem("zero-loss-profile-photo-crop", '{"x":12,"y":0,"zoom":1.5}');
+  mockPhotoExport();
+  savePhoto.mockResolvedValueOnce({ ok: true, publicUrl: "/saved.webp" });
+  render(<ProfilePhotoCard accountId="other-account" initials="OA" fullName="Other account" email="" initialAvatarUrl={null} />);
+  const review = await screen.findByRole("button", { name: "Review photo saved on this device" });
+  expect(document.querySelector("[data-photo-source]")).toBeNull();
+  expect(savePhoto).not.toHaveBeenCalled();
+  fireEvent.click(review);
+  expect(screen.getByRole("slider")).toHaveProperty("value", "1.5");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(localStorage.getItem("zero-loss-profile-photo")).toBe(stored);
+  expect(savePhoto).not.toHaveBeenCalled();
+  fireEvent.click(review);
+  fireEvent.click(screen.getByRole("button", { name: "Save photo" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(savePhoto).toHaveBeenCalledOnce();
+  expect(savePhoto.mock.calls[0][0].get("profile_owner")).toBe("other-account");
+});
+
 test.each(["success", "failure"])("a late %s from a previous edit leaves the reopened crop intact", async outcome => {
   mockPhotoExport();
   let finish!: (result: { ok: true; publicUrl: string } | { ok: false; message: string }) => void;
   savePhoto.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
-  render(<ProfilePhotoCard initials="CP" fullName="Chris" email="" initialAvatarUrl="/original.webp" />);
+  render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris" email="" initialAvatarUrl="/original.webp" />);
   const trigger = screen.getAllByRole("button", { name: "Adjust profile photo" })[0];
   fireEvent.click(trigger);
   fireEvent.click(screen.getByRole("button", { name: "Save photo" }));
@@ -117,7 +141,7 @@ test.each(["success", "failure"])("a late %s from a previous edit leaves the reo
 test.each([0, 1])("Escape closes the editor without saving and restores photo button %i", (index) => {
   document.body.style.overflow = "clip";
   document.documentElement.style.overflow = "auto";
-  render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
+  render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
   const trigger = screen.getAllByRole("button", { name: "Adjust profile photo" })[index];
   fireEvent.click(trigger);
   const slider = screen.getByRole("slider", { name: "Photo size" });
@@ -136,7 +160,7 @@ test.each([0, 1])("Escape closes the editor without saving and restores photo bu
 });
 
 test("Tab wraps both directions and focus cannot move into the page behind the editor", () => {
-  render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" initialVisibility={{ menu: true, crew: true }} />);
+  render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" initialVisibility={{ menu: true, crew: true }} />);
   fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[1]);
   const slider = screen.getByRole("slider");
   const last = screen.getByRole("button", { name: "Choose a different photo" });
@@ -150,7 +174,7 @@ test("Tab wraps both directions and focus cannot move into the page behind the e
 });
 
 test("Cancel discards a zoom change, restores focus, and releases the background", () => {
-  render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" initialVisibility={{ menu: true, crew: true }} />);
+  render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" initialVisibility={{ menu: true, crew: true }} />);
   const trigger = screen.getAllByRole("button", { name: "Adjust profile photo" })[1];
   fireEvent.click(trigger);
   fireEvent.change(screen.getByRole("slider"), { target: { value: "2" } });
@@ -165,7 +189,7 @@ test("Cancel discards a zoom change, restores focus, and releases the background
 });
 
 test("a new photo chosen asynchronously returns to the Add photo button on Escape", async () => {
-  render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl={null} />);
+  render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl={null} />);
   const trigger = screen.getAllByRole("button", { name: "Add profile photo" })[1];
   fireEvent.click(trigger);
   const fileInput = screen.getByLabelText("Choose a profile photo");
@@ -181,7 +205,7 @@ test("a new photo chosen asynchronously returns to the Add photo button on Escap
 
 test("a refreshed account updates the saved photo and both settings while leaving an open crop alone", () => {
   const card = (url: string | null, visible: boolean) => (
-    <ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test"
+    <ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test"
       initialAvatarUrl={url} initialVisibility={{ menu: visible, crew: visible }} />
   );
   const { rerender } = render(card("/original.webp", true));
@@ -209,7 +233,7 @@ test("a refreshed account updates the saved photo and both settings while leavin
 test("a failed visibility save uses the newest account settings after a refresh during the request", async () => {
   let reply!: (value: { ok: false; message: string }) => void;
   saveVisibility.mockReturnValueOnce(new Promise(resolve => { reply = resolve; }));
-  const card = (visible: boolean) => <ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test"
+  const card = (visible: boolean) => <ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test"
     initialAvatarUrl="/photo.webp" initialVisibility={{ menu: visible, crew: visible }} />;
   const { rerender } = render(card(true));
   const menu = screen.getByRole("checkbox", { name: /account menu/ });
@@ -224,7 +248,7 @@ test("a failed visibility save uses the newest account settings after a refresh 
 });
 
 test("replacing the draft keeps the editor active and unmounting releases its keyboard and scroll locks", async () => {
-  const { unmount } = render(<ProfilePhotoCard initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
+  const { unmount } = render(<ProfilePhotoCard accountId="photo-owner" initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" />);
   fireEvent.click(screen.getAllByRole("button", { name: "Adjust profile photo" })[1]);
   const replace = screen.getByRole("button", { name: "Choose a different photo" });
   replace.focus();
@@ -242,7 +266,7 @@ test("replacing the draft keeps the editor active and unmounting releases its ke
 });
 
 test("compact profile preserves stored name casing and the saved photo without writing", () => {
-  render(<ProfilePhotoCard compact initials="CP" fullName="Chris de la Cruz" email="Test.Email@example.com" initialAvatarUrl="https://example.com/saved-avatar.webp" />);
+  render(<ProfilePhotoCard accountId="photo-owner" compact initials="CP" fullName="Chris de la Cruz" email="Test.Email@example.com" initialAvatarUrl="https://example.com/saved-avatar.webp" />);
   expect(screen.getByRole("heading", { name: "Chris de la Cruz" })).toBeTruthy();
   expect(screen.getByText("Test.Email@example.com")).toBeTruthy();
   expect(document.querySelector('[data-photo-source="https://example.com/saved-avatar.webp"]')).toBeTruthy();
@@ -259,7 +283,7 @@ test("the menu checkbox updates the round header photo immediately and saves ind
   const changed = vi.fn();
   window.addEventListener("zero-loss-photo-menu-visibility", changed);
   try {
-    render(<ProfilePhotoCard compact initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" initialVisibility={{ menu: true, crew: true }} />);
+    render(<ProfilePhotoCard accountId="photo-owner" compact initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" initialVisibility={{ menu: true, crew: true }} />);
     const menu = screen.getByRole("checkbox", { name: /Show my photo in the account menu/ }) as HTMLInputElement;
     const crew = screen.getByRole("checkbox", { name: /Show my photo to My Crew/ }) as HTMLInputElement;
     fireEvent.click(menu);
@@ -280,7 +304,7 @@ test("a failed menu setting restores the previous visible photo", async () => {
   const changed = vi.fn();
   window.addEventListener("zero-loss-photo-menu-visibility", changed);
   try {
-    render(<ProfilePhotoCard compact initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" initialVisibility={{ menu: true, crew: false }} />);
+    render(<ProfilePhotoCard accountId="photo-owner" compact initials="CP" fullName="Chris Prior" email="owner@example.test" initialAvatarUrl="/photo.webp" initialVisibility={{ menu: true, crew: false }} />);
     const menu = screen.getByRole("checkbox", { name: /Show my photo in the account menu/ }) as HTMLInputElement;
     fireEvent.click(menu);
     await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("Could not save."));

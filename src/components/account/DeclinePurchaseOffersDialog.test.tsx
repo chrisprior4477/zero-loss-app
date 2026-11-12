@@ -11,7 +11,8 @@ import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 const item = storedActivityFixture().activity[2];
 const ids = ["11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"];
 const setup = (count = 2) => render(<DeclinePurchaseOffersDialog item={item} offeredOptionIds={ids.slice(0, count)} onClose={mocks.close} />);
-function saved() { mocks.decline.mockResolvedValue({ status: "succeeded", optionIds: ids, message: "2 offers declined." }); }
+const receipts = ids.map(optionId => ({ optionId, declineEventId: `event-${optionId}` }));
+function saved() { mocks.decline.mockResolvedValue({ status: "succeeded", optionIds: ids, receipts, message: "2 offers declined." }); }
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.resetAllMocks(); });
 
 test.each(["keep", "close", "escape", "backdrop"])("%s cancels without declining, charging or navigating", (way) => {
@@ -48,20 +49,20 @@ test("decline requires confirmation, prevents duplicate submits and locks dismis
   fireEvent.click(screen.getByRole("dialog").parentElement!);
   expect(mocks.close).not.toHaveBeenCalled();
   expect(mocks.decline).toHaveBeenCalledExactlyOnceWith(item.slug, [ids[0]]);
-  await act(async () => { resolve({ status: "succeeded", optionIds: [ids[0]], message: "1 offer declined." }); });
+  await act(async () => { resolve({ status: "succeeded", optionIds: [ids[0]], receipts: [receipts[0]], message: "1 offer declined." }); });
   expect(screen.getByRole("button", { name: "Undo decline" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: /1 offer declined/ })).toBeTruthy();
 });
 
 test("partial declines retain an undo for only the IDs actually saved", async () => {
-  mocks.decline.mockResolvedValue({ status: "partial", optionIds: [ids[0]], message: "1 offer declined; another could not be confirmed." });
+  mocks.decline.mockResolvedValue({ status: "partial", optionIds: [ids[0]], receipts: [receipts[0]], message: "1 offer declined; another could not be confirmed." });
   mocks.undo.mockResolvedValue({ status: "succeeded", optionIds: [ids[0]], message: "Restored." });
   setup();
   fireEvent.click(screen.getByRole("button", { name: "Decline 2 offers" }));
   await screen.findByRole("button", { name: "Undo decline" });
   fireEvent.click(screen.getByRole("button", { name: "Undo decline" }));
   await waitFor(() => expect(mocks.close).toHaveBeenCalledOnce());
-  expect(mocks.undo).toHaveBeenCalledExactlyOnceWith([ids[0]]);
+  expect(mocks.undo).toHaveBeenCalledExactlyOnceWith([receipts[0]]);
   expect(mocks.router.refresh).toHaveBeenCalledOnce();
 });
 
@@ -91,7 +92,7 @@ test("Undo started before expiry is allowed to finish without countdown navigati
   expect(mocks.close).not.toHaveBeenCalled();
   await act(async () => { resolve({ status: "succeeded", optionIds: ids, message: "Restored." }); });
   expect(mocks.close).toHaveBeenCalledOnce();
-  expect(mocks.undo).toHaveBeenCalledExactlyOnceWith(ids);
+  expect(mocks.undo).toHaveBeenCalledExactlyOnceWith(receipts);
 });
 
 test("Finish or closing after the decline opens Declined Offers without another write", async () => {

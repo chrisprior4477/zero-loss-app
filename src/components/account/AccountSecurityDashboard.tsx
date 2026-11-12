@@ -9,6 +9,7 @@ import { AccountSettingsStatusStrip, type AccountSettingsOverview } from "./Acco
 import styles from "./account-security.module.css";
 
 type AccountSecurityDashboardProps = {
+  accountId: string;
   displayName: string;
   initials: string;
   email: string | null;
@@ -48,7 +49,7 @@ function SecurityDetail({ icon, title, status, children }: { icon: GlyphName; ti
   </details>;
 }
 
-export function AccountSecurityDashboard({ displayName, initials, email, emailConfirmed, avatarUrl, memberSince, lastSignInAt, phone, overview, timeZone = "America/New_York" }: AccountSecurityDashboardProps) {
+export function AccountSecurityDashboard({ accountId, displayName, initials, email, emailConfirmed, avatarUrl, memberSince, lastSignInAt, phone, overview, timeZone = "America/New_York" }: AccountSecurityDashboardProps) {
   const emailLabel = email ?? "Email not available";
   const signIn = formatDateTime(lastSignInAt, timeZone);
 
@@ -73,7 +74,7 @@ export function AccountSecurityDashboard({ displayName, initials, email, emailCo
 
           <div className={styles.identityRow}>
             <div className={styles.profileSlot}>
-              <ProfilePhotoCard initials={initials} fullName={displayName} email={emailLabel} initialAvatarUrl={avatarUrl} compact emailStatus={emailConfirmed ? "verified" : "pending"} />
+              <ProfilePhotoCard key={accountId} accountId={accountId} initials={initials} fullName={displayName} email={emailLabel} initialAvatarUrl={avatarUrl} compact emailStatus={emailConfirmed ? "verified" : "pending"} />
             </div>
             <div className={styles.verification} data-verified={emailConfirmed}>
               <span><SecurityGlyph name={emailConfirmed ? "shield" : "alert"} /></span>
