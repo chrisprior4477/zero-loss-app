@@ -16,10 +16,18 @@ test.each([false, true])("saving a change from %s keeps the checkbox consistent 
   const message = enabled ? "Purchase-option email reminders are on." : "Purchase-option email reminders are off.";
   save.mockResolvedValue({ status: "succeeded", message });
   render(<PurchaseOptionEmailPreference initialEnabled={initial} />);
-  fireEvent.click(screen.getByRole("checkbox"));
+  const checkbox = screen.getByRole("checkbox");
+  expect(checkbox).toHaveProperty("checked", initial);
+  expect(screen.queryByRole("status")).toBeNull();
+  fireEvent.click(checkbox);
+  expect(screen.getByRole("status")).toHaveProperty("textContent", "Unsaved changes. Save preference to keep your choice.");
+  expect(save).not.toHaveBeenCalled();
+  fireEvent.click(checkbox);
+  expect(screen.queryByRole("status")).toBeNull();
+  fireEvent.click(checkbox);
   fireEvent.click(screen.getByRole("button", { name: "Save preference" }));
   expect(await screen.findByRole("status")).toHaveProperty("textContent", message);
-  expect(screen.getByRole("checkbox")).toHaveProperty("checked", enabled);
+  expect(checkbox).toHaveProperty("checked", enabled);
   expect(save.mock.calls[0][1].get("enabled")).toBe(enabled ? "true" : null);
 });
 

@@ -33,6 +33,7 @@ export function PurchaseOptionEmailPreference({ initialEnabled }: { initialEnabl
       <button type="submit" disabled={initialEnabled === null || pending}>{pending ? "Saving…" : "Save preference"}</button>
     </form>
     <p className={styles.outcomeEmailNote}>{initialEnabled === null ? "This preference is unavailable right now. Your purchase options remain in My Activity." : "If this is on, we’ll remind you at 7 days and 24 hours before an open option ends. Turning it off does not change the option or its deadline."}</p>
-    {showFeedback && !pending && feedback.status !== "idle" ? <p role="status" className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p> : null}
+    {showFeedback && !pending && feedback.status !== "idle" ? <p role="status" className={styles.outcomeEmailStatus} data-status={feedback.status}>{feedback.message}</p>
+      : preference.isDirty && !pending ? <p role="status" className={styles.outcomeEmailStatus}>Unsaved changes. Save preference to keep your choice.</p> : null}
   </section>;
 }
