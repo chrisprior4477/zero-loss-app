@@ -14,3 +14,9 @@ test("switching departments clears a conflicting marketplace category and retail
   expect(discoveryCategoryHref("automotive", filters, null, "AutoZone®"))
     .toBe("/browse?partnerCategory=automotive&retailer=AutoZone%C2%AE#search-results");
 });
+
+test("selecting a retailer keeps the current marketplace category", () => {
+  const filters = parseBrowseFilterState({}, []);
+  expect(discoveryCategoryHref("specialty-retail", filters, "electronics", "Best Buy"))
+    .toBe("/browse?category=electronics&partnerCategory=specialty-retail&retailer=Best+Buy#search-results");
+});

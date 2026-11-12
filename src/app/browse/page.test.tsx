@@ -195,6 +195,20 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: /65-inch LG OLED evo AI C6 4K Smart TV/i })).toBeTruthy();
   });
 
+  test("chooses a category and sorts its results without losing the applied search", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "Best Buy" }) }));
+    fireEvent.click(topOptions().getByRole("button", { name: "Categories" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /Gift Cards.*Browse prizes/ }));
+    expect(navigation.push).toHaveBeenLastCalledWith("/browse?category=gift-cards&q=Best+Buy#search-results", { scroll: false });
+
+    cleanup();
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "gift-cards", q: "Best Buy", maxValue: "75" }) }));
+    expect(screen.getByRole("searchbox", { name: "Search Gift Cards" })).toHaveProperty("value", "Best Buy");
+    fireEvent.click(topOptions().getByRole("button", { name: /Filter & sort/ }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("radio", { name: "Highest prize value" }));
+    expect(navigation.push).toHaveBeenLastCalledWith("/browse?maxValue=75&category=gift-cards&q=Best+Buy&sort=value-high#search-results", { scroll: false });
+  });
+
   test("hides this account's closed demo prizes in browsing and restores them after reset", async () => {
     const base = { title: "", retailer: "", image: "", rewardKind: "digital", priceCents: 100, paidCents: 100, remainingCents: 0, availability: "open" };
     account.get.mockResolvedValue({ activity: { source: "stored", activity: [
@@ -326,7 +340,7 @@ describe("Browse search results", () => {
     expect(screen.queryByRole("heading", { name: "Reciprocating Saw" })).toBeNull();
   });
 
-  test("opens a searchable scrolling directory and switches departments without a conflicting search", async () => {
+  test("uses the picker search to find a department while keeping the applied prize search", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels" }) }));
     expect(screen.queryByRole("navigation", { name: "Browse categories" })).toBeNull();
     fireEvent.click(topOptions().getByRole("button", { name: "Categories" }));
@@ -335,7 +349,7 @@ describe("Browse search results", () => {
     expect(panel.queryByRole("combobox")).toBeNull();
     fireEvent.change(panel.getByRole("searchbox", { name: "Find a category or retailer" }), { target: { value: "spark plugs" } });
     fireEvent.click(panel.getByRole("button", { name: /Automotive/ }));
-    expect(navigation.push).toHaveBeenCalledWith("/browse?partnerCategory=automotive#search-results", { scroll: false });
+    expect(navigation.push).toHaveBeenCalledWith("/browse?partnerCategory=automotive&q=paper+towels#search-results", { scroll: false });
     expect(screen.getAllByText("Related retailer gift card · Check retailer product availability.")).toHaveLength(9);
   });
 
@@ -387,6 +401,12 @@ describe("Browse search results", () => {
     expect(screen.getByText("10 products shown")).toBeTruthy();
     expect(screen.getAllByRole("article")).toHaveLength(10);
     expect(screen.queryByRole("link", { name: /Walmart Gift Card/i })).toBeNull();
+  });
+
+  test("Clear filters keeps the selected retailer category and search", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy", q: "Walgreens", maxValue: "75" }) }));
+    expect(screen.getByRole("link", { name: "Clear filters" }).getAttribute("href"))
+      .toBe("/browse?partnerCategory=pharmacy&q=Walgreens#search-results");
   });
 
   test("opens the added simulated Walgreens card from its retailer category", async () => {

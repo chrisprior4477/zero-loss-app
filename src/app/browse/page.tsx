@@ -97,6 +97,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const allSearchHref = `/browse?${new URLSearchParams({ q: searchTerm })}`;
   const clearHrefParams = new URLSearchParams();
   if (selectedCategory) clearHrefParams.set("category", selectedCategory);
+  if (selectedRetailerGroup) clearHrefParams.set("partnerCategory", selectedRetailerGroup.id);
   if (searchTerm) clearHrefParams.set("q", searchTerm);
   const clearHref = `/browse${clearHrefParams.size ? `?${clearHrefParams}` : ""}`;
   const searchParamsForView = new URLSearchParams();
@@ -248,17 +249,17 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Nothing matched yet</p>
             <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">
-              {selectedCategory ? <>No “{searchTerm}” matches in {selectedLabel}.</> : <>We don&apos;t have “{searchTerm}” in the catalog yet.</>}
+              {retryScope ? <>No “{searchTerm}” matches in {retryScope}.</> : <>We don&apos;t have “{searchTerm}” in the catalog yet.</>}
             </h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
-              {selectedCategory
+              {retryScope
                 ? "Try all search results, or tell us what you’d like to see in this category."
                 : "We’re adding new rewards regularly, and what our customers ask for helps decide what comes next. Tell us what you’d love a chance to win."}
             </p>
             <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
             {categorySearchRetry}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              {selectedCategory ? <Link href={allSearchHref} className="zl-see-all">See all search results</Link> : null}
+              {retryScope ? <Link href={allSearchHref} className="zl-see-all">See all search results</Link> : null}
               <Link href={requestHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Tell us what you&apos;d like to see →</Link>
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>

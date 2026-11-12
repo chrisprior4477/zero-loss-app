@@ -6,7 +6,6 @@ import { createContext, useContext, useId, useLayoutEffect, useRef, useState, ty
 import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
-import { searchResultsHref } from "@/lib/navigation/search-examples";
 import { browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { searchTextMatches } from "@/lib/catalog/search-text";
 import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
@@ -33,6 +32,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState(props.searchTerm);
   const id = useId();
+  const scope = props.subcategory || props.selectedRetailerGroup?.category || marketplaceCategories.find(category => category.id === props.selectedCategory)?.label;
+  const searchLabel = scope ? `Search ${scope}` : "Search all prizes";
   const withoutRetailer = new URL(props.browseHref, "https://zeroloss.local");
   withoutRetailer.searchParams.delete("retailer");
   const withoutBudget = new URL(props.browseHref, "https://zeroloss.local");
@@ -76,7 +77,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     opener.current = button;
     setQuery(""); setMode("categories"); setPanel(next);
   }
-  function choose(href: string) { setPanel(null); router.push(href, { scroll: false }); }
+  function choose(href: string) {
+    const url = new URL(href, "https://zeroloss.local");
+    if (props.searchTerm) url.searchParams.set("q", props.searchTerm);
+    setPanel(null);
+    router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
+  }
   function choosePrizeCategory(value: string) {
     const url = new URL(marketplaceCategoryHref(value), "https://zeroloss.local");
     if (props.filters.type !== "all") url.searchParams.set("type", props.filters.type);
@@ -89,22 +95,24 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
       url.searchParams.set("category", "ending-soon");
       url.searchParams.set("sort", props.filters.sort);
     }
-    choose(`${url.pathname}${url.search}#search-results`);
+    choose(`${url.pathname}${url.search}`);
+  }
+  function applySearch(value: string) {
+    const url = new URL(props.browseHref, "https://zeroloss.local");
+    const term = value.trim();
+    if (term) url.searchParams.set("q", term);
+    else url.searchParams.delete("q");
+    url.searchParams.delete("batch");
+    router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Match the header search: a new query searches all prizes, not the
-    // previous prize-value range, retailer, department, or availability filter.
-    router.push(searchResultsHref(search), { scroll: false });
+    applySearch(search);
   }
   function clearSearch() {
     setSearch("");
     searchInput.current?.focus();
-    if (props.searchTerm) {
-      const url = new URL(props.browseHref, "https://zeroloss.local");
-      url.searchParams.delete("q");
-      router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
-    }
+    if (props.searchTerm) applySearch("");
   }
 
   const controls = <>
@@ -120,15 +128,15 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   <div className={styles.discovery}>
     <span id="retailer-categories-heading" className={styles.anchor} />
     {props.searchField ?? <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}>
-      <label htmlFor={`${id}-search`} className={styles.srOnly}>Search all prizes</label>
-      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search all prizes" enterKeyHint="search" autoComplete="off" />
+      <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
+      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
       {search.trim() ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : <VoiceSearchButton key={search} onTranscript={setSearch} />}
     </form>}
     <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls}</div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
-      <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.selectedRetailerGroup?.category ?? (props.searchTerm ? `Results for “${props.searchTerm}”` : props.subcategory || "Filtered results")}</span>
+      <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.searchTerm ? `Results for “${props.searchTerm}”${scope ? ` in ${scope}` : ""}` : props.selectedRetailerGroup?.category ?? (props.subcategory || "Filtered results")}</span>
       {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
       <Link href={`${props.clearHref}#search-results`}>Clear filters</Link>
     </div> : null}

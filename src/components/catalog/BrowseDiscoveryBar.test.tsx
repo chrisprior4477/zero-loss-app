@@ -19,21 +19,21 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const searchForm = () => screen.getByRole("search", { name: "Search marketplace" });
 
-test("the category picker finds Beauty and clears a previous retailer and search when choosing it", () => {
+test("the category picker keeps the search and drops the previous retailer when switching to Beauty", () => {
   render(<BrowseDiscoveryBar {...props} searchTerm="PlayStation" filters={{ ...props.filters, retailer: "AutoZone" }} />);
   fireEvent.click(screen.getByRole("button", { name: "Gas" }));
   const picker = within(screen.getByRole("dialog"));
   fireEvent.change(picker.getByRole("searchbox"), { target: { value: "Beauty" } });
   fireEvent.click(picker.getByRole("button", { name: /Beauty.*Browse prizes/ }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?category=beauty#search-results", { scroll: false });
+  expect(navigation.push).toHaveBeenCalledWith("/browse?category=beauty&q=PlayStation#search-results", { scroll: false });
 });
 
 test("All categories exits the selected collection while keeping the selected budget", () => {
-  render(<BrowseDiscoveryBar {...props} selectedCategory="beauty" selectedRetailerGroup={null}
+  render(<BrowseDiscoveryBar {...props} selectedCategory="beauty" selectedRetailerGroup={null} searchTerm="makeup"
     filters={{ ...props.filters, maxValue: 50 }} />);
   fireEvent.click(screen.getByRole("button", { name: "Categories" }));
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /All categories/ }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=50#search-results", { scroll: false });
+  expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=50&q=makeup#search-results", { scroll: false });
 });
 
 test.each(["value-high", "fewest-left", "price-low"] as const)("changing departments keeps the selected %s sorting and budget", sort => {
@@ -110,13 +110,13 @@ test("the dollar wheel saves zero, can clear a bound, and Cancel keeps the curre
   expect(navigation.push).toHaveBeenCalledWith("/browse?minValue=0#search-results", { scroll: false });
 });
 
-test("Go searches across departments and the X clears a draft without submitting", () => {
+test("Go searches within a retailer category and the X clears a draft without submitting", () => {
   render(<BrowseDiscoveryBar {...props} />);
   const form = searchForm();
   fireEvent.change(within(form).getByRole("searchbox"), { target: { value: "atuo" } });
   expect(within(form).getByRole("button", { name: "Go to search results" }).textContent).toBe("Go");
   fireEvent.click(within(form).getByRole("button", { name: "Go to search results" }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?q=atuo#search-results", { scroll: false });
+  expect(navigation.push).toHaveBeenCalledWith("/browse?partnerCategory=gas&q=atuo#search-results", { scroll: false });
   navigation.push.mockClear();
   fireEvent.click(within(form).getByRole("button", { name: "Clear search" }));
   expect((within(form).getByRole("searchbox") as HTMLInputElement).value).toBe("");
@@ -131,13 +131,19 @@ test.each([
   { minValue: null, maxValue: 100 },
   { minValue: 100, maxValue: null },
   { minValue: 25, maxValue: 75 },
-])("a new catalog search leaves the previous value range $minValue–$maxValue and matches the global header", range => {
+])("a new Browse search keeps its category, filters, and value range $minValue–$maxValue", range => {
   render(<BrowseDiscoveryBar {...props} selectedCategory="groceries" selectedRetailerGroup={null}
-    browseHref={`/browse?category=groceries&type=gift-cards&available=1&sort=fewest-left&retailer=Publix${range.minValue === null ? "" : `&minValue=${range.minValue}`}${range.maxValue === null ? "" : `&maxValue=${range.maxValue}`}`}
+    browseHref={`/browse?category=groceries&type=gift-cards&available=1&sort=fewest-left&retailer=Publix&batch=2${range.minValue === null ? "" : `&minValue=${range.minValue}`}${range.maxValue === null ? "" : `&maxValue=${range.maxValue}`}`}
     filters={{ ...props.filters, ...range, type: "gift-cards", availableOnly: true, sort: "fewest-left", retailer: "Publix" }} />);
-  fireEvent.change(within(searchForm()).getByRole("searchbox", { name: "Search all prizes" }), { target: { value: "PlayStation" } });
+  fireEvent.change(within(searchForm()).getByRole("searchbox", { name: "Search Groceries" }), { target: { value: "Publix" } });
   fireEvent.submit(searchForm());
-  expect(navigation.push).toHaveBeenCalledWith("/browse?q=PlayStation#search-results", { scroll: false });
+  const url = new URL(navigation.push.mock.calls.at(-1)![0], "https://example.test");
+  expect(Object.fromEntries(url.searchParams)).toEqual({
+    category: "groceries", type: "gift-cards", available: "1", sort: "fewest-left", retailer: "Publix", q: "Publix",
+    ...(range.minValue === null ? {} : { minValue: String(range.minValue) }),
+    ...(range.maxValue === null ? {} : { maxValue: String(range.maxValue) }),
+  });
+  expect(url.hash).toBe("#search-results");
 });
 
 test("the visible prize-value chip can remove only that range without losing the chosen category or query", () => {
@@ -168,7 +174,7 @@ test("voice transcript fills the field and changes the microphone to Go", () => 
   expect(within(searchForm()).getByDisplayValue("baby products")).toBeTruthy();
   expect(stop).toHaveBeenCalledOnce();
   fireEvent.click(within(searchForm()).getByRole("button", { name: "Go to search results" }));
-  expect(navigation.push).toHaveBeenCalledWith("/browse?q=baby+products#search-results", { scroll: false });
+  expect(navigation.push).toHaveBeenCalledWith("/browse?partnerCategory=gas&q=baby+products#search-results", { scroll: false });
 });
 
 test("an unsupported microphone explains how to continue instead of being decorative", () => {

@@ -1,10 +1,10 @@
 import type { BrowseFilterState } from "./browse-filters";
 import type { MarketplaceCategoryId } from "./navigation";
 
-/** Switching departments must not intersect Automotive with a previous Groceries search. */
+/** A retailer refines the current category. A different department replaces it. */
 export function discoveryCategoryHref(groupId: string, filters: BrowseFilterState, selectedCategory: MarketplaceCategoryId | null, retailer = "") {
   const params = new URLSearchParams();
-  if (selectedCategory === "ending-soon") params.set("category", "ending-soon");
+  if (selectedCategory && (retailer || selectedCategory === "ending-soon")) params.set("category", selectedCategory);
   if (groupId) params.set("partnerCategory", groupId);
   if (retailer) params.set("retailer", retailer);
   if (filters.type !== "all") params.set("type", filters.type);
