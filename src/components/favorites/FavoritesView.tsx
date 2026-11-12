@@ -20,7 +20,7 @@ type Props = {
   availability: AvailabilitySnapshot | null; initialAlerts: Record<string, boolean> | null; emailEnabled: boolean | null;
   initialShares: SavedProductShare[] | null; initialTab?: "favorites" | "shared"; initialShareId?: string; initialItem?: string;
 };
-type Selection = { slug: string; shareId?: string } | null;
+type Selection = { slug: string; shareId?: never } | { shareId: string; slug?: never } | null;
 type SharePatch = Partial<Pick<SavedProductShare, "viewedAt" | "declinedAt">>;
 const sharePatchFields = ["viewedAt", "declinedAt"] as const;
 type ListPosition = { href: string; target: string; top: number };
@@ -49,12 +49,15 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const [tab, setTab] = useState(initialTab);
   const [shareOverrides, setShareOverrides] = useState<Record<string, SharePatch>>({});
   const shares = useMemo(() => (initialShares ?? []).filter(share => !hidden.has(share.slug)).map(share => ({ ...share, ...shareOverrides[share.id] })), [initialShares, hidden, shareOverrides]);
-  const requestedShareUnavailable = Boolean(initialShareId && initialShares !== null && !shares.some(share => share.id === initialShareId));
   const [selection, setSelected] = useState<Selection>(() => {
-    const share = shares.find(s => s.id === initialShareId);
-    return share ? { slug: share.slug, shareId: share.id } : initialTab === "favorites" && initialItem && slugs.includes(initialItem) ? { slug: initialItem } : null;
+    if (initialTab === "shared" && initialShareId) return { shareId: initialShareId };
+    return initialTab === "favorites" && initialItem && slugs.includes(initialItem) ? { slug: initialItem } : null;
   });
-  const selected = selection && !hidden.has(selection.slug) ? selection : null;
+  // Resolve a received preview from the latest share list every render. A
+  // missing receipt cannot turn the remembered prize into a favorite.
+  const selectedShare = selection?.shareId ? shares.find(share => share.id === selection.shareId) : null;
+  const requestedShareUnavailable = Boolean(selection?.shareId && initialShares !== null && !selectedShare);
+  const selectedSlug = selectedShare?.slug ?? (selection?.slug && !hidden.has(selection.slug) ? selection.slug : null);
   const [alertOverrides, setAlertOverrides] = useState<Record<string, boolean>>({});
   const alerts = useMemo(() => ({ ...initialAlerts, ...alertOverrides }), [initialAlerts, alertOverrides]);
   const [busySlug, setBusySlug] = useState<string | null>(null);
@@ -123,9 +126,9 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       if (window.location.pathname !== "/account/favorites") return;
       const query = new URLSearchParams(window.location.search);
       const nextTab = query.get("tab") === "shared" ? "shared" : "favorites";
-      const share = nextTab === "shared" ? shares.find(item => item.id === query.get("share")) : null;
+      const shareId = nextTab === "shared" ? query.get("share") : null;
       const slug = query.get("item");
-      const nextSelected = share ? { slug: share.slug, shareId: share.id }
+      const nextSelected = shareId ? { shareId }
         : nextTab === "favorites" && slug && slugs.includes(slug) ? { slug } : null;
       const previousPosition = listPosition.current;
       listPosition.current = savedListPosition(event.state);
@@ -137,10 +140,10 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     }
     window.addEventListener("popstate", restoreHistory);
     return () => window.removeEventListener("popstate", restoreHistory);
-  }, [shares, slugs]);
+  }, [slugs]);
   function openItem(slug: string, shareId?: string) {
     listPosition.current = { href: tab === "shared" ? sharedWithYouHref : "/account/favorites", target: shareId ?? slug, top: window.scrollY };
-    setSelected({ slug, shareId }); setMessage("");
+    setSelected(shareId ? { shareId } : { slug }); setMessage("");
     // Keep the list in history; Next.js copies its router state into this entry.
     window.history.pushState({ zeroLossFavoritesReturn: listPosition.current }, "", shareId ? savedShareHref(shareId) : `/account/favorites?item=${encodeURIComponent(slug)}`);
     revealHeading();
@@ -148,7 +151,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       .catch(() => setMessage("The item is available, but its viewed status could not be saved."));
   }
   function back() {
-    const target = selected?.shareId ?? selected?.slug;
+    const target = selection?.shareId ?? selection?.slug;
     const href = tab === "shared" ? sharedWithYouHref : "/account/favorites";
     if (savedListPosition(window.history.state)?.href === href) {
       window.history.back();
@@ -195,8 +198,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   function sender(share: SavedProductShare) {
     return <div className={styles.sender}><span aria-hidden="true">{share.sender[0]?.toUpperCase() ?? "?"}</span><div>From {share.sender}<small>{share.demo ? "Demo share · " : ""}{new Date(share.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone })}</small></div></div>;
   }
-  const selectedShare = selected?.shareId ? shares.find(s => s.id === selected.shareId) : null;
-  const detailProduct = selected ? getDemoProduct(selected.slug) : null;
+  const detailProduct = selectedSlug ? getDemoProduct(selectedSlug) : null;
   const detailHref = detailProduct ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id) : "/account/favorites")
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
@@ -213,17 +215,17 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       </div>
       {message ? <p role="status" className={styles.message}>{message}</p> : null}
       <section id="saved-products-panel" role="tabpanel" aria-labelledby={tab === "favorites" ? "your-favorites-tab" : "shared-with-you-tab"}>
-        {selected ? <>
+        {selectedSlug ? <>
           <button type="button" className={styles.back} onClick={back}>← {tab === "shared" ? "Shared with You" : "Your Favorites"}</button>
           <article className={styles.detail}>
-            {selectedShare ? sender(selectedShare) : null}{art(selected.slug, true)}
+            {selectedShare ? sender(selectedShare) : null}{art(selectedSlug, true)}
             <div className={styles.detailBody}>
               <p className={styles.merchant}>{detailProduct?.retailer ?? "Zero Loss"}</p><h2>{detailProduct?.title ?? selectedShare?.title ?? "Product unavailable"}</h2>
               {selectedShare ? <span className={`${styles.badge} ${selectedShare.declinedAt ? styles.declined : ""}`}>{savedShareStatus(selectedShare)}</span> : null}
-              {price(selected.slug, true)}
+              {price(selectedSlug, true)}
               {detailHref ? <Link className={selectedShare ? styles.productLink : styles.entryButton} href={detailHref}>{selectedShare ? "Open prize details →" : "Enter for $1"}</Link> : <p>This product is no longer available in the current catalog.</p>}
               <div className={styles.detailActions}>
-                <button type="button" className={styles.saveFavorite} disabled={favoriteBusy.includes(selected.slug) || !detailProduct || !available} onClick={() => toggle(selected.slug)}>{slugs.includes(selected.slug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
+                <button type="button" className={styles.saveFavorite} disabled={favoriteBusy.includes(selectedSlug) || !detailProduct || !available} onClick={() => toggle(selectedSlug)}>{slugs.includes(selectedSlug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
                 <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={back}>Back to list</button></div>
               </div>
               {selectedShare ? <><button type="button" className={styles.declineButton} disabled={shareBusy !== null} onClick={() => void changeShare(selectedShare, selectedShare.declinedAt ? "restore" : "declined")}>{shareBusy === selectedShare.id ? "Saving…" : selectedShare.declinedAt ? "Undo decline" : "Decline this share"}</button><p className={styles.kept}>{selectedShare.declinedAt ? "Declined. This item stays in Shared with You." : "Declining keeps this item here to revisit."}</p></> : null}

@@ -85,6 +85,33 @@ test("a share-loading failure stays retryable instead of being described as a cl
  expect(screen.queryByText("This shared prize is no longer available")).toBeNull();
 });
 
+test("a withdrawn share replaces the open preview with the unavailable message", async () => {
+  const props = { availability: null, initialAlerts: {}, emailEnabled: true, initialTab: "shared" as const, initialShareId: share.id };
+  const view = render(<FavoritesView {...props} initialShares={[share]} />);
+  expect(screen.getByRole("link", { name: "Open prize details →" })).toBeTruthy();
+  await act(async () => {});
+
+  view.rerender(<FavoritesView {...props} initialShares={null} />);
+  expect(screen.getByRole("alert").textContent).toContain("couldn’t be loaded");
+  expect(screen.queryByRole("link", { name: "Enter for $1" })).toBeNull();
+
+  view.rerender(<FavoritesView {...props} initialShares={[]} />);
+  expect(screen.getByRole("heading", { name: "This shared prize is no longer available" })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: /Open prize details|Enter for \$1/ })).toBeNull();
+});
+
+test("Forward to a withdrawn share preserves the unavailable state", async () => {
+  window.history.replaceState({}, "", "/account/favorites?tab=shared");
+  const view = show({ initialTab: "shared" });
+  fireEvent.click(screen.getByRole("button", { name: /View prize/ }));
+  act(() => window.history.back());
+  await screen.findByRole("button", { name: /View prize/ });
+  view.rerender(<FavoritesView availability={null} initialAlerts={{}} emailEnabled initialTab="shared" initialShares={[]} />);
+  act(() => window.history.forward());
+  expect(await screen.findByRole("heading", { name: "This shared prize is no longer available" })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "Enter for $1" })).toBeNull();
+});
+
 test("refreshed shares appear and disappear without resetting the active tab", () => {
   const view = show({ initialTab: "shared", initialShares: [] });
   expect(screen.getByRole("tab", { name: "Shared with You 0" })).toBeTruthy();

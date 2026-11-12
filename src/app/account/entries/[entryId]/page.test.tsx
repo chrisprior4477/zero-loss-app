@@ -27,6 +27,7 @@ const activity = ids.map((entryId, index) => ({
 }));
 
 beforeEach(() => {
+  window.history.replaceState({}, "", "/account/entries");
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn().mockResolvedValue(undefined) } });
   mocks.account.mockResolvedValue({
     activity: { activity: [...activity].reverse().concat({ ...activity[0], entryId: `ent_${"a".repeat(32)}`, slug: "another-prize" }), source: "stored" },
@@ -81,9 +82,11 @@ test("entry browser reveals pictured entry details and keeps the saved ID copy a
 });
 
 test("the count shortcut opens entry one while a direct entry return opens its own ticket", async () => {
+  window.history.replaceState({}, "", `/account/entries/${ids[2]}?entries=first`);
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[2] }), searchParams: Promise.resolve({ entries: "first" }) }));
   expect(screen.getByRole("article", { name: "Entry 1 of 5" })).toBeTruthy();
   cleanup();
+  window.history.replaceState({}, "", `/account/entries/${ids[4]}?entries=open`);
   render(await EntryPage({ params: Promise.resolve({ entryId: ids[4] }), searchParams: Promise.resolve({ entries: "open" }) }));
   expect(screen.getByRole("article", { name: "Entry 5 of 5" })).toBeTruthy();
   expect(screen.queryByRole("article", { name: "Entry 1 of 5" })).toBeNull();

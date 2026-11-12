@@ -6,9 +6,16 @@ vi.mock("@/lib/account/orders", () => ({ getAccountOrders: mocks.orders }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/components/account/NotificationsCenter", () => ({ NotificationsCenter: () => null }));
 import NotificationsPage from "./page";
-import type { ReactElement } from "react";
-import type { AccountNotification } from "@/lib/account/notifications";
+import { Children, isValidElement, type ComponentProps } from "react";
+import { NotificationsCenter } from "@/components/account/NotificationsCenter";
 const id = "11111111-1111-4111-8111-111111111111";
+async function notificationProps() {
+  const page = await NotificationsPage();
+  const center = Children.toArray(page.props.children.props.children)
+    .find(child => isValidElement(child) && child.type === NotificationsCenter);
+  if (!isValidElement<ComponentProps<typeof NotificationsCenter>>(center)) throw new Error("Notification center is missing");
+  return center.props;
+}
 function query(data: unknown, error: unknown = null) {
   const chain = { select: vi.fn(), eq: vi.fn(), or: vi.fn(), order: vi.fn(), limit: vi.fn(), in: vi.fn(), then: (resolve: (r: unknown) => unknown) => Promise.resolve({ data, error }).then(resolve) };
   [chain.select, chain.eq, chain.or, chain.order, chain.limit, chain.in].forEach(fn => fn.mockReturnValue(chain));
@@ -32,14 +39,13 @@ test("Crew, support and persisted read receipts are scoped to the signed-in owne
   const support = query([{ id, subject: "Demo case", status: "awaiting_customer", updated_at: "2026-09-21T12:00:00Z" }]);
   const reads = query([{ notification_id: `crew-${id}` }]);
   mocks.from.mockImplementation(table => ({ crew_invitations: crew, support_cases: support, customer_notification_reads: reads })[table as string]);
-  const page = await NotificationsPage();
-  const center = page.props.children[1] as ReactElement<{ notifications: AccountNotification[]; initialReadIds: string[]; readAvailable: boolean; outcomeEmailEnabled: boolean | null; purchaseOptionEmailEnabled: boolean | null; crewWinEmailEnabled: boolean | null }>;
-  expect(center.props.notifications.find(item => item.crewRequestId === id)?.href).toBe(`/account/crew?tab=requests&request=${id}#crew-request-${id}`);
-  expect(center.props.notifications.find(item => item.id.startsWith("support-"))?.href).toBe(`/support?case=${id}#conversation`);
-  expect(center.props.initialReadIds).toEqual([`crew-${id}`]);
-  expect(center.props.outcomeEmailEnabled).toBe(true);
-  expect(center.props.purchaseOptionEmailEnabled).toBe(true);
-  expect(center.props.crewWinEmailEnabled).toBe(true);
+  const props = await notificationProps();
+  expect(props.notifications.find(item => item.crewRequestId === id)?.href).toBe(`/account/crew?tab=requests&request=${id}#crew-request-${id}`);
+  expect(props.notifications.find(item => item.id.startsWith("support-"))?.href).toBe(`/support?case=${id}#conversation`);
+  expect(props.initialReadIds).toEqual([`crew-${id}`]);
+  expect(props.outcomeEmailEnabled).toBe(true);
+  expect(props.purchaseOptionEmailEnabled).toBe(true);
+  expect(props.crewWinEmailEnabled).toBe(true);
   expect(mocks.rpc).toHaveBeenCalledWith("get_entry_outcome_email_enabled");
   expect(mocks.rpc).toHaveBeenCalledWith("get_purchase_option_email_enabled");
   expect(mocks.rpc).toHaveBeenCalledWith("get_crew_win_email_enabled");
@@ -58,8 +64,7 @@ test("verified orders appear in the Orders notification category", async () => {
     retailer: "Netflix", image: "/netflix.png", faceValueCents: 2500,
     amountPaidCents: 2400, status: "fulfilled", createdAt: "2026-10-17T18:00:00Z",
   }] });
-  const page = await NotificationsPage();
-  const center = page.props.children[1] as ReactElement<{ notifications: AccountNotification[] }>;
-  expect(center.props.notifications.find(item => item.category === "orders")?.href)
+  const props = await notificationProps();
+  expect(props.notifications.find(item => item.category === "orders")?.href)
     .toBe("/account/orders?order=ord_1234567890abcdef#order-ord_1234567890abcdef");
 });

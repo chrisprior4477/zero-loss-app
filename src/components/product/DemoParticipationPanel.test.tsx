@@ -317,7 +317,7 @@ test("the first additional entry requires acknowledgment before saving and incre
   expect(screen.getByRole("img", { name: /How extra chances work/i }).getAttribute("src")).toContain("extra-entry-explainer-trimmed.webp");
   expect(screen.getAllByText("Why does each entry stand alone?")).toHaveLength(1);
   expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("1");
-  expect(screen.getByText(/options cannot be stacked/i)).toBeTruthy();
+  expect(screen.getByText(/entry payments never combine into a larger discount/i)).toBeTruthy();
 
   const saveButton = screen.getByRole("button", { name: "I understand — save my choice" });
   expect(saveButton.hasAttribute("disabled")).toBe(true);

@@ -61,7 +61,7 @@ test.each([1, 2])("Crew retains the account ticket strip with live values and de
   const overview = container.querySelector('[aria-label="Your account overview"]')!;
   expect(overview.querySelectorAll('[data-size="top"]')).toHaveLength(3);
   expect(within(overview as HTMLElement).getByRole("link", { name: "Playable Wallet: $978" }).getAttribute("href")).toBe(walletHistoryHref);
-  expect(within(overview as HTMLElement).getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(`${walletHistoryHref}#add-funds`);
+  expect(within(overview as HTMLElement).getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe(`${walletHistoryHref}&panel=funding#add-funds`);
   expect(within(overview as HTMLElement).getByRole("link", { name: `Prize Ready: ${count}. View reward${count === 1 ? "" : "s"}` }).getAttribute("href")).toBe(count === 1 ? walletRewardHref(activity[0]) : accountRoutes.rewards);
   expect(within(overview as HTMLElement).getByRole("link", { name: "Purchase Options: 2. Continue with Purchase" }).getAttribute("href")).toBe(accountRoutes.purchaseOptions);
 });
@@ -235,9 +235,9 @@ test.each([["pat@example.test", "inviteToCrew"], ["+1 (202) 555-0123", "inviteTo
   expect(actions[action]).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Add to Crew" }));
   await waitFor(() => expect(actions[action]).toHaveBeenCalledExactlyOnceWith(value));
-  expect((await screen.findByRole("button", { name: "Added" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((await screen.findByRole("button", { name: "Saved" }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(input, { target: { value: "someone-else@example.test" } });
-  expect(screen.queryByRole("button", { name: "Added" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Saved" })).toBeNull();
 });
 
 test("groups and privacy share the same editor state across compact navigation", async () => {

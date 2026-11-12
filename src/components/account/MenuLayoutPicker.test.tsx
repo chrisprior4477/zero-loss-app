@@ -4,7 +4,11 @@ import { MenuLayoutProvider, useMenuLayout } from "@/components/layout/MenuLayou
 import { MenuLayoutPicker } from "./MenuLayoutPicker";
 import { menuLayouts, showsShoppingCategories } from "@/lib/navigation/menu-layout";
 const save = vi.hoisted(() => vi.fn());
-vi.mock("next/navigation", () => ({ usePathname: () => "/account/profile", useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/account/profile",
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
 vi.mock("@/lib/account/menu-layout-action", () => ({ saveMenuLayout: save }));
 function ActiveMenu() { const { layout, savedLayout } = useMenuLayout(); return <output data-testid="active-menu">{layout}:{savedLayout}</output>; }
 function setup() {
@@ -227,10 +231,10 @@ test("style five Favorites stays inside the preview without saving a layout", ()
   const demo = screen.getByRole("group", { name: "Interactive menu preview" });
   fireEvent.click(within(demo).getByRole("button", { name: "Open search" }));
   const shortcuts = demo.querySelector<HTMLElement>('[aria-label="Search shopping shortcuts"]')!;
-  const favorites = within(shortcuts).getByRole("link", { name: "Favorites" });
+  const favorites = within(shortcuts).getByRole("link", { name: "Favorites & Sent to You" });
   expect(favorites.getAttribute("href")).toBe("/account/favorites");
   fireEvent.click(favorites);
   expect(demo.querySelector("header")?.dataset.searchOpen).toBe("false");
-  expect(screen.getByText("Preview: Favorites. Menu actions here won’t leave Profile.")).toBeTruthy();
+  expect(screen.getByText("Preview: Favorites & Sent to You. Menu actions here won’t leave Profile.")).toBeTruthy();
   expect(save).not.toHaveBeenCalled();
 });
