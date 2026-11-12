@@ -101,7 +101,7 @@ export function productMatchesMarketplaceCategory(product: DemoProduct, category
     case "electronics":
       return includesAny(haystack, ["electronics", "gaming", "television", " tv", "best buy", "nintendo", "netflix"]);
     case "gift-cards":
-      return /gift card|shopping reward/i.test(product.title);
+      return isGiftCardListing(product) || /shopping reward/i.test(product.title);
     case "home-essentials":
       return includesAny(haystack, ["home essentials", "homegoods", "home depot", "lowe", "vacuum", "baby essentials"]);
     case "movie-night":

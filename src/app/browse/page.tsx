@@ -13,7 +13,7 @@ import { searchCatalogMatches, filterCatalogSubcategory } from "@/lib/catalog/se
 import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
-import { BrowseDiscoveryBar } from "@/components/catalog/BrowseDiscoveryBar";
+import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls } from "@/components/catalog/BrowseDiscoveryBar";
 import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
 import { BrowsePrizeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
@@ -53,26 +53,33 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const endingSoon = selectedCategory === "ending-soon";
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
   const subcategory = query.subcategory?.trim().slice(0, 128) ?? "";
-  const categoryProducts = filterCatalogSubcategory(availableProducts.filter((product) => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory)), subcategory);
+  const showCatalogDenominations = !endingSoon && !unavailable
+    && Boolean(searchTerm || selectedCategory || query.retailer || query.partnerCategory || query.type === "gift-cards");
+  const unavailableDenominations = showCatalogDenominations ? demoProducts.filter(product =>
+    hidden.has(product.slug) && product.value === 100 && isGiftCardListing(product))
+    .map(product => ({ ...product, sold: product.capacity })) : [];
+  const categoryProducts = filterCatalogSubcategory([...availableProducts, ...unavailableDenominations].filter(
+    product => !selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory)), subcategory);
   const retailers = browseRetailers(categoryProducts);
-  const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts);
+  const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts.filter(product => !hidden.has(product.slug)), categoryProducts);
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
   const denomination = searchDenominations(searchTerm, demoProducts);
   const directoryMatches = searchTerm && !endingSoon && !denomination.values.size ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const budgetLabel = browsePrizeValueLabel(filters);
-  const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts);
+  const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts, demoProducts);
   const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm, denomination, { includeLowerGiftCards: !endingSoon }) : [];
   const savedMatches = searchTerm ? searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm, denomination) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
   const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
   const allowedRetailers = selectedRetailerGroup
-    ? new Set(selectedRetailerGroup.options.filter(option => option.hasOffer).map(option => option.value))
+    ? new Set(selectedRetailerGroup.options.map(option => option.value))
     : undefined;
   const filteredProducts = filterBrowseProducts(matchedProducts, filters, searchTerm, selectedCategory === "ending-soon", allowedRetailers);
   const products = selectedCategory === "groceries" && !searchTerm && filters.sort === "featured"
     ? groceryStoreFirst(filteredProducts, retailerGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
     : filteredProducts;
+  const hasOpenResults = products.some(product => !hidden.has(product.slug));
   const includesLowerGiftCards = denomination.values.size > 0
     && products.some(product => isGiftCardListing(product) && !denomination.values.has(product.value));
   const requestedValues = Array.from(denomination.values, value => `$${value.toLocaleString("en-US")}`).join(" or ");
@@ -130,7 +137,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
-            searchField={endingSoon ? <BrowseResultsSearch position="top" /> : undefined} />
+            searchField={endingSoon ? <BrowseResultsSearch position="top" /> : undefined}>
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
           {showGroceryInspiration ? <GroceryInspiration offers={groceryOffers} /> : null}
           {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
@@ -169,6 +176,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {visibleProducts.map((product) => {
+              const open = !hidden.has(product.slug);
               const status = availabilityStatus(product.capacity, product.sold);
               const anchor = `prize-${product.slug}`;
               const cardClass = "group flex h-full flex-col p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-cyan-500 sm:p-4";
@@ -179,21 +187,24 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                     <p className="mt-3 text-[10px] font-black uppercase tracking-[0.1em] text-[#087feb] sm:text-xs">{product.retailer}</p>
                     <h2 className="mt-1 line-clamp-2 text-sm font-extrabold leading-5 sm:text-base">{product.title}</h2>
                     {relatedRetailers.has(product.slug) ? <p className="my-2 text-xs leading-4 text-slate-600">Related retailer gift card · Check retailer product availability.</p> : null}
-                    <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs">
+                    {open ? <div className="mt-auto flex items-end justify-between gap-2 border-t border-slate-200 pt-3 text-xs">
                       <span><strong className="block text-sm">${product.entryPrice.toFixed(2)}</strong>per entry</span>
-                      <span className="text-right text-slate-500"><strong className="block" style={{ color: status.color }}>{status.remaining === 0 ? "Pool full" : `${status.remaining.toLocaleString()} left`}</strong>${product.value.toLocaleString()} value</span>
-                    </div>
+                      <span className="text-right text-slate-500"><strong className="block" style={{ color: status.color }}>{status.remaining.toLocaleString()} left</strong>${product.value.toLocaleString()} value</span>
+                    </div> : <p className="mt-auto border-t border-slate-200 pt-3 text-xs font-bold text-slate-600">No open entries</p>}
               </>;
               return (
                 <article key={product.slug} id={anchor} style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}
                   className="relative overflow-hidden rounded-2xl bg-white text-[#00132e] shadow-[0_18px_42px_rgba(0,0,0,.18)]">
-                  <BrowsePrizeLink href={productHrefWithBrowseReturn(product.slug, `${browseReturnHref}#${anchor}`)} anchor={anchor} className={cardClass}>{card}</BrowsePrizeLink>
-                  <FavoriteButton itemName={product.title} itemHref={`/items/${product.slug}`} size="large" className="absolute right-5 top-5 z-10" />
+                  {open ? <>
+                    <BrowsePrizeLink href={productHrefWithBrowseReturn(product.slug, `${browseReturnHref}#${anchor}`)} anchor={anchor} className={cardClass}>{card}</BrowsePrizeLink>
+                    <FavoriteButton itemName={product.title} itemHref={`/items/${product.slug}`} size="large" className="absolute right-5 top-5 z-10" />
+                  </> : <div className={cardClass}>{card}</div>}
                 </article>
               );
             })}
           </section>
-        ) : savedMatches.length ? (
+        ) : null}
+        {!hasOpenResults && savedMatches.length ? (
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Already in your activity</p>
             <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">No open offers match “{searchTerm}” here.</h2>
@@ -206,7 +217,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>
           </section>
-        ) : unavailable ? (
+        ) : products.length ? null : unavailable ? (
           <p role="status" className="mt-6 text-white/75">Prize availability could not be loaded. Refresh to check again.</p>
         ) : searchTerm && !selectedCategory && !selectedRetailerGroup && directoryMatches.length && matchedProducts.length === 0 ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
@@ -247,11 +258,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         )}
         {showBatchSearch && <section className={browseStyles.batchSearch} aria-labelledby={batchSearchHeading}>
           <h2 id={batchSearchHeading}>Didn’t find what you were looking for?</h2>
-          <BrowseResultsSearch position="bottom" />
+          <div className={browseStyles.footerDiscovery}>
+            <BrowseResultsSearch position="bottom" />
+            <BrowseDiscoveryFooterControls />
+          </div>
           <p className="text-sm text-white/75">Try a retailer and prize value, like “Walmart $100”.</p>
           {nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
             href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {Math.min(batchSize, products.length - visibleProducts.length)} more {products.length - visibleProducts.length === 1 ? "prize" : "prizes"}</Link>}
         </section>}
+        </BrowseDiscoveryBar>
         </div>
       </div>
     </main>

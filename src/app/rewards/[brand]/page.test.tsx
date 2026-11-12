@@ -10,14 +10,15 @@ vi.mock("@/lib/catalog/availability-reader", () => ({ getOfferingAvailability: a
 
 afterEach(() => { cleanup(); availability.mockResolvedValue(null); });
 
-test("Best Buy keeps open denominations when its $100 pool closes", async () => {
+test("Best Buy lists the $100 denomination after closing and keeps entry actions on the three open cards", async () => {
   const brand = "best-buy";
   availability.mockResolvedValue(Object.fromEntries(popularRewardAmounts.map(amount => {
     const slug = popularRewardProductSlug(brand, amount);
     return [slug, { slug, capacity: 100, sold: amount, remaining: 100 - amount, entryPriceCents: 100 }];
   })));
   render(await RewardBrandPage({ params: Promise.resolve({ brand }) }));
-  expect(screen.queryByRole("heading", { name: "$100 Best Buy Gift Card" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "$100 Best Buy Gift Card" }).closest("a")).toBeNull();
+  expect(screen.getByText("No open entries")).toBeTruthy();
   expect(screen.getAllByText("Enter for $1")).toHaveLength(3);
 });
 

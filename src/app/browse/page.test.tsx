@@ -33,6 +33,7 @@ beforeEach(() => {
 });
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); account.get.mockResolvedValue(null); availability.mockResolvedValue(null); });
+const topOptions = () => within(screen.getByRole("group", { name: "Browse options at the top" }));
 
 describe("Browse search results", () => {
   test.each([
@@ -50,7 +51,7 @@ describe("Browse search results", () => {
     if (amounts[0] === 75) expect(screen.queryByRole("heading", { name: "$100 Best Buy Gift Card" })).toBeNull();
   });
 
-  test("shows open lower Best Buy cards when the exact pool is closed and respects the current value filter", async () => {
+  test("finds the closed $100 Best Buy denomination and leaves entry links on open cards", async () => {
     availability.mockResolvedValue(Object.fromEntries([100, 75, 50, 25].map(value => {
       const slug = `best-buy-${value}-gift-card`;
       const capacity = value * 3;
@@ -59,8 +60,16 @@ describe("Browse search results", () => {
     })));
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "Best Buy one hundred dollars", minValue: "50" }) }));
     const cards = within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading");
-    expect(cards.map(card => card.textContent)).toEqual(["$75 Best Buy Gift Card", "$50 Best Buy Gift Card"]);
+    expect(cards.map(card => card.textContent)).toEqual(["$100 Best Buy Gift Card", "$75 Best Buy Gift Card", "$50 Best Buy Gift Card"]);
+    const fullCard = within(cards[0].closest("article")!);
+    expect(fullCard.getByText("No open entries")).toBeTruthy();
+    expect(fullCard.queryByRole("link")).toBeNull();
+    expect(within(cards[1].closest("article")!).getByRole("link")).toBeTruthy();
     expect(screen.getByText(/Requested value \$100/)).toBeTruthy();
+    cleanup();
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "Best Buy", category: "gift-cards", available: "1" }) }));
+    expect(screen.queryByRole("heading", { name: "$100 Best Buy Gift Card" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "$75 Best Buy Gift Card" })).toBeTruthy();
   });
 
   test("both Ending Soon bars share a voice draft and clear the search inside the current filters", async () => {
@@ -115,19 +124,25 @@ describe("Browse search results", () => {
   test("lands at two compact discovery controls on All and Ending Soon", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByRole("heading", { name: "Browse every product" })).toBeTruthy();
-    expect(document.getElementById("search-results")?.contains(screen.getByRole("button", { name: "Categories" }))).toBe(true);
-    expect(screen.getByRole("button", { name: "Filter & sort" })).toBeTruthy();
+    expect(topOptions().getByRole("button", { name: "Categories" })).toBeTruthy();
+    expect(topOptions().getByRole("button", { name: "Filter & sort" })).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(within(screen.getByRole("region", { name: "Products" })).getAllByRole("article")).toHaveLength(24);
     const browseFooter = within(screen.getByRole("region", { name: "Didn’t find what you were looking for?" }));
     expect(browseFooter.getByRole("button", { name: "Start voice search" })).toBeTruthy();
+    const footerOptions = within(browseFooter.getByRole("group", { name: "Browse options at the bottom" }));
+    fireEvent.click(footerOptions.getByRole("button", { name: "Categories" }));
+    expect(screen.getByRole("dialog", { name: "Find your category" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close browse options" }));
+    fireEvent.click(footerOptions.getByRole("button", { name: "Filter & sort" }));
+    expect(screen.getByRole("dialog", { name: "Filter & sort" })).toBeTruthy();
     expect(browseFooter.getByRole("link", { name: "Show 24 more prizes" }).getAttribute("href")).toMatch(/^\/browse\?batch=2#prize-/);
     cleanup();
 
     render(await BrowsePage({ searchParams: Promise.resolve({ sort: "ending-soon" }) }));
     expect(screen.getByRole("heading", { name: "Ending Soon" })).toBeTruthy();
-    expect(document.getElementById("search-results")?.contains(screen.getByRole("button", { name: "Categories" }))).toBe(true);
-    expect(screen.getByRole("button", { name: "Filter & sort" })).toBeTruthy();
+    expect(topOptions().getByRole("button", { name: "Categories" })).toBeTruthy();
+    expect(topOptions().getByRole("button", { name: "Filter & sort" })).toBeTruthy();
     expect(screen.queryByRole("complementary", { name: "Filter products" })).toBeNull();
     expect(screen.getAllByRole("article")).toHaveLength(24);
     expect(screen.getAllByRole("searchbox", { name: "Search all Ending Soon prizes" })).toHaveLength(2);
@@ -298,7 +313,7 @@ describe("Browse search results", () => {
   test("an explicit grocery sort keeps its requested order and the search controls", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "groceries", sort: "price-low" }) }));
     expect(screen.queryByRole("heading", { name: "Follow your appetite." })).toBeNull();
-    expect(screen.getByRole("button", { name: /Filter & sort/ })).toBeTruthy();
+    expect(topOptions().getByRole("button", { name: /Filter & sort/ })).toBeTruthy();
     const first = within(screen.getByRole("region", { name: "Products" })).getAllByRole("heading")[0];
     expect(first.textContent).toMatch(/Dunkin/);
   });
@@ -314,7 +329,7 @@ describe("Browse search results", () => {
   test("opens a searchable scrolling directory and switches departments without a conflicting search", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels" }) }));
     expect(screen.queryByRole("navigation", { name: "Browse categories" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Categories" }));
+    fireEvent.click(topOptions().getByRole("button", { name: "Categories" }));
     const panel = within(screen.getByRole("dialog"));
     expect(panel.getByRole("region", { name: "Scrollable categories" })).toBeTruthy();
     expect(panel.queryByRole("combobox")).toBeNull();
@@ -353,7 +368,7 @@ describe("Browse search results", () => {
 
   test("drills from a partner category into only its current offers", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy" }) }));
-    expect(screen.getByRole("button", { name: "Pharmacy" }).getAttribute("aria-haspopup")).toBe("dialog");
+    expect(topOptions().getByRole("button", { name: "Pharmacy" }).getAttribute("aria-haspopup")).toBe("dialog");
     expect(screen.getByText("10 products shown")).toBeTruthy();
     expect(screen.getAllByRole("article")).toHaveLength(10);
     expect(screen.queryByRole("link", { name: /Walmart Gift Card/i })).toBeNull();

@@ -21,7 +21,8 @@ export default async function RewardBrandPage({ params }: Props) {
   const brand = getPopularRewardBrand((await params).brand);
   if (!brand) notFound();
   const { hidden, unavailable } = await getShoppingCatalog();
-  const amounts = popularRewardAmounts.filter(amount => !hidden.has(popularRewardProductSlug(brand.slug, amount)));
+  const amounts = popularRewardAmounts.filter(amount =>
+    !hidden.has(popularRewardProductSlug(brand.slug, amount)) || (amount === 100 && !unavailable));
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_50%_0%,#0a3970_0%,#031b44_44%,#00132e_100%)] px-4 py-8 text-white sm:px-7 sm:py-12">
@@ -33,18 +34,24 @@ export default async function RewardBrandPage({ params }: Props) {
 
         <section className="mt-9 grid gap-5 sm:grid-cols-2" aria-label={`${brand.name} gift-card values`}>
           {!amounts.length && <p role="status">{unavailable ? "Prize availability could not be loaded. Refresh to check again." : "There are no open gift-card offers for this retailer right now."} <Link href="/browse" className="font-bold text-cyan-300">Browse available prizes →</Link></p>}
-          {amounts.map((amount) => (
-            <Link key={amount} href={`${productHrefWithBrowseReturn(popularRewardProductSlug(brand.slug, amount), `/rewards/${brand.slug}`)}#enter-entry`} className="group rounded-3xl border border-white/15 bg-white/6 p-4 transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300">
+          {amounts.map((amount) => {
+            const slug = popularRewardProductSlug(brand.slug, amount);
+            const open = !hidden.has(slug);
+            const cardClass = "rounded-3xl border border-white/15 bg-white/6 p-4";
+            const card = <>
               <div className="relative aspect-[8/5] overflow-hidden rounded-2xl bg-white p-2 sm:p-3">
                 <Image src={brand.imagePath} alt={`${brand.name} gift card`} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-contain p-2 sm:p-3" />
                 <span className="absolute bottom-3 right-3 grid h-16 w-16 place-items-center rounded-full border-2 border-white bg-[#ff630f] text-xl font-black text-white shadow-[0_8px_24px_rgba(0,0,0,.35)] sm:bottom-5 sm:right-5 sm:h-20 sm:w-20 sm:text-2xl">${amount}</span>
               </div>
               <div className="flex items-center justify-between gap-2 px-2 pb-1 pt-4 sm:gap-4">
-                <div className="min-w-0"><h2 className="text-lg font-extrabold leading-tight sm:text-xl">${amount} {brand.name} Gift Card</h2><p className="mt-1 text-sm text-white/55">$1 per entry · Investor demo</p></div>
-                <span className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#31e800] px-3 text-xs font-extrabold text-[#00132e] transition-colors group-hover:bg-[#72ff4e] sm:px-4 sm:text-sm">Enter for $1</span>
+                <div className="min-w-0"><h2 className="text-lg font-extrabold leading-tight sm:text-xl">${amount} {brand.name} Gift Card</h2><p className="mt-1 text-sm text-white/65">{open ? "$1 per entry · Investor demo" : "No open entries"}</p></div>
+                {open && <span className="inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-[#31e800] px-3 text-xs font-extrabold text-[#00132e] transition-colors group-hover:bg-[#72ff4e] sm:px-4 sm:text-sm">Enter for $1</span>}
               </div>
-            </Link>
-          ))}
+            </>;
+            return open ? (
+              <Link key={amount} href={`${productHrefWithBrowseReturn(slug, `/rewards/${brand.slug}`)}#enter-entry`} className={`${cardClass} group transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300`}>{card}</Link>
+            ) : <article key={amount} className={cardClass}>{card}</article>;
+          })}
         </section>
 
         <p className="mt-8 rounded-2xl border border-white/12 bg-white/5 p-5 text-sm leading-6 text-white/60">These are preview offerings. A confirmed preview customer can choose how many available demo entries to add. Each entry remains a separate chance. No real money, gift card, barcode, or retailer inventory is issued.</p>

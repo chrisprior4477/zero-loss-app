@@ -8,6 +8,8 @@ import { demoProducts, directoryDemoScenarios, existingDemoProducts, getDemoProd
 import { giftCardPartnerGroups } from "./gift-card-partners";
 import { retailerFilterGroups, filterBrowseProducts, parseBrowseFilterState, browseRetailers } from "./browse-filters";
 import { buildDirectoryRewards } from "./directory-rewards";
+import { searchCatalog } from "./search";
+import { productMatchesMarketplaceCategory } from "./navigation";
 import artwork from "./partner-card-art.json";
 
 describe("complete simulated retailer directory", () => {
@@ -44,7 +46,9 @@ describe("complete simulated retailer directory", () => {
       for (const option of group.options) {
         expect(option.hasOffer, `${group.category}: ${option.label}`).toBe(true);
         const products = filterBrowseProducts(demoProducts, {type:"all",retailer:option.value,availableOnly:false,sort:"featured",minValue:100,maxValue:100});
-        expect(products.some(p => /gift-card$/.test(p.slug)), option.label).toBe(true);
+        const cards = products.filter(product => productMatchesMarketplaceCategory(product, "gift-cards"));
+        expect(cards.length, option.label).toBeGreaterThan(0);
+        expect(searchCatalog(demoProducts, `${option.label} $100`).some(product => cards.includes(product)), option.label).toBe(true);
         for (const product of products) expect(getDemoProduct(product.slug)).toBe(product);
       }
     }

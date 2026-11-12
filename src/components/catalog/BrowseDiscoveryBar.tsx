@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useContext, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { FilterForm, type BrowseFilterProps } from "./BrowseFilters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
@@ -15,7 +15,14 @@ import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
 import styles from "./browse-discovery.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
-export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: string; searchField?: ReactNode }) {
+const BrowseControlsContext = createContext<ReactNode>(null);
+
+export function BrowseDiscoveryFooterControls() {
+  const controls = useContext(BrowseControlsContext);
+  return <div className={`${styles.controls} ${styles.footerControls}`} role="group" aria-label="Browse options at the bottom">{controls}</div>;
+}
+
+export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: string; searchField?: ReactNode; children?: ReactNode }) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const categoryList = useRef<HTMLDivElement>(null);
@@ -100,7 +107,17 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     }
   }
 
-  return <div className={styles.discovery}>
+  const controls = <>
+    <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories"} onClick={event => open("categories", event.currentTarget)}>
+      <span aria-hidden="true">☷</span><span>{props.selectedRetailerGroup?.category ?? "Categories"}</span>
+    </button>
+    <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "filters"} onClick={event => open("filters", event.currentTarget)}>
+      Filter &amp; sort{activeCount ? <b>{activeCount}</b> : <span aria-hidden="true">↕</span>}
+    </button>
+  </>;
+
+  return <BrowseControlsContext.Provider value={controls}>
+  <div className={styles.discovery}>
     <span id="retailer-categories-heading" className={styles.anchor} />
     {props.searchField ?? <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>Search all prizes</label>
@@ -108,14 +125,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
       {search.trim() ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : <VoiceSearchButton key={search} onTranscript={setSearch} />}
     </form>}
-    <div className={styles.controls}>
-      <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories"} onClick={event => open("categories", event.currentTarget)}>
-        <span aria-hidden="true">☷</span><span>{props.selectedRetailerGroup?.category ?? "Categories"}</span>
-      </button>
-      <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "filters"} onClick={event => open("filters", event.currentTarget)}>
-        Filter &amp; sort{activeCount ? <b>{activeCount}</b> : <span aria-hidden="true">↕</span>}
-      </button>
-    </div>
+    <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls}</div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
       <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.selectedRetailerGroup?.category ?? (props.searchTerm ? `Results for “${props.searchTerm}”` : props.subcategory || "Filtered results")}</span>
@@ -140,5 +150,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
         </> : <div className={styles.filterBody}><FilterForm {...props} id={`${id}-filters`} onNavigate={() => setPanel(null)} /></div>}
       </div>
     </dialog> : null}
-  </div>;
+  </div>
+  {props.children}
+  </BrowseControlsContext.Provider>;
 }

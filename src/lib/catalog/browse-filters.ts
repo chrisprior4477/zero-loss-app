@@ -76,14 +76,16 @@ const groceryRelatedBrands = {
 
 const homeImprovementBrands = new Set(["Ace Hardware", "Lowe’s®", "Menards®", "The Home Depot®"]);
 
-export function retailerFilterGroups(partnerGroups: readonly GiftCardPartnerGroup[], products: readonly DemoProduct[]): RetailerFilterGroup[] {
+export function retailerFilterGroups(partnerGroups: readonly GiftCardPartnerGroup[], products: readonly DemoProduct[], catalog = products): RetailerFilterGroup[] {
   const active = browseRetailers(products);
   const activeByKey = new Map(active.map(name => [retailerKey(name), name]));
+  const catalogByKey = catalog === products ? activeByKey : new Map(browseRetailers(catalog).map(name => [retailerKey(name), name]));
   const matched = new Set<string>();
   const optionsFor = (brands: readonly string[]) => [...new Set(brands.map(partnerDisplayName))].map(label => {
-      const currentName = activeByKey.get(retailerKey(label));
+      const key = retailerKey(label);
+      const currentName = activeByKey.get(key);
       if (currentName) matched.add(currentName);
-      return { label, value: currentName ?? label, hasOffer: Boolean(currentName) };
+      return { label, value: currentName ?? catalogByKey.get(key) ?? label, hasOffer: Boolean(currentName) };
     });
   const groups: RetailerFilterGroup[] = partnerGroups.flatMap(group => {
     if (group.category === "Cryptocurrency") return [];

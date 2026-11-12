@@ -66,6 +66,11 @@
 .resultsSearch { column-gap: 4px; padding-inline: 8px; }
 .batchSearch { margin-top: 20px; padding-top: 16px; border-top: 1px solid #547491; }
 .batchSearch .search { max-width: 760px; }
+.footerControls { display: none; }
+@media (min-width: 1024px) and (pointer: fine) {
+  .footerDiscovery { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+  .footerControls { display: grid; }
+}
 .batchSearch h2 { margin-bottom: 8px; scroll-margin-top: calc(var(--site-header-height, 149px) + 12px); font-size: 16px; font-weight: 800; }
 .morePrizes { display: flex; justify-content: center; align-items: center; min-height: 44px; margin-top: 10px; border-radius: 10px; background: #ff8618; color: #071c35; font-weight: 850; }
 .search button:focus-visible { outline: 2px solid #087feb; outline-offset: 2px; }
