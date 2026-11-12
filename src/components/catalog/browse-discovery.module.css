@@ -63,7 +63,7 @@
 .search .go { min-height: 36px; border: 0; border-radius: 10px; background: #087feb; color: #fff; padding: 7px 14px; cursor: pointer; }
 .search .go:hover { background: #005fc4; }
 .search .closeSearch { width: 32px; border-left: 1px solid #d5e4ef; color: #153658; font-size: 21px; }
-.endingSearch { column-gap: 4px; padding-inline: 8px; }
+.resultsSearch { column-gap: 4px; padding-inline: 8px; }
 .batchSearch { margin-top: 20px; padding-top: 16px; border-top: 1px solid #547491; }
 .batchSearch .search { max-width: 760px; }
 .batchSearch h2 { margin-bottom: 8px; scroll-margin-top: calc(var(--site-header-height, 149px) + 12px); font-size: 16px; font-weight: 800; }

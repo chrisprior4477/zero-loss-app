@@ -10,12 +10,12 @@ type Position = "top" | "bottom";
 type SearchSession = {
   draft: string; setDraft: (value: string) => void; applied: string;
   editor: Position | null; setEditor: (value: Position | null) => void;
-  search: (value: string) => void; voice: ReturnType<typeof useVoiceSearch>;
+  search: (value: string) => void; voice: ReturnType<typeof useVoiceSearch>; endingSoon: boolean;
 };
 const Session = createContext<SearchSession | null>(null);
 
-export function EndingSoonSearchSession({ browseHref, searchTerm, children }: {
-  browseHref: string; searchTerm: string; children: ReactNode;
+export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon = false, children }: {
+  browseHref: string; searchTerm: string; endingSoon?: boolean; children: ReactNode;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState(searchTerm);
@@ -32,17 +32,17 @@ export function EndingSoonSearchSession({ browseHref, searchTerm, children }: {
     router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
     if (term === searchTerm) document.getElementById("search-results")?.scrollIntoView?.({ block: "start" });
   }
-  return <Session.Provider value={{ draft, setDraft, applied: searchTerm, editor, setEditor, search, voice }}>{children}</Session.Provider>;
+  return <Session.Provider value={{ draft, setDraft, applied: searchTerm, editor, setEditor, search, voice, endingSoon }}>{children}</Session.Provider>;
 }
 
-export function EndingSoonSearch({ position }: { position: Position }) {
+export function BrowseResultsSearch({ position }: { position: Position }) {
   const session = useContext(Session);
   const id = useId();
   const field = useRef<HTMLInputElement>(null);
-  if (!session) throw new Error("Ending Soon search requires a search session");
-  const { draft, setDraft, applied, editor, setEditor, search, voice } = session;
+  if (!session) throw new Error("Browse results search requires a search session");
+  const { draft, setDraft, applied, editor, setEditor, search, voice, endingSoon } = session;
   const editing = editor === position;
-  const label = "Search all Ending Soon prizes";
+  const label = endingSoon ? "Search all Ending Soon prizes" : "Search these prizes";
   function edit() {
     if (!editing) { voice.cancel(); setEditor(position); }
   }
@@ -52,7 +52,7 @@ export function EndingSoonSearch({ position }: { position: Position }) {
     setEditor(null);
     field.current?.blur();
   }
-  return <form role="search" className={`${styles.search} ${styles.endingSearch}`} aria-label={`Search Ending Soon at the ${position}`}
+  return <form role="search" className={`${styles.search} ${styles.resultsSearch}`} aria-label={endingSoon ? `Search Ending Soon at the ${position}` : `Search browse results at the ${position}`}
     onSubmit={event => { event.preventDefault(); field.current?.blur(); setEditor(null); search(draft); }}
     onKeyDown={event => { if (event.key === "Escape" && editing) { event.preventDefault(); close(); } }}>
     <label className={styles.srOnly} htmlFor={id}>{label}</label>

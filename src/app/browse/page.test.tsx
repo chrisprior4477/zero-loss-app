@@ -88,6 +88,10 @@ describe("Browse search results", () => {
     expect(document.getElementById("search-results")?.contains(screen.getByRole("button", { name: "Categories" }))).toBe(true);
     expect(screen.getByRole("button", { name: "Filter & sort" })).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(within(screen.getByRole("region", { name: "Products" })).getAllByRole("article")).toHaveLength(24);
+    const browseFooter = within(screen.getByRole("region", { name: "Didn’t find what you were looking for?" }));
+    expect(browseFooter.getByRole("button", { name: "Start voice search" })).toBeTruthy();
+    expect(browseFooter.getByRole("link", { name: "Show 24 more prizes" }).getAttribute("href")).toMatch(/^\/browse\?batch=2#prize-/);
     cleanup();
 
     render(await BrowsePage({ searchParams: Promise.resolve({ sort: "ending-soon" }) }));
@@ -106,6 +110,36 @@ describe("Browse search results", () => {
     const card = screen.getAllByRole("article")[34];
     const productHref = new URL(within(card).getByRole("link").getAttribute("href")!, "https://example.test");
     expect(productHref.searchParams.get("from")).toBe(`/browse?sort=ending-soon&batch=2#${card.id}`);
+  });
+
+  test("loads the next 24 in a filtered category, preserves the card return, and starts a footer voice search at batch one", async () => {
+    let speak!: (text: string) => void;
+    vi.stubGlobal("SpeechRecognition", class {
+      onresult?: (event: unknown) => void;
+      start() { speak = text => this.onresult?.({ results: [[{ transcript: text }]] }); }
+      stop() {}
+    });
+    const query = { category: "gift-cards", sort: "value-high", q: "gift card", maxValue: "100" };
+    render(await BrowsePage({ searchParams: Promise.resolve(query) }));
+    const more = screen.getByRole("link", { name: "Show 24 more prizes" }).getAttribute("href")!;
+    const next = new URL(more, "https://example.test");
+    expect(Object.fromEntries(next.searchParams)).toEqual({ ...query, batch: "2" });
+    cleanup();
+
+    render(await BrowsePage({ searchParams: Promise.resolve({ ...query, batch: "2" }) }));
+    const cards = within(screen.getByRole("region", { name: "Products" })).getAllByRole("article");
+    expect(cards).toHaveLength(48);
+    expect(`#${cards[24].id}`).toBe(next.hash);
+    const card = cards[34];
+    const product = new URL(within(card).getByRole("link").getAttribute("href")!, "https://example.test");
+    expect(product.searchParams.get("from")).toBe(`${next.pathname}${next.search}#${card.id}`);
+    const footer = within(screen.getByRole("search", { name: "Search browse results at the bottom" }));
+    fireEvent.click(footer.getByRole("button", { name: "Start voice search" }));
+    act(() => speak("Walmart one hundred dollars"));
+    expect(footer.getByRole("searchbox")).toHaveProperty("value", "Walmart one hundred dollars");
+    expect(navigation.push).not.toHaveBeenCalled();
+    fireEvent.click(footer.getByRole("button", { name: "Go to search results" }));
+    expect(navigation.push).toHaveBeenLastCalledWith("/browse?category=gift-cards&sort=value-high&maxValue=100&q=Walmart+one+hundred+dollars#search-results", { scroll: false });
   });
 
   test("shows matching catalog items for familiar wording", async () => {

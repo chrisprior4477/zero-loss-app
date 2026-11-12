@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { EndingSoonSearch, EndingSoonSearchSession } from "./EndingSoonSearch";
+import { BrowseResultsSearch, BrowseResultsSearchSession } from "./BrowseResultsSearch";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -14,9 +14,9 @@ test.each(["top", "bottom"] as const)("editing the %s Ending Soon search superse
     start() {} stop() {} abort = vi.fn();
   }
   vi.stubGlobal("SpeechRecognition", Speech);
-  render(<EndingSoonSearchSession browseHref="/browse?sort=ending-soon" searchTerm="">
-    <EndingSoonSearch position="top" /><EndingSoonSearch position="bottom" />
-  </EndingSoonSearchSession>);
+  render(<BrowseResultsSearchSession browseHref="/browse?sort=ending-soon" searchTerm="" endingSoon>
+    <BrowseResultsSearch position="top" /><BrowseResultsSearch position="bottom" />
+  </BrowseResultsSearchSession>);
   const form = within(screen.getByRole("search", { name: `Search Ending Soon at the ${position}` }));
   fireEvent.focus(form.getByRole("searchbox"));
   fireEvent.click(form.getByRole("button", { name: "Start voice search" }));

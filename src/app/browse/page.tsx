@@ -13,7 +13,7 @@ import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
 import { BrowseDiscoveryBar } from "@/components/catalog/BrowseDiscoveryBar";
-import { EndingSoonSearch, EndingSoonSearchSession } from "@/components/catalog/EndingSoonSearch";
+import { BrowseResultsSearch, BrowseResultsSearchSession } from "@/components/catalog/BrowseResultsSearch";
 import { BrowsePrizeLink } from "@/components/catalog/BrowsePrizeLink";
 import browseStyles from "@/components/catalog/browse-discovery.module.css";
 import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailerFilterGroups, browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
@@ -72,10 +72,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const products = selectedCategory === "groceries" && !searchTerm && filters.sort === "featured"
     ? groceryStoreFirst(filteredProducts, retailerGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
     : filteredProducts;
-  const requestedBatch = Number(query.batch);
+  const requestedBatch = typeof query.batch === "string" && /^[1-9]\d*$/.test(query.batch) ? Number(query.batch) : 1;
   const batch = Number.isSafeInteger(requestedBatch) && requestedBatch > 1
     ? Math.min(requestedBatch, Math.max(1, Math.ceil(products.length / batchSize))) : 1;
-  const visibleProducts = endingSoon ? products.slice(0, batch * batchSize) : products;
+  const visibleProducts = products.slice(0, batch * batchSize);
+  const resultNoun = endingSoon ? products.length === 1 ? "prize" : "prizes" : products.length === 1 ? "product" : "products";
+  const showBatchSearch = endingSoon || products.length > 0;
+  const batchSearchHeading = endingSoon ? "ending-soon-search-again" : "browse-search-again";
   const activeFilters = Boolean(subcategory) || filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
     || Boolean(selectedRetailerGroup)
     || filters.minValue !== null || filters.maxValue !== null
@@ -85,14 +88,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   if (selectedCategory) clearHrefParams.set("category", selectedCategory);
   if (searchTerm) clearHrefParams.set("q", searchTerm);
   const clearHref = `/browse${clearHrefParams.size ? `?${clearHrefParams}` : ""}`;
-  const returnParams = new URLSearchParams();
+  const searchParamsForView = new URLSearchParams();
   for (const key of ["category", "sort", "subcategory", "type", "retailer", "partnerCategory", "available", "minValue", "maxValue"] as const) {
     const value = query[key];
-    if (value) returnParams.set(key, value);
+    if (value) searchParamsForView.set(key, value);
   }
-  if (searchTerm) returnParams.set("q", searchTerm);
-  const searchHref = `/browse${returnParams.size ? `?${returnParams}` : ""}`;
-  if (endingSoon && batch > 1) returnParams.set("batch", String(batch));
+  if (searchTerm) searchParamsForView.set("q", searchTerm);
+  const searchHref = `/browse${searchParamsForView.size ? `?${searchParamsForView}` : ""}`;
+  const returnParams = new URLSearchParams(searchParamsForView);
+  if (batch > 1) returnParams.set("batch", String(batch));
   const browseReturnHref = `/browse${returnParams.size ? `?${returnParams}` : ""}`;
   const nextProduct = products[visibleProducts.length];
   const nextBatchParams = new URLSearchParams(returnParams);
@@ -122,14 +126,14 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
-            searchField={endingSoon ? <EndingSoonSearch position="top" /> : undefined} />
+            searchField={endingSoon ? <BrowseResultsSearch position="top" /> : undefined} />
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
           {showGroceryInspiration ? <GroceryInspiration offers={groceryOffers} /> : null}
           {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
             <nav aria-label={`Shop ${selectedLabel} by retailer`} className="mt-4 flex flex-wrap items-center gap-2">
               <span className="mr-1 text-sm font-bold text-white">Shop by retailer</span>
               {retailers.map(retailer => {
-                const params = new URLSearchParams(returnParams);
+                const params = new URLSearchParams(searchParamsForView);
                 const selected = filters.retailer === retailer;
                 if (selected) params.delete("retailer");
                 else params.set("retailer", retailer);
@@ -154,9 +158,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
         {showGroceryInspiration ? <div id="more-groceries" className="mt-4" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}><h2 className="text-2xl font-black leading-tight tracking-tight">More groceries &amp;<span className="block sm:inline"> rewards</span></h2></div> : null}
-        <p aria-live="polite" className={`${showGroceryInspiration ? "mt-2" : "mt-4"} text-sm font-bold text-white/75`}>{endingSoon
-          ? `Showing ${visibleProducts.length} of ${products.length} ${products.length === 1 ? "prize" : "prizes"}`
-          : `${products.length} ${products.length === 1 ? "product" : "products"} shown`}{denomination.values.size > 0 &&
+        <p aria-live="polite" className={`${showGroceryInspiration ? "mt-2" : "mt-4"} text-sm font-bold text-white/75`}>{endingSoon || products.length > batchSize
+          ? `Showing ${visibleProducts.length} of ${products.length} ${resultNoun}`
+          : `${products.length} ${resultNoun} shown`}{denomination.values.size > 0 &&
             <span className="ml-2">· Exact prize value: {Array.from(denomination.values, value => `$${value.toLocaleString("en-US")}`).join(" or ")}</span>}</p>
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
@@ -237,9 +241,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <Link href="/browse" className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">View all products</Link>
           </section>
         )}
-        {endingSoon && <section className={browseStyles.batchSearch} aria-labelledby="ending-soon-search-again">
-          <h2 id="ending-soon-search-again">Didn’t find what you were looking for?</h2>
-          <EndingSoonSearch position="bottom" />
+        {showBatchSearch && <section className={browseStyles.batchSearch} aria-labelledby={batchSearchHeading}>
+          <h2 id={batchSearchHeading}>Didn’t find what you were looking for?</h2>
+          <BrowseResultsSearch position="bottom" />
           <p className="text-sm text-white/75">Try a retailer and prize value, like “Walmart $100”.</p>
           {nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
             href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {Math.min(batchSize, products.length - visibleProducts.length)} more {products.length - visibleProducts.length === 1 ? "prize" : "prizes"}</Link>}
@@ -248,5 +252,5 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       </div>
     </main>
   );
-  return endingSoon ? <EndingSoonSearchSession key={searchHref} browseHref={searchHref} searchTerm={searchTerm}>{page}</EndingSoonSearchSession> : page;
+  return showBatchSearch ? <BrowseResultsSearchSession key={searchHref} browseHref={searchHref} searchTerm={searchTerm} endingSoon={endingSoon}>{page}</BrowseResultsSearchSession> : page;
 }

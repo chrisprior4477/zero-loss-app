@@ -30,10 +30,9 @@ export function productBrowseReturnPath(value: unknown): string | null {
   try {
     const url = new URL(value, "https://zeroloss.local");
     if (url.origin !== "https://zeroloss.local" || url.pathname !== "/browse") return null;
-    const endingSoon = (url.searchParams.get("category") ?? (url.searchParams.get("sort") === "ending-soon" ? "ending-soon" : "")) === "ending-soon";
     if (url.hash && !/^#prize-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url.hash)) return null;
     const batch = url.searchParams.get("batch");
-    if (batch !== null && (!endingSoon || !/^[1-9]\d*$/.test(batch) || !Number.isSafeInteger(Number(batch)))) return null;
+    if (batch !== null && (!/^[1-9]\d*$/.test(batch) || !Number.isSafeInteger(Number(batch)))) return null;
     const keys = [...url.searchParams.keys()];
     if (keys.some((key) => !browseQueryKeys.has(key)) || new Set(keys).size !== keys.length) return null;
     return value;

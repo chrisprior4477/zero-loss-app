@@ -15,6 +15,7 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
       const target = window.location.hash === "#retailer-categories-heading"
         ? "retailer-categories-heading"
         : window.location.hash === "#ending-soon-search-again" && document.getElementById("ending-soon-search-again") ? "ending-soon-search-again"
+        : window.location.hash === "#browse-search-again" && document.getElementById("browse-search-again") ? "browse-search-again"
         : window.location.hash.startsWith("#prize-") && document.getElementById(window.location.hash.slice(1)) ? window.location.hash.slice(1)
         : window.location.hash === "#more-groceries" ? "more-groceries"
           : groceryKey && (!window.location.hash || window.location.hash.startsWith("#search-results") || window.location.hash === "#grocery-inspiration") ? "grocery-inspiration"
