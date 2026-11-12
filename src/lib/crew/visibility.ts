@@ -13,6 +13,30 @@ export type CrewDisplaySnapshot = {
   entryRules: Record<string, CrewVisibilityRule>;
 };
 
+export type CrewPrivacyDraft = Omit<CrewDisplaySnapshot, "groups">;
+
+export function sameCrewVisibilityRule(left: CrewVisibilityRule | undefined, right: CrewVisibilityRule | undefined): boolean {
+  return left === right || Boolean(left && right && left.audience === right.audience
+    && sameIds(left.memberIds, right.memberIds) && sameIds(left.groupIds, right.groupIds));
+}
+
+function sameIds(left: string[], right: string[]) {
+  return Array.isArray(left) && Array.isArray(right) && left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
+export function changedCrewEntryRules(expected: CrewPrivacyDraft["entryRules"], desired: CrewPrivacyDraft["entryRules"]) {
+  const before: [string, CrewVisibilityRule][] = [];
+  const after: [string, CrewVisibilityRule][] = [];
+  for (const id of new Set([...Object.keys(expected), ...Object.keys(desired)])) {
+    const oldRule = Object.hasOwn(expected, id) ? expected[id] : undefined;
+    const newRule = Object.hasOwn(desired, id) ? desired[id] : undefined;
+    if (sameCrewVisibilityRule(oldRule, newRule)) continue;
+    if (oldRule !== undefined) before.push([id, oldRule]);
+    if (newRule !== undefined) after.push([id, newRule]);
+  }
+  return { before: Object.fromEntries(before), after: Object.fromEntries(after) };
+}
+
 export const defaultCrewVisibilityRule: CrewVisibilityRule = {
   audience: "everyone", memberIds: [], groupIds: [],
 };

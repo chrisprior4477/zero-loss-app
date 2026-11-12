@@ -268,8 +268,8 @@ test("groups and privacy share the same editor state across compact navigation",
   await waitFor(() => expect(actions.saveCrewDisplaySettings).toHaveBeenCalledOnce());
   const payload = actions.saveCrewDisplaySettings.mock.calls[0][0];
   expect(payload).not.toHaveProperty("groups");
-  expect(payload.expected.groups).toEqual([expect.objectContaining({ name: "Family" })]);
-  expect(payload.defaultRule).toEqual({ audience: "groups", memberIds: [], groupIds: [payload.expected.groups[0].id] });
+  expect(payload.expected).not.toHaveProperty("groups");
+  expect(payload.defaultRule).toEqual({ audience: "groups", memberIds: [], groupIds: [actions.saveCrewGroup.mock.calls[0][0].group.id] });
   await screen.findByText("Settings saved.");
   fireEvent.click(nav.getByRole("button", { name: "Groups" }));
   expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Family draft");

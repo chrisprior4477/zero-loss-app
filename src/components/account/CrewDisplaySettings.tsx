@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { saveCrewDisplaySettings, saveCrewGroup } from "@/lib/crew/actions";
 import { notifyAccountChanged } from "@/lib/account/account-state-events";
-import { type CrewAudience, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "@/lib/crew/visibility";
+import { changedCrewEntryRules, sameCrewVisibilityRule, type CrewAudience, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "@/lib/crew/visibility";
 import styles from "./crew-display-settings.module.css";
 import { CrewGroupContacts } from "./CrewGroupContacts";
 import { CrewGroupRemovalCountdown } from "./CrewGroupRemovalCountdown";
@@ -277,13 +277,12 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     });
   }
 
-  function validate(): string | null {
+  function validate(changedRules: Record<string, CrewVisibilityRule>): string | null {
     const validGroupIds = new Set(server.groups.map((group) => group.id));
     const validMemberIds = new Set(members.map((member) => member.id));
     // Cleanup intentionally leaves empty audiences on historical/private picks.
     // Validate new audience choices without blocking unrelated privacy edits.
-    const changed = (rule: CrewVisibilityRule, before: CrewVisibilityRule | undefined) => JSON.stringify(rule) !== JSON.stringify(before);
-    const rules = [...(changed(defaultRule, baseline.defaultRule) ? [defaultRule] : []), ...Object.entries(entryRules).filter(([id, rule]) => changed(rule, baseline.entryRules[id])).map(([, rule]) => rule)];
+    const rules = [...(sameCrewVisibilityRule(defaultRule, baseline.defaultRule) ? [] : [defaultRule]), ...Object.values(changedRules)];
     if (rules.some((rule) => rule.memberIds.some((id) => !validMemberIds.has(id)) || rule.groupIds.some((id) => !validGroupIds.has(id)))) return "A selected person or group is no longer available. Review your choices.";
     if (rules.some((rule) => rule.audience === "people" && rule.memberIds.length === 0)) return "Choose at least one person for each selected-people audience.";
     if (rules.some((rule) => rule.audience === "groups" && rule.groupIds.length === 0)) return "Choose at least one group for each selected-groups audience.";
@@ -291,10 +290,14 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
   }
 
   function save() {
-    const problem = validate();
+    const { before, after } = changedCrewEntryRules(baseline.entryRules, entryRules);
+    const problem = validate(after);
     if (problem) { setMessage(problem); setSaved(false); return; }
     startTransition(async () => {
-      const result = await saveCrewDisplaySettings({ discoverable, discovery, defaultRule, entryRules, expected: baseline }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again.", settings: undefined, conflict: false }));
+      const result = await saveCrewDisplaySettings({
+        discoverable, discovery, defaultRule, entryRules: after,
+        expected: { discoverable: baseline.discoverable, discovery: baseline.discovery, defaultRule: baseline.defaultRule, entryRules: before },
+      }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again.", settings: undefined, conflict: false }));
       setMessage(result.message);
       setSaved(result.ok);
       if (result.ok) {

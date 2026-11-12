@@ -19,7 +19,8 @@ test("cleanup's unchanged empty audiences do not block a privacy-only save", asy
   fireEvent.click(screen.getByLabelText(/Find me by display name/i));
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledOnce());
-  expect(saveCrewDisplaySettings.mock.calls[0][0].entryRules[pick]).toEqual(empty);
+  expect(saveCrewDisplaySettings.mock.calls[0][0]).toMatchObject({ entryRules: {}, expected: { entryRules: {} } });
+  expect(Object.keys(saveCrewDisplaySettings.mock.calls[0][0].entryRules)).toHaveLength(0);
 });
 
 test("a newly chosen empty audience still needs a deliberate selection", () => {
@@ -40,7 +41,7 @@ test("confirmed group removal updates the baseline before a later privacy save",
   await screen.findByText(/Family removed from your profile/);
   fireEvent.click(await screen.findByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledOnce());
-  expect(saveCrewDisplaySettings.mock.calls[0][0].expected.entryRules[pick].groupIds).toEqual([]);
+  expect(saveCrewDisplaySettings.mock.calls[0][0].expected.entryRules).toEqual({});
 });
 
 test("an unsaved privacy edit survives a refresh that adds a group", async () => {
@@ -53,7 +54,7 @@ test("an unsaved privacy edit survives a refresh that adds a group", async () =>
   expect(screen.getByText("New group from another tab")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledOnce());
-  expect(saveCrewDisplaySettings.mock.calls[0][0]).toMatchObject({ discoverable: true, expected: { discoverable: false, groups: latestGroups } });
+  expect(saveCrewDisplaySettings.mock.calls[0][0]).toMatchObject({ discoverable: true, expected: { discoverable: false } });
   expect(await screen.findByText("New group from another tab")).toBeTruthy();
 });
 
@@ -119,8 +120,8 @@ test("creates multiple named groups and assigns a shared pick to a chosen group"
   await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledOnce());
   const saved = saveCrewDisplaySettings.mock.calls[0][0];
   expect(saved).not.toHaveProperty("groups");
-  expect(saved.expected.groups).toEqual([expect.objectContaining({ name: "Family", memberIds: [first] })]);
-  expect(saved.entryRules[pick]).toMatchObject({ audience: "groups", groupIds: [saved.expected.groups[0].id] });
+  expect(saved.expected).not.toHaveProperty("groups");
+  expect(saved.entryRules[pick]).toMatchObject({ audience: "groups", groupIds: [saveCrewGroup.mock.calls[0][0].group.id] });
   expect(screen.getByDisplayValue("Friends")).toBeTruthy();
 });
 

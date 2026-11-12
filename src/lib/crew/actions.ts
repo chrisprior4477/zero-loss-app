@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, normalizeCrewContactPhone, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "./visibility";
+import { changedCrewEntryRules, crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, normalizeCrewContactPhone, type CrewDisplaySnapshot, type CrewPrivacyDraft, type CrewVisibilityGroup, type CrewVisibilityRule } from "./visibility";
 import { crewMemberContacts, isCrewMemberContact, type CrewMemberContact } from "./member-contact";
 
 type CrewActionResult = { ok: boolean; message: string; conflict?: boolean };
@@ -151,25 +151,35 @@ export async function saveCrewDisplaySettings(input: {
   discovery?: { real: boolean; email: boolean; phone: boolean };
   defaultRule: CrewVisibilityRule;
   entryRules: Record<string, CrewVisibilityRule>;
-  expected: CrewDisplaySnapshot;
+  expected: CrewPrivacyDraft;
 }): Promise<CrewActionResult & { settings?: CrewDisplaySnapshot }> {
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to save your Crew sharing settings." };
-  if (!input || (input.discovery && ![input.discovery.real, input.discovery.email, input.discovery.phone].every(value => typeof value === "boolean")) || typeof input.discoverable !== "boolean" || !isCrewVisibilityRule(input.defaultRule)
-    || !input.entryRules || typeof input.entryRules !== "object" || Array.isArray(input.entryRules)
-    || Object.keys(input.entryRules).length > 500
-    || !Object.entries(input.entryRules).every(([id, rule]) => crewUuid.test(id) && isCrewVisibilityRule(rule))) {
+  const baseline = input?.expected;
+  if (!input || !baseline || typeof baseline.discoverable !== "boolean" || !baseline.discovery || !isCrewVisibilityRule(baseline.defaultRule)
+    || !baseline.entryRules || typeof baseline.entryRules !== "object" || Array.isArray(baseline.entryRules)) {
+    return { ok: false, message: "Refresh this page before saving your Crew settings." };
+  }
+  const discovery = input.discovery ?? { real: true, email: true, phone: true };
+  if (![discovery.real, discovery.email, discovery.phone, baseline.discovery.real, baseline.discovery.email, baseline.discovery.phone].every(value => typeof value === "boolean")
+    || typeof input.discoverable !== "boolean" || !isCrewVisibilityRule(input.defaultRule)
+    || !input.entryRules || typeof input.entryRules !== "object" || Array.isArray(input.entryRules)) {
     return { ok: false, message: "Review the audience and group details before saving." };
   }
-  if (!input.expected || !Array.isArray(input.expected.groups)) return { ok: false, message: "Refresh this page before saving your Crew settings." };
+  const { before, after } = changedCrewEntryRules(baseline.entryRules, input.entryRules);
+  if (new Set([...Object.keys(before), ...Object.keys(after)]).size > 500) {
+    return { ok: false, message: "Save up to 500 changed pick audiences at a time." };
+  }
+  if (![...Object.entries(before), ...Object.entries(after)].every(([id, rule]) => crewUuid.test(id) && isCrewVisibilityRule(rule))) {
+    return { ok: false, message: "Review the audience and group details before saving." };
+  }
   const { data, error } = await session.db.rpc("patch_crew_display_preferences", {
-    p_expected: input.expected,
+    p_expected: { discoverable: baseline.discoverable, discovery: baseline.discovery, defaultRule: baseline.defaultRule, entryRules: before },
     p_desired: {
       discoverable: input.discoverable,
-      discovery: input.discovery ?? { real: true, email: true, phone: true },
+      discovery,
       defaultRule: input.defaultRule,
-      groups: input.expected.groups,
-      entryRules: input.entryRules,
+      entryRules: after,
     },
   });
   if (error?.code === "PT409" || error?.code === "40001") return { ok: false, conflict: true, message: "These settings changed in another tab. Review the latest choices before saving. Your draft is still here." };

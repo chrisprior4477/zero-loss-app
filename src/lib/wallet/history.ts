@@ -4,6 +4,8 @@ import type { LedgerEntryRow, WalletSnapshot } from "./snapshot";
 
 type LedgerSourceRow = LedgerEntryRow & { source_event: string; related_pool_id: string | null; related_entry_id?: string | null };
 const requestEvent = /^entry_request_([0-9a-f-]{36})_ENTRY_HOLD(?:_RELEASE)?$/i;
+const ledgerId = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const ledgerTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function product(slug: string | undefined) {
   const item = slug ? getDemoProduct(slug) : undefined;
@@ -41,19 +43,34 @@ export async function getRecentLedgerHistory(userId: string, wallet: WalletSnaps
 async function getLedgerHistory(userId: string, wallet: WalletSnapshot | null, recentOnly: boolean): Promise<LedgerEntryRow[] | null> {
   if (!wallet || wallet.transactionCount === 0) return wallet?.entries ?? null;
   const count = recentOnly ? wallet.entries.length : wallet.transactionCount;
+  const head = wallet.entries[0];
+  if (!head) return null;
+  // Probe one row past the snapshot count on a full read. A late commit with
+  // an older timestamp must not silently displace the oldest snapshot row.
+  const readLimit = count + (recentOnly ? 0 : 1);
   const db = await createClient();
   const rows: LedgerSourceRow[] = [];
-  for (let offset = 0; offset < count; offset += 500) {
+  const seen = new Set<string>();
+  while (rows.length < readLimit) {
+    const cursor = rows.at(-1) ?? head;
+    if (!ledgerId.test(cursor.id) || !ledgerTime.test(cursor.created_at)) return null;
+    const idOperator = rows.length ? "lt" : "lte";
+    const pageSize = Math.min(500, readLimit - rows.length);
     const { data, error } = await db.from("ledger_entries").select("id,entry_type,amount,created_at,source_event,related_pool_id,related_entry_id")
-      .eq("customer_id", userId).order("created_at", { ascending: false }).order("id", { ascending: false })
-      .range(offset, Math.min(offset + 499, count - 1));
-    if (error || !data || data.length === 0) return null;
+      .eq("customer_id", userId)
+      .or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.${idOperator}.${cursor.id})`)
+      .order("created_at", { ascending: false }).order("id", { ascending: false })
+      .range(0, pageSize - 1);
+    if (error || !data || data.length > pageSize) return null;
     for (const row of data) {
-      if (typeof row.id !== "string" || typeof row.entry_type !== "string" || !Number.isSafeInteger(row.amount)
+      if (typeof row.id !== "string" || !ledgerId.test(row.id) || seen.has(row.id)
+        || typeof row.entry_type !== "string" || !Number.isSafeInteger(row.amount)
         || row.amount === 0 || typeof row.created_at !== "string" || !Number.isFinite(Date.parse(row.created_at))
         || typeof row.source_event !== "string" || (row.related_pool_id !== null && typeof row.related_pool_id !== "string")) return null;
+      seen.add(row.id);
       rows.push(row);
     }
+    if (data.length < pageSize) break;
   }
   if (rows.length !== count || wallet.entries.some((entry, index) => entry.id !== rows[index]?.id)) return null;
 

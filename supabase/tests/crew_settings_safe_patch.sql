@@ -79,5 +79,46 @@ begin
   exception when insufficient_privilege then passed:=passed+1; end;
   perform set_config('audit.safe_patch_result',jsonb_build_object('checksPassed',passed,'newGroupPreserved',true,'cleanupPreserved',true,'conflictingEditsRejected',true,'legacyOverwriteBlocked',true,'ownershipChecked',true)::text,true);
 end $$;
+reset role;
+-- Simulate a long-lived cleanup history without creating hundreds of entries.
+update public.crew_visibility_settings
+set entry_rules = entry_rules || (
+  select jsonb_object_agg('cb120001-1111-4111-8111-' || lpad(i::text, 12, '0'),
+    '{"audience":"groups","memberIds":[],"groupIds":[]}'::jsonb)
+  from generate_series(1, 501) i
+)
+where owner_id = auth.uid();
+set local role authenticated;
+do $$
+declare
+  before_save jsonb;
+  after_save jsonb;
+  draft jsonb;
+  saved_rules jsonb;
+  owned_entry text;
+begin
+  select jsonb_build_object('defaultRule',s.default_rule,'entryRules','{}'::jsonb,'discoverable',p.crew_discoverable,
+    'discovery',jsonb_build_object('real',p.crew_find_real_name,'email',p.crew_find_email,'phone',p.crew_find_phone)), s.entry_rules
+  into strict before_save, saved_rules
+  from public.crew_visibility_settings s join public.customer_profiles p on p.customer_id=s.owner_id where s.owner_id=auth.uid();
+  assert (select count(*) from jsonb_object_keys(saved_rules)) = 502, 'Expected a large cleanup history';
+  draft := jsonb_set(before_save, '{discovery,real}', to_jsonb(not (before_save#>>'{discovery,real}')::boolean));
+  after_save := public.patch_crew_display_preferences(before_save, draft);
+  assert after_save->'entryRules' = saved_rules, 'Privacy-only save retains all historical rules';
+  assert after_save#>'{discovery,real}' = draft#>'{discovery,real}', 'Discovery change is saved';
+
+  -- Legacy callers that send their whole unchanged history remain compatible.
+  before_save := after_save;
+  draft := jsonb_set(before_save, '{discovery,phone}', to_jsonb(not (before_save#>>'{discovery,phone}')::boolean));
+  after_save := public.patch_crew_display_preferences(before_save, draft);
+  assert after_save->'entryRules' = saved_rules, 'Full legacy snapshots preserve history too';
+  assert after_save#>'{discovery,phone}' = draft#>'{discovery,phone}', 'Legacy discovery change is saved';
+
+  select id::text into strict owned_entry from public.customer_entries where customer_id=auth.uid();
+  before_save := jsonb_set(after_save - 'groups', '{entryRules}', jsonb_build_object(owned_entry, saved_rules->owned_entry));
+  draft := jsonb_set(before_save, '{entryRules}', '{}'::jsonb);
+  after_save := public.patch_crew_display_preferences(before_save, draft);
+  assert after_save->'entryRules' = saved_rules - owned_entry, 'One edited pick can return to the default';
+end $$;
 select current_setting('audit.safe_patch_result')::jsonb as rollback_test;
 rollback;
