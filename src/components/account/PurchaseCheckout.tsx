@@ -23,6 +23,7 @@ import styles from "./purchase-checkout.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { purchaseFundingHref, rememberWalletSelection, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
+import { fundingHref, purchaseDepositRecoveryHref } from "@/lib/wallet/funding-navigation";
 import { useCheckoutSelection } from "./useCheckoutSelection";
 import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 
@@ -64,12 +65,15 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [recovery, setRecovery] = useState<"deposit" | "purchase" | "offers" | null>(null);
+  const [depositRequestKey, setDepositRequestKey] = useState<string>();
   const checkRequired = recovery !== null;
   const [notice, setNotice] = useState("");
   const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
   const inFlight = useRef(false);
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
   const selectedEntryId = chosen[0]?.entryId;
+  const walletHref = depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId);
+  const rememberSelection = () => rememberWalletSelection({ href: walletHref, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });
   const addCardHref = `/account/wallet?${new URLSearchParams({ view: "history", panel: "card", from: item.slug, ...(selectedEntryId ? { entry: selectedEntryId } : {}), ...(handoffId ? { choice: handoffId } : {}) })}#wallet-add-card`;
   useLayoutEffect(() => {
     const href = handoffId ? purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId) : null;
@@ -137,7 +141,9 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
     if (!validDeposit) { setError("Only whole-dollar amounts are accepted. Enter extra dollars such as 50, without a decimal point."); return; }
     inFlight.current = true; setBusy(true); setError("");
     const form = new FormData();
-    form.set("idempotencyKey", `purchase_fund_${crypto.randomUUID()}`); form.set("amountCents", String(deposit)); form.set("currency", "USD");
+    const requestKey = `purchase_fund_${crypto.randomUUID()}`;
+    setDepositRequestKey(requestKey);
+    form.set("idempotencyKey", requestKey); form.set("amountCents", String(deposit)); form.set("currency", "USD");
     form.set("paymentMethod", card); form.set("makeDefault", String(cards.find(saved => saved.token === card)?.isDefault ?? false)); form.set("fundingPolicy", "funding-confirmation-v1");
     try {
       const result = await fundPurchaseWallet(form);
@@ -172,7 +178,7 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
   const refreshOffersHref = `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
   const feedback = <>{error ? <p className={styles.error} role="alert">{error}</p> : null}{recovery ? <div className={recovery === "purchase" ? undefined : styles.twoButtons}>
     {recovery === "offers" ? <a className={styles.secondary} href={refreshOffersHref}>Refresh available offers</a> : null}
-    {recovery === "deposit" ? <Link className={styles.secondary} href="/account/wallet?view=history&panel=funding#add-funds">Check deposits</Link> : null}
+    {recovery === "deposit" ? <Link className={styles.secondary} href={walletHref} onClick={rememberSelection}>Check this deposit</Link> : null}
     <Link className={styles.secondary} href="/account/entries?filter=completed">View completed purchases</Link>
   </div> : null}</>;
   const money = (onPage = false) => <div className={styles.facts}><div><span>Purchase total</span><strong>{usd(total)}</strong></div><div><span>In your wallet</span><strong>{usd(balance)}</strong></div>{onPage
@@ -214,7 +220,7 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
         <div className={styles.extraEquation}><h3>Add a different amount</h3><div><span><small>Needed</small><strong>{usd(required)}</strong></span><b aria-hidden="true">+</b><label>Extra dollars<input type="text" inputMode="numeric" value={extra} disabled={locked} placeholder="$0" aria-invalid={!validDeposit} onChange={event => { setExtra(event.target.value.replace(/^\$/, "")); setAcknowledged(false); }} /></label></div></div>
         {validDeposit ? <p className={styles.extraNotice}>{usd(required)} + {usd(extraCents)} = {usd(deposit)} deposit{extraCents > 0 ? ` · ${usd(balance + deposit - total)} left after purchase` : ""}</p> : <p role="alert" className={styles.error}>Only whole-dollar amounts are accepted. For example: 50.</p>}
         <label className={styles.check}><input type="checkbox" checked={acknowledged} disabled={locked} onChange={event => setAcknowledged(event.target.checked)} /><span>I confirm adding {validDeposit ? usd(deposit) : "this amount"} using {demoCardFixture(card)?.issuer ?? "my card"}.<small>Adds funds only. Confirm purchase next.</small></span></label>
-        {fundingBlocked || !fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href="/account/wallet?view=history&panel=funding#add-funds">Open wallet</Link></p> : null}
+        {fundingBlocked || !fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href={walletHref} onClick={rememberSelection}>Open wallet</Link></p> : null}
         {feedback}<button type="button" className={styles.primary} disabled={locked || !validDeposit || !acknowledged || !card || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
       </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
         <PurchaseOptionPicker optionIds={available} selected={declineDraft ?? selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}

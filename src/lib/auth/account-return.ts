@@ -1,5 +1,6 @@
 import { parseEntryQuantity } from "@/lib/entries/quantity";
 import { productBrowseReturnPath } from "@/lib/catalog/product-return";
+import { purchaseDepositKeyPattern } from "@/lib/wallet/funding-navigation";
 
 type Query = Record<string, string | string[] | undefined>;
 const slug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -14,7 +15,7 @@ const routes: Record<string, ReturnRoute> = {
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), viewed: matches(identifier), filter: oneOf("all", "active", "prize", "completion", "completed") } },
   "/account/declined-offers": { query: {} },
   "/account/favorites": { query: { tab: oneOf("favorites", "shared"), share: matches(uuid), item: matches(slug) }, hash: /^#(?:saved-items-heading|favorite-products)$/ },
-  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), via: oneOf("purchase"), view: oneOf("history", "card"), panel: oneOf("methods", "card", "funding"), rewards: oneOf("ready", "used", "expired", "history"), from: matches(slug), browse: value => productBrowseReturnPath(value) !== null, entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid), choice: matches(uuid) }, hash: /^#(?:reward-pass|ready-rewards|reward-history|add-funds|payment-methods|wallet-add-card|transactions|transaction-[0-9a-f-]{36})$/i },
+  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), via: oneOf("purchase"), view: oneOf("history", "card"), panel: oneOf("methods", "card", "funding"), rewards: oneOf("ready", "used", "expired", "history"), from: matches(slug), browse: value => productBrowseReturnPath(value) !== null, entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid), choice: matches(uuid), deposit: matches(purchaseDepositKeyPattern) }, hash: /^#(?:reward-pass|ready-rewards|reward-history|add-funds|purchase-deposit|payment-methods|wallet-add-card|transactions|transaction-[0-9a-f-]{36})$/i },
   "/account/crew": { query: { member: value => uuid.test(value) || /^sample-(?:Maya|Daniel|Ari|Leo)$/.test(value), pick: matches(slug), tab: oneOf("crew", "requests", "picks", "groups", "privacy"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-intro|crew-groups|crew-privacy|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {} },
   "/account/notifications": { query: {} },
@@ -56,6 +57,8 @@ export function accountReturnPath(value: unknown): string | null {
     (url.searchParams.get("view") !== "history" || !url.searchParams.has("from") || url.searchParams.has("entry"))) return null;
   if (url.pathname === "/account/wallet" && url.searchParams.has("choice") &&
     (url.searchParams.get("view") !== "history" || !url.searchParams.has("from") || !url.searchParams.has("entry") || url.searchParams.has("reward") || url.searchParams.has("rewardId"))) return null;
+  if (url.pathname === "/account/wallet" && url.searchParams.has("deposit") &&
+    (url.searchParams.get("view") !== "history" || url.searchParams.has("reward") || url.searchParams.has("rewardId"))) return null;
   return value;
 }
 

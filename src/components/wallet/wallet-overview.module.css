@@ -28,6 +28,8 @@
 .walletSections a[aria-current="page"] { color: #fff; font-weight: 800; text-decoration: none; }
 .summaryGrid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(330px, 1fr); gap: 14px; }
 .ticketPanel { min-width: 0; background: #fffefa; color: #08163c; box-shadow: 0 8px 20px #00112c55; }
+.purchaseDeposit { padding: 24px clamp(24px, 3vw, 40px); margin-bottom: 16px; scroll-margin-top: 150px; }
+.purchaseDeposit h2 { font-size: clamp(24px, 2.5vw, 32px); font-weight: 850; line-height: 1.2; }
 .balanceCard { display: grid; grid-template-columns: minmax(230px, 39%) minmax(0, 1fr); gap: 20px; min-height: 312px; padding: 16px 30px 16px 29px; }
 .balanceArt { display: grid; min-width: 0; min-height: 280px; place-items: center; overflow: hidden; border-radius: 12px; background: linear-gradient(145deg, #c9eaff, #a7dbf8); }
 .balanceArt img { display: block; width: min(100%, 324px); height: auto; max-height: 180px; object-fit: contain; clip-path: polygon(10% 22%, 13% 19%, 70% 5%, 76% 6%, 81% 9%, 83% 12%, 90% 76%, 87% 84%, 83% 87%, 23% 100%, 17% 98%, 13% 91%); }

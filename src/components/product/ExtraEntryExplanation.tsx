@@ -57,7 +57,7 @@ export function ExtraEntryExplanation({ productTitle, productValue, retailer, en
             <ol>
               <li><strong>Another entry means another independent chance.</strong> Each entry receives the same chance of selection, subject to the published pool rules.</li>
               <li><strong>Non-selected entries do not become wallet cash.</strong> Each non-selected paid entry has its own optional 30-day right to complete this exact offering.</li>
-              <li><strong>The options cannot be stacked.</strong> Entry payments and completion options cannot be combined with one another or with Playable Balance.</li>
+            <li><strong>Each entry’s dollar applies only to its own purchase option.</strong> You can pay that option’s remaining amount from your Playable Wallet. Separate entries and options cannot be combined.</li>
               <li><strong>Each option requires its own remaining payment.</strong> For this ${productValue.toLocaleString()} {retailer} offering, one ${entryPrice.toFixed(2)} entry would leave ${remaining.toFixed(2)} to complete one purchase.</li>
               <li><strong>The option stays with this entry and retailer.</strong> It cannot move to a different product, retailer, account, entry, or cash withdrawal.</li>
             </ol>

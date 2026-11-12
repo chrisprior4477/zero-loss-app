@@ -14,13 +14,14 @@ import { WalletLedger } from "./WalletLedger";
 import { DeleteAllFundsButton } from "./DeleteAllFundsButton";
 import { WalletHistoryLandingScroll } from "./WalletLandingScroll";
 import { WalletPaymentMethods } from "./WalletPaymentMethods";
+import { PurchaseDepositRecovery } from "./PurchaseDepositRecovery";
 import { WeeklyDeposits } from "./WeeklyDeposits";
 import styles from "./wallet-overview.module.css";
 import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
 import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
 
-export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone }: {
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone }: {
   timeZone?: string;
   displayName?: string;
   initialSection?: "methods" | "card";
@@ -31,6 +32,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   selectedTransaction?: SelectedTransaction;
   fundingEnabled?: boolean;
   requestKey?: string;
+  recoveryKey?: string;
   requests?: DemoFundingRequest[] | null;
   savedCard?: DemoCard | null;
   savedCards?: DemoCard[];
@@ -52,7 +54,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const rewardHref = ready?.length === 1 ? walletRewardHref(ready[0]) : accountRoutes.rewards;
 
   return <main className={styles.page}>
-    <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} enabled={!initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
+    <WalletHistoryLandingScroll walletId={wallet?.walletAccountId ?? undefined} selectedId={selected?.id} selectedRequested={selectedTransaction?.requested} target={landingId} enabled={!recoveryKey && !initialSection && !selectedTransaction?.requested && !returnToProduct && !returnUnavailable} />
     <div className={styles.shell}>
       <nav aria-label="Account wallet overview" className={stripStyles.row}>
         <StatusTicket size="top" variant="wallet" label="Playable Wallet" value={balance} action="Add funds" href="#balance" actionHref={canFund ? "#add-funds" : undefined} actionDisabled={!canFund} />
@@ -64,6 +66,8 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         <div><h1>Playable Wallet</h1><p>Your balance and every move, all in one place.</p></div>
         <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Gift Cards &amp; Rewards</Link><Link href="#balance" aria-current="page">Funds &amp; history</Link></nav>
       </header>
+
+      {recoveryKey && <PurchaseDepositRecovery key={recoveryKey} requestKey={recoveryKey} requests={requests} wallet={wallet} continueTo={returnToProduct} fundingEnabled={fundingEnabled} timeZone={timeZone} />}
 
       <section className={styles.summaryGrid} aria-label="Wallet summary">
         <article id="balance" className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance">
@@ -112,7 +116,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         <div className={styles.sectionHeading}><div><h2 id="funding-heading">Add funds</h2><p>{canFund ? "Choose an amount and confirm your preview deposit." : "Add playable balance when funding is available for your account."}</p></div><span className={styles.fundingBadge}>{demo ? "Demo payment" : "Funding"}</span></div>
         {returnToProduct ? <div className={styles.fundingReturn}><p>{returnToProduct.label === "Back to purchase option" ? <>Add funds to complete your purchase of {returnToProduct.title}. After your deposit, you’ll return to confirm the purchase.</> : returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}
         {returnUnavailable ? <p role="status" className={styles.fundingReturn}>We couldn’t find that purchase option in your account. <Link href="/account/entries?filter=completion">View your purchase options →</Link></p> : null}
-        {canFund ? <DemoFundingForm key={returnToProduct?.href ?? "wallet-funding"} displayName={displayName} balanceLabel={balance} requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
+        {recoveryKey ? <p className={styles.fundingReturn}>Check the selected deposit before adding more funds. <a href="#purchase-deposit">Check this deposit →</a></p> : canFund ? <DemoFundingForm key={returnToProduct?.href ?? "wallet-funding"} displayName={displayName} balanceLabel={balance} requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
         </div>
         {demo && <WeeklyDeposits requests={demoHistoryVisibility === null ? null : requests} hiddenIds={demoHistoryVisibility?.fundingSessionIds} asOf={new Date().toISOString()} timeZone={timeZone} />}
         {demo ? <DemoFundingRequests requests={requests} timeZone={timeZone} fundingEnabled={fundingEnabled} continueTo={returnToProduct} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}

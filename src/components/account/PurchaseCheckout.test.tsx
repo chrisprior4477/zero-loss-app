@@ -212,10 +212,34 @@ test("uncertain funding is locked for recovery rather than submitting a second d
   mocks.fund.mockResolvedValue({ status: "pending", message: "Check this deposit." }); setup(); const popup = fundPopup();
   fireEvent.click(popup.getByRole("checkbox")); fireEvent.click(popup.getByRole("button", { name: "Add $260 to wallet" }));
   await screen.findByText("Check this deposit."); fireEvent.click(screen.getByRole("button", { name: "Add $260 to wallet" }));
-  expect(mocks.fund).toHaveBeenCalledOnce(); expect(mocks.purchase).not.toHaveBeenCalled(); expect(screen.getByRole("link", { name: "Check deposits" })).toBeTruthy();
+  expect(mocks.fund).toHaveBeenCalledOnce(); expect(mocks.purchase).not.toHaveBeenCalled(); expect(screen.getByRole("link", { name: "Check this deposit" })).toBeTruthy();
 });
 test("pre-existing unresolved deposits prevent a new deposit", () => {
   setup(13900, true); const popup = fundPopup(); fireEvent.click(popup.getByRole("checkbox")); fireEvent.click(popup.getByRole("button", { name: "Add $260 to wallet" })); expect(mocks.fund).not.toHaveBeenCalled();
+});
+
+test.each(["pending", "lost response"])("%s retains the exact deposit, two selected offers and Keep for later", async outcome => {
+  if (outcome === "pending") mocks.fund.mockResolvedValue({ status: "pending", message: "Check this deposit." });
+  else mocks.fund.mockRejectedValue(new Error("Connection lost"));
+  const offers = options.map((option, i) => ({ ...option, entryId: `ent_${String(i + 1).repeat(32)}` }));
+  render(<PurchaseCheckout ownerId="account-a" options={offers} initialBalance={13900} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />);
+  fireEvent.click(screen.getByRole("button", { name: /Keep for later/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
+  fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add funds: $659 to continue" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("button", { name: "Add $659 to wallet" }));
+  const link = await screen.findByRole("link", { name: "Check this deposit" });
+  const href = new URL(link.getAttribute("href")!, "https://example.test");
+  expect(href.searchParams.get("deposit")).toBe(mocks.fund.mock.calls[0][0].get("idempotencyKey"));
+  expect(href.searchParams.get("from")).toBe("nintendo-switch");
+  expect(href.searchParams.get("entry")).toBe(offers[0].entryId);
+  expect(href.searchParams.get("choice")).toMatch(/^[a-f0-9-]{36}$/);
+  expect(href.hash).toBe("#purchase-deposit");
+  fireEvent.click(link);
+  expect(JSON.parse(sessionStorage.getItem(purchaseSelectionKey)!)).toMatchObject({ selected: ["option-0", "option-2"], decline: false });
+  expect(mocks.fund).toHaveBeenCalledOnce(); expect(mocks.purchase).not.toHaveBeenCalled();
 });
 
 test("changed offers show a fresh navigation and completed purchases without offering deposit recovery or resubmission", async () => {
@@ -227,7 +251,7 @@ test("changed offers show a fresh navigation and completed purchases without off
   await screen.findByRole("alert");
   expect(screen.getByRole("link", { name: "Refresh available offers" }).getAttribute("href")).toBe("/account/purchase-options/nintendo-switch");
   expect(screen.getByRole("link", { name: "View completed purchases" }).getAttribute("href")).toBe("/account/entries?filter=completed");
-  expect(screen.queryByRole("link", { name: "Check deposits" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Check this deposit" })).toBeNull();
   expect(screen.getByRole("button", { name: "Review purchase: $399" }).hasAttribute("disabled")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Review purchase: $399" }));
   expect(mocks.purchase).toHaveBeenCalledOnce();
@@ -249,7 +273,7 @@ test.each(["uncertain receipt", "connection lost"])("%s points to completed purc
   fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
   await screen.findByRole("link", { name: "View completed purchases" });
   view.rerender(updatedCheckout(10100));
-  expect(screen.queryByRole("link", { name: "Check deposits" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "Check this deposit" })).toBeNull();
   expect(screen.queryByRole("link", { name: "Refresh available offers" })).toBeNull();
   expect(screen.getByRole("button", { name: "Add funds: $298 to continue" }).hasAttribute("disabled")).toBe(true);
   expect(mocks.purchase).toHaveBeenCalledOnce();

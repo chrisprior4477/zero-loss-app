@@ -14,6 +14,19 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 const purchaseEntry = "ent_11111111111111111111111111111111";
 
+test("signed-out deposit recovery preserves the exact request and purchase selection", async () => {
+  mocks.getAccountContext.mockResolvedValue(null);
+  mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });
+  const query = { view: "history", from: "nintendo-switch", entry: purchaseEntry, choice: "22222222-2222-4222-8222-222222222222", deposit: "purchase_fund_33333333-3333-4333-8333-333333333333" };
+  await expect(WalletPage({ searchParams: Promise.resolve(query) })).rejects.toThrow("NEXT_REDIRECT");
+  const next = new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")!;
+  const destination = new URL(next, "https://example.test");
+  expect(destination.searchParams.get("deposit")).toBe(query.deposit);
+  expect(destination.searchParams.get("choice")).toBe(query.choice);
+  expect(destination.searchParams.get("entry")).toBe(purchaseEntry);
+  expect(destination.hash).toBe("#purchase-deposit");
+});
+
 test.each([
   [{ view: "history" }, "/account/wallet?view=history"],
   [{ view: "history", panel: "funding" }, "/account/wallet?view=history&panel=funding#add-funds"],

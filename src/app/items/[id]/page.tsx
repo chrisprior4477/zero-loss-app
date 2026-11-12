@@ -93,7 +93,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   const entryDetails = <>
     <p>Each ${entryPrice.toFixed(2)} entry is a separate chance. Entries never combine into a larger payment or a better chance for one ticket.</p>
     <p>A non-selected paid entry has its own optional 30-day right to complete this {product.retailer} offer by paying the remaining ${(Math.max(0, product.value - entryPrice)).toFixed(2)}. The option and its deadline appear in My Activity after the outcome. Completing it issues the same ${product.value.toLocaleString()} {product.retailer} digital gift card.</p>
-    <p>Entry payments and completion options do not stack with one another or with Playable Balance. An expired or declined option is not a general-purpose credit.</p>
+              <p>Each entry’s dollar applies only to its own purchase option. You can pay that option’s remaining amount from your Playable Wallet. Separate entries and options cannot be combined. An expired or declined option is not a general-purpose credit.</p>
     <p>{isGiftCardOffering ? "This gift card is not Playable Balance or withdrawable cash." : `Zero Loss does not ship the ${product.title} directly.`} Find an issued card in <Link href="/account/wallet" className="font-bold text-cyan-300 underline">Gift Cards &amp; Rewards</Link> and use it online or in store where accepted, subject to {product.retailer}&apos;s terms.</p>
     {!hiddenPool && <p>No purchase necessary. <FreeEntryLink slug={product.slug} from={query.from} className="font-bold text-cyan-300 underline">Free-entry instructions →</FreeEntryLink></p>}
     <p><Link href="/terms" className="font-bold text-cyan-300 underline">Preview terms and Official Rules status →</Link></p>

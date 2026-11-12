@@ -4,6 +4,7 @@ import { purchaseChoicePattern } from "./purchase-selection-handoff";
 
 const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const entryPattern = /^ent_[a-f0-9]{32}$/;
+export const purchaseDepositKeyPattern = /^purchase_fund_[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/;
 
 export type FundingContinuation = { title: string; href: string; label?: "Back to purchase option" | "Back to entry review"; entryQuantity?: number; shortfallCents?: number; depositCents?: number };
 
@@ -51,6 +52,13 @@ export function fundingHref(productSlug?: string, entryId?: string, quantity?: n
   // sign-in can distinguish Add funds from an ordinary Wallet History visit.
   if (!params.has("from")) params.set("panel", "funding");
   return `/account/wallet?${params}#add-funds`;
+}
+
+/** The key selects an owner-authorized receipt; it never supplies a payment amount. */
+export function purchaseDepositRecoveryHref(slug: string, entryId: string | undefined, choice: unknown, requestKey: string): string {
+  const href = fundingHref(slug, entryId, undefined, undefined, choice);
+  if (!purchaseDepositKeyPattern.test(requestKey)) return href;
+  return href.replace("#add-funds", `&deposit=${requestKey}#purchase-deposit`);
 }
 
 /** Exact allowlist for the funding destination used after sign-in. */
