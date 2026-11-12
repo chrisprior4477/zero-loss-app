@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { ActivityItem } from "@/lib/account/activity";
+import type { DemoCard } from "@/lib/payments/demo-card";
 const mocks = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), fund: vi.fn(), purchase: vi.fn(), decline: vi.fn(), undo: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
 vi.mock("next/image", () => ({ default: () => <span /> }));
@@ -21,6 +22,51 @@ function updatedCheckout(balance: number) {
   // Refresh supplies new objects from the server while retaining the client component.
   return <PurchaseCheckout ownerId="account-a" options={options.map(option => ({ ...option }))} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />;
 }
+
+test.each([true, false])("removing the reviewed purchase funding card clears approval (replacement available: %s)", async replacementAvailable => {
+  const cards: DemoCard[] = [
+    { token: "demo_card_5556", lastFour: "5556", isDefault: true },
+    { token: "demo_card_4242", lastFour: "4242", isDefault: false },
+  ];
+  const props = { ownerId: "account-a", options, initialBalance: 13900, cards, fundingAvailable: true };
+  const view = render(<PurchaseCheckout {...props} />);
+  const popup = fundPopup();
+  fireEvent.click(popup.getByRole("checkbox"));
+  view.rerender(<PurchaseCheckout {...props} cards={replacementAvailable ? [cards[1]] : []} />);
+  expect((popup.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  expect((popup.getByRole("button", { name: "Add $260 to wallet" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(popup.getByRole("button", { name: "Add $260 to wallet" }));
+  expect(mocks.fund).not.toHaveBeenCalled();
+  expect(popup.getByText(/Your selected card was removed/)).toBeTruthy();
+  if (replacementAvailable) {
+    fireEvent.change(popup.getByRole("combobox", { name: "Current card in use" }), { target: { value: "demo_card_4242" } });
+    expect((popup.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+    mocks.fund.mockResolvedValueOnce({ status: "succeeded", balanceCents: 39900, message: "Added." });
+    fireEvent.click(popup.getByRole("checkbox"));
+    fireEvent.click(popup.getByRole("button", { name: "Add $260 to wallet" }));
+    await waitFor(() => expect(mocks.fund).toHaveBeenCalledTimes(1));
+    expect(mocks.fund.mock.calls[0][0].get("paymentMethod")).toBe("demo_card_4242");
+    expect(screen.getByRole("dialog", { name: "Confirm your purchase" })).toBeTruthy();
+  } else {
+    expect(popup.getByRole("link", { name: "Add a card in your wallet" })).toBeTruthy();
+  }
+  expect(mocks.purchase).not.toHaveBeenCalled();
+});
+
+test("a new deposit default does not silently replace the reviewed purchase card", () => {
+  const cards: DemoCard[] = [
+    { token: "demo_card_5556", lastFour: "5556", isDefault: true, isDepositDefault: true },
+    { token: "demo_card_4242", lastFour: "4242", isDefault: false, isDepositDefault: false },
+  ];
+  const props = { ownerId: "account-a", options, initialBalance: 13900, cards, fundingAvailable: true };
+  const view = render(<PurchaseCheckout {...props} />);
+  const popup = fundPopup();
+  fireEvent.click(popup.getByRole("checkbox"));
+  view.rerender(<PurchaseCheckout {...props} cards={cards.map(card => ({ ...card, isDepositDefault: card.token === "demo_card_4242" }))} />);
+  expect((popup.getByRole("combobox", { name: "Current card in use" }) as HTMLSelectElement).value).toBe("demo_card_5556");
+  expect((popup.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
+  expect(mocks.fund).not.toHaveBeenCalled();
+});
 
 test.each(["undo", "finish"])("decline just the second offer without buying, then %s", async exit => {
   setup(200000);

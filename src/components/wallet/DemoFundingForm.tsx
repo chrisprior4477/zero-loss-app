@@ -108,6 +108,16 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
   const makeDefault = initialDefault ?? (selectedToken !== null && selectedToken === defaultToken);
   const confirmation = useRef<HTMLDialogElement>(null);
   const policyInput = useRef<HTMLInputElement>(null);
+  const [approved, setApproved] = useState(false);
+  const [reviewNotice, setReviewNotice] = useState("");
+  const reviewDetails = JSON.stringify([amount, selectedToken, makeDefault, cardUnavailable]);
+  const [lastReviewDetails, setLastReviewDetails] = useState(reviewDetails);
+  // Pending starts only after React has captured the approved FormData.
+  if (lastReviewDetails !== reviewDetails || (pending && approved)) {
+    setLastReviewDetails(reviewDetails);
+    setApproved(false);
+    if (approved && !pending) setReviewNotice("Your deposit details changed. Review them and confirm again.");
+  }
   const openedReview = useRef(false);
   useEffect(() => {
     if (reviewOnMount && !blocked && !openedReview.current && confirmation.current) {
@@ -117,7 +127,8 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     }
   }, [reviewOnMount, blocked]);
   function clearConfirmation() {
-    if (policyInput.current) policyInput.current.checked = false;
+    setApproved(false);
+    setReviewNotice("");
   }
   function openConfirmation() {
     if (!amountIsValid || (!recoveryOnly && selectedToken === null) || pending || (locked && !recovered) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")) return;
@@ -131,10 +142,19 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
   if (!locked && savedCards && savedCards !== lastSavedCards) {
     setLastSavedCards(savedCards);
     setCards(savedCards);
-    setVisibleTokens(savedCards.length ? savedCards.map(card => card.token) : [DEMO_CARD_TOKEN]);
+    const selectedCardRemoved = cards.some(card => card.token === selectedToken) && !savedCards.some(card => card.token === selectedToken);
+    setVisibleTokens(savedCards.length ? savedCards.map(card => card.token) : cards.length ? [] : visibleTokens);
     const preferenceChanged = preferredDepositCard(savedCards) !== preferredDepositCard(lastSavedCards ?? []);
-    setSelectedToken(current => preferenceChanged && preferredDepositCard(savedCards) ? preferredDepositCard(savedCards)!
-      : savedCards.some(card => card.token === current) ? current : preferredDepositCard(savedCards) ?? savedCards[0]?.token ?? DEMO_CARD_TOKEN);
+    setSelectedToken(current => {
+      if (selectedCardRemoved) return null;
+      const preferred = preferredDepositCard(savedCards);
+      if (preferenceChanged && preferred) return preferred;
+      // Keep an explicit empty choice or a new, unsaved sample card.
+      if (current === null || savedCards.some(card => card.token === current)
+        || (visibleTokens.includes(current) && !cards.some(card => card.token === current))) return current;
+      return preferred ?? savedCards[0]?.token ?? null;
+    });
+    if (selectedCardRemoved) setCardMessage("Your selected card was removed. Choose another card before adding funds.");
     setDefaultToken(savedCards.find(card => card.isDefault)?.token ?? null);
     setArtwork(Object.fromEntries(savedCards.filter(card => card.artwork).map(card => [card.token, card.artwork])));
   }
@@ -217,10 +237,6 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     finally { setSavingCard(null); }
   }
   useEffect(() => {
-    // React has captured FormData before the action becomes pending.
-    if (pending) clearConfirmation();
-  }, [pending]);
-  useEffect(() => {
     if (state.status === "succeeded" || state.status === "already_credited" || (state.status === "error" && state.beforePayment)) {
       try { sessionStorage.removeItem(storageKey); } catch { /* DB recovery remains available. */ }
     }
@@ -265,7 +281,11 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     </section>;
   if (editingCard) return <WalletCardEditor token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => { openWalletPanel("#add-funds", null, true); revealWalletSection("add-funds"); }} onSaved={card => acceptSavedCard(card)} />;
   if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo && state.status === "succeeded" ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
-  return <form id="funding-payment" action={action} onSubmit={() => {
+  return <form id="funding-payment" action={action} onSubmit={event => {
+    if (!recoveryOnly && (!approved || !selectedToken || !amountIsValid || pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle"))) {
+      event.preventDefault();
+      return;
+    }
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
     onStart();
     try { sessionStorage.setItem(storageKey, JSON.stringify({ key: requestKey, amount, awaitingReceipt: !continueTo,
@@ -311,11 +331,12 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
-      <p className="mt-2 text-sm text-[#b5cce4]">{demoCardFixture(selectedToken)?.issuer} •••• {demoCardFixture(selectedToken)?.lastFour} · USD · Simulation only</p>
+      <p className="mt-2 text-sm text-[#b5cce4]">{selectedToken ? `${demoCardFixture(selectedToken)?.issuer} •••• ${demoCardFixture(selectedToken)?.lastFour} · USD · Simulation only` : "Your selected card was removed. Cancel and choose another card."}</p>
+      {reviewNotice ? <p role="status" className="mt-3 text-sm leading-6 text-amber-100">{reviewNotice}</p> : null}
       <p className="mt-4 text-sm leading-6">Deposits stay in your Zero Loss balance and cannot normally be withdrawn. Exceptional refund requests are reviewed separately. This does not limit your rights for unauthorized charges or payment errors.</p>
-      <label className="mt-4 flex items-start gap-3 text-sm leading-6"><input ref={policyInput} name="fundingPolicy" type="checkbox" value="funding-confirmation-v1" required disabled={pending} className="mt-1 h-5 w-5 shrink-0 accent-[#31e800]" />I confirm this amount and understand how deposited funds can be used.</label>
+      <label className="mt-4 flex items-start gap-3 text-sm leading-6"><input ref={policyInput} name="fundingPolicy" type="checkbox" value="funding-confirmation-v1" checked={approved} onChange={event => setApproved(event.target.checked)} required disabled={pending || !selectedToken || (cardUnavailable && !recovered)} className="mt-1 h-5 w-5 shrink-0 accent-[#31e800]" />I confirm this amount and understand how deposited funds can be used.</label>
       {state.status !== "idle" ? <p role="alert" className="mt-3 text-sm leading-6 text-amber-100">{state.message}</p> : null}
-      <div className="mt-5 flex flex-wrap gap-3"><button type="button" disabled={pending} onClick={() => { clearConfirmation(); confirmation.current?.close(); }} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending} className="min-h-12 flex-[2] rounded-xl bg-[#31e800] px-4 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
+      <div className="mt-5 flex flex-wrap gap-3"><button type="button" disabled={pending} onClick={() => { clearConfirmation(); confirmation.current?.close(); }} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending || !approved || !selectedToken || (cardUnavailable && !recovered)} className="min-h-12 flex-[2] rounded-xl bg-[#31e800] px-4 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
       <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. This simulated deposit requires your signed-in account and the confirmation above.</p>
     </dialog> : null}
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}

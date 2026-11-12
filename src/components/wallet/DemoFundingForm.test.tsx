@@ -1,10 +1,64 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import type { DemoCard } from "@/lib/payments/demo-card";
 const navigation = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation, unstable_rethrow: () => {} }));
 vi.mock("@/lib/payments/actions", () => ({ completeDemoFunding: vi.fn(), checkDemoDeposit: vi.fn(), reconcileDemoFunding: vi.fn(), saveDemoPaymentMethod: vi.fn(), deleteDemoPaymentMethod: vi.fn() }));
 import { completeDemoFunding, checkDemoDeposit, reconcileDemoFunding, saveDemoPaymentMethod, deleteDemoPaymentMethod } from "@/lib/payments/actions";
 import { DemoFundingForm, DemoFundingRequests } from "./DemoFundingForm";
+
+const refreshCards: DemoCard[] = [
+  { token: "demo_card_4242", lastFour: "4242", isDefault: true, isDepositDefault: true },
+  { token: "demo_card_5556", lastFour: "5556", isDefault: false, isDepositDefault: false },
+];
+test("a background deposit-card change requires new approval before sending the new card", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  const props = { requestKey: "card_refresh_request_01", savedCards: refreshCards };
+  const view = render(<DemoFundingForm {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  const dialog = within(screen.getByRole("dialog"));
+  fireEvent.click(dialog.getByRole("checkbox"));
+  view.rerender(<DemoFundingForm {...props} savedCards={refreshCards.map(card => ({ ...card, isDepositDefault: card.token === "demo_card_5556" }))} />);
+  expect(dialog.getByText(/5556/)).toBeTruthy();
+  expect((dialog.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  expect((dialog.getByRole("button", { name: "Confirm $25 deposit" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.submit(screen.getByRole("form", { name: "Add funds" }));
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+  vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Demo funds added." });
+  fireEvent.click(dialog.getByRole("checkbox"));
+  fireEvent.click(dialog.getByRole("button", { name: "Confirm $25 deposit" }));
+  await waitFor(() => expect(completeDemoFunding).toHaveBeenCalledTimes(1));
+  expect(vi.mocked(completeDemoFunding).mock.calls[0][1].get("paymentMethod")).toBe("demo_card_5556");
+});
+
+test.each([{ remaining: refreshCards.slice(1) }, { remaining: [] }])("removing a reviewed wallet card blocks submission even after another refresh: $remaining", ({ remaining }) => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  const props = { requestKey: "card_refresh_request_02", savedCards: refreshCards };
+  const view = render(<DemoFundingForm {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  const dialog = within(screen.getByRole("dialog"));
+  fireEvent.click(dialog.getByRole("checkbox"));
+  view.rerender(<DemoFundingForm {...props} savedCards={remaining} />);
+  view.rerender(<DemoFundingForm {...props} savedCards={remaining.map(card => ({ ...card }))} />);
+  expect(dialog.getByText(/Cancel and choose another card/)).toBeTruthy();
+  expect((dialog.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  expect((dialog.getByRole("checkbox") as HTMLInputElement).disabled).toBe(true);
+  fireEvent.submit(screen.getByRole("form", { name: "Add funds" }));
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem("zero-loss-demo-request:test")).toBeNull();
+});
+
+test("an unchanged saved-card refresh preserves deposit approval", () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  const props = { requestKey: "card_refresh_request_03", savedCards: refreshCards };
+  const view = render(<DemoFundingForm {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  const checkbox = within(screen.getByRole("dialog")).getByRole("checkbox") as HTMLInputElement;
+  fireEvent.click(checkbox);
+  view.rerender(<DemoFundingForm {...props} savedCards={refreshCards.map(card => ({ ...card }))} />);
+  expect(checkbox.checked).toBe(true);
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+});
 
 test("entry funding suggests the shortfall and only returns after explicit deposit confirmation", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };

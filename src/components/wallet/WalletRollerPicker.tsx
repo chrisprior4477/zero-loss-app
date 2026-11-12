@@ -83,8 +83,8 @@ function RollerOverlay({ anchor, id, label, options, value, onChange, onClose }:
     };
   }, [anchor, initialIndex]);
 
-  function choose(option: Choice) {
-    if (commitTimer.current) return;
+  function choose(option: Choice | undefined) {
+    if (!option || !options.some(current => current.value === option.value) || commitTimer.current) return;
     setCommitting(option.value);
     onChange(option.value);
     // Green acknowledges a tap; scrolling never commits a choice.
@@ -156,6 +156,7 @@ export function WalletRollerPicker({ id: providedId, label, placeholder, options
       <span id={`${id}-value`}>{selected ? <><strong>{selected.label}</strong>{selected.detail ? <small>{selected.detail}</small> : null}</> : placeholder}</span>
       <span className={styles.chevron} aria-hidden="true">{open ? "⌃" : "⌄"}</span>
     </button>
-    {open && !unavailable ? <RollerOverlay anchor={trigger} id={id} label={label} options={options} value={value} onChange={onChange} onClose={close} /> : null}
+    {/* Refresh the wheel's position and pending animation only when the available choices change. */}
+    {open && !unavailable ? <RollerOverlay key={JSON.stringify(options.map(option => option.value))} anchor={trigger} id={id} label={label} options={options} value={value} onChange={onChange} onClose={close} /> : null}
   </div>;
 }
