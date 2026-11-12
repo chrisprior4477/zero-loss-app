@@ -48,6 +48,8 @@
 .summary a > span { min-width: 0; }
 .summary a > strong { display: grid; min-width: 35px; min-height: 35px; flex: 0 0 auto; place-items: center; margin-left: auto; padding: 4px 7px; border-radius: 9px; background: #072c60; color: #fff; font-size: 20px; font-variant-numeric: tabular-nums; }
 .warning { margin-top: 12px; padding: 17px 22px; background: #fff0d5; color: #6c3710; font-size: 13px; }
+.retryWarning { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 0 10px; }
+.retryWarning button { min-height: 40px; padding: 7px 14px; border-radius: 8px; background: #6c3710; color: #fff; cursor: pointer; font-weight: 800; }
 
 .contentGrid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "heading" "orders" "rail"; align-items: start; column-gap: 10px; row-gap: 0; margin-top: 12px; }
 .orders { grid-area: orders; min-width: 0; }
@@ -89,6 +91,7 @@
 .empty p { max-width: 40ch; margin-top: 5px; color: #58708d; font-size: 12px; }
 .empty a, .empty button, .helpCard > a { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 7px; margin-top: 14px; padding: 7px 14px; border: 0; border-radius: 8px; background: #bde8ff; color: #0a1741; cursor: pointer; font-size: 12px; font-weight: 800; text-decoration: none; }
 .empty a svg, .empty button svg, .helpCard > a svg { width: 16px; height: 16px; }
+.retryWarning button:disabled, .empty button:disabled { opacity: .65; cursor: wait; }
 
 .sideRail { display: grid; grid-area: rail; gap: 10px; }
 .helpCard { padding: 20px 20px 23px; background: #fcfbf8; color: #0a1741; }

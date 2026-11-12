@@ -3,6 +3,7 @@ import { AccountIcon } from "./AccountIcon";
 import type { AccountOrders } from "@/lib/account/orders";
 import { accountFulfillment, fulfillmentHref, matchesFulfillmentFilter, type FulfillmentFilter } from "@/lib/account/fulfillment";
 import { OrderTicketGallery } from "./OrderTicketGallery";
+import { OrdersRetryButton } from "./OrdersRetryButton";
 import { SelectedOrderScroll } from "./SelectedOrderScroll";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
@@ -19,10 +20,15 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
   const fulfillment = accountFulfillment(state, overview?.activity ?? { source: "unavailable", isPreview: false, activeCount: null, activity: [] });
   const { records } = fulfillment;
   const complete = overview ? fulfillment.complete : state.source !== "unavailable";
+  const selectionComplete = selectedOrderNumber ? state.source !== "unavailable" : complete;
   const processing = records.filter(order => matchesFulfillmentFilter(order, "processing")).length;
   const fulfilled = records.filter(order => matchesFulfillmentFilter(order, "fulfilled")).length;
   const exceptions = records.filter(order => matchesFulfillmentFilter(order, "exceptions")).length;
   const hasSelection = Boolean(selectedOrderNumber || selectedRewardId);
+  const retryLabel = selectedOrderNumber ? "Try this order again"
+    : selectedRewardId ? "Try this reward again"
+    : filter === "exceptions" ? "Try Exceptions again"
+    : "Try again";
   // A notification identifies an exact order, even if its status has since changed.
   const visibleOrders = records.filter(order => (selectedOrderNumber ? order.orderNumber === selectedOrderNumber : matchesFulfillmentFilter(order, filter)) && (!selectedRewardId || order.rewardId === selectedRewardId));
   const selectionAnchor = selectedOrderNumber ? `order-${selectedOrderNumber}` : "fulfillment-records";
@@ -59,21 +65,30 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
         </Link>)}
       </section>
 
-      {!complete ? <div role="status" className={styles.warning}>Some fulfillment records could not be verified right now. Available records are shown; totals may be incomplete. No sample orders have been substituted. <Link href="/account/orders">Try again</Link></div> : null}
-
       {selectedOrderNumber ? <SelectedOrderScroll targetId={selectionAnchor} /> : null}
       <div id={selectionAnchor} className={styles.contentGrid}>
         <header className={styles.sectionHeading}><div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading">Retailer gift-card fulfillment</h2></div><span role="status">{visibleOrders.length} of {countLabel(records.length)} records</span></header>
         <section className={styles.orders} aria-labelledby="your-orders-heading">
           {filter !== "all" || hasSelection ? <Link href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</Link> : null}
           {!selectedOrderNumber && filter === "payment" ? <p className={styles.filterNote}>Recorded Purchase Option checkouts. Winning prizes do not require a gift-card purchase.</p> : !selectedOrderNumber && filter === "exceptions" ? <p className={styles.filterNote}>Issuance problems, expired or cancelled rewards, and corrected orders. Open a record for its current status.</p> : null}
-          {visibleOrders.length ? <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}`} orders={visibleOrders} /> : records.length || hasSelection || filter !== "all" ? <div className={styles.empty}>
+          {visibleOrders.length ? <>
+            {!complete ? <div className={`${styles.warning} ${styles.retryWarning}`}>
+              <p role="status">Some fulfillment records could not be verified right now. The records below are available, and totals may be incomplete.</p>
+              <OrdersRetryButton label={retryLabel} />
+            </div> : null}
+            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}`} orders={visibleOrders} />
+          </> : !selectionComplete ? <div className={styles.empty}>
+            <span><AccountIcon name="orders" /></span>
+            <h3>{selectedOrderNumber ? "We couldn’t load this order right now" : selectedRewardId ? "We couldn’t load this reward right now" : filter === "exceptions" ? "We couldn’t load Exceptions right now" : "Fulfillment unavailable"}</h3>
+            <p>Try again in a moment to check this view.</p>
+            <OrdersRetryButton label={retryLabel} />
+          </div> : records.length || hasSelection || filter !== "all" ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span><h3>{selectedOrderNumber ? "That order is not available here" : selectedRewardId ? "That reward is not available here" : "No records in this status"}</h3><p>{hasSelection ? "Only records saved to your account can be opened here." : "Your other orders and rewards remain available in the full list."}</p>
-            <Link href={fulfillmentHref()}>Show all records<AccountIcon name="arrow" /></Link>
+            <Link href={fulfillmentHref()}>{hasSelection ? "View all orders" : "Show all records"}<AccountIcon name="arrow" /></Link>
           </div> : <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
-            <h3>{!complete ? "Fulfillment unavailable" : "No orders or winning rewards yet"}</h3>
-            <p>{!complete ? "Please refresh shortly to try again." : "Winning rewards and completed Purchase Option checkouts appear here. Open entries and available options stay in My Activity."}</p>
+            <h3>No orders or winning rewards yet</h3>
+            <p>Winning rewards and completed Purchase Option checkouts appear here. Open entries and available options stay in My Activity.</p>
             <Link href="/account/entries">View My Activity<AccountIcon name="arrow" /></Link>
           </div>}
         </section>

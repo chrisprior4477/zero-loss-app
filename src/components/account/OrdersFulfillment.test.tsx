@@ -1,10 +1,12 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { OrdersFulfillment } from "./OrdersFulfillment";
 import type { AccountOrder, AccountOrders } from "@/lib/account/orders";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role={alt ? "img" : undefined} aria-label={alt || undefined} /> }));
+const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 afterEach(cleanup);
 
 const order = (status: AccountOrder["status"], suffix: string): AccountOrder => ({
@@ -72,8 +74,34 @@ test("uses honest empty and unavailable states", () => {
   const { rerender } = render(<OrdersFulfillment state={empty} />);
   expect(screen.getByText("No orders or winning rewards yet")).toBeTruthy();
   rerender(<OrdersFulfillment state={{ source: "unavailable", orders: [] }} />);
-  expect(screen.getByText(/Some fulfillment records could not be verified/)).toBeTruthy();
   expect(screen.getByText("Fulfillment unavailable")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+});
+
+test.each([
+  { selection: { selectedOrderNumber: "ord_target" }, retry: "Try this order again", failure: "We couldn’t load this order right now" },
+  { selection: { selectedRewardId: "target-reward-id" }, retry: "Try this reward again", failure: "We couldn’t load this reward right now" },
+  { selection: { filter: "exceptions" as const }, retry: "Try Exceptions again", failure: "We couldn’t load Exceptions right now" },
+  { selection: { filter: "payment" as const }, retry: "Try again", failure: "Fulfillment unavailable" },
+])("retries the same fulfillment view with $retry", ({ selection, retry, failure }) => {
+  refresh.mockClear();
+  const { rerender } = render(<OrdersFulfillment state={{ source: "unavailable", orders: [] }} {...selection} />);
+  expect(screen.getByRole("heading", { name: failure })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: "View all orders" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: retry }));
+  expect(refresh).toHaveBeenCalledTimes(1);
+  rerender(<OrdersFulfillment state={{ source: "stored", orders: [order("exception", "target")] }} {...selection} />);
+  expect(screen.getByRole("heading", { name: "target gift card" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: retry })).toBeNull();
+});
+
+test("a partial response keeps verified records visible and can retry missing data", () => {
+  const activity = storedActivityFixture();
+  activity.activity = [{ ...activity.activity[1], entryId: "ent_winner", rewardId: "winner-id", rewardSource: "winner", rewardStatus: "ready" }];
+  render(<OrdersFulfillment state={{ source: "unavailable", orders: [] }} selectedRewardId="winner-id" overview={{ balanceLabel: "$17", fundingEnabled: true, activity }} />);
+  expect(screen.getByText(/Some fulfillment records could not be verified/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Try this reward again" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "View winning reward" })).toBeTruthy();
 });
 
 test("ticket filters use actual order statuses without changing saved destinations", () => {
@@ -107,5 +135,7 @@ test("winning rewards appear without a purchase order and link to the exact acti
 test("an unknown selected reward never falls back to another customer's or product's card", () => {
   render(<OrdersFulfillment state={{ source: "stored", orders: [order("fulfilled", "ready")] }} selectedRewardId="not-owned" />);
   expect(screen.getByText("That reward is not available here")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "View all orders" }).getAttribute("href")).toBe("/account/orders#fulfillment-records");
+  expect(screen.queryByRole("button", { name: "Try this reward again" })).toBeNull();
   expect(screen.queryByRole("link", { name: "Open gift card" })).toBeNull();
 });
