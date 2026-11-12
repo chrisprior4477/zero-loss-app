@@ -1,3 +1,5 @@
+import { isCompleteSharePhone } from "@/lib/sharing/product-share";
+
 export type CrewAudience = "everyone" | "people" | "groups";
 export type CrewVisibilityRule = { audience: CrewAudience; memberIds: string[]; groupIds: string[] };
 export type CrewGroupContact = { id: string; name: string; phone: string; email: string };
@@ -17,13 +19,22 @@ export const defaultCrewVisibilityRule: CrewVisibilityRule = {
 
 export const crewUuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
+export function isCrewContactPhone(phone: unknown): phone is string {
+  return typeof phone === "string" && phone.length <= 32 && (phone === "" || isCompleteSharePhone(phone));
+}
+
+/** Save dotted numbers using the existing database-supported separators. */
+export function normalizeCrewContactPhone(phone: string): string {
+  return phone.trim().replaceAll(".", "-");
+}
+
 export function isCrewGroupContact(value: unknown): value is CrewGroupContact {
   if (!value || typeof value !== "object") return false;
   const contact = value as Partial<CrewGroupContact>;
   return typeof contact.id === "string" && crewUuid.test(contact.id)
     && typeof contact.name === "string" && contact.name.trim().length > 0 && contact.name.trim().length <= 80
     && typeof contact.email === "string" && contact.email.length <= 254 && (!contact.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email))
-    && typeof contact.phone === "string" && contact.phone.length <= 32 && (!contact.phone || /^\+?[\d ()-]+$/.test(contact.phone) && /^\d{10,15}$/.test(contact.phone.replace(/\D/g, "")))
+    && isCrewContactPhone(contact.phone)
     && Boolean(contact.email || contact.phone);
 }
 

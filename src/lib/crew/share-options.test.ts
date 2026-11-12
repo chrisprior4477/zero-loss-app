@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import { getCrewShareOptions, saveCrewMemberContact } from "./actions";
+import { getCrewShareOptions, saveCrewGroup, saveCrewMemberContact } from "./actions";
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), rpc: vi.fn(), settings: vi.fn(), eq: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.auth }, rpc: mocks.rpc, from: () => ({ select: () => ({ eq: mocks.eq }) }) }) }));
@@ -32,6 +32,17 @@ test("contact saves reject invalid input and require a session, then use the own
   mocks.auth.mockResolvedValueOnce({ data: { user: null } });
   expect((await saveCrewMemberContact(member, { name: "Mom", phone: "", email: "" })).ok).toBe(false);
   mocks.rpc.mockResolvedValue({ error: null });
-  expect((await saveCrewMemberContact(member, { name: " Mom ", phone: "1111111111", email: "mom@example.test" })).ok).toBe(true);
-  expect(mocks.rpc).toHaveBeenCalledWith("save_crew_member_contact", { p_member_id: member, p_contact: { name: "Mom", phone: "1111111111", email: "mom@example.test" } });
+  expect((await saveCrewMemberContact(member, { name: " Mom ", phone: " 202.555.0123 ", email: "mom@example.test" })).ok).toBe(true);
+  expect(mocks.rpc).toHaveBeenCalledWith("save_crew_member_contact", { p_member_id: member, p_contact: { name: "Mom", phone: "202-555-0123", email: "mom@example.test" } });
+});
+
+test("group saves normalize dotted numbers and preserve the country code", async () => {
+  mocks.rpc.mockResolvedValue({ error: null });
+  const contact = { id: outsider, name: "Sample", phone: "+1.202.555.0123", email: "" };
+  const group = { id: owner, name: "Family", memberIds: [member], contacts: [contact] };
+  expect((await saveCrewGroup({ group, remove: false })).ok).toBe(true);
+  expect(mocks.rpc).toHaveBeenCalledWith("save_crew_visibility_group", {
+    p_group: { ...group, contacts: [{ ...contact, phone: "+1-202-555-0123" }] },
+    p_remove: false,
+  });
 });

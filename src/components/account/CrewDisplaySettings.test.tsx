@@ -164,14 +164,14 @@ test("Mom contact details save and reappear without silently inviting or grantin
   expect(screen.queryByRole("heading", { name: "How to display my picks" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: /Add people to group/ }));
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Mom Contact" } });
-  fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "+12025550123" } });
+  fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "+1.202.555.0123" } });
   fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "mom@example.test" } });
   fireEvent.click(screen.getByRole("button", { name: "Add contact to group" }));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await waitFor(() => expect(saveCrewGroup).toHaveBeenCalledOnce());
   const group = saveCrewGroup.mock.calls[0][0].group;
   expect(group.memberIds).toEqual([]);
-  expect(group.contacts).toEqual([expect.objectContaining({ name: "Mom Contact", phone: "+12025550123", email: "mom@example.test" })]);
+  expect(group.contacts).toEqual([expect.objectContaining({ name: "Mom Contact", phone: "+1-202-555-0123", email: "mom@example.test" })]);
   expect(await screen.findByText(/Mom saved to your profile · 0 connected members · 1 saved contacts/)).toBeTruthy();
   expect(inviteToCrew).not.toHaveBeenCalled(); expect(inviteToCrewByPhone).not.toHaveBeenCalled();
   view.unmount();

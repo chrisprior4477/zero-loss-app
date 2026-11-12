@@ -54,7 +54,7 @@ export default async function ItemPage({ params, searchParams }: PageProps) {
   // A holder of the last ticket still needs the existing confirm and undo controls.
   if (hiddenPool && !(requestHead.ready && requestHead.validating)) redirect(savedResult?.href ?? browseReturnHref);
   const sharedContext = await getSharedProductContext(product.slug, query.share, Boolean(account));
-  const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={sharedContext?.token ?? product.slug} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} /> : null;
+  const sharedControls = sharedContext || query.shared === "1" ? <SharedProductControls key={`${account?.userId ?? "guest"}:${sharedContext?.token ?? product.slug}`} slug={product.slug} initial={sharedContext} signedIn={Boolean(account)} saveOnReturn={query.saveShared === "1"} /> : null;
   const current = availability?.[product.slug];
   const isGiftCardOffering = /gift card|shopping reward/i.test(product.title);
   const entryPrice = current ? current.entryPriceCents / 100 : product.entryPrice;

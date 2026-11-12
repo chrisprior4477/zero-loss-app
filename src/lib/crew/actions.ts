@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "./visibility";
+import { crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, normalizeCrewContactPhone, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "./visibility";
 import { crewMemberContacts, isCrewMemberContact, type CrewMemberContact } from "./member-contact";
 
 type CrewActionResult = { ok: boolean; message: string };
@@ -36,7 +36,7 @@ export async function saveCrewMemberContact(memberId: string, input: CrewMemberC
   if (!crewUuid.test(memberId) || !isCrewMemberContact(input)) return { ok: false, message: "Add a name and check the phone number and email address." };
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to save contact details." };
-  const { error } = await session.db.rpc("save_crew_member_contact", { p_member_id: memberId, p_contact: { name: input.name.trim(), phone: input.phone.trim(), email: input.email.trim() } });
+  const { error } = await session.db.rpc("save_crew_member_contact", { p_member_id: memberId, p_contact: { name: input.name.trim(), phone: normalizeCrewContactPhone(input.phone), email: input.email.trim() } });
   if (error) return { ok: false, message: "We couldn’t save this contact. Check that the person is still in your Crew, then try again." };
   refreshCrew();
   return { ok: true, message: "Contact saved to your Crew." };
@@ -110,6 +110,15 @@ function refreshCrew() {
   revalidatePath("/account/notifications");
 }
 
+function groupForSave(group: CrewVisibilityGroup) {
+  return {
+    id: group.id,
+    name: group.name.trim(),
+    memberIds: group.memberIds,
+    contacts: (group.contacts ?? []).map(contact => ({ ...contact, phone: normalizeCrewContactPhone(contact.phone) })),
+  };
+}
+
 export async function saveCrewDisplaySettings(input: {
   discoverable: boolean;
   discovery?: { real: boolean; email: boolean; phone: boolean };
@@ -138,7 +147,7 @@ export async function saveCrewDisplaySettings(input: {
       discoverable: input.discoverable,
       discovery: input.discovery ?? { real: true, email: true, phone: true },
       defaultRule: input.defaultRule,
-      groups: input.groups.map(group => ({ ...group, name: group.name.trim(), contacts: group.contacts ?? [] })),
+      groups: input.groups.map(groupForSave),
       entryRules: input.entryRules,
     },
   });
@@ -155,7 +164,7 @@ export async function saveCrewGroup(input: { group: CrewVisibilityGroup; remove:
   if (!input || !isCrewVisibilityGroup(input.group) || typeof input.remove !== "boolean") {
     return { ok: false, message: "Review the group name and people before saving." };
   }
-  const group = { id: input.group.id, name: input.group.name.trim(), memberIds: input.group.memberIds, contacts: input.group.contacts ?? [] };
+  const group = groupForSave(input.group);
   const { error } = await session.db.rpc("save_crew_visibility_group", { p_group: group, p_remove: input.remove });
   if (error) return { ok: false, message: "We couldn’t save that group. Check that everyone is still in your Crew, then try again." };
   refreshCrew();

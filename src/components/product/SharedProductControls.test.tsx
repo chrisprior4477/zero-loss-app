@@ -1,8 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { SharedProductContext } from "@/lib/sharing/receiving";
-const mocks = vi.hoisted(() => ({ record: vi.fn(), receiving: vi.fn(), push: vi.fn(), replace: vi.fn(), favorite: vi.fn() }));
-const router = { push: mocks.push, replace: mocks.replace };
+const mocks = vi.hoisted(() => ({ record: vi.fn(), receiving: vi.fn(), push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), favorite: vi.fn() }));
+const router = { push: mocks.push, replace: mocks.replace, refresh: mocks.refresh };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/lib/sharing/saved-share-actions", () => ({ recordReceivedProduct: mocks.record }));
 vi.mock("@/lib/sharing/receiving-actions", () => ({ updateSharedProductReceiving: mocks.receiving }));
@@ -53,12 +53,44 @@ test("sharing choices and dismissal lock during a slow save, then show the submi
   const cancel = new Event("cancel", { cancelable: true });
   fireEvent(screen.getByRole("dialog"), cancel);
   expect(cancel.defaultPrevented).toBe(true);
-  expect(mocks.receiving).toHaveBeenCalledExactlyOnceWith(context.token, true, false);
+  expect(mocks.receiving).toHaveBeenCalledExactlyOnceWith(context.token, true, null);
   await act(async () => finish({ ok: true, context: { ...context, receiving: true }, message: "Saved" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Sharing options" }));
   expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("checked", true);
   expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("disabled", false);
+});
+
+test("a server refresh updates the receiving button and both saved choices", () => {
+  const view = render(<SharedProductControls slug={context.slug} initial={{ ...context, receiving: true }} signedIn />);
+  expect(screen.getByRole("button", { name: "Leave Alex’s Crew" })).toBeTruthy();
+  view.rerender(<SharedProductControls slug={context.slug} initial={{ ...context, shareBack: true }} signedIn />);
+  expect(screen.getByRole("button", { name: "Rejoin Alex’s Crew" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Sharing options" }));
+  expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("checked", false);
+  expect(screen.getByRole("checkbox", { name: /see picks I choose to share/ })).toHaveProperty("checked", true);
+});
+
+test("refresh keeps the edited checkbox and updates the untouched checkbox in an open popup", () => {
+  const view = render(<SharedProductControls slug={context.slug} initial={context} signedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Sharing options" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Receive shared picks/ }));
+  view.rerender(<SharedProductControls slug={context.slug} initial={{ ...context, shareBack: true }} signedIn />);
+  expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("checked", true);
+  expect(screen.getByRole("checkbox", { name: /see picks I choose to share/ })).toHaveProperty("checked", true);
+  fireEvent.click(screen.getByRole("button", { name: "Close sharing options" }));
+  fireEvent.click(screen.getByRole("button", { name: "Sharing options" }));
+  expect(screen.getByRole("checkbox", { name: /Receive shared picks/ })).toHaveProperty("checked", false);
+});
+
+test("a refresh cannot reverse the action in an already open Leave confirmation", async () => {
+  mocks.receiving.mockResolvedValue({ ok: true, context, message: "Saved" });
+  const view = render(<SharedProductControls slug={context.slug} initial={{ ...context, receiving: true }} signedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Leave Alex’s Crew" }));
+  view.rerender(<SharedProductControls slug={context.slug} initial={context} signedIn />);
+  fireEvent.click(screen.getByRole("button", { name: "Leave" }));
+  await waitFor(() => expect(mocks.refresh).toHaveBeenCalledOnce());
+  expect(mocks.receiving).toHaveBeenCalledExactlyOnceWith(context.token, false, null);
 });
 
 test("a failed save unlocks the same sharing draft for retry", async () => {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { inviteToCrew, inviteToCrewByPhone } from "@/lib/crew/actions";
-import { isCrewGroupContact, type CrewGroupContact } from "@/lib/crew/visibility";
+import { isCrewGroupContact, normalizeCrewContactPhone, type CrewGroupContact } from "@/lib/crew/visibility";
 import styles from "./crew-display-settings.module.css";
 
 export function CrewGroupContacts({ contacts, disabled, onChange }: { contacts: CrewGroupContact[]; disabled: boolean; onChange: (contacts: CrewGroupContact[]) => void }) {
@@ -18,7 +18,7 @@ export function CrewGroupContacts({ contacts, disabled, onChange }: { contacts: 
     if (contacts.some(item => contact.email && item.email.toLowerCase() === contact.email.toLowerCase() || contact.phone && item.phone.replace(/\D/g, "") === contact.phone.replace(/\D/g, ""))) {
       setMessage("That contact is already in this group."); return;
     }
-    onChange([...contacts, contact]); setName(""); setPhone(""); setEmail("");
+    onChange([...contacts, { ...contact, phone: normalizeCrewContactPhone(contact.phone) }]); setName(""); setPhone(""); setEmail("");
     setMessage(`Choose Save group to keep ${contact.name}’s details.`);
   }
   async function invite(contact: CrewGroupContact, method: "email" | "phone") {
