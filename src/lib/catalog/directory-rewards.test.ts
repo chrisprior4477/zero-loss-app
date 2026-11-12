@@ -6,11 +6,27 @@ import path from "node:path";
 import sharp from "sharp";
 import { demoProducts, directoryDemoScenarios, existingDemoProducts, getDemoProduct } from "./demo-products";
 import { giftCardPartnerGroups } from "./gift-card-partners";
-import { retailerFilterGroups, filterBrowseProducts } from "./browse-filters";
+import { retailerFilterGroups, filterBrowseProducts, parseBrowseFilterState, browseRetailers } from "./browse-filters";
 import { buildDirectoryRewards } from "./directory-rewards";
 import artwork from "./partner-card-art.json";
 
 describe("complete simulated retailer directory", () => {
+  test("Uber has one consistent label and legacy offer and retailer links still find the same card", () => {
+    const product = getDemoProduct("directory-ube-100-gift-card");
+    expect(product?.retailer).toBe("Uber");
+    expect(product?.brand).toBe("Uber");
+    expect(product?.title).toBe("$100 Uber Gift Card");
+    const groups = retailerFilterGroups(giftCardPartnerGroups, demoProducts);
+    expect(groups.flatMap(group => group.options).filter(option => option.label === "Uber"))
+      .toEqual([{ label: "Uber", value: "Uber", hasOffer: true }]);
+    expect(groups.flatMap(group => group.options).some(option => option.label === "Ube")).toBe(false);
+    for (const retailer of ["Ube", "Uber"]) {
+      const filters = parseBrowseFilterState({ retailer }, browseRetailers(demoProducts));
+      expect(filters.retailer).toBe("Uber");
+      expect(filterBrowseProducts(demoProducts, filters)).toEqual([product]);
+    }
+  });
+
   test("generated titles avoid repeating Gift Card while preserving the original offer identity", () => {
     const apple = getDemoProduct("directory-apple-gift-card-100-gift-card");
     expect(apple?.title).toBe("$100 Apple Gift Card");

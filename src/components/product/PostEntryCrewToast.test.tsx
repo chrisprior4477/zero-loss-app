@@ -25,6 +25,60 @@ function open() { render(<PostEntryCrewToast request={request} onClose={vi.fn()}
 async function audiences() { fireEvent.click(screen.getByRole("button", { name: "Share with Crew" })); await screen.findByRole("button", { name: "Send to my Crew" }); }
 async function groups() { fireEvent.click(screen.getByRole("button", { name: "Choose a group" })); await screen.findByRole("checkbox", { name: "Share with Mom" }); }
 
+async function finder() {
+  open(); await audiences();
+  fireEvent.click(screen.getByRole("button", { name: "Add People to your crew" }));
+  return screen.getByLabelText("Name, email address, or phone number");
+}
+
+test.each([
+  ["Al", "Enter at least 3 letters to search by name."],
+  ["123", "Enter a complete phone number."],
+  ["alex@", "Enter a complete email address."],
+])("finder removes the previous results immediately for %s and explains how to finish the search", async (query, message) => {
+  mocks.search.mockResolvedValue({ ok: true, message: "", people: [{ memberId: "new-member", name: "Christopher", avatarUrl: null }] });
+  const input = await finder();
+  fireEvent.change(input, { target: { value: "Chris" } });
+  fireEvent.click(screen.getByRole("button", { name: "Search for a member" }));
+  await screen.findByText("Christopher");
+  fireEvent.change(input, { target: { value: query } });
+  expect(screen.queryByText("Christopher")).toBeNull();
+  expect(screen.queryByText("Member")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Search for a member" }));
+  expect(screen.getByRole("alert").textContent).toBe(message);
+  expect(mocks.search).toHaveBeenCalledTimes(1);
+  expect(mocks.invite).not.toHaveBeenCalled();
+});
+
+test("Add more people discards a pending finder response and restores only existing Crew", async () => {
+  let resolve!: (value: unknown) => void;
+  mocks.search.mockImplementation(() => new Promise(done => { resolve = done; }));
+  const input = await finder();
+  fireEvent.change(input, { target: { value: "Chris" } });
+  fireEvent.click(screen.getByRole("button", { name: "Search for a member" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add more people" }));
+  await act(async () => resolve({ ok: true, message: "", people: [{ memberId: "new-member", name: "Christopher", avatarUrl: null }] }));
+  expect(input).toHaveProperty("value", "");
+  expect(screen.queryByText("Christopher")).toBeNull();
+  expect(screen.getByText("Member")).toBeTruthy();
+  expect(screen.queryByText("Searching…")).toBeNull();
+});
+
+test("finder keeps a newer search when an older response arrives last", async () => {
+  let resolve!: (value: unknown) => void;
+  mocks.search.mockImplementationOnce(() => new Promise(done => { resolve = done; }))
+    .mockResolvedValue({ ok: true, message: "", people: [{ memberId: "new-member", name: "Alexandra", avatarUrl: null }] });
+  const input = await finder();
+  fireEvent.change(input, { target: { value: "Chris" } });
+  fireEvent.click(screen.getByRole("button", { name: "Search for a member" }));
+  fireEvent.change(input, { target: { value: "Alex" } });
+  fireEvent.click(screen.getByRole("button", { name: "Search for a member" }));
+  await screen.findByText("Alexandra");
+  await act(async () => resolve({ ok: true, message: "", people: [{ memberId: "old-member", name: "Christopher", avatarUrl: null }] }));
+  expect(screen.queryByText("Christopher")).toBeNull();
+  expect(screen.getByText("Alexandra")).toBeTruthy();
+});
+
 test("perforated home exposes Text and Email directly with just one Copy link", () => {
   open();
   expect(screen.getByText("Or send directly")).toBeTruthy();

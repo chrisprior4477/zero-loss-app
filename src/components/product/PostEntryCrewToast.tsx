@@ -243,19 +243,24 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
     });
   }
 
+  function resetFinderQuery(value = "") {
+    searchVersion.current += 1;
+    setQuery(value); setPeople([]); setReviewQuery(""); setSearching(false); setPickedContact(null); feedback("");
+  }
+
   const search = useCallback(() => {
     const version = ++searchVersion.current;
     const clean = query.trim();
     const kind = crewLookupKind(clean);
-    setReviewQuery(""); setMessage(""); setError(false);
+    setPeople([]); setReviewQuery(""); setSearching(false); setMessage(""); setError(false);
     if (kind !== "name") {
       if (kind === "email" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean) || clean.length > 254)
-        || kind === "phone" && !/^\d{10,15}$/.test(clean.replace(/\D/g, ""))) {
-        setSearching(false); return;
+        || kind === "phone" && !validPhone(clean)) {
+        setMessage(kind === "email" ? "Enter a complete email address." : "Enter a complete phone number."); setError(true); return;
       }
       setReviewQuery(clean); return;
     }
-    if (clean.length < 3) return;
+    if (clean.length < 3) { setMessage("Enter at least 3 letters to search by name."); setError(true); return; }
     setSearching(true);
     void searchCrewByName(clean).then(result => {
       if (!alive.current || version !== searchVersion.current) return;
@@ -265,9 +270,9 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   }, [query]);
 
   useEffect(() => {
-    if (step !== "find" || query.trim().length < 3) return;
-    const timer = window.setTimeout(search, 350);
-    return () => window.clearTimeout(timer);
+    if (step !== "find") return;
+    const timer = query.trim().length >= 3 ? window.setTimeout(search, 350) : null;
+    return () => { if (timer !== null) window.clearTimeout(timer); searchVersion.current += 1; };
   }, [step, query, search]);
 
   useEffect(() => {
@@ -277,7 +282,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   async function openFinder(targetGroup: string | null = null) {
     if (step === "home" || step === "crew") setGroupsOnly(false);
     findReturn.current = step === "home" || step === "crew" ? "audience" : step;
-    setFindTargetGroup(targetGroup); setQuery(""); setReviewQuery(""); setPeople([]); setSearching(false); go("find");
+    setFindTargetGroup(targetGroup); resetFinderQuery(); go("find");
     if (!options) await run(async () => { const result = await getCrewShareOptions(); if (alive.current && result.ok) setOptions(result); });
   }
 
@@ -537,7 +542,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const compact = step === "home" || step === "email";
   const journey = true;
   const personAdded = (memberId: string) => findTargetGroup ? Boolean(options?.groups.find(group => group.id === findTargetGroup)?.memberIds.includes(memberId)) : members.some(member => member.id === memberId) || requested.includes(contactKey(memberId, "id"));
-  const suggestedPeople = people.length || query.trim().length >= 3 ? people : members.map(member => ({ memberId: member.id, name: member.name, avatarUrl: null }));
+  const suggestedPeople = people.length || query.trim() ? people : members.map(member => ({ memberId: member.id, name: member.name, avatarUrl: null }));
   const visiblePeople = [...suggestedPeople].sort((a, b) => Number(personAdded(a.memberId)) - Number(personAdded(b.memberId)));
 
   return <dialog ref={dialog} className={`${styles.toast} ${popupStyles.dialog} ${journey ? styles.journeyDialog : ""}`} aria-labelledby={`${id}-title`} aria-label="Optional item sharing" onKeyDown={containDialogTab} onCancel={event => { event.preventDefault(); onClose(); }}>
@@ -641,7 +646,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
       {step === "find" ? <>
         <form className={styles.field} onSubmit={event => { event.preventDefault(); search(); }}>
           <label htmlFor={`${id}-query`}>Name, email address, or phone number</label>
-          <div className={styles.searchRow}><input ref={findInput} id={`${id}-query`} value={query} onChange={event => { searchVersion.current += 1; setQuery(event.target.value); setReviewQuery(""); setSearching(false); setPickedContact(null); }} autoComplete="off" maxLength={254} placeholder={requested.length ? "Add another person…" : "Name, email, or phone"} disabled={busy} /><button type="submit" className={styles.primary} disabled={busy} aria-label="Search for a member"><ShareIcon name="search" /></button></div>
+          <div className={styles.searchRow}><input ref={findInput} id={`${id}-query`} value={query} onChange={event => resetFinderQuery(event.target.value)} autoComplete="off" maxLength={254} placeholder={requested.length ? "Add another person…" : "Name, email, or phone"} disabled={busy} /><button type="submit" className={styles.primary} disabled={busy} aria-label="Search for a member"><ShareIcon name="search" /></button></div>
         </form>
         {message ? <p role={error ? "alert" : "status"} className={`${styles.feedback} ${error ? styles.error : ""}`}>{message}</p> : null}
         <button type="button" className={styles.contactsButton} disabled={busy} onClick={() => openContacts("find")}><ShareIcon name="crew" />Add people from your phone</button>
@@ -657,7 +662,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
         })}
         {reviewQuery ? <div className={styles.result}><div><strong>{reviewQuery}</strong><small>Automatic connection · opt-out available</small></div><button type="button" className={styles.darkButton} disabled={busy || requested.includes(contactKey(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email"))} onClick={() => void addPerson(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")}>{requested.includes(contactKey(reviewQuery, crewLookupKind(reviewQuery) === "phone" ? "phone" : "email")) ? "Added" : "Add to Crew"}</button></div> : null}</div>
         <button type="button" className={styles.primary} disabled={busy} onClick={finishFinding}>Done · back to sharing</button>
-        <div className={styles.duo}><button type="button" className={styles.back} onClick={() => go("roster")}>See &amp; Edit your Crew</button><button type="button" className={styles.back} onClick={() => { searchVersion.current += 1; setQuery(""); setReviewQuery(""); findInput.current?.focus(); }}>Add more people</button></div>
+        <div className={styles.duo}><button type="button" className={styles.back} onClick={() => go("roster")}>See &amp; Edit your Crew</button><button type="button" className={styles.back} onClick={() => { resetFinderQuery(); findInput.current?.focus(); }}>Add more people</button></div>
       </> : null}
 
       {step === "audience" && shared ? <div className={styles.shareSuccess} role="status"><strong>✓ Your share is saved</strong><p>{message}</p><small>Returning to where you were…</small></div> : step === "audience" ? <>

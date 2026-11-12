@@ -1,8 +1,9 @@
 import type { DemoProduct } from "./demo-products";
 import artwork from "./partner-card-art.json";
 import { giftCardPartnerGroups } from "./gift-card-partners";
+import { partnerDisplayName } from "./partner-display-name";
 
-const retailerKey = (name: string) => name.normalize("NFKD").toLowerCase().replace(/[®™’']/g, "").replace(/[^a-z0-9]+/g, "");
+const retailerKey = (name: string) => partnerDisplayName(name).normalize("NFKD").toLowerCase().replace(/[®™’']/g, "").replace(/[^a-z0-9]+/g, "");
 const slugKey = (name: string) => name.replace(/[®™]/g, "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const planBrands = new Set(["XBOX Game Pass Essential", "XBOX Game Pass Ultimate", "Microsoft Office 365 Home", "GCodes® AT&T Prepaid Plans", "BarkBox"]);
 
@@ -26,12 +27,12 @@ export function buildDirectoryRewards(existing: readonly DemoProduct[]): Directo
     retailerKey(product.retailer) === retailerKey(art.name) && product.value === 100 && /gift[ -]?card/i.test(product.title)))
     .sort((a, b) => stableOrder(a.name) - stableOrder(b.name) || a.name.localeCompare(b.name));
   return candidates.map((art, index) => {
-    const retailer = existing.find(product => retailerKey(product.retailer) === retailerKey(art.name))?.retailer ?? art.name;
-    const brand = art.name === "Ube" ? "Uber" : retailer;
+    const retailer = partnerDisplayName(existing.find(product => retailerKey(product.retailer) === retailerKey(art.name))?.retailer ?? art.name);
+    const brand = retailer;
     const isPlan = planBrands.has(art.name);
     const bucketIndex = index % 4;
     const sold = [299, 298, 292, 135 + (stableOrder(art.name + "fill") % 61)][bucketIndex];
-    let category = categories.get(art.name) ?? "Entertainment";
+    let category = categories.get(partnerDisplayName(art.name)) ?? "Entertainment";
     if (category === "Grocery, Convenience, Pharmacy & Gas") {
       category = ["BP", "Pilot Flying J", "Sheetz", "Speedway"].includes(art.name) ? "Fuel & Convenience"
         : ["CVS®", "Walgreens"].includes(art.name) ? "Health & Essentials" : "Groceries";

@@ -28,6 +28,8 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
   const [requestedIds, setRequestedIds] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const searchVersion = useRef(0);
   const [selected, setSelected] = useState<SampleCrewName | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
@@ -38,6 +40,8 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
   const drag = useRef({ active: false, moved: false, x: 0, scrollLeft: 0 });
   const samples = nameFilter ? sampleCrewPeople.filter((person) => person.name.toLowerCase().includes(nameFilter)) : sampleCrewPeople;
   const edges = useHorizontalScrollEdges(railRef, samples.length > 0);
+
+  useEffect(() => () => { searchVersion.current += 1; }, []);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
@@ -145,23 +149,35 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
     drag.current.moved = false;
   }
 
+  function resetNameSearch() {
+    searchVersion.current += 1;
+    setSearching(false); setNameFilter(""); setRealResults([]); setSelected(null); setMessage("");
+    return searchVersion.current;
+  }
+
   async function submitSearch(kind: SearchKind) {
     const query = values[kind].trim();
+    const version = resetNameSearch();
     if (!query) { setMessage(`Enter a ${kind === "phone" ? "phone number" : kind === "email" ? "email address" : "name"} first.`); return; }
     if (kind === "name" && query.length < 3) { setMessage("Enter at least 3 letters to search by name."); return; }
-    setPending(true);
-    try {
-      if (kind === "name") {
-        setNameFilter(query.toLowerCase());
-        setSelected(null);
+    if (kind === "name") {
+      setSearching(true);
+      setNameFilter(query.toLowerCase());
+      try {
         const result = await searchCrewByName(query);
+        if (version !== searchVersion.current) return;
         setRealResults(result.people);
         setMessage(result.message);
-      } else {
-        const result = kind === "phone" ? await inviteToCrewByPhone(query) : await inviteToCrew(query);
-        setMessage(result.message);
-        if (result.ok) router.refresh();
-      }
+      } catch {
+        if (version === searchVersion.current) setMessage("We couldn’t connect right now. Please try again.");
+      } finally { if (version === searchVersion.current) setSearching(false); }
+      return;
+    }
+    setPending(true);
+    try {
+      const result = kind === "phone" ? await inviteToCrewByPhone(query) : await inviteToCrew(query);
+      setMessage(result.message);
+      if (result.ok) router.refresh();
     } catch {
       setMessage("We couldn’t connect right now. Please try again.");
     } finally { setPending(false); }
@@ -173,6 +189,7 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
     try {
       const [contact] = await picker.select(["name", "email", "tel"], { multiple: false });
       if (!contact) return;
+      resetNameSearch();
       setValues((current) => ({ name: contact.name?.[0] ?? current.name, phone: contact.tel?.[0] ?? current.phone, email: contact.email?.[0] ?? current.email }));
       setMessage("Contact selected. Review their details, then choose whether to add them to your Crew. Your address book was not uploaded.");
     } catch { setMessage("No contact was selected. You can enter their details manually."); }
@@ -198,18 +215,18 @@ export function CrewDiscoveryPanel({ onClose, outerPanelRef }: { onClose: () => 
       <div className={base.searchFields}>
         {(["name", "phone", "email"] as const).map((kind) => <form key={kind} className={`${base.searchRow} ${kind === "name" ? "" : styles.inviteRow}`} onSubmit={(event) => { event.preventDefault(); void submitSearch(kind); }}>
           <label className={base.srOnly} htmlFor={`crew-search-${kind}`}>Search by {kind === "phone" ? "phone number" : kind === "email" ? "email address" : "name"}</label>
-          <input id={`crew-search-${kind}`} type={kind === "email" ? "email" : kind === "phone" ? "tel" : "search"} autoComplete={kind === "name" ? "off" : kind === "phone" ? "tel" : "email"} placeholder={`Search by ${kind === "phone" ? "phone number" : kind === "email" ? "email address" : "name"}...`} value={values[kind]} onChange={(event) => setValues((current) => ({ ...current, [kind]: event.target.value }))} disabled={pending} />
-          <button type="submit" disabled={pending} aria-label={kind === "name" ? "Search Crew by name" : `Add to Crew by ${kind}`} title={kind === "name" ? "Search" : "Add a matching member to your Crew"}>{kind === "name" ? <SearchIcon /> : "Add"}</button>
+          <input id={`crew-search-${kind}`} type={kind === "email" ? "email" : kind === "phone" ? "tel" : "search"} autoComplete={kind === "name" ? "off" : kind === "phone" ? "tel" : "email"} placeholder={`Search by ${kind === "phone" ? "phone number" : kind === "email" ? "email address" : "name"}...`} value={values[kind]} onChange={(event) => { if (kind === "name") resetNameSearch(); setValues((current) => ({ ...current, [kind]: event.target.value })); }} disabled={pending} />
+          <button type="submit" disabled={pending || kind === "name" && searching} aria-label={kind === "name" ? "Search Crew by name" : `Add to Crew by ${kind}`} title={kind === "name" ? "Search" : "Add a matching member to your Crew"}>{kind === "name" ? <SearchIcon /> : "Add"}</button>
         </form>)}
       </div>
       <button type="button" className={styles.contactButton} onClick={() => void chooseContact()}>Choose from phone contacts</button>
       <p className={styles.contactNote}>On supported phones, you select one contact. Nothing is sent until you press Add; your address book is never uploaded.</p>
-      {message ? <p className={styles.message} role="status">{message}</p> : null}
+      {searching || message ? <p className={styles.message} role="status">{searching ? "Searching…" : message}</p> : null}
       {realResults.length ? <div className={styles.realResults}><h4>Zero Loss members</h4>{realResults.map((person) => <div key={person.memberId} className={styles.realPerson}>
         <span className={styles.realAvatar}>{person.avatarUrl ? <Image src={person.avatarUrl} alt="" fill sizes="42px" unoptimized /> : person.name.slice(0, 1).toUpperCase()}</span><strong>{person.name}</strong><button type="button" disabled={pending || requestedIds.includes(person.memberId)} onClick={() => void requestRealPerson(person)}>{requestedIds.includes(person.memberId) ? "Added" : "Add to Crew"}</button>
       </div>)}</div> : null}
       <div className={styles.resultsHeading}><div><h4>Explore sample Crew</h4><p>Four familiar faces plus ten more. These profiles and their prizes are illustrative.</p></div><div className={styles.arrows}><button type="button" aria-label="Previous sample Crew profiles" className="disabled:pointer-events-none disabled:opacity-30" disabled={!edges.left} onClick={() => moveRail(-1)}>‹</button><button type="button" aria-label="Next sample Crew profiles" className="disabled:pointer-events-none disabled:opacity-30" disabled={!edges.right} onClick={() => moveRail(1)}>›</button></div></div>
-      {nameFilter ? <button type="button" className={styles.clearSearch} onClick={() => { setNameFilter(""); setValues((current) => ({ ...current, name: "" })); setSelected(null); setRealResults([]); setMessage(""); }}>Show all sample profiles</button> : null}
+      {nameFilter ? <button type="button" className={styles.clearSearch} onClick={() => { resetNameSearch(); setValues((current) => ({ ...current, name: "" })); }}>Show all sample profiles</button> : null}
       {samples.length ? <div className={styles.stage} ref={stageRef}>
         <div ref={railRef} className={styles.rail} aria-label="Fictional sample Crew profiles" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={() => { drag.current.active = false; drag.current.moved = false; if (railRef.current) { railRef.current.style.scrollBehavior = ""; railRef.current.style.scrollSnapType = ""; } }} onClickCapture={preventDraggedClick} onDragStart={(event) => event.preventDefault()}>
           {samples.map((person) => <div key={person.name} ref={selected === person.name ? tabRef : undefined} className={`${styles.person} ${selected === person.name ? styles.selected : ""}`}>

@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { giftCardPartnerGroups, type GiftCardPartnerGroup } from "./gift-card-partners";
+import { partnerDisplayName } from "./partner-display-name";
 
 /** Reads the durable partner directory when installed; local demos use the same supplied seed. */
 export const getGiftCardPartnerGroups = cache(async (): Promise<readonly GiftCardPartnerGroup[]> => {
@@ -13,7 +14,8 @@ export const getGiftCardPartnerGroups = cache(async (): Promise<readonly GiftCar
     const rows = new Map<string, string[]>();
     for (const row of data) {
       const brands = rows.get(row.provider_category) ?? [];
-      brands.push(row.brand_name);
+      const brand = partnerDisplayName(row.brand_name);
+      if (!brands.includes(brand)) brands.push(brand);
       rows.set(row.provider_category, brands);
     }
     const order = giftCardPartnerGroups.map(group => group.category);

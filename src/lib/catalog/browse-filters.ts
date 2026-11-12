@@ -1,6 +1,7 @@
 import type { DemoProduct } from "./demo-products";
 import { isGiftCardListing } from "./navigation";
 import type { GiftCardPartnerGroup } from "./gift-card-partners";
+import { partnerDisplayName } from "./partner-display-name";
 
 export type BrowseProductType = "all" | "pictured" | "gift-cards";
 export type BrowseSort = "featured" | "fewest-left" | "price-low" | "value-high";
@@ -42,7 +43,7 @@ export function parseBrowseFilterState(query: Record<string, string | string[] |
   const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
   const type = first(query.type);
   const sort = first(query.sort);
-  const retailer = first(query.retailer) ?? "";
+  const retailer = partnerDisplayName(first(query.retailer) ?? "");
   return {
     type: productTypes.includes(type as BrowseProductType) ? type as BrowseProductType : "all",
     retailer: retailers.includes(retailer) ? retailer : "",
@@ -60,7 +61,7 @@ export function browseRetailers(products: readonly DemoProduct[]): string[] {
 }
 
 function retailerKey(value: string) {
-  return value.normalize("NFKD").toLowerCase().replace(/[®™’']/g, "").replace(/[^a-z0-9]+/g, "");
+  return partnerDisplayName(value).normalize("NFKD").toLowerCase().replace(/[®™’']/g, "").replace(/[^a-z0-9]+/g, "");
 }
 
 function retailerCategoryId(category: string) {
@@ -79,7 +80,7 @@ export function retailerFilterGroups(partnerGroups: readonly GiftCardPartnerGrou
   const active = browseRetailers(products);
   const activeByKey = new Map(active.map(name => [retailerKey(name), name]));
   const matched = new Set<string>();
-  const optionsFor = (brands: readonly string[]) => brands.map(label => {
+  const optionsFor = (brands: readonly string[]) => [...new Set(brands.map(partnerDisplayName))].map(label => {
       const currentName = activeByKey.get(retailerKey(label));
       if (currentName) matched.add(currentName);
       return { label, value: currentName ?? label, hasOffer: Boolean(currentName) };

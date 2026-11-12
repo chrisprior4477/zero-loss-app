@@ -378,6 +378,6 @@ export const giftCardPartnerGroups: readonly GiftCardPartnerGroup[] = [
     "TripGift®",
     "Swissôtel Hotels & Resorts",
     "Turo",
-    "Ube",
+    "Uber",
   ] },
 ];
