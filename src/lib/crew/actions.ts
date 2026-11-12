@@ -123,31 +123,25 @@ export async function saveCrewDisplaySettings(input: {
   discoverable: boolean;
   discovery?: { real: boolean; email: boolean; phone: boolean };
   defaultRule: CrewVisibilityRule;
-  groups: CrewVisibilityGroup[];
   entryRules: Record<string, CrewVisibilityRule>;
   expected: CrewDisplaySnapshot;
 }): Promise<CrewActionResult & { settings?: CrewDisplaySnapshot }> {
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to save your Crew sharing settings." };
   if (!input || (input.discovery && ![input.discovery.real, input.discovery.email, input.discovery.phone].every(value => typeof value === "boolean")) || typeof input.discoverable !== "boolean" || !isCrewVisibilityRule(input.defaultRule)
-    || !Array.isArray(input.groups) || input.groups.length > 500 || !input.groups.every(isCrewVisibilityGroup)
     || !input.entryRules || typeof input.entryRules !== "object" || Array.isArray(input.entryRules)
     || Object.keys(input.entryRules).length > 500
     || !Object.entries(input.entryRules).every(([id, rule]) => crewUuid.test(id) && isCrewVisibilityRule(rule))) {
     return { ok: false, message: "Review the audience and group details before saving." };
   }
-  const names = input.groups.map((group) => group.name.trim().toLocaleLowerCase());
-  if (new Set(names).size !== names.length || new Set(input.groups.map((group) => group.id)).size !== input.groups.length) {
-    return { ok: false, message: "Give every group a different name." };
-  }
-  if (!input.expected) return { ok: false, message: "Refresh this page before saving your Crew settings." };
+  if (!input.expected || !Array.isArray(input.expected.groups)) return { ok: false, message: "Refresh this page before saving your Crew settings." };
   const { data, error } = await session.db.rpc("patch_crew_display_preferences", {
     p_expected: input.expected,
     p_desired: {
       discoverable: input.discoverable,
       discovery: input.discovery ?? { real: true, email: true, phone: true },
       defaultRule: input.defaultRule,
-      groups: input.groups.map(groupForSave),
+      groups: input.expected.groups,
       entryRules: input.entryRules,
     },
   });
@@ -158,20 +152,24 @@ export async function saveCrewDisplaySettings(input: {
 }
 
 /** Save just one group, leaving other visibility edits for the main Save to profile action. */
-export async function saveCrewGroup(input: { group: CrewVisibilityGroup; remove: boolean; expected?: CrewDisplaySnapshot }): Promise<CrewActionResult> {
+export async function saveCrewGroup(input: { group: CrewVisibilityGroup; remove: boolean; expected: CrewVisibilityGroup | null }): Promise<CrewActionResult> {
   if (!input || !isCrewVisibilityGroup(input.group) || typeof input.remove !== "boolean") {
     return { ok: false, message: "Review the group name and people before saving." };
   }
-  const group = groupForSave(input.group);
-  if (!input.remove && input.expected) {
-    const expected = input.expected;
-    const groups = expected.groups.filter(item => item.id !== group.id);
-    const result = await saveCrewDisplaySettings({ ...expected, groups: [...groups, group], expected });
-    return result.ok ? { ok: true, message: `${group.name} saved to your profile.` } : result;
+  if (input.expected !== null && (!isCrewVisibilityGroup(input.expected) || input.expected.id !== input.group.id)
+    || input.remove && input.expected === null) {
+    return { ok: false, conflict: true, message: "Reopen this group to review the latest saved version." };
   }
+  const group = groupForSave(input.group);
+  const expected = input.expected;
   const session = await signedInClient();
   if (!session) return { ok: false, message: "Sign in to save your Crew group." };
-  const { error } = await session.db.rpc("save_crew_visibility_group", { p_group: group, p_remove: input.remove });
+  const { error } = await session.db.rpc("save_crew_group_checked", {
+    p_group: group,
+    p_remove: input.remove,
+    p_expected: expected === null ? null : { id: expected.id, name: expected.name, memberIds: expected.memberIds, contacts: expected.contacts ?? [] },
+  });
+  if (error?.code === "40001") return { ok: false, conflict: true, message: "This group changed or was removed in another tab. Review the saved version before trying again." };
   if (error) return { ok: false, message: "We couldn’t save that group. Check that everyone is still in your Crew, then try again." };
   refreshCrew();
   return { ok: true, message: input.remove ? "Group removed from your profile." : `${group.name} saved to your profile.` };

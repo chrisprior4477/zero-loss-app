@@ -27,7 +27,7 @@ begin
   select jsonb_build_object('defaultRule',s.default_rule,'groups',s.groups,'entryRules',s.entry_rules,'discoverable',p.crew_discoverable,
     'discovery',jsonb_build_object('real',p.crew_find_real_name,'email',p.crew_find_email,'phone',p.crew_find_phone)) into strict baseline
     from public.crew_visibility_settings s join public.customer_profiles p on p.customer_id=s.owner_id where s.owner_id=auth.uid();
-  perform public.save_crew_visibility_group(jsonb_build_object('id',a,'name','Safe patch test A','memberIds','[]'::jsonb,'contacts','[]'::jsonb),false);
+  perform public.save_crew_group_checked(jsonb_build_object('id',a,'name','Safe patch test A','memberIds','[]'::jsonb,'contacts','[]'::jsonb),false,null);
   desired:=jsonb_set(baseline,'{discovery,email}',to_jsonb(not (baseline#>>'{discovery,email}')::boolean));
   saved:=public.patch_crew_display_preferences(baseline,desired);
   if not exists(select 1 from jsonb_array_elements(saved->'groups') g where g->>'id'=a::text) then raise exception 'New group was overwritten'; end if;
@@ -37,7 +37,7 @@ begin
   perform public.patch_crew_display_preferences(baseline,desired);
   passed:=passed+1;
 
-  perform public.save_crew_visibility_group(jsonb_build_object('id',b,'name','Safe patch test B','memberIds','[]'::jsonb,'contacts','[]'::jsonb),false);
+  perform public.save_crew_group_checked(jsonb_build_object('id',b,'name','Safe patch test B','memberIds','[]'::jsonb,'contacts','[]'::jsonb),false,null);
   select id into strict entry from public.customer_entries where customer_id=auth.uid() order by created_at desc limit 1;
   stale:=saved;
   select groups into saved from public.crew_visibility_settings where owner_id=auth.uid();
@@ -60,7 +60,7 @@ begin
   exception when serialization_failure then passed:=passed+1; end;
   -- A newer rename cannot be overwritten by an older group editor in this form.
   stale:=saved;
-  perform public.save_crew_visibility_group(jsonb_build_object('id',a,'name','Newer group name','memberIds','[]'::jsonb,'contacts','[]'::jsonb),false);
+  perform public.save_crew_group_checked(jsonb_build_object('id',a,'name','Newer group name','memberIds','[]'::jsonb,'contacts','[]'::jsonb),false,(select g from jsonb_array_elements(stale->'groups') g where g->>'id'=a::text));
   select jsonb_set(stale,'{groups}',jsonb_agg(case when g->>'id'=a::text then jsonb_set(g,'{name}','"Older editor name"') else g end)) into desired from jsonb_array_elements(stale->'groups') g;
   begin
     perform public.patch_crew_display_preferences(stale,desired);

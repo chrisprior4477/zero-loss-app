@@ -327,7 +327,7 @@ test("saving a group puts its checked row first in a long list with its Send but
   expect(screen.getByRole("link", { name: /Manage groups and saved contacts/ }).getAttribute("href")).toBe("/account/crew?tab=groups#crew-groups");
   fireEvent.change(screen.getByLabelText("Group name"), { target: { value: "Family" } }); fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
-  await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: expect.any(String), name: "Family", memberIds: [memberId], contacts: [] }, remove: false }));
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: expect.any(String), name: "Family", memberIds: [memberId], contacts: [] }, remove: false, expected: null }));
   const savedGroup = await screen.findByRole("checkbox", { name: "Share with Family" });
   expect(savedGroup).toHaveProperty("checked", true);
   expect(screen.getAllByRole("checkbox", { name: /^Share with / })[0]).toBe(savedGroup);
@@ -345,10 +345,26 @@ test("editing the existing group does not erase saved contacts", async () => {
   expect(screen.getByLabelText("Member")).toHaveProperty("checked", true);
   fireEvent.click(screen.getByLabelText("Member"));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
-  await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [], contacts }, remove: false }));
+  await waitFor(() => expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [], contacts }, remove: false, expected: { ...options.groups[0], contacts } }));
   expect(await screen.findByRole("checkbox", { name: "Share with Mom" })).toHaveProperty("checked", true);
   expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", true);
   expect(mocks.share).not.toHaveBeenCalled();
+});
+
+test("a stale group editor keeps the draft until the user loads the saved group", async () => {
+  mocks.save.mockResolvedValue({ ok: false, conflict: true, message: "This group changed in another tab." });
+  open(); await audiences(); await groups();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Mom" }));
+  fireEvent.change(screen.getByLabelText("Group name"), { target: { value: "Unfinished name" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save group" }));
+  const review = await screen.findByRole("button", { name: "Load saved group and discard draft" });
+  expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Unfinished name");
+  expect(screen.getByRole("button", { name: "Save group" })).toHaveProperty("disabled", true);
+  expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ expected: options.groups[0] }));
+  mocks.options.mockResolvedValue({ ...options, groups: [{ ...options.groups[0], name: "Latest name" }] });
+  fireEvent.click(review);
+  await waitFor(() => expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Latest name"));
+  expect(screen.getByRole("button", { name: "Save group" })).toHaveProperty("disabled", false);
 });
 
 test("empty groups stay editable and Crew Add People opens private discovery", async () => {
@@ -523,7 +539,7 @@ test("saving a chosen phone contact requires a group and preserves its existing 
   expect(screen.queryByText(/is now saved in Mom/)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Save contact to group" }));
   expect(await screen.findByText("Chosen friend is now saved in Mom. No message was sent.")).toBeTruthy();
-  expect(mocks.save).toHaveBeenLastCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts: [existing, { id: expect.any(String), name: "Chosen friend", phone: "+12025550123", email: "" }] }, remove: false });
+  expect(mocks.save).toHaveBeenLastCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts: [existing, { id: expect.any(String), name: "Chosen friend", phone: "+12025550123", email: "" }] }, remove: false, expected: expect.objectContaining({ id: groupId, contacts: [existing] }) });
   expect(mocks.phone).not.toHaveBeenCalled(); expect(mocks.share).not.toHaveBeenCalled(); expect(mocks.prize).not.toHaveBeenCalled();
 });
 
@@ -560,7 +576,7 @@ test("adding an existing Crew member to a group saves its members and preserves 
   fireEvent.click(screen.getByRole("button", { name: "Add to group" }));
   expect(await screen.findByText("Member added to your Crew and Mom.")).toBeTruthy();
   expect(mocks.invite).not.toHaveBeenCalled();
-  expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts }, remove: false });
+  expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts }, remove: false, expected: expect.objectContaining({ id: groupId, memberIds: [], contacts }) });
   fireEvent.click(screen.getByRole("button", { name: "Done · back to sharing" }));
   expect(screen.getByRole("button", { name: "Send to Mom" })).toHaveProperty("disabled", false);
 });
@@ -659,7 +675,7 @@ test("group deletion can be cancelled and deletes only the saved group after con
   fireEvent.click(screen.getByRole("button", { name: "Delete this group" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
   expect(await screen.findByText("Mom deleted. The people are still in your Crew.")).toBeTruthy();
-  expect(mocks.save).toHaveBeenCalledWith({ group: { id: groupId, name: "Mom", memberIds: [memberId], contacts: [] }, remove: true });
+  expect(mocks.save).toHaveBeenCalledWith({ group: options.groups[0], remove: true, expected: options.groups[0] });
   expect(mocks.remove).not.toHaveBeenCalled();
 });
 

@@ -40,9 +40,10 @@ test("group saves normalize dotted numbers and preserve the country code", async
   mocks.rpc.mockResolvedValue({ error: null });
   const contact = { id: outsider, name: "Sample", phone: "+1.202.555.0123", email: "" };
   const group = { id: owner, name: "Family", memberIds: [member], contacts: [contact] };
-  expect((await saveCrewGroup({ group, remove: false })).ok).toBe(true);
-  expect(mocks.rpc).toHaveBeenCalledWith("save_crew_visibility_group", {
+  expect((await saveCrewGroup({ group, remove: false, expected: null })).ok).toBe(true);
+  expect(mocks.rpc).toHaveBeenCalledWith("save_crew_group_checked", {
     p_group: { ...group, contacts: [{ ...contact, phone: "+1-202-555-0123" }] },
     p_remove: false,
+    p_expected: null,
   });
 });

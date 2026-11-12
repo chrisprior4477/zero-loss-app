@@ -58,6 +58,20 @@ function reconcileDraft<T>(draft: T, expected: T, latest: T, equal: (left: T, ri
   return equal(draft, expected) || equal(draft, latest) ? [latest, latest] : [draft, expected];
 }
 
+function reconcileGroups(draft: CrewVisibilityGroup[], expected: CrewVisibilityGroup[], latest: CrewVisibilityGroup[]) {
+  const draftById = new Map(draft.map(group => [group.id, group]));
+  const expectedById = new Map(expected.map(group => [group.id, group]));
+  const latestById = new Map(latest.map(group => [group.id, group]));
+  const groups: CrewVisibilityGroup[] = [];
+  const expectedGroups: CrewVisibilityGroup[] = [];
+  for (const id of new Set([...latestById.keys(), ...draftById.keys()])) {
+    const [next, before] = reconcileDraft(draftById.get(id), expectedById.get(id), latestById.get(id), sameGroup);
+    if (next) groups.push(next);
+    if (before) expectedGroups.push(before);
+  }
+  return { groups, expectedGroups };
+}
+
 function AudienceTargets({ rule, onChange, members, groups, prefix }: {
   rule: CrewVisibilityRule;
   onChange: (rule: CrewVisibilityRule) => void;
@@ -111,17 +125,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
   // Keep the editor and its input focus. Only untouched values follow the
   // incoming snapshot, while edited values retain the baseline used at save.
   if (available && !pending && !sameValue(incoming, lastIncoming)) {
-    const expected = new Map(baseline.groups.map(group => [group.id, group]));
-    const draft = new Map(groups.map(group => [group.id, group]));
-    const latest = new Map(incoming.groups.map(group => [group.id, group]));
-    const groupIds = new Set([...latest.keys(), ...draft.keys()]);
-    const mergedGroups: CrewVisibilityGroup[] = [];
-    const expectedGroups: CrewVisibilityGroup[] = [];
-    for (const id of groupIds) {
-      const [next, before] = reconcileDraft(draft.get(id), expected.get(id), latest.get(id), sameGroup);
-      if (next) mergedGroups.push(next);
-      if (before) expectedGroups.push(before);
-    }
+    const { groups: mergedGroups, expectedGroups } = reconcileGroups(groups, baseline.groups, incoming.groups);
     const [nextDiscoverable, expectedDiscoverable] = reconcileDraft(discoverable, baseline.discoverable, incoming.discoverable);
     const [real, expectedReal] = reconcileDraft(discovery.real, baseline.discovery.real, incoming.discovery.real);
     const [email, expectedEmail] = reconcileDraft(discovery.email, baseline.discovery.email, incoming.discovery.email);
@@ -142,7 +146,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     setDefaultRule(nextDefault);
     setGroups(mergedGroups);
     setEntryRules(nextRules);
-    if (removingGroupId && !sameGroup(expected.get(removingGroupId), latest.get(removingGroupId))) setRemovingGroupId(null);
+    if (removingGroupId && !sameGroup(baselineGroups.get(removingGroupId), incoming.groups.find(group => group.id === removingGroupId))) setRemovingGroupId(null);
   }
 
   useEffect(() => {
@@ -210,7 +214,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     }
     startTransition(async () => {
       const next = { ...group, name };
-      const result = await saveCrewGroup({ group: next, remove: false, expected: baseline }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again.", conflict: false }));
+      const result = await saveCrewGroup({ group: next, remove: false, expected: baselineGroups.get(group.id) ?? null }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again.", conflict: false }));
       setEditorMessage({ id: group.id, text: result.ok ? `${name} saved. You can keep editing it or create another group.` : result.message, error: !result.ok });
       if (result.ok) {
         setBaseline(current => ({ ...current, groups: [...current.groups.filter(item => item.id !== group.id), next] }));
@@ -247,8 +251,10 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
 
   function removeGroup(group: CrewVisibilityGroup) {
     if (removingGroupId !== group.id || pending || !available || conflictingGroups.has(group.id)) return;
+    const expected = baselineGroups.get(group.id);
+    if (!expected) return;
     startTransition(async () => {
-      const result = await saveCrewGroup({ group, remove: true }).catch(() => ({ ok: false, message: "Couldn’t confirm removal. Please try again." }));
+      const result = await saveCrewGroup({ group: expected, remove: true, expected }).catch(() => ({ ok: false, message: "Couldn’t confirm removal. Please try again.", conflict: false }));
       if (result.ok) {
         const withoutGroup = (rule: CrewVisibilityRule) => ({ ...rule, groupIds: rule.groupIds.filter(id => id !== group.id) });
         const removeFromSnapshot = (snapshot: CrewDisplaySnapshot) => ({ ...snapshot,
@@ -264,22 +270,21 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
         setGroupMessageError(false);
         notifyAccountChanged();
         router.refresh();
-      } else setEditorMessage({ id: group.id, text: result.message, error: true });
+      } else {
+        setEditorMessage({ id: group.id, text: result.message, error: true });
+        if (result.conflict) { setRemovingGroupId(null); router.refresh(); }
+      }
     });
   }
 
   function validate(): string | null {
-    const names = groups.map((group) => group.name.trim().toLocaleLowerCase());
-    if (groups.some((group) => !group.name.trim() || group.name.trim().length > 50) || new Set(names).size !== names.length) return "Give every group a unique name of 1–50 characters.";
-    const validGroupIds = new Set(groups.map((group) => group.id));
+    const validGroupIds = new Set(server.groups.map((group) => group.id));
     const validMemberIds = new Set(members.map((member) => member.id));
     // Cleanup intentionally leaves empty audiences on historical/private picks.
     // Validate new audience choices without blocking unrelated privacy edits.
     const changed = (rule: CrewVisibilityRule, before: CrewVisibilityRule | undefined) => JSON.stringify(rule) !== JSON.stringify(before);
-    if (conflictingGroups.size) return "Review the group that changed in another tab before saving.";
     const rules = [...(changed(defaultRule, baseline.defaultRule) ? [defaultRule] : []), ...Object.entries(entryRules).filter(([id, rule]) => changed(rule, baseline.entryRules[id])).map(([, rule]) => rule)];
     if (rules.some((rule) => rule.memberIds.some((id) => !validMemberIds.has(id)) || rule.groupIds.some((id) => !validGroupIds.has(id)))) return "A selected person or group is no longer available. Review your choices.";
-    if (groups.some((group) => group.memberIds.some((id) => !validMemberIds.has(id)))) return "One of your groups includes someone who is no longer in your Crew.";
     if (rules.some((rule) => rule.audience === "people" && rule.memberIds.length === 0)) return "Choose at least one person for each selected-people audience.";
     if (rules.some((rule) => rule.audience === "groups" && rule.groupIds.length === 0)) return "Choose at least one group for each selected-groups audience.";
     return null;
@@ -289,15 +294,16 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     const problem = validate();
     if (problem) { setMessage(problem); setSaved(false); return; }
     startTransition(async () => {
-      const result = await saveCrewDisplaySettings({ discoverable, discovery, defaultRule, groups, entryRules, expected: baseline }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again.", settings: undefined, conflict: false }));
+      const result = await saveCrewDisplaySettings({ discoverable, discovery, defaultRule, entryRules, expected: baseline }).catch(() => ({ ok: false, message: "Couldn’t confirm the save. Your edits are still here; please try again.", settings: undefined, conflict: false }));
       setMessage(result.message);
       setSaved(result.ok);
       if (result.ok) {
-        const latest = result.settings ?? { discoverable, discovery, defaultRule, groups, entryRules };
-        setBaseline(latest);
+        const latest = result.settings ?? { discoverable, discovery, defaultRule, groups: server.groups, entryRules };
+        const reconciled = reconcileGroups(groups, baseline.groups, latest.groups);
+        setBaseline({ ...latest, groups: reconciled.expectedGroups });
         setServer(latest);
         setDiscoverable(latest.discoverable); setDiscovery(latest.discovery);
-        setDefaultRule(latest.defaultRule); setGroups(latest.groups); setEntryRules(latest.entryRules);
+        setDefaultRule(latest.defaultRule); setGroups(reconciled.groups); setEntryRules(latest.entryRules);
         notifyAccountChanged();
         router.refresh();
       } else if (result.conflict) router.refresh();
@@ -326,7 +332,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
             <small>{audience === "everyone" ? "Every connected Crew connection" : audience === "people" ? "Choose individual connections" : "Use your custom groups"}</small>
           </label>)}
         </div>
-        <AudienceTargets rule={defaultRule} onChange={(rule) => { setDefaultRule(rule); setSaved(false); }} members={members} groups={groups} prefix="default" />
+        <AudienceTargets rule={defaultRule} onChange={(rule) => { setDefaultRule(rule); setSaved(false); }} members={members} groups={server.groups} prefix="default" />
       </section> : null}
 
       {section !== "privacy" ? <section id="crew-groups" className={styles.ticket} aria-labelledby="groups-title">
@@ -373,7 +379,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
                 <option value="default">Use my default</option><option value="everyone">Everyone in my Crew</option><option value="people">Only selected people</option><option value="groups">Only selected groups</option>
               </select>
             </label>
-            {rule ? <AudienceTargets rule={rule} onChange={(next) => updateEntryRule(pick.id, next)} members={members} groups={groups} prefix={`pick-${pick.id}`} /> : null}
+            {rule ? <AudienceTargets rule={rule} onChange={(next) => updateEntryRule(pick.id, next)} members={members} groups={server.groups} prefix={`pick-${pick.id}`} /> : null}
           </div>;
         })}</div> : <p className={styles.emptyTargets}>You have no shared picks yet. <Link href="/account/crew?tab=picks#sharing">Choose picks to share</Link> first; they will use the default audience above.</p>}
       </section> : null}

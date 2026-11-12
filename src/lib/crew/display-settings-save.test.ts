@@ -23,14 +23,26 @@ test("signed-out saves never reach the write", async () => {
   expect(m.rpc).not.toHaveBeenCalled();
 });
 
-test("a group editor save uses the checked patch and rejects a competing change", async () => {
+test("a group editor save sends the saved group and reports a competing change", async () => {
   const family = { id: "11111111-1111-4111-8111-111111111111", name: "Family", memberIds: [] };
-  const expected = { ...baseline, groups: [family] };
   const group = { ...family, name: "Family weekend" };
   m.rpc.mockResolvedValue({ error: { code: "40001" } });
-  expect(await saveCrewGroup({ group, remove: false, expected })).toMatchObject({ ok: false, conflict: true });
+  expect(await saveCrewGroup({ group, remove: false, expected: family })).toMatchObject({ ok: false, conflict: true });
+  expect(m.rpc).toHaveBeenCalledExactlyOnceWith("save_crew_group_checked", {
+    p_expected: { ...family, contacts: [] },
+    p_group: { ...group, contacts: [] },
+    p_remove: false,
+  });
+});
+
+test("privacy ignores a groups payload from an already-open form", async () => {
+  const family = { id: "11111111-1111-4111-8111-111111111111", name: "Family", memberIds: [] };
+  const expected = { ...baseline, groups: [family] };
+  const oldForm = { ...expected, discoverable: true, groups: [{ ...family, name: "Hidden draft" }], expected };
+  m.rpc.mockResolvedValue({ data: { ...expected, discoverable: true }, error: null });
+  expect((await saveCrewDisplaySettings(oldForm)).ok).toBe(true);
   expect(m.rpc).toHaveBeenCalledExactlyOnceWith("patch_crew_display_preferences", {
     p_expected: expected,
-    p_desired: { ...expected, groups: [{ ...group, contacts: [] }] },
+    p_desired: { ...expected, discoverable: true },
   });
 });

@@ -118,10 +118,10 @@ test("creates multiple named groups and assigns a shared pick to a chosen group"
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledOnce());
   const saved = saveCrewDisplaySettings.mock.calls[0][0];
-  expect(saved.groups).toHaveLength(2);
-  expect(saved.groups[0]).toMatchObject({ name: "Family", memberIds: [first] });
-  expect(saved.groups[1]).toMatchObject({ name: "Friends", memberIds: [second] });
-  expect(saved.entryRules[pick]).toMatchObject({ audience: "groups", groupIds: [saved.groups[0].id] });
+  expect(saved).not.toHaveProperty("groups");
+  expect(saved.expected.groups).toEqual([expect.objectContaining({ name: "Family", memberIds: [first] })]);
+  expect(saved.entryRules[pick]).toMatchObject({ audience: "groups", groupIds: [saved.expected.groups[0].id] });
+  expect(screen.getByDisplayValue("Friends")).toBeTruthy();
 });
 
 test("only removes a saved group after countdown confirmation, leaving other groups intact", async () => {
@@ -132,7 +132,8 @@ test("only removes a saved group after countdown confirmation, leaving other gro
   expect(saveCrewGroup).not.toHaveBeenCalled();
   expect(screen.getByRole("timer").getAttribute("aria-label")).toContain("30 seconds");
   fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
-  await waitFor(() => expect(saveCrewGroup).toHaveBeenCalledWith({ group: { id: first, name: "Family", memberIds: [] }, remove: true }));
+  const family = { id: first, name: "Family", memberIds: [] };
+  await waitFor(() => expect(saveCrewGroup).toHaveBeenCalledWith({ group: family, remove: true, expected: family }));
   await waitFor(() => expect(screen.queryByText("Family")).toBeNull());
   expect(screen.getByText("Friends")).toBeTruthy();
 });

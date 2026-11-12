@@ -31,19 +31,37 @@ grant all on crew_test to authenticated;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','ca110001-1111-4111-8111-111111111111',true);
 select set_config('request.jwt.claims','{"sub":"ca110001-1111-4111-8111-111111111111","iss":"https://ocgdfnvvjvutevgqzzgj.supabase.co/auth/v1"}',true);
-select public.save_crew_visibility_group('{"id":"ca110004-1111-4111-8111-111111111111","name":"Mom fixture","memberIds":[],"contacts":[{"id":"ca110005-1111-4111-8111-111111111111","name":"Contact only","phone":"+1 (202) 555-0123","email":"contact@example.test"}]}',false);
+do $$
+declare
+  original jsonb := jsonb_build_object('id',gen_random_uuid(),'name','Group conflict fixture','memberIds','[]'::jsonb,'contacts','[]'::jsonb);
+  newer jsonb := jsonb_set(original,'{memberIds}','["ca110002-1111-4111-8111-111111111111"]');
+  older_draft jsonb := jsonb_set(original,'{name}','"Unfinished name"');
+begin
+  perform public.save_crew_group_checked(original,false,null);
+  perform public.save_crew_group_checked(original,false,null); -- identical create retry
+  perform public.save_crew_group_checked(newer,false,original);
+  perform pg_temp.expect_error(format('select public.save_crew_group_checked(%L,false,%L)',older_draft,original),'40001');
+  perform pg_temp.expect_error(format('select public.save_crew_group_checked(%L,true,%L)',original,original),'40001');
+  perform pg_temp.expect_error(format('select public.save_crew_visibility_group(%L,false)',older_draft),'40001');
+  perform pg_temp.assert_true((select groups @> jsonb_build_array(newer) from public.crew_visibility_settings),'newer membership survives stale writes');
+  perform public.save_crew_group_checked(newer,true,newer);
+  perform pg_temp.expect_error(format('select public.save_crew_group_checked(%L,false,%L)',older_draft,original),'40001');
+  perform pg_temp.assert_true((select groups='[]'::jsonb from public.crew_visibility_settings),'a stale editor cannot recreate the removed group');
+end;
+$$;
+select public.save_crew_group_checked('{"id":"ca110004-1111-4111-8111-111111111111","name":"Mom fixture","memberIds":[],"contacts":[{"id":"ca110005-1111-4111-8111-111111111111","name":"Contact only","phone":"+1 (202) 555-0123","email":"contact@example.test"}]}',false,null);
 select pg_temp.assert_true((select groups->0->'contacts'->0->>'name'='Contact only' from public.crew_visibility_settings),'single-group save persists contacts');
 select pg_temp.assert_true((select groups->0->'memberIds'='[]'::jsonb from public.crew_visibility_settings),'contact does not become a member');
 select public.save_crew_visibility_settings('{"audience":"everyone","memberIds":[],"groupIds":[]}',(select groups from public.crew_visibility_settings),'{}',false);
 select pg_temp.assert_true((select jsonb_array_length(groups->0->'contacts')=1 from public.crew_visibility_settings),'profile save preserves contacts');
-select pg_temp.expect_error($q$select public.save_crew_visibility_group('{"id":"ca110004-1111-4111-8111-111111111111","name":"Bad","memberIds":[],"contacts":[{"id":"bad","name":"Invalid","phone":"","email":""}]}',false)$q$,'23514');
+select pg_temp.expect_error($q$select public.save_crew_group_checked('{"id":"ca110004-1111-4111-8111-111111111111","name":"Bad","memberIds":[],"contacts":[{"id":"bad","name":"Invalid","phone":"","email":""}]}',false,(select groups->0 from public.crew_visibility_settings))$q$,'23514');
 insert into crew_test select public.create_preview_entries_with_sharing('crew-contact-audit',1,'crew_contact_rollback_entry',false);
 select pg_temp.expect_error(format('select public.share_confirmed_entry_with_crew(%L,null)',(select value->>'requestId' from crew_test)),'42501');
 select public.confirm_preview_entry_request((select (value->>'requestId')::uuid from crew_test));
 select pg_temp.assert_true((select count(*)=0 from public.crew_entry_shares),'confirmed private entry remains private');
 select pg_temp.expect_error(format('select public.share_confirmed_entry_with_crew(%L,%L)',(select value->>'requestId' from crew_test),'ca110004-1111-4111-8111-111111111111'),'22023');
 select pg_temp.assert_true((select count(*)=0 from public.crew_entry_shares),'contact-only group cannot expose entry');
-select public.save_crew_visibility_group((select jsonb_set(groups->0,'{memberIds}','["ca110002-1111-4111-8111-111111111111"]') from public.crew_visibility_settings),false);
+select public.save_crew_group_checked((select jsonb_set(groups->0,'{memberIds}','["ca110002-1111-4111-8111-111111111111"]') from public.crew_visibility_settings),false,(select groups->0 from public.crew_visibility_settings));
 select pg_temp.assert_true(public.share_confirmed_entry_with_crew((select (value->>'requestId')::uuid from crew_test),'ca110004-1111-4111-8111-111111111111')=1,'share with approved group');
 select pg_temp.assert_true(public.share_confirmed_entry_with_crew((select (value->>'requestId')::uuid from crew_test),'ca110004-1111-4111-8111-111111111111')=1,'sharing retry is idempotent');
 select pg_temp.assert_true((select count(*)=1 from public.crew_entry_shares),'one share after retry');

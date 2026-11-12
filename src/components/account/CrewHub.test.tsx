@@ -251,6 +251,10 @@ test("groups and privacy share the same editor state across compact navigation",
   fireEvent.click(screen.getByRole("button", { name: /Create group/ }));
   fireEvent.click(screen.getByRole("button", { name: "Save group" }));
   await screen.findByText(/Family saved to your profile/);
+  const openGroup = screen.getByRole("button", { name: "Add people to group" });
+  await waitFor(() => expect(openGroup).toHaveProperty("disabled", false));
+  fireEvent.click(openGroup);
+  fireEvent.change(screen.getByLabelText("Group name"), { target: { value: "Family draft" } });
   fireEvent.click(nav.getByRole("button", { name: "Shared Picks & Cleanup" }));
   fireEvent.click(screen.getByRole("button", { name: "Privacy Settings" }));
   expect(screen.queryByRole("heading", { name: "Make your own groups" })).toBeNull();
@@ -263,9 +267,13 @@ test("groups and privacy share the same editor state across compact navigation",
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(actions.saveCrewDisplaySettings).toHaveBeenCalledOnce());
   const payload = actions.saveCrewDisplaySettings.mock.calls[0][0];
-  expect(payload.groups).toHaveLength(1);
-  expect(payload.groups[0].name).toBe("Family");
-  expect(payload.defaultRule).toEqual({ audience: "groups", memberIds: [], groupIds: [payload.groups[0].id] });
+  expect(payload).not.toHaveProperty("groups");
+  expect(payload.expected.groups).toEqual([expect.objectContaining({ name: "Family" })]);
+  expect(payload.defaultRule).toEqual({ audience: "groups", memberIds: [], groupIds: [payload.expected.groups[0].id] });
+  await screen.findByText("Settings saved.");
+  fireEvent.click(nav.getByRole("button", { name: "Groups" }));
+  expect(screen.getByLabelText("Group name")).toHaveProperty("value", "Family draft");
+  expect(actions.saveCrewGroup).toHaveBeenCalledTimes(1);
 });
 
 test("a failed member activity request can be retried without a blank panel", async () => {
