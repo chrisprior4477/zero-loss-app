@@ -57,8 +57,10 @@ export function assertFundingAmount(amountCents: number): void {
   }
 }
 
+export const depositRequestKeyPattern = /^[A-Za-z0-9_-]{16,128}$/;
+
 export function assertIdempotencyKey(value: string): void {
-  if (!/^[A-Za-z0-9_-]{16,128}$/.test(value)) {
+  if (!depositRequestKeyPattern.test(value)) {
     throw new Error("Invalid idempotency key.");
   }
 }

@@ -10,7 +10,8 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
-import { purchaseDepositKeyPattern, entryFundingAmounts, entryReviewFundingHref, entryReviewHref, fundingHref, purchaseOptionHref, type FundingContinuation } from "@/lib/wallet/funding-navigation";
+import { depositRequestKeyPattern } from "@/lib/payments/provider";
+import { entryFundingAmounts, entryReviewFundingHref, entryReviewHref, fundingHref, purchaseOptionHref, type FundingContinuation } from "@/lib/wallet/funding-navigation";
 import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
@@ -25,7 +26,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
-  const recoveryKey = history && typeof query.deposit === "string" && purchaseDepositKeyPattern.test(query.deposit) ? query.deposit : undefined;
+  const recoveryKey = history && typeof query.deposit === "string" && depositRequestKeyPattern.test(query.deposit) ? query.deposit : undefined;
   const cardView = !requestedReward && query.view === "card";
   // A return link may name an existing catalog prize, not arbitrary content.
   const fromProduct = history && typeof query.from === "string" ? getDemoProduct(query.from) : undefined;

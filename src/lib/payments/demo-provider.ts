@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isFundingAmount } from "./provider";
+import { depositRequestKeyPattern, isFundingAmount } from "./provider";
 import { DEMO_CARD_TOKEN, demoCardFixture, parseDemoCard, parseDemoCards, parseDemoCardArtwork, type DemoCard, type DemoCardToken, type DemoCardArtwork } from "./demo-card";
 
 export type DemoFundingRequest = {
@@ -81,10 +81,14 @@ export class DemoPaymentProvider {
     if (error) throw new FundingFailure(error.code, error.message);
     if (!Array.isArray(data) || data.some(row => !row || typeof row.id !== "string" || !isFundingAmount(row.amount)
       || row.currency !== "USD" || typeof row.created_at !== "string"
-      || typeof row.idempotencyKey !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(row.idempotencyKey)
+      || typeof row.idempotencyKey !== "string" || !depositRequestKeyPattern.test(row.idempotencyKey)
       || !["not_processed", "credit_pending", "reconciled", "discrepancy"].includes(row.reconciliation))) {
       throw new Error("Invalid funding request list");
     }
     return data;
+  }
+
+  async getRequest(key: string): Promise<DemoFundingRequest | undefined> {
+    return (await this.getRequests()).find(row => row.idempotencyKey === key);
   }
 }

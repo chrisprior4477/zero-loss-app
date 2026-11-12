@@ -49,6 +49,17 @@ test("a pending deposit finishes the original session and only then offers purch
 test("discrepancy requires support and never offers another funding action", () => {
   render(<PurchaseDepositRecovery {...props} requests={[{ ...receipt, reconciliation: "discrepancy" }]} />);
   expect(screen.getByRole("alert").textContent).toContain("needs review");
-  expect(screen.getByRole("link", { name: "Contact Support" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Contact Support" }).getAttribute("href")).toBe(`/support?deposit=${key}#report-problem`);
   expect(screen.queryByRole("button")).toBeNull();
+});
+
+test("ordinary deposit recovery has its own receipt and a contextual Support link", async () => {
+  const requestKey = "33333333-3333-4333-8333-333333333333";
+  mocks.check.mockResolvedValueOnce({ status: "discrepancy" });
+  render(<PurchaseDepositRecovery {...props} requestKey={requestKey} continueTo={undefined}
+    requests={[{ ...receipt, idempotencyKey: requestKey, reconciliation: "credit_pending" }]} />);
+  expect(screen.getByRole("heading", { name: "Your deposit" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
+  const help = await screen.findByRole("link", { name: "Contact Support" });
+  expect(help.getAttribute("href")).toBe(`/support?deposit=${requestKey}#report-problem`);
 });

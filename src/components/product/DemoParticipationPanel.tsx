@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ExtraEntryExplanation } from "./ExtraEntryExplanation";
 import { EntryQuantityInput } from "./EntryQuantityInput";
 import { useEntrySelection } from "./ProductEntrySelection";
@@ -15,7 +15,7 @@ import { useEntryWalletFunding } from "@/lib/wallet/wallet-funding-context";
 import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, listPendingEntryRequests, resetExtraEntryExplainer, resolvePendingEntryRequest } from "@/lib/entries/actions";
 import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
-import { clearEntryIntent, productEntryHref, saveEntryIntent } from "@/lib/entries/return-intent";
+import { clearEntryIntent, productEntryHref, readEntryIntent, saveEntryIntent } from "@/lib/entries/return-intent";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
 import entryActionStyles from "./entry-action.module.css";
 import compactStyles from "./product-entry-layout.module.css";
@@ -80,7 +80,7 @@ export function DemoParticipationPanel({
     try { return await createPreviewEntry(previous, payload); }
     catch { return { status: "error" as const, code: "outcome_unknown" as const, message: "The connection was interrupted. Check the saved submission before starting another entry." }; }
   }, { status: "idle" });
-  const [quantity, setQuantity] = useEntrySelection(Math.min(Math.max(1, initialQuantity), Math.max(1, maxQuantity)));
+  const [selectedQuantity, setQuantity] = useEntrySelection(Math.min(Math.max(1, initialQuantity), Math.max(1, maxQuantity)));
   const [selectedTicketsToast, setSelectedTicketsToast] = useState<number | null>(null);
   const [submissionKey, setSubmissionKey] = useState(requestKey);
   const [requestReceipt, setRequestReceipt] = useState<EntryRequest | null>(null);
@@ -91,7 +91,12 @@ export function DemoParticipationPanel({
   const receivedRequests = useRef(new Map<string, EntryRequest["status"]>());
   const latestReceipt = useRef<EntryRequest | null>(null);
   const uncertain = state.status === "error" && state.code === "outcome_unknown";
-  const entryBusy = pending || state.status === "succeeded" || requestReceipt?.status === "pending";
+  const awaitingReceipt = state.status === "request" && state.request.status === "pending" && requestReceipt?.requestId !== state.request.requestId;
+  const entryBusy = pending || awaitingReceipt || state.status === "succeeded" || requestReceipt?.status === "pending";
+  const canAdjustQuantity = availabilityConfirmed && !entryBusy && !uncertain;
+  const quantity = canAdjustQuantity ? Math.min(selectedQuantity, Math.max(1, remaining)) : selectedQuantity;
+  const quantityReduced = quantity < selectedQuantity;
+  const [adjustedQuantity, setAdjustedQuantity] = useState<number | null>(null);
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
   const explanationVisit = useRef(0);
   const requestedQuantity = useRef<number | null>(null);
@@ -114,18 +119,34 @@ export function DemoParticipationPanel({
   const showFundingSweep = highlightAfterFunding && !entryActionTouched && !entryBusy && isDemoWallet && isSignedIn && requestHead.ready
     && availabilityConfirmed && remaining > 0 && knownBalance !== null && knownBalance >= totalCents;
   const serverBalanceError = state.status === "error" && state.code === "insufficient_balance";
-  const showBalanceNotice = balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state);
+  const showBalanceNotice = canAdjustQuantity && remaining > 0 && !quantityReduced
+    && (balanceNoticeOpen || (serverBalanceError && dismissedBalanceError !== state));
   const entryLoginHref = `/login?next=${encodeURIComponent(productEntryHref(productSlug, quantity, browseReturnHref))}`;
-  const addFundsHref = fundingHref(productSlug, undefined, quantity, browseReturnHref);
+  const fundingForEntry = canAdjustQuantity && remaining > 0;
+  const addFundsHref = fundingForEntry ? fundingHref(productSlug, undefined, quantity, browseReturnHref) : fundingHref();
   const rememberEntry = (selected = quantity, resumeAfter?: "funding" | "sign-in") => saveEntryIntent(productSlug, productTitle, selected, browseReturnHref, resumeAfter);
   const rememberFundingEntry = useCallback(() => saveEntryIntent(productSlug, productTitle, quantity, browseReturnHref, "funding"),
     [productSlug, productTitle, quantity, browseReturnHref]);
-  useEntryWalletFunding(isSignedIn && availabilityConfirmed && remaining > 0 && !entryBusy && !uncertain ? addFundsHref : null, rememberFundingEntry);
+  useEntryWalletFunding(isSignedIn && fundingForEntry ? addFundsHref : null, rememberFundingEntry);
+
+  useLayoutEffect(() => {
+    if (!quantityReduced) return;
+    // The form uses the capped value immediately. Persist it so the selection
+    // and the free-entry links cannot jump back when capacity increases.
+    setQuantity(quantity);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAdjustedQuantity(quantity);
+    setSelectedTicketsToast(null);
+    setBalanceNoticeOpen(false);
+    setDismissedBalanceError(state);
+    if (readEntryIntent()?.slug === productSlug) saveEntryIntent(productSlug, productTitle, quantity, browseReturnHref);
+  }, [quantityReduced, quantity, state, setQuantity, productSlug, productTitle, browseReturnHref]);
 
   const addNextEntry = () => {
     const next = Math.min(maxQuantity, requestedQuantity.current ?? quantity + 1);
     requestedQuantity.current = null;
-    if (next === quantity) return;
+    if (next < 1 || next === quantity) return;
+    setAdjustedQuantity(null);
     setQuantity(next);
     rememberEntry(next);
     setSelectedTicketsToast(next);
@@ -344,19 +365,20 @@ export function DemoParticipationPanel({
       {availabilityConfirmed && initialQuantity > maxQuantity && maxQuantity > 0 ? <p role="status" className="mt-3 text-xs font-semibold text-cyan-200">Only {maxQuantity} {maxQuantity === 1 ? "entry remains" : "entries remain"}, so your saved selection was adjusted.</p> : null}
 
       <div className="relative mt-3">
-        {selectedTicketsToast !== null ? <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-[calc(100%+8px)] right-0 z-20 w-full max-w-80 rounded-xl border border-[#67ff42]/60 bg-[#083a43] px-4 py-3 text-sm text-white shadow-[0_12px_30px_rgba(0,0,0,.4),0_0_18px_rgba(81,255,59,.22)]">
+        {selectedTicketsToast !== null && !quantityReduced ? <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-[calc(100%+8px)] right-0 z-20 w-full max-w-80 rounded-xl border border-[#67ff42]/60 bg-[#083a43] px-4 py-3 text-sm text-white shadow-[0_12px_30px_rgba(0,0,0,.4),0_0_18px_rgba(81,255,59,.22)]">
           <strong className="block text-[#8aff6f]">{selectedTicketsToast} tickets selected</strong>
           <span>Separate chances. Nothing is entered until you press Enter for ${(selectedTicketsToast * entryPrice).toFixed(2)}.</span>
         </div> : null}
         <fieldset disabled={uncertain} data-testid="entry-quantity-ticket" className={`${quantityTicketStyles.ticket} ${compact ? compactStyles.quantity : ""}`}>
           <p className={quantityTicketStyles.label}>Add extra entries</p>
           <div className="flex shrink-0 items-center gap-2">
-            <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
-            <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of entries" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} onChange={next => { quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); }} />
+            <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
+            <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of entries" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} onChange={next => { quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} />
             <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#29ed14] bg-[#43f027] text-xl font-black text-[#002719] shadow-[0_0_15px_rgba(67,240,39,.72)] transition hover:bg-[#6aff50] hover:shadow-[0_0_22px_rgba(81,255,59,.95)] disabled:cursor-not-allowed disabled:border-[#91b2cf] disabled:bg-[#d9e9f5] disabled:text-[#7794ac] disabled:shadow-none" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
           </div>
         </fieldset>
       </div>
+      {canAdjustQuantity && remaining > 0 && (quantityReduced || adjustedQuantity === quantity) ? <p role="status" className="mt-2 text-sm text-cyan-200">Availability changed. Your selection is now {quantity} {quantity === 1 ? "entry" : "entries"}.</p> : null}
       {signedOutCompact && !isSignedIn && !compact ? null : <p className={compact ? compactStyles.terms : "mt-2 text-xs leading-4 text-white/70"}>Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options {compact && resetButton ? <span className={compactStyles.termsEnding}>never combine. {resetButton}</span> : <>never combine.{isPreviewExperience ? "" : " Terms apply."}</>}</p>}
       {!compact ? resetButton : null}
       {preferenceResetMessage ? <p role="status" className="mt-1 text-xs text-cyan-200">{preferenceResetMessage}</p> : null}
@@ -383,14 +405,14 @@ export function DemoParticipationPanel({
       </div> : null}
 
       {isSignedIn && !requestHead.ready ? <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm"><p>We couldn’t check your latest saved submission. Refresh before entering; your balance has not been charged.</p><button type="button" onClick={() => router.refresh()} className="mt-3 min-h-11 rounded-lg bg-[#00b9ff] px-4 py-2 font-bold text-[#00132e]">Refresh entry status</button></div> : null}
-      {!availabilityConfirmed ? (
+      {!availabilityConfirmed && !uncertain ? (
         <div role="status" className="mt-3 rounded-xl border border-cyan-300/40 bg-[#062b4d] p-3 text-sm">
           <p>We couldn’t refresh availability. Your balance has not been charged.</p>
           <button type="button" onClick={() => router.refresh()} className="mt-3 min-h-11 rounded-lg bg-[#00b9ff] px-4 py-2 font-bold text-[#00132e]">Refresh availability</button>
         </div>
-      ) : remaining === 0 && requestReceipt?.status === "pending" ? null : remaining === 0 && requestHead.ready && requestHead.validating && !requestReceipt ? (
+      ) : remaining === 0 && !uncertain && requestReceipt?.status === "pending" ? null : remaining === 0 && !uncertain && requestHead.ready && requestHead.validating && !requestReceipt ? (
         <p role="status" className="mt-3 text-sm">Checking your reserved entry… <button type="button" onClick={() => router.refresh()} className="font-bold text-cyan-300 underline">Refresh status</button></p>
-      ) : remaining === 0 ? (
+      ) : remaining === 0 && !uncertain ? (
         <button type="button" disabled className="mt-3 w-full rounded-xl bg-[#0b668b] px-5 py-3 text-base font-extrabold text-white/60">No entries remaining</button>
       ) : isSignedIn ? (
         <form ref={entryFormRef} action={action} onSubmit={(event) => {
@@ -432,7 +454,7 @@ export function DemoParticipationPanel({
 
       <div className={`${compact ? compactStyles.wallet : signedOutCompact && !isSignedIn ? "mt-2" : "mt-3"} flex items-center justify-between gap-3 rounded-xl border border-white/10 px-3 py-2 text-xs sm:text-sm`}>
         <span><span className="text-white/60">{isDemoWallet ? "Demo Playable Balance" : "Playable Balance"}</span> <strong className="ml-2" data-testid="product-wallet-balance">{balanceLabel}</strong></span>
-        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={rememberFundingEntry} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
+        <Link href={isSignedIn ? addFundsHref : `/login?next=${encodeURIComponent(addFundsHref)}&focus=email#login-form`} onClick={fundingForEntry ? rememberFundingEntry : undefined} className="font-bold text-cyan-300 hover:text-cyan-100">Add funds</Link>
       </div>
 
       {state.status !== "idle" && state.status !== "request" && !serverBalanceError ? (

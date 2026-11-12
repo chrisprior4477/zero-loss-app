@@ -58,7 +58,7 @@ export async function checkDemoDeposit(key: string, amount: number, walletId: st
     assertIdempotencyKey(key);
     assertFundingAmount(amount);
     const provider = await fundingProvider(walletId);
-    const request = (await provider.getRequests()).find(row => row.idempotencyKey === key);
+    const request = await provider.getRequest(key);
     if (!request) return { status: "missing" };
     if (request.amount !== amount || request.reconciliation === "discrepancy") return { status: "discrepancy" };
     if (request.reconciliation !== "reconciled") return { status: request.reconciliation, sessionId: request.id };

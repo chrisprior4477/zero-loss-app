@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { checkDemoDeposit, reconcileDemoFunding, type DepositCheck } from "@/lib/payments/actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
+import { depositSupportHref } from "@/lib/support/references";
 import { revealWalletSection } from "./WalletCardEditor";
 import styles from "./wallet-payments.module.css";
 
@@ -44,7 +45,7 @@ export function DepositRecovery({ requestKey, walletId, amount, onCredit, onRevi
       <button className={styles.primary} disabled={pending} name="intent" value="check">{pending ? "Checking…" : "Check this deposit"}</button>
       {result && "sessionId" in result ? <button className={styles.confirm} disabled={pending} name="intent" value="finish">Finish this deposit</button> : null}
       {result?.status === "missing" ? <button type="button" className={styles.secondary} disabled={pending} onClick={onReview}>Review same deposit</button> : null}
-      {result?.status === "discrepancy" ? <a className={styles.secondary} href="/support">Contact Support</a> : null}
+      {result?.status === "discrepancy" ? <a className={styles.secondary} href={depositSupportHref(requestKey)}>Contact Support</a> : null}
     </form>
   </section>;
 }

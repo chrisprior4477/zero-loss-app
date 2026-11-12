@@ -61,6 +61,10 @@ export function purchaseDepositRecoveryHref(slug: string, entryId: string | unde
   return href.replace("#add-funds", `&deposit=${requestKey}#purchase-deposit`);
 }
 
+export function depositRecoveryHref(requestKey: string): string {
+  return `/account/wallet?view=history&deposit=${encodeURIComponent(requestKey)}#purchase-deposit`;
+}
+
 /** Exact allowlist for the funding destination used after sign-in. */
 export function fundingReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 4096 || /[\\\s\u0000-\u001f]/.test(value)) return null;

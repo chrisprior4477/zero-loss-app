@@ -13,6 +13,10 @@ import { formatUsdFromCents } from "@/lib/wallet/money";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { authNavigationHref } from "@/lib/auth/entry-return";
+import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
+import { depositRequestKeyPattern } from "@/lib/payments/provider";
+import { depositRecoveryHref } from "@/lib/wallet/funding-navigation";
+import { depositSupportHref } from "@/lib/support/references";
 import { HelpShortcuts } from "@/components/help/HelpShortcuts";
 import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import styles from "@/components/help/help-tickets.module.css";
@@ -50,14 +54,15 @@ function transactionDetails(value: unknown, timeZone: string) {
   };
 }
 
-export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; rewardId?: string; view?: string; page?: string; messages?: string }> }) {
+export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; rewardId?: string; deposit?: string; view?: string; page?: string; messages?: string }> }) {
   const query = await searchParams;
   const account = await getAccountContext();
   const validCase = typeof query.case === "string" && uuid.test(query.case) ? query.case : null;
   const validTransaction = typeof query.transaction === "string" && uuid.test(query.transaction) ? query.transaction : null;
   const validReward = typeof query.rewardId === "string" && uuid.test(query.rewardId) ? query.rewardId : null;
-  const next = accountPageReturnPath("/support", query, validCase ? "#conversation" : query.page ? "#case-list" : validReward ? "#report-problem" : "");
-  const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header></>;
+  const validDeposit = typeof query.deposit === "string" && depositRequestKeyPattern.test(query.deposit) ? query.deposit : null;
+  const next = accountPageReturnPath("/support", query, validCase ? "#conversation" : query.page ? "#case-list" : validReward || validDeposit ? "#report-problem" : "");
+  const heading = <><HelpLandingScroll target={validCase ? "conversation" : query.page || query.view === "inbox" ? "case-list" : validTransaction || validReward || validDeposit ? "report-problem" : "support-intro"} visitKey={JSON.stringify(query)} /><header id="support-intro" className={`mb-7 ${styles.anchor}`}><p className="text-xs font-extrabold uppercase tracking-[.18em] text-cyan-300">Here to help</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">Support</h1><p className="mt-3 text-white/70">Tell us what happened. Keep the conversation and its status in one place.</p></header></>;
   if (!account) return <PageContainer>{heading}<div className={styles.navigation}><Link className={button} href="/faq#faq-intro">Search frequently asked questions →</Link><Link className={button} href="/forgot-password">Reset your password →</Link></div><div className={card}><p>Sign in to report a problem or view your private support cases.</p><Link href={authNavigationHref("/login", next)} className={`${button} mt-4`}>Sign in to get help</Link></div></PageContainer>;
   if (!isPreviewDataEnvironment()) return <PageContainer>{heading}<p role="status">Support submission is unavailable in this environment.</p></PageContainer>;
   const db = await createClient();
@@ -65,7 +70,9 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const staff = access.data === true;
   const inbox = query.view === "inbox" && staff;
   const navigation = <nav aria-label="Support navigation" className={styles.navigation}><Link className={button} data-tone="support" href="/support#case-list">My support cases</Link><Link className={button} data-tone="wallet" href="/account/wallet?view=history">Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href="/support?view=inbox#case-list">Private support inbox</Link> : null}</nav>;
-  if ((query.case && !validCase) || (query.transaction && !validTransaction) || (query.rewardId && !validReward) || (validReward && (validTransaction || validCase)) || (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;
+  if ((query.case && !validCase) || (query.transaction && !validTransaction) || (query.rewardId && !validReward) || (query.deposit !== undefined && !validDeposit) ||
+    (validReward && (validTransaction || validCase)) || (validDeposit && (validCase || validTransaction || validReward || inbox)) ||
+    (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;
   if (validCase) {
     const result = await db.from("support_cases").select("id,case_number,subject,status,customer_id,ledger_entry_id").eq("id", validCase).maybeSingle();
     if (result.error || !result.data) return <PageContainer>{heading}{navigation}<p role="alert">This case is unavailable for your account. Return to My support cases to try again.</p></PageContainer>;
@@ -98,15 +105,17 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     ? await getSupportOrder(db, account.userId, transaction.data.source_event, account.orders.orders) : undefined;
   const reward = validReward ? await db.from("customer_rewards").select("id").eq("id", validReward).eq("customer_id", account.userId).maybeSingle() : null;
   const rewardTitle = validReward ? account.activity?.activity.find(item => item.rewardId === validReward)?.title : undefined;
+  const deposit = validDeposit && account.wallet?.scope === "demo"
+    ? await new DemoPaymentProvider(db).getRequest(validDeposit).catch(() => undefined) : undefined;
   const casePage = pageIndex(query.page);
   let casesQuery = db.from("support_cases").select("id,case_number,subject,status,updated_at").order("updated_at", { ascending: false }).order("id", { ascending: false }).range(casePage * pageSize, (casePage + 1) * pageSize);
   if (!inbox) casesQuery = casesQuery.eq("customer_id", account.userId);
   const cases = await casesQuery;
   return <PageContainer>{heading}{navigation}{inbox ? <p className={`${note} mb-5 text-sm`}>Private case review and replies only. This inbox cannot issue refunds, adjust balances, or change prizes.</p> : null}
-    {!inbox && !validTransaction && !validReward ? <HelpShortcuts activity={account.activity} /> : null}
+    {!inbox && !validTransaction && !validReward && !validDeposit ? <HelpShortcuts activity={account.activity} /> : null}
     <div className="grid gap-6 lg:grid-cols-2">
       {!inbox ? <section id="report-problem" className={`${card} ${styles.anchor}`}><h2 className="mb-4 text-xl font-black">Report a problem</h2>
-        {validReward && (!reward?.data || reward.error) ? <p role="alert">That reward is unavailable for your account. Open your saved reward and try again.</p> : validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again.</p> : <>
+        {validDeposit && !deposit ? <p role="alert">We couldn’t verify that deposit for your account. Return to Wallet history to try again. <Link href="/support">Get general support</Link></p> : validReward && (!reward?.data || reward.error) ? <p role="alert">That reward is unavailable for your account. Open your saved reward and try again.</p> : validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again.</p> : <>
           {charge && (linkedOrder ? <div className={`${note} ${styles.linkedOrder} mb-4 text-sm`}>
             <div className={styles.linkedOrderTitle}>
               <Image src={linkedOrder.image} alt="" width={36} height={36} />
@@ -116,12 +125,13 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
             <Link href={exactOrderHref(linkedOrder.orderNumber)}>Back to this order</Link>
           </div> : <p className={`${note} mb-4 text-sm`}>Linked wallet transaction: {charge.amount} · {charge.date}</p>)}
           {validReward ? <div className={`${note} mb-4 break-words text-sm`}><p>Linked reward: <strong>{rewardTitle ?? "Saved reward"}</strong><span className="mt-1 block break-all">Reward reference: {validReward}</span></p><Link className={`${button} ${styles.rewardReturn}`} href={`/account/wallet?rewardId=${validReward}#reward-pass`}>Back to this reward</Link></div> : null}
-          <SupportForm ownerId={account.userId} key={validTransaction ?? validReward ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} />
+          {deposit ? <div className={`${note} mb-4 break-words text-sm`}><p>Linked deposit: <strong>{formatUsdFromCents(deposit.amount)} USD</strong><span className="mt-1 block break-all">Deposit reference: {deposit.id}</span></p><Link className={`${button} ${styles.rewardReturn}`} href={depositRecoveryHref(deposit.idempotencyKey)}>Back to this deposit</Link></div> : null}
+          <SupportForm ownerId={account.userId} key={validTransaction ?? validReward ?? validDeposit ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} deposit={deposit ? { key: deposit.idempotencyKey, id: deposit.id, amount: deposit.amount } : undefined} />
         </>}
       </section> : null}
       <section id="case-list" className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>
         {cases.error ? <p role="alert" className="mt-4">We couldn’t load cases. Please refresh to try again.</p> : !cases.data?.length ? <p className={`mt-4 ${styles.muted}`}>{casePage > 0 ? "No more cases on this page." : "No cases yet."}</p> : <ul className="mt-4 space-y-3">{cases.data.slice(0, pageSize).map(c => <li key={c.id}><Link href={`/support?case=${c.id}#conversation`} className={`${styles.ticket} ${styles.caseLink}`}><strong className="block break-words">{c.subject}</strong><span className={`mt-1 block text-sm ${styles.eyebrow}`}>{statusLabel(c.status, inbox)}</span><span className={`mt-2 block break-all text-xs ${styles.muted}`}>{c.case_number}</span></Link></li>)}</ul>}
-        {!cases.error ? pageLinks(inbox ? "/support?view=inbox" : validTransaction ? `/support?transaction=${validTransaction}` : validReward ? `/support?rewardId=${validReward}` : "/support", casePage, (cases.data?.length ?? 0) > pageSize) : null}
+        {!cases.error ? pageLinks(inbox ? "/support?view=inbox" : validTransaction ? `/support?transaction=${validTransaction}` : validReward ? `/support?rewardId=${validReward}` : validDeposit ? depositSupportHref(validDeposit).split("#")[0] : "/support", casePage, (cases.data?.length ?? 0) > pageSize) : null}
       </section>
     </div>
   </PageContainer>;

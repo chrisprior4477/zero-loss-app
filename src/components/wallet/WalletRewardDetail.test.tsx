@@ -50,7 +50,7 @@ test.each([null, "", "   "])("a missing saved credential never generates a repla
   expect(screen.queryByText("Claimed — ready to use")).toBeNull();
   expect(screen.getByRole("status").textContent).toContain("couldn’t load your saved");
   expect((screen.getByRole("button", { name: /Copy number/ }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getByRole("link", { name: "Get reward help" }).getAttribute("href")).toBe("/support");
+  expect(screen.getByRole("link", { name: "Get reward help" }).getAttribute("href")).toBe(`/support?rewardId=${item.rewardId}#report-problem`);
 });
 
 test.each<RewardStatus>(["expired", "cancelled", "redeemed", "issuance_pending", "issuance_failed"])("%s never exposes a code or claim action, even with stale claimed data", status => {

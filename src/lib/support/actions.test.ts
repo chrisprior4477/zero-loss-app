@@ -104,3 +104,24 @@ test('the message limit reserves space for the attached reward and preserves the
  expect(await saveSupportCase({status:'idle'},data)).toMatchObject({status:'error',field:'body'});
  expect(mocks.rpc).not.toHaveBeenCalled();
 });
+
+test.each([true, false])("a deposit case attaches only a verified amount and reference (owned: %s)", async owned => {
+  const data = form();
+  data.delete("transactionId");
+  data.set("deposit", transactionId);
+  data.set("amount", "999999");
+  mocks.rpc.mockImplementation(async name => ({ data: name === "get_demo_funding_requests"
+    ? owned ? [{ id: caseId, idempotencyKey: transactionId, amount: 7300, currency: "USD", status: "processing", reconciliation: "discrepancy", created_at: "2026-11-12T12:00:00Z" }] : []
+    : caseId }));
+  const result = await saveSupportCase({ status: "idle" }, data);
+  if (owned) {
+    expect(result).toEqual({ status: "saved", caseId });
+    expect(mocks.rpc).toHaveBeenLastCalledWith("create_support_case", expect.objectContaining({
+      p_ledger_entry_id: null, p_category: "wallet",
+      p_body: `Deposit reference: ${caseId}\nDeposit amount: $73 USD\n\nPlease check this transaction.`,
+    }));
+  } else {
+    expect(result).toMatchObject({ status: "error", message: expect.stringContaining("deposit is unavailable") });
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("get_demo_funding_requests");
+  }
+});

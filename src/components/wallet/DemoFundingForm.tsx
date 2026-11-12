@@ -15,6 +15,7 @@ import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { isFundingAmount } from "@/lib/payments/provider";
 import { parseFundingDollars } from "@/lib/payments/funding-amount";
 import { formatUsdFromCents } from "@/lib/wallet/money";
+import { depositSupportHref } from "@/lib/support/references";
 import { DEMO_CARD_FIXTURES, DEMO_CARD_TOKEN, demoCardFixture, type DemoCard, type DemoCardToken, type DemoCardArtwork } from "@/lib/payments/demo-card";
 import { DepositRecovery } from "./DepositRecovery";
 import { DemoFundingCard } from "./DemoFundingCard";
@@ -485,7 +486,7 @@ export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hidd
           <p>Request {request.id}</p>
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
-        {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it.</p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} continueTo={continueTo} /> : null}
+        {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} continueTo={continueTo} /> : null}
       </li>)}</ul></>}
     <TicketBatchControls {...controls} />
     {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}

@@ -50,6 +50,31 @@ test("browser Back restores the draft for this prize within current availability
   }
 });
 
+test("live availability caps the current selection, closes stale funding guidance, and never grows the selection again", () => {
+  function page(remaining: number) {
+    return <ProductEntrySelection slug={props.productSlug} initialQuantity={1} remaining={remaining}>
+      <FreeEntryLink className="" slug={props.productSlug}>Free-entry instructions</FreeEntryLink>
+      <DemoParticipationPanel {...props} sold={20 - remaining} isSignedIn isDemoWallet balanceCents={500} extraEntryExplainerAcknowledged />
+    </ProductEntrySelection>;
+  }
+  const { rerender } = render(page(11));
+  const input = screen.getByRole("spinbutton", { name: "Number of entries" });
+  fireEvent.change(input, { target: { value: "7" } });
+  fireEvent.click(screen.getByRole("button", { name: "Enter for $7.00" }));
+  expect(screen.getByText(/not enough funds/i)).toBeTruthy();
+  rerender(page(2));
+  expect(input).toHaveProperty("value", "2");
+  expect(screen.getByRole("button", { name: "Enter for $2.00" })).toBeTruthy();
+  expect(screen.queryByText(/not enough funds/i)).toBeNull();
+  expect(screen.getByText("Availability changed. Your selection is now 2 entries.")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toContain("quantity=2");
+  expect(screen.getByRole("link", { name: "Free-entry instructions" }).getAttribute("href")).toContain("quantity=2");
+  expect(readEntryIntent()?.quantity).toBe(2);
+  rerender(page(10));
+  expect(input).toHaveProperty("value", "2");
+  expect(actionMocks.enter).not.toHaveBeenCalled();
+});
+
 test("the sticky wallet balance follows the current prize quantity and browse filters, then clears on exit", () => {
   const browse = "/browse?category=groceries";
   render(<HeaderAccountMetrics isSignedIn liveBalance="$1" activityState={{ source: "stored", isPreview: true, activeCount: 1, activity: [] }} />);
@@ -159,14 +184,16 @@ test("checkout fails closed when the previous request cannot be checked", () => 
 
 test("lost response retries the identical intent instead of throwing away the page", async () => {
   actionMocks.enter.mockRejectedValueOnce(new Error("Network disconnected")).mockResolvedValueOnce({ status: "error", code: "outcome_unknown", message: "Still checking" });
-  render(<DemoParticipationPanel {...props} isSignedIn extraEntryExplainerAcknowledged />);
+  const { rerender } = render(<DemoParticipationPanel {...props} isSignedIn extraEntryExplainerAcknowledged />);
   fireEvent.click(screen.getByRole("button", { name: "Add one entry" }));
   fireEvent.click(screen.getByRole("button", { name: "Enter for $2.00" }));
-  const retry = await screen.findByRole("button", { name: "Check saved submission" });
+  await screen.findByRole("button", { name: "Check saved submission" });
   const original = actionMocks.enter.mock.calls[0][1] as FormData;
   expect(original.get("quantity")).toBe("2");
   expect(screen.getByRole("button", { name: "Add one entry" }).closest("fieldset")?.disabled).toBe(true);
-  fireEvent.click(retry);
+  rerender(<DemoParticipationPanel {...props} sold={props.capacity} isSignedIn extraEntryExplainerAcknowledged />);
+  expect(screen.getByTestId("entry-quantity")).toHaveProperty("value", "2");
+  fireEvent.click(screen.getByRole("button", { name: "Check saved submission" }));
   await waitFor(() => expect(actionMocks.enter).toHaveBeenCalledTimes(2));
   expect(actionMocks.enter.mock.calls[1][1]).toBe(original);
   expect(screen.queryByRole("dialog")).toBeNull();
@@ -187,11 +214,14 @@ test("recovered receipt links to original entry and explicitly distinguishes a n
 });
 
 test("30-second Undo appears inline by the entry controls, not in a floating toast", async () => {
-  render(<DemoParticipationPanel {...props} isSignedIn />);
+  const { rerender } = render(<DemoParticipationPanel {...props} isSignedIn />);
   const receipt = { requestId: "41414141-4141-4141-8141-414141414141", slug: props.productSlug,
-    title: props.productTitle, quantity: 1, amountCents: 100, status: "pending", undoUntil: "2026-09-20T12:00:30Z",
+    title: props.productTitle, quantity: 7, amountCents: 700, status: "pending", undoUntil: "2026-09-20T12:00:30Z",
     serverNow: "2026-09-20T12:00:00Z", href: null };
   act(() => window.dispatchEvent(new CustomEvent(ENTRY_REQUEST_EVENT, { detail: receipt })));
+  rerender(<DemoParticipationPanel {...props} sold={18} isSignedIn />);
+  expect(screen.getByText(/7 tickets · \$7\.00 reserved/)).toBeTruthy();
+  expect(screen.getByTestId("entry-quantity")).toHaveProperty("value", "7");
   expect(screen.getByText(/Entry submitted · Undo available/).closest("aside")?.id).toBe("enter-entry");
   expect(screen.getByRole("timer", { name: "30 seconds left to undo" }).textContent).toBe("30sec");
   expect(screen.getByText(/header counts active entries after confirmation/)).toBeTruthy();
