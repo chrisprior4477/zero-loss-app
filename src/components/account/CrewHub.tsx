@@ -3,7 +3,7 @@ import { useAccountTimeZone } from "./TimeZoneProvider";
 import Link from "next/link";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
   getCrewSharedPicks, setCrewShareBack, removeCrewConnection, requestCrewInvitationFromLink, respondToCrewRequest,
 } from "@/lib/crew/actions";
@@ -142,27 +142,29 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     setMemberPicksError(false);
   }
 
-  const loadMember = useCallback((id: string) => {
+  const loadMember = useCallback((id: string, preservePosition = false) => {
     pickRequest.current += 1;
     const request = pickRequest.current;
     setSamplePerson(null);
     setOpenMemberId(id);
-    setMemberPicks([]);
     setMemberPicksError(false);
-    setMemberPicksLoading(true);
+    if (!preservePosition) {
+      setMemberPicks([]);
+      setMemberPicksLoading(true);
+    }
     startTransition(async () => {
       const result = await getCrewSharedPicks(id).catch(() => ({ ok: false, picks: [] }));
       if (pickRequest.current !== request) return;
-      setMemberPicks(result.picks);
+      setMemberPicks(result.ok ? result.picks : []);
       setMemberPicksError(!result.ok);
       setMemberPicksLoading(false);
     });
   }, []);
 
-  function selectMember(id: string, retry = false) {
-    if (openMemberId === id && !retry) return;
-    forgetReturn();
-    loadMember(id);
+  function selectMember(id: string) {
+    const samePerson = openMemberId === id;
+    if (!samePerson) forgetReturn();
+    loadMember(id, samePerson);
   }
 
   function forgetReturn() {
@@ -197,8 +199,34 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
     return () => { window.removeEventListener("popstate", restorePerson); window.removeEventListener("pageshow", restorePerson); };
   }, [currentUserId, memberKeys, sampleKeys, loadMember]);
 
-  const activeMember = people.find((person) => person.memberId === openMemberId);
-  const activeKey = samplePerson ? `sample-${samplePerson}` : openMemberId;
+  const activeMember = available ? people.find((person) => person.memberId === openMemberId) : undefined;
+  const refreshOpenPicks = useEffectEvent(() => {
+    if (!activeMember) {
+      pickRequest.current += 1;
+      setMemberPicks([]);
+      setMemberPicksLoading(false);
+      setMemberPicksError(false);
+    } else if (activeMember.memberId === selectedMemberId) {
+      pickRequest.current += 1;
+      setMemberPicks(selectedPicks);
+      setMemberPicksLoading(false);
+      setMemberPicksError(false);
+    } else {
+      loadMember(activeMember.memberId, true);
+    }
+  });
+  const previousPicksRead = useRef({ invitations, selectedPicks, selectedMemberId, available, tab });
+  useLayoutEffect(() => {
+    const previous = previousPicksRead.current;
+    previousPicksRead.current = { invitations, selectedPicks, selectedMemberId, available, tab };
+    // AccountStateSync refreshes the route when the tab regains focus.
+    if (tab === "crew" && (previous.invitations !== invitations || previous.selectedPicks !== selectedPicks
+      || previous.selectedMemberId !== selectedMemberId || previous.available !== available || previous.tab !== tab)) {
+      refreshOpenPicks();
+    }
+  }, [invitations, selectedPicks, selectedMemberId, available, tab]);
+  const visibleMemberPicks = activeMember ? memberPicks : [];
+  const activeKey = samplePerson ? `sample-${samplePerson}` : activeMember?.memberId ?? null;
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter(item => item.status === "completion").length;
@@ -236,17 +264,17 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       </nav>
       {tab === "crew" ? <>
         <CrewConnectedGallery ownerId={currentUserId} people={people} samples={samples} selectedKey={activeKey}
-          picks={memberPicks.map(pick => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `${pick.shareKind === "win" ? "Shared win" : "Shared"} ${formatDate(pick.sharedAt, timeZone)}` }))}
+          picks={visibleMemberPicks.map(pick => ({ title: pick.title, retailer: pick.retailer, image: pick.image, slug: pick.offeringSlug, note: `${pick.shareKind === "win" ? "Shared win" : "Shared"} ${formatDate(pick.sharedAt, timeZone)}` }))}
           loading={Boolean(activeMember) && memberPicksLoading} error={Boolean(activeMember) && memberPicksError} pending={pending}
-          onMember={selectMember} onSample={selectSample} onRetry={() => { if (activeMember) selectMember(activeMember.memberId, true); }}
+          onMember={selectMember} onSample={selectSample} onRetry={() => { if (activeMember) selectMember(activeMember.memberId); }}
           onShareBack={(id, enabled) => run(() => setCrewShareBack(id, enabled))} onRemove={id => run(() => removeCrewConnection(id))} onSampleRemove={name => { removeSampleCrewPreview(name); if (samplePerson === name) setSamplePerson(samples.find(other => other !== name) ?? null); }}
           onShare={() => setSharing(true)} onAdd={openCrewSearch} />
         <section className={connectedStyles.inviteStrip}><div><h2>Good finds are better shared.</h2><p>Bring someone along. Give them a reason to come back.</p></div><button type="button" onClick={openCrewSearch}>Add people +</button></section>
       </> : null}
-      {sharing ? <CrewSharePicker products={[...new Map([...memberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(false)} /> : null}
+      {sharing ? <CrewSharePicker products={[...new Map([...visibleMemberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(false)} /> : null}
 
       <div className={firstStyles.content} hidden={tab !== "groups" && tab !== "privacy"}>
-        <CrewDisplaySettings key={JSON.stringify([visibility, entries.filter(entry => entry.shared).map(entry => entry.id)])} embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />
+        <CrewDisplaySettings key={currentUserId} embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />
       </div>
 
       {tab === "requests" ? <section className={styles.utilityGrid}>

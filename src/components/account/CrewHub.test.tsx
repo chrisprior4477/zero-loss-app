@@ -277,6 +277,45 @@ test("a failed member activity request can be retried without a blank panel", as
   expect(actions.getCrewSharedPicks).toHaveBeenCalledTimes(2);
 });
 
+test("server refresh and tapping the same Crew member replace withdrawn picks in place", async () => {
+  const memberId = "taylor";
+  const memberPick = { title: "Spinning Reel", retailer: "Bass Pro Shops", image: "/catalog/reel.png", offeringSlug: "penn-battle-iv-2500", sharedAt: "2026-11-01T12:00:00Z" };
+  const props = {
+    currentUserId: "me", invitations: [{ id: "connection", requester_id: "me", recipient_id: memberId, requester_name: "Me", recipient_name: "Taylor", status: "accepted" as const, created_at: "2026-10-01T12:00:00Z" }],
+    members: [{ memberId, name: "Taylor", avatarUrl: null }], discoverable: false, entries: [],
+    selectedMemberId: null, selectedPicks: [], available: true, initialTab: "crew" as const,
+  };
+  const view = render(<CrewHub {...props} />);
+  const person = screen.getByRole("button", { name: "See Taylor's shared activity" });
+  actions.getCrewSharedPicks.mockResolvedValueOnce({ ok: true, picks: [memberPick] });
+  fireEvent.click(person);
+  await screen.findByRole("link", { name: /Spinning Reel/ });
+  const rail = screen.getByRole("group", { name: "Taylor's shared picks" });
+  actions.getCrewSharedPicks.mockResolvedValueOnce({ ok: true, picks: [memberPick] });
+  fireEvent.click(person);
+  await waitFor(() => expect(actions.getCrewSharedPicks).toHaveBeenCalledTimes(2));
+  expect(screen.getByRole("group", { name: "Taylor's shared picks" })).toBe(rail);
+  view.rerender(<CrewHub {...props} selectedMemberId={memberId} />);
+  expect(screen.queryByRole("link", { name: /Spinning Reel/ })).toBeNull();
+  expect(screen.getByRole("region", { name: "Taylor's shared activity" })).toBeTruthy();
+  expect(actions.getCrewSharedPicks).toHaveBeenCalledTimes(2);
+});
+
+test("a fresh Crew roster triggers a new authorized read for a locally selected member", async () => {
+  const memberId = "taylor";
+  const memberPick = { title: "Spinning Reel", retailer: "Bass Pro Shops", image: "/catalog/reel.png", offeringSlug: "penn-battle-iv-2500", sharedAt: "2026-11-01T12:00:00Z" };
+  const invitations = [{ id: "connection", requester_id: "me", recipient_id: memberId, requester_name: "Me", recipient_name: "Taylor", status: "accepted" as const, created_at: "2026-10-01T12:00:00Z" }];
+  const props = { currentUserId: "me", invitations, members: [{ memberId, name: "Taylor", avatarUrl: null }], discoverable: false, entries: [], selectedMemberId: null, selectedPicks: [], available: true, initialTab: "crew" as const };
+  actions.getCrewSharedPicks.mockResolvedValueOnce({ ok: true, picks: [memberPick] });
+  const view = render(<CrewHub {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "See Taylor's shared activity" }));
+  await screen.findByRole("link", { name: /Spinning Reel/ });
+  view.rerender(<CrewHub {...props} invitations={[...invitations]} />);
+  await screen.findByText("No activity shared with Crew yet.");
+  expect(actions.getCrewSharedPicks).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole("link", { name: /Spinning Reel/ })).toBeNull();
+});
+
 test("sample lookup reopens the same person rather than toggling their picks off", async () => {
   actions.searchCrewByName.mockResolvedValue({ ok: true, people: [], message: "No discoverable members." });
   render(<CrewHub currentUserId="me" invitations={[]} members={[]} discoverable={false} entries={[]} selectedMemberId={null} selectedPicks={[]} available initialTab="crew" />);

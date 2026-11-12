@@ -43,17 +43,42 @@ test("confirmed group removal updates the baseline before a later privacy save",
   expect(saveCrewDisplaySettings.mock.calls[0][0].expected.entryRules[pick].groupIds).toEqual([]);
 });
 
-test("an older draft retains its original baseline and adopts merged groups after saving", async () => {
+test("an unsaved privacy edit survives a refresh that adds a group", async () => {
   const initial = { available: true, initialDiscoverable: false, initialDefaultRule: { audience: "everyone" as const, memberIds: [], groupIds: [] }, initialGroups: [], initialEntryRules: {}, members: [], sharedPicks: [] };
   const latestGroups = [{ id: first, name: "New group from another tab", memberIds: [] }];
   saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Saved", settings: { discoverable: true, discovery: { real: true, email: true, phone: true }, defaultRule: initial.initialDefaultRule, groups: latestGroups, entryRules: {} } });
   const view = render(<CrewDisplaySettings {...initial} />);
   fireEvent.click(screen.getByLabelText(/Find me by display name/i));
   view.rerender(<CrewDisplaySettings {...initial} initialGroups={latestGroups} />);
+  expect(screen.getByText("New group from another tab")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
   await waitFor(() => expect(saveCrewDisplaySettings).toHaveBeenCalledOnce());
-  expect(saveCrewDisplaySettings.mock.calls[0][0].expected.groups).toEqual([]);
+  expect(saveCrewDisplaySettings.mock.calls[0][0]).toMatchObject({ discoverable: true, expected: { discoverable: false, groups: latestGroups } });
   expect(await screen.findByText("New group from another tab")).toBeTruthy();
+});
+
+test("a group draft stays open through another group's update and warns on a same-group conflict", () => {
+  const family = { id: first, name: "Family", memberIds: [] };
+  const friends = { id: second, name: "Friends", memberIds: [] };
+  const props = { available: true, embedded: true, section: "groups" as const, initialDiscoverable: false, initialDefaultRule: { audience: "everyone" as const, memberIds: [], groupIds: [] }, initialEntryRules: {}, members: [], sharedPicks: [] };
+  const view = render(<CrewDisplaySettings {...props} initialGroups={[family, friends]} />);
+  fireEvent.click(screen.getAllByRole("button", { name: "Add people to group" })[0]);
+  const name = screen.getByRole("textbox", { name: "Group name" });
+  fireEvent.change(name, { target: { value: "Family weekend" } });
+  name.focus();
+  const updatedFriends = { ...friends, name: "School friends" };
+  view.rerender(<CrewDisplaySettings {...props} initialGroups={[family, updatedFriends]} />);
+  expect(screen.getByText("School friends")).toBeTruthy();
+  expect(screen.getByRole("textbox", { name: "Group name" })).toBe(name);
+  expect(document.activeElement).toBe(name);
+  view.rerender(<CrewDisplaySettings {...props} initialGroups={[{ ...family, name: "Family trip" }, updatedFriends]} />);
+  expect(name).toHaveProperty("value", "Family weekend");
+  expect(screen.getByRole("alert").textContent).toContain("This group changed in another tab");
+  expect(screen.getByRole("button", { name: "Save group" })).toHaveProperty("disabled", true);
+  fireEvent.click(screen.getByRole("button", { name: "Load saved group" }));
+  expect(name).toHaveProperty("value", "Family trip");
+  expect(screen.getByRole("button", { name: "Save group" })).toHaveProperty("disabled", false);
+  expect(saveCrewGroup).not.toHaveBeenCalled();
 });
 
 test("account settings framing keeps every existing sharing control available", () => {

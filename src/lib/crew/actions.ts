@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { crewUuid, isCrewVisibilityGroup, isCrewVisibilityRule, normalizeCrewContactPhone, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "./visibility";
 import { crewMemberContacts, isCrewMemberContact, type CrewMemberContact } from "./member-contact";
 
-type CrewActionResult = { ok: boolean; message: string };
+type CrewActionResult = { ok: boolean; message: string; conflict?: boolean };
 export type CrewSearchPerson = { memberId: string; name: string; avatarUrl: string | null };
 type CrewSearchResult = CrewActionResult & { people: CrewSearchPerson[] };
 export type CrewSharedPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
@@ -151,20 +151,26 @@ export async function saveCrewDisplaySettings(input: {
       entryRules: input.entryRules,
     },
   });
-  if (error?.code === "40001") return { ok: false, message: "These settings changed in another tab. Refresh this page and review the latest choices before saving. Your newer groups and sharing choices are safe." };
+  if (error?.code === "40001") return { ok: false, conflict: true, message: "These settings changed in another tab. Review the latest choices before saving. Your draft is still here." };
   if (error) return { ok: false, message: "We couldn’t save those settings. Check that each person is still in your Crew, then try again." };
   refreshCrew();
   return { ok: true, message: "Saved to your profile. Your search visibility and pick audiences are updated.", settings: data as CrewDisplaySnapshot };
 }
 
 /** Save just one group, leaving other visibility edits for the main Save to profile action. */
-export async function saveCrewGroup(input: { group: CrewVisibilityGroup; remove: boolean }): Promise<CrewActionResult> {
-  const session = await signedInClient();
-  if (!session) return { ok: false, message: "Sign in to save your Crew group." };
+export async function saveCrewGroup(input: { group: CrewVisibilityGroup; remove: boolean; expected?: CrewDisplaySnapshot }): Promise<CrewActionResult> {
   if (!input || !isCrewVisibilityGroup(input.group) || typeof input.remove !== "boolean") {
     return { ok: false, message: "Review the group name and people before saving." };
   }
   const group = groupForSave(input.group);
+  if (!input.remove && input.expected) {
+    const expected = input.expected;
+    const groups = expected.groups.filter(item => item.id !== group.id);
+    const result = await saveCrewDisplaySettings({ ...expected, groups: [...groups, group], expected });
+    return result.ok ? { ok: true, message: `${group.name} saved to your profile.` } : result;
+  }
+  const session = await signedInClient();
+  if (!session) return { ok: false, message: "Sign in to save your Crew group." };
   const { error } = await session.db.rpc("save_crew_visibility_group", { p_group: group, p_remove: input.remove });
   if (error) return { ok: false, message: "We couldn’t save that group. Check that everyone is still in your Crew, then try again." };
   refreshCrew();

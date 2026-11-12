@@ -90,7 +90,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
   <CrewHub
     visibility={crewVisibilitySnapshot(settingsResult.data, new Set((membersResult.data ?? []).map((member: { member_id: string }) => member.member_id)))}
     visibilityAvailable={!settingsResult.error}
-    key={`${params.tab ?? "crew"}-${params.request ?? ""}`}
+    key={`${account.userId}:${params.request ?? ""}:${params.invite ?? ""}`}
     currentUserId={account.userId}
     invitations={invitations}
     members={(membersResult.data ?? []).map((member: { member_id: string; name: string; avatar_reference: string | null }): CrewMember => ({
