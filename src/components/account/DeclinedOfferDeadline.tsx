@@ -7,36 +7,53 @@ import styles from "./my-activity.module.css";
 
 const dayMs = 24 * 60 * 60 * 1000;
 
-export function DeclinedOfferDeadline({ optionId, expiresAt, initialReminderStatus, canRequestReminder }: {
-  optionId: string;
-  expiresAt: string | null;
-  initialReminderStatus: string | null;
-  canRequestReminder: boolean;
-}) {
+function useOfferClock() {
   const [now, setNow] = useState<number | null>(null);
-  const preference = useServerPreference(initialReminderStatus);
-  const status = preference.value;
-  const [message, setMessage] = useState("");
-  const [needsCheck, setNeedsCheck] = useState(false);
-  const [pending, startTransition] = useTransition();
   useEffect(() => {
     const update = () => setNow(Date.now());
     update();
     const timer = window.setInterval(update, 60_000);
     return () => window.clearInterval(timer);
   }, []);
+  return now;
+}
+
+function daysLeft(remaining: number) {
+  const days = Math.ceil(remaining / dayMs) - 1;
+  return days < 1 ? "Less than 1 day left" : `${days} ${days === 1 ? "day" : "days"} left`;
+}
+
+export function DeclinedOfferCountdown({ deadlines }: { deadlines: number[] }) {
+  const now = useOfferClock();
+  const next = now === null ? undefined : deadlines.find(deadline => deadline > now);
+  const label = !deadlines.length ? "Deadline unavailable" : now === null ? "Checking deadline…" : next === undefined
+    ? deadlines.length === 1 ? "Offer expired" : "Offers expired"
+    : daysLeft(next - now);
+  return <p className={styles.declinedCountdown}>
+    <strong>{label}</strong>{next !== undefined && deadlines.length > 1 && deadlines[0] !== deadlines.at(-1) ? <span>Next offer expires</span> : null}
+  </p>;
+}
+
+export function DeclinedOfferReminder({ optionId, expiresAt, initialReminderStatus, canRequestReminder }: {
+  optionId: string;
+  expiresAt: string | null;
+  initialReminderStatus: string | null;
+  canRequestReminder: boolean;
+}) {
+  const now = useOfferClock();
+  const preference = useServerPreference(initialReminderStatus);
+  const status = preference.value;
+  const [message, setMessage] = useState("");
+  const [needsCheck, setNeedsCheck] = useState(false);
+  const [pending, startTransition] = useTransition();
   const deadline = expiresAt ? new Date(expiresAt).getTime() : NaN;
   const remaining = now === null || !Number.isFinite(deadline) ? null : deadline - now;
-  const days = remaining === null ? null : Math.max(0, Math.ceil(remaining / dayMs) - 1);
   const isExpired = remaining !== null && remaining <= 0;
   const tooLateToSchedule = remaining !== null && remaining <= 2 * dayMs;
-  const label = days === null ? "Checking deadline…" : isExpired ? "Offer expired"
-    : days === 0 ? "Less than 1 day left" : `${days} ${days === 1 ? "day" : "days"} left`;
   const canChange = canRequestReminder && !pending && !needsCheck && !isExpired && status !== "sent" && status !== "processing"
     && (status === "pending" || !tooLateToSchedule);
   const checked = status === "pending" || status === "sent" || status === "processing";
   return <div className={styles.declinedTiming}>
-    <p className={styles.declinedCountdown}><strong>{label}</strong>{!isExpired && days !== null ? " until this offer expires" : null}</p>
     <label className={styles.declinedReminder}>
       <input type="checkbox" checked={checked} disabled={!canChange} onChange={event => {
         const enabled = event.target.checked;

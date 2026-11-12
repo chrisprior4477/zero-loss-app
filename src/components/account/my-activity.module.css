@@ -10,7 +10,7 @@
 .subtitle { margin-top: 12px; color: #d5dfed; font-size: clamp(17px, 2.2vw, 36px); line-height: 1.25; }
 
 .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 30px; scroll-margin-top: calc(var(--site-header-height, 140px) + 12px); }
-.filter, .productCard, .accountTool, .empty, .declinedRow, .entryActionTicket {
+.filter, .productCard, .accountTool, .empty, .declinedProduct, .declinedRow, .declinedStack::before, .declinedStack::after, .entryActionTicket {
   --ticket-side-notch: 10px;
   --ticket-corner-notch: 12px;
   --ticket-cutouts:
@@ -195,17 +195,37 @@
 .declinedActions a:last-child { background: #31e800; color: #08251d; }
 .declinedActions a:hover { filter: brightness(1.07); }
 .declinedBack { display: inline-flex; min-height: 44px; align-items: center; margin-bottom: 18px; color: #63dfff; font-size: 15px; font-weight: 800; }
-.declinedList { display: grid; gap: 11px; margin-top: 30px; }
-.declinedRow { --ticket-side-notch: 11px; --ticket-corner-notch: 14px; display: grid; grid-template-columns: 104px minmax(0, 1.5fr) minmax(230px, 1fr) auto; align-items: center; gap: 20px; min-height: 125px; padding: 16px 26px; background: #fffefa; color: #0b173b; scroll-margin-top: calc(var(--site-header-height, 140px) + 12px); }
+.declinedList { display: grid; gap: 18px; width: min(100%, 1000px); margin: 30px auto 0; }
+.declinedStack { position: relative; isolation: isolate; }
+.declinedStack:not([data-layers="0"]) { padding-bottom: 5px; }
+.declinedStack[data-layers="2"] { padding-bottom: 10px; }
+.declinedStack:not([data-layers="0"])::after, .declinedStack[data-layers="2"]::before { content: ""; position: absolute; z-index: -1; pointer-events: none; }
+.declinedStack[data-layers="2"]::before { inset: 10px 12px 0; background: #6287a5; }
+.declinedStack:not([data-layers="0"])::after { inset: 5px 6px 0; background: #bbd8e9; }
+.declinedStack[data-layers="2"]::after { bottom: 5px; }
+.declinedProduct, .declinedRow { display: grid; align-items: center; gap: 16px; padding: 14px 22px; background: #fffefa; color: #0b173b; }
+.declinedProduct { grid-template-columns: auto minmax(0, 1fr) auto; }
+.declinedRow { grid-template-columns: minmax(0, 1fr) minmax(0, .85fr) auto; scroll-margin-top: calc(var(--site-header-height, 140px) + 12px); }
+.declinedDisclosure { margin-top: 8px; }
+.declinedToggle { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; padding: 8px 14px; border-radius: 10px; background: #dff3ff; color: #07365f; font-size: 15px; font-weight: 850; list-style: none; cursor: pointer; }
+.declinedToggle::-webkit-details-marker { display: none; }
+.declinedToggle:focus-visible { outline: 3px solid #87e6ff; outline-offset: 3px; }
+.declinedToggleIcon::after { content: "+"; }
+.declinedDisclosure[open] .declinedToggleIcon::after { content: "−"; }
+.declinedHide, .declinedDisclosure[open] .declinedShow { display: none; }
+.declinedDisclosure[open] .declinedHide { display: inline; }
+.declinedTickets { display: grid; gap: 6px; margin-top: 8px; }
 .declinedImage { position: relative; width: 104px; height: 80px; overflow: hidden; border-radius: 9px; background: #e1f2ff; }
 .declinedImage img { object-fit: contain; }
 .declinedRetailer { color: #1675c1; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
 .declinedDetails h2 { margin: 2px 0 5px; font-size: clamp(17px, 1.8vw, 23px); line-height: 1.1; }
+.declinedDetails h3 { margin: 0 0 4px; overflow-wrap: anywhere; font-size: 16px; font-weight: 800; }
 .declinedDetails p { color: #536d87; font-size: 13px; line-height: 1.45; }
 .declinedDetails strong { color: #0b173b; }
 .declinedTiming { min-width: 0; display: grid; gap: 7px; justify-items: start; }
 .declinedCountdown { color: #0b173b; font-size: clamp(13px, 1.2vw, 17px); line-height: 1.25; }
-.declinedCountdown strong { color: #086bc7; font-size: clamp(20px, 2vw, 29px); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.declinedCountdown strong { color: #086bc7; font-size: clamp(19px, 1.9vw, 25px); font-variant-numeric: tabular-nums; }
+.declinedCountdown span { display: block; color: #536d87; font-size: 12px; }
 .declinedReminder { display: flex; align-items: flex-start; gap: 8px; max-width: 310px; color: #344d69; font-size: 12px; font-weight: 700; line-height: 1.3; cursor: pointer; }
 .declinedReminder input { width: 17px; height: 17px; flex: 0 0 17px; margin-top: 0; accent-color: #168d22; }
 .declinedReminder:has(input:disabled) { opacity: .64; cursor: not-allowed; }
@@ -233,7 +253,6 @@
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #87e6ff; outline-offset: 3px; }
 
 @media (max-width: 1200px) {
-  .declinedRow { grid-template-columns: 90px minmax(0, 1fr) minmax(195px, .8fr) auto; gap: 13px; }
   .declinedImage { width: 90px; height: 76px; }
   .gallery[data-overflowing="true"] { --gallery-peek: clamp(64px, 7vw, 90px); }
   .filter { gap: 8px; padding-inline: 11px; }
@@ -241,9 +260,6 @@
 @media (max-width: 940px) {
   .declinedHeader { align-items: flex-start; flex-direction: column; }
   .declinedActions { justify-content: flex-start; padding-bottom: 0; }
-  .declinedRow { grid-template-columns: 90px minmax(0, 1fr) auto; }
-  .declinedTiming { grid-column: 2; grid-row: 2; padding-bottom: 3px; }
-  .declinedRevive { grid-column: 3; grid-row: 1 / span 2; }
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; margin-top: 22px; }
   .filter { width: 100%; min-height: 70px; aspect-ratio: 4.35; gap: 9px; padding-inline: 18px; font-size: 17px; }
   .filter > svg { width: 29px; height: 29px; }
@@ -271,10 +287,11 @@
   .productCard[data-status="active"] .productNote { display: flex; flex-direction: column; gap: 1px; color: #526985; font-size: 11px; font-weight: 800; line-height: 1.12; }
   .productCard[data-status="active"] .productNote strong { color: inherit; font-size: inherit; font-weight: inherit; }
   .forPrize { display: none; }
-  .declinedRow { grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 14px 17px; }
+  .declinedProduct { grid-template-columns: 76px minmax(0, 1fr); gap: 8px 12px; padding: 14px 17px; }
+  .declinedProduct .declinedImage { grid-row: span 2; }
+  .declinedRow { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 14px 17px; }
   .declinedImage { width: 76px; height: 76px; }
-  .declinedTiming { grid-column: 2; grid-row: auto; }
-  .declinedRevive { grid-column: 2; grid-row: auto; align-items: flex-start; }
+  .declinedRevive { align-items: flex-start; }
   .declinedRevive span { text-align: left; }
   .page { padding: 28px 14px 45px; }
   .heading { font-size: clamp(31px, 8vw, 44px); }

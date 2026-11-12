@@ -22,10 +22,10 @@ test("only signed-in customers can open declined offers", async () => {
   await expect(DeclinedOffersPage()).rejects.toThrow(/redirect:.*login.*declined-offers/);
 });
 
-test("declined entries retain their own credit, original deadline and free revive action", async () => {
+test("a single declined offer keeps its countdown visible and its reminder in the disclosure", async () => {
   mocks.account.mockResolvedValue({ userId: "owner", emailConfirmed: true, timezone: "America/Los_Angeles", activity: { source: "stored", activity: [{
     entryId: "ent_one", completionOptionId: "11111111-1111-4111-8111-111111111111", completionOptionStatus: "declined",
-    title: "$100 Walmart Gift Card", retailer: "Walmart", image: "/walmart.png",
+    slug: "walmart-100-gift-card", title: "$100 Walmart Gift Card", retailer: "Walmart", image: "/walmart.png",
     priceCents: 10000, paidCents: 100, remainingCents: 9900,
     completionExpiresAt: "2099-01-01T00:00:00.000Z",
   }, {
@@ -38,23 +38,60 @@ test("declined entries retain their own credit, original deadline and free reviv
   expect(exits.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
   expect(screen.getByText("$100 Walmart Gift Card")).toBeTruthy();
   expect(screen.queryByText("Unrelated purchase option")).toBeNull();
-  expect(screen.getByText("$0.00")).toBeTruthy();
+  const group = screen.getByRole("region", { name: "$100 Walmart Gift Card" });
+  expect(within(group).getByText(/days left/).closest("details")).toBeNull();
+  const details = within(group).getByText("View offer").closest("details")!;
+  expect(details.open).toBe(false);
+  expect(group.querySelector('[data-layers="0"]')).toBeTruthy();
+  details.open = true;
   expect(screen.getByText("$99")).toBeTruthy();
   expect(screen.getByText("Dec 31, 2098, 4:00 PM PST").getAttribute("dateTime")).toBe("2099-01-01T00:00:00.000Z");
   expect((screen.getByRole("button", { name: "Revive" }) as HTMLButtonElement).disabled).toBe(false);
   expect((screen.getByRole("checkbox", { name: /Please remind me by email/ }) as HTMLInputElement).checked).toBe(true);
 });
 
-test("each declined row and its review share the same distinct ticket reference", async () => {
+test("grouped offers share one picture and retain their own ticket references after a revive", async () => {
   const offer = { completionOptionStatus: "declined", title: "Nintendo Switch – OLED Model", retailer: "Best Buy",
     slug: "nintendo-switch", image: "/catalog/switch.jpg", priceCents: 40000, paidCents: 100, remainingCents: 39900 };
   const entries = ["ent_111111110000aabb", "ent_222222220000aabb", "ent_12345678abcd1234", null];
   const activity = entries.map((entryId, i) => ({ ...offer, entryId, completionOptionId: `11111111-1111-4111-8111-11111111111${i}` }));
   mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity } });
-  render(await DeclinedOffersPage());
+  const view = render(await DeclinedOffersPage());
   const expected = ["Ticket #ent_111111110000aabb", "Ticket #ent_222222220000aabb", "Ticket #abcd1234", "Offer #11111113"];
-  screen.getAllByRole("article").forEach((row, i) => {
+  const group = screen.getByRole("region", { name: offer.title });
+  expect(within(group).getAllByTestId("product-image")).toHaveLength(1);
+  expect(group.querySelector('[data-layers="2"]')).toBeTruthy();
+  const details = within(group).getByText("View 4 offers").closest("details")!;
+  expect(details.open).toBe(false);
+  details.open = true;
+  const rows = within(group).getAllByRole("article");
+  expect(rows).toHaveLength(expected.length);
+  rows.forEach((row, i) => {
     expect(within(row).getByText(expected[i])).toBeTruthy();
     expect(within(row).getByRole("button", { name: "Revive" }).getAttribute("data-review-ticket")).toBe(expected[i]);
   });
+  const updated = [{ ...activity[0], completionOptionStatus: "available" }, ...activity.slice(1)];
+  mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity: updated } });
+  view.rerender(await DeclinedOffersPage());
+  expect(details.open).toBe(true);
+  expect(within(group).getByText("3 declined offers")).toBeTruthy();
+  expect(within(group).getAllByRole("article")).toHaveLength(3);
+});
+
+test("a saved ticket link opens the group containing that exact offer", async () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const offer = { completionOptionStatus: "declined", completionOptionId: id, title: "Nintendo Switch", retailer: "Best Buy",
+    slug: "nintendo-switch", image: "/catalog/switch.jpg", remainingCents: 39900 };
+  mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity: [offer, {
+    ...offer, completionOptionId: "22222222-2222-4222-8222-222222222222", title: "Another prize", slug: "another-prize",
+  }] } });
+  window.history.replaceState(null, "", `#declined-offer-${id}`);
+  try {
+    const view = render(await DeclinedOffersPage());
+    expect(document.getElementById(`declined-offer-${id}`)?.closest("details")?.open).toBe(true);
+    expect(screen.getByRole("region", { name: "Another prize" }).querySelector("details")?.open).toBe(false);
+    view.unmount();
+  } finally {
+    window.history.replaceState(null, "", window.location.pathname);
+  }
 });
