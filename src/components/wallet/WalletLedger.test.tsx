@@ -14,14 +14,14 @@ test("quick dates preserve funding filter and all time clears only the dates", (
       { id: "older", entry_type: "DEPOSIT", amount: 100, created_at: "2026-10-01T17:00:00Z" },
       { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-11-07T17:00:00Z" },
     ]} />);
-    fireEvent.click(screen.getByRole("button", { name: "Funding", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Funding" }));
     fireEvent.click(screen.getByRole("button", { name: "Last 7 days" }));
     expect(screen.getByLabelText("From date")).toHaveProperty("value", "2026-11-01");
     expect(screen.getByLabelText("To date")).toHaveProperty("value", "2026-11-07");
     expect(screen.getAllByRole("listitem").map(row => row.id)).toEqual(["transaction-today"]);
     fireEvent.click(screen.getByRole("button", { name: "All time" }));
     expect(screen.getAllByRole("listitem").map(row => row.id)).toEqual(["transaction-today", "transaction-older"]);
-    expect(screen.getByRole("button", { name: "Funding", exact: true }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Funding" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByLabelText("From date")).toHaveProperty("value", "");
   } finally { vi.useRealTimers(); }
 });
