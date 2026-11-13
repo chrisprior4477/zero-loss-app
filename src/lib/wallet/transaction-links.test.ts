@@ -30,3 +30,13 @@ test("won rewards open the wallet rather than an active-entry-only page", () => 
   expect(link.href).toContain("reward-1");
   expect(link.label).toBe("View result");
 });
+
+test("reservation rows omit gift-card links while the exact purchase keeps its result", () => {
+  const purchased = { ...option, status: "completed" as const, rewardId: "purchased-reward", rewardStatus: "ready" as const };
+  const linkedRow = { ...row, entryIds: [purchased.entryId, active.entryId] };
+  for (const entry_type of ["ENTRY_HOLD", "ENTRY_HOLD_RELEASE"]) {
+    expect(transactionLinks({ ...linkedRow, entry_type }, [purchased, active]).map(link => link.id)).toEqual([active.entryId]);
+  }
+  const [result] = transactionLinks({ ...linkedRow, entry_type: "PURCHASE_DEBIT" }, [purchased, active]);
+  expect(result.href).toContain("rewardId=purchased-reward");
+});

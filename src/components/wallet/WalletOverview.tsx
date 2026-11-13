@@ -80,7 +80,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
             </div>
             <p className={styles.balanceNote}>{wallet ? "Ready to use for entries." : "Balance could not be verified."}</p>
             <div className={styles.balanceActions}>
-              <a href="#add-funds" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></a>
+              {canFund ? <a href="#add-funds" className={styles.primaryAction}>Add funds<AccountIcon name="arrow" /></a> : null}
               {returnToProduct?.entryQuantity ? <Link href={returnToProduct.href} className={styles.entryReturn}>
                 Back to {returnToProduct.entryQuantity} selected {returnToProduct.entryQuantity === 1 ? "entry" : "entries"}
               </Link> : null}

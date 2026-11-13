@@ -1,4 +1,4 @@
-import { activityHref, type ActivityItem } from "@/lib/account/activity";
+import { activityHref, isWalletReward, type ActivityItem } from "@/lib/account/activity";
 import type { LedgerEntryRow } from "./snapshot";
 
 export function ledgerDescription(entryType: string, productTitle?: string) {
@@ -11,10 +11,13 @@ export function ledgerDescription(entryType: string, productTitle?: string) {
 
 /** Only link records present in the signed-in customer's authorized activity. */
 export function transactionLinks(entry: LedgerEntryRow, activity: readonly ActivityItem[]) {
+  const reservation = entry.entry_type === "ENTRY_HOLD" || entry.entry_type === "ENTRY_HOLD_RELEASE";
   const byId = new Map(activity.filter(item => item.entryId).map(item => [item.entryId!, item]));
   return [...new Set(entry.entryIds ?? [])].flatMap(id => {
     const item = byId.get(id);
-    if (!item) return [];
+    // A temporary hold can reference an entry that later produced a reward.
+    // Only the actual entry or purchase debit should link to that gift card.
+    if (!item || (reservation && isWalletReward(item))) return [];
     const href = item.status === "active"
       ? `${activityHref(item)}?entries=open#saved-entry-rail`
       : item.status === "completion" && item.completionOptionStatus !== "declined"
