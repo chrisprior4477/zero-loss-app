@@ -429,6 +429,24 @@ describe("Browse search results", () => {
     expect(screen.getByRole("heading", { name: "No products match these filters." })).toBeTruthy();
     expect(screen.getByText(/This is the prize value, not the cost to enter/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Search all prizes" }).getAttribute("href")).toBe("/browse?q=PlayStation#search-results");
-    expect(screen.getByText("$25 and under")).toBeTruthy();
+    expect(within(screen.getByRole("list", { name: "Applied filters" })).getByText("$25 and under")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Remove price limit" }).getAttribute("href")).toBe("/browse?q=PlayStation#search-results");
+  });
+
+  test("shows the filters beside the empty results and removes only the price range", async () => {
+    const search = { category: "electronics", retailer: "Best Buy", q: "PlayStation", sort: "value-high", available: "1" };
+    const { rerender } = render(await BrowsePage({ searchParams: Promise.resolve({ ...search, minValue: "5", maxValue: "25" }) }));
+    const appliedFilters = screen.getByRole("list", { name: "Applied filters" });
+    expect(within(appliedFilters).getByText("Electronics")).toBeTruthy();
+    expect(within(appliedFilters).getByText("Best Buy")).toBeTruthy();
+    expect(within(appliedFilters).getByText("Available only")).toBeTruthy();
+    expect(within(appliedFilters).getByText(/\$5.*\$25/)).toBeTruthy();
+    const remove = screen.getByRole("link", { name: "Remove price limit" });
+    const destination = new URL(remove.getAttribute("href")!, "https://navigation.invalid");
+    expect(destination.hash).toBe("#search-results");
+    expect(Object.fromEntries(destination.searchParams)).toEqual(search);
+    rerender(await BrowsePage({ searchParams: Promise.resolve(search) }));
+    expect(screen.getByRole("link", { name: /PlayStation 5 Slim Model/ })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Remove price limit" })).toBeNull();
   });
 });

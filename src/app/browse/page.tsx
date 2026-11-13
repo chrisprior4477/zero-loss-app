@@ -67,6 +67,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const directoryMatches = searchTerm && !endingSoon && !denomination.values.size ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const budgetLabel = browsePrizeValueLabel(filters);
+  const appliedFilters = [
+    selectedLabel,
+    subcategory,
+    selectedRetailerGroup?.category,
+    filters.retailer,
+    filters.type === "gift-cards" ? "Gift Cards" : filters.type === "pictured" ? "Products with photos" : null,
+    filters.availableOnly ? "Available only" : null,
+    budgetLabel,
+  ].filter((label): label is string => Boolean(label));
   const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts, demoProducts);
   const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm, denomination, { includeLowerGiftCards: !endingSoon }) : [];
   const savedMatches = searchTerm ? searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm, denomination) : [];
@@ -119,6 +128,12 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const withoutBudget = new URLSearchParams(searchParamsForView);
   withoutBudget.delete("minValue");
   withoutBudget.delete("maxValue");
+  const removePriceLimit = budgetLabel && !products.length && !unavailable ? (
+    <Link href={`/browse${withoutBudget.size ? `?${withoutBudget}` : ""}#search-results`} prefetch={false}
+      className="mt-3 inline-flex min-h-11 max-w-full items-center justify-center rounded-lg bg-cyan-200 px-4 py-2 text-sm font-bold text-[#102e50] hover:bg-cyan-100">
+      Remove price limit
+    </Link>
+  ) : null;
   const categorySearchRetry = searchTerm && retryScope && !endingSoon && !unavailable ? (
     <form action="/browse#search-results" method="get" role="search" aria-labelledby="category-retry-label" className="mt-5 max-w-lg text-left">
       {Array.from(searchParamsForView, ([name, value]) => name !== "q" && <input key={name} type="hidden" name={name} value={value} />)}
@@ -127,7 +142,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <input id="category-retry-query" type="search" name="q" placeholder="Enter a new search" enterKeyHint="search" autoComplete="off" required />
         <button type="submit" className={browseStyles.go}>Go</button>
       </div>
-      {budgetLabel ? <p className="mt-2 text-sm text-white/75">Prize value: {budgetLabel} · <Link href={"/browse?" + withoutBudget + "#search-results"} className="font-bold text-cyan-200 underline">Remove price limit</Link></p> : null}
     </form>
   ) : null;
   const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;
@@ -186,10 +200,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
         {showGroceryInspiration ? <div id="more-groceries" className="mt-4" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}><h2 className="text-2xl font-black leading-tight tracking-tight">More groceries &amp;<span className="block sm:inline"> rewards</span></h2></div> : null}
-        <p aria-live="polite" className={`${showGroceryInspiration ? "mt-2" : "mt-4"} text-sm font-bold text-white/75`}>{endingSoon || products.length > batchSize
-          ? `Showing ${visibleProducts.length} of ${products.length} ${resultNoun}`
-          : `${products.length} ${resultNoun} shown`}{denomination.values.size > 0 &&
-            <span className="ml-2">· {includesLowerGiftCards ? <>Requested value {requestedValues} · Includes lower-value gift cards</> : <>Exact prize value: {requestedValues}</>}</span>}</p>
+        <div className={`${showGroceryInspiration ? "mt-2" : "mt-4"} flex flex-wrap items-center gap-x-3 gap-y-2`}>
+          <p aria-live="polite" className="text-sm font-bold text-white/75">{endingSoon || products.length > batchSize
+            ? `Showing ${visibleProducts.length} of ${products.length} ${resultNoun}`
+            : `${products.length} ${resultNoun} shown`}{denomination.values.size > 0 &&
+              <span className="ml-2">· {includesLowerGiftCards ? <>Requested value {requestedValues} · Includes lower-value gift cards</> : <>Exact prize value: {requestedValues}</>}</span>}</p>
+          {appliedFilters.length ? <ul aria-label="Applied filters" className="flex min-w-0 flex-wrap gap-1.5">
+            {[...new Set(appliedFilters)].map(label => <li key={label} className="max-w-full rounded-full bg-[#d5f1ff] px-2.5 py-1 text-xs font-bold break-words text-[#123e68]">{label}</li>)}
+          </ul> : null}
+        </div>
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {visibleProducts.map((product) => {
@@ -226,6 +245,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Already in your activity</p>
             <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">No open offers match “{searchTerm}” here.</h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">You have saved results for this search. Open your reward or purchase option below.</p>
+            {removePriceLimit}
             {categorySearchRetry}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {savedMatches.map(({ product }) => {
@@ -241,11 +261,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
             <h2 className="text-2xl font-bold">No current product listings match “{searchTerm}” yet.</h2>
             <p className="mt-2 text-white/65">Explore the matching retailer category above to see its directory and any available offers.</p>
+            {removePriceLimit}
           </section>
         ) : activeFilters && (!searchTerm || matchedProducts.length) ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
             <h2 className="text-2xl font-bold">{filters.retailer ? `No current ${filters.retailer} offer matches here.` : selectedRetailerGroup ? `No current ${selectedRetailerGroup.category} offers match here.` : "No products match these filters."}</h2>
             <p className="mt-2 text-white/65">{budgetLabel ? `Your prize-value filter is ${budgetLabel}. This is the prize value, not the cost to enter. Clear filters or search all prizes to see more.` : "Try another retailer or clear your filters to see more prizes."}</p>
+            {removePriceLimit}
             {categorySearchRetry}
             {searchTerm ? <Link href={searchResultsHref(searchTerm)} className="mr-3 mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e]">Search all prizes</Link> : null}
             <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link>
@@ -262,6 +284,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
                 : "We’re adding new rewards regularly, and what our customers ask for helps decide what comes next. Tell us what you’d love a chance to win."}
             </p>
             <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
+            {removePriceLimit}
             {categorySearchRetry}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               {retryScope ? <Link href={allSearchHref} className="zl-see-all">See all search results</Link> : null}
