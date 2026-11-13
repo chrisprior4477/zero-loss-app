@@ -230,7 +230,7 @@ test("a failed save restores unread status and explains the failure", async () =
   const notifications = buildAccountNotifications(storedActivityFixture(), wallet, true);
   render(<NotificationsCenter notifications={notifications} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
   fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
-  expect(await screen.findByText("Read status could not be saved.")).toBeTruthy();
+  expect(await screen.findAllByText("Read status could not be saved.")).toHaveLength(2);
   await waitFor(() => expect((screen.getByRole("button", { name: "Mark all as read" }) as HTMLButtonElement).disabled).toBe(false));
   await waitFor(() => expect(document.querySelectorAll('[data-read="true"]')).toHaveLength(0));
 });
@@ -345,6 +345,27 @@ test("show more reveals the remaining records and filters retain their full coun
   expect(screen.getAllByRole("article")).toHaveLength(12);
   fireEvent.click(screen.getByRole("button", { name: /See more updates/ }));
   fireEvent.click(screen.getByRole("button", { name: /Activity15/ }));
+  expect(screen.getAllByRole("article")).toHaveLength(12);
+});
+
+test("expanded notifications append to the page and the bottom read button saves every update", async () => {
+  const transactions = Array.from({ length: 26 }, (_, index): AccountNotification => ({
+    id: `wallet-${index}`, category: "activity", tone: "wallet", title: `Transaction ${index}`, body: "Funds posted.",
+    meta: "Wallet activity", href: `/account/wallet?transaction=${index}`, action: "View transaction",
+  }));
+  render(<NotificationsCenter notifications={transactions} initialReadIds={[]} activityAvailable walletAvailable crewAvailable readAvailable />);
+  fireEvent.click(screen.getByRole("button", { name: /See more updates/ }));
+  expect(screen.getAllByRole("article")).toHaveLength(24);
+  fireEvent.click(screen.getByRole("button", { name: /See more updates/ }));
+  expect(screen.getAllByRole("article")).toHaveLength(26);
+  expect(document.getElementById("notification-tickets")?.style.maxHeight).toBe("");
+  const bottomRead = screen.getByRole("button", { name: "Mark All as Read" });
+  const close = screen.getByRole("button", { name: "Close" });
+  expect(bottomRead.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  fireEvent.click(bottomRead);
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(transactions.map(item => item.id)));
+  await waitFor(() => expect((screen.getByRole("button", { name: "Mark All as Read" }) as HTMLButtonElement).disabled).toBe(true));
+  fireEvent.click(close);
   expect(screen.getAllByRole("article")).toHaveLength(12);
 });
 

@@ -23,8 +23,6 @@ import stripStyles from "./account-status-strip.module.css";
 import { notificationIsEnabled, type AccountNotification, type NotificationCategory, type NotificationPreferenceKey, type NotificationPreferences } from "@/lib/account/notifications";
 import styles from "./notifications.module.css";
 import { useTicketBatches } from "./useTicketBatches";
-import { TicketBatchControls } from "./TicketBatchControls";
-import batchStyles from "./ticket-batches.module.css";
 import { useNotifications } from "@/components/notifications/NotificationProvider";
 
 type FilterKey = "all" | NotificationCategory;
@@ -87,7 +85,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
   const unreadCount = enabledNotifications.filter(notification => !read.has(notification.id)).length;
   const visible = useMemo(() => filter === "all" ? enabledNotifications : filter === "action" ? attentionNotifications : enabledNotifications.filter(notification => notification.category === filter), [filter, enabledNotifications, attentionNotifications]);
   const groups = useMemo(() => groupNotifications(visible), [visible]);
-  const { list: listRef, ...batches } = useTicketBatches<HTMLDivElement>(groups.length, groupsPerPage);
+  const { list: listRef, ...batches } = useTicketBatches<HTMLDivElement>(groups.length, groupsPerPage, 0, "expand");
   const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? enabledNotifications.length : key === "action" ? attentionNotifications.length : enabledNotifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [enabledNotifications, attentionNotifications]);
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
@@ -367,7 +365,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
             <span aria-hidden="true"><AccountIcon name={filter === "orders" ? "orders" : "bell"} /></span>
             <h2>{filter === "all" ? "No notifications" : filter === "orders" ? "No order updates" : `No ${filters.find(([key]) => key === filter)?.[1].toLowerCase()} updates`}</h2>
             <p>New verified updates will appear here automatically.</p>
-          </div> : <div id="notification-tickets" ref={listRef} tabIndex={-1} className={`${styles.list} ${batchStyles.rows}`}>{groups.slice(0, batches.end).map(group => {
+          </div> : <div id="notification-tickets" ref={listRef} tabIndex={-1} className={`${styles.list} ${styles.notificationRows}`}>{groups.slice(0, batches.end).map(group => {
             const notification = group.notifications[0];
             const requestId = notification.crewRequestId;
             const feedback = requestId ? crewFeedback[requestId] : undefined;
@@ -387,14 +385,19 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
               </> : null}
             </NotificationStack>;
           })}</div>}
-          <TicketBatchControls {...batches} listId="notification-tickets" noun="updates" more={() => {
-            updateBookmark({ start: batches.end }); batches.more();
-          }} close={() => {
-            updateBookmark({ start: 0, size: groupsPerPage, listScrollTop: 0 });
-            batches.reset();
-            listRef.current?.focus({ preventScroll: true });
-            listRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
-          }} />
+          {visible.length > 0 && <div className={styles.listActions}>
+            {batches.remaining > 0 && <button type="button" aria-controls="notification-tickets" aria-expanded={batches.expanded} className={styles.showMore} onClick={() => {
+              updateBookmark({ start: batches.end }); batches.more();
+            }}>See more updates ({batches.remaining} remaining)</button>}
+            <button type="button" onClick={markAllRead} disabled={unreadCount === 0 || savingRead || !readAvailable}>{savingRead ? "Saving…" : "Mark All as Read"}</button>
+            {readMessage && <p role="status" className={styles.sourceWarning}>{readMessage}</p>}
+            {batches.expanded && <button type="button" aria-controls="notification-tickets" aria-expanded={batches.expanded} onClick={() => {
+              updateBookmark({ start: 0, size: groupsPerPage, listScrollTop: 0 });
+              batches.reset();
+              listRef.current?.focus({ preventScroll: true });
+              listRef.current?.scrollIntoView?.({ block: "start", behavior: "auto" });
+            }}>Close</button>}
+          </div>}
         </section>
       </div>
       <div id="alert-settings" className={styles.settingsBlock}>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /** Fit whole tickets to the screen, or replace them one fixed-size page at a time. */
-export function useTicketBatches<T extends HTMLElement>(total: number, fallbackSize: number, initialIndex = 0, mode: "fit" | "pages" = "fit") {
+export function useTicketBatches<T extends HTMLElement>(total: number, fallbackSize: number, initialIndex = 0, mode: "fit" | "pages" | "expand" = "fit") {
   const index = Math.max(0, initialIndex);
   const [origin, setOrigin] = useState(index);
   const [anchor, setStart] = useState(index);
@@ -24,6 +24,8 @@ export function useTicketBatches<T extends HTMLElement>(total: number, fallbackS
   useLayoutEffect(() => {
     const el = list.current;
     if (!el) return;
+    // Appended notifications belong to the document, not a nested scroll box.
+    if (mode === "expand") return;
     if (mode === "pages") {
       if (moveToStart.current) {
         moveToStart.current = false;

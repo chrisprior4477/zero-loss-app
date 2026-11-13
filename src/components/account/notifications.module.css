@@ -92,6 +92,12 @@
 .filters button:nth-child(4) strong, .filters button:nth-child(6) strong { color: #007135; background: #c9f8d9; }
 
 .list { display: grid; min-width: 0; gap: 12px; }
+.notificationRows { overflow: visible; scroll-margin-top: calc(var(--site-header-height, 110px) + 12px); }
+.notificationRows:focus { outline: none; }
+.listActions { display: grid; gap: 10px; margin-block: 6px; }
+.listActions button { min-height: 44px; padding: 10px 16px; border-radius: 10px; background: #0064d9; color: white; font-weight: 800; }
+.listActions .showMore { background: #ff861c; color: #071d37; }
+.listActions button:disabled { opacity: .58; cursor: default; }
 .stack { position: relative; min-width: 0; }
 .stack[data-stacked="true"] { padding-bottom: 9px; }
 .stack[data-stacked="true"]::before, .stack[data-stacked="true"]::after { content: ""; position: absolute; inset: 5px 8px 4px; background: #a9c8db; pointer-events: none; }
