@@ -1,5 +1,6 @@
 import { freeEntryHref, productBrowseReturnHref, productBrowseReturnLabel } from "@/lib/catalog/product-return";
 import { parseEntryQuantity } from "@/lib/entries/quantity";
+import { popularRewardsReturnHref } from "@/lib/catalog/popular-rewards";
 
 export type BreadcrumbItem = { label: string; href?: string };
 
@@ -68,7 +69,7 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams,
       { label: productTitle ?? (second ? humanize(second) : "Product details") },
     ];
   }
-  if (root === "rewards") return [{ label: "Popular Rewards", href: "/#popular-rewards" }, { label: second ? humanize(second) : "Retailer" }];
+  if (root === "rewards") return [{ label: "Popular Rewards", href: popularRewardsReturnHref(second ?? "") }, { label: second ? humanize(second) : "Retailer" }];
   if (root === "contact" && second === "product-request") return [{ label: "Contact Us", href: "/contact" }, { label: "Suggest a Product" }];
   if (root === "free-entry" && second === "print") {
     const offering = searchParams.get("offering");

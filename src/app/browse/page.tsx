@@ -10,6 +10,7 @@ import {
   productMatchesMarketplaceCategory,
 } from "@/lib/catalog/navigation";
 import { searchCatalogMatches, filterCatalogSubcategory } from "@/lib/catalog/search";
+import { catalogSearchTooLong } from "@/lib/catalog/search-text";
 import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { availabilityStatus } from "@/lib/catalog/availability";
@@ -21,7 +22,6 @@ import { browseRetailers, filterBrowseProducts, parseBrowseFilterState, retailer
 import { searchResultsHref } from "@/lib/navigation/search-examples";
 import { getGiftCardPartnerGroups } from "@/lib/catalog/gift-card-partners-reader";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
-import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
@@ -49,6 +49,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     return current ? { ...product, capacity: current.capacity, sold: current.sold, entryPrice: current.entryPriceCents / 100 } : product;
   });
   const searchTerm = (Array.isArray(query.q) ? query.q[0] : query.q)?.trim() ?? "";
+  const searchTooLong = catalogSearchTooLong(searchTerm);
   const selectedCategory = marketplaceCategoryId(query.category ?? (query.sort === "ending-soon" ? "ending-soon" : ""));
   const endingSoon = selectedCategory === "ending-soon";
   const selectedLabel = marketplaceCategories.find((category) => category.id === selectedCategory)?.label;
@@ -63,8 +64,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const retailers = browseRetailers(categoryProducts);
   const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts.filter(product => !hidden.has(product.slug)), categoryProducts);
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
-  const denomination = searchDenominations(searchTerm, demoProducts);
-  const directoryMatches = searchTerm && !endingSoon && !denomination.values.size ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
+  const denomination = searchDenominations(searchTooLong ? "" : searchTerm, demoProducts);
+  const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const budgetLabel = browsePrizeValueLabel(filters);
   const appliedFilters = [
@@ -77,14 +78,17 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     budgetLabel,
   ].filter((label): label is string => Boolean(label));
   const discoveryGroups = retailerFilterGroups(partnerGroups, availableProducts, demoProducts);
-  const searchMatches = searchTerm ? searchCatalogMatches(categoryProducts, searchTerm, denomination, { includeLowerGiftCards: !endingSoon }) : [];
-  const savedMatches = searchTerm ? searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm, denomination) : [];
+  const searchMatches = searchTerm && !searchTooLong ? searchCatalogMatches(categoryProducts, searchTerm, denomination, { includeLowerGiftCards: !endingSoon }) : [];
+  const savedMatches = searchTerm && !searchTooLong ? searchCatalogMatches(filterCatalogSubcategory(demoProducts.filter(product => resolved.has(product.slug) && (!selectedCategory || productMatchesMarketplaceCategory(product, selectedCategory))), subcategory), searchTerm, denomination) : [];
   const relatedRetailers = new Set(searchMatches.filter(match => match.kind === "retailer").map(match => match.product.slug));
   const matchedProducts = searchTerm ? searchMatches.map(match => match.product) : categoryProducts;
   const allowedRetailers = selectedRetailerGroup
     ? new Set(selectedRetailerGroup.options.map(option => option.value))
     : undefined;
   const filteredProducts = filterBrowseProducts(matchedProducts, filters, searchTerm, selectedCategory === "ending-soon", allowedRetailers);
+  const savedWithinFilters = new Set(filterBrowseProducts(savedMatches.map(({ product }) =>
+    ({ ...product, sold: product.capacity })), filters, searchTerm, endingSoon, allowedRetailers).map(product => product.slug));
+  const savedOutsideFilters = savedMatches.some(({ product }) => !savedWithinFilters.has(product.slug));
   const products = selectedCategory === "groceries" && !searchTerm && filters.sort === "featured"
     ? groceryStoreFirst(filteredProducts, retailerGroups.find(group => group.id === "groceries")?.options.map(option => option.value) ?? [])
     : filteredProducts;
@@ -157,7 +161,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <div>
             <h1 className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">{endingSoon ? "Ending Soon" : searchTerm ? "Search results" : subcategory || selectedLabel || selectedRetailerGroup?.category || "Browse every product"}</h1>
             <p className="mt-2 text-white/65">
-              {searchTerm
+              {searchTooLong ? "Shorten your search to see matching prizes." : searchTerm
                 ? <>{products.length} {products.length === 1 ? "product" : "products"}{directoryMatches.length ? ` · ${directoryMatches.length} matching retailer ${directoryMatches.length === 1 ? "category" : "categories"}` : ""} for <strong className="text-white">“{searchTerm}”</strong></>
                 : "Choose a product to see its entry details and current availability."}
             </p>
@@ -189,9 +193,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <h2 className="text-sm font-black uppercase tracking-[.1em] text-cyan-200">Matching retailer categories</h2>
             <p className="mt-1 text-sm text-white/65">Explore the retailer directory. Current offers are marked separately.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {directoryMatches.map(group => (
-                <Link key={group.id} href={discoveryCategoryHref(group.id, filters, selectedCategory)} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">{group.category} →</Link>
-              ))}
+              {directoryMatches.map(group => {
+                const params = new URLSearchParams(searchParamsForView);
+                params.set("partnerCategory", group.id);
+                return <Link key={group.id} href={`/browse?${params}#search-results`} className="inline-flex min-h-11 items-center rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">{group.category} →</Link>;
+              })}
             </div>
           </section>
         ) : null}
@@ -199,7 +205,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {query.subcategory ? <p className="mt-4 text-sm text-white/55">Showing the closest available matches for <strong className="text-white">{query.subcategory}</strong>.</p> : null}
 
         {showGroceryInspiration ? <div id="more-groceries" className="mt-4" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}><h2 className="text-2xl font-black leading-tight tracking-tight">More groceries &amp;<span className="block sm:inline"> rewards</span></h2></div> : null}
-        <div className={`${showGroceryInspiration ? "mt-2" : "mt-4"} flex flex-wrap items-center gap-x-3 gap-y-2`}>
+        {searchTooLong ? <p role="alert" className="mt-4 rounded-xl border border-orange-300/40 bg-orange-400/10 p-4 text-sm font-bold text-orange-100">Search is too long. Try a brand or product name.</p> : <div className={`${showGroceryInspiration ? "mt-2" : "mt-4"} flex flex-wrap items-center gap-x-3 gap-y-2`}>
           <p aria-live="polite" className="text-sm font-bold text-white/75">{endingSoon || products.length > batchSize
             ? `Showing ${visibleProducts.length} of ${products.length} ${resultNoun}`
             : `${products.length} ${resultNoun} shown`}{denomination.values.size > 0 &&
@@ -207,7 +213,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           {appliedFilters.length ? <ul aria-label="Applied filters" className="flex min-w-0 flex-wrap gap-1.5">
             {[...new Set(appliedFilters)].map(label => <li key={label} className="max-w-full rounded-full bg-[#d5f1ff] px-2.5 py-1 text-xs font-bold break-words text-[#123e68]">{label}</li>)}
           </ul> : null}
-        </div>
+        </div>}
         {products.length ? (
           <section aria-label="Products" className={`mt-4 grid gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4 ${searchTerm && products.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {visibleProducts.map((product) => {
@@ -239,17 +245,20 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             })}
           </section>
         ) : null}
-        {!hasOpenResults && savedMatches.length ? (
+        {searchTooLong ? null : !hasOpenResults && savedMatches.length ? (
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Already in your activity</p>
             <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-[-0.035em] sm:text-4xl">No open offers match “{searchTerm}” here.</h2>
             <p className="mt-4 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">You have saved results for this search. Open your reward or purchase option below.</p>
+            {savedOutsideFilters ? <h3 className="mt-4 text-sm font-bold text-cyan-200">
+              {savedWithinFilters.size === 0 ? "Saved in your account · outside your filters" : "Saved in your account · includes results outside your filters"}
+            </h3> : null}
             {removePriceLimit}
             {categorySearchRetry}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {savedMatches.map(({ product }) => {
                 const result = resolvedProductDestination(account?.activity, product.slug);
-                return result ? <Link key={product.slug} href={result.href} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">{result.label}: {product.title} →</Link> : null;
+                return result ? <Link key={product.slug} href={result.href} className="inline-flex min-h-12 flex-col items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">{result.label}: {product.title} →{savedWithinFilters.size > 0 && !savedWithinFilters.has(product.slug) ? <small>Outside your filters</small> : null}</Link> : null;
               })}
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>

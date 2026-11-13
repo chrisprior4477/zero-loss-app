@@ -24,7 +24,7 @@ test("signed-out preview does not show a different person's sample name or accou
   expect((screen.getByRole("textbox", { name: "Zero Loss account reference" }) as HTMLInputElement).value).toBe("");
 });
 
-test("the letter preview keeps personal fields in the PDF form body and restores edited instructions", () => {
+test("the letter preview keeps personal fields out of history and browser Back restores edited instructions", async () => {
   const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
   try {
     render(<FreeEntryPrintCard offeringTitle="AirPods" offeringSlug="airpods-pro" initialAccountReference="DEMO-123" />);
@@ -32,14 +32,15 @@ test("the letter preview keeps personal fields in the PDF form body and restores
     fireEvent.change(screen.getByRole("textbox", { name: "Your full legal name" }), { target: { value: "Sample Tester" } });
     fireEvent.click(screen.getByRole("button", { name: "Print entry insert" }));
     expect(screen.getByRole("region", { name: "Letter-size print preview" })).toBeTruthy();
-    expect(window.location.href).toBe(initialUrl);
+    expect(window.location.href).toBe(`${initialUrl}#print-entry-insert`);
     const pdf = screen.getByRole("button", { name: "Open printable PDF" }).closest("form")!;
     expect(pdf.getAttribute("action")).toBe("/api/free-entry-pdf");
     expect(pdf.method).toBe("post");
     expect(new FormData(pdf).get("name")).toBe("Sample Tester");
     expect(new FormData(pdf).get("account")).toBe("DEMO-123");
-    fireEvent.click(screen.getByRole("button", { name: /Back to entry instructions/ }));
-    expect(screen.getByRole("textbox", { name: "Your full legal name" })).toHaveProperty("value", "Sample Tester");
+    window.history.back();
+    expect(await screen.findByRole("textbox", { name: "Your full legal name" })).toHaveProperty("value", "Sample Tester");
+    expect(window.location.href).toBe(initialUrl);
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Print entry insert" }));
   } finally { scroll.mockRestore(); }
 });

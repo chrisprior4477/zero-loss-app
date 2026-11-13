@@ -62,6 +62,7 @@ export default async function LiveAccountSection({
 }) {
   const { section } = await params;
   if (!(section in liveSections)) notFound();
+  if (section === "results") redirect("/account/entries?filter=completed");
 
   const query = await searchParams;
   const account = await getAccountContext();

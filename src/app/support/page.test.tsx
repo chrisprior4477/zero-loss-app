@@ -216,6 +216,28 @@ test.each([
   expect(screen.getByRole("complementary", { name: "This is about" }).textContent).toContain(expected);
   expect(screen.queryByText(/America\/New_York/)).toBeNull();
 });
+
+test("a reopened support case uses its saved filter and exact checkout to return to the order", async () => {
+  const order = { orderNumber: "ord_second" };
+  const savedCase = { id: caseId, case_number: "sup_test", subject: "Purchase question", status: "open", customer_id: own, ledger_entry_id: caseId };
+  const opening = { body: "Transaction opened from: order:payment\n\nMy checkout question" };
+  mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "demo" }, timezone: "America/New_York", orders: { orders: [order] } });
+  mocks.rpc.mockImplementation(async name => ({ data: name === "get_support_case_transaction"
+    ? { id: caseId, entry_type: "PURCHASE_DEBIT", amount: -39900, created_at: "2026-11-06T17:46:00Z" } : false }));
+  const ledger = query({ source_event: "second-checkout" });
+  const orderRead = query({ order_number: order.orderNumber });
+  const events = query([]);
+  events.maybeSingle.mockResolvedValue({ data: opening });
+  mocks.from.mockImplementation(table => table === "support_cases" ? query(savedCase)
+    : table === "ledger_entries" ? ledger : table === "customer_orders" ? orderRead
+    : events);
+  render(await SupportPage({ searchParams: Promise.resolve({ case: caseId }) }));
+  expect(ledger.eq.mock.calls).toEqual([["customer_id", own], ["id", caseId]]);
+  expect(orderRead.eq.mock.calls).toEqual([["customer_id", own], ["provider_event_id", "second-checkout"]]);
+  expect(screen.getByRole("link", { name: "Back to this order" }).getAttribute("href"))
+    .toBe("/account/orders?order=ord_second&filter=payment#order-ord_second");
+  expect(screen.queryByRole("link", { name: "Back to this transaction" })).toBeNull();
+});
 test("a non-demo or unavailable wallet cannot prefill a demo support transaction", async () => {
   mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "production" } });
   render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));

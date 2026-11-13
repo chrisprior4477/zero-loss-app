@@ -121,6 +121,21 @@ describe("Browse search results", () => {
     expect(screen.getByRole("link", { name: /View your purchase option: Nike/ }).getAttribute("href")).toBe("/account/purchase-options/nike-court-shot-shoes");
   });
 
+  test("saved activity from outside the selected price range is labeled separately", async () => {
+    account.get.mockResolvedValue({ activity: storedActivityFixture() });
+    render(await BrowsePage({ searchParams: Promise.resolve({ q: "nike court shot", maxValue: "10" }) }));
+    expect(screen.getByRole("heading", { name: "Saved in your account · outside your filters" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /View your purchase option: Nike/ })).toBeTruthy();
+  });
+
+  test("an oversized search retains the editable text and shows a length error", async () => {
+    const q = "Sony headphones " + "wireless ".repeat(60).trimEnd();
+    render(await BrowsePage({ searchParams: Promise.resolve({ q }) }));
+    expect(screen.getByRole("alert").textContent).toContain("Search is too long");
+    expect(screen.getByRole("searchbox", { name: "Search all prizes" })).toHaveProperty("value", q);
+    expect(screen.queryByRole("heading", { name: /in the catalog yet/ })).toBeNull();
+  });
+
   test("lands at two compact discovery controls on All and Ending Soon", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByRole("heading", { name: "Browse every product" })).toBeTruthy();
@@ -265,7 +280,7 @@ describe("Browse search results", () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: query }) }));
     const matches = within(screen.getByRole("region", { name: "Matching retailer categories" }));
     expect(matches.getByRole("link", { name: /Automotive/ }).getAttribute("href"))
-      .toBe("/browse?partnerCategory=automotive#search-results");
+      .toBe(`/browse?${new URLSearchParams({ q: query, partnerCategory: "automotive" })}#search-results`);
     expect(screen.getByRole("link", { name: /\$100 AutoZone.*Gift Card/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: /\$100 Jiffy Lube.*Gift Card/ })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: `No current product listings match “${query}” yet.` })).toBeNull();
@@ -275,7 +290,7 @@ describe("Browse search results", () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "auto", minValue: "5", maxValue: "25", type: "gift-cards", available: "1", sort: "value-high" }) }));
     const matches = within(screen.getByRole("region", { name: "Matching retailer categories" }));
     const url = new URL(matches.getByRole("link", { name: /Automotive/ }).getAttribute("href")!, "https://example.test");
-    expect(Object.fromEntries(url.searchParams)).toEqual({ partnerCategory: "automotive", type: "gift-cards", available: "1", minValue: "5", maxValue: "25", sort: "value-high" });
+    expect(Object.fromEntries(url.searchParams)).toEqual({ q: "auto", partnerCategory: "automotive", type: "gift-cards", available: "1", minValue: "5", maxValue: "25", sort: "value-high" });
     expect(url.hash).toBe("#search-results");
   });
 

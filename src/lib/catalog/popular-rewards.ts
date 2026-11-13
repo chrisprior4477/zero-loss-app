@@ -24,6 +24,10 @@ export function getPopularRewardBrand(slug: string) {
   return popularRewardBrands.find((brand) => brand.slug === slug);
 }
 
+export function popularRewardsReturnHref(slug: string) {
+  return getPopularRewardBrand(slug) ? `/?reward-brand=${encodeURIComponent(slug)}#popular-rewards` : "/#popular-rewards";
+}
+
 export function popularRewardProductSlug(brandSlug: string, amount: number) {
   if (amount === 100) {
     const existing = additionalRewardBrands.find(brand => brand.slug === brandSlug);

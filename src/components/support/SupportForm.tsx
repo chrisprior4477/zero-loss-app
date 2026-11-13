@@ -10,12 +10,12 @@ import { supportReferencePrefix, type SupportDeposit } from "@/lib/support/refer
 import { readSupportDraft, supportDraftKey, writeSupportDraft, type SupportDraft } from "@/lib/support/draft";
 
 const field = `${styles.ticket} ${styles.field}`;
-type Props = { ownerId?: string; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string };
+type Props = { ownerId?: string; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string; transactionOrigin?: string };
 export function SupportForm(props: Props) {
   return <SupportFormSession key={`${props.ownerId}:${props.caseId}:${props.transactionId}:${props.rewardId}:${props.deposit?.key}:${props.staff}`} {...props} />;
 }
 
-function SupportFormSession({ ownerId, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "" }: Props) {
+function SupportFormSession({ ownerId, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "", transactionOrigin = "" }: Props) {
   const router = useRouter();
   const sending = useRef(false);
   const depositKey = deposit?.key;
@@ -36,6 +36,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       if (saved.uncertain) {
         const payload = new FormData();
         Object.entries({ requestKey: saved.requestKey, caseId: caseId ?? "", transactionId: transactionId ?? "", rewardId: rewardId ?? "", deposit: depositKey ?? "", subject: saved.subject, body: saved.body, category: saved.category, status: staff ? saved.caseStatus : "open" }).forEach(([name, value]) => payload.set(name, value));
+        if (saved.transactionOrigin) payload.set("transactionOrigin", saved.transactionOrigin);
         attempted.current = payload;
       }
     }
@@ -60,7 +61,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     }
     const payload = ((previous.status === "error" && previous.uncertain) || draft.uncertain) && attempted.current ? attempted.current : data;
     attempted.current = payload;
-    changeDraft({ uncertain: true });
+    changeDraft({ uncertain: true, transactionOrigin: String(payload.get("transactionOrigin") ?? "") });
     try {
       const result = await saveSupportCase(previous, payload);
       if (result.status === "saved") writeSupportDraft(draftKey, null);
@@ -86,6 +87,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     <input type="hidden" name="requestKey" value={draft.requestKey} />
     <input type="hidden" name="caseId" value={caseId ?? ""} />
     <input type="hidden" name="transactionId" value={transactionId ?? ""} />
+    {transactionOrigin && <input type="hidden" name="transactionOrigin" value={transactionOrigin} />}
     <input type="hidden" name="rewardId" value={rewardId ?? ""} />
     <input type="hidden" name="deposit" value={depositKey ?? ""} />
     {!caseId ? <>
@@ -94,7 +96,7 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       </select></span></label>
       <label className="block font-bold">Subject<span className={field}><input name="subject" required minLength={5} maxLength={140} value={subject} onChange={event => changeDraft({ subject: event.target.value })} aria-invalid={state.status === "error" && state.field === "subject" || undefined} aria-describedby={state.status === "error" && state.field === "subject" ? "support-error" : undefined} disabled={locked} /></span></label>
     </> : null}
-    <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={4000 - supportReferencePrefix(rewardId, deposit).length} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={state.status === "error" && state.field === "body" || undefined} aria-describedby={state.status === "error" && state.field === "body" ? "support-privacy support-error" : "support-privacy"} disabled={locked} /></span></label>
+    <label className="block font-bold">{caseId ? "Your reply" : "Tell us what happened"}<span className={field}><textarea name="body" required minLength={10} maxLength={4000 - supportReferencePrefix(rewardId, deposit, transactionOrigin).length} rows={5} value={body} onChange={event => changeDraft({ body: event.target.value })} aria-invalid={state.status === "error" && state.field === "body" || undefined} aria-describedby={state.status === "error" && state.field === "body" ? "support-privacy support-error" : "support-privacy"} disabled={locked} /></span></label>
     <p id="support-privacy" className="text-sm leading-6 opacity-75">Please do not include passwords, full card numbers, gift-card codes, Social Security numbers, or ID documents. {transactionId ? "The selected transaction is already attached." : rewardId ? "The selected reward reference is already attached." : depositKey ? "The selected deposit reference and amount are already attached." : "Describe the issue and what you expected to happen."}</p>
     {staff ? <label className="block font-bold">Case status<span className={field}><select name="status" value={caseStatus} onChange={event => changeDraft({ caseStatus: event.target.value })} disabled={locked}>
       <option value="open">Open — still investigating</option><option value="awaiting_customer">Waiting for customer</option><option value="resolved">Resolved</option>

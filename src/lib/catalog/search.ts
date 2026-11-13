@@ -1,7 +1,7 @@
 import type { DemoProduct } from "./demo-products";
 import { isGiftCardListing } from "./navigation";
 import { productSearchTerms, retailerDiscoveryTerms } from "./search-vocabulary";
-import { normalizeSearch, queryWords, searchWords, searchWordScore } from "./search-text";
+import { maxCatalogSearchLength, maxCatalogSearchTerms, normalizeSearch, queryWords, searchWords, searchWordScore } from "./search-text";
 import { searchDenominations } from "./search-denomination";
 
 export type CatalogSearchMatch = { product: DemoProduct; kind: "product" | "retailer" };
@@ -12,11 +12,11 @@ export function searchCatalogMatches(
   denomination = searchDenominations(query, products),
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
-  if (query.length > 512) return [];
+  if (query.length > maxCatalogSearchLength) return [];
   const { text, values, merchant } = denomination;
   const normalizedQuery = normalizeSearch(text);
   const tokens = queryWords(text);
-  if ((!tokens.length && !values.size) || tokens.length > 32) return [];
+  if ((!tokens.length && !values.size) || tokens.length > maxCatalogSearchTerms) return [];
   const giftCards = /\bgift card\b/.test(normalizedQuery);
   const includeLower = includeLowerGiftCards && Boolean(merchant) && values.size > 0;
   const requestedMax = Math.max(...values);

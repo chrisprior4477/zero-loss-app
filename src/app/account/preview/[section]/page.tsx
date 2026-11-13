@@ -6,7 +6,7 @@ const sharedDestinations = {
   wallet: "/account/wallet?view=history",
   notifications: "/account/notifications",
   security: "/account/security",
-  results: "/account/results",
+  results: "/account/entries?filter=completed",
   "official-rules": "/free-entry",
 } as const;
 

@@ -34,6 +34,7 @@ export async function checkSupportMessage(requestKey: string, caseId?: string): 
 export async function saveSupportCase(_previous: SupportActionState, form: FormData): Promise<SupportActionState> {
   const caseId = String(form.get("caseId") ?? "");
   const transactionId = String(form.get("transactionId") ?? "");
+  const transactionOrigin = !caseId && transactionId ? String(form.get("transactionOrigin") ?? "") : "";
   const rewardId = String(form.get("rewardId") ?? "");
   const depositKey = String(form.get("deposit") ?? "");
   const body = String(form.get("body") ?? "").trim();
@@ -47,7 +48,7 @@ export async function saveSupportCase(_previous: SupportActionState, form: FormD
     (!caseId && !["wallet", "entry", "reward", "account", "other"].includes(category)) ||
     !["open", "awaiting_customer", "resolved"].includes(status)) return { status: "error", message: "Please check the form details and try again." };
   if (!caseId && (subject.length < 5 || subject.length > 140)) return { status: "error", field: "subject", message: "Please enter a subject of 5–140 characters, excluding spaces at the beginning and end." };
-  let prefix = supportReferencePrefix(rewardId);
+  let prefix = supportReferencePrefix(rewardId, undefined, transactionOrigin);
   if (body.length < 10 || body.length + prefix.length > 4000) return bodyError(4000 - prefix.length);
   try {
     const db = await createClient();

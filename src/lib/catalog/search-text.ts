@@ -18,6 +18,12 @@ export const searchWords = (value: string) => normalizeSearch(value).split(/\s+/
 const ignoredWords = new Set(searchWords("a an and for of or the to i im am is me my some please find show looking look want need buy get stuff thing item product"));
 export const queryWords = (value: string) => [...new Set(searchWords(value).filter(word => !ignoredWords.has(word)
   || (word === "buy" && normalizeSearch(value).includes("best buy"))))];
+export const maxCatalogSearchLength = 512;
+export const maxCatalogSearchTerms = 32;
+
+export function catalogSearchTooLong(query: string) {
+  return query.length > maxCatalogSearchLength || queryWords(query).length > maxCatalogSearchTerms;
+}
 const synonyms = new Map(searchSynonyms.flatMap(group => group.map(term => [wordForm(term), group.map(wordForm)] as const)));
 
 // One edit, including a swapped pair ("atuo") or missing letter ("plgs").
@@ -51,8 +57,8 @@ export function searchWordScore(token: string, document: ReadonlySet<string>, vo
 }
 
 export function searchTextMatches(text: string, query: string) {
-  if (query.length > 512) return false;
+  if (query.length > maxCatalogSearchLength) return false;
   const tokens = queryWords(query);
   const document = new Set(searchWords(text));
-  return tokens.length > 0 && tokens.length <= 32 && tokens.every(token => searchWordScore(token, document) > 0);
+  return tokens.length > 0 && tokens.length <= maxCatalogSearchTerms && tokens.every(token => searchWordScore(token, document) > 0);
 }

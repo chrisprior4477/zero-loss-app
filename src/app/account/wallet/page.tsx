@@ -21,7 +21,11 @@ import { getCompleteLedgerHistory } from "@/lib/wallet/history";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
 import { parseDemoWalletHistoryVisibility, type DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 
-export const metadata: Metadata = { title: "Gift Cards & Rewards" };
+export async function generateMetadata({ searchParams }: PageProps<"/account/wallet">): Promise<Metadata> {
+  const query = await searchParams;
+  const history = query.reward === undefined && query.rewardId === undefined && (query.view === "history" || query.view === "card");
+  return { title: history ? "Wallet & Transactions" : "Gift Cards & Rewards" };
+}
 
 export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; tile?: string | string[]; card?: string | string[]; orderFilter?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; choice?: string | string[]; deposit?: string | string[] }> }) {
   const query = await searchParams;

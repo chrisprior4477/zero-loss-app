@@ -24,7 +24,7 @@ export function WalletHistoryLandingScroll({ walletId, selectedId, selectedReque
     () => false);
   return <>
     <WalletLandingScroll enabled={enabled && !returning} />
-    {selectedRequested && !returning && <AccountSettingsLandingScroll target={target} visitKey={target} settleAfterNavigation allScreens />}
+    {selectedRequested && !returning && <AccountSettingsLandingScroll target={target} initialTarget={target} visitKey={target} settleAfterNavigation allScreens />}
   </>;
 }
 

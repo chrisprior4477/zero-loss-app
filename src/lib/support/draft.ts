@@ -5,6 +5,7 @@ export type SupportDraft = {
   category: string;
   caseStatus: string;
   uncertain: boolean;
+  transactionOrigin?: string;
 };
 
 const prefix = "zero-loss-support-draft:";
@@ -27,7 +28,8 @@ export function readSupportDraft(key: string | null): SupportDraft | null {
       || typeof subject !== "string" || subject.length > 140 || typeof body !== "string" || body.length > 10000
       || !["wallet", "entry", "reward", "account", "other"].includes(category)
       || !["open", "awaiting_customer", "resolved"].includes(caseStatus) || typeof uncertain !== "boolean") return null;
-    return { requestKey, subject, body, category, caseStatus, uncertain };
+    const transactionOrigin = typeof saved.transactionOrigin === "string" ? saved.transactionOrigin : undefined;
+    return { requestKey, subject, body, category, caseStatus, uncertain, transactionOrigin };
   } catch { return null; }
 }
 

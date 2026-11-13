@@ -19,7 +19,7 @@ afterEach(cleanup);
 test("signed-out visitors get recovery, public answers and sign-in returning to the form, not an invented address", async () => {
   const { container } = render(await ContactPage());
   expect(screen.getByRole("link", { name: "Sign in to message us" }).getAttribute("href")).toBe("/login?next=%2Fcontact%23message");
-  expect(screen.getByRole("link", { name: /Can’t sign in/ }).getAttribute("href")).toBe("/forgot-password");
+  expect(screen.getByRole("link", { name: /Can’t sign in/ }).getAttribute("href")).toBe("/forgot-password?next=%2Fcontact%23message");
   expect(container.querySelector('a[href^="mailto:"]')).toBeNull();
   expect(screen.queryByTestId("support-form")).toBeNull();
   expect(screen.getByTestId("product-form")).toBeTruthy();

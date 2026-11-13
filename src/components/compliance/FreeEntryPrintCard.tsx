@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PrintSheetButton } from "./PrintSheetButton";
 
 const CODE39: Record<string, string> = {
@@ -9,6 +9,8 @@ const CODE39: Record<string, string> = {
   K: "wnnnnnnww", L: "nnwnnnnww", M: "wnwnnnnwn", N: "nnnnwnnww", O: "wnnnwnnwn", P: "nnwnwnnwn", Q: "nnnnnnwww", R: "wnnnnnwwn", S: "nnwnnnwwn", T: "nnnnwnwwn",
   U: "wwnnnnnnw", V: "nwwnnnnnw", W: "wwwnnnnnn", X: "nwnnwnnnw", Y: "wwnnwnnnn", Z: "nwwnwnnnn", "-": "nwnnnnwnw", "*": "nwnnwnwnn",
 };
+
+const printPreviewHash = "#print-entry-insert";
 
 function shortReference(value: string) {
   let hash = 2166136261;
@@ -40,6 +42,36 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   const instructionScroll = useRef<number | null>(null);
   const reference = useMemo(() => shortReference(`${offeringSlug}-${accountReference}`), [accountReference, offeringSlug]);
 
+  useEffect(() => {
+    const restoreView = () => {
+      const showingPrint = window.location.hash === printPreviewHash;
+      if (showingPrint && instructionScroll.current === null) instructionScroll.current = window.scrollY;
+      setPrintPreview(showingPrint);
+    };
+    const initial = requestAnimationFrame(restoreView);
+    window.addEventListener("popstate", restoreView);
+    return () => {
+      cancelAnimationFrame(initial);
+      window.removeEventListener("popstate", restoreView);
+    };
+  }, []);
+
+  function openPrintPreview() {
+    if (window.location.hash === printPreviewHash) return;
+    instructionScroll.current = window.scrollY;
+    window.history.pushState({ zeroLossPrintPreview: true }, "", printPreviewHash);
+    setPrintPreview(true);
+  }
+
+  function closePrintPreview() {
+    if (window.history.state?.zeroLossPrintPreview) {
+      window.history.back();
+      return;
+    }
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    setPrintPreview(false);
+  }
+
   useLayoutEffect(() => {
     if (instructionScroll.current === null) return;
     if (printPreview) {
@@ -54,7 +86,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
 
   if (printPreview) return <FreeEntryPrintSheet offering={offeringSlug} title={offeringTitle}
     name={name.trim().slice(0, 80) || "LEGAL NAME NEEDED"} account={accountReference.trim().slice(0, 80) || "DEMO ACCOUNT NEEDED"}
-    reference={reference} back={<button type="button" ref={backButton} onClick={() => setPrintPreview(false)}
+    reference={reference} back={<button type="button" ref={backButton} onClick={closePrintPreview}
       className="text-sm font-bold text-cyan-300 hover:text-white">← Back to entry instructions</button>} />;
 
   return <main className="amo-free-entry-page min-h-screen bg-[#00132e] px-4 py-10 text-white sm:px-7">
@@ -98,7 +130,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       </div>
     </div>
 
-    <div className="print:hidden mt-5 grid gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 sm:grid-cols-[auto_auto_1fr] sm:items-center"><button type="button" ref={printTrigger} onClick={() => { instructionScroll.current = window.scrollY; setPrintPreview(true); }} className="rounded-xl bg-[#00b9ff] px-5 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">Print entry insert</button><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/8">Flip postcard</button><p className="text-xs leading-5 text-white/60"><strong className="text-white">How to use it:</strong> Print on standard 8.5 × 11 paper, cut around the dotted line, and securely attach the insert to a standard postcard. Protect the paper from moisture where practical, but leave the Zero Loss barcode, mailing address, postal barcode area, and stamp uncovered. After an approved AMOE request is received and validated, Zero Loss will send a confirmation email.</p></div>
+    <div className="print:hidden mt-5 grid gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 sm:grid-cols-[auto_auto_1fr] sm:items-center"><button type="button" ref={printTrigger} onClick={openPrintPreview} className="rounded-xl bg-[#00b9ff] px-5 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">Print entry insert</button><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/8">Flip postcard</button><p className="text-xs leading-5 text-white/60"><strong className="text-white">How to use it:</strong> Print on standard 8.5 × 11 paper, cut around the dotted line, and securely attach the insert to a standard postcard. Protect the paper from moisture where practical, but leave the Zero Loss barcode, mailing address, postal barcode area, and stamp uncovered. After an approved AMOE request is received and validated, Zero Loss will send a confirmation email.</p></div>
 
     <div className="amo-print-sheet" aria-hidden="true">
       <section className="amo-print-insert">

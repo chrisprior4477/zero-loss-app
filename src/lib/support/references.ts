@@ -15,7 +15,9 @@ export function rewardSupportHref(rewardId?: string | null, orderFilter: Fulfill
 }
 
 /** Store the verified reference in the opening case message. */
-export function supportReferencePrefix(rewardId = "", deposit?: SupportDeposit) {
+export function supportReferencePrefix(rewardId = "", deposit?: SupportDeposit, transactionOrigin = "") {
   if (deposit) return `Deposit reference: ${deposit.id}\nDeposit amount: ${formatUsdFromCents(deposit.amount)} USD\n\n`;
-  return rewardId ? `Reward reference: ${rewardId}\n\n` : "";
+  if (rewardId) return `Reward reference: ${rewardId}\n\n`;
+  return /^(?:wallet|order:(?:all|processing|fulfilled|exceptions|payment))$/.test(transactionOrigin)
+    ? `Transaction opened from: ${transactionOrigin}\n\n` : "";
 }
