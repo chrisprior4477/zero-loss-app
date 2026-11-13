@@ -52,6 +52,7 @@ export function StatusTicket({ label, value, action, href, variant, actionHref, 
     </svg>
   );
   const className = `${styles.ticket} ${styles[variant]}`;
+  const actionLabel = variant === "option" && value === "0" ? "No offers available" : action;
 
   if (variant === "wallet" && (actionHref || actionDisabled)) {
     return (
@@ -70,11 +71,11 @@ export function StatusTicket({ label, value, action, href, variant, actionHref, 
   }
 
   return (
-    <Link className={className} href={href} onClick={onNavigate} title={tooltip} aria-label={ariaLabel ?? `${label}: ${value}. ${action}`} data-size={size}>
+    <Link className={className} href={href} onClick={onNavigate} title={tooltip} aria-label={ariaLabel ?? `${label}: ${value}. ${actionLabel}`} data-size={size}>
       <span className={styles.information}>{information}</span>
       <span className={styles.perforation} aria-hidden="true" />
       <span className={styles.action}>
-        <span>{action}</span>
+        <span>{actionLabel}</span>
         {arrow}
       </span>
     </Link>

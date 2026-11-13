@@ -195,6 +195,11 @@ test.each(["matched", "archived", "unavailable"] as const)("a purchase report ke
     expect(screen.getByText("Card issued")).toBeTruthy();
     expect(document.querySelector("#report-problem img")?.getAttribute("width")).toBe("36");
     expect(back?.getAttribute("href")).toBe("/account/orders?order=ord_second#order-ord_second");
+    cleanup();
+    render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId, from: "wallet" }) }));
+    expect(screen.getByText(title)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back to this transaction" }).getAttribute("href"))
+      .toBe(`/account/wallet?view=history&transaction=${caseId}#transaction-${caseId}`);
   } else {
     expect(screen.queryByText(title)).toBeNull();
     expect(back).toBeNull();

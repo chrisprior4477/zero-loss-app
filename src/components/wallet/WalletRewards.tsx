@@ -54,11 +54,25 @@ function claimedDate(value: string | null | undefined, timeZone: string) {
   return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone }).format(date);
 }
 
+function rewardGroup(item: ActivityItem) {
+  return JSON.stringify([item.slug, item.priceCents]);
+}
+
+function cardReference(rewardId: string) {
+  return rewardId.slice(-8).toUpperCase();
+}
+
 export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", timeZone = "America/New_York" }: {
   state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; timeZone?: string;
 }) {
   const allRewards = walletRewards(state);
   const ready = readyWalletRewards(state);
+  const readyCardCounts = new Map<string, number>();
+  for (const item of ready) {
+    if (!item.rewardId) continue;
+    const group = rewardGroup(item);
+    readyCardCounts.set(group, (readyCardCounts.get(group) ?? 0) + 1);
+  }
   const readyToUseCount = ready.filter(item => item.rewardId && item.rewardClaimedAt).length;
   const toClaimCount = ready.filter(item => item.rewardId && !item.rewardClaimedAt).length;
   // Expired purchase options may never have issued a digital reward. Keep their
@@ -92,11 +106,13 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           {state.source === "unavailable" ? <p role="status" className={overview.message}>Rewards unavailable. We can’t verify your account activity right now.</p> : ready.length === 0 ? <div className={overview.empty}>
             <h3>No ready gift cards yet</h3><p>Won and purchased retailer gift cards will appear here when they are ready.</p><Link href="/account/entries">View My Activity <AccountIcon name="arrow" /></Link>
           </div> : <div className={overview.readyGrid}>
-            {ready.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={walletRewardHref(item)} className={overview.rewardCard}>
+            {ready.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId ? `ready-reward-${item.rewardId}` : undefined}
+              href={item.rewardId ? `${rewardFromHistory(item)}&tile=1` : walletRewardHref(item)} className={overview.rewardCard}>
               <span className={overview.readyBadge}><AccountIcon name="prize" />{rewardLabel(item, state.isPreview)}</span>
               <span className={overview.rewardImage}><Image src={item.image} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1000px) 45vw, 20vw" /></span>
               <span className={overview.rewardTitle}>{item.title}</span>
               <span className={overview.rewardMeta}>{item.retailer} · {formatUsdFromCents(item.priceCents)}</span>
+              {item.rewardId && (readyCardCounts.get(rewardGroup(item)) ?? 0) > 1 ? <span className={overview.rewardMeta}>Card ref. {cardReference(item.rewardId)}</span> : null}
               <span className={overview.delivered}>{item.rewardId && !item.rewardClaimedAt ? "Claim to open your gift card" : item.rewardClaimedAt ? "Saved in your wallet" : state.isPreview ? "Sample reward preview" : "Awaiting gift-card issuance"}</span>
               {state.isPreview ? <span className={overview.sample}>Sample · Not redeemable</span> : null}
               <span className={overview.openReward}>{item.rewardId && !item.rewardClaimedAt ? "Claim reward" : item.rewardClaimedAt ? "Open gift card" : "Open reward"} <AccountIcon name="arrow" /></span>
@@ -177,7 +193,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
+export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView, returnTile = false, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -216,6 +232,12 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
     ["Status", statusLabel],
     item.rewardClaimedAt ? ["Claimed on", claimedDate(item.rewardClaimedAt, timeZone)] : ["Claim by", claimDeadline],
   ];
+  if (item.rewardId && accountOverview && readyWalletRewards(accountOverview.activity).some(other => other.rewardId && other.rewardId !== item.rewardId && rewardGroup(other) === rewardGroup(item))) {
+    detailRows.push(["Card reference", cardReference(item.rewardId)]);
+  }
+  const walletReturnHref = returnTile && item.rewardId && available
+    ? `${returnView === "ready" ? "/account/wallet?rewards=ready" : "/account/wallet"}#ready-reward-${item.rewardId}`
+    : returnView ? `/account/wallet?rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}` : "/account/wallet";
   const ready = accountOverview ? readyWalletRewards(accountOverview.activity) : [];
   const optionCount = accountOverview?.activity.source === "unavailable" ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;
   const singleReady = ready.length === 1 ? ready[0] : null;
@@ -298,7 +320,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
         {item.rewardId ? <Link href={fulfillmentHref(item.rewardId, orderFilter)} className={styles.backToRewards}>View fulfillment status</Link> : null}
         {orderFilter !== "all" ? <Link href={fulfillmentHref(undefined, orderFilter)} className={styles.backToRewards}>Return to {fulfillmentFilterLabel[orderFilter]}</Link> : null}
         <Link href="/" className={styles.detailShoppingButton}>Continue shopping</Link>
-        <Link href={returnView ? `/account/wallet?rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}` : "/account/wallet"} className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>
+        <Link href={walletReturnHref} className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>
       </nav>
     </section>
   </main>;

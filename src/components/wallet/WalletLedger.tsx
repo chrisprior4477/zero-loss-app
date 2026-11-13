@@ -296,7 +296,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
         const links = transactionLinks(entry, activity);
         const productHref = entry.product?.slug ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
-          const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}`;
+        const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" ? "&from=wallet" : ""}`;
         const selected = entry.id === selectedId;
         return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={selected}
           ref={selected ? selectedRow : undefined} tabIndex={selected ? -1 : undefined} aria-current={selected || undefined}>

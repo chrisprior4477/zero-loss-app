@@ -100,7 +100,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const showBatchSearch = endingSoon || products.length > 0;
   const batchSearchHeading = endingSoon ? "ending-soon-search-again" : "browse-search-again";
   const activeFilters = Boolean(subcategory) || filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
-    || Boolean(selectedRetailerGroup)
     || filters.minValue !== null || filters.maxValue !== null
     || (filters.sort !== "featured" && !(selectedCategory === "ending-soon" && filters.sort === "fewest-left"));
   const allSearchHref = `/browse?${new URLSearchParams({ q: searchTerm })}`;
@@ -263,14 +262,14 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <p className="mt-2 text-white/65">Explore the matching retailer category above to see its directory and any available offers.</p>
             {removePriceLimit}
           </section>
-        ) : activeFilters && (!searchTerm || matchedProducts.length) ? (
+        ) : (activeFilters || selectedRetailerGroup) && (!searchTerm || matchedProducts.length) ? (
           <section className="mt-4 rounded-3xl border border-white/15 bg-white/6 p-8 text-center">
             <h2 className="text-2xl font-bold">{filters.retailer ? `No current ${filters.retailer} offer matches here.` : selectedRetailerGroup ? `No current ${selectedRetailerGroup.category} offers match here.` : "No products match these filters."}</h2>
-            <p className="mt-2 text-white/65">{budgetLabel ? `Your prize-value filter is ${budgetLabel}. This is the prize value, not the cost to enter. Clear filters or search all prizes to see more.` : "Try another retailer or clear your filters to see more prizes."}</p>
+            <p className="mt-2 text-white/65">{budgetLabel ? `Your prize-value filter is ${budgetLabel}. This is the prize value, not the cost to enter. Clear filters or search all prizes to see more.` : activeFilters ? "Try another retailer or clear your filters to see more prizes." : "Choose another category to see more prizes."}</p>
             {removePriceLimit}
             {categorySearchRetry}
             {searchTerm ? <Link href={searchResultsHref(searchTerm)} className="mr-3 mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e]">Search all prizes</Link> : null}
-            <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link>
+            {activeFilters ? <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link> : null}
           </section>
         ) : searchTerm ? (
           <section className="mt-8 overflow-hidden rounded-3xl border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(5,51,91,.96),rgba(0,24,55,.98))] p-7 shadow-[0_20px_65px_rgba(0,0,0,.3)] sm:p-10">

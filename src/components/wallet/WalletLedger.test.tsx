@@ -138,7 +138,7 @@ test("Purchases isolates gift-card charges, including older records without prod
   expect(screen.getByRole("link", { name: "View product" }).getAttribute("href")).toBe(`/items/${item.slug}`);
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-05" } });
   expect(screen.getByRole("button", { name: "Purchases" }).textContent).toBe("Purchases1");
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=purchase");
+  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe("/support?transaction=purchase&from=wallet");
   fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-06" } });
   expect(screen.getByRole("heading", { name: "No gift-card purchases" })).toBeTruthy();
 });

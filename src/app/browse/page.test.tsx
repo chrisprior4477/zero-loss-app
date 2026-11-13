@@ -409,6 +409,11 @@ describe("Browse search results", () => {
       .toBe("/browse?partnerCategory=pharmacy&q=Walgreens#search-results");
   });
 
+  test("a category search without extra filters omits the no-op reset link", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "purple unicorn typewriter" }) }));
+    expect(screen.queryByRole("link", { name: "Clear filters" })).toBeNull();
+  });
+
   test("opens the added simulated Walgreens card from its retailer category", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ partnerCategory: "pharmacy", retailer: "Walgreens" }) }));
     expect(screen.getByRole("link", { name: /\$100 Walgreens Gift Card/ }).getAttribute("href")).toContain("/items/directory-walgreens-100-gift-card");

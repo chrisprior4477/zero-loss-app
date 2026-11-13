@@ -23,11 +23,12 @@ test("unclaimed and claimed rewards keep their own labels, actions, and reward I
   mocks.account.mockResolvedValue({ activity: state, wallet });
   render(await WalletPage({ searchParams: Promise.resolve({}) }));
   const cards = within(screen.getByRole("region", { name: "Available rewards" }));
-  expect(cards.getByRole("link", { name: /Ready to claim/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=unclaimed-win");
+  expect(cards.getByRole("link", { name: /Ready to claim/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=unclaimed-win&tile=1");
   expect(cards.getByRole("link", { name: /Ready to claim/ }).textContent).toContain("Claim reward");
-  expect(cards.getByRole("link", { name: /Ready to use/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=claimed-purchase");
+  expect(cards.getByRole("link", { name: /Ready to use/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=claimed-purchase&tile=1");
   expect(cards.getByRole("link", { name: /Ready to use/ }).textContent).toContain("Open gift card");
   expect(cards.getByText("1 ready to use · 1 to claim")).toBeTruthy();
+  expect(cards.getAllByText(/^Card ref\./).map(ref => ref.textContent)).toEqual(["Card ref. IMED-WIN", "Card ref. PURCHASE"]);
   expect(screen.queryByText("Delivered to wallet")).toBeNull();
   expect(screen.getByRole("link", { name: /Prize Ready: 2/ })).toBeTruthy();
 });
@@ -196,7 +197,7 @@ test("history link opens authoritative balance and existing history directly; fa
   const { rerender } = render(await WalletPage({ searchParams: Promise.resolve({ view: "history" }) }));
   expect(screen.getByTestId("wallet-balance").textContent).toBe("$0.00");
   expect(screen.getByText("No transactions yet")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Add funds" }).getAttribute("href")).toBe("#add-funds");
+  expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
   expect((screen.getByRole("button", { name: "Add funds unavailable" }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByRole("link", { name: "Funds & history" }).getAttribute("aria-current")).toBe("page");
   mocks.account.mockResolvedValue({ activity: drawerState(false), wallet: null });

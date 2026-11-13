@@ -152,7 +152,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
       <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.searchTerm ? `Results for “${props.searchTerm}”${scope ? ` in ${scope}` : ""}` : props.selectedRetailerGroup?.category ?? (props.subcategory || "Filtered results")}</span>
       {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
-      <Link href={`${props.clearHref}#search-results`}>Clear filters</Link>
+      {activeCount > 0 || props.filters.retailer || props.subcategory ? <Link href={`${props.clearHref}#search-results`}>Clear filters</Link> : null}
     </div> : null}
     {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onCancel={() => setPanel(null)} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) setPanel(null); }}>
       <div className={styles.sheet}>
