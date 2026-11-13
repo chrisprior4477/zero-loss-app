@@ -31,7 +31,7 @@ function restore(raw: string | null, ownerId: string, slug: string, available: s
   };
 }
 
-export function useCheckoutSelection(ownerId: string, options: ActivityItem[], entryId?: string) {
+export function useCheckoutSelection(ownerId: string, options: ActivityItem[], entryId?: string, sample = false) {
   const slug = options[0].slug;
   const available = useMemo(() => options.map(option => option.completionOptionId!), [options]);
   const firstId = options.find(option => option.entryId === entryId)?.completionOptionId ?? available[0];
@@ -40,6 +40,7 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
   const [handoffId, setHandoffId] = useState<string>();
 
   useLayoutEffect(() => {
+    if (sample) return;
     let saved: Choice | null = null;
     const query = new URLSearchParams(window.location.search);
     try {
@@ -65,11 +66,12 @@ export function useCheckoutSelection(ownerId: string, options: ActivityItem[], e
     setHandoffId(savePurchaseHandoff({ ...initial, available, slug, ownerId }));
     try { sessionStorage.setItem(key, JSON.stringify({ ...initial, available, slug, ownerId })); }
     catch { /* The cross-tab snapshot remains independent of tab storage. */ }
-  }, [available, firstId, key, ownerId, slug]);
+  }, [available, firstId, key, ownerId, slug, sample]);
 
   function updateChoice(change: Partial<Choice>) {
     const next = { ...choice, ...change };
     setChoice(next);
+    if (sample) return;
     setHandoffId(savePurchaseHandoff({ ...next, available, slug, ownerId }));
     try { sessionStorage.setItem(key, JSON.stringify({ ...next, available, slug, ownerId })); }
     catch { /* The selection remains usable in the current page. */ }
