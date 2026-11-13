@@ -12,10 +12,20 @@ afterEach(() => { cleanup(); vi.useRealTimers(); });
 test("counts down to the next original deadline and advances after an offer expires", async () => {
   const deadlines = [Date.parse("2026-10-09T12:00:30Z"), Date.parse("2026-11-08T12:00:00Z")];
   render(<DeclinedOfferCountdown deadlines={deadlines} />);
-  expect(await screen.findByText("Less than 1 day left")).toBeTruthy();
+  expect(await screen.findByText("Less than 1 hour left")).toBeTruthy();
   expect(screen.getByText("Next offer expires")).toBeTruthy();
   await act(async () => vi.advanceTimersByTime(60_000));
   expect(screen.getByText("29 days left")).toBeTruthy();
+});
+
+test.each([
+  ["2026-10-10T12:01:00Z", "1 day left"],
+  ["2026-10-10T11:59:00Z", "23 hours left"],
+  ["2026-10-09T19:30:00Z", "7 hours left"],
+  ["2026-10-09T13:30:00Z", "1 hour left"],
+])("shows the correct countdown unit for a deadline at %s", async (deadline, label) => {
+  render(<DeclinedOfferCountdown deadlines={[Date.parse(deadline)]} />);
+  expect(await screen.findByText(label)).toBeTruthy();
 });
 
 test("saves an explicit two-day email opt-in", async () => {

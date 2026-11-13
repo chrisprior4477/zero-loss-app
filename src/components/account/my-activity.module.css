@@ -217,6 +217,8 @@
 .declinedTickets { display: grid; gap: 6px; margin-top: 8px; }
 .declinedImage { position: relative; width: 104px; height: 80px; overflow: hidden; border-radius: 9px; background: #e1f2ff; }
 .declinedImage img { object-fit: contain; }
+.declinedTicketSummary { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; align-items: center; }
+.declinedTicketSummary .declinedImage { width: 48px; height: 44px; }
 .declinedRetailer { color: #1675c1; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
 .declinedDetails h2 { margin: 2px 0 5px; font-size: clamp(17px, 1.8vw, 23px); line-height: 1.1; }
 .declinedDetails h3 { margin: 0 0 4px; overflow-wrap: anywhere; font-size: 16px; font-weight: 800; }

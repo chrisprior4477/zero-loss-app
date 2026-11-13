@@ -102,8 +102,15 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
                 const expiresAt = offer.completionExpiresAt ?? null;
                 return <article key={optionId} id={`declined-offer-${optionId}`} tabIndex={-1} className={styles.declinedRow}>
                   <div className={styles.declinedDetails}>
-                    <h3>{ticketLabel}</h3>
-                    <p><strong>{formatUsdFromCents(offer.remainingCents)}</strong> to complete</p>
+                    <div className={styles.declinedTicketSummary}>
+                      <div className={styles.declinedImage}>
+                        <Image src={offer.image} alt={offer.title} fill sizes="48px" />
+                      </div>
+                      <div>
+                        <h3>{ticketLabel}</h3>
+                        <p><strong>{formatUsdFromCents(offer.remainingCents)}</strong> to complete</p>
+                      </div>
+                    </div>
                     {expiresAt && <p>Original deadline <time dateTime={expiresAt}>{formatOfferDeadline(expiresAt, account.timezone)}</time></p>}
                   </div>
                   <DeclinedOfferReminder optionId={optionId} expiresAt={expiresAt}

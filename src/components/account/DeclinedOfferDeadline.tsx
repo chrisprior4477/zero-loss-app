@@ -6,7 +6,8 @@ import { declinedOfferHref } from "@/lib/account/activity";
 import { useServerPreference } from "./useServerPreference";
 import styles from "./my-activity.module.css";
 
-const dayMs = 24 * 60 * 60 * 1000;
+const hourMs = 60 * 60 * 1000;
+const dayMs = 24 * hourMs;
 
 function useOfferClock() {
   const [now, setNow] = useState<number | null>(null);
@@ -19,9 +20,13 @@ function useOfferClock() {
   return now;
 }
 
-function daysLeft(remaining: number) {
-  const days = Math.ceil(remaining / dayMs) - 1;
-  return days < 1 ? "Less than 1 day left" : `${days} ${days === 1 ? "day" : "days"} left`;
+function timeLeft(remaining: number) {
+  if (remaining < dayMs) {
+    const hours = Math.floor(remaining / hourMs);
+    return hours === 0 ? "Less than 1 hour left" : `${hours} ${hours === 1 ? "hour" : "hours"} left`;
+  }
+  const days = Math.max(1, Math.ceil(remaining / dayMs) - 1);
+  return `${days} ${days === 1 ? "day" : "days"} left`;
 }
 
 export function DeclinedOfferCountdown({ deadlines }: { deadlines: number[] }) {
@@ -29,7 +34,7 @@ export function DeclinedOfferCountdown({ deadlines }: { deadlines: number[] }) {
   const next = now === null ? undefined : deadlines.find(deadline => deadline > now);
   const label = !deadlines.length ? "Deadline unavailable" : now === null ? "Checking deadline…" : next === undefined
     ? deadlines.length === 1 ? "Offer expired" : "Offers expired"
-    : daysLeft(next - now);
+    : timeLeft(next - now);
   return <p className={styles.declinedCountdown}>
     <strong>{label}</strong>{next !== undefined && deadlines.length > 1 && deadlines[0] !== deadlines.at(-1) ? <span>Next offer expires</span> : null}
   </p>;
