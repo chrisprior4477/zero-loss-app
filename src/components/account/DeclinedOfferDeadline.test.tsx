@@ -39,6 +39,12 @@ test("saves an explicit two-day email opt-in", async () => {
   expect(screen.getByRole("status").textContent).toContain("saved");
 });
 
+test.each([null, "invalid"])("a missing or unreadable deadline (%s) disables reminder scheduling", expiresAt => {
+  render(<DeclinedOfferReminder optionId={optionId} expiresAt={expiresAt} initialReminderStatus={null} canRequestReminder />);
+  expect(screen.getByRole("checkbox")).toHaveProperty("disabled", true);
+  expect(screen.getByText("A deadline is needed to schedule a reminder.")).toBeTruthy();
+});
+
 test("too-late and already-sent reminders cannot be scheduled again", async () => {
   const view = render(<DeclinedOfferReminder optionId={optionId} expiresAt="2026-10-10T12:00:00Z" initialReminderStatus={null} canRequestReminder />);
   const checkbox = await screen.findByRole("checkbox");

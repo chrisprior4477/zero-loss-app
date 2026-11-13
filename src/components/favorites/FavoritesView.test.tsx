@@ -83,6 +83,7 @@ test("after a pool closes a saved detail, its entry button and its list count di
   expect(screen.getByRole("link", { name: "Enter for $1" })).toBeTruthy();
   view.rerender(<FavoritesView availability={null} hiddenSlugs={["nike-court-shot-shoes"]} initialAlerts={{}} emailEnabled initialShares={[]} />);
   expect(screen.queryByRole("link", { name: "Enter for $1" })).toBeNull();
+  expect(screen.queryByRole("link", { name: "View prize →" })).toBeNull();
   expect(screen.getByRole("tab", { name: "Your Favorites 0" })).toBeTruthy();
   expect(mocks.toggle).not.toHaveBeenCalled();
 });
@@ -216,8 +217,19 @@ test("product artwork opens the inline detail and Share retains the existing sha
 test("Favorites keeps its preview and offers a prominent entry link back to Favorites", () => {
   show(); fireEvent.click(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" }));
   expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Enter for $1" }).getAttribute("href")).toBe("/items/nike-court-shot-shoes?from=%2Faccount%2Ffavorites");
+  expect(screen.getByRole("link", { name: "Enter for $1" }).getAttribute("href")).toBe("/items/nike-court-shot-shoes?from=%2Faccount%2Ffavorites%3Fitem%3Dnike-court-shot-shoes");
   expect(screen.queryByRole("link", { name: /Open prize details/ })).toBeNull();
+});
+
+test("the entry button reflects the live price and disappears when the pool fills", () => {
+  const slug = "nike-court-shot-shoes";
+  const availability = { [slug]: { slug, capacity: 10, sold: 5, remaining: 5, entryPriceCents: 250, repeatableScenario: false } };
+  const props = { initialItem: slug, initialAlerts: {}, emailEnabled: true, initialShares: [] };
+  const view = render(<FavoritesView {...props} availability={availability} />);
+  expect(screen.getByRole("link", { name: "Enter for $2.50" })).toBeTruthy();
+  view.rerender(<FavoritesView {...props} availability={{ [slug]: { ...availability[slug], sold: 10, remaining: 0 } }} />);
+  expect(screen.queryByRole("link", { name: /Enter for/ })).toBeNull();
+  expect(screen.getByText("Pool full")).toBeTruthy();
 });
 
 test("browser Back restores the Favorites list and position, Forward reopens the item, and Back to list adds no extra stop", async () => {

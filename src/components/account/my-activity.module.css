@@ -205,7 +205,8 @@
 .declinedStack[data-layers="2"]::after { bottom: 5px; }
 .declinedProduct, .declinedRow { display: grid; align-items: center; gap: 16px; padding: 14px 22px; background: #fffefa; color: #0b173b; }
 .declinedProduct { grid-template-columns: auto minmax(0, 1fr) auto; }
-.declinedRow { grid-template-columns: minmax(0, 1fr) minmax(0, .85fr) auto; scroll-margin-top: calc(var(--site-header-height, 140px) + 12px); }
+.declinedRow { grid-template-columns: minmax(0, 1fr) minmax(0, .85fr) auto; }
+.declinedRow, .declinedDestination { scroll-margin-top: calc(var(--site-header-height, 140px) + 12px); }
 .declinedDisclosure { margin-top: 8px; }
 .declinedToggle { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; padding: 8px 14px; border-radius: 10px; background: #dff3ff; color: #07365f; font-size: 15px; font-weight: 850; list-style: none; cursor: pointer; }
 .declinedToggle::-webkit-details-marker { display: none; }

@@ -29,6 +29,11 @@ test("an expired declined option cannot be revived from the page", async () => {
   expect(mocks.revive).not.toHaveBeenCalled();
 });
 
+test.each([null, "invalid"])("a missing or unreadable deadline (%s) is not shown as expired", expiresAt => {
+  render(<ReviveOptionButton {...ticket} optionId="11111111-1111-4111-8111-111111111111" expiresAt={expiresAt} />);
+  expect(screen.getByRole("button", { name: "Deadline unavailable" })).toHaveProperty("disabled", true);
+});
+
 test('a dropped revive reply stays inline and checks the exact offer before another attempt',async()=>{
  mocks.revive.mockRejectedValueOnce(new Error('Failed to fetch')).mockResolvedValueOnce({status:'succeeded',message:'Revived'});
  const props={...ticket,optionId:'11111111-1111-4111-8111-111111111111',expiresAt:'2099-01-01T00:00:00Z',statusHref:'/account/purchase-options/nintendo-switch?option=ent_saved'};

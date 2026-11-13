@@ -50,7 +50,7 @@ test("a single declined offer keeps its countdown visible and its reminder in th
   expect((screen.getByRole("checkbox", { name: /Please remind me by email/ }) as HTMLInputElement).checked).toBe(true);
 });
 
-test("grouped offers share one picture and retain their own ticket references after a revive", async () => {
+test("grouped offers show product pictures and retain their own ticket references after a revive", async () => {
   const offer = { completionOptionStatus: "declined", title: "Nintendo Switch – OLED Model", retailer: "Best Buy",
     slug: "nintendo-switch", image: "/catalog/switch.jpg", priceCents: 40000, paidCents: 100, remainingCents: 39900 };
   const entries = ["ent_111111110000aabb", "ent_222222220000aabb", "ent_12345678abcd1234", null];
@@ -59,7 +59,7 @@ test("grouped offers share one picture and retain their own ticket references af
   const view = render(await DeclinedOffersPage({}));
   const expected = ["Ticket #ent_111111110000aabb", "Ticket #ent_222222220000aabb", "Ticket #abcd1234", "Offer #11111113"];
   const group = screen.getByRole("region", { name: offer.title });
-  expect(within(group).getAllByTestId("product-image")).toHaveLength(1);
+  expect(within(group).getAllByTestId("product-image")).toHaveLength(5);
   expect(group.querySelector('[data-layers="2"]')).toBeTruthy();
   const details = within(group).getByText("View 4 offers").closest("details")!;
   expect(details.open).toBe(false);
@@ -67,6 +67,7 @@ test("grouped offers share one picture and retain their own ticket references af
   const rows = within(group).getAllByRole("article");
   expect(rows).toHaveLength(expected.length);
   rows.forEach((row, i) => {
+    expect(within(row).getByTestId("product-image")).toBeTruthy();
     expect(within(row).getByText(expected[i])).toBeTruthy();
     expect(within(row).getByRole("button", { name: "Revive" }).getAttribute("data-review-ticket")).toBe(expected[i]);
   });
@@ -94,4 +95,35 @@ test("a saved ticket link opens the group containing that exact offer", async ()
   } finally {
     window.history.replaceState(null, "", window.location.pathname);
   }
+});
+
+test("the requested offer takes precedence over a stale fragment", async () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const other = "22222222-2222-4222-8222-222222222222";
+  const offer = { completionOptionStatus: "declined", completionOptionId: id, title: "Nintendo Switch",
+    retailer: "Best Buy", slug: "nintendo-switch", image: "/catalog/switch.jpg", remainingCents: 39900 };
+  mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity: [offer, {
+    ...offer, completionOptionId: other, title: "Another prize", slug: "another-prize",
+  }] } });
+  window.history.replaceState(null, "", `#declined-offer-${other}#declined-offer-${id}`);
+  try {
+    render(await DeclinedOffersPage({ searchParams: Promise.resolve({ offer: id }) }));
+    expect(document.getElementById(`declined-offer-${id}`)?.closest("details")?.open).toBe(true);
+    expect(document.getElementById(`declined-offer-${other}`)?.closest("details")?.open).toBe(false);
+  } finally {
+    window.history.replaceState(null, "", window.location.pathname);
+  }
+});
+
+test("an old declined link lands on a notice with the exact revived purchase option", async () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const entryId = "ent_11111111111111111111111111111111";
+  mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity: [{
+    slug: "nintendo-switch", entryId, completionOptionId: id, status: "completion", completionOptionStatus: "available",
+  }] } });
+  render(await DeclinedOffersPage({ searchParams: Promise.resolve({ offer: id }) }));
+  const notice = screen.getByRole("status");
+  expect(notice.id).toBe(`declined-offer-${id}`);
+  expect(within(notice).getByRole("link", { name: /View its current status/ }).getAttribute("href"))
+    .toBe(`/account/purchase-options/nintendo-switch?option=${entryId}`);
 });

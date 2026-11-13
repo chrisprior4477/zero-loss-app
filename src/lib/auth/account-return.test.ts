@@ -25,6 +25,8 @@ const destinations = [
   `/account/wallet?rewardId=${id}`, "/account/wallet", "/account/wallet?rewards=history", "/account/wallet?view=card",
   `/account/wallet?view=history&transaction=${id}#transaction-${id}`,
   "/account/entries?item=nike-court-shot-shoes&entry=ent_123&filter=completion",
+  "/account/entries?item=nike-court-shot-shoes&entry=ent_123&filter=completion&from=purchase-options",
+  "/account/entries?item=nike-court-shot-shoes&entry=ent_123&filter=completion&resume=purchase",
   "/account/entries?filter=active", "/account/favorites", "/account/orders", "/account/security", "/account/profile", "/account/notifications",
   `/account/favorites?tab=shared&share=${id}`, "/account/favorites?item=nike-court-shot-shoes", "/account/favorites#saved-items-heading",
   "/account/entries/ent_11111111111111111111111111111111", "/account/entries?viewed=ent_11111111111111111111111111111111",

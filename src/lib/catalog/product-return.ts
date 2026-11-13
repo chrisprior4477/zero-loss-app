@@ -18,6 +18,10 @@ export function productBrowseReturnPath(value: unknown): string | null {
   if (value.startsWith("/account/favorites?")) {
     const url = new URL(value, "https://zeroloss.local");
     const keys = [...url.searchParams.keys()];
+    const item = url.searchParams.get("item");
+    if (!url.hash && keys.length === 1 && item && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item)) {
+      return `/account/favorites?item=${item}`;
+    }
     const share = url.searchParams.get("share");
     if (url.hash || url.searchParams.get("tab") !== "shared"
       || keys.some(key => key !== "tab" && key !== "share" && key !== "view") || new Set(keys).size !== keys.length

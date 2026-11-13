@@ -23,8 +23,10 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
   const [reviewing, setReviewing] = useState(false);
   const closeReview = useCallback(() => { if (!pending) setReviewing(false); }, [pending]);
   const [expired, setExpired] = useState<boolean | null>(null);
+  const deadline = Date.parse(expiresAt ?? "");
+  const hasDeadline = Number.isFinite(deadline);
   useEffect(() => {
-    const deadline = expiresAt ? new Date(expiresAt).getTime() : 0;
+    if (!hasDeadline) return;
     let timer: number | undefined;
     const checkDeadline = () => {
       const remaining = deadline - Date.now();
@@ -35,16 +37,22 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
     return () => {
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [expiresAt]);
-  const disabled = expired !== false || pending || state.status === "succeeded" || needsCheck;
+  }, [deadline, hasDeadline]);
+  const disabled = !hasDeadline || expired !== false || pending || state.status === "succeeded" || needsCheck;
   const feedback = <>
     {state.status !== "idle" ? <span role="status" className={state.status === "error" ? "max-w-48 text-right text-xs font-semibold text-[#a93412]" : "max-w-48 text-right text-xs font-semibold text-[#12672e]"}>{state.message}</span> : null}
-    {needsCheck ? <a href={statusHref} className="text-right text-sm font-bold text-[#0069b3] underline">Check this offer →</a> : null}
+    {needsCheck ? <a href={statusHref} onClick={event => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (event.currentTarget.pathname !== window.location.pathname) return;
+      event.preventDefault();
+      window.history.replaceState(window.history.state, "", statusHref);
+      window.location.reload();
+    }} className="text-right text-sm font-bold text-[#0069b3] underline">Check this offer →</a> : null}
   </>;
   return <div className={`${styles.declinedRevive} flex flex-col items-end gap-2`}>
     <button type="button" aria-haspopup="dialog" onClick={() => setReviewing(true)} disabled={disabled}
       className="min-h-11 min-w-24 rounded-lg bg-[#31e800] px-5 font-extrabold text-[#052515] disabled:cursor-not-allowed disabled:opacity-50">
-      {expired === null ? "Checking…" : expired ? "Expired" : pending ? "Reviving…" : "Revive"}
+      {!hasDeadline ? "Deadline unavailable" : expired === null ? "Checking…" : expired ? "Expired" : pending ? "Reviving…" : "Revive"}
     </button>
     {reviewing ? <PurchaseDialog title="Revive this offer?" onClose={closeReview} closeDisabled={pending} closeLabel="Close revive confirmation" className={dialogStyles.dialog}>
       <p className="font-extrabold">{productTitle}</p>
@@ -54,7 +62,7 @@ export function ReviveOptionButton({ optionId, ticketLabel, productTitle, expire
         <input type="hidden" name="completionOptionId" value={optionId} />
         <button type="button" onClick={closeReview} disabled={pending} className={dialogStyles.keep}>Cancel</button>
         <button type="submit" disabled={disabled} className={`${dialogStyles.finish} disabled:opacity-50`}>
-          {expired ? "Expired" : pending ? "Reviving…" : "Confirm revive"}
+          {!hasDeadline ? "Deadline unavailable" : expired ? "Expired" : pending ? "Reviving…" : "Confirm revive"}
         </button>
       </form>
       {feedback}

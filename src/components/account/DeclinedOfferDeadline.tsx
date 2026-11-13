@@ -56,7 +56,7 @@ export function DeclinedOfferReminder({ optionId, expiresAt, initialReminderStat
   const remaining = now === null || !Number.isFinite(deadline) ? null : deadline - now;
   const isExpired = remaining !== null && remaining <= 0;
   const tooLateToSchedule = remaining !== null && remaining <= 2 * dayMs;
-  const canChange = canRequestReminder && !pending && !needsCheck && !isExpired && status !== "sent" && status !== "processing"
+  const canChange = canRequestReminder && remaining !== null && !pending && !needsCheck && !isExpired && status !== "sent" && status !== "processing"
     && (status === "pending" || !tooLateToSchedule);
   const checked = status === "pending" || status === "sent" || status === "processing";
   return <div className={styles.declinedTiming}>
@@ -83,6 +83,8 @@ export function DeclinedOfferReminder({ optionId, expiresAt, initialReminderStat
       : status === "processing" ? <small>Reminder is being sent.</small>
       : status === "failed" ? <small>We couldn’t send this reminder.</small>
       : !canRequestReminder ? <small>Email reminders are unavailable for this account right now.</small>
+      : !Number.isFinite(deadline) ? <small>A deadline is needed to schedule a reminder.</small>
+      : isExpired ? <small>This offer has expired.</small>
       : tooLateToSchedule && !checked ? <small>Too close to the deadline for a two-day reminder.</small> : null}
     {message ? <small role="status">{message}</small> : null}
     {needsCheck ? <a href={declinedOfferHref(optionId)} onClick={event => {

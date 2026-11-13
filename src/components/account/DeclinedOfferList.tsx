@@ -8,7 +8,7 @@ export function DeclinedOfferList({ children, offerId, ownerId }: { children: Re
   useEffect(() => {
     let frame = 0;
     function revealLinkedOffer() {
-      const id = window.location.hash.slice(1) || (offerId ? `declined-offer-${offerId}` : "");
+      const id = offerId ? `declined-offer-${offerId}` : window.location.hash.slice(1).split("#", 1)[0];
       if (!id.startsWith("declined-offer-")) return;
       const offer = document.getElementById(id);
       if (!offer || !list.current?.contains(offer)) return;

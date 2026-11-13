@@ -10,6 +10,7 @@ import { FavoritesLandingScroll } from "./FavoritesLandingScroll";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { availabilityStatus, type AvailabilitySnapshot } from "@/lib/catalog/availability";
+import { formatUsdFromCents } from "@/lib/wallet/money";
 import { setFavoriteCapacityAlert } from "@/lib/favorites/alert-actions";
 import { savedShareHref, savedShareStatus, sharedWithYouHref, type SavedProductShare, type SharedView } from "@/lib/sharing/saved-shares";
 import { setReceivedProductState } from "@/lib/sharing/saved-share-actions";
@@ -204,7 +205,11 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   }
   function productState(slug: string) {
     const product = getDemoProduct(slug), current = availability?.[slug];
-    return { product, current, status: product ? availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold) : null };
+    return {
+      product,
+      entryPriceCents: current?.entryPriceCents ?? Math.round((product?.entryPrice ?? 0) * 100),
+      status: product ? availabilityStatus(current?.capacity ?? product.capacity, current?.sold ?? product.sold) : null,
+    };
   }
   function art(slug: string, large = false, shareId?: string) {
     const product = getDemoProduct(slug);
@@ -215,17 +220,18 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     </div>;
   }
   function price(slug: string, large = false) {
-    const { product, current, status } = productState(slug);
+    const { product, entryPriceCents, status } = productState(slug);
     if (!product) return null;
-    return <div className={`${styles.price} ${large ? styles.detailPrice : ""}`}><span><strong>${((current?.entryPriceCents ?? product.entryPrice * 100) / 100).toFixed(2)}</strong>per entry</span>
+    return <div className={`${styles.price} ${large ? styles.detailPrice : ""}`}><span><strong>${(entryPriceCents / 100).toFixed(2)}</strong>per entry</span>
       <span className={styles.remaining} style={{ color: status?.color }}>{status?.remaining === 0 ? "Pool full" : <><strong>{status?.remaining.toLocaleString()}</strong> left</>}</span></div>;
   }
   function sender(share: SavedProductShare) {
     return <div className={styles.sender}><span aria-hidden="true">{share.sender[0]?.toUpperCase() ?? "?"}</span><div>From {share.sender}<small>{share.demo ? "Demo share · " : ""}{new Date(share.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone })}</small></div></div>;
   }
-  const missingFavorite = tab === "favorites" && available && selection?.slug && !selectedSlug ? productState(selection.slug) : null;
-  const detailProduct = selectedSlug ? getDemoProduct(selectedSlug) : null;
-  const detailHref = detailProduct ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, sharedView) : "/account/favorites")
+  const missingFavoriteSlug = tab === "favorites" && available && !selectedSlug ? selection?.slug : undefined;
+  const missingFavorite = missingFavoriteSlug ? productState(missingFavoriteSlug) : null;
+  const { product: detailProduct, entryPriceCents: detailEntryPrice, status: detailStatus } = productState(selectedSlug ?? "");
+  const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, sharedView) : `/account/favorites?item=${detailProduct.slug}`)
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
     <FavoritesLandingScroll enabled />
@@ -249,21 +255,22 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
               <p className={styles.merchant}>{detailProduct?.retailer ?? "Zero Loss"}</p><h2>{detailProduct?.title ?? selectedShare?.title ?? "Product unavailable"}</h2>
               {selectedShare ? <span className={`${styles.badge} ${selectedShare.declinedAt ? styles.declined : ""}`}>{savedShareStatus(selectedShare)}</span> : null}
               {price(selectedSlug, true)}
-              {detailHref ? selectedShare?.declinedAt ? null : <Link className={selectedShare ? styles.productLink : styles.entryButton} href={detailHref}>{selectedShare ? "Open prize details →" : "Enter for $1"}</Link> : <p>This product is no longer available in the current catalog.</p>}
+              {detailHref && !selectedShare?.declinedAt ? <Link className={selectedShare ? styles.productLink : styles.entryButton} href={detailHref}>{selectedShare ? "Open prize details →" : `Enter for ${formatUsdFromCents(detailEntryPrice)}`}</Link> : null}
+              {!detailProduct ? <p>This product is no longer available in the current catalog.</p> : null}
               <div className={styles.detailActions}>
                 <div><button type="button" className={styles.saveFavorite} disabled={favoriteBusy.includes(selectedSlug) || !detailProduct || !available} onClick={() => toggle(selectedSlug)}>{slugs.includes(selectedSlug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
                   {selectedShare?.declinedAt && detailHref ? <Link className={styles.reopenButton} href={detailHref}>Reopen prize →</Link> : null}
                 </div>
                 <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={back}>Back to list</button></div>
               </div>
-              {selectedShare ? <><button type="button" className={styles.declineButton} disabled={shareBusy !== null} onClick={() => void changeShare(selectedShare, selectedShare.declinedAt ? "restore" : "declined")}>{shareBusy === selectedShare.id ? "Saving…" : selectedShare.declinedAt ? "Undo decline" : "Decline this share"}</button><p className={styles.kept}>{selectedShare.declinedAt ? "Reopen the prize to look again, or undo your decline to move it to Available." : "Declining moves this share to Declined. You can revisit it while its pool is open."}</p></> : null}
+              {selectedShare ? <><button type="button" className={styles.declineButton} disabled={shareBusy !== null} onClick={() => void changeShare(selectedShare, selectedShare.declinedAt ? "restore" : "declined")}>{shareBusy === selectedShare.id ? "Saving…" : selectedShare.declinedAt ? "Undo decline" : "Decline this share"}</button><p className={styles.kept}>{selectedShare.declinedAt ? detailHref ? "Reopen the prize to look again, or undo your decline to move it to Available." : "Undo your decline to move this share to Available." : "Declining moves this share to Declined. You can revisit it while its pool is open."}</p></> : null}
             </div>
           </article>
         </> : tab === "favorites" ? <>
           {missingFavorite ? <div role="status" className={styles.empty}>
             <h2>This prize is no longer in your Favorites</h2>
             <button type="button" className={styles.back} onClick={back}>Back to Favorites</button>
-            {missingFavorite.product && (missingFavorite.status?.remaining ?? 0) > 0 ? <Link href={`/items/${missingFavorite.product.slug}`}>View prize →</Link> : null}
+            {missingFavorite.product && !hidden.has(missingFavorite.product.slug) && (missingFavorite.status?.remaining ?? 0) > 0 ? <Link href={`/items/${missingFavorite.product.slug}`}>View prize →</Link> : null}
           </div> : null}
           {emailEnabled === false ? <p className={styles.notice}>Favorite emails are paused in <Link href="/account/notifications#favorite-alert-preference">Notifications</Link>.</p> : null}
           {initialAlerts === null || emailEnabled === null ? <p role="status" className={styles.notice}>Alert choices are unavailable. Your saved items are unchanged.</p> : null}
@@ -287,9 +294,10 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
           {initialShares === null ? <p role="alert" className={styles.empty}>Shared items couldn’t be loaded. Refresh to try again; nothing has been removed.</p>
             : !visibleShares.length ? requestedShareUnavailable ? null : <div className={styles.empty}><h2>{!shares.length && sharedView === "available" ? "Nothing shared with you yet" : sharedView === "declined" ? "No declined shares" : "No available shares"}</h2><p>{sharedView === "declined" ? "Shares you decline appear here while their pools remain open." : declinedCount ? "Check Declined to revisit a share." : "Items people send you will appear here."}</p></div>
               : <div aria-label="Items shared with you" className={styles.grid}>{visibleShares.map(share => {
-                const product = getDemoProduct(share.slug);
-                const reopenHref = productHrefWithBrowseReturn(share.slug, savedShareHref(share.id, "declined")) + (share.token ? `&share=${share.token}` : "");
-                return <article key={share.id} className={styles.card}>{art(share.slug, false, share.id)}<div className={styles.cardBody}>{sender(share)}<span className={`${styles.badge} ${share.declinedAt ? styles.declined : ""}`}>{savedShareStatus(share)}</span><p className={styles.merchant}>{product?.retailer ?? "Zero Loss"}</p><h2>{product?.title ?? share.title}</h2><button type="button" className={styles.viewButton} data-saved-item={share.id} onClick={() => openItem(share.slug, share.id)}>{share.declinedAt ? "View declined share" : "View prize"} <span aria-hidden="true">→</span></button>{share.declinedAt && product ? <Link className={styles.reopenButton} href={reopenHref}>Reopen prize →</Link> : null}</div></article>;
+                const { product, status } = productState(share.slug);
+                const reopenHref = share.declinedAt && product && status?.remaining !== 0
+                  ? productHrefWithBrowseReturn(share.slug, savedShareHref(share.id, "declined")) + (share.token ? `&share=${share.token}` : "") : null;
+                return <article key={share.id} className={styles.card}>{art(share.slug, false, share.id)}<div className={styles.cardBody}>{sender(share)}<span className={`${styles.badge} ${share.declinedAt ? styles.declined : ""}`}>{savedShareStatus(share)}</span><p className={styles.merchant}>{product?.retailer ?? "Zero Loss"}</p><h2>{product?.title ?? share.title}</h2><button type="button" className={styles.viewButton} data-saved-item={share.id} onClick={() => openItem(share.slug, share.id)}>{share.declinedAt ? "View declined share" : "View prize"} <span aria-hidden="true">→</span></button>{reopenHref ? <Link className={styles.reopenButton} href={reopenHref}>Reopen prize →</Link> : null}</div></article>;
               })}</div>}
         </>}
       </section>

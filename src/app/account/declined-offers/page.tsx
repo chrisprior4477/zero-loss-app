@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
-import { activityHref, declinedOfferHref, type ActivityItem } from "@/lib/account/activity";
+import { activityHref, declinedOfferHref, openPrizeOptions, type ActivityItem } from "@/lib/account/activity";
 import { crewUuid } from "@/lib/crew/visibility";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -13,6 +13,7 @@ import { formatOfferDeadline } from "@/lib/account/timezone";
 import { ReviveOptionButton } from "@/components/account/ReviveOptionButton";
 import { DeclinedOfferCountdown, DeclinedOfferReminder } from "@/components/account/DeclinedOfferDeadline";
 import { DeclinedOfferList } from "@/components/account/DeclinedOfferList";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import styles from "@/components/account/my-activity.module.css";
@@ -29,6 +30,10 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
     item.completionOptionStatus === "declined" && Boolean(item.completionOptionId));
   const requestedMissing = offerId && account.activity.source !== "unavailable" && !declined.some(item => item.completionOptionId === offerId);
   const currentOffer = requestedMissing ? account.activity.activity.find(item => item.completionOptionId === offerId) : undefined;
+  const currentOfferHref = currentOffer && (openPrizeOptions([currentOffer], currentOffer.slug).length
+    ? `/account/purchase-options/${encodeURIComponent(currentOffer.slug)}?option=${encodeURIComponent(currentOffer.entryId!)}`
+    : activityHref(currentOffer));
+  const requestedAnchor = offerId ? `declined-offer-${offerId}` : undefined;
   const groups = new Map<string, DeclinedOffer[]>();
   for (const offer of declined) {
     const group = groups.get(offer.slug);
@@ -66,11 +71,12 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
         <Link href="/">Continue shopping</Link>
       </nav>
     </div>
-    {requestedMissing && <div role="status" className={styles.empty}>
+    {requestedMissing && requestedAnchor && <div id={requestedAnchor} role="status" className={`${styles.empty} ${styles.declinedDestination}`}>
+      <AccountSettingsLandingScroll target={requestedAnchor} initialTarget={requestedAnchor} allScreens />
       <h2>This offer is no longer in Declined Offers</h2>
-      {currentOffer && <Link href={activityHref(currentOffer)}>View its current status →</Link>}
+      {currentOfferHref && <Link href={currentOfferHref}>View its current status →</Link>}
     </div>}
-    {account.activity.source === "unavailable" ? <div className={styles.empty}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p></div>
+    {account.activity.source === "unavailable" ? <div id={requestedAnchor} className={`${styles.empty} ${styles.declinedDestination}`}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p><a href={declinedOfferHref(offerId)}>Try again</a></div>
       : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href="/account/entries">Back to My Activity →</Link></div>
       : <DeclinedOfferList offerId={offerId} ownerId={account.userId}>{Array.from(groups, ([slug, offers]) => {
         const [product] = offers;
@@ -99,7 +105,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
               {offers.map(offer => {
                 const optionId = offer.completionOptionId;
                 const ticketLabel = labels[optionId];
-                const expiresAt = offer.completionExpiresAt ?? null;
+                const expiresAt = offer.completionExpiresAt && Number.isFinite(Date.parse(offer.completionExpiresAt)) ? offer.completionExpiresAt : null;
                 return <article key={optionId} id={`declined-offer-${optionId}`} tabIndex={-1} className={styles.declinedRow}>
                   <div className={styles.declinedDetails}>
                     <div className={styles.declinedTicketSummary}>
@@ -117,7 +123,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
                     initialReminderStatus={reminderStatus.get(optionId) ?? null}
                     canRequestReminder={remindersAvailable && account.emailConfirmed} />
                   <ReviveOptionButton optionId={optionId} ticketLabel={ticketLabel} productTitle={offer.title} expiresAt={expiresAt}
-                    statusHref={offer.entryId ? `/account/purchase-options/${encodeURIComponent(offer.slug)}?option=${encodeURIComponent(offer.entryId)}` : "/account/entries?filter=completion"} />
+                    statusHref={declinedOfferHref(optionId)} />
                 </article>;
               })}
             </div>
