@@ -102,6 +102,17 @@ test("desktop category and retailer browsing retains its existing scroll positio
   act(() => vi.runAllTimers()); expect(scroll).not.toHaveBeenCalled();
 });
 
+test("desktop category return normalizes a repeated results anchor and lands on the results", () => {
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+  window.history.replaceState({ frameworkState: "keep" }, "", "/browse?category=electronics#search-results#search-results");
+  render(<><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse?category=electronics" /></>);
+  const scroll = vi.fn(); document.getElementById("search-results")!.scrollIntoView = scroll;
+  act(() => vi.runAllTimers());
+  expect(window.location.hash).toBe("#search-results");
+  expect(window.history.state).toEqual({ frameworkState: "keep" });
+  expect(scroll).toHaveBeenCalledTimes(2);
+});
+
 test("touch interaction cancels the pending mobile browse scroll", () => {
   render(<><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse" /></>);
   const scroll = vi.fn(); document.getElementById("search-results")!.scrollIntoView = scroll;
