@@ -12,7 +12,7 @@ import { getSupportOrder } from "@/lib/account/order-support";
 import type { AccountOrderStatus } from "@/lib/account/orders";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { formatUsdFromCents } from "@/lib/wallet/money";
-import { formatOfferDeadline } from "@/lib/account/timezone";
+import { formatOfferDeadline, safeTimeZone } from "@/lib/account/timezone";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { DemoPaymentProvider, type DemoFundingRequest } from "@/lib/payments/demo-provider";
@@ -30,7 +30,8 @@ const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const card = `${styles.ticket} ${styles.panel}`;
 const button = `${styles.ticket} ${styles.button}`;
 const note = `${styles.ticket} ${styles.note}`;
-const statusLabels: Record<string, string> = { open: "Open — awaiting review", awaiting_customer: "Waiting for your reply", resolved: "Resolved" };
+const awaitingCustomer = "awaiting_customer";
+const statusLabels: Record<string, string> = { open: "Open — awaiting review", [awaitingCustomer]: "Waiting for your reply", resolved: "Resolved" };
 const orderStatuses: Record<AccountOrderStatus, string> = {
   payment_confirmed: "Payment confirmed", issuance_pending: "Issuance pending", fulfilled: "Card issued",
   exception: "Action needed", cancelled: "Cancelled", corrected: "Order corrected",
@@ -43,12 +44,81 @@ const depositStatuses: Record<DemoFundingRequest["reconciliation"], string> = {
   not_processed: "Request saved · not processed", discrepancy: "Needs review",
 };
 const pageSize = 50;
+const caseColumns = "id,case_number,subject,status";
+type SupportCaseListItem = { id: string; case_number: string; subject: string; status: string };
+type WaitingCase = SupportCaseListItem & { latest_reply?: { created_at: string }[] };
 function pageIndex(value: unknown) {
   return typeof value === "string" && /^\d{1,5}$/.test(value) ? Math.max(0, Number(value) - 1) : 0;
 }
 function statusLabel(status: string, staffView = false) {
-  return staffView && status === "awaiting_customer" ? "Waiting for customer" : statusLabels[status] ?? "Status unavailable";
+  return staffView && status === awaitingCustomer ? "Waiting for customer" : statusLabels[status] ?? "Status unavailable";
 }
+
+async function loadSupportCases(db: Awaited<ReturnType<typeof createClient>>, userId: string, page: number, inbox: boolean) {
+  const offset = page * pageSize;
+  const history = db.from("support_cases").select(caseColumns)
+    .order("updated_at", { ascending: false }).order("id", { ascending: false });
+  let waiting: WaitingCase[] = [];
+  let waitingCount = 0;
+
+  if (!inbox) {
+    const waitingQuery = () => db.from("support_cases")
+      .select(`${caseColumns},latest_reply:support_case_events(created_at)`, page === 0 ? { count: "exact" } : undefined)
+      .eq("customer_id", userId).eq("status", awaitingCustomer)
+      .eq("latest_reply.event_name", "support.case.staff_replied")
+      .order("created_at", { referencedTable: "latest_reply", ascending: false })
+      .limit(1, { referencedTable: "latest_reply" })
+      .order("updated_at", { ascending: false }).order("id", { ascending: false });
+
+    // Read the count before requesting a later range, which may start past the last waiting case.
+    if (page > 0) {
+      const countResult = await db.from("support_cases").select("id", { count: "exact", head: true })
+        .eq("customer_id", userId).eq("status", awaitingCustomer);
+      if (countResult.error) return { error: countResult.error, waiting, other: [], more: false };
+      waitingCount = countResult.count ?? 0;
+    }
+    if (page === 0 || offset < waitingCount) {
+      const result = await waitingQuery().range(offset, offset + pageSize - 1);
+      if (result.error) return { error: result.error, waiting, other: [], more: false };
+      waiting = result.data ?? [];
+      waitingCount = result.count ?? waitingCount;
+    }
+    if (waitingCount > offset + pageSize) return { error: null, waiting, other: [], more: true };
+    history.eq("customer_id", userId).neq("status", awaitingCustomer);
+  }
+
+  const otherOffset = Math.max(0, offset - waitingCount);
+  const otherSlots = pageSize - waiting.length;
+  const result = await history.range(otherOffset, otherOffset + otherSlots);
+  return {
+    error: result.error, waiting, other: (result.data ?? []).slice(0, otherSlots),
+    more: (result.data?.length ?? 0) > otherSlots,
+  };
+}
+
+function SupportCaseList({ cases, inboxContext, timeZone }: { cases: WaitingCase[]; inboxContext: string; timeZone: string }) {
+  const date = new Intl.DateTimeFormat("en-US", { timeZone: safeTimeZone(timeZone), dateStyle: "medium" });
+  return <ul className="mt-3 space-y-3">
+    {cases.map(supportCase => {
+      const lastReply = supportCase.latest_reply?.[0]?.created_at;
+      return <li key={supportCase.id}>
+        <Link href={`/support?case=${supportCase.id}${inboxContext}#conversation`} className={`${styles.ticket} ${styles.caseLink}`}>
+          <span className={styles.caseDetails}>
+            <strong>{supportCase.subject}</strong>
+            <span className={`text-sm ${styles.eyebrow}`}>
+              {lastReply && Number.isFinite(Date.parse(lastReply))
+                ? <>Last Support reply <time dateTime={lastReply}>{date.format(new Date(lastReply))}</time></>
+                : statusLabel(supportCase.status, Boolean(inboxContext))}
+            </span>
+            <span className={`text-xs ${styles.muted}`}>{supportCase.case_number}</span>
+          </span>
+          <span className={styles.caseAction}>Open case</span>
+        </Link>
+      </li>;
+    })}
+  </ul>;
+}
+
 function pageLinks(base: string, page: number, more: boolean, conversation = false) {
   const parameter = conversation ? "messages" : "page";
   const href = (index: number) => `${base}${base.includes("?") ? "&" : "?"}${parameter}=${index + 1}${conversation ? "#conversation" : "#case-list"}`;
@@ -176,9 +246,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     : linkedReward?.rewardStatus ? rewardStatuses[linkedReward.rewardStatus] : undefined;
   const deposit = validDeposit && account.wallet?.scope === "demo"
     ? await new DemoPaymentProvider(db).getRequest(validDeposit).catch(() => undefined) : undefined;
-  let casesQuery = db.from("support_cases").select("id,case_number,subject,status,updated_at").order("updated_at", { ascending: false }).order("id", { ascending: false }).range(casePage * pageSize, (casePage + 1) * pageSize);
-  if (!inbox) casesQuery = casesQuery.eq("customer_id", account.userId);
-  const cases = await casesQuery;
+  const cases = await loadSupportCases(db, account.userId, casePage, inbox);
   return <PageContainer>{heading}{navigation}{inbox ? <p className={`${note} mb-5 text-sm`}>Private case review and replies only. This inbox cannot issue refunds, adjust balances, or change prizes.</p> : null}
     {!inbox && !validTransaction && !validReward && !validDeposit ? <HelpShortcuts activity={account.activity} /> : null}
     <div className="grid gap-6 lg:grid-cols-2">
@@ -208,8 +276,19 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
         </>}
       </section> : null}
       <section id="case-list" className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>
-        {cases.error ? <p role="alert" className="mt-4">We couldn’t load cases. Please refresh to try again.</p> : !cases.data?.length ? <p className={`mt-4 ${styles.muted}`}>{casePage > 0 ? "No more cases on this page." : "No cases yet."}</p> : <ul className="mt-4 space-y-3">{cases.data.slice(0, pageSize).map(c => <li key={c.id}><Link href={`/support?case=${c.id}${inboxContext}#conversation`} className={`${styles.ticket} ${styles.caseLink}`}><strong className="block break-words">{c.subject}</strong><span className={`mt-1 block text-sm ${styles.eyebrow}`}>{statusLabel(c.status, inbox)}</span><span className={`mt-2 block break-all text-xs ${styles.muted}`}>{c.case_number}</span></Link></li>)}</ul>}
-        {!cases.error ? pageLinks(inbox ? "/support?view=inbox" : validTransaction ? `/support?transaction=${validTransaction}` : validReward ? `/support?rewardId=${validReward}` : validDeposit ? depositSupportHref(validDeposit).split("#")[0] : "/support", casePage, (cases.data?.length ?? 0) > pageSize) : null}
+        {cases.error ? <p role="alert" className="mt-4">We couldn’t load cases. Please refresh to try again.</p>
+          : !cases.waiting.length && !cases.other.length ? <p className={`mt-4 ${styles.muted}`}>{casePage > 0 ? "No more cases on this page." : "No cases yet."}</p>
+          : <>
+            {cases.waiting.length > 0 ? <section aria-labelledby="support-waiting-heading" className="mt-4">
+              <h3 id="support-waiting-heading" className={`font-bold ${styles.eyebrow}`}>Waiting for you</h3>
+              <SupportCaseList cases={cases.waiting} inboxContext={inboxContext} timeZone={account.timezone} />
+            </section> : null}
+            {cases.other.length > 0 ? <div className="mt-4">
+              {cases.waiting.length > 0 ? <h3 className="font-bold">Other cases</h3> : null}
+              <SupportCaseList cases={cases.other} inboxContext={inboxContext} timeZone={account.timezone} />
+            </div> : null}
+          </>}
+        {!cases.error ? pageLinks(inbox ? "/support?view=inbox" : validTransaction ? `/support?transaction=${validTransaction}` : validReward ? `/support?rewardId=${validReward}` : validDeposit ? depositSupportHref(validDeposit).split("#")[0] : "/support", casePage, cases.more) : null}
       </section>
     </div>
   </PageContainer>;

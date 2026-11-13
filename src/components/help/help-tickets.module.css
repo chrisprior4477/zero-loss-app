@@ -70,6 +70,9 @@
 .shortcut[data-tone] .detail { color: inherit; }
 .detail { margin-top: 6px; display: block; color: #4e6784; font-size: 13px; font-weight: 500; line-height: 1.4; }
 .caseLink, .message, .note { display: block; padding: 20px 24px; background: #e3f4fc; color: #0a1741; overflow-wrap: anywhere; }
+.caseLink { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 10px 14px; }
+.caseDetails { display: grid; gap: 2px; }
+.caseAction { display: grid; place-items: center; min-height: 44px; padding: 4px 8px; border-radius: 8px; background: #10345e; color: #fff; font-size: 13px; font-weight: 750; white-space: nowrap; }
 .message { --corner: 14px; --side: 8px; }
 .message[data-staff="true"] { background: #c5f0ff; }
 .note { background: #e3f4fc; }
