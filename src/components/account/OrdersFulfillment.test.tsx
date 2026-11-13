@@ -58,6 +58,29 @@ test("both order help links open the selected transaction's problem form", () =>
   for (const link of helpLinks) expect(link.getAttribute("href")).toBe(supportHref);
 });
 
+test("both confirmed payment links open checkout records and the filter can be cleared", () => {
+  const activity = storedActivityFixture();
+  activity.activity = [{ ...activity.activity[1], entryId: "ent_winner", rewardId: "winner-id", rewardSource: "winner", rewardStatus: "ready" }];
+  const overview = { balanceLabel: "$17", fundingEnabled: true, activity };
+  const state: AccountOrders = { source: "stored", orders: [order("fulfilled", "purchased"), order("issuance_pending", "pending")] };
+  const { rerender } = render(<OrdersFulfillment state={state} overview={overview} />);
+  const header = screen.getByRole("heading", { name: "Retailer gift-card fulfillment" }).closest("header")!;
+  const related = screen.getByRole("navigation", { name: "Related pages" });
+  for (const parent of [header, related]) {
+    expect(within(parent).getByRole("link", { name: "Confirmed payments" }).getAttribute("href")).toBe("/account/orders?filter=payment#fulfillment-records");
+  }
+  expect(screen.getByText("You won")).toBeTruthy();
+
+  rerender(<OrdersFulfillment state={state} overview={overview} filter="payment" />);
+  expect(within(header).getByRole("status").textContent).toBe("2 of 3 records");
+  expect(within(header).getByRole("link", { name: "Confirmed payments" }).getAttribute("aria-current")).toBe("page");
+  expect(within(related).getByRole("link", { name: "Confirmed payments" }).getAttribute("href")).toBe("#fulfillment-records");
+  expect(screen.getByText("purchased gift card")).toBeTruthy();
+  expect(screen.getByText("pending gift card")).toBeTruthy();
+  expect(screen.queryByText("You won")).toBeNull();
+  expect(within(header).getByRole("link", { name: "Show all orders & rewards" }).getAttribute("href")).toBe("/account/orders#fulfillment-records");
+});
+
 test("two orders for the same product open their own saved gift cards", () => {
   render(<OrdersFulfillment state={{ source: "stored", orders: [
     order("fulfilled", "ready"),

@@ -25,6 +25,8 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
   const fulfilled = records.filter(order => matchesFulfillmentFilter(order, "fulfilled")).length;
   const exceptions = records.filter(order => matchesFulfillmentFilter(order, "exceptions")).length;
   const hasSelection = Boolean(selectedOrderNumber || selectedRewardId);
+  const paymentHref = fulfillmentHref(undefined, "payment");
+  const showingPayments = filter === "payment" && !hasSelection;
   const retryLabel = selectedOrderNumber ? "Try this order again"
     : selectedRewardId ? "Try this reward again"
     : filter === "exceptions" ? "Try Exceptions again"
@@ -67,10 +69,16 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
 
       {selectedOrderNumber ? <SelectedOrderScroll targetId={selectionAnchor} /> : null}
       <div id={selectionAnchor} className={styles.contentGrid}>
-        <header className={styles.sectionHeading}><div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading">Retailer gift-card fulfillment</h2></div><span role="status">{visibleOrders.length} of {countLabel(records.length)} records</span></header>
+        <header className={styles.sectionHeading}>
+          <div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading">Retailer gift-card fulfillment</h2></div>
+          <div className={styles.resultControls}>
+            <span role="status">{visibleOrders.length} of {countLabel(records.length)} records</span>
+            {!hasSelection ? <Link href={paymentHref} className={styles.paymentFilter} aria-current={showingPayments ? "page" : undefined}>Confirmed payments</Link> : null}
+            {filter !== "all" || hasSelection ? <Link href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</Link> : null}
+          </div>
+        </header>
         <section className={styles.orders} aria-labelledby="your-orders-heading">
           {hasSelection && filter !== "all" ? <Link href={fulfillmentHref(undefined, filter)} className={styles.showAll}>Return to {fulfillmentFilterLabel[filter]}</Link> : null}
-          {filter !== "all" || hasSelection ? <Link href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</Link> : null}
           {!selectedOrderNumber && filter === "payment" ? <p className={styles.filterNote}>Recorded Purchase Option checkouts. Winning prizes do not require a gift-card purchase.</p> : !selectedOrderNumber && filter === "exceptions" ? <p className={styles.filterNote}>Issuance problems, expired or cancelled rewards, and corrected orders. Open a record for its current status.</p> : null}
           {visibleOrders.length ? <>
             {!complete ? <div className={`${styles.warning} ${styles.retryWarning}`}>
@@ -109,9 +117,11 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
           <Link href={accountRoutes.activity}><AccountIcon name="layers" /><span>My Activity</span></Link>
           <Link href={accountRoutes.rewards}><AccountIcon name="gift" /><span>Gift Cards &amp; Rewards</span></Link>
           <Link href={walletHistoryHref}><AccountIcon name="wallet" /><span>Wallet &amp; Transactions</span></Link>
-          <Link href={fulfillmentHref(undefined, "payment")} aria-current={!hasSelection && filter === "payment" ? "page" : undefined}>
+          {showingPayments ? <a href="#fulfillment-records" aria-current="page">
             <AccountIcon name="completion" /><span>Confirmed payments</span>
-          </Link>
+          </a> : <Link href={paymentHref}>
+            <AccountIcon name="completion" /><span>Confirmed payments</span>
+          </Link>}
         </div>
       </nav>
       <p className={styles.retailerNote}>Zero Loss issues retailer gift cards. Product selection, inventory, checkout, shipping and retailer fees remain on the retailer’s site.</p>
