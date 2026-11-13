@@ -26,7 +26,8 @@ test("unclaimed and claimed rewards keep their own labels, actions, and reward I
   expect(cards.getByRole("link", { name: /Ready to claim/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=unclaimed-win");
   expect(cards.getByRole("link", { name: /Ready to claim/ }).textContent).toContain("Claim reward");
   expect(cards.getByRole("link", { name: /Ready to use/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=claimed-purchase");
-  expect(cards.getByRole("link", { name: /Ready to use/ }).textContent).toContain("Open reward");
+  expect(cards.getByRole("link", { name: /Ready to use/ }).textContent).toContain("Open gift card");
+  expect(cards.getByText("1 ready to use · 1 to claim")).toBeTruthy();
   expect(screen.queryByText("Delivered to wallet")).toBeNull();
   expect(screen.getByRole("link", { name: /Prize Ready: 2/ })).toBeTruthy();
 });

@@ -59,6 +59,8 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
 }) {
   const allRewards = walletRewards(state);
   const ready = readyWalletRewards(state);
+  const readyToUseCount = ready.filter(item => item.rewardId && item.rewardClaimedAt).length;
+  const toClaimCount = ready.filter(item => item.rewardId && !item.rewardClaimedAt).length;
   // Expired purchase options may never have issued a digital reward. Keep their
   // authorized records visible too, with their existing activity destination.
   const records = state.source === "unavailable" ? [] : [...allRewards, ...state.activity.filter(item => item.completionOptionStatus === "expired" && !allRewards.includes(item))];
@@ -86,7 +88,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
       </section>
       {!focusedHistory ? <div className={overview.mainGrid}>
         <section id="ready-rewards" className={`${overview.ticketPanel} ${overview.readySection}`} aria-labelledby="ready-heading">
-          <div className={overview.sectionHeading}><h2 id="ready-heading">Available rewards</h2><p>Claim a new reward or open one you’ve already claimed.</p></div>
+          <div className={overview.sectionHeading}><h2 id="ready-heading">Available rewards</h2><p>Claim a new reward or open one you’ve already claimed.</p>{state.source !== "unavailable" && ready.length > 0 ? <p><strong>{readyToUseCount} ready to use · {toClaimCount} to claim</strong></p> : null}</div>
           {state.source === "unavailable" ? <p role="status" className={overview.message}>Rewards unavailable. We can’t verify your account activity right now.</p> : ready.length === 0 ? <div className={overview.empty}>
             <h3>No ready gift cards yet</h3><p>Won and purchased retailer gift cards will appear here when they are ready.</p><Link href="/account/entries">View My Activity <AccountIcon name="arrow" /></Link>
           </div> : <div className={overview.readyGrid}>
@@ -97,7 +99,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
               <span className={overview.rewardMeta}>{item.retailer} · {formatUsdFromCents(item.priceCents)}</span>
               <span className={overview.delivered}>{item.rewardId && !item.rewardClaimedAt ? "Claim to open your gift card" : item.rewardClaimedAt ? "Saved in your wallet" : state.isPreview ? "Sample reward preview" : "Awaiting gift-card issuance"}</span>
               {state.isPreview ? <span className={overview.sample}>Sample · Not redeemable</span> : null}
-              <span className={overview.openReward}>{item.rewardId && !item.rewardClaimedAt ? "Claim reward" : "Open reward"} <AccountIcon name="arrow" /></span>
+              <span className={overview.openReward}>{item.rewardId && !item.rewardClaimedAt ? "Claim reward" : item.rewardClaimedAt ? "Open gift card" : "Open reward"} <AccountIcon name="arrow" /></span>
             </Link>)}
           </div>}
         </section>
