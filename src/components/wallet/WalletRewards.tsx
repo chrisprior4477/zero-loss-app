@@ -62,8 +62,8 @@ function cardReference(rewardId: string) {
   return rewardId.slice(-8).toUpperCase();
 }
 
-export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", timeZone = "America/New_York" }: {
-  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; timeZone?: string;
+export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnabled = false, view = "all", focusCard, timeZone = "America/New_York" }: {
+  state: AccountActivity; balanceLabel?: string; fundingEnabled?: boolean; view?: RewardView; focusCard?: string; timeZone?: string;
 }) {
   const allRewards = walletRewards(state);
   const ready = readyWalletRewards(state);
@@ -88,8 +88,12 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   const optionCount = state.source === "unavailable" ? null : state.activity.filter(item => item.status === "completion").length;
   const readyCount = state.source === "unavailable" ? null : ready.length;
   const singleReady = ready.length === 1 ? ready[0] : null;
+  const readyTarget = (view === "all" || view === "ready") && focusCard
+    ? ready.some(item => item.rewardId === focusCard) ? `ready-reward-${focusCard}` : "ready-rewards"
+    : undefined;
   return <main className={overview.page} data-activity-source={state.source}>
-    <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />
+    {readyTarget ? <AccountSettingsLandingScroll target={readyTarget} initialTarget={readyTarget} settleAfterNavigation allScreens />
+      : <WalletLandingScroll key={view} target="ready-rewards" enabled={view === "all" || view === "ready"} />}
     <div className={overview.shell}>
       <header className={overview.heading}>
         <div><h1>Gift Cards &amp; Rewards</h1><p>Everything you’ve earned, ready when you are.</p></div>
@@ -236,7 +240,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
     detailRows.push(["Card reference", cardReference(item.rewardId)]);
   }
   const walletReturnHref = returnTile && item.rewardId && available
-    ? `${returnView === "ready" ? "/account/wallet?rewards=ready" : "/account/wallet"}#ready-reward-${item.rewardId}`
+    ? `/account/wallet?${returnView === "ready" ? "rewards=ready&" : ""}card=${encodeURIComponent(item.rewardId)}`
     : returnView ? `/account/wallet?rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}` : "/account/wallet";
   const ready = accountOverview ? readyWalletRewards(accountOverview.activity) : [];
   const optionCount = accountOverview?.activity.source === "unavailable" ? null : accountOverview?.activity.activity.filter(activity => activity.status === "completion").length;
