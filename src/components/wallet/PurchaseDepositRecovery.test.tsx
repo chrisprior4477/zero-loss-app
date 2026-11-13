@@ -23,6 +23,19 @@ test("opens the exact older receipt and offers the original purchase review with
   expect(mocks.finish).not.toHaveBeenCalled(); expect(mocks.check).not.toHaveBeenCalled();
 });
 
+test("a recovered deposit follows the latest wallet balance and links its exact credit", async () => {
+  const pendingReceipt = { ...receipt, reconciliation: "credit_pending" as const };
+  mocks.check.mockResolvedValueOnce({ status: "credited", amount: 7300, balanceCents: 39900 });
+  const { rerender } = render(<PurchaseDepositRecovery {...props} requests={[pendingReceipt]} />);
+  fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
+  await screen.findByRole("link", { name: "Return to purchase review" });
+  const ledgerId = "33333333-3333-4333-8333-333333333333";
+  rerender(<PurchaseDepositRecovery {...props} requests={[{ ...receipt, ledgerId }]} wallet={{ ...wallet, balanceCents: 1000 }} />);
+  expect(screen.getByRole("status").textContent).toContain("Current balance: $10.");
+  expect(screen.getByRole("link", { name: /View wallet credit/ }).getAttribute("href"))
+    .toBe(`/account/wallet?view=history&transaction=${ledgerId}#transaction-${ledgerId}`);
+});
+
 test.each([null, [], [{ ...receipt, idempotencyKey: "another-account-or-deposit" }]])("missing or unreadable exact receipt never substitutes another payment: %j", requests => {
   render(<PurchaseDepositRecovery {...props} requests={requests} />);
   expect(screen.queryByRole("link", { name: "Return to purchase review" })).toBeNull();

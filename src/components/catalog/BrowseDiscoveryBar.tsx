@@ -100,7 +100,11 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     if (props.filters.minValue !== null) url.searchParams.set("minValue", String(props.filters.minValue));
     if (props.filters.maxValue !== null) url.searchParams.set("maxValue", String(props.filters.maxValue));
     const endingSoon = url.searchParams.get("sort") === "ending-soon";
-    if (props.filters.sort !== "featured" && !endingSoon) url.searchParams.set("sort", props.filters.sort);
+    const currentSort = new URL(props.browseHref, url).searchParams.get("sort");
+    const implicitEndingSort = props.selectedCategory === "ending-soon" && props.filters.sort === "fewest-left" && currentSort !== "fewest-left";
+    if (!endingSoon && props.filters.sort !== "featured" && !implicitEndingSort) {
+      url.searchParams.set("sort", props.filters.sort);
+    }
     if (endingSoon && props.selectedCategory === "ending-soon" && props.filters.sort !== "fewest-left") {
       url.searchParams.set("category", "ending-soon");
       url.searchParams.set("sort", props.filters.sort);

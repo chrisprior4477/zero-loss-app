@@ -65,8 +65,10 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const reward = typeof query.rewardId === "string"
     ? matchingRewards.find(item => item.rewardId === query.rewardId)
     : typeof query.reward === "string" && matchingRewards.length === 1 ? matchingRewards[0] : undefined;
-  const rewardView = ["ready", "used", "expired", "history"].includes(String(query.rewards))
-    ? query.rewards as "ready" | "used" | "expired" | "history" : "all";
+  const rewardView = query.rewards === "ready" || query.rewards === "used" || query.rewards === "expired" || query.rewards === "history"
+    ? query.rewards : "all";
+  const rewardListHref = rewardView === "all" ? "/account/wallet"
+    : `/account/wallet?rewards=${rewardView}#${rewardView === "ready" ? "ready-rewards" : "reward-history"}`;
   const demoDb = history && account.wallet?.scope === "demo" ? await createClient() : null;
   const provider = demoDb ? new DemoPaymentProvider(demoDb) : null;
   const [requests, savedCards, transaction, ledgerEntries, visibilityResult] = await Promise.all([
@@ -87,7 +89,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   if (requestedReward) {
     if (account.activity.source === "unavailable") {
       const retryHref = accountPageReturnPath("/account/wallet", query, query.via === "purchase" ? "#reward-pass" : "");
-      return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">We couldn’t load your reward</h1><p className="mt-2 text-sm text-[#b5cce4]">Your reward information is temporarily unavailable. Try again to check this saved reward.</p><a href={retryHref} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]">Try again</a><Link href="/account/wallet" className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
+      return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">We couldn’t load your reward</h1><p className="mt-2 text-sm text-[#b5cce4]">Your reward information is temporarily unavailable. Try again to check this saved reward.</p><a href={retryHref} className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-4 text-sm font-bold text-[#06223d]">Try again</a><Link href={rewardListHref} className="ml-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
     }
     let claimedCode: string | null = null;
     let crewMembers: { id: string; name: string }[] = [];
@@ -108,7 +110,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers}
         overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />;
     }
-    return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href="/account/wallet" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
+    return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href={rewardListHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
   }
   if (history) return <WalletOverview timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
   return <WalletRewards timeZone={account.timezone} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={typeof query.card === "string" ? query.card : undefined} />;

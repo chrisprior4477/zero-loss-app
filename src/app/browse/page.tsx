@@ -97,7 +97,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     ? Math.min(requestedBatch, Math.max(1, Math.ceil(products.length / batchSize))) : 1;
   const visibleProducts = products.slice(0, batch * batchSize);
   const resultNoun = endingSoon ? products.length === 1 ? "prize" : "prizes" : products.length === 1 ? "product" : "products";
-  const showBatchSearch = endingSoon || products.length > 0;
+  const showBatchSearch = endingSoon || products.length > 0 || Boolean(searchTerm);
   const batchSearchHeading = endingSoon ? "ending-soon-search-again" : "browse-search-again";
   const activeFilters = Boolean(subcategory) || filters.type !== "all" || Boolean(filters.retailer) || filters.availableOnly
     || filters.minValue !== null || filters.maxValue !== null

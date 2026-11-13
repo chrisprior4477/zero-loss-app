@@ -55,14 +55,14 @@ export function BrowseResultsSearch({ position }: { position: Position }) {
     field.current?.blur();
   }
   return <form role="search" className={`${styles.search} ${styles.resultsSearch}`} aria-label={endingSoon ? `Search Ending Soon at the ${position}` : `Search browse results at the ${position}`}
-    onSubmit={event => { event.preventDefault(); field.current?.blur(); setEditor(null); search(draft); }}
+    onSubmit={event => { event.preventDefault(); if (voice.listening || !draft.trim()) return; field.current?.blur(); setEditor(null); search(draft); }}
     onKeyDown={event => { if (event.key === "Escape" && editing) { event.preventDefault(); close(); } }}>
     <label className={styles.srOnly} htmlFor={inputId}>{label}</label>
     <input id={inputId} ref={field} type="search" name="q" value={draft} placeholder={label}
       enterKeyHint="search" autoComplete="off" onFocus={edit} onChange={event => { voice.cancel(); setDraft(event.target.value); }} />
     {draft || applied ? <button className={styles.clearSearch} type="button" aria-label="Clear search" title="Clear search"
       onClick={() => { voice.cancel(); setDraft(""); field.current?.focus(); if (applied) search("", position === "bottom" ? inputId : undefined); }}>×</button> : null}
-    {draft.trim() && !(editing && voice.listening) ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
+    {draft.trim() && !voice.listening ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
     <VoiceSearchControl listening={voice.listening} error={editing ? voice.error : ""}
       toggle={() => { setEditor(position); voice.toggle(); }} />
     {editing ? <button className={styles.closeSearch} type="button" aria-label="Close search" title="Close search" onClick={close}>×</button> : null}

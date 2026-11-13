@@ -95,7 +95,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       <h2>Payment methods</h2><p>Your saved cards, ready when you need them.</p>
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
       <div id="payment-methods-controls">
-        {!availableToken && !unavailable ? <p className={styles.notice}>All five sample cards are saved. Choose a saved card to edit.</p> : null}
+      {!availableToken && enabled && !unavailable ? <p className={styles.notice}>All five sample cards are saved. Choose a saved card to edit.</p> : null}
         <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>{availableToken ? "Add Card" : "Choose saved card"}</button><MobileCardCamera token={cameraToken} savedCard={cards.find(card => card.token === cameraToken)} displayName={displayName} disabled={!enabled || unavailable || busy} onSaved={acceptSavedCard} /></div>
       </div>
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
@@ -105,7 +105,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
         <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
         {deleting === card.token ? <DeleteCardToast key={card.token} busy={busy} onUndo={() => setDeleting(null)} onDelete={() => void removeCard(card.token)} /> : null}
       </article>)}</div>
-      {!unavailable && !cards.length ? <p>No saved cards yet. Add a card to get started.</p> : null}
+      {!unavailable && !enabled ? <p>Payment method changes are unavailable for this wallet.</p> : !unavailable && !cards.length ? <p>No saved cards yet. Add a card to get started.</p> : null}
       <div className={`${styles.actions} ${styles.pairedActions}`}><a href="#balance" className={styles.secondary}>Back to wallet</a><Link href="/" className={styles.confirm}>Continue Shopping</Link></div>
     </>}
   </section>;

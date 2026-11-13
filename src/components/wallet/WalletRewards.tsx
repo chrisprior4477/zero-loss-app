@@ -286,7 +286,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
                 <p className={styles.rewardCode}>{previewCode?.display ?? displayCode}</p>
                 <p className={styles.codeCaption}>{previewCode ? "Illustrative number only · Not redeemable" : isPreview ? "Sample — not redeemable" : "Digital gift card number"}</p>
               </div> : !canClaim ? <div className={styles.codePanel}><div role="status" className={styles.notIssued}>
-                <div><p>{notice.title}</p><span>{notice.message}</span><Link href={rewardSupportHref(item.rewardId)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
+                <div><p>{notice.title}</p><span>{notice.message}</span><Link href={rewardSupportHref(item.rewardId, orderFilter)} className="mt-3 inline-block font-bold text-[#075b8c] underline">Get reward help</Link></div>
               </div></div> : null}
               {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} /> : (
                 <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview}

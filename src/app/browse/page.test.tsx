@@ -412,6 +412,7 @@ describe("Browse search results", () => {
   test("a category search without extra filters omits the no-op reset link", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "purple unicorn typewriter" }) }));
     expect(screen.queryByRole("link", { name: "Clear filters" })).toBeNull();
+    expect(within(screen.getByRole("search", { name: "Search browse results at the bottom" })).getByRole("button", { name: "Start voice search" })).toBeTruthy();
   });
 
   test("opens the added simulated Walgreens card from its retailer category", async () => {
