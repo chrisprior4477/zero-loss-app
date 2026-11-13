@@ -5,6 +5,27 @@ import { WalletLedger } from "./WalletLedger";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+test("quick dates preserve funding filter and all time clears only the dates", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-08T02:00:00Z"));
+  try {
+    render(<WalletLedger entries={[
+      { id: "today", entry_type: "DEPOSIT", amount: 100, created_at: "2026-11-07T17:00:00Z" },
+      { id: "older", entry_type: "DEPOSIT", amount: 100, created_at: "2026-10-01T17:00:00Z" },
+      { id: "entry", entry_type: "ENTRY_DEBIT", amount: -100, created_at: "2026-11-07T17:00:00Z" },
+    ]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Funding", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Last 7 days" }));
+    expect(screen.getByLabelText("From date")).toHaveProperty("value", "2026-11-01");
+    expect(screen.getByLabelText("To date")).toHaveProperty("value", "2026-11-07");
+    expect(screen.getAllByRole("listitem").map(row => row.id)).toEqual(["transaction-today"]);
+    fireEvent.click(screen.getByRole("button", { name: "All time" }));
+    expect(screen.getAllByRole("listitem").map(row => row.id)).toEqual(["transaction-today", "transaction-older"]);
+    expect(screen.getByRole("button", { name: "Funding", exact: true }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByLabelText("From date")).toHaveProperty("value", "");
+  } finally { vi.useRealTimers(); }
+});
+
 test("searches past the visible batch by product, retailer, and exact posted amount", () => {
   const created_at = "2026-11-05T17:00:00Z";
   const deposits = Array.from({ length: 12 }, (_, index) => ({ id: `deposit-${index}`, entry_type: "DEPOSIT", amount: 24900, created_at }));

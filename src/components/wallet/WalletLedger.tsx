@@ -18,6 +18,7 @@ import { ledgerReturnKey, readLedgerReturn, type LedgerFilter, type LedgerReturn
 import { searchLedger } from "@/lib/wallet/ledger-search";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
+import { transactionDateRange } from "@/lib/wallet/date-presets";
 
 const filters: readonly [LedgerFilter, string][] = [["all", "All"], ["funding", "Funding"], ["entries", "Entries"], ["purchases", "Purchases"], ["refunds", "Refunds"]];
 const noHiddenIds: string[] = [];
@@ -271,6 +272,13 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
         </div>
       </form>
       <div className={styles.dateRange} role="group" aria-label="Transaction date range">
+        <div className={styles.quickDates} role="group" aria-label="Quick date ranges">
+          {([[0, "All time"], [1, "Today"], [7, "Last 7 days"], [30, "Last 30 days"]] as const).map(([days, label]) => {
+            const range = days ? transactionDateRange(days, timeZone) : { from: "", through: "" };
+            return <button key={days} type="button" aria-pressed={from === range.from && through === range.through}
+              onClick={() => { const next = days ? transactionDateRange(days, timeZone) : { from: "", through: "" }; changeDates(next.from, next.through); }}>{label}</button>;
+          })}
+        </div>
         <label>From date<input aria-label="From date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={from} max={through || undefined} onChange={event => changeDates(event.target.value, through)} /></label>
         <label>To date<input aria-label="To date" aria-invalid={invalidDateRange || undefined} aria-describedby={invalidDateRange ? dateErrorId : undefined} type="date" value={through} min={from || undefined} onChange={event => changeDates(from, event.target.value)} /></label>
         {(from || through) ? <button type="button" onClick={() => changeDates("", "")}>Clear dates</button> : null}
