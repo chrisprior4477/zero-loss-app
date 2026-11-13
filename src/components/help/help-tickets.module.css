@@ -55,7 +55,6 @@
   text-decoration: none;
 }
 .button:hover, .caseLink:hover { background: #a5e6ff; }
-.rewardReturn { --corner: 10px; min-height: 44px; margin-top: 12px; padding: 8px 16px; }
 .button[aria-pressed="true"], .primary { background: #48ff00; }
 .button:disabled { opacity: .6; }
 .shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-block: 24px; }
@@ -74,12 +73,20 @@
 .message { --corner: 14px; --side: 8px; }
 .message[data-staff="true"] { background: #c5f0ff; }
 .note { background: #e3f4fc; }
-.linkedOrder { padding-block: 12px; }
-.linkedOrderTitle { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.linkedOrderTitle img { width: 36px; height: 36px; flex: none; object-fit: contain; }
-.linkedOrderTitle strong { min-width: 0; }
-.orderCharge { display: flex; flex-wrap: wrap; column-gap: 8px; align-items: baseline; }
-.linkedOrder > a { display: inline-flex; min-height: 44px; align-items: center; color: #07578c; font-weight: 750; text-decoration: underline; }
+.supportReceipt { padding: 12px 16px; }
+.receiptLabel { margin-bottom: 4px; color: #006789; font-size: 12px; font-weight: 800; }
+.receiptHeading { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.receiptHeading > div { flex: 1 1 105px; min-width: 0; }
+.receiptHeading h3 { font-size: 16px; font-weight: 800; line-height: 1.25; }
+.receiptHeading img { flex: none; width: 36px; height: 36px; object-fit: contain; }
+.receiptAmount { flex: 0 1 auto; margin-left: auto; font-size: 16px; font-weight: 800; }
+.receiptMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; color: #405c77; font-size: 13px; }
+.receiptStatus { padding: 2px 6px; border-radius: 5px; background: #cde7f5; color: #07365f; font-weight: 750; }
+.receiptReference { margin-top: 6px; color: #405c77; font-size: 12px; }
+.receiptReference summary { width: fit-content; cursor: pointer; }
+.receiptReturn { --corner: 10px; --side: 5px; min-height: 44px; max-width: 100%; margin-top: 8px; padding: 6px 12px; background: #10345e; color: #fff; }
+.receiptReturn:hover { background: #184574; }
+.receiptReturn:focus-visible { outline-color: #fff; }
 .error { background: #fff0d5; color: #6c3710; }
 .field {
   --field-fill: #e3f4fc;

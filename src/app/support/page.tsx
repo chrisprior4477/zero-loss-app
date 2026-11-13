@@ -7,17 +7,20 @@ import { SupportForm } from "@/components/support/SupportForm";
 import { createClient } from "@/lib/supabase/server";
 import { getAccountContext } from "@/lib/account/context";
 import { exactOrderHref, fulfillmentFilter } from "@/lib/account/fulfillment";
-import { walletTransactionsHref } from "@/lib/account/activity";
+import { walletTransactionsHref, type RewardStatus } from "@/lib/account/activity";
 import { getSupportOrder } from "@/lib/account/order-support";
+import type { AccountOrderStatus } from "@/lib/account/orders";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { authNavigationHref } from "@/lib/auth/entry-return";
-import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
+import { DemoPaymentProvider, type DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 import { depositRecoveryHref } from "@/lib/wallet/funding-navigation";
 import { depositSupportHref } from "@/lib/support/references";
+import { ledgerEntryProduct } from "@/lib/wallet/history";
+import { ledgerDescription } from "@/lib/wallet/transaction-links";
 import { HelpShortcuts } from "@/components/help/HelpShortcuts";
 import { HelpLandingScroll } from "@/components/help/HelpLandingScroll";
 import styles from "@/components/help/help-tickets.module.css";
@@ -28,6 +31,17 @@ const card = `${styles.ticket} ${styles.panel}`;
 const button = `${styles.ticket} ${styles.button}`;
 const note = `${styles.ticket} ${styles.note}`;
 const statusLabels: Record<string, string> = { open: "Open — awaiting review", awaiting_customer: "Waiting for your reply", resolved: "Resolved" };
+const orderStatuses: Record<AccountOrderStatus, string> = {
+  payment_confirmed: "Payment confirmed", issuance_pending: "Issuance pending", fulfilled: "Card issued",
+  exception: "Action needed", cancelled: "Cancelled", corrected: "Order corrected",
+};
+const rewardStatuses: Record<Exclude<RewardStatus, "ready">, string> = {
+  redeemed: "Used", expired: "Expired", cancelled: "Cancelled", issuance_pending: "Being issued", issuance_failed: "Needs attention",
+};
+const depositStatuses: Record<DemoFundingRequest["reconciliation"], string> = {
+  reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending",
+  not_processed: "Request saved · not processed", discrepancy: "Needs review",
+};
 const pageSize = 50;
 function pageIndex(value: unknown) {
   return typeof value === "string" && /^\d{1,5}$/.test(value) ? Math.max(0, Number(value) - 1) : 0;
@@ -53,6 +67,34 @@ function transactionDetails(value: unknown, timeZone: string) {
     date: formatOfferDeadline(r.created_at, timeZone),
     timestamp: r.created_at,
   };
+}
+
+function SupportReceipt({ title, detail, image, amount, timestamp, timeZone, status, reference, href, returnLabel }: {
+  title: string;
+  detail?: string;
+  image?: string;
+  amount?: string;
+  timestamp?: string | null;
+  timeZone: string;
+  status?: string;
+  reference?: string;
+  href: string;
+  returnLabel: string;
+}) {
+  return <aside aria-label="This is about" className={`${note} ${styles.supportReceipt} mb-4 text-sm`}>
+    <p className={styles.receiptLabel}>This is about</p>
+    <div className={styles.receiptHeading}>
+      {image ? <Image src={image} alt="" width={36} height={36} /> : null}
+      <div><h3>{title}</h3>{detail ? <p className={styles.muted}>{detail}</p> : null}</div>
+      {amount ? <strong className={styles.receiptAmount}>{amount}</strong> : null}
+    </div>
+    <div className={styles.receiptMeta}>
+      {timestamp && Number.isFinite(Date.parse(timestamp)) ? <time dateTime={timestamp}>{formatOfferDeadline(timestamp, timeZone)}</time> : null}
+      {status ? <span className={styles.receiptStatus}>{status}</span> : null}
+    </div>
+    {reference ? <details className={styles.receiptReference}><summary>Reference number</summary><p>{reference}</p></details> : null}
+    <Link className={`${styles.ticket} ${styles.button} ${styles.receiptReturn}`} href={href}>{returnLabel}</Link>
+  </aside>;
 }
 
 export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; rewardId?: string; deposit?: string; view?: string; orderFilter?: string; page?: string; messages?: string }> }) {
@@ -119,12 +161,19 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   // deliberately not a customer-readable column (including WHERE filters).
   // Scope comes from the authenticated wallet snapshot; the write RPC checks it
   // again independently before attaching the transaction.
-  const transaction = validTransaction && account.wallet?.scope === "demo" ? await db.from("ledger_entries").select("id,amount,created_at,entry_type,source_event").eq("id", validTransaction).eq("customer_id", account.userId).maybeSingle() : null;
+  const transaction = validTransaction && account.wallet?.scope === "demo" ? await db.from("ledger_entries").select("id,amount,created_at,entry_type,source_event,related_pool_id,related_entry_id").eq("id", validTransaction).eq("customer_id", account.userId).maybeSingle() : null;
   const charge = transactionDetails(transaction?.data, account.timezone);
-  const linkedOrder = !inbox && !transaction?.error && transaction?.data?.entry_type === "PURCHASE_DEBIT"
+  const linkedOrder = !inbox && charge && !transaction?.error && transaction?.data?.entry_type === "PURCHASE_DEBIT"
     ? await getSupportOrder(db, account.userId, transaction.data.source_event, account.orders.orders) : undefined;
-  const reward = validReward ? await db.from("customer_rewards").select("id").eq("id", validReward).eq("customer_id", account.userId).maybeSingle() : null;
-  const rewardTitle = validReward ? account.activity?.activity.find(item => item.rewardId === validReward)?.title : undefined;
+  const entryProduct = !inbox && charge && !transaction?.error && transaction?.data && !linkedOrder
+    ? (transaction.data.related_entry_id ? account.activity?.activity.find(item => item.entryId === transaction.data?.related_entry_id) : undefined)
+      ?? await ledgerEntryProduct(db, account.userId, transaction.data)
+    : undefined;
+  const [transactionTitle] = ledgerDescription(transaction?.data?.entry_type ?? "");
+  const reward = validReward ? await db.from("customer_rewards").select("id,created_at").eq("id", validReward).eq("customer_id", account.userId).maybeSingle() : null;
+  const linkedReward = validReward ? account.activity?.activity.find(item => item.rewardId === validReward) : undefined;
+  const rewardStatus = linkedReward?.rewardStatus === "ready" ? linkedReward.rewardClaimedAt ? "Ready to use" : "Ready to claim"
+    : linkedReward?.rewardStatus ? rewardStatuses[linkedReward.rewardStatus] : undefined;
   const deposit = validDeposit && account.wallet?.scope === "demo"
     ? await new DemoPaymentProvider(db).getRequest(validDeposit).catch(() => undefined) : undefined;
   let casesQuery = db.from("support_cases").select("id,case_number,subject,status,updated_at").order("updated_at", { ascending: false }).order("id", { ascending: false }).range(casePage * pageSize, (casePage + 1) * pageSize);
@@ -135,16 +184,26 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     <div className="grid gap-6 lg:grid-cols-2">
       {!inbox ? <section id="report-problem" className={`${card} ${styles.anchor}`}><h2 className="mb-4 text-xl font-black">Report a problem</h2>
         {validDeposit && !deposit ? <p role="alert">We couldn’t verify that deposit for your account. Return to Wallet history to try again. <Link href="/support">Get general support</Link></p> : validReward && (!reward?.data || reward.error) ? <p role="alert">That reward is unavailable for your account. Open your saved reward and try again.</p> : validTransaction && (!transaction?.data || transaction.error) ? <p role="alert">That transaction is unavailable for your account. Return to Wallet history and select your transaction again.</p> : <>
-          {charge && (linkedOrder ? <div className={`${note} ${styles.linkedOrder} mb-4 text-sm`}>
-            <div className={styles.linkedOrderTitle}>
-              <Image src={linkedOrder.image} alt="" width={36} height={36} />
-              <strong>{linkedOrder.title}</strong>
-            </div>
-            <p className={styles.orderCharge}><strong>{charge.amount}</strong><time dateTime={charge.timestamp}>{charge.date}</time></p>
-            <Link href={exactOrderHref(linkedOrder.orderNumber, orderFilter)}>Back to this order</Link>
-          </div> : <div className={`${note} mb-4 text-sm`}><p>Linked wallet transaction: {charge.amount} · {charge.date}</p>{validTransaction && <Link className={`${button} ${styles.rewardReturn}`} href={`/account/wallet?view=history&transaction=${validTransaction}#transaction-${validTransaction}`}>Back to this transaction</Link>}</div>)}
-          {validReward ? <div className={`${note} mb-4 break-words text-sm`}><p>Linked reward: <strong>{rewardTitle ?? "Saved reward"}</strong><span className="mt-1 block break-all">Reward reference: {validReward}</span></p><Link className={`${button} ${styles.rewardReturn}`} href={`/account/wallet?rewardId=${validReward}${orderContext}#reward-pass`}>Back to this reward</Link></div> : null}
-          {deposit ? <div className={`${note} mb-4 break-words text-sm`}><p>Linked deposit: <strong>{formatUsdFromCents(deposit.amount)} USD</strong><span className="mt-1 block break-all">Deposit reference: {deposit.id}</span></p><Link className={`${button} ${styles.rewardReturn}`} href={depositRecoveryHref(deposit.idempotencyKey)}>Back to this deposit</Link></div> : null}
+          {charge && validTransaction ? <SupportReceipt
+            title={linkedOrder?.title ?? entryProduct?.title ?? transactionTitle}
+            detail={linkedOrder || entryProduct ? transactionTitle : undefined}
+            image={linkedOrder?.image ?? entryProduct?.image}
+            amount={charge.amount} timestamp={charge.timestamp} timeZone={account.timezone}
+            status={linkedOrder ? orderStatuses[linkedOrder.status] ?? "Posted" : "Posted"}
+            href={linkedOrder ? exactOrderHref(linkedOrder.orderNumber, orderFilter) : `/account/wallet?view=history&transaction=${validTransaction}#transaction-${validTransaction}`}
+            returnLabel={linkedOrder ? "Back to this order" : "Back to this transaction"} /> : null}
+          {validReward ? <SupportReceipt
+            title={linkedReward?.title ?? "Saved reward"} image={linkedReward?.image}
+            amount={linkedReward ? formatUsdFromCents(linkedReward.priceCents) : undefined}
+            timestamp={reward?.data?.created_at} timeZone={account.timezone} status={rewardStatus}
+            reference={`Reward reference: ${validReward}`}
+            href={`/account/wallet?rewardId=${validReward}${orderContext}#reward-pass`} returnLabel="Back to this reward" /> : null}
+          {deposit ? <SupportReceipt
+            title={deposit.reconciliation === "reconciled" ? "Funds added" : "Deposit request"}
+            amount={`${formatUsdFromCents(deposit.amount)} USD`} timestamp={deposit.postedAt ?? deposit.created_at}
+            timeZone={account.timezone} status={depositStatuses[deposit.reconciliation]}
+            reference={`Deposit reference: ${deposit.id}`}
+            href={depositRecoveryHref(deposit.idempotencyKey)} returnLabel="Back to this deposit" /> : null}
           <SupportForm ownerId={account.userId} key={validTransaction ?? validReward ?? validDeposit ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} deposit={deposit ? { key: deposit.idempotencyKey, id: deposit.id, amount: deposit.amount } : undefined} />
         </>}
       </section> : null}

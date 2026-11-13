@@ -9,7 +9,7 @@ import { AccountIcon, type AccountIconName } from "@/components/account/AccountI
 import styles from "./wallet-overview.module.css";
 import { DemoHistoryClearButton } from "./DemoHistoryClearButton";
 import type { ActivityItem } from "@/lib/account/activity";
-import { transactionLinks } from "@/lib/wallet/transaction-links";
+import { ledgerDescription, transactionLinks } from "@/lib/wallet/transaction-links";
 import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
@@ -31,11 +31,7 @@ function category(entry: LedgerEntryRow): LedgerFilter {
 }
 
 function description(entry: LedgerEntryRow) {
-  if (entry.entry_type === "ENTRY_HOLD") return ["Entry reservation", entry.product?.title ?? "Held during the 30-second Undo window"];
-  if (entry.entry_type === "ENTRY_HOLD_RELEASE") return ["Entry reservation released", entry.product?.title ?? "Hold released on Undo or replaced by the confirmed entry purchase"];
-  if (entry.entry_type === "ENTRY_DEBIT") return ["Entry purchase", entry.product?.title ?? "Product entry"];
-  if (entry.entry_type === "PURCHASE_DEBIT") return ["Gift-card purchase", entry.product?.title ?? "Completed purchase option"];
-  return ({ DEPOSIT: ["Funds added", "Playable wallet funding"], REFUND: ["Refund", "Returned to playable wallet"], CORRECTION: ["Adjustment", "Wallet correction"] } as Record<string, [string, string]>)[entry.entry_type] ?? ["Wallet transaction", "Posted ledger activity"];
+  return ledgerDescription(entry.entry_type, entry.product?.title);
 }
 
 function dateLabel(value: string, timeZone: string) {

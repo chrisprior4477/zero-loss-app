@@ -41,7 +41,7 @@ test('sign-in preserves an exact reward support handoff',async()=>{
 test('reward prefill authorizes ownership and never uses a wallet transaction',async()=>{
  const reward=query({id:caseId});mocks.from.mockImplementation(table=>table==='customer_rewards'?reward:query([]));
  render(await SupportPage({searchParams:Promise.resolve({rewardId:caseId})}));
- expect(reward.select).toHaveBeenCalledWith('id');expect(reward.eq.mock.calls).toEqual([['id',caseId],['customer_id',own]]);
+ expect(reward.select).toHaveBeenCalledWith('id,created_at');expect(reward.eq.mock.calls).toEqual([['id',caseId],['customer_id',own]]);
  expect(screen.getByTestId('support-form').getAttribute('data-reward')).toBe(caseId);
  expect(screen.getByTestId('support-form').getAttribute('data-transaction')).toBeNull();
  expect(screen.getByText(`Reward reference: ${caseId}`)).toBeTruthy();
@@ -61,12 +61,29 @@ test('a reward cannot silently attach an unrelated transaction',async()=>{
  expect(screen.queryByTestId('support-form')).toBeNull();expect(mocks.from).not.toHaveBeenCalled();
 });
 
+test("a saved reward receipt shows the exact item's photo, status and date", async () => {
+  const title = "Nintendo Switch – OLED Model";
+  mocks.account.mockResolvedValue({
+    userId: own, wallet: { scope: "demo" }, timezone: "America/New_York",
+    activity: { activity: [{ rewardId: caseId, title, image: "/catalog/nintendo-switch-oled.jpg", priceCents: 40000, rewardStatus: "ready", rewardClaimedAt: "2026-11-13T14:00:00Z" }] },
+  });
+  mocks.from.mockImplementation(table => table === "customer_rewards" ? query({ id: caseId, created_at: "2026-11-12T17:00:00Z" }) : query([]));
+  render(await SupportPage({ searchParams: Promise.resolve({ rewardId: caseId, orderFilter: "fulfilled" }) }));
+  const receipt = screen.getByRole("complementary", { name: "This is about" });
+  expect(receipt.querySelector("img")?.getAttribute("src")).toContain("nintendo-switch-oled.jpg");
+  expect(screen.getByRole("heading", { name: title })).toBeTruthy();
+  expect(screen.getByText("Ready to use")).toBeTruthy();
+  expect(screen.getByText("Nov 12, 2026, 12:00 PM EST")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Back to this reward" }).getAttribute("href")).toBe(`/account/wallet?rewardId=${caseId}&orderFilter=fulfilled#reward-pass`);
+});
+
 test("a deposit report uses the account's exact receipt and keeps a direct wallet return", async () => {
   const deposit = { id: own, idempotencyKey: caseId, amount: 7300, currency: "USD", status: "processing", reconciliation: "discrepancy", created_at: "2026-11-12T12:00:00Z" };
   mocks.rpc.mockImplementation(async name => ({ data: name === "get_demo_funding_requests" ? [deposit] : false }));
   render(await SupportPage({ searchParams: Promise.resolve({ deposit: caseId }) }));
   expect(screen.getByTestId("support-form").getAttribute("data-deposit")).toBe(caseId);
   expect(screen.getByText("$73 USD")).toBeTruthy();
+  expect(screen.getByText("Needs review")).toBeTruthy();
   expect(screen.getByText(`Deposit reference: ${own}`)).toBeTruthy();
   expect(screen.getByRole("link", { name: "Back to this deposit" }).getAttribute("href")).toBe(`/account/wallet?view=history&deposit=${caseId}#purchase-deposit`);
 });
@@ -103,17 +120,31 @@ test("authorized Ledger read uses only customer-readable columns and renders the
   const ledger = query({ id: caseId, amount: 100, created_at: "2026-09-21T12:00:00Z", entry_type: "DEPOSIT", source_event: "funding-event" });
   mocks.from.mockImplementation(table => table === "ledger_entries" ? ledger : query([]));
   render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
-  expect(ledger.select).toHaveBeenCalledWith("id,amount,created_at,entry_type,source_event");
+  expect(ledger.select).toHaveBeenCalledWith("id,amount,created_at,entry_type,source_event,related_pool_id,related_entry_id");
   expect(ledger.eq.mock.calls).toEqual([["id", caseId], ["customer_id", own]]);
   expect(screen.getByTestId("support-form").getAttribute("data-transaction")).toBe(caseId);
-  expect(screen.getByText(/Linked wallet transaction/).textContent).toContain("+$1");
+  expect(screen.getByRole("complementary", { name: "This is about" }).textContent).toContain("+$1");
+  expect(screen.getByRole("heading", { name: "Funds added" })).toBeTruthy();
+  expect(screen.getByText("Posted")).toBeTruthy();
   expect(mocks.from).not.toHaveBeenCalledWith("customer_orders");
   expect(screen.queryByRole("link", { name: "Back to this order" })).toBeNull();
 });
 
+test("a reservation receipt uses the exact owner-scoped entry request for the product photo", async () => {
+  const ledger = query({ id: caseId, amount: -100, created_at: "2026-11-06T17:46:00Z", entry_type: "ENTRY_HOLD", source_event: `entry_request_${caseId}_ENTRY_HOLD` });
+  const request = query({ offering_slug: "nintendo-switch" });
+  mocks.from.mockImplementation(table => table === "ledger_entries" ? ledger : table === "entry_requests" ? request : query([]));
+  render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
+  expect(request.eq.mock.calls).toEqual([["id", caseId], ["customer_id", own]]);
+  const receipt = screen.getByRole("complementary", { name: "This is about" });
+  expect(receipt.querySelector("img")?.getAttribute("src")).toContain("nintendo-switch-oled.jpg");
+  expect(screen.getByText("Entry reservation")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Back to this transaction" }).getAttribute("href")).toBe(`/account/wallet?view=history&transaction=${caseId}#transaction-${caseId}`);
+});
+
 test.each(["matched", "archived", "unavailable"] as const)("a purchase report keeps the exact charge when its order is %s", async state => {
   const title = "Nintendo Switch – OLED Model";
-  const orders = ["ord_first", "ord_second"].map(orderNumber => ({ orderNumber, title, image: "/catalog/nintendo-switch-oled.jpg" }));
+  const orders = ["ord_first", "ord_second"].map(orderNumber => ({ orderNumber, title, image: "/catalog/nintendo-switch-oled.jpg", status: "fulfilled" }));
   mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "demo" }, timezone: "America/New_York", orders: { orders } });
   const ledger = query({ id: caseId, amount: -39900, created_at: "2026-11-06T17:46:00Z", entry_type: "PURCHASE_DEBIT", source_event: "second-checkout" });
   const order = query(state === "unavailable" ? null : { order_number: state === "matched" ? "ord_second" : "ord_archived" },
@@ -127,6 +158,7 @@ test.each(["matched", "archived", "unavailable"] as const)("a purchase report ke
   const back = screen.queryByRole("link", { name: "Back to this order" });
   if (state === "matched") {
     expect(screen.getByText(title)).toBeTruthy();
+    expect(screen.getByText("Card issued")).toBeTruthy();
     expect(document.querySelector("#report-problem img")?.getAttribute("width")).toBe("36");
     expect(back?.getAttribute("href")).toBe("/account/orders?order=ord_second#order-ord_second");
   } else {
@@ -142,7 +174,7 @@ test.each([
   mocks.account.mockResolvedValue({ userId: own, wallet: { scope: "demo" }, timezone: "America/New_York" });
   mocks.from.mockImplementation(table => table === "ledger_entries" ? query({ id: caseId, amount: -100, created_at }) : query([]));
   render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId }) }));
-  expect(screen.getByText(/Linked wallet transaction/).textContent).toContain(expected);
+  expect(screen.getByRole("complementary", { name: "This is about" }).textContent).toContain(expected);
   expect(screen.queryByText(/America\/New_York/)).toBeNull();
 });
 test("a non-demo or unavailable wallet cannot prefill a demo support transaction", async () => {

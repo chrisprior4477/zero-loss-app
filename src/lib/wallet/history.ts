@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getDemoProduct } from "@/lib/catalog/demo-products";
 import type { LedgerEntryRow, WalletSnapshot } from "./snapshot";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type LedgerSourceRow = LedgerEntryRow & { source_event: string; related_pool_id: string | null; related_entry_id?: string | null };
 const requestEvent = /^entry_request_([0-9a-f-]{36})_ENTRY_HOLD(?:_RELEASE)?$/i;
@@ -10,6 +11,22 @@ const ledgerTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\
 function product(slug: string | undefined) {
   const item = slug ? getDemoProduct(slug) : undefined;
   return item?.gallery[0] ? { title: item.title, image: item.gallery[0].src, slug: item.slug, retailer: item.retailer } : undefined;
+}
+
+export async function ledgerEntryProduct(db: SupabaseClient, userId: string, row: Pick<LedgerSourceRow, "entry_type" | "related_pool_id" | "source_event">) {
+  if (row.entry_type === "ENTRY_DEBIT" && row.related_pool_id?.startsWith("preview_")) {
+    return product(row.related_pool_id.slice("preview_".length));
+  }
+  if (row.entry_type !== "ENTRY_HOLD" && row.entry_type !== "ENTRY_HOLD_RELEASE") return;
+  const requestId = requestEvent.exec(row.source_event)?.[1];
+  if (!requestId) return;
+  try {
+    const { data, error } = await db.from("entry_requests").select("offering_slug")
+      .eq("id", requestId).eq("customer_id", userId).maybeSingle();
+    if (!error && data) return product(data.offering_slug);
+  } catch {
+    // The verified transaction can still be reported without optional artwork.
+  }
 }
 
 /** Only use identities recorded on the ledger or their owner-scoped records. */
