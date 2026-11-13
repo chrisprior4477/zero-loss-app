@@ -20,6 +20,7 @@ const isPhone = () => window.matchMedia?.("(max-width: 700px)")?.matches ?? fals
 const serverPhone = () => false;
 
 type TicketDrag = { pointerId: number; x: number; y: number; left: number; horizontal: boolean };
+type TicketView = { size: number; first: number; last: number; previous: number; next: number };
 
 function pageOffset(rail: HTMLDivElement, page: number) {
   const first = rail.querySelector<HTMLElement>('[data-order-page="0"]');
@@ -143,29 +144,34 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
   const phone = useSyncExternalStore(subscribePhone, isPhone, serverPhone);
   const [pageAnchor, setPageAnchor] = useState<string | null>(null);
   const [opened, setOpened] = useState<{ id: string; anchor: HTMLButtonElement } | null>(null);
+  const [view, setView] = useState<TicketView | null>(null);
   const size = phone ? 2 : 6;
   const lastPage = Math.max(0, Math.ceil(orders.length / size) - 1);
   // Keep the same record in view when the number of cards per page changes.
   const anchorIndex = orders.findIndex(order => order.rewardId === (opened?.id ?? pageAnchor));
   const currentPage = Math.floor(Math.max(0, anchorIndex) / size);
   const start = currentPage * size;
-  const hasPrevious = currentPage > 0;
-  const hasNext = currentPage < lastPage;
+  const columns = phone ? 1 : 2;
+  const currentView = view?.size === size ? view : null;
+  const previousPage = currentView?.previous ?? currentPage - 1;
+  const nextPage = currentView?.next ?? currentPage + 1;
+  const hasPrevious = previousPage >= 0;
+  const hasNext = nextPage <= lastPage;
   const selected = opened && anchorIndex >= 0 ? orders[anchorIndex] : null;
   const galleryId = useId();
   const gallery = useRef<HTMLDivElement>(null);
   const rail = useRef<HTMLDivElement>(null);
   const drag = useRef<TicketDrag | null>(null);
   const suppressTicketClick = useRef(false);
-  const scrollTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const canPage = !selected && lastPage > 0;
-  const columns = phone ? 1 : 2;
 
-  function rememberPage(anchor: string | null, openId: string | null = opened?.id ?? null) {
+  function rememberPage(anchor: string | null, openId: string | null = opened?.id ?? null, position?: number) {
     if (window.location.pathname !== "/account/orders") return;
+    const step = rail.current && pageOffset(rail.current, 1);
     // Keep Next's router fields intact. This belongs to this history entry only.
     window.history.replaceState({ ...window.history.state, zeroLossOrderTickets: {
       href: window.location.href, anchor, openId, scrollY: window.scrollY,
+      size, position: position ?? (rail.current && step ? rail.current.scrollLeft / step : undefined),
     } }, "");
   }
 
@@ -182,7 +188,11 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
         if (window.location.href !== saved.href) return;
         if (rail.current) {
           const index = orders.findIndex(order => order.rewardId === saved.anchor);
-          rail.current.scrollLeft = pageOffset(rail.current, Math.floor(index / (isPhone() ? 2 : 6)));
+          const pageSize = isPhone() ? 2 : 6;
+          const step = pageOffset(rail.current, 1);
+          rail.current.scrollLeft = saved.size === pageSize && Number.isFinite(saved.position) && step > 0
+            ? Math.min(Math.max(0, saved.position), Math.ceil(orders.length / pageSize) - 1) * step
+            : pageOffset(rail.current, Math.floor(index / pageSize));
         }
         window.scrollTo({ top: saved.scrollY, behavior: "instant" });
         // The page containing this ticket has now rendered. Recover only a
@@ -205,55 +215,51 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     if (!track) return;
     drag.current = null;
     delete track.dataset.dragging;
-    delete track.dataset.settling;
     track.scrollLeft = pageOffset(track, currentPage);
   });
 
   useLayoutEffect(() => {
     alignPage();
-    return () => clearTimeout(scrollTimer.current);
   }, [size]);
 
-  function savePage(page: number) {
+  function changePage(page: number) {
     const anchor = orders[page * size]?.rewardId;
-    if (!anchor || page === currentPage) return;
+    const track = rail.current;
+    if (!anchor || !track) return;
+    setPageAnchor(anchor);
+    rememberPage(anchor, null, page);
+    const left = pageOffset(track, page);
+    if (track.scrollTo && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) track.scrollTo({ left, behavior: "smooth" });
+    else track.scrollLeft = left;
+  }
+
+  function syncView(track: HTMLDivElement) {
+    const step = pageOffset(track, 1);
+    if (step <= 0 || !track.clientWidth) return;
+    const position = track.scrollLeft / step;
+    const tolerance = 2 / step;
+    // Ignore the narrow ticket peeks at each edge when deciding which controls to expose.
+    const first = Math.floor((position + tolerance) * columns);
+    const last = Math.ceil((position + 1 - tolerance) * columns) - 1;
+    const previous = Math.ceil(position - tolerance) - 1;
+    const next = Math.floor(position + tolerance) + 1;
+    setView(value => value?.size === size && value.first === first && value.last === last && value.previous === previous && value.next === next
+      ? value : { size, first, last, previous, next });
+  }
+
+  function rememberScroll(track: HTMLDivElement) {
+    const step = pageOffset(track, 1);
+    if (step <= 0 || selected || drag.current?.horizontal) return;
+    const index = Math.min(lastPage, Math.max(0, Math.round(track.scrollLeft / step))) * size;
+    const anchor = orders[index]?.rewardId;
+    if (!anchor) return;
     setPageAnchor(anchor);
     rememberPage(anchor, null);
   }
 
-  function scrollToPage(page: number, smooth = true) {
-    const track = rail.current;
-    if (!track) return;
-    const left = pageOffset(track, page);
-    if (Math.abs(track.scrollLeft - left) < 1) {
-      delete track.dataset.settling;
-      return;
-    }
-    if (smooth && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches && track.scrollTo) {
-      track.dataset.settling = "true";
-      track.scrollTo({ left, behavior: "smooth" });
-    } else {
-      track.scrollLeft = left;
-      delete track.dataset.settling;
-    }
-  }
-
-  function changePage(page: number) {
-    savePage(page);
-    scrollToPage(page);
-  }
-
-  function syncPage(track: HTMLDivElement) {
-    clearTimeout(scrollTimer.current);
-    if (drag.current?.horizontal || selected) return;
-    delete track.dataset.settling;
-    const step = pageOffset(track, 1);
-    if (step > 0) savePage(Math.max(0, Math.min(lastPage, Math.round(track.scrollLeft / step))));
-  }
-
   function startDrag(event: PointerEvent<HTMLDivElement>) {
     if (!canPage || !event.isPrimary || event.button !== 0) return;
-    // Touch and trackpad scrolling use the browser's native momentum and snap.
+    // Touch and trackpad scrolling use the browser's native momentum.
     if (event.pointerType === "touch") return;
     drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: event.currentTarget.scrollLeft, horizontal: false };
   }
@@ -279,21 +285,12 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     if (!gesture || event.pointerId !== gesture.pointerId) return;
     drag.current = null;
     if (!gesture.horizontal) return;
-    const track = event.currentTarget;
-    track.dataset.settling = "true";
-    delete track.dataset.dragging;
+    delete event.currentTarget.dataset.dragging;
     suppressTicketClick.current = true;
-    const distance = event.clientX - gesture.x;
-    const step = pageOffset(track, 1);
-    const nearest = step > 0 ? Math.round(track.scrollLeft / step) : currentPage;
-    const direction = event.type === "pointerup" && Math.abs(distance) >= 40 ? -Math.sign(distance) : 0;
-    const destination = direction > 0 ? Math.max(nearest, currentPage + 1) : direction < 0 ? Math.min(nearest, currentPage - 1) : nearest;
-    changePage(Math.min(lastPage, Math.max(0, destination)));
+    rememberScroll(event.currentTarget);
   }
 
   function openDetails(id: string, anchor: HTMLButtonElement) {
-    clearTimeout(scrollTimer.current);
-    scrollToPage(currentPage, false);
     setPageAnchor(id);
     setOpened({ id, anchor });
     rememberPage(id, id);
@@ -326,21 +323,19 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
         onLostPointerCapture={event => { if (event.target === event.currentTarget) finishDrag(event); }}
         onPointerLeave={event => { if (!drag.current?.horizontal) finishDrag(event); }}
         onDragStart={event => { if (canPage) event.preventDefault(); }}
-        onScroll={event => {
-          const track = event.currentTarget;
-          clearTimeout(scrollTimer.current);
-          if (!drag.current?.horizontal) scrollTimer.current = setTimeout(() => syncPage(track), 150);
-        }}
-        onScrollEnd={event => syncPage(event.currentTarget)}>
-        {Array.from({ length: lastPage + 1 }, (_, page) => <span key={page} data-order-page={page} className={styles.snapPoint} aria-hidden="true" style={{ gridColumn: `${page * columns + 1} / span ${columns}` }} />)}
+        onScroll={event => syncView(event.currentTarget)}
+        onScrollEnd={event => rememberScroll(event.currentTarget)}>
+        {Array.from({ length: lastPage + 1 }, (_, page) => <span key={page} data-order-page={page} className={styles.pageMarker} aria-hidden="true" style={{ gridColumn: `${page * columns + 1} / span ${columns}` }} />)}
         {orders.map((order, index) => {
           const detail = orderPresentation(order);
           const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId });
           const position = index % size;
           const page = Math.floor(index / size);
+          const column = page * columns + position % columns;
+          const visible = currentView ? column >= currentView.first && column <= currentView.last : page === currentPage;
           return <article key={order.rewardId} id={`reward-${order.rewardId}`} className={styles.card} data-order-ticket data-tone={detail.tone}
-            inert={page !== currentPage} aria-hidden={page !== currentPage || undefined}
-            style={{ gridColumn: page * columns + position % columns + 1, gridRow: Math.floor(position / columns) + 1 }}>
+            inert={!visible} aria-hidden={!visible || undefined}
+            style={{ gridColumn: column + 1, gridRow: Math.floor(position / columns) + 1 }}>
             <Link href={href} className={styles.art} aria-label={`View ${order.title} reward`}><Image src={order.image} alt="" fill sizes="(max-width: 700px) 64px, 200px" /></Link>
             <div className={styles.copy}><p className={styles.retailer}>{order.retailer}</p><h3><Link href={href} title={order.title}>{order.title}</Link></h3><div className={styles.statuses}><span className={styles.source} data-source={order.source}><AccountIcon name={order.source === "winner" ? "prize" : "orders"} />{order.source === "winner" ? "You won" : order.source === "purchase" ? "Purchased" : "Reward"}</span><span className={styles.status}>{detail.label}</span></div></div>
             <dl className={styles.money}><div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>{order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}</dl>
@@ -348,11 +343,11 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
           </article>;
         })}
       </div>
-      {hasPrevious ? <button type="button" className={styles.peekButton} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage - 1)} /> : null}
-      {hasNext ? <button type="button" className={styles.peekButton} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage + 1)} /> : null}
+      {hasPrevious ? <button type="button" className={styles.peekButton} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(previousPage)} /> : null}
+      {hasNext ? <button type="button" className={styles.peekButton} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(nextPage)} /> : null}
       </div>
       {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
-    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{start + 1}–{Math.min(start + size, orders.length)} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={currentPage === 0 || Boolean(selected)} onClick={() => changePage(currentPage - 1)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={currentPage === lastPage || Boolean(selected)} onClick={() => changePage(currentPage + 1)}><AccountIcon name="chevron" /></button></div></nav>
+    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{start + 1}–{Math.min(start + size, orders.length)} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={!hasPrevious || Boolean(selected)} onClick={() => changePage(previousPage)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={!hasNext || Boolean(selected)} onClick={() => changePage(nextPage)}><AccountIcon name="chevron" /></button></div></nav>
   </div>;
 }

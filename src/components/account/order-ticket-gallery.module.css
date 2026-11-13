@@ -13,15 +13,12 @@
   overflow-x: auto;
   scrollbar-width: none;
   overscroll-behavior-inline: contain;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: var(--ticket-gutter);
 }
 .rail::-webkit-scrollbar { display: none; }
 .rail[data-multiple="true"] { --ticket-gutter: 28px; }
 .rail[data-swipeable="true"] { cursor: grab; user-select: none; }
-.rail[data-dragging="true"], .rail[data-settling="true"] { scroll-snap-type: none; }
 .rail[data-dragging="true"], .rail[data-dragging="true"] * { cursor: grabbing; }
-.snapPoint { grid-row: 1; scroll-snap-align: start; pointer-events: none; }
+.pageMarker { grid-row: 1; pointer-events: none; }
 .peekButton { position: absolute; top: 0; bottom: 0; width: 12px; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .peekButton[data-direction="previous"] { left: 0; }
 .peekButton[data-direction="next"] { right: 0; }
