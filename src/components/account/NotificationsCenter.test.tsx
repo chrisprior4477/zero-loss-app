@@ -347,3 +347,64 @@ test("show more reveals the remaining records and filters retain their full coun
   fireEvent.click(screen.getByRole("button", { name: /Activity15/ }));
   expect(screen.getAllByRole("article")).toHaveLength(12);
 });
+
+const attentionFixtures: AccountNotification[] = [
+  { id: "claim-unread", category: "action", title: "Reward waiting to be claimed", body: "Claim your reward.", meta: "$100", href: "/account/wallet?rewardId=one", action: "Claim reward", tone: "reward" },
+  { id: "offer-read", category: "action", title: "Offer still available", body: "Complete your offer.", meta: "$99", href: "/account/purchase-options/example", action: "View purchase option", tone: "completion" },
+  { id: "deposit-unread", category: "activity", title: "Your deposit posted", body: "$25 added.", meta: "$25", href: "/account/wallet?transaction=deposit", action: "View transaction", tone: "wallet" },
+  { id: "order-unread", category: "orders", title: "Gift card issued", body: "Ready to use.", meta: "$100", href: "/account/wallet?rewardId=two", action: "Open gift card", tone: "reward" },
+  { id: "old-read", category: "account", title: "Old account update", body: "Already read.", meta: "Account", href: "/account/profile", action: "View profile", tone: "account" },
+];
+function renderAttention(initialFilter: "all" | "action" = "action") {
+  return render(<NotificationsCenter notifications={attentionFixtures} initialReadIds={["offer-read", "old-read"]} initialFilter={initialFilter} activityAvailable walletAvailable crewAvailable readAvailable />);
+}
+
+test("Action needed includes unread updates once and keeps existing category and destination buttons", () => {
+  renderAttention("all");
+  expect(screen.queryByRole("button", { name: /^Unread/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: /2 actions needed · 3 unread updates/ }));
+  const list = screen.getByRole("region", { name: "Action needed notifications" });
+  expect(within(list).getAllByRole("article")).toHaveLength(4);
+  expect(screen.getByRole("button", { name: "Action needed4" }).getAttribute("aria-pressed")).toBe("true");
+  expect(within(list).queryByText("Old account update")).toBeNull();
+  expect(within(list).getAllByText("Unread")).toHaveLength(3);
+  expect(within(list).getByRole("link", { name: /Claim reward/ }).getAttribute("href")).toBe(attentionFixtures[0].href);
+  expect(within(list).getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe(attentionFixtures[3].href);
+  fireEvent.click(screen.getByRole("button", { name: "Orders1" }));
+  expect(screen.getByRole("region", { name: "Orders notifications" }).querySelectorAll("article")).toHaveLength(1);
+});
+
+test("reading an informational update removes it from attention but retains it under All", async () => {
+  renderAttention();
+  fireEvent.click(screen.getByRole("link", { name: /View transaction/ }));
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["deposit-unread"]));
+  expect(actionMocks.push).toHaveBeenCalledWith(attentionFixtures[2].href);
+  expect(screen.queryByText("Your deposit posted")).toBeNull();
+  expect(screen.getByRole("button", { name: "Action needed3" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "All5" }));
+  expect(screen.getByText("Your deposit posted").closest("article")?.getAttribute("data-read")).toBe("true");
+});
+
+test("reading a reward or marking all read does not hide outstanding actions", async () => {
+  renderAttention();
+  fireEvent.click(screen.getByRole("link", { name: /Claim reward/ }));
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["claim-unread"]));
+  expect(screen.getByText("Reward waiting to be claimed").closest("article")?.getAttribute("data-read")).toBe("true");
+  expect(screen.getByRole("button", { name: "Action needed4" })).toBeTruthy();
+  await waitFor(() => expect((screen.getByRole("button", { name: "Mark all as read" }) as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["deposit-unread", "order-unread"]));
+  expect(screen.getByRole("button", { name: "Action needed2" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Claim reward/ })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /View purchase option/ })).toBeTruthy();
+  expect(screen.queryByText("Unread")).toBeNull();
+});
+
+test("failed read persistence restores the unread update to Action needed", async () => {
+  readMocks.mark.mockResolvedValueOnce({ ok: false, message: "Read status could not be saved." });
+  renderAttention();
+  fireEvent.click(screen.getByRole("link", { name: /View transaction/ }));
+  await waitFor(() => expect(readMocks.mark).toHaveBeenCalledWith(["deposit-unread"]));
+  await waitFor(() => expect(screen.getByText("Your deposit posted").closest("article")?.getAttribute("data-read")).toBe("false"));
+  expect(screen.getByRole("button", { name: "Action needed4" })).toBeTruthy();
+});

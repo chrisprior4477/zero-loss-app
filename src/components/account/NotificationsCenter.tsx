@@ -82,10 +82,13 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
   const headingRef = useRef<HTMLElement>(null);
   const scrollFrame = useRef<number | null>(null);
   const enabledNotifications = useMemo(() => notifications.filter(notification => notificationIsEnabled(notification, alertPreferences)), [notifications, alertPreferences]);
-  const visible = useMemo(() => filter === "all" ? enabledNotifications : enabledNotifications.filter(notification => notification.category === filter), [filter, enabledNotifications]);
+  const attentionNotifications = useMemo(() => enabledNotifications.filter(notification => notification.category === "action" || !read.has(notification.id)), [enabledNotifications, read]);
+  const actionCount = enabledNotifications.filter(notification => notification.category === "action").length;
+  const unreadCount = enabledNotifications.filter(notification => !read.has(notification.id)).length;
+  const visible = useMemo(() => filter === "all" ? enabledNotifications : filter === "action" ? attentionNotifications : enabledNotifications.filter(notification => notification.category === filter), [filter, enabledNotifications, attentionNotifications]);
   const groups = useMemo(() => groupNotifications(visible), [visible]);
   const { list: listRef, ...batches } = useTicketBatches<HTMLDivElement>(groups.length, groupsPerPage);
-  const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? enabledNotifications.length : enabledNotifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [enabledNotifications]);
+  const counts = useMemo(() => Object.fromEntries(filters.map(([key]) => [key, key === "all" ? enabledNotifications.length : key === "action" ? attentionNotifications.length : enabledNotifications.filter(notification => notification.category === key).length])) as Record<FilterKey, number>, [enabledNotifications, attentionNotifications]);
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter((item) => item.status === "completion").length;
@@ -348,7 +351,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
       {!activityAvailable || !walletAvailable || !crewAvailable || !ordersAvailable || !readAvailable ? <p role="status" className={styles.sourceWarning}>Some account updates could not be verified right now. Only confirmed information is shown.</p> : null}
       {crewMessage ? <p role="status" className={styles.sourceWarning}>{crewMessage}</p> : null}
       {readMessage ? <p role="status" className={styles.sourceWarning}>{readMessage}</p> : null}
-      {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => selectFilter("action")}><AccountIcon name="alert" /> <strong>{counts.action} action needed</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
+      {counts.action > 0 ? <button type="button" className={styles.actionShortcut} onClick={() => selectFilter("action")}><AccountIcon name="alert" /> <strong>{actionCount} {actionCount === 1 ? "action" : "actions"} needed · {unreadCount} unread {unreadCount === 1 ? "update" : "updates"}</strong><span>See what needs your attention</span><AccountIcon name="arrow" /></button> : null}
 
       <div className={styles.layout}>
         <nav id="notification-tickets-filters" aria-label="Notification filters" className={styles.filters}>
