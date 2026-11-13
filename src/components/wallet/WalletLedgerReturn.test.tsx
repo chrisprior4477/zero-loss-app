@@ -47,6 +47,19 @@ function saveView() {
   return page;
 }
 
+test("a fresh history visit restores the filter, dates, and page after reload", () => {
+  const page = render(<WalletLedger walletId="wallet-1" entries={allEntries} />);
+  fireEvent.click(screen.getByRole("button", { name: "Funding" }));
+  fireEvent.change(screen.getByLabelText("From date"), { target: { value: "2026-11-01" } });
+  fireEvent.click(screen.getByRole("button", { name: /See more transactions/ }));
+  page.unmount();
+  render(<WalletLedger walletId="wallet-1" entries={allEntries} />);
+  flush();
+  expect(screen.getByRole("button", { name: "Funding" }).getAttribute("aria-pressed")).toBe("true");
+  expect((screen.getByLabelText("From date") as HTMLInputElement).value).toBe("2026-11-01");
+  expect(screen.getByText("Showing 6–10 of 12 transactions")).toBeTruthy();
+});
+
 test("a mobile Support bookmark reopens the exact ticket on its six-ticket desktop page", () => {
   const mobile = saveView();
   mobile.unmount();

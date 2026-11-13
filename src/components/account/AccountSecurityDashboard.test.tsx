@@ -29,7 +29,7 @@ test("uses verified account data without inventing device or location details", 
   expect(screen.getByText("Location: Not recorded")).toBeTruthy();
   expect(screen.queryByText(/Windows PC|iPhone|New York|Boston/)).toBeNull();
   expect(screen.getByRole("link", { name: /Edit profile/ }).getAttribute("href")).toBe("/account/profile");
-  expect(screen.getByRole("link", { name: /View account updates/ }).getAttribute("href")).toBe("/account/notifications");
+  expect(screen.getByRole("link", { name: /View account updates/ }).getAttribute("href")).toBe("/account/notifications?filter=account#notification-tickets-filters");
 });
 
 test("opens a usable password form and honest explanations for unavailable controls", () => {

@@ -122,7 +122,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
 
       <div className={styles.lowerGrid}>
         <section className={styles.lowerTicket} aria-labelledby="recent-signins-heading">
-          <header><h2 id="recent-signins-heading">Recent sign-ins</h2><Link href="/account/notifications">View account updates <AccountIcon name="arrow" /></Link></header>
+          <header><h2 id="recent-signins-heading">Recent sign-ins</h2><Link href="/account/notifications?filter=account#notification-tickets-filters">View account updates <AccountIcon name="arrow" /></Link></header>
           {signIn ? <div className={styles.signInFacts}><time dateTime={signIn.iso}>{signIn.label}</time><span>Device: Not recorded</span><span>Location: Not recorded</span></div> : <p>Sign-in history is not available from this account yet.</p>}
         </section>
         <section className={styles.lowerTicket} aria-labelledby="personal-info-heading">

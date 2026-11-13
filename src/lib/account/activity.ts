@@ -51,7 +51,7 @@ export const walletTransactionsHref = `${walletHistoryHref}&panel=transactions#t
 export const walletDepositsHref = `${walletHistoryHref}&panel=deposits#payment-deposits`;
 
 export function declinedOfferHref(optionId?: string | null) {
-  return optionId ? `/account/declined-offers#declined-offer-${encodeURIComponent(optionId)}` : "/account/declined-offers";
+  return optionId ? `/account/declined-offers?offer=${encodeURIComponent(optionId)}#declined-offer-${encodeURIComponent(optionId)}` : "/account/declined-offers";
 }
 export function isWalletReward(item: ActivityItem): boolean {
   return item.rewardKind === "digital" && (item.status === "prize" || Boolean(item.rewardStatus) || Boolean(item.rewardId));
@@ -86,7 +86,7 @@ export function readyWalletRewards(state: AccountActivity): ActivityItem[] {
 export function activityHref(item: ActivityItem, destination: ActivityDestination = "/account/entries", filter: ActivityFilter = "all"): string {
   if (isWalletReward(item)) return walletRewardHref(item);
   if (item.completionOptionStatus === "declined") return declinedOfferHref(item.completionOptionId);
-  if (item.status === "active" && item.entryId) return `/account/entries/${encodeURIComponent(item.entryId)}`;
+  if (item.status === "active" && item.entryId) return `/account/entries/${encodeURIComponent(item.entryId)}${filter === "active" ? "?filter=active" : ""}`;
   const params = new URLSearchParams({ item: item.slug });
   if (item.entryId) params.set("entry", item.entryId);
   if (destination === "/account/entries" && filter !== "all") params.set("filter", filter);

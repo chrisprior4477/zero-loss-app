@@ -2,7 +2,7 @@
 import { useAccountTimeZone } from "@/components/account/TimeZoneProvider";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { ProductShareButton } from "@/components/product/ProductShareButton";
 import { useFavorites } from "./FavoritesProvider";
@@ -51,13 +51,13 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const shares = useMemo(() => (initialShares ?? []).filter(share => !hidden.has(share.slug)).map(share => ({ ...share, ...shareOverrides[share.id] })), [initialShares, hidden, shareOverrides]);
   const [selection, setSelected] = useState<Selection>(() => {
     if (initialTab === "shared" && initialShareId) return { shareId: initialShareId };
-    return initialTab === "favorites" && initialItem && slugs.includes(initialItem) ? { slug: initialItem } : null;
+    return initialTab === "favorites" && initialItem ? { slug: initialItem } : null;
   });
   // Resolve a received preview from the latest share list every render. A
   // missing receipt cannot turn the remembered prize into a favorite.
   const selectedShare = selection?.shareId ? shares.find(share => share.id === selection.shareId) : null;
   const requestedShareUnavailable = Boolean(selection?.shareId && initialShares !== null && !selectedShare);
-  const selectedSlug = selectedShare?.slug ?? (selection?.slug && !hidden.has(selection.slug) ? selection.slug : null);
+  const selectedSlug = selectedShare?.slug ?? (selection?.slug && slugs.includes(selection.slug) ? selection.slug : null);
   const [alertOverrides, setAlertOverrides] = useState<Record<string, boolean>>({});
   const alerts = useMemo(() => ({ ...initialAlerts, ...alertOverrides }), [initialAlerts, alertOverrides]);
   const [busySlug, setBusySlug] = useState<string | null>(null);
@@ -120,27 +120,33 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       .catch(() => { if (active) setMessage("The item is available, but its viewed status could not be saved."); });
     return () => { active = false; };
   }, [initialShareId]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
+  useLayoutEffect(() => {
     listPosition.current = savedListPosition(window.history.state);
-    function restoreHistory(event: PopStateEvent) {
+    function restoreHistory(state: unknown, restoreScroll: boolean) {
       if (window.location.pathname !== "/account/favorites") return;
       const query = new URLSearchParams(window.location.search);
       const nextTab = query.get("tab") === "shared" ? "shared" : "favorites";
       const shareId = nextTab === "shared" ? query.get("share") : null;
       const slug = query.get("item");
       const nextSelected = shareId ? { shareId }
-        : nextTab === "favorites" && slug && slugs.includes(slug) ? { slug } : null;
+        : nextTab === "favorites" && slug ? { slug } : null;
       const previousPosition = listPosition.current;
-      listPosition.current = savedListPosition(event.state);
+      listPosition.current = savedListPosition(state);
       setTab(nextTab); setSelected(nextSelected); setMessage("");
+      if (!restoreScroll) return;
       if (nextSelected) revealHeading();
       else if (previousPosition?.href === (nextTab === "shared" ? sharedWithYouHref : "/account/favorites")) {
         restoreListPosition(previousPosition.target, previousPosition.top);
       }
     }
-    window.addEventListener("popstate", restoreHistory);
-    return () => window.removeEventListener("popstate", restoreHistory);
-  }, [slugs]);
+    // A restored Next.js page can mount after popstate using the cached list's
+    // props. The browser location still carries the exact item it returned to.
+    const params = new URLSearchParams(window.location.search);
+    if (listPosition.current || params.has("item") || params.has("share")) restoreHistory(window.history.state, false);
+    const onPopState = (event: PopStateEvent) => restoreHistory(event.state, true);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   function openItem(slug: string, shareId?: string) {
     listPosition.current = { href: tab === "shared" ? sharedWithYouHref : "/account/favorites", target: shareId ?? slug, top: window.scrollY };
     setSelected(shareId ? { shareId } : { slug }); setMessage("");

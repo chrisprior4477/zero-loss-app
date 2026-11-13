@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
-import type { ActivityItem } from "@/lib/account/activity";
+import { declinedOfferHref, type ActivityItem } from "@/lib/account/activity";
+import { crewUuid } from "@/lib/crew/visibility";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -19,9 +20,11 @@ import styles from "@/components/account/my-activity.module.css";
 export const metadata: Metadata = { title: "Declined Offers" };
 type DeclinedOffer = ActivityItem & { completionOptionId: string };
 
-export default async function DeclinedOffersPage() {
+export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ offer?: string | string[] }> }) {
+  const requested = (await searchParams)?.offer;
+  const offerId = typeof requested === "string" && crewUuid.test(requested) ? requested : undefined;
   const account = await getAccountContext();
-  if (!account) redirect(authNavigationHref("/login", "/account/declined-offers"));
+  if (!account) redirect(authNavigationHref("/login", declinedOfferHref(offerId)));
   const declined = account.activity.activity.filter((item): item is DeclinedOffer =>
     item.completionOptionStatus === "declined" && Boolean(item.completionOptionId));
   const groups = new Map<string, DeclinedOffer[]>();
@@ -63,7 +66,7 @@ export default async function DeclinedOffersPage() {
     </div>
     {account.activity.source === "unavailable" ? <div className={styles.empty}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p></div>
       : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href="/account/entries">Back to My Activity →</Link></div>
-      : <DeclinedOfferList>{Array.from(groups, ([slug, offers]) => {
+      : <DeclinedOfferList offerId={offerId}>{Array.from(groups, ([slug, offers]) => {
         const [product] = offers;
         const multiple = offers.length > 1;
         const deadlines = offers.map(offer => Date.parse(offer.completionExpiresAt ?? ""))

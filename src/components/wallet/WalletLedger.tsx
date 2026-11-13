@@ -184,10 +184,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
 
   function updateBookmark(changes: Partial<LedgerReturn>) {
     if (compact || !walletId) return;
-    const saved = readLedgerReturn(window.history.state, walletId, window.location.href, selectedId);
-    if (!saved) return;
     window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: {
-      ...saved, filter, query, ...appliedDates, showArchived, offset: batches.origin,
+      walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, showArchived, offset: batches.origin,
       scrollY: window.scrollY, rowId: "", rowTop: 0,
       expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
       ...changes,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { MAX_PRIZE_VALUE, type BrowseFilterState } from "@/lib/catalog/browse-filters";
 import type { RetailerFilterGroup } from "@/lib/catalog/browse-filters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
@@ -25,6 +25,7 @@ export type BrowseFilterProps = {
 
 export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, searchTerm, subcategory, clearHref, id, onNavigate }: BrowseFilterProps & { id: string }) {
   const router = useRouter();
+  const selectingByKeyboard = useRef(false);
   const [searchDraft, setSearchDraft] = useState(searchTerm);
   const [searchFocused, setSearchFocused] = useState(false);
   const directoryMatches = searchFocused ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
@@ -70,12 +71,18 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   };
 
   return (
-    <form action="/browse" method="get" noValidate onSubmit={submit} onChange={event => {
-      const target = event.target;
-      if ((target instanceof HTMLInputElement || target instanceof HTMLSelectElement)
-        && !["q", "minValue", "maxValue"].includes(target.name)
-        && !(target.name === "valueMode" && target.value === "custom")) event.currentTarget.requestSubmit();
-    }} className="space-y-5 rounded-2xl border border-cyan-300/25 bg-[#0d2b50] p-4 text-white shadow-[0_12px_30px_rgba(0,0,0,.14)]">
+    <form action="/browse" method="get" noValidate onSubmit={submit}
+      onKeyDownCapture={event => {
+        if (event.target instanceof HTMLInputElement && event.target.type === "radio" && (event.key.startsWith("Arrow") || event.key === " ")) selectingByKeyboard.current = true;
+      }}
+      onPointerDownCapture={() => { selectingByKeyboard.current = false; }}
+      onChange={event => {
+        const target = event.target;
+        if ((target instanceof HTMLInputElement || target instanceof HTMLSelectElement)
+          && !(target instanceof HTMLInputElement && target.type === "radio" && selectingByKeyboard.current)
+          && !["q", "minValue", "maxValue"].includes(target.name)
+          && !(target.name === "valueMode" && target.value === "custom")) event.currentTarget.requestSubmit();
+      }} className="space-y-5 rounded-2xl border border-cyan-300/25 bg-[#0d2b50] p-4 text-white shadow-[0_12px_30px_rgba(0,0,0,.14)]">
       {selectedCategory ? <input type="hidden" name="category" value={selectedCategory} /> : null}
       {subcategory ? <input type="hidden" name="subcategory" value={subcategory} /> : null}
       {selectedRetailerGroup ? <input type="hidden" name="partnerCategory" value={selectedRetailerGroup.id} /> : null}

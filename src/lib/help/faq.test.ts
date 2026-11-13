@@ -31,6 +31,11 @@ test("question matches rank before incidental mentions and common apostrophes wo
   expect(filterFaqs("can’t sign in", "all")[0].id).toBe("password");
 });
 
+test("common wallet questions return relevant help in ordinary language", () => {
+  expect(filterFaqs("Can I get my money back?", "all")[0]?.id).toBe("withdrawals");
+  expect(filterFaqs("Where can I see my wallet transactions?", "all")[0]?.id).toBe("wallet-history");
+});
+
 test("wallet answers use the live transaction button name and the exact reward-history section", () => {
   const refund = faqItems.find(item => item.id === "withdrawals")!;
   expect(refund.answer).toContain("use Report a problem on the relevant wallet transaction");

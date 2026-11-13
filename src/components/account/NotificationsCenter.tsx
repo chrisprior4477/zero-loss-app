@@ -42,7 +42,7 @@ const filters = [
 
 type NotificationOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function NotificationsCenter({ userId, supportEnabled = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
+export function NotificationsCenter({ userId, initialFilter = "all", supportEnabled = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const live = useNotifications()?.liveSnapshot;
   // The header already refreshes this verified snapshot. Reuse it for page
   // counts, rows and read controls without remounting the customer's view.
@@ -50,7 +50,7 @@ export function NotificationsCenter({ userId, supportEnabled = true, notificatio
   const initialReadIds = live ? live.readIds : serverReadIds;
   const initialAlertPreferences = live ? live.preferences : serverAlertPreferences;
   const readAvailable = live ? live.readAvailable : serverReadAvailable;
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [filter, setFilter] = useState<FilterKey>(initialFilter);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [savedPreferenceOverrides, setSavedPreferenceOverrides] = useState<NotificationPreferences>({});
   const alertPreferences = useMemo(() => ({ ...initialAlertPreferences, ...savedPreferenceOverrides }), [initialAlertPreferences, savedPreferenceOverrides]);

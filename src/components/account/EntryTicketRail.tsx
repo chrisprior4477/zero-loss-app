@@ -16,7 +16,8 @@ export type SavedTicket = {
   amountLabel: string;
 };
 
-export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId }: {
+export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId, returnFilter }: {
+  returnFilter?: "active";
   ownerId: string;
   title: string;
   tickets: SavedTicket[];
@@ -170,7 +171,7 @@ export function EntryTicketRail({ ownerId, title, tickets, selectedEntryId }: {
       <div className={styles.cardFooter}>
         <div className={styles.entryIdRow}><strong>Entry #{ticket.entryId.slice(-8)}</strong><button type="button" className={styles.copyButton} onClick={() => void copyEntryId(ticket.entryId)} aria-label={`${copiedEntryId === ticket.entryId ? "Copied" : copyErrorEntryId === ticket.entryId ? "Could not copy" : "Copy"} full entry number ${ticket.entryId}`} title={copyErrorEntryId === ticket.entryId ? "Could not copy. Please try again." : copiedEntryId === ticket.entryId ? "Copied" : "Copy full entry number"}>{copiedEntryId === ticket.entryId ? <span aria-hidden="true">✓</span> : <svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><rect x="6" y="5" width="10" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><path d="M13 5V3.5A1.5 1.5 0 0 0 11.5 2h-8A1.5 1.5 0 0 0 2 3.5v10A1.5 1.5 0 0 0 3.5 15H6" stroke="currentColor" strokeWidth="1.7" /></svg>}</button></div>
         <span className={styles.status}>◷ Still open</span>
-        {ticket.entryId !== selectedEntryId ? <Link href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open#saved-entry-rail`} className={styles.entryLink}>View this entry <span aria-hidden="true">→</span></Link> : null}
+        {ticket.entryId !== selectedEntryId ? <Link href={`/account/entries/${encodeURIComponent(ticket.entryId)}?entries=open${returnFilter ? "&filter=active" : ""}#saved-entry-rail`} className={styles.entryLink}>View this entry <span aria-hidden="true">→</span></Link> : null}
       </div>
     </article>
     {count > 1 ? <>

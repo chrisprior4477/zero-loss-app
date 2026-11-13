@@ -12,13 +12,16 @@ export async function cleanupCrewShares(operationId: string, selection: SharingS
   if (!crewUuid.test(operationId) || !selection || !validScope(selection.scope)
     || selection.entryId !== undefined && !crewUuid.test(selection.entryId)
     || selection.offeringSlug !== undefined && !/^[a-z0-9-]{2,100}$/.test(selection.offeringSlug)
+    || selection.reviewedEntryIds !== undefined && (!Array.isArray(selection.reviewedEntryIds) || !selection.reviewedEntryIds.length || !selection.reviewedEntryIds.every(id => crewUuid.test(id)))
+    || !selection.offeringSlug && !selection.entryId && !selection.reviewedEntryIds?.length
     || selection.before !== undefined && (!Number.isFinite(Date.parse(selection.before)) || Date.parse(selection.before) > Date.now()))
     return { ok: false, message: "Choose the sharing you want to clean up." };
   const db = await createClient();
   const { data: { user }, error: authError } = await db.auth.getUser();
   if (authError || !user) return { ok: false, message: "Sign in to change sharing." };
   const { data, error } = await db.rpc("cleanup_crew_shares", { p_operation_id: operationId, p_scope: selection.scope,
-    p_offering_slug: selection.offeringSlug ?? null, p_entry_id: selection.entryId ?? null, p_before: selection.before ?? null });
+    p_offering_slug: selection.offeringSlug ?? null, p_entry_id: selection.entryId ?? null, p_before: selection.before ?? null,
+    ...(selection.reviewedEntryIds ? { p_reviewed_entry_ids: selection.reviewedEntryIds } : {}) });
   if (error || !data || typeof data.count !== "number") return { ok: false, message: "We couldn’t confirm cleanup. Retry to check the same request safely." };
   refreshSharing();
   return { ok: true, count: data.count, undoId: data.undone || !data.count ? undefined : data.id,

@@ -2,7 +2,7 @@ import type { OwnCrewEntry } from "@/app/account/crew/page";
 import { defaultCrewVisibilityRule, type CrewVisibilityRule } from "./visibility";
 
 export type SharingScope = "crew" | string;
-export type SharingSelection = { scope: SharingScope; offeringSlug?: string; entryId?: string; before?: string };
+export type SharingSelection = { scope: SharingScope; offeringSlug?: string; entryId?: string; before?: string; reviewedEntryIds?: string[] };
 
 export function entrySharedAtInScope(entry: OwnCrewEntry, scope: SharingScope) {
   // Legacy fixtures may omit audience dates; current database rows include them.

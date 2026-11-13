@@ -10,7 +10,8 @@ import { browsePrizeValueLabel } from "@/lib/catalog/browse-filters";
 import { searchTextMatches } from "@/lib/catalog/search-text";
 import { marketplaceCategories, marketplaceCategoryHref } from "@/lib/catalog/navigation";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
-import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
+import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
+import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import styles from "./browse-discovery.module.css";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
@@ -31,11 +32,13 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const [mode, setMode] = useState<"categories" | "retailers">("categories");
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState(props.searchTerm);
+  const voice = useVoiceSearch(setSearch);
   const id = useId();
   const scope = props.subcategory || props.selectedRetailerGroup?.category || marketplaceCategories.find(category => category.id === props.selectedCategory)?.label;
   const searchLabel = scope ? `Search ${scope}` : "Search all prizes";
   const withoutRetailer = new URL(props.browseHref, "https://zeroloss.local");
   withoutRetailer.searchParams.delete("retailer");
+  if (props.selectedCategory) withoutRetailer.searchParams.delete("partnerCategory");
   const withoutBudget = new URL(props.browseHref, "https://zeroloss.local");
   withoutBudget.searchParams.delete("minValue");
   withoutBudget.searchParams.delete("maxValue");
@@ -107,9 +110,12 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (voice.listening) return;
+    voice.cancel();
     applySearch(search);
   }
   function clearSearch() {
+    voice.cancel();
     setSearch("");
     searchInput.current?.focus();
     if (props.searchTerm) applySearch("");
@@ -129,9 +135,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     <span id="retailer-categories-heading" className={styles.anchor} />
     {props.searchField ?? <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}>
       <label htmlFor={`${id}-search`} className={styles.srOnly}>{searchLabel}</label>
-      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
+      <input ref={searchInput} id={`${id}-search`} type="search" value={search} onChange={event => { voice.cancel(); setSearch(event.target.value); }} placeholder={searchLabel} enterKeyHint="search" autoComplete="off" />
       {search ? <button type="button" className={styles.clearSearch} aria-label="Clear search" onClick={clearSearch}>×</button> : null}
-      {search.trim() ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : <VoiceSearchButton key={search} onTranscript={setSearch} />}
+      {search.trim() && !voice.listening ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
+      <VoiceSearchControl {...voice} />
     </form>}
     <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls}</div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>

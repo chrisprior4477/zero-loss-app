@@ -13,12 +13,12 @@ type ReturnRoute = { query: Record<string, (value: string) => boolean>; hash?: R
 const routes: Record<string, ReturnRoute> = {
   "/contact": { query: {}, hash: /^#message$/ },
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), viewed: matches(identifier), filter: oneOf("all", "active", "prize", "completion", "completed") } },
-  "/account/declined-offers": { query: {} },
+  "/account/declined-offers": { query: { offer: matches(uuid) }, hash: /^#declined-offer-[0-9a-f-]{36}$/i },
   "/account/favorites": { query: { tab: oneOf("favorites", "shared"), share: matches(uuid), item: matches(slug) }, hash: /^#(?:saved-items-heading|favorite-products)$/ },
   "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), via: oneOf("purchase"), view: oneOf("history", "card"), panel: oneOf("methods", "card", "funding", "transactions", "deposits"), rewards: oneOf("ready", "used", "expired", "history"), from: matches(slug), browse: value => productBrowseReturnPath(value) !== null, entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid), choice: matches(uuid), deposit: matches(depositRequestKeyPattern) }, hash: /^#(?:reward-pass|ready-rewards|reward-history|add-funds|purchase-deposit|payment-methods|payment-deposits|wallet-add-card|transactions|transaction-[0-9a-f-]{36})$/i },
   "/account/crew": { query: { member: value => uuid.test(value) || /^sample-(?:Maya|Daniel|Ari|Leo)$/.test(value), pick: matches(slug), tab: oneOf("crew", "requests", "picks", "groups", "privacy"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-intro|crew-groups|crew-privacy|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {} },
-  "/account/notifications": { query: {} },
+  "/account/notifications": { query: { filter: oneOf("account") }, hash: /^#notification-tickets-filters$/ },
   "/account/security": { query: {} },
   "/account/profile": { query: {} },
   "/account/payment-methods": { query: {} },
@@ -32,8 +32,8 @@ function returnRoute(path: string): ReturnRoute | undefined {
     query: { option: matches(/^ent_[a-f0-9]{32}$/), resume: oneOf("wallet"), choice: matches(uuid), decline: oneOf("confirm") },
   };
   return routes[path] ?? (/^\/account\/entries\/ent_[a-f0-9]{32}$/i.test(path) ? {
-    query: { entries: oneOf("first"), quantity: selected => parseEntryQuantity(selected) !== null, review: oneOf("entry") },
-    hash: /^#(?:entry-details-intro|add-entries-title|additional-entry-checkout)$/,
+    query: { entries: oneOf("first", "open"), quantity: selected => parseEntryQuantity(selected) !== null, review: oneOf("entry"), filter: oneOf("active") },
+    hash: /^#(?:entry-details-intro|add-entries-title|additional-entry-checkout|saved-entry-rail)$/,
   } : undefined);
 }
 

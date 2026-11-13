@@ -55,7 +55,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "add-funds", category: "wallet", question: "How do I add funds?",
     answer: "Open Add funds in Wallet & Transactions, choose a saved card and a whole-dollar amount, then review and confirm the deposit. In this MVP, funding uses the provided demo payment method and simulated money; do not enter real payment-card details.",
-    keywords: "deposit top up topup money password card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
+    keywords: "deposit top up topup money wallet password card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
   },
   {
     id: "insufficient-balance", category: "wallet", question: "What if I do not have enough balance for my entries?",
@@ -66,6 +66,11 @@ export const faqItems: FaqItem[] = [
     id: "funding-status", category: "wallet", question: "My funding looks pending. Should I add it again?",
     answer: "Check the funding request in Wallet & Transactions first. Use Finish / check or Retry same request when offered, so the existing request is checked rather than creating another one. If it needs review or still looks wrong, open support from that transaction.",
     keywords: "deposit missing duplicate charged twice processing payment retry", action: { label: "Check funds & history", href: walletDepositsHref },
+  },
+  {
+    id: "wallet-history", category: "wallet", question: "Where can I see my wallet transactions?",
+    answer: "Open Transaction history in Wallet & Transactions. Search or use the category and date filters to find a deposit, entry, purchase, or refund.",
+    keywords: "wallet ledger activity records history", action: { label: "Open transaction history", href: walletTransactionsHref },
   },
   {
     id: "withdrawals", category: "wallet", question: "Can I withdraw a deposit or request a refund?",
@@ -129,9 +134,12 @@ export const faqItems: FaqItem[] = [
   },
 ];
 
+const faqFiller = new Set(["a", "an", "can", "could", "do", "does", "how", "i", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "would", "you", "your"]);
+
 export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
   const normalize = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replaceAll("can't", "cannot");
-  const words = normalize(query).trim().split(/\s+/).filter(Boolean);
+  const normalized = normalize(query).replace(/[^a-z0-9\s-]/g, " ").replace(/\b(?:get\s+)?(?:my\s+)?money\s+back\b/g, "refund");
+  const words = normalized.trim().split(/\s+/).filter(word => word && !faqFiller.has(word));
   const questionScore = (item: FaqItem) => words.filter(word => normalize(item.question).includes(word)).length;
   return faqItems.filter(item => (category === "all" || item.category === category) && words.every(word =>
     normalize(`${item.question} ${item.answer} ${item.keywords}`).includes(word)))

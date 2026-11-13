@@ -60,7 +60,7 @@ test.each([null,'pending'])('a lost reminder reply for %s offers a saved-status 
  const checkbox=screen.getByRole('checkbox');fireEvent.click(checkbox);
  expect(await screen.findByRole('status')).toHaveProperty('textContent',expect.stringContaining('Reload its saved status'));
  expect(checkbox).toHaveProperty('checked',initialReminderStatus==='pending');expect(checkbox).toHaveProperty('disabled',true);
- expect(screen.getByRole('link',{name:'Reload reminder status →'})).toHaveProperty('href',expect.stringContaining(`/account/declined-offers#declined-offer-${optionId}`));
+ expect(screen.getByRole('link',{name:'Reload reminder status →'})).toHaveProperty('href',expect.stringContaining(`/account/declined-offers?offer=${optionId}#declined-offer-${optionId}`));
  expect(mocks.save).toHaveBeenCalledOnce();
 });
 

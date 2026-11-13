@@ -36,6 +36,14 @@ test("All categories exits the selected collection while keeping the selected bu
   expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=50&q=makeup#search-results", { scroll: false });
 });
 
+test("View all returns to the full prize category after selecting a retailer", () => {
+  render(<BrowseDiscoveryBar {...props} selectedCategory="electronics"
+    browseHref="/browse?category=electronics&partnerCategory=specialty-retail&retailer=Best+Buy&maxValue=100"
+    filters={{ ...props.filters, retailer: "Best Buy", maxValue: 100 }} />);
+  expect(screen.getByRole("link", { name: "View all in this category" }).getAttribute("href"))
+    .toBe("/browse?category=electronics&maxValue=100#search-results");
+});
+
 test.each(["value-high", "fewest-left", "price-low"] as const)("changing departments keeps the selected %s sorting and budget", sort => {
   render(<BrowseDiscoveryBar {...props} selectedCategory="beauty" selectedRetailerGroup={null}
     filters={{ ...props.filters, sort, maxValue: 100 }} />);
@@ -56,6 +64,16 @@ function openPriceFilters() {
   fireEvent.click(screen.getByRole("button", { name: /Filter & sort/ }));
   return within(screen.getByRole("dialog", { name: "Filter & sort" }));
 }
+
+test("keyboard price selection waits for Apply filters", () => {
+  const form = openPriceFilters();
+  const first = form.getByRole("radio", { name: "$25 & below" });
+  fireEvent.keyDown(first, { key: "ArrowRight" });
+  fireEvent.click(form.getByRole("radio", { name: "$50 & below" }));
+  expect(navigation.push).not.toHaveBeenCalled();
+  fireEvent.click(form.getByRole("button", { name: "Apply filters" }));
+  expect(navigation.push).toHaveBeenCalledWith("/browse?maxValue=50#search-results", { scroll: false });
+});
 
 test("correcting either custom bound validates the current pair and applies the inclusive range", () => {
   const form = openPriceFilters();
@@ -161,17 +179,18 @@ test("clearing an applied query restores the unsearched list on the same page", 
   expect(navigation.push).toHaveBeenCalledWith("/browse?sort=price-low#search-results", { scroll: false });
 });
 
-test("voice transcript fills the field and changes the microphone to Go", () => {
+test("voice search can replace an existing query and remains available after a transcript", () => {
   let recognition: { onresult: ((event: unknown) => void) | null };
   const stop = vi.fn();
   vi.stubGlobal("SpeechRecognition", class {
     onresult: ((event: unknown) => void) | null = null; start() {} stop() { stop(); }
     constructor() { recognition = { onresult: event => this.onresult?.(event) }; }
   });
-  render(<BrowseDiscoveryBar {...props} />);
+  render(<BrowseDiscoveryBar {...props} searchTerm="old query" />);
   fireEvent.click(within(searchForm()).getByRole("button", { name: "Start voice search" }));
   act(() => recognition.onresult?.({ results: [[{ transcript: "baby products" }]] }));
   expect(within(searchForm()).getByDisplayValue("baby products")).toBeTruthy();
+  expect(within(searchForm()).getByRole("button", { name: "Start voice search" })).toBeTruthy();
   expect(stop).toHaveBeenCalledOnce();
   fireEvent.click(within(searchForm()).getByRole("button", { name: "Go to search results" }));
   expect(navigation.push).toHaveBeenCalledWith("/browse?partnerCategory=gas&q=baby+products#search-results", { scroll: false });

@@ -19,7 +19,7 @@ afterEach(() => { cleanup(); vi.resetAllMocks(); });
 
 test("only signed-in customers can open declined offers", async () => {
   mocks.account.mockResolvedValue(null);
-  await expect(DeclinedOffersPage()).rejects.toThrow(/redirect:.*login.*declined-offers/);
+  await expect(DeclinedOffersPage({})).rejects.toThrow(/redirect:.*login.*declined-offers/);
 });
 
 test("a single declined offer keeps its countdown visible and its reminder in the disclosure", async () => {
@@ -31,7 +31,7 @@ test("a single declined offer keeps its countdown visible and its reminder in th
   }, {
     entryId: "ent_two", completionOptionStatus: "available", title: "Unrelated purchase option",
   }] } });
-  render(await DeclinedOffersPage());
+  render(await DeclinedOffersPage({}));
   expect(screen.getByRole("heading", { name: "If you change your mind" })).toBeTruthy();
   const exits = within(screen.getByRole("navigation", { name: "Declined offers navigation" }));
   expect(exits.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe("/account/entries");
@@ -56,7 +56,7 @@ test("grouped offers share one picture and retain their own ticket references af
   const entries = ["ent_111111110000aabb", "ent_222222220000aabb", "ent_12345678abcd1234", null];
   const activity = entries.map((entryId, i) => ({ ...offer, entryId, completionOptionId: `11111111-1111-4111-8111-11111111111${i}` }));
   mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity } });
-  const view = render(await DeclinedOffersPage());
+  const view = render(await DeclinedOffersPage({}));
   const expected = ["Ticket #ent_111111110000aabb", "Ticket #ent_222222220000aabb", "Ticket #abcd1234", "Offer #11111113"];
   const group = screen.getByRole("region", { name: offer.title });
   expect(within(group).getAllByTestId("product-image")).toHaveLength(1);
@@ -72,7 +72,7 @@ test("grouped offers share one picture and retain their own ticket references af
   });
   const updated = [{ ...activity[0], completionOptionStatus: "available" }, ...activity.slice(1)];
   mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity: updated } });
-  view.rerender(await DeclinedOffersPage());
+  view.rerender(await DeclinedOffersPage({}));
   expect(details.open).toBe(true);
   expect(within(group).getByText("3 declined offers")).toBeTruthy();
   expect(within(group).getAllByRole("article")).toHaveLength(3);
@@ -87,7 +87,7 @@ test("a saved ticket link opens the group containing that exact offer", async ()
   }] } });
   window.history.replaceState(null, "", `#declined-offer-${id}`);
   try {
-    const view = render(await DeclinedOffersPage());
+    const view = render(await DeclinedOffersPage({}));
     expect(document.getElementById(`declined-offer-${id}`)?.closest("details")?.open).toBe(true);
     expect(screen.getByRole("region", { name: "Another prize" }).querySelector("details")?.open).toBe(false);
     view.unmount();

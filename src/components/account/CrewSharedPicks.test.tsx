@@ -50,7 +50,20 @@ test("age cleanup requires review and does not include a recently shared entry",
   fireEvent.click(within(dialog).getByRole("button", { name: "Review cleanup" }));
   expect(actions.cleanupCrewShares).not.toHaveBeenCalled();
   fireEvent.click(within(dialog).getByRole("button", { name: "Stop sharing 43 entries" }));
-  await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String), { scope: "crew", before: expect.any(String) }));
+  await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String), { scope: "crew", before: expect.any(String), reviewedEntryIds: entries.slice(1).map(entry => entry.id) }));
+});
+
+test("a share that arrives during review is excluded from confirmation", async () => {
+  const { rerender } = render(<CrewSharedPicks {...base} entries={entries.slice(1, 2)} />);
+  fireEvent.click(screen.getByRole("button", { name: "Clean up sharing" }));
+  const dialog = screen.getByRole("dialog");
+  fireEvent.click(within(dialog).getByRole("button", { name: "All time" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Review cleanup" }));
+  rerender(<CrewSharedPicks {...base} entries={entries.slice(1, 3)} />);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Stop sharing 1 entry" }));
+  await waitFor(() => expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String), {
+    scope: "crew", before: undefined, reviewedEntryIds: [entries[1].id],
+  }));
 });
 
 test('each cleanup step starts at the top with its heading focused and without submitting cleanup',()=>{
@@ -142,5 +155,5 @@ test('a renamed group keeps the reviewed audience ID and label on confirmation',
  view.rerender(<CrewSharedPicks {...base} groups={groups.map(g=>g.id===football?{...g,name:'Renamed Football'}:g)} defaultRule={{audience:'groups',memberIds:[],groupIds:[football]}}/>);
  expect(within(screen.getByRole('dialog')).getByRole('heading',{name:'Football'})).toBeTruthy();
  fireEvent.click(screen.getByRole('button',{name:'Stop sharing 44 entries'}));
- await waitFor(()=>expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String),{scope:football,before:undefined}));
+ await waitFor(()=>expect(actions.cleanupCrewShares).toHaveBeenCalledWith(expect.any(String),{scope:football,before:undefined,reviewedEntryIds:entries.map(entry=>entry.id)}));
 });

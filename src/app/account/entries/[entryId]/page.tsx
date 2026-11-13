@@ -28,11 +28,11 @@ import { parseEntryQuantity } from "@/lib/entries/quantity";
 
 export const metadata: Metadata = { title: "Your Entry Details" };
 
-export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[] }> }) {
+export default async function EntryPage({ params, searchParams }: { params: Promise<{ entryId: string }>; searchParams?: Promise<{ entries?: string; quantity?: string | string[]; review?: string | string[]; filter?: string }> }) {
   const { entryId } = await params;
   if (!/^ent_[a-f0-9]{32}$/i.test(entryId)) notFound();
   const query = await searchParams;
-  const destination = accountPageReturnPath(`/account/entries/${entryId}`, query, query?.review === "entry" ? "#additional-entry-checkout" : "");
+  const destination = accountPageReturnPath(`/account/entries/${entryId}`, query, query?.review === "entry" ? "#additional-entry-checkout" : query?.entries === "open" ? "#saved-entry-rail" : "");
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", destination));
   if (account.activity.source === "unavailable") {
@@ -96,7 +96,8 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
       avatarUrl: member.avatar_reference ? db.storage.from("profile-photos").getPublicUrl(member.avatar_reference).data.publicUrl : null,
     }));
   const enteredAt = item.enteredAt && Number.isFinite(Date.parse(item.enteredAt)) ? item.enteredAt : null;
-  const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}`;
+  const returnFilter = query?.filter === "active" ? "active" : undefined;
+  const returnHref = `/account/entries?viewed=${encodeURIComponent(entryId)}${returnFilter ? "&filter=active" : ""}`;
   const shareItem = { slug: item.slug, title: item.title, image: item.image, retailer: item.retailer };
 
   return <PreferenceSnapshot><main className={styles.page}>
@@ -129,7 +130,7 @@ export default async function EntryPage({ params, searchParams }: { params: Prom
           <ProductShareButton product={shareItem} className={styles.desktopShare} />
         </div>
       </section>
-      <EntryTicketRail key={`${account.userId}:${entryId}:${entryView}`} ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} />
+      <EntryTicketRail key={`${account.userId}:${entryId}:${entryView}`} ownerId={account.userId} title={item.title} tickets={savedTickets} selectedEntryId={entryView === "first" ? savedTickets[0].entryId : entryId} returnFilter={returnFilter} />
       <section className={styles.playTicket} aria-labelledby="in-play-title">
         <p className={styles.eyebrow}>IN PLAY</p>
         <h2 id="in-play-title">{item.title} prize pool {metrics ? metrics.remaining === 0 ? "is full and awaiting a result" : "still has tickets available" : "status is temporarily unavailable"}.</h2>

@@ -107,7 +107,7 @@ test("five open chances keep one compact ticket and show a current count in its 
   expect(within(gallery).queryByText("5 entries")).toBeNull();
   expect(within(gallery).getByText("5", { selector: "[class*='entryActionTicket']" })).toBeTruthy();
   expect(within(gallery).getByRole("link", { name: /See My 5 Entries/ }).getAttribute("href"))
-    .toBe("/account/entries/ent_11111111111111111111111111111111");
+    .toBe("/account/entries/ent_11111111111111111111111111111111?filter=active");
   expect(within(gallery).queryByRole("button", { name: "Next entry" })).toBeNull();
 });
 

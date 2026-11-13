@@ -270,3 +270,10 @@ test("Back to list from a direct item link stays in Favorites", () => {
   expect(window.location.pathname + window.location.search).toBe("/account/favorites");
   expect(screen.getByRole("button", { name: "View Nike Men's Court Shot Shoes" })).toBeTruthy();
 });
+
+test("a cached Favorites route reopens the detail from the current history URL", () => {
+  window.history.replaceState({}, "", "/account/favorites?item=nike-court-shot-shoes");
+  show();
+  expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Enter for $1" })).toBeTruthy();
+});

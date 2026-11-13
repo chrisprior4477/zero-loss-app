@@ -10,7 +10,7 @@ import { Children, isValidElement, type ComponentProps } from "react";
 import { NotificationsCenter } from "@/components/account/NotificationsCenter";
 const id = "11111111-1111-4111-8111-111111111111";
 async function notificationProps() {
-  const page = await NotificationsPage();
+  const page = await NotificationsPage({});
   const center = Children.toArray(page.props.children.props.children)
     .find(child => isValidElement(child) && child.type === NotificationsCenter);
   if (!isValidElement<ComponentProps<typeof NotificationsCenter>>(center)) throw new Error("Notification center is missing");
@@ -30,7 +30,7 @@ beforeEach(() => {
 test("signed-out visitors return to Notifications after login", async () => {
   mocks.account.mockResolvedValue(null);
   mocks.redirect.mockImplementation(() => { throw new Error("NEXT_REDIRECT"); });
-  await expect(NotificationsPage()).rejects.toThrow("NEXT_REDIRECT");
+  await expect(NotificationsPage({})).rejects.toThrow("NEXT_REDIRECT");
   expect(mocks.redirect).toHaveBeenCalledWith("/login?next=%2Faccount%2Fnotifications");
   expect(mocks.from).not.toHaveBeenCalled();
 });
