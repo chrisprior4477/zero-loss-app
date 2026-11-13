@@ -55,7 +55,7 @@ test("an unexpected database error remains uncertain purchase recovery", async (
 test("checks the exact committed purchase receipt without running the purchase again", async () => {
   mocks.rpc.mockResolvedValueOnce({ data: null, error: null });
   expect(await checkDemoPurchaseReceipt(request.requestId, request.slug)).toEqual({ status: "not_found" });
-  mocks.rpc.mockResolvedValueOnce({ data: { status: "purchased", purchasedCount: 2, declinedCount: 1, rewardIds: [id(8)] } });
+  mocks.rpc.mockResolvedValueOnce({ data: { status: "purchased", purchasedCount: 2, declinedCount: 1, totalCents: 29800, rewardIds: [id(8)] } });
   expect(await checkDemoPurchaseReceipt(request.requestId, request.slug)).toMatchObject({ status: "succeeded", href: expect.stringContaining(id(8)) });
   expect(mocks.rpc.mock.calls).toEqual(Array.from({ length: 2 }, () => ["read_preview_checkout_receipt", { p_request_id: request.requestId, p_slug: request.slug }]));
 });

@@ -5,7 +5,7 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 
 export type BulkPurchaseRequest = { slug: string; purchaseIds: string[]; declineIds: string[]; totalCents: number; requestId: string; confirmed: boolean };
-export type BulkPurchaseResult = { status: "succeeded"; purchasedCount: number; declinedCount: number; href: string }
+export type BulkPurchaseResult = { status: "succeeded"; purchasedCount: number; declinedCount: number; totalCents: number; href: string; cardReady: boolean }
   | { status: "error"; message: string; recovery: "balance" | "offers" | "check" | "edit" };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -50,12 +50,12 @@ export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest):
   }
 }
 
-function completedPurchase(slug: string, data: { purchasedCount: number; declinedCount: number; rewardIds?: unknown }): BulkPurchaseResult {
+function completedPurchase(slug: string, data: { purchasedCount: number; declinedCount: number; totalCents: number; rewardIds?: unknown }): BulkPurchaseResult {
     const rewardId = Array.isArray(data.rewardIds) ? data.rewardIds.find((id: unknown) => typeof id === "string" && uuid.test(id)) : undefined;
     const href = rewardId
       ? purchasedRewardHref(rewardId, slug)
       : "/account/entries?filter=completed";
-    return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, href };
+  return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, totalCents: data.totalCents, href, cardReady: Boolean(rewardId) };
 }
 
 export async function checkDemoPurchaseReceipt(requestId: string, slug: string): Promise<BulkPurchaseResult | { status: "not_found" }> {
@@ -68,7 +68,7 @@ export async function checkDemoPurchaseReceipt(requestId: string, slug: string):
     const { data, error } = await db.rpc("read_preview_checkout_receipt", { p_request_id: requestId, p_slug: slug });
     if (error) return unavailable;
     if (data === null) return { status: "not_found" };
-    if (data.status !== "purchased" || !Number.isSafeInteger(data.purchasedCount) || data.purchasedCount < 1 || !Number.isSafeInteger(data.declinedCount)) return unavailable;
+    if (data.status !== "purchased" || !Number.isSafeInteger(data.purchasedCount) || data.purchasedCount < 1 || !Number.isSafeInteger(data.declinedCount) || !Number.isSafeInteger(data.totalCents) || data.totalCents < 0) return unavailable;
     return completedPurchase(slug, data);
   } catch { return unavailable; }
 }

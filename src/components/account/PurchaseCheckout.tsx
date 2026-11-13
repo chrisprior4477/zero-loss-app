@@ -48,6 +48,8 @@ function ConfirmPurchase({ total, balance, quantity, summary, busy, onUndo, onEx
     <p className={styles.footnote}>Simulation only · No real payment or shipment.</p></>;
 }
 
+type PurchaseReceipt = { status: "unconfirmed" | "unavailable" } | { status: "ready"; href: string; cardReady: boolean; totalCents: number };
+
 type CheckoutDepositAttempt = { key: string; amount: number; token: DemoCardToken; makeDefault: boolean };
 
 export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, creditedDeposits, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false }: {
@@ -75,9 +77,26 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const [notice, setNotice] = useState("");
   const [purchaseExpired, setPurchaseExpired] = useState(false);
   const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
-  const [receiptMissing, setReceiptMissing] = useState(false);
+  const [receipt, setReceipt] = useState<PurchaseReceipt | null>(null);
+  const [checkingReceipt, setCheckingReceipt] = useState(false);
+  const receiptHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (recovery === "purchase" && !overlay) receiptHeading.current?.focus({ preventScroll: true });
+  }, [recovery, overlay]);
   const inFlight = useRef(false);
   const attemptKey = `zero-loss-checkout-attempt:${ownerId}:${item.slug}`;
+  function rememberReceiptUrl(requestId: string) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("receipt", requestId);
+    window.history.replaceState(window.history.state, "", url.href);
+  }
+  function clearReceiptUrl() {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("receipt")) {
+      url.searchParams.delete("receipt");
+      window.history.replaceState(window.history.state, "", url.href);
+    }
+  }
   function saveAttempt(attempt: { review: true } | { purchase: BulkPurchaseRequest } | { deposit: CheckoutDepositAttempt } | null) {
     try {
       if (attempt) sessionStorage.setItem(attemptKey, JSON.stringify(attempt));
@@ -92,7 +111,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setPurchaseRequest(saved.purchase);
         setRecovery("purchase");
-        setError("Check this purchase to see whether it completed.");
+        setReceipt(null);
       } else if (typeof saved?.deposit?.key === "string" && purchaseDepositKeyPattern.test(saved.deposit.key) && isFundingAmount(saved.deposit.amount) && demoCardFixture(saved.deposit.token) && typeof saved.deposit.makeDefault === "boolean") {
         if (creditedDeposits?.includes(saved.deposit.key)) {
           sessionStorage.removeItem(attemptKey);
@@ -255,45 +274,71 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     } catch { setError("We couldn’t verify this deposit yet. Check again."); }
     finally { inFlight.current = false; setBusy(false); }
   }
+  function recordRecoveredPurchase(result: { href: string; cardReady: boolean; totalCents: number }) {
+    clearChoice();
+    setReceipt({ status: "ready", href: result.href, cardReady: result.cardReady, totalCents: result.totalCents });
+    window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+  }
+
   async function confirm(retry = false) {
-    if (!purchaseRequest || inFlight.current || (retry ? !receiptMissing || recovery !== "purchase" : locked)) return;
-    setReceiptMissing(false);
+    if (!purchaseRequest || inFlight.current || (retry ? receipt?.status !== "unconfirmed" || recovery !== "purchase" : locked)) return;
+    setReceipt(null);
     saveAttempt({ purchase: purchaseRequest });
+    rememberReceiptUrl(purchaseRequest.requestId);
     inFlight.current = true; setBusy(true); setError("");
     try {
       const result = await completeDemoPurchaseOptions(purchaseRequest);
-      if (result.status === "succeeded") { saveAttempt(null); clearChoice(); setRecovery("purchase"); window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(result.href); router.refresh(); return; }
-      setError(result.message); setRecovery(result.recovery === "offers" ? "offers" : result.recovery === "check" ? "purchase" : null); setOverlay(null);
-      if (result.recovery !== "check") { saveAttempt(null); setPurchaseRequest(null); }
+      if (result.status === "succeeded") {
+        if (retry) recordRecoveredPurchase(result);
+        else {
+          saveAttempt(null);
+          clearReceiptUrl();
+          clearChoice();
+          setRecovery("purchase");
+          window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+          router.replace(result.href);
+          router.refresh();
+        }
+        return;
+      }
+      setError(result.recovery === "check" ? "" : result.message);
+      setRecovery(result.recovery === "offers" ? "offers" : result.recovery === "check" ? "purchase" : null);
+      setOverlay(null);
+      if (result.recovery !== "check") { saveAttempt(null); clearReceiptUrl(); setPurchaseRequest(null); }
       if (result.recovery === "balance") { router.refresh(); setNotice("Your balance changed. Review the updated amount before continuing."); }
-    } catch { setError("We couldn’t confirm the result. Check this purchase before trying again."); setRecovery("purchase"); setOverlay(null); }
+    } catch { setRecovery("purchase"); setOverlay(null); }
     finally { inFlight.current = false; setBusy(false); }
   }
   async function checkPurchase() {
-    if (!purchaseRequest || inFlight.current) return;
+    if (!purchaseRequest || inFlight.current || receipt?.status === "ready") return;
     inFlight.current = true;
     setBusy(true);
+    setCheckingReceipt(true);
     try {
       const result = await checkDemoPurchaseReceipt(purchaseRequest.requestId, purchaseRequest.slug);
-      if (result.status === "succeeded") {
-        saveAttempt(null);
-        clearChoice();
-        window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
-        router.replace(result.href);
-        router.refresh();
-      } else if (result.status === "not_found") {
-        setError("No completed purchase was found for this attempt. You can confirm the same purchase again without being charged twice.");
-        setReceiptMissing(true);
-      } else setError(result.message);
-    } catch { setError("We couldn’t verify this purchase yet. Check again."); }
-    finally { inFlight.current = false; setBusy(false); }
+      if (result.status === "succeeded") recordRecoveredPurchase(result);
+      else setReceipt({ status: result.status === "not_found" ? "unconfirmed" : "unavailable" });
+    } catch { setReceipt({ status: "unavailable" }); }
+    finally { inFlight.current = false; setBusy(false); setCheckingReceipt(false); }
   }
   // Full navigation clears the locked checkout response and reads current offers.
   // The saved selection is reconciled on mount; a paid exact ticket opens its reward.
   const refreshOffersHref = `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
-  const feedback = <>{error ? <p className={styles.error} role="alert">{error}</p> : null}{recovery ? <div className={recovery === "purchase" ? undefined : styles.twoButtons}>
-    {recovery === "purchase" && purchaseRequest ? <button className={styles.secondary} type="button" disabled={busy} onClick={() => void checkPurchase()}>{busy ? "Checking…" : "Check this purchase"}</button> : null}
-    {recovery === "purchase" && receiptMissing ? <button className={styles.primary} type="button" disabled={busy} onClick={() => void confirm(true)}>Confirm same purchase · {usd(purchaseRequest?.totalCents ?? total)}</button> : null}
+  const purchaseReceipt = recovery === "purchase" && purchaseRequest && !overlay ? <section className={styles.recoveryReceipt} data-state={busy ? "checking" : receipt?.status} aria-labelledby="purchase-receipt-heading">
+    <div className={styles.receiptDetails} role="status">
+      <div><h2 id="purchase-receipt-heading" ref={receiptHeading} tabIndex={-1}>Purchase receipt</h2><strong>{usd(receipt?.status === "ready" ? receipt.totalCents : purchaseRequest.totalCents)}</strong></div>
+      <p className={styles.receiptResult}>{busy ? checkingReceipt ? "Checking this purchase…" : "Confirming this purchase…" : receipt?.status === "ready" ? receipt.cardReady ? "Gift card ready" : "Purchase completed"
+        : receipt?.status === "unconfirmed" ? "No completed purchase found" : receipt?.status === "unavailable" ? "Still checking" : "Purchase status unknown"}</p>
+      {receipt?.status !== "ready" && <p>{busy ? "Using the original request." : receipt?.status === "unconfirmed"
+        ? "You can confirm the same purchase again without paying twice."
+        : receipt?.status === "unavailable" ? "We couldn’t verify the result. Try checking again."
+        : "Check whether your purchase was saved before trying again."}</p>}
+    </div>
+    {receipt?.status === "ready" ? <Link href={receipt.href} className={styles.primary} onClick={() => saveAttempt(null)}>{receipt.cardReady ? "Open gift card" : "View completed purchases"}</Link>
+      : receipt?.status === "unconfirmed" && !busy ? <button type="button" className={styles.primary} onClick={() => void confirm(true)}>Confirm same purchase · {usd(purchaseRequest.totalCents)}</button>
+        : <button type="button" className={styles.secondary} disabled={busy} onClick={() => void checkPurchase()}>{busy ? checkingReceipt ? "Checking…" : "Confirming…" : "Check this purchase"}</button>}
+  </section> : null;
+  const feedback = <>{error ? <p className={styles.error} role="alert">{error}</p> : null}{recovery && recovery !== "purchase" ? <div className={styles.twoButtons}>
     {recovery === "offers" ? <a className={styles.secondary} href={refreshOffersHref}>Refresh available offers</a> : null}
     {recovery === "deposit" ? <>
       {walletId && depositAttempt ? <button type="button" className={styles.secondary} disabled={busy} onClick={() => void checkDeposit()}>Check this deposit</button> : null}
@@ -322,10 +367,10 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         </button>
       </div><p className={styles.offerHelp}>{selectionSummary}</p></fieldset> : null}
       <div className={styles.optionLine}><span>{usd(item.remainingCents)} per option</span><button type="button" disabled={locked} onClick={() => setOverlay("options")}>Choose offers to complete · {chosen.length} selected</button></div>
-      {money(true)}{needsReview && <p role="status" className={styles.status}>Your available offers changed. Check which offers you want to buy before continuing.</p>}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}
+      {money(true)}{needsReview && <p role="status" className={styles.status}>Your available offers changed. Check which offers you want to buy before continuing.</p>}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}{purchaseReceipt}
       <p className={styles.purchaseExpired} role="status">{purchaseExpired ? "Time ran out. No purchase was made." : ""}</p>
-      <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>
-      {!needsReview && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Confirm your purchase in the next step."}</p>}
+      {receipt?.status !== "ready" && <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>}
+      {!needsReview && recovery !== "purchase" && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Confirm your purchase in the next step."}</p>}
       <div className={styles.utility}><Link href="/account/entries?filter=completion"><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
       <div className={styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>

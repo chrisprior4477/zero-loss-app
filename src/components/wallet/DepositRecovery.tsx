@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, type ReactNode } from "react";
 import { checkDemoDeposit, reconcileDemoFunding, type DepositCheck } from "@/lib/payments/actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { depositSupportHref } from "@/lib/support/references";
 import { revealWalletSection } from "./WalletCardEditor";
+import { DepositReceipt } from "./DepositReceipt";
 import styles from "./wallet-payments.module.css";
 
 const messages = {
@@ -15,10 +16,13 @@ const messages = {
   credit_pending: "Your payment was received. Finish this deposit to post the credit to your wallet.",
 };
 
-export function DepositRecovery({ requestKey, walletId, amount, onCredit, onReview }: {
-  requestKey: string; walletId: string; amount: number; onCredit: (amount: number, balance: number) => void; onReview: () => void;
+export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, onCredit, onReview }: {
+  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending"; embedded?: boolean;
+  onCredit: (amount: number, balance: number) => void; onReview?: () => void;
 }) {
   const title = useRef<HTMLHeadingElement>(null);
+  const actionButton = useRef<HTMLButtonElement>(null);
+  const supportLink = useRef<HTMLAnchorElement>(null);
   const [result, action, pending] = useActionState(async (previous: DepositCheck | null, form: FormData): Promise<DepositCheck> => {
     try {
       if (form.get("intent") === "finish" && previous && "sessionId" in previous) {
@@ -33,19 +37,34 @@ export function DepositRecovery({ requestKey, walletId, amount, onCredit, onRevi
   }, null);
 
   useEffect(() => {
+    if (embedded) return;
     title.current?.focus({ preventScroll: true });
     revealWalletSection("add-funds");
-  }, []);
+  }, [embedded]);
+  useEffect(() => {
+    if (!pending && result && result.status !== "credited") {
+      const next = result.status === "discrepancy" ? supportLink.current : actionButton.current;
+      next?.focus({ preventScroll: true });
+    }
+  }, [pending, result]);
 
+  const status = result?.status ?? initialStatus;
+  const card = <DepositReceipt amount={amount} date={date}
+    status={pending ? "Checking this deposit…" : status === "credited" ? "Deposit credited to your wallet."
+      : status === "missing" && !onReview ? "We couldn’t find this deposit in your account yet. Check again before adding more funds."
+        : status ? messages[status] : "We lost the confirmation. Check whether this deposit reached your wallet."}
+    tone={status === "discrepancy" ? "review" : status === "credited" ? "ready" : "checking"}>
+    <form action={action} className={styles.actions}>
+      {pending ? <button className={styles.primary} disabled>Checking…</button>
+        : status === "discrepancy" ? <a ref={supportLink} className={styles.secondary} href={depositSupportHref(requestKey)}>Contact Support</a>
+        : status === "missing" && onReview ? <button ref={actionButton} type="button" className={styles.secondary} onClick={onReview}>Review same deposit</button>
+        : result && "sessionId" in result ? <button ref={actionButton} className={styles.confirm} name="intent" value="finish">Finish this deposit</button>
+        : <button ref={actionButton} className={styles.primary} name="intent" value="check">Check this deposit</button>}
+    </form>
+  </DepositReceipt>;
+  if (embedded) return card;
   return <section id="add-funds" className={styles.editor} aria-labelledby="deposit-recovery-heading">
     <h3 ref={title} tabIndex={-1} id="deposit-recovery-heading">Check your {formatUsdFromCents(amount)} deposit</h3>
-    <p role="status" className={styles.notice}>{result && result.status !== "credited" ? messages[result.status]
-      : "We lost the confirmation. Check whether this deposit reached your wallet."}</p>
-    <form action={action} className={styles.actions}>
-      <button className={styles.primary} disabled={pending} name="intent" value="check">{pending ? "Checking…" : "Check this deposit"}</button>
-      {result && "sessionId" in result ? <button className={styles.confirm} disabled={pending} name="intent" value="finish">Finish this deposit</button> : null}
-      {result?.status === "missing" ? <button type="button" className={styles.secondary} disabled={pending} onClick={onReview}>Review same deposit</button> : null}
-      {result?.status === "discrepancy" ? <a className={styles.secondary} href={depositSupportHref(requestKey)}>Contact Support</a> : null}
-    </form>
+    {card}
   </section>;
 }

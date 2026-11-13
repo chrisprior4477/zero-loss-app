@@ -211,13 +211,12 @@ test("a request that never arrived needs fresh confirmation with the same key", 
   expect(submitted.get("amountCents")).toBe("100");
 });
 
-test("a reconciled deposit also returns to the selected product", async () => {
-  vi.mocked(reconcileDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Credit confirmed." });
-  render(<DemoFundingRequests fundingEnabled continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv#enter-entry" }} requests={[
+test("a pending history record opens the one matching recovery card without posting a credit", () => {
+  render(<DemoFundingRequests fundingEnabled requests={[
     { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", idempotencyKey: "pending_request_key_01", reconciliation: "credit_pending" },
   ]} />);
-  fireEvent.click(screen.getByRole("button", { name: "Finish / check" }));
-  await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/items/samsung-m70h-tv?funded=1#enter-entry"));
+  expect(screen.getByRole("link", { name: "Check this deposit" }).getAttribute("href")).toBe("/account/wallet?view=history&deposit=pending_request_key_01#purchase-deposit");
+  expect(reconcileDemoFunding).not.toHaveBeenCalled();
 });
 
 test("archived demo deposits are hidden by default but can still be reviewed", () => {
@@ -484,7 +483,7 @@ test("pending request offers recovery but discrepancy requires review", () => {
     { id: "pending", amount: 2500, currency: "USD", status: "processing", created_at: "2026-09-14", idempotencyKey: "pending_request_key_01", reconciliation: "credit_pending" },
     { id: "bad", amount: 2500, currency: "USD", status: "succeeded", created_at: "2026-09-14", idempotencyKey: "aaaaaaaaaaaaaaaa", reconciliation: "discrepancy" },
   ]} />);
-  expect(screen.getAllByRole("button", { name: "Finish / check" })).toHaveLength(1);
+  expect(screen.getAllByRole("link", { name: "Check this deposit" })).toHaveLength(1);
   expect(screen.getByRole("alert").textContent).toContain("operator review");
 });
 

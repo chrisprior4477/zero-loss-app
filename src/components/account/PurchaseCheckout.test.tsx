@@ -343,7 +343,8 @@ test.each(["uncertain receipt", "connection lost"])("%s points to completed purc
   const view = setup(50000);
   fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
-  await screen.findByRole("link", { name: "View completed purchases" });
+  await screen.findByRole("heading", { name: "Purchase receipt" });
+  expect(screen.getByRole("region", { name: "Purchase receipt" }).textContent).toContain("$399");
   view.rerender(updatedCheckout(10100));
   expect(screen.queryByRole("link", { name: "Check this deposit" })).toBeNull();
   expect(screen.queryByRole("link", { name: "Refresh available offers" })).toBeNull();
@@ -534,7 +535,7 @@ test.each(["missing", "foreign", "expired"])("a %s wallet snapshot requires revi
 
 test("checking a restored purchase reads the receipt before offering the same confirmation", async () => {
   mocks.purchase.mockRejectedValueOnce(new Error("Connection lost"))
-    .mockResolvedValueOnce({ status: "succeeded", href: "/account/wallet?rewardId=issued#reward-pass" });
+    .mockResolvedValueOnce({ status: "succeeded", cardReady: true, totalCents: 39900, href: "/account/wallet?rewardId=issued#reward-pass" });
   mocks.checkPurchase.mockResolvedValueOnce({ status: "not_found" });
   const view = setup(39900);
   fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
@@ -549,7 +550,10 @@ test("checking a restored purchase reads the receipt before offering the same co
   expect(mocks.checkPurchase).toHaveBeenCalledExactlyOnceWith(request.requestId, request.slug);
   expect(mocks.purchase).toHaveBeenCalledOnce();
   fireEvent.click(retry);
-  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/wallet?rewardId=issued#reward-pass"));
+  expect((await screen.findByRole("link", { name: "Open gift card" })).getAttribute("href")).toBe("/account/wallet?rewardId=issued#reward-pass");
+  expect(screen.getByRole("region", { name: "Purchase receipt" }).textContent).toContain("Gift card ready");
+  expect(new URL(window.location.href).searchParams.get("receipt")).toBe(request.requestId);
+  expect(mocks.replace).not.toHaveBeenCalled();
   expect(mocks.purchase.mock.calls[1][0]).toEqual(request);
 });
 

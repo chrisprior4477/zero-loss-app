@@ -2,7 +2,8 @@ import { expect, test, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import PurchaseOptionsPage from "./page";
 
-const { getAccountContext } = vi.hoisted(() => ({ getAccountContext: vi.fn() }));
+const { getAccountContext, checkPurchase } = vi.hoisted(() => ({ getAccountContext: vi.fn(), checkPurchase: vi.fn() }));
+vi.mock("@/lib/account/bulk-purchase-actions", () => ({ checkDemoPurchaseReceipt: checkPurchase }));
 vi.mock("@/lib/account/context", () => ({ getAccountContext }));
 vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: () => true }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
@@ -89,4 +90,17 @@ test("saved decline links render the modern checkout with the compact confirmati
   expect(page.props.initiallySelectedEntryId).toBe(open.entryId);
   expect(page.props.ownerId).toBe("owner");
   expect(page.props.initialBalance).toBe(10000);
+});
+
+test("refreshing an exact receipt after the final offer sells shows the authoritative amount and gift card", async () => {
+  const receipt = "33333333-3333-4333-8333-333333333333";
+  getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [paid] } });
+  const href = "/account/wallet?reward=publix&rewardId=reward-1&via=purchase#reward-pass";
+  checkPurchase.mockResolvedValueOnce({ status: "succeeded", totalCents: 9900, cardReady: true, href });
+  const view = render(await PurchaseOptionsPage({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ receipt, option: paid.entryId }) }));
+  expect(screen.getByRole("heading", { name: "Purchase receipt" })).toBeTruthy();
+  expect(screen.getByText("$99")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Open gift card" }).getAttribute("href")).toBe(href);
+  expect(checkPurchase).toHaveBeenCalledWith(receipt, slug);
+  view.unmount();
 });

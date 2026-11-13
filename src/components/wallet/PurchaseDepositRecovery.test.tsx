@@ -27,7 +27,7 @@ test.each([null, [], [{ ...receipt, idempotencyKey: "another-account-or-deposit"
   render(<PurchaseDepositRecovery {...props} requests={requests} />);
   expect(screen.queryByRole("link", { name: "Return to purchase review" })).toBeNull();
   expect(screen.queryByText("$73 deposit")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+  fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
   expect(mocks.refresh).toHaveBeenCalledOnce(); expect(mocks.finish).not.toHaveBeenCalled();
 });
 
@@ -62,4 +62,14 @@ test("ordinary deposit recovery has its own receipt and a contextual Support lin
   fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
   const help = await screen.findByRole("link", { name: "Contact Support" });
   expect(help.getAttribute("href")).toBe(`/support?deposit=${requestKey}#report-problem`);
+});
+
+test("a recovered entry deposit shows the date and returns to the same entry review", () => {
+  const destination = { title: "PlayStation", label: "Back to entry review" as const, href: "/account/entries/ent_11111111111111111111111111111111?quantity=7&review=entry#additional-entry-checkout" };
+  const { container } = render(<PurchaseDepositRecovery {...props} requestKey="33333333-3333-4333-8333-333333333333" continueTo={destination}
+    requests={[{ ...receipt, idempotencyKey: "33333333-3333-4333-8333-333333333333" }]} />);
+  expect(container.querySelector("time")?.dateTime).toBe(receipt.created_at);
+  expect(screen.getByRole("link", { name: "Return to entry review" }).getAttribute("href")).toBe(destination.href);
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(mocks.finish).not.toHaveBeenCalled();
 });

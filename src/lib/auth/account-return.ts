@@ -29,7 +29,7 @@ const routes: Record<string, ReturnRoute> = {
 
 function returnRoute(path: string): ReturnRoute | undefined {
   if (purchaseOptionsPath.test(path)) return {
-    query: { option: matches(/^ent_[a-f0-9]{32}$/), resume: oneOf("wallet"), choice: matches(uuid), decline: oneOf("confirm") },
+    query: { option: matches(/^ent_[a-f0-9]{32}$/), resume: oneOf("wallet"), choice: matches(uuid), decline: oneOf("confirm"), receipt: matches(uuid) },
   };
   return routes[path] ?? (/^\/account\/entries\/ent_[a-f0-9]{32}$/i.test(path) ? {
     query: { entries: oneOf("first", "open"), quantity: selected => parseEntryQuantity(selected) !== null, review: oneOf("entry"), filter: oneOf("active") },

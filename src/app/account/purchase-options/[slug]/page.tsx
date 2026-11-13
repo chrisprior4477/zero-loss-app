@@ -11,20 +11,22 @@ import { accountReturnPath } from "@/lib/auth/account-return";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import styles from "@/components/account/purchase-options.module.css";
 import { PurchaseCheckout } from "@/components/account/PurchaseCheckout";
+import { CompletedPurchaseReceipt } from "@/components/account/CompletedPurchaseReceipt";
+import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Your Purchase Options" };
 
-type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline", string | string[]>>;
+type OfferQuery = Partial<Record<"option" | "resume" | "choice" | "decline" | "receipt", string | string[]>>;
 
 export default async function PurchaseOptionsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<OfferQuery> }) {
   const { slug } = await params;
   const query = await searchParams;
-  const { option: selectedEntryId, decline } = query;
+  const { option: selectedEntryId, decline, receipt } = query;
   const prizePath = `/account/purchase-options/${encodeURIComponent(slug)}`;
   const selectors = new URLSearchParams();
-  for (const key of ["option", "resume", "choice", "decline"] as const) {
+  for (const key of ["option", "resume", "choice", "decline", "receipt"] as const) {
     const value = query[key];
     if (Array.isArray(value)) notFound();
     if (value !== undefined) selectors.set(key, value);
@@ -33,6 +35,13 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
   if (!returnPath || Array.isArray(selectedEntryId)) notFound();
   const account = await getAccountContext();
   if (!account) redirect(authNavigationHref("/login", returnPath));
+  if (typeof receipt === "string") {
+    const result = await checkDemoPurchaseReceipt(receipt, slug);
+    if (result.status === "succeeded") {
+      const title = account.activity.activity.find(item => item.slug === slug)?.title ?? "Your purchase";
+      return <CompletedPurchaseReceipt title={title} totalCents={result.totalCents} cardReady={result.cardReady} href={result.href} />;
+    }
+  }
   if (account.activity.source === "unavailable") {
     return <section className={styles.page} aria-labelledby="offers-unavailable-title">
       <div className={styles.shell}><div className={styles.topline}>
