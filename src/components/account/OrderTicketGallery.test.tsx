@@ -32,11 +32,12 @@ test("mobile pages two cards; desktop pages six, without dropping repeated produ
   expect(screen.getAllByRole("article")).toHaveLength(2);
 });
 
-test.each([true, false])("ticket gestures page on phone=%s without activating the starting button", phone => {
+test.each([true, false])("desktop dragging moves the whole track at phone width=%s", phone => {
   vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
-  const pointer = { pointerId: 1, isPrimary: true, pointerType: phone ? "touch" : "mouse" };
+  const pointer = { pointerId: 1, isPrimary: true, pointerType: "mouse" };
   const { container } = render(<OrderTicketGallery orders={Array.from({ length: 8 }, (_, i) => record(i + 1))} />);
-  const window = container.querySelector<HTMLElement>("[data-swipeable]")!;
+  const rail = container.querySelector<HTMLElement>("[data-swipeable]")!;
+  rail.querySelectorAll<HTMLElement>("[data-order-page]").forEach((point, i) => Object.defineProperty(point, "offsetLeft", { value: i * 300 }));
   const gesture = (target: HTMLElement, name: string, clientX: number, clientY: number) => {
     const event = new MouseEvent(name, { bubbles: true, cancelable: true, clientX, clientY });
     Object.assign(event, pointer);
@@ -51,22 +52,36 @@ test.each([true, false])("ticket gestures page on phone=%s without activating th
 
   gesture(details(), "pointerdown", 140, 40);
   gesture(details(), "pointermove", 75, 43);
-  expect(window.dataset.dragging).toBe("true");
-  if (phone) gesture(details(), "lostpointercapture", 75, 43);
-  gesture(window, "pointerup", 75, 43);
-  expect(window.dataset.dragging).toBeUndefined();
+  expect(rail.dataset.dragging).toBe("true");
+  expect(rail.scrollLeft).toBe(65);
+  const incoming = rail.querySelector(`[id="reward-reward-full-reference-${phone ? 3 : 7}"]`);
+  expect(incoming).toBeTruthy();
+  gesture(rail, "pointerup", 75, 43);
+  expect(rail.dataset.dragging).toBeUndefined();
+  expect(incoming?.getAttribute("aria-hidden")).toBeNull();
   expect(screen.getByText(phone ? "3–4 of 8" : "7–8 of 8")).toBeTruthy();
   fireEvent.click(details(), { detail: 1 });
   expect(screen.queryByRole("dialog")).toBeNull();
 
   gesture(details(), "pointerdown", 75, 43);
-  gesture(window, "pointermove", 140, 40);
-  gesture(window, "pointerup", 140, 40);
+  gesture(rail, "pointermove", 140, 40);
+  gesture(rail, "pointerup", 140, 40);
   expect(screen.getByText(phone ? "1–2 of 8" : "1–6 of 8")).toBeTruthy();
   gesture(details(), "pointerdown", 75, 43);
   gesture(details(), "pointerup", 75, 43);
   fireEvent.click(details(), { detail: 1 });
   expect(screen.getByRole("dialog", { name: "Order details" })).toBeTruthy();
+});
+
+test("native phone scrolling updates the current page and the chevrons", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  const { container } = render(<OrderTicketGallery orders={Array.from({ length: 4 }, (_, i) => record(i + 1))} />);
+  const rail = container.querySelector<HTMLElement>("[data-swipeable]")!;
+  Object.defineProperty(rail.querySelector('[data-order-page="1"]'), "offsetLeft", { value: 300 });
+  rail.scrollLeft = 300;
+  fireEvent(rail, new Event("scrollend"));
+  expect(screen.getByText("3–4 of 4")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Next tickets" }).hasAttribute("disabled")).toBe(true);
 });
 
 test("details copy full references and exact checkout amounts, then return focus on close", async () => {

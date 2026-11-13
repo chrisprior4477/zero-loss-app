@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { type PointerEvent, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type CSSProperties, type PointerEvent, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { FulfillmentRecord } from "@/lib/account/fulfillment";
 import { walletRewardHref } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -19,7 +19,13 @@ function subscribePhone(change: () => void) {
 const isPhone = () => window.matchMedia?.("(max-width: 700px)")?.matches ?? false;
 const serverPhone = () => false;
 
-type TicketDrag = { pointerId: number; x: number; y: number; horizontal: boolean };
+type TicketDrag = { pointerId: number; x: number; y: number; left: number; horizontal: boolean };
+
+function pageOffset(rail: HTMLDivElement, page: number) {
+  const first = rail.querySelector<HTMLElement>('[data-order-page="0"]');
+  const target = rail.querySelector<HTMLElement>(`[data-order-page="${page}"]`);
+  return first && target ? target.offsetLeft - first.offsetLeft : 0;
+}
 
 function orderPresentation(order: FulfillmentRecord) {
   if (order.rewardStatus === "redeemed") return { label: "Already used", tone: "complete", action: "View used card", message: "This gift card has already been used. Its saved record remains available for reference." };
@@ -143,15 +149,17 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
   const anchorIndex = orders.findIndex(order => order.rewardId === (opened?.id ?? pageAnchor));
   const currentPage = Math.floor(Math.max(0, anchorIndex) / size);
   const start = currentPage * size;
-  const shown = orders.slice(start, start + size);
   const hasPrevious = currentPage > 0;
   const hasNext = currentPage < lastPage;
-  const selected = opened ? shown.find(order => order.rewardId === opened.id) : null;
+  const selected = opened && anchorIndex >= 0 ? orders[anchorIndex] : null;
   const galleryId = useId();
   const gallery = useRef<HTMLDivElement>(null);
+  const rail = useRef<HTMLDivElement>(null);
   const drag = useRef<TicketDrag | null>(null);
   const suppressTicketClick = useRef(false);
-  const canPage = !selected && (hasPrevious || hasNext);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const canPage = !selected && lastPage > 0;
+  const columns = phone ? 1 : 2;
 
   function rememberPage(anchor: string | null, openId: string | null = opened?.id ?? null) {
     if (window.location.pathname !== "/account/orders") return;
@@ -172,6 +180,10 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (window.location.href !== saved.href) return;
+        if (rail.current) {
+          const index = orders.findIndex(order => order.rewardId === saved.anchor);
+          rail.current.scrollLeft = pageOffset(rail.current, Math.floor(index / (isPhone() ? 2 : 6)));
+        }
         window.scrollTo({ top: saved.scrollY, behavior: "instant" });
         // The page containing this ticket has now rendered. Recover only a
         // details button for a record still present in the authorized list.
@@ -188,15 +200,62 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     return () => { cancelAnimationFrame(frame); window.removeEventListener("popstate", restorePage); window.removeEventListener("pageshow", restorePage); };
   }, [orders]);
 
-  function changePage(page: number) {
-    const anchor = orders[page * size]?.rewardId ?? null;
+  const alignPage = useEffectEvent(() => {
+    const track = rail.current;
+    if (!track) return;
+    drag.current = null;
+    delete track.dataset.dragging;
+    delete track.dataset.settling;
+    track.scrollLeft = pageOffset(track, currentPage);
+  });
+
+  useLayoutEffect(() => {
+    alignPage();
+    return () => clearTimeout(scrollTimer.current);
+  }, [size]);
+
+  function savePage(page: number) {
+    const anchor = orders[page * size]?.rewardId;
+    if (!anchor || page === currentPage) return;
     setPageAnchor(anchor);
     rememberPage(anchor, null);
   }
 
+  function scrollToPage(page: number, smooth = true) {
+    const track = rail.current;
+    if (!track) return;
+    const left = pageOffset(track, page);
+    if (Math.abs(track.scrollLeft - left) < 1) {
+      delete track.dataset.settling;
+      return;
+    }
+    if (smooth && !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches && track.scrollTo) {
+      track.dataset.settling = "true";
+      track.scrollTo({ left, behavior: "smooth" });
+    } else {
+      track.scrollLeft = left;
+      delete track.dataset.settling;
+    }
+  }
+
+  function changePage(page: number) {
+    savePage(page);
+    scrollToPage(page);
+  }
+
+  function syncPage(track: HTMLDivElement) {
+    clearTimeout(scrollTimer.current);
+    if (drag.current?.horizontal || selected) return;
+    delete track.dataset.settling;
+    const step = pageOffset(track, 1);
+    if (step > 0) savePage(Math.max(0, Math.min(lastPage, Math.round(track.scrollLeft / step))));
+  }
+
   function startDrag(event: PointerEvent<HTMLDivElement>) {
     if (!canPage || !event.isPrimary || event.button !== 0) return;
-    drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, horizontal: false };
+    // Touch and trackpad scrolling use the browser's native momentum and snap.
+    if (event.pointerType === "touch") return;
+    drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: event.currentTarget.scrollLeft, horizontal: false };
   }
 
   function moveDrag(event: PointerEvent<HTMLDivElement>) {
@@ -212,26 +271,29 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
       event.currentTarget.setPointerCapture?.(event.pointerId);
     }
     event.preventDefault();
-    const hasNeighbor = distance < 0 ? hasNext : hasPrevious;
-    const limit = hasNeighbor ? event.currentTarget.clientWidth / 2 : 24;
-    const offset = hasNeighbor ? distance : distance / 5;
-    event.currentTarget.style.setProperty("--order-drag-offset", `${Math.max(-limit, Math.min(limit, offset))}px`);
+    event.currentTarget.scrollLeft = gesture.left - distance;
   }
 
   function finishDrag(event: PointerEvent<HTMLDivElement>) {
     const gesture = drag.current;
     if (!gesture || event.pointerId !== gesture.pointerId) return;
     drag.current = null;
-    delete event.currentTarget.dataset.dragging;
-    event.currentTarget.style.removeProperty("--order-drag-offset");
-    if (!gesture.horizontal || event.type !== "pointerup") return;
+    if (!gesture.horizontal) return;
+    const track = event.currentTarget;
+    track.dataset.settling = "true";
+    delete track.dataset.dragging;
     suppressTicketClick.current = true;
     const distance = event.clientX - gesture.x;
-    if (distance <= -40 && hasNext) changePage(currentPage + 1);
-    if (distance >= 40 && hasPrevious) changePage(currentPage - 1);
+    const step = pageOffset(track, 1);
+    const nearest = step > 0 ? Math.round(track.scrollLeft / step) : currentPage;
+    const direction = event.type === "pointerup" && Math.abs(distance) >= 40 ? -Math.sign(distance) : 0;
+    const destination = direction > 0 ? Math.max(nearest, currentPage + 1) : direction < 0 ? Math.min(nearest, currentPage - 1) : nearest;
+    changePage(Math.min(lastPage, Math.max(0, destination)));
   }
 
   function openDetails(id: string, anchor: HTMLButtonElement) {
+    clearTimeout(scrollTimer.current);
+    scrollToPage(currentPage, false);
     setPageAnchor(id);
     setOpened({ id, anchor });
     rememberPage(id, id);
@@ -256,19 +318,29 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     rememberPage(ticket?.id.replace(/^reward-/, "") ?? opened?.id ?? pageAnchor);
   }}>
     <div className={styles.galleryBody}>
-      <div className={styles.ticketWindow} data-previous={hasPrevious} data-next={hasNext} data-swipeable={canPage}
+      <div className={styles.ticketWindow}>
+      <div ref={rail} id={galleryId} className={styles.rail} data-swipeable={canPage} data-multiple={lastPage > 0}
+        style={{ "--ticket-columns": columns, "--ticket-rows": Math.min(size / columns, Math.ceil(orders.length / columns)) } as CSSProperties}
+        inert={Boolean(selected)}
         onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag}
         onLostPointerCapture={event => { if (event.target === event.currentTarget) finishDrag(event); }}
         onPointerLeave={event => { if (!drag.current?.horizontal) finishDrag(event); }}
-        onDragStart={event => { if (canPage) event.preventDefault(); }}>
-      {hasPrevious ? <button type="button" className={styles.peekStack} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage - 1)}>
-        {Array.from({ length: phone ? 2 : 3 }, (_, index) => <span key={index} className={`${styles.card} ${styles.peekCard}`} aria-hidden="true" />)}
-      </button> : null}
-      <div className={styles.grid} id={galleryId} inert={Boolean(selected)}>
-        {shown.map(order => {
+        onDragStart={event => { if (canPage) event.preventDefault(); }}
+        onScroll={event => {
+          const track = event.currentTarget;
+          clearTimeout(scrollTimer.current);
+          if (!drag.current?.horizontal) scrollTimer.current = setTimeout(() => syncPage(track), 150);
+        }}
+        onScrollEnd={event => syncPage(event.currentTarget)}>
+        {Array.from({ length: lastPage + 1 }, (_, page) => <span key={page} data-order-page={page} className={styles.snapPoint} aria-hidden="true" style={{ gridColumn: `${page * columns + 1} / span ${columns}` }} />)}
+        {orders.map((order, index) => {
           const detail = orderPresentation(order);
           const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId });
-          return <article key={order.rewardId} id={`reward-${order.rewardId}`} className={styles.card} data-order-ticket data-tone={detail.tone}>
+          const position = index % size;
+          const page = Math.floor(index / size);
+          return <article key={order.rewardId} id={`reward-${order.rewardId}`} className={styles.card} data-order-ticket data-tone={detail.tone}
+            inert={page !== currentPage} aria-hidden={page !== currentPage || undefined}
+            style={{ gridColumn: page * columns + position % columns + 1, gridRow: Math.floor(position / columns) + 1 }}>
             <Link href={href} className={styles.art} aria-label={`View ${order.title} reward`}><Image src={order.image} alt="" fill sizes="(max-width: 700px) 64px, 200px" /></Link>
             <div className={styles.copy}><p className={styles.retailer}>{order.retailer}</p><h3><Link href={href} title={order.title}>{order.title}</Link></h3><div className={styles.statuses}><span className={styles.source} data-source={order.source}><AccountIcon name={order.source === "winner" ? "prize" : "orders"} />{order.source === "winner" ? "You won" : order.source === "purchase" ? "Purchased" : "Reward"}</span><span className={styles.status}>{detail.label}</span></div></div>
             <dl className={styles.money}><div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>{order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}</dl>
@@ -276,9 +348,8 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
           </article>;
         })}
       </div>
-      {hasNext ? <button type="button" className={styles.peekStack} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage + 1)}>
-        {Array.from({ length: Math.min(phone ? 2 : 3, Math.ceil((orders.length - start - size) / (phone ? 1 : 2))) }, (_, index) => <span key={index} className={`${styles.card} ${styles.peekCard}`} aria-hidden="true" />)}
-      </button> : null}
+      {hasPrevious ? <button type="button" className={styles.peekButton} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage - 1)} /> : null}
+      {hasNext ? <button type="button" className={styles.peekButton} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage + 1)} /> : null}
       </div>
       {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
