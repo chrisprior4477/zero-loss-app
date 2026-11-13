@@ -10,7 +10,7 @@ test("every answer has a unique id, a topic and an existing local destination", 
     const url = new URL(item.action.href, "https://app.test");
     expect(url.origin).toBe("https://app.test");
     expect(existsSync(join(process.cwd(), "src/app", url.pathname, "page.tsx")) ||
-      (url.pathname === "/account/security" && existsSync(join(process.cwd(), "src/app/account/[section]/page.tsx")))).toBe(true);
+      (["/account/security", "/account/orders", "/account/declined-offers"].includes(url.pathname) && existsSync(join(process.cwd(), "src/app/account/[section]/page.tsx")))).toBe(true);
     expect(item.answer.length).toBeGreaterThan(50);
   }
 });

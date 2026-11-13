@@ -307,7 +307,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
         </> : <p className={styles.unavailable}>No additional tickets are available right now.</p>}
         <div className={styles.preference}><EntryOutcomeEmailPreference initialEnabled={emailEnabled} placement="entry-page" /></div>
       </section>
-      <section className={`${styles.actionPanel} ${styles.crewPanel}`} aria-labelledby="crew-title">
+      <section className={`${styles.actionPanel} ${styles.crewPanel}`} id="entry-crew-share" aria-labelledby="crew-title">
         <h3 id="crew-title">Invite your Crew to this prize</h3>
         <p>Choose who to notify about {itemTitle}. Only the connected Crew members you select can receive email. Sample profiles are for the demo.</p>
         <div className={styles.crewRailWrap}>
@@ -322,7 +322,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
                 <small>{member.sample ? "Sample preview" : "Connected Crew"}</small>
               </div>;
             })}
-            <Link href="/account/crew" className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
+            <Link href={`/account/crew?${new URLSearchParams({ tab: "add", ...(entryId ? { entry: entryId } : {}), ...(activityFilter === "active" ? { filter: "active" } : {}) })}#crew-intro`} className={styles.addCrewCard}><span aria-hidden="true">＋</span><strong>Add to your Crew</strong></Link>
           </div>
           <button type="button" className={styles.railArrow} aria-label="Scroll Crew right" onClick={() => crewRail.current?.scrollBy({ left: 220, behavior: "smooth" })}>›</button>
         </div>

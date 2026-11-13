@@ -2,10 +2,11 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { ActivityItem } from "@/lib/account/activity";
 import type { DemoCard } from "@/lib/payments/demo-card";
-const mocks = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), fund: vi.fn(), purchase: vi.fn(), decline: vi.fn(), undo: vi.fn() }));
+const mocks = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn(), fund: vi.fn(), checkDeposit: vi.fn(), purchase: vi.fn(), checkPurchase: vi.fn(), decline: vi.fn(), undo: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
 vi.mock("next/image", () => ({ default: () => <span /> }));
-vi.mock("@/lib/account/bulk-purchase-actions", () => ({ completeDemoPurchaseOptions: mocks.purchase }));
+vi.mock("@/lib/account/bulk-purchase-actions", () => ({ completeDemoPurchaseOptions: mocks.purchase, checkDemoPurchaseReceipt: mocks.checkPurchase }));
+vi.mock("@/lib/payments/actions", () => ({ checkDemoDeposit: mocks.checkDeposit }));
 vi.mock("@/lib/account/purchase-funding-actions", () => ({ fundPurchaseWallet: mocks.fund }));
 vi.mock("@/lib/account/bulk-decline-actions", () => ({ declineAllDemoPurchaseOptions: mocks.decline, undoBulkDemoPurchaseOptions: mocks.undo }));
 import { PurchaseCheckout } from "./PurchaseCheckout";
@@ -529,4 +530,49 @@ test.each(["missing", "foreign", "expired"])("a %s wallet snapshot requires revi
   setup();
   expect(screen.getByRole("button", { name: "Review updated options" })).toBeTruthy();
   expect(screen.getByRole("button", { name: /Keep for later/ }).getAttribute("aria-pressed")).toBe("true");
+});
+
+test("checking a restored purchase reads the receipt before offering the same confirmation", async () => {
+  mocks.purchase.mockRejectedValueOnce(new Error("Connection lost"))
+    .mockResolvedValueOnce({ status: "succeeded", href: "/account/wallet?rewardId=issued#reward-pass" });
+  mocks.checkPurchase.mockResolvedValueOnce({ status: "not_found" });
+  const view = setup(39900);
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
+  await screen.findByRole("button", { name: "Check this purchase" });
+  const request = mocks.purchase.mock.calls[0][0];
+  view.unmount();
+
+  setup(39900);
+  fireEvent.click(screen.getByRole("button", { name: "Check this purchase" }));
+  const retry = await screen.findByRole("button", { name: /Confirm same purchase/ });
+  expect(mocks.checkPurchase).toHaveBeenCalledExactlyOnceWith(request.requestId, request.slug);
+  expect(mocks.purchase).toHaveBeenCalledOnce();
+  fireEvent.click(retry);
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/wallet?rewardId=issued#reward-pass"));
+  expect(mocks.purchase.mock.calls[1][0]).toEqual(request);
+});
+
+test("a restored deposit check uses the original amount and does not fund or purchase automatically", async () => {
+  const props = {
+    ownerId: "account-a", walletId: "wallet-a", options, initialBalance: 13900,
+    cards: [{ token: "demo_card_5556" as const, lastFour: "5556", isDefault: true }], fundingAvailable: true,
+  };
+  mocks.fund.mockRejectedValueOnce(new Error("Connection lost"));
+  mocks.checkDeposit.mockResolvedValueOnce({ status: "credited", amount: 26000, balanceCents: 39900 });
+  const view = render(<PurchaseCheckout {...props} />);
+  const popup = fundPopup();
+  fireEvent.click(popup.getByRole("checkbox"));
+  fireEvent.click(popup.getByRole("button", { name: "Add $260 to wallet" }));
+  await screen.findByRole("button", { name: "Check this deposit" });
+  const originalKey = mocks.fund.mock.calls[0][0].get("idempotencyKey");
+  view.unmount();
+
+  render(<PurchaseCheckout {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
+  await screen.findByRole("button", { name: "Make purchase: $399" });
+  expect(mocks.checkDeposit).toHaveBeenCalledExactlyOnceWith(originalKey, 26000, "wallet-a");
+  expect(mocks.fund).toHaveBeenCalledOnce();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });

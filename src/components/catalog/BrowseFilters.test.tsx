@@ -13,7 +13,7 @@ test("Browse search offers a direct category link while typing", () => {
     retailerGroups={[{ id: "automotive", category: "Automotive", options: [{ label: "AutoZone®", value: "AutoZone®", hasOffer: false }] }]}
     selectedRetailerGroup={null} selectedCategory={null} searchTerm="" subcategory="" clearHref="/browse"
   />);
-  const search = screen.getAllByRole("searchbox", { name: "Search products & categories" })[0];
+  const search = screen.getAllByRole("searchbox", { name: "Search all prizes" })[0];
   const searchField = search.parentElement!;
   expect(searchField.className).toContain("bg-white");
   expect(within(searchField).getByRole("button", { name: "Search catalog" })).toBeTruthy();
@@ -33,7 +33,7 @@ test("Filter and sort suggestions retain Ending Soon and the selected price rang
     retailerGroups={retailerFilterGroups(giftCardPartnerGroups, [])}
     selectedRetailerGroup={null} selectedCategory="ending-soon" searchTerm="" subcategory="" clearHref="/browse"
   />);
-  const search = screen.getByRole("searchbox", { name: "Search products & categories" });
+  const search = screen.getByRole("searchbox", { name: "Search Best Buy in Ending Soon" });
   fireEvent.focus(search);
   fireEvent.change(search, { target: { value: "beauty" } });
   const suggestion = screen.getByRole("link", { name: /Pharmacy/ });

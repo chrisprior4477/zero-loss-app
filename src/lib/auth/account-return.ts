@@ -15,8 +15,8 @@ const routes: Record<string, ReturnRoute> = {
   "/account/entries": { query: { item: matches(slug), entry: matches(identifier), viewed: matches(identifier), filter: oneOf("all", "active", "prize", "completion", "completed") } },
   "/account/declined-offers": { query: { offer: matches(uuid) }, hash: /^#declined-offer-[0-9a-f-]{36}$/i },
   "/account/favorites": { query: { tab: oneOf("favorites", "shared"), share: matches(uuid), item: matches(slug) }, hash: /^#(?:saved-items-heading|favorite-products)$/ },
-  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), via: oneOf("purchase"), view: oneOf("history", "card"), panel: oneOf("methods", "card", "funding", "transactions", "deposits"), rewards: oneOf("ready", "used", "expired", "history"), from: matches(slug), browse: value => productBrowseReturnPath(value) !== null, entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid), choice: matches(uuid), deposit: matches(depositRequestKeyPattern) }, hash: /^#(?:reward-pass|ready-rewards|reward-history|add-funds|purchase-deposit|payment-methods|payment-deposits|wallet-add-card|transactions|transaction-[0-9a-f-]{36})$/i },
-  "/account/crew": { query: { member: value => uuid.test(value) || /^sample-(?:Maya|Daniel|Ari|Leo)$/.test(value), pick: matches(slug), tab: oneOf("crew", "requests", "picks", "groups", "privacy"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-intro|crew-groups|crew-privacy|crew-request-[0-9a-f-]{36})$/i },
+  "/account/wallet": { query: { reward: matches(slug), rewardId: matches(uuid), via: oneOf("purchase"), orderFilter: oneOf("processing", "fulfilled", "exceptions", "payment"), view: oneOf("history", "card"), panel: oneOf("methods", "card", "funding", "transactions", "deposits"), rewards: oneOf("ready", "used", "expired", "history"), from: matches(slug), browse: value => productBrowseReturnPath(value) !== null, entry: matches(/^ent_[a-f0-9]{32}$/i), quantity: value => parseEntryQuantity(value) !== null, transaction: matches(uuid), choice: matches(uuid), deposit: matches(depositRequestKeyPattern) }, hash: /^#(?:reward-pass|ready-rewards|reward-history|add-funds|purchase-deposit|payment-methods|payment-deposits|wallet-add-card|transactions|transaction-[0-9a-f-]{36})$/i },
+  "/account/crew": { query: { member: value => uuid.test(value) || /^sample-(?:Maya|Daniel|Ari|Leo)$/.test(value), pick: matches(slug), tab: oneOf("crew", "requests", "picks", "groups", "privacy", "add"), entry: matches(/^ent_[a-f0-9]{32}$/i), filter: oneOf("active"), request: matches(uuid), invite: matches(uuid), design: matches(/^[1-8]$/) }, hash: /^#(?:sharing|crew-intro|crew-groups|crew-privacy|crew-request-[0-9a-f-]{36})$/i },
   "/account/crew/display": { query: {} },
   "/account/notifications": { query: { filter: oneOf("action", "account", "activity", "orders", "crew") }, hash: /^#notification-tickets-filters$/ },
   "/account/security": { query: {} },
@@ -24,7 +24,7 @@ const routes: Record<string, ReturnRoute> = {
   "/account/payment-methods": { query: {} },
   "/account/orders": { query: { filter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), order: matches(identifier), rewardId: matches(uuid), support: oneOf("report") }, hash: /^#(?:fulfillment-records|order-[a-zA-Z0-9_-]{1,80})$/ },
   "/account/results": { query: {} },
-  "/support": { query: { case: matches(uuid), transaction: matches(uuid), rewardId: matches(uuid), deposit: matches(depositRequestKeyPattern), view: oneOf("inbox"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/) }, hash: /^#(?:conversation|case-list|report-problem)$/ },
+  "/support": { query: { case: matches(uuid), transaction: matches(uuid), rewardId: matches(uuid), deposit: matches(depositRequestKeyPattern), view: oneOf("inbox"), orderFilter: oneOf("processing", "fulfilled", "exceptions", "payment"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/) }, hash: /^#(?:conversation|case-list|report-problem)$/ },
 };
 
 function returnRoute(path: string): ReturnRoute | undefined {
@@ -33,7 +33,7 @@ function returnRoute(path: string): ReturnRoute | undefined {
   };
   return routes[path] ?? (/^\/account\/entries\/ent_[a-f0-9]{32}$/i.test(path) ? {
     query: { entries: oneOf("first", "open"), quantity: selected => parseEntryQuantity(selected) !== null, review: oneOf("entry"), filter: oneOf("active") },
-    hash: /^#(?:entry-details-intro|add-entries-title|additional-entry-checkout|saved-entry-rail)$/,
+    hash: /^#(?:entry-details-intro|add-entries-title|additional-entry-checkout|saved-entry-rail|entry-crew-share)$/,
   } : undefined);
 }
 

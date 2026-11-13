@@ -412,3 +412,9 @@
 @media (max-width: 355px) {
   .gallery[data-has-options="true"] { grid-template-rows: repeat(var(--option-rows), 145px); }
 }
+
+@media (max-width: 360px) {
+  .optionSummary { min-width: 0; }
+  .optionAmounts { flex-wrap: wrap; }
+  .optionAmounts > strong, .optionAmounts > span { white-space: normal; }
+}

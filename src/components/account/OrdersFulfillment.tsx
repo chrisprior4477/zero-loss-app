@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AccountIcon } from "./AccountIcon";
 import type { AccountOrders } from "@/lib/account/orders";
-import { accountFulfillment, fulfillmentHref, matchesFulfillmentFilter, type FulfillmentFilter } from "@/lib/account/fulfillment";
+import { accountFulfillment, fulfillmentFilterLabel, fulfillmentHref, matchesFulfillmentFilter, type FulfillmentFilter } from "@/lib/account/fulfillment";
 import { OrderTicketGallery } from "./OrderTicketGallery";
 import { OrdersRetryButton } from "./OrdersRetryButton";
 import { SelectedOrderScroll } from "./SelectedOrderScroll";
@@ -30,7 +30,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
     : filter === "exceptions" ? "Try Exceptions again"
     : "Try again";
   // A notification identifies an exact order, even if its status has since changed.
-  const visibleOrders = records.filter(order => (selectedOrderNumber ? order.orderNumber === selectedOrderNumber : matchesFulfillmentFilter(order, filter)) && (!selectedRewardId || order.rewardId === selectedRewardId));
+  const visibleOrders = records.filter(order => (selectedOrderNumber ? order.orderNumber === selectedOrderNumber : selectedRewardId || matchesFulfillmentFilter(order, filter)) && (!selectedRewardId || order.rewardId === selectedRewardId));
   const selectionAnchor = selectedOrderNumber ? `order-${selectedOrderNumber}` : "fulfillment-records";
   const countLabel = (count: number) => complete ? String(count) : count ? `${count}+` : "—";
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
@@ -69,6 +69,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
       <div id={selectionAnchor} className={styles.contentGrid}>
         <header className={styles.sectionHeading}><div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading">Retailer gift-card fulfillment</h2></div><span role="status">{visibleOrders.length} of {countLabel(records.length)} records</span></header>
         <section className={styles.orders} aria-labelledby="your-orders-heading">
+          {hasSelection && filter !== "all" ? <Link href={fulfillmentHref(undefined, filter)} className={styles.showAll}>Return to {fulfillmentFilterLabel[filter]}</Link> : null}
           {filter !== "all" || hasSelection ? <Link href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</Link> : null}
           {!selectedOrderNumber && filter === "payment" ? <p className={styles.filterNote}>Recorded Purchase Option checkouts. Winning prizes do not require a gift-card purchase.</p> : !selectedOrderNumber && filter === "exceptions" ? <p className={styles.filterNote}>Issuance problems, expired or cancelled rewards, and corrected orders. Open a record for its current status.</p> : null}
           {visibleOrders.length ? <>
@@ -76,7 +77,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
               <p role="status">Some fulfillment records could not be verified right now. The records below are available, and totals may be incomplete.</p>
               <OrdersRetryButton label={retryLabel} />
             </div> : null}
-            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}`} orders={visibleOrders} />
+            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}`} orders={visibleOrders} filter={filter} />
           </> : !selectionComplete ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
             <h3>{selectedOrderNumber ? "We couldn’t load this order right now" : selectedRewardId ? "We couldn’t load this reward right now" : filter === "exceptions" ? "We couldn’t load Exceptions right now" : "Fulfillment unavailable"}</h3>

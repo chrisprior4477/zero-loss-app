@@ -7,6 +7,7 @@ export type DemoFundingRequest = {
   id: string; amount: number; currency: "USD"; status: string; created_at: string; idempotencyKey: string;
   reconciliation: "not_processed" | "credit_pending" | "reconciled" | "discrepancy";
   postedAt?: string | null;
+  ledgerId?: string | null;
   sampleCard?: DemoCardToken | null;
 };
 

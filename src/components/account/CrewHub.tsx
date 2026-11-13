@@ -41,6 +41,7 @@ type Props = {
   selectedPicks: SharedCrewPick[];
   available: boolean;
   initialTab: CrewTab;
+  entryReturn?: string;
   overview?: { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
   ownInviteToken?: string | null;
   incomingInviteToken?: string | null;
@@ -51,7 +52,7 @@ const subscribeToOrigin = () => () => {};
 const getBrowserOrigin = () => window.location.origin;
 const getServerOrigin = () => "";
 
-export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, available, initialTab, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
+export function CrewHub({ currentUserId, invitations, members, discoverable, discovery, entries, selectedMemberId, selectedPicks, available, initialTab, entryReturn, overview, ownInviteToken = null, incomingInviteToken = null, visibility, visibilityAvailable = true }: Props) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
   const { tab, selectTab } = useCrewTab(initialTab);
@@ -244,6 +245,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <button type="button" aria-expanded={finding} onClick={focusCrewSearch}>Add people</button>
       </header>
 
+      {entryReturn ? <Link href={entryReturn}>← Return to this ticket</Link> : null}
       {finding ? <div>
         <CrewInlineFinder available={available} onSample={name => { selectSample(name); selectTab("crew"); setFinding(false); }} onClose={() => setFinding(false)} />
         <details className={connectedStyles.inviteLink}><summary>Invite with your personal link</summary><p>They can join your Crew and leave whenever they like.</p><input aria-label="Your Crew invite link" value={inviteUrl} placeholder={ownInviteToken ? "Preparing invite link…" : "Invite link unavailable"} readOnly onFocus={event => event.currentTarget.select()} /><button type="button" onClick={() => void copyInviteLink()} disabled={!ownInviteToken}>Copy invite link</button>{copyMessage ? <p role="status">{copyMessage}</p> : null}</details>

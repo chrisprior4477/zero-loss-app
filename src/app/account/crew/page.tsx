@@ -26,11 +26,12 @@ export type OwnCrewEntry = { id: string; offeringSlug?: string; title: string; r
 export type SharedCrewPick = { title: string; retailer: string; image: string; offeringSlug: string; sharedAt: string; shareKind?: "pick" | "win" };
 export type CrewMember = { memberId: string; name: string; avatarUrl: string | null };
 
-export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; pick?: string; tab?: string; request?: string; invite?: string; design?: string }> }) {
+export default async function CrewPage({ searchParams }: { searchParams: Promise<{ member?: string; pick?: string; tab?: string; request?: string; invite?: string; design?: string; entry?: string; filter?: string }> }) {
   const { account, hidden, availability } = await getShoppingCatalog();
   const params = await searchParams;
   if (!account) {
     let section = params.pick ? "#crew-intro" : "";
+    if (params.tab === "add") section = "#crew-intro";
     if (params.tab === "groups") section = "#crew-groups";
     if (params.tab === "picks") section = "#sharing";
     if (params.tab === "privacy") section = "#crew-privacy";
@@ -105,6 +106,7 @@ export default async function CrewPage({ searchParams }: { searchParams: Promise
     selectedPicks={(picksResult?.data ?? []) as SharedCrewPick[]}
     available={available && !picksResult?.error}
     initialTab={parseCrewTab(params.tab)}
+    entryReturn={params.entry && /^ent_[a-f0-9]{32}$/i.test(params.entry) ? `/account/entries/${params.entry}${params.filter === "active" ? "?filter=active" : ""}#entry-crew-share` : undefined}
     overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}
     ownInviteToken={inviteLinkResult.error ? null : typeof inviteLinkResult.data === "string" ? inviteLinkResult.data : null}
     incomingInviteToken={typeof params.invite === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(params.invite) ? params.invite : null}

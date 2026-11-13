@@ -43,7 +43,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   const demo = wallet?.scope === "demo";
   const balance = wallet ? (wallet.balanceCents === 0 ? "$0.00" : formatUsdFromCents(wallet.balanceCents)) : "Unavailable";
   const pendingCents = requests?.filter(request => request.reconciliation === "credit_pending").reduce((sum, request) => sum + request.amount, 0);
-  const recentCount = wallet ? wallet.entries.filter(entry => !demoHistoryVisibility?.ledgerEntryIds.includes(entry.id)).length : undefined;
+  const recentCount = wallet ? Math.max(0, wallet.transactionCount - (demoHistoryVisibility?.ledgerEntryIds.length ?? 0)) : undefined;
   const canFund = Boolean(fundingEnabled && demo && wallet?.fundingAvailable);
   const canResetHistory = canFund && demoHistoryVisibility != null;
   const requestedEntry = selectedTransaction?.entry;
@@ -119,7 +119,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         {recoveryKey ? <p className={styles.fundingReturn}>Check the selected deposit before adding more funds. <a href="#purchase-deposit">Check this deposit →</a></p> : canFund ? <DemoFundingForm key={returnToProduct?.href ?? "wallet-funding"} displayName={displayName} balanceLabel={balance} requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
         </div>
         {demo && <WeeklyDeposits requests={demoHistoryVisibility === null ? null : requests} hiddenIds={demoHistoryVisibility?.fundingSessionIds} asOf={new Date().toISOString()} timeZone={timeZone} />}
-        {demo ? <DemoFundingRequests requests={requests} timeZone={timeZone} fundingEnabled={fundingEnabled} continueTo={returnToProduct} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
+        {demo ? <DemoFundingRequests walletId={wallet?.walletAccountId ?? undefined} requests={requests} timeZone={timeZone} fundingEnabled={fundingEnabled} continueTo={returnToProduct} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
       </section>
     </div>
   </main>;

@@ -23,6 +23,31 @@ export type FaqItem = {
 // Keep these answers aligned with the server-enforced flows, not planned features.
 export const faqItems: FaqItem[] = [
   {
+    id: "change-email", category: "account", question: "Can I change my email address?",
+    answer: "Profile displays your current sign-in email. To request an address change in this MVP, contact Support from your signed-in account.",
+    keywords: "update replace edit login email", action: { label: "Ask Support about my email", href: "/support#report-problem" },
+  },
+  {
+    id: "balance-discrepancy", category: "wallet", question: "What if my wallet balance is wrong?",
+    answer: "Compare your balance with Transaction history. If a deposit is missing, check Payment deposits for its status. To report an unexpected charge or credit, choose Report a problem on that exact transaction.",
+    keywords: "wrong balance incorrect discrepancy missing deposit credit", action: { label: "Check transaction history", href: walletTransactionsHref },
+  },
+  {
+    id: "order-receipt", category: "rewards", question: "Where are my orders and how do I get a receipt?",
+    answer: "Open Orders & Fulfillment. Choose Order details for a purchase or Reward details for a win. The record shows the reference and date for that item.",
+    keywords: "receipt orders confirmation fulfillment proof", action: { label: "Open Orders & Fulfillment", href: "/account/orders#fulfillment-records" },
+  },
+  {
+    id: "decline-and-revive", category: "entries", question: "What happens if I decline an offer?",
+    answer: "The offer moves to Declined Offers and the entry payment stays in your history. You can undo during the countdown or revive the offer for free before its original deadline.",
+    keywords: "decline declined restore revive purchase option undo refund", action: { label: "Open Declined Offers", href: "/account/declined-offers" },
+  },
+  {
+    id: "stop-sharing", category: "account", question: "How do I stop sharing a pick?",
+    answer: "Open Shared Picks & Cleanup. Choose Your Crew or a group, then open the prize and stop sharing an entry. Use Clean up sharing to review several older picks for that audience at once.",
+    keywords: "unshare remove cleanup stop sharing privacy", action: { label: "Open Shared Picks & Cleanup", href: "/account/crew?tab=picks#sharing" },
+  },
+  {
     id: "enter-a-prize", category: "entries", question: "What is the quickest way to enter a prize?",
     answer: "Open a prize in the marketplace and use its entry controls. Choose your quantity, check the displayed total, and submit. If you need to sign in or create an account, the selected prize is kept so you can return to it afterward.",
     keywords: "ticket tickets enter one dollar signup sign up", action: { label: "Browse prizes", href: "/browse" },
@@ -125,7 +150,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "request-product", category: "support", question: "Can I suggest a product or retailer?",
     answer: "Yes. Send a product request with the item or retailer you would like to see and any useful details. Requests are saved for review; submitting a suggestion does not reserve an item or guarantee it will be added.",
-    keywords: "catalog search cannot find brand suggestion recommend", action: { label: "Suggest a product", href: "/contact#product-request" },
+    keywords: "catalog search cannot find brand suggestion recommend", action: { label: "Suggest a product", href: "/contact/product-request#requested-item" },
   },
   {
     id: "mvp", category: "support", question: "Are the money and gift-card codes in this MVP real?",

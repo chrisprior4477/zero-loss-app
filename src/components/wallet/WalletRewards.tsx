@@ -6,7 +6,7 @@ import { StatusTicket } from "@/components/account/StatusTicket";
 import stripStyles from "@/components/account/account-status-strip.module.css";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { accountRoutes } from "@/lib/account/navigation";
-import { fulfillmentHref } from "@/lib/account/fulfillment";
+import { fulfillmentFilterLabel, type FulfillmentFilter, fulfillmentHref } from "@/lib/account/fulfillment";
 import { rewardSupportHref } from "@/lib/support/references";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
@@ -122,7 +122,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           </nav>
         </div>
         {state.source === "unavailable" ? <p role="status" className={overview.message}>Reward history unavailable right now.</p> : shown.length === 0 ? <div className={overview.message}>
-          {view === "used" ? <><p>You haven’t used or transferred any prizes you’ve won or rewards from completed purchase options.</p><p>Please check back after you’ve used or transferred a reward.</p></> : view === "expired" ? <p>You do not have any expired purchase options yet.</p> : <p>{view === "all" ? "No reward history yet." : `No ${view === "history" ? "past" : view} rewards yet.`}</p>}
+          {view === "used" ? <><p>No rewards used yet. Redeemed gift cards appear here.</p></> : view === "expired" ? <p>No expired rewards or purchase options.</p> : <p>{view === "all" ? "No reward history yet." : `No ${view === "history" ? "past" : view} rewards yet.`}</p>}
         </div> : <>
           {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe or drag to browse rewards</p> : null}
           <RewardHistoryCarousel key={view}>
@@ -175,7 +175,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, fromPurchase = false, returnView, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; returnView?: RewardView; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
+export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -293,7 +293,8 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, retu
         <Link href="/browse" className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-5 py-2 text-sm font-black text-[#062218] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Try another demo offer</Link>
       </div> : null}
       <nav aria-label="Reward detail exits" className={styles.detailExitActions}>
-        {item.rewardId ? <Link href={fulfillmentHref(item.rewardId)} className={styles.backToRewards}>View fulfillment status</Link> : null}
+        {item.rewardId ? <Link href={fulfillmentHref(item.rewardId, orderFilter)} className={styles.backToRewards}>View fulfillment status</Link> : null}
+        {orderFilter !== "all" ? <Link href={fulfillmentHref(undefined, orderFilter)} className={styles.backToRewards}>Return to {fulfillmentFilterLabel[orderFilter]}</Link> : null}
         <Link href="/" className={styles.detailShoppingButton}>Continue shopping</Link>
         <Link href={returnView ? `/account/wallet?rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}` : "/account/wallet"} className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>
       </nav>

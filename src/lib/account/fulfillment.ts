@@ -23,9 +23,11 @@ export function fulfillmentHref(rewardId?: string, filter: FulfillmentFilter = "
   return `/account/orders${query.size ? `?${query}` : ""}#fulfillment-records`;
 }
 
-export function exactOrderHref(orderNumber: string) {
+export const fulfillmentFilterLabel: Record<FulfillmentFilter, string> = { all: "all orders", processing: "In progress orders", fulfilled: "Issued orders", exceptions: "Exceptions", payment: "Confirmed payments" };
+
+export function exactOrderHref(orderNumber: string, filter: FulfillmentFilter = "all") {
   const id = encodeURIComponent(orderNumber);
-  return `/account/orders?order=${id}#order-${id}`;
+  return `/account/orders?order=${id}${filter === "all" ? "" : `&filter=${filter}`}#order-${id}`;
 }
 
 export function fulfillmentActivityHref(record: Pick<FulfillmentRecord, "entryId">) {

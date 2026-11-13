@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { formatOfferDeadline } from "@/lib/account/timezone";
@@ -15,9 +16,15 @@ export function DepositReceiptDate({ request, timeZone }: { request: DemoFunding
   return <span><time dateTime={timestamp}>{formatOfferDeadline(timestamp, timeZone)}</time>{card && <> <span className={styles.receiptCard}>{card.issuer} •••• {card.lastFour}</span></>}</span>;
 }
 
+export function DepositCreditLink({ request }: { request: DemoFundingRequest }) {
+  const id = request.ledgerId;
+  if (request.reconciliation !== "reconciled" || !id || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) return null;
+  return <Link href={`/account/wallet?view=history&transaction=${id}#transaction-${id}`} className="font-bold underline">View wallet credit →</Link>;
+}
+
 function ReceiptDetails({ request, timeZone }: { request: DemoFundingRequest; timeZone?: string }) {
   return <details className={styles.weekReceipt}><summary><DepositReceiptDate request={request} timeZone={timeZone} /> · <strong>{formatUsdFromCents(request.amount)}</strong></summary>
-    <p>Payment &amp; credit matched</p><p>Request {request.id}</p></details>;
+    <p>Payment &amp; credit matched</p><p>Request {request.id}</p><DepositCreditLink request={request} /></details>;
 }
 
 type ChartProps = { requests: DemoFundingRequest[] | null; hiddenIds?: string[]; asOf: string; timeZone?: string };
@@ -54,7 +61,7 @@ function DepositChart({ requests, hiddenIds, asOf, timeZone, openWeek, setOpenWe
       <p className={styles.weekHint}>{total ? "Select a week to see its deposits." : "No posted deposits in the last four weeks."}</p>
       {chart.latest && <div className={styles.latestDeposit}><strong>Latest posted deposit</strong><details className={styles.weekReceipt}>
         <summary><DepositReceiptDate request={chart.latest} timeZone={timeZone} /><b>View {formatUsdFromCents(chart.latest.amount)} receipt</b></summary>
-        <p>Payment &amp; credit matched</p><p>Request {chart.latest.id}</p>
+        <p>Payment &amp; credit matched</p><p>Request {chart.latest.id}</p><DepositCreditLink request={chart.latest} />
       </details></div>}
     </>}
   </aside>;

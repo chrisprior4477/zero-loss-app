@@ -115,7 +115,7 @@ test("ticket filters use actual order statuses without changing saved destinatio
   expect(screen.queryByRole("heading", { name: "ready gift card" })).toBeNull();
   expect(screen.getByText("1 of 2 records")).toBeTruthy();
   rerender(<OrdersFulfillment state={state} overview={overview} filter="fulfilled" />);
-  expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id");
+  expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id&orderFilter=fulfilled");
   rerender(<OrdersFulfillment state={state} overview={overview} filter="exceptions" />);
   expect(screen.getByText("No records in this status")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Show all records" }).getAttribute("href")).toBe("/account/orders#fulfillment-records");

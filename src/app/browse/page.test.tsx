@@ -246,7 +246,7 @@ describe("Browse search results", () => {
   ])("returns from a product request to the same search and filters: %j", async query => {
     render(await BrowsePage({ searchParams: Promise.resolve(query) }));
 
-    expect(screen.getByRole("heading", { name: "We don't have “kayak” in the catalog yet." })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "retailer" in query ? "No “kayak” matches in Best Buy." : "We don't have “kayak” in the catalog yet." })).toBeTruthy();
     expect(screen.getByText(/Shopping should never feel like a/i)).toBeTruthy();
     expect(screen.getByText("loss.").className).toContain("text-[#31e800]");
     const request = new URL(screen.getByRole("link", { name: /Tell us what you'd like to see/i }).getAttribute("href")!, "https://example.test");

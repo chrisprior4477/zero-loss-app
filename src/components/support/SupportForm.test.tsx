@@ -1,14 +1,15 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-const mocks = vi.hoisted(() => ({ save: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ save: vi.fn(), check: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }) }));
-vi.mock("@/lib/support/actions", () => ({ saveSupportCase: mocks.save }));
+vi.mock("@/lib/support/actions", () => ({ saveSupportCase: mocks.save, checkSupportMessage: mocks.check }));
 import { SupportForm } from "./SupportForm";
 const caseId = "11111111-1111-4111-8111-111111111111";
 beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); });
 afterEach(cleanup);
 test("transaction-linked form keeps the chosen transaction and exact retry after a dropped response", async () => {
   mocks.save.mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce({ status: "saved", caseId });
+  mocks.check.mockResolvedValue({ status: "error", uncertain: true, canResend: true, message: "No saved message yet" });
   const view = render(<SupportForm requestKey="support_request_001" transactionId={caseId} />);
   fireEvent.change(screen.getByRole("textbox", { name: "Tell us what happened" }), { target: { value: "Please check this transaction." } });
   fireEvent.click(screen.getByRole("button", { name: "Send support request" }));
@@ -16,6 +17,10 @@ test("transaction-linked form keeps the chosen transaction and exact retry after
   expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("disabled", true);
   view.rerender(<SupportForm requestKey="unrelated_refresh_002" transactionId={caseId} />);
   fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
+  expect(await screen.findByRole("button", { name: "Resend same message" })).toBeTruthy();
+  expect(mocks.save).toHaveBeenCalledOnce();
+  expect(mocks.check).toHaveBeenCalledWith("support_request_001", undefined);
+  fireEvent.click(screen.getByRole("button", { name: "Resend same message" }));
   await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith(`/support?case=${caseId}#conversation`));
   const first = mocks.save.mock.calls[0][1] as FormData;
   expect(mocks.save.mock.calls[1][1]).toBe(first);
@@ -25,7 +30,8 @@ test("transaction-linked form keeps the chosen transaction and exact retry after
 });
 
 test('a reward form keeps its reference and exact retry without asking for a gift-card code',async()=>{
- mocks.save.mockRejectedValueOnce(new Error('Offline')).mockResolvedValueOnce({status:'saved',caseId});
+ mocks.save.mockRejectedValueOnce(new Error('Offline'));
+ mocks.check.mockResolvedValue({status:'saved',caseId});
  render(<SupportForm requestKey="support_reward_001" rewardId={caseId}/>);
  expect(screen.getByRole('combobox',{name:'What do you need help with?'})).toHaveProperty('value','reward');
  expect(screen.getByRole('textbox',{name:'Subject'})).toHaveProperty('value','Question about this reward');
@@ -35,7 +41,7 @@ test('a reward form keeps its reference and exact retry without asking for a gif
  await waitFor(()=>expect(mocks.replace).toHaveBeenCalledWith(`/support?case=${caseId}#conversation`));
  const first=mocks.save.mock.calls[0][1] as FormData;
  expect(first.get('rewardId')).toBe(caseId);expect(first.get('transactionId')).toBe('');
- expect(mocks.save.mock.calls[1][1]).toBe(first);
+ expect(mocks.save).toHaveBeenCalledOnce();
 });
 test("ordinary customers get a reply box but no status or financial controls", () => {
   render(<SupportForm requestKey="support_request_001" caseId={caseId} />);
@@ -112,6 +118,7 @@ test("a draft survives leaving for help and returning, isolated by account and r
 
 test("returning to an uncertain submission checks the original request and clears the draft only after success", async () => {
   mocks.save.mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce({ status: "saved", caseId });
+  mocks.check.mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce({ status: "error", uncertain: true, canResend: true, message: "No saved message yet" });
   const view = render(<SupportForm ownerId="customer-a" requestKey="support_request_001" transactionId={caseId} />);
   fireEvent.change(screen.getByRole("textbox", { name: "Tell us what happened" }), { target: { value: "Please check this transaction." } });
   fireEvent.click(screen.getByRole("button", { name: "Send support request" }));
@@ -122,6 +129,9 @@ test("returning to an uncertain submission checks the original request and clear
   expect(screen.getByRole("textbox", { name: "Tell us what happened" })).toHaveProperty("disabled", true);
   expect(screen.getByRole("button", { name: "Clear draft" })).toHaveProperty("disabled", true);
   fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
+  await screen.findByText("Could not check your message. Your text is still here. Try checking again.");
+  fireEvent.click(screen.getByRole("button", { name: "Check saved message" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Resend same message" }));
   await waitFor(() => expect(mocks.replace).toHaveBeenCalled());
   const retried = mocks.save.mock.calls[1][1] as FormData;
   expect(Object.fromEntries(retried)).toEqual(Object.fromEntries(first));

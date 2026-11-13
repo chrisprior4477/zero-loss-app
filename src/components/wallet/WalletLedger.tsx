@@ -100,6 +100,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     previousPage: batches.previousPage ? () => { updateBookmark({ offset: Math.max(0, batches.start - batches.size) }); batches.previousPage?.(); } : undefined };
   const restoreBatch = batches.restore;
   const restoredView = useRef<string | null>(null);
+  const bookmarkKey = walletId ? `zero-loss-wallet-view:${walletId}` : null;
   useLayoutEffect(() => {
     if (!searchSubmissions) return;
     const target = listRef.current ?? emptyResults.current;
@@ -123,7 +124,11 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       // Server refreshes keep this mounted view. Only navigation may replay its bookmark.
       if (!event && restoredView.current === viewKey) return;
       restoredView.current = viewKey;
-      const saved = readLedgerReturn(window.history.state, walletId!, window.location.href, selectedId);
+      let saved = readLedgerReturn(window.history.state, walletId!, window.location.href, selectedId);
+      const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+      if (!saved && bookmarkKey && navigation?.type === "reload") try {
+        saved = readLedgerReturn(JSON.parse(sessionStorage.getItem(bookmarkKey) ?? "null"), walletId!, window.location.href, selectedId);
+      } catch { /* The list remains available. */ }
       if (!saved) return;
       // Restore the whole view before painting the returned wallet, then let
       // Next/browser navigation settle before restoring the transaction's position.
@@ -180,16 +185,18 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       window.removeEventListener("wheel", interrupt);
       window.removeEventListener("keydown", interrupt);
     };
-  }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone, cancelVoice]);
+  }, [compact, walletId, selectedId, restoreBatch, listRef, entries, archived, hideArchived, timeZone, cancelVoice, bookmarkKey]);
 
   function updateBookmark(changes: Partial<LedgerReturn>) {
     if (compact || !walletId) return;
-    window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: {
+    const bookmark = { [ledgerReturnKey]: {
       walletId, href: window.location.href, selectedId, filter, query, ...appliedDates, showArchived, offset: batches.origin,
       scrollY: window.scrollY, rowId: "", rowTop: 0,
       expandedRows: Array.from(listRef.current?.querySelectorAll("details[open]") ?? []).map(detail => detail.closest("li")?.id ?? ""),
       ...changes,
-    } }, "");
+    } };
+    window.history.replaceState({ ...window.history.state, ...bookmark }, "");
+    if (bookmarkKey) try { sessionStorage.setItem(bookmarkKey, JSON.stringify(bookmark)); } catch { /* History remains usable. */ }
   }
 
   function rememberView(event: MouseEvent<HTMLUListElement>) {

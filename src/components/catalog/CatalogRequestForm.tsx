@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useLayoutEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { submitCatalogRequest, type CatalogRequestState } from "@/lib/catalog/request-actions";
 import { catalogRequestDraftKey, readCatalogRequestDraft, writeCatalogRequestDraft, type CatalogRequestDraft } from "@/lib/catalog/request-draft";
 
@@ -23,6 +23,10 @@ function CatalogRequestSession({ initialProduct = "", ownerId }: Props) {
   const [showFeedback, setShowFeedback] = useState(false);
   const restored = useRef(false);
   const sending = useRef(false);
+  const requestedItem = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (window.location.hash === "#requested-item") requestedItem.current?.focus({ preventScroll: true });
+  }, []);
   const draftKey = catalogRequestDraftKey(ownerId, initialProduct);
   const dirty = draft.requestedItem !== initialProduct || Boolean(draft.email || draft.notes);
   useLayoutEffect(() => {
@@ -84,6 +88,7 @@ function CatalogRequestSession({ initialProduct = "", ownerId }: Props) {
         <label htmlFor="requested-item" className="text-sm font-bold text-white">What would you like to see?</label>
         <input
           id="requested-item"
+          ref={requestedItem}
           name="requestedItem"
           type="text"
           required
@@ -93,7 +98,7 @@ function CatalogRequestSession({ initialProduct = "", ownerId }: Props) {
           onChange={event => changeDraft({ requestedItem: event.target.value })}
           disabled={pending}
           placeholder="Example: Kayaks, concert tickets, or running shoes"
-          className="mt-2 min-h-12 w-full rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
+          className="mt-2 min-h-12 w-full scroll-mt-44 rounded-xl border border-cyan-300/35 bg-[#001b3d] px-4 py-3 text-white outline-none placeholder:text-white/38 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20"
         />
       </div>
       <div>

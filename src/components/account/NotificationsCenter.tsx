@@ -42,6 +42,22 @@ const filters = [
 
 type NotificationOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
+function pendingReadIds(key: string): string[] {
+  const value = sessionStorage.getItem(key);
+  if (!value) return [];
+  if (!value.startsWith("[")) return [value];
+  const ids: unknown = JSON.parse(value);
+  return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
+}
+function updatePendingReads(key: string, ids: string[], remove = false) {
+  try {
+    const current = pendingReadIds(key);
+    const next = remove ? current.filter(id => !ids.includes(id)) : [...new Set([...current, ...ids])].slice(-100);
+    if (next.length) sessionStorage.setItem(key, JSON.stringify(next));
+    else sessionStorage.removeItem(key);
+  } catch { /* Saving a read receipt still works without storage. */ }
+}
+
 export function NotificationsCenter({ userId, initialFilter = "all", supportEnabled = true, notifications: serverNotifications, initialReadIds: serverReadIds, activityAvailable, walletAvailable, crewAvailable, ordersAvailable = true, readAvailable: serverReadAvailable, initialAlertPreferences: serverAlertPreferences = {}, overview, outcomeEmailEnabled, favoriteAlertEmailEnabled, purchaseOptionEmailEnabled, crewWinEmailEnabled }: { userId?: string; initialFilter?: FilterKey; supportEnabled?: boolean; notifications: AccountNotification[]; initialReadIds: string[]; activityAvailable: boolean; walletAvailable: boolean; crewAvailable: boolean; ordersAvailable?: boolean; readAvailable: boolean; initialAlertPreferences?: NotificationPreferences | null; overview?: NotificationOverview; outcomeEmailEnabled?: boolean | null; favoriteAlertEmailEnabled?: boolean | null; purchaseOptionEmailEnabled?: boolean | null; crewWinEmailEnabled?: boolean | null }) {
   const live = useNotifications()?.liveSnapshot;
   // The header already refreshes this verified snapshot. Reuse it for page
@@ -113,7 +129,11 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
       const viewKey = JSON.stringify([userId, window.location.href]);
       if (!event && restoredView.current === viewKey) return;
       restoredView.current = viewKey;
-      const saved = readNotificationReturn(window.history.state, userId!, window.location.href);
+      let saved = readNotificationReturn(window.history.state, userId!, window.location.href);
+      if (!saved) try {
+        const key = `zero-loss-notification-view:${userId}:${new URL(window.location.href).searchParams.get("filter") ?? "all"}`;
+        saved = readNotificationReturn(JSON.parse(sessionStorage.getItem(key) ?? "null"), userId!, window.location.href);
+      } catch { /* The default feed remains available. */ }
       if (!saved) return;
       setFilter(saved.filter);
       setExpandedGroups(saved.expandedGroups);
@@ -165,12 +185,13 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
   function updateBookmark(changes: Partial<NotificationReturn>) {
     if (!userId) return;
     const saved = readNotificationReturn(window.history.state, userId, window.location.href);
-    if (!saved) return;
-    window.history.replaceState({ ...window.history.state, [notificationReturnKey]: {
-      ...saved, filter, start: batches.start, size: batches.size, expandedGroups,
+    const updated = { [notificationReturnKey]: {
+      ...saved, userId, href: window.location.href, filter, start: batches.start, size: batches.size, expandedGroups,
       scrollY: window.scrollY, listScrollTop: listRef.current?.scrollTop ?? 0,
       linkId: "", linkTop: 0, ...changes,
-    } }, "");
+    } };
+    window.history.replaceState({ ...window.history.state, ...updated }, "");
+    try { sessionStorage.setItem(`zero-loss-notification-view:${userId}:${filter}`, JSON.stringify(updated)); } catch { /* History remains usable. */ }
   }
 
   function selectFilter(nextFilter: FilterKey) {
@@ -202,15 +223,15 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
 
   useEffect(() => {
     if (!failedReadKey || !readAvailable) return;
-    let id: string | null;
-    try { id = sessionStorage.getItem(failedReadKey); } catch { return; }
-    if (!id) return;
+    let ids: string[];
+    try { ids = pendingReadIds(failedReadKey); } catch { return; }
+    if (!ids.length) return;
     let active = true;
-    void markNotificationsRead([id]).then(result => {
+    void markNotificationsRead(ids).then(result => {
       if (!active) return;
       if (!result.ok) { setReadMessage(result.message); return; }
-      try { if (sessionStorage.getItem(failedReadKey) === id) sessionStorage.removeItem(failedReadKey); } catch { /* Read state is saved. */ }
-      setLocallyRead(previous => new Set(previous).add(id));
+      updatePendingReads(failedReadKey, ids, true);
+      setLocallyRead(previous => new Set([...previous, ...ids]));
       window.dispatchEvent(new Event("zero-loss-notifications-read"));
     }).catch(() => { if (active) setReadMessage("We couldn’t save that notification’s read status. Refresh to try again."); });
     return () => { active = false; };
@@ -272,13 +293,13 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
 
   function openNotification(notification: AccountNotification) {
     setLocallyRead((previous) => new Set(previous).add(notification.id));
-    try { if (failedReadKey) sessionStorage.setItem(failedReadKey, notification.id); } catch { /* The initial read save still runs. */ }
+    if (failedReadKey) updatePendingReads(failedReadKey, [notification.id]);
     // The optional read receipt must not hold up the customer's destination.
     router.push(notification.href);
     startReadTransition(async () => {
       const result = await saveRead([notification.id]);
       if (result.ok && failedReadKey) {
-        try { if (sessionStorage.getItem(failedReadKey) === notification.id) sessionStorage.removeItem(failedReadKey); } catch { /* Read state is saved. */ }
+        updatePendingReads(failedReadKey, [notification.id], true);
       }
       if (!result.ok) {
         setLocallyRead((previous) => {

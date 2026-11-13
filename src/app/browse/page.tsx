@@ -114,7 +114,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const nextBatchParams = new URLSearchParams(returnParams);
   nextBatchParams.set("batch", String(batch + 1));
   const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}`;
-  const retryScope = selectedLabel ?? selectedRetailerGroup?.category;
+  const department = subcategory || selectedLabel || selectedRetailerGroup?.category;
+  const retryScope = [filters.retailer, department].filter(Boolean).join(" in ");
+  const withoutBudget = new URLSearchParams(searchParamsForView);
+  withoutBudget.delete("minValue");
+  withoutBudget.delete("maxValue");
   const categorySearchRetry = searchTerm && retryScope && !endingSoon && !unavailable ? (
     <form action="/browse#search-results" method="get" role="search" aria-labelledby="category-retry-label" className="mt-5 max-w-lg text-left">
       {Array.from(searchParamsForView, ([name, value]) => name !== "q" && <input key={name} type="hidden" name={name} value={value} />)}
@@ -123,6 +127,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         <input id="category-retry-query" type="search" name="q" placeholder="Enter a new search" enterKeyHint="search" autoComplete="off" required />
         <button type="submit" className={browseStyles.go}>Go</button>
       </div>
+      {budgetLabel ? <p className="mt-2 text-sm text-white/75">Prize value: {budgetLabel} · <Link href={"/browse?" + withoutBudget + "#search-results"} className="font-bold text-cyan-200 underline">Remove price limit</Link></p> : null}
     </form>
   ) : null;
   const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;

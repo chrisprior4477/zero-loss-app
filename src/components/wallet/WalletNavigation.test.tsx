@@ -80,8 +80,7 @@ test("empty Used is its own ticket with shopping and a return to the ready ticke
   expect(screen.queryByRole("region", { name: "Available rewards" })).toBeNull();
   expect(screen.queryByRole("complementary", { name: "Reward summary" })).toBeNull();
   expect(screen.getByRole("region", { name: "Used rewards" }).id).toBe("reward-history");
-  expect(screen.getByText(/You haven’t used or transferred any prizes/)).toBeTruthy();
-  expect(screen.getByText(/Please check back after/)).toBeTruthy();
+  expect(screen.getByText(/No rewards used yet/)).toBeTruthy();
   expect(screen.getByRole("link", { name: "Return to Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet#ready-rewards");
   expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
 });
@@ -89,8 +88,7 @@ test("empty Used is its own ticket with shopping and a return to the ready ticke
 test("empty Expired has the requested reminder and both working destinations", async () => {
   render(await WalletPage({ searchParams: Promise.resolve({ rewards: "expired" }) }));
   expect(screen.queryByRole("region", { name: "Available rewards" })).toBeNull();
-  expect(screen.getByText("You do not have any expired purchase options yet.")).toBeTruthy();
-  expect(screen.getByText("Remember to check your Declined Offers page.")).toBeTruthy();
+  expect(screen.getByText("No expired rewards or purchase options.")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Declined Offers" }).getAttribute("href")).toBe("/account/declined-offers");
   expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
 });

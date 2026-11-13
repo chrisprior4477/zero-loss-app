@@ -109,6 +109,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
   const body = `${text}\n${url}`;
   const members = options?.members ?? [];
   const selectedGroups = options?.groups.filter(group => selectedGroupIds.includes(group.id)) ?? [];
+  const deliverableGroups = selectedGroups.filter(group => group.memberIds.length > 0);
   const selectedGroup = selectedGroups.length === 1 ? selectedGroups[0] : undefined;
   const selectedRecipientCount = new Set(selectedGroups.flatMap(group => group.memberIds)).size;
   const portraitIndexes = new Map([...new Set([...members.map(member => member.id), ...people.map(person => person.memberId)])].sort().map((memberId, index) => [memberId, index]));
@@ -733,7 +734,7 @@ export function PostEntryCrewToast({ request, product, onClose, focusOnOpen = fa
           </section> : null}
           {groupsOnly && !selectedGroupIds.length ? <p className={styles.note}>Choose one or more groups to share with.</p> : null}
           {groupsOnly && selectedGroup && !selectedGroup.memberCount ? <p className={styles.note}>Add people to {selectedGroup.name} to send this item.</p> : null}
-          {groupsOnly ? <button type="button" className={styles.primary} disabled={busy || !selectedRecipientCount} onClick={() => void shareCrew(selectedGroupIds)}>{selectedGroups.length > 1 ? `Send to ${selectedGroups.length} groups` : selectedGroup ? `Send to ${selectedGroup.name}` : "Send to my groups"}</button> : null}
+          {groupsOnly ? <button type="button" className={styles.primary} disabled={busy || !selectedRecipientCount} onClick={() => void shareCrew(deliverableGroups.map(group => group.id))}>{deliverableGroups.length > 1 ? `Send to ${deliverableGroups.length} groups` : deliverableGroups[0] ? `Send to ${deliverableGroups[0].name}` : selectedGroup ? `Send to ${selectedGroup.name}` : "Send to my groups"}</button> : null}
           {!request ? <p className={styles.note}>{item.win ? "Shares your win with selected Crew members who allow win updates." : "Sends this item’s link to the selected connected members."}</p> : null}
           {groupsOnly ? <button type="button" disabled={busy} onClick={() => editGroup()}>＋ Create a new group</button> : null}
         </> : <button type="button" disabled={busy} onClick={() => void loadAudiences(groupsOnly)}>{busy ? "Loading Crew…" : "Retry loading Crew"}</button>}

@@ -3,20 +3,21 @@
 import { startTransition, useActionState, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { saveSupportCase, type SupportActionState } from "@/lib/support/actions";
+import { checkSupportMessage, saveSupportCase, type SupportActionState } from "@/lib/support/actions";
 import styles from "@/components/help/help-tickets.module.css";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import { supportReferencePrefix, type SupportDeposit } from "@/lib/support/references";
 import { readSupportDraft, supportDraftKey, writeSupportDraft, type SupportDraft } from "@/lib/support/draft";
 
 const field = `${styles.ticket} ${styles.field}`;
-type Props = { ownerId?: string; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean };
+type Props = { ownerId?: string; requestKey: string; caseId?: string; transactionId?: string; rewardId?: string; deposit?: SupportDeposit; staff?: boolean; caseContext?: string };
 export function SupportForm(props: Props) {
   return <SupportFormSession key={`${props.ownerId}:${props.caseId}:${props.transactionId}:${props.rewardId}:${props.deposit?.key}:${props.staff}`} {...props} />;
 }
 
-function SupportFormSession({ ownerId, requestKey, caseId, transactionId, rewardId, deposit, staff = false }: Props) {
+function SupportFormSession({ ownerId, requestKey, caseId, transactionId, rewardId, deposit, staff = false, caseContext = "" }: Props) {
   const router = useRouter();
+  const sending = useRef(false);
   const depositKey = deposit?.key;
   const initialDraft = (): SupportDraft => ({ requestKey, subject: depositKey ? "Question about this deposit" : transactionId ? "Question about this wallet transaction" : rewardId ? "Question about this reward" : "", body: "", category: transactionId || depositKey ? "wallet" : rewardId ? "reward" : "other", caseStatus: "awaiting_customer", uncertain: false });
   const [draft, setDraft] = useState(initialDraft);
@@ -46,6 +47,17 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     writeSupportDraft(draftKey, next.body || next.subject !== initial.subject || next.category !== initial.category || next.caseStatus !== initial.caseStatus || next.uncertain ? next : null);
   }
   const [state, action, pending] = useActionState(async (previous: SupportActionState, data: FormData): Promise<SupportActionState> => {
+    if (data.get("intent") === "check") {
+      try {
+        const result = await checkSupportMessage(draft.requestKey, caseId);
+        if (result.status === "saved") writeSupportDraft(draftKey, null);
+        return result;
+      } catch {
+        return { status: "error", uncertain: true, message: "Could not check your message. Your text is still here. Try checking again." };
+      } finally {
+        sending.current = false;
+      }
+    }
     const payload = ((previous.status === "error" && previous.uncertain) || draft.uncertain) && attempted.current ? attempted.current : data;
     attempted.current = payload;
     changeDraft({ uncertain: true });
@@ -56,16 +68,19 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
       return result;
     }
     catch { return { status: "error", uncertain: true, message: "Connection interrupted. Your text is still here. Check the saved result below without creating a second request." }; }
+    finally { sending.current = false; }
   }, { status: "idle" });
   const uncertain = draft.uncertain || (state.status === "error" && state.uncertain);
   const locked = pending || uncertain;
   useEffect(() => {
-    if (state.status === "saved") { window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(`/support?case=${state.caseId}#conversation`); router.refresh(); }
-  }, [state, router]);
-  if (state.status === "saved") return <div role="status" className={`${styles.ticket} ${styles.note}`}>Your message is saved. <Link className="font-bold underline" href={`/support?case=${state.caseId}#conversation`}>View your case →</Link></div>;
+    if (state.status === "saved") { window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(`/support?case=${state.caseId}${caseContext}#conversation`); router.refresh(); }
+  }, [state, router, caseContext]);
+  if (state.status === "saved") return <div role="status" className={`${styles.ticket} ${styles.note}`}>Your message is saved. <Link className="font-bold underline" href={`/support?case=${state.caseId}${caseContext}#conversation`}>View your case →</Link></div>;
   return <form onSubmit={event => {
     event.preventDefault();
+    if (locked || sending.current) return;
     const data = new FormData(event.currentTarget);
+    sending.current = true;
     startTransition(() => action(data));
   }} className="space-y-4">
     <input type="hidden" name="requestKey" value={draft.requestKey} />
@@ -86,7 +101,20 @@ function SupportFormSession({ ownerId, requestKey, caseId, transactionId, reward
     </select></span></label> : <input type="hidden" name="status" value="open" />}
     {state.status === "error" ? <p id="support-error" role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>{state.message}</p> : null}
     {draft.uncertain && state.status === "idle" ? <p role="alert" className={`${styles.ticket} ${styles.note} ${styles.error} text-sm`}>Your previous message may already be saved. Check its saved result before sending another request.</p> : null}
-    <button type="submit" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`}>{pending ? "Saving…" : uncertain ? "Check saved message" : caseId ? "Send reply" : "Send support request"}</button>
+    {uncertain ? <>
+      <button type="button" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`} onClick={() => {
+        if (sending.current) return;
+        sending.current = true;
+        const data = new FormData();
+        data.set("intent", "check");
+        startTransition(() => action(data));
+      }}>{pending ? "Checking…" : "Check saved message"}</button>
+      {state.status === "error" && state.canResend ? <button type="button" disabled={pending} className={`${styles.ticket} ${styles.button} w-full`} onClick={() => {
+        if (!attempted.current || sending.current) return;
+        sending.current = true;
+        startTransition(() => action(attempted.current!));
+      }}>Resend same message</button> : null}
+    </> : <button type="submit" disabled={pending} className={`${styles.ticket} ${styles.button} ${styles.primary} w-full`}>{pending ? "Saving…" : caseId ? "Send reply" : "Send support request"}</button>}
     {body || subject !== initialDraft().subject ? <button type="button" disabled={locked} className="min-h-11 text-sm font-bold underline disabled:opacity-50" onClick={() => { setDraft(initialDraft()); attempted.current = null; writeSupportDraft(draftKey, null); }}>Clear draft</button> : null}
     <p className="text-xs leading-5 opacity-70">Replies and status updates appear here and in Notifications. Submitting a case does not move funds or approve a refund.</p>
   </form>;

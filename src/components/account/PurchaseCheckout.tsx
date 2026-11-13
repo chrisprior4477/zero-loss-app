@@ -7,6 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { ActivityItem } from "@/lib/account/activity";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { checkDemoPurchaseReceipt, completeDemoPurchaseOptions, type BulkPurchaseRequest } from "@/lib/account/bulk-purchase-actions";
+import { checkDemoDeposit } from "@/lib/payments/actions";
 import { fundPurchaseWallet } from "@/lib/account/purchase-funding-actions";
 import type { DemoCard, DemoCardToken } from "@/lib/payments/demo-card";
 import { demoCardFixture } from "@/lib/payments/demo-card";
@@ -23,7 +24,7 @@ import styles from "./purchase-checkout.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { purchaseFundingHref, rememberWalletSelection, setWalletFundingContext } from "@/lib/wallet/wallet-funding-context";
-import { fundingHref, purchaseDepositRecoveryHref } from "@/lib/wallet/funding-navigation";
+import { fundingHref, purchaseDepositRecoveryHref, purchaseDepositKeyPattern } from "@/lib/wallet/funding-navigation";
 import { useCheckoutSelection } from "./useCheckoutSelection";
 import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 
@@ -42,13 +43,15 @@ function ConfirmPurchase({ total, balance, quantity, summary, busy, onUndo, onEx
     return () => window.clearInterval(timer);
   }, [deadline, busy, onExpire]);
   return <><div className={styles.facts}><div><span>{quantity} gift {quantity === 1 ? "card" : "cards"}</span><strong>{usd(total)}</strong></div><div><span>Wallet after purchase</span><strong>{usd(balance - total)}</strong></div></div>
-    <p className={styles.small}>{summary}</p><div className={styles.countdown}><p>Confirm or undo.<small>Time runs out? Nothing is purchased. Added funds stay in your wallet.</small></p><EntryUndoCountdown seconds={seconds} /></div>
+    <p className={styles.small}>{summary}</p><div className={styles.countdown}><p>Confirm or undo.<small>Time runs out? Nothing is purchased. Added funds stay in your wallet.</small></p><EntryUndoCountdown seconds={seconds} action="confirm purchase" /></div>
     <div className={styles.twoButtons}><button type="button" className={styles.secondary} disabled={busy} onClick={onUndo}>Undo</button><button type="button" className={styles.primary} disabled={busy} onClick={() => { if (Date.now() >= deadline) onExpire(); else onConfirm(); }}>{busy ? "Completing…" : "Confirm purchase"}</button></div>
     <p className={styles.footnote}>Simulation only · No real payment or shipment.</p></>;
 }
 
-export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false }: {
-  ownerId: string; options: ActivityItem[]; ticketLabels?: Record<string, string>; initialBalance: number; cards: DemoCard[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
+type CheckoutDepositAttempt = { key: string; amount: number; token: DemoCardToken; makeDefault: boolean };
+
+export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, creditedDeposits, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false }: {
+  ownerId: string; walletId?: string; options: ActivityItem[]; ticketLabels?: Record<string, string>; initialBalance: number; cards: DemoCard[]; creditedDeposits?: string[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
 }) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
@@ -65,13 +68,49 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [recovery, setRecovery] = useState<"deposit" | "purchase" | "offers" | null>(null);
-  const [depositRequestKey, setDepositRequestKey] = useState<string>();
+  const [depositAttempt, setDepositAttempt] = useState<CheckoutDepositAttempt>();
+  const depositRequestKey = depositAttempt?.key;
+  const [depositMissing, setDepositMissing] = useState(false);
   const checkRequired = recovery !== null;
   const [notice, setNotice] = useState("");
   const [purchaseExpired, setPurchaseExpired] = useState(false);
   const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
   const [receiptMissing, setReceiptMissing] = useState(false);
   const inFlight = useRef(false);
+  const attemptKey = `zero-loss-checkout-attempt:${ownerId}:${item.slug}`;
+  function saveAttempt(attempt: { review: true } | { purchase: BulkPurchaseRequest } | { deposit: CheckoutDepositAttempt } | null) {
+    try {
+      if (attempt) sessionStorage.setItem(attemptKey, JSON.stringify(attempt));
+      else sessionStorage.removeItem(attemptKey);
+    } catch { /* The current checkout still has its receipt. */ }
+  }
+  useLayoutEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(attemptKey) ?? "null");
+      if (saved?.purchase?.slug === item.slug && typeof saved.purchase.requestId === "string" && Array.isArray(saved.purchase.purchaseIds) && Array.isArray(saved.purchase.declineIds)) {
+        // Restore an outstanding request before offering a new purchase.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setPurchaseRequest(saved.purchase);
+        setRecovery("purchase");
+        setError("Check this purchase to see whether it completed.");
+      } else if (typeof saved?.deposit?.key === "string" && purchaseDepositKeyPattern.test(saved.deposit.key) && isFundingAmount(saved.deposit.amount) && demoCardFixture(saved.deposit.token) && typeof saved.deposit.makeDefault === "boolean") {
+        if (creditedDeposits?.includes(saved.deposit.key)) {
+          sessionStorage.removeItem(attemptKey);
+          setDepositAttempt(undefined);
+          setRecovery(null);
+          setError("");
+          setNotice("Your deposit was credited. Review your purchase before continuing.");
+        } else {
+          setDepositAttempt(saved.deposit);
+          setRecovery("deposit");
+          setError("Check this deposit before adding more funds.");
+        }
+      } else if (saved?.review === true) {
+        sessionStorage.removeItem(attemptKey);
+        setNotice("Purchase review closed. No purchase was made.");
+      }
+    } catch { /* No recoverable tab state. */ }
+  }, [attemptKey, item.slug, creditedDeposits]);
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
   const selectedEntryId = chosen[0]?.entryId;
   const walletHref = depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId);
@@ -130,9 +169,12 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
   const close = useCallback(() => {
     if (inFlight.current) return;
     setOverlay(null); setDeclineDraft(null); setPurchaseRequest(null); setAcknowledged(false);
+    try {
+      if (JSON.parse(sessionStorage.getItem(attemptKey) ?? "null")?.review) sessionStorage.removeItem(attemptKey);
+    } catch { /* Closing still works. */ }
     // Old saved decline links now open this same ticket, and cancel returns here.
     if (initiallyConfirmDecline) router.replace(closeHref, { scroll: false });
-  }, [initiallyConfirmDecline, router, closeHref]);
+  }, [initiallyConfirmDecline, router, closeHref, attemptKey]);
   const expirePurchase = useCallback(() => {
     if (inFlight.current) return;
     close();
@@ -155,43 +197,74 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
     setError(""); setNotice(""); setAcknowledged(false);
     if (shortfall) { setOverlay("fund"); return; }
     setPurchaseRequest({ slug: item.slug, purchaseIds: [...selected], declineIds: decline ? options.filter(option => !selected.includes(option.completionOptionId!)).map(option => option.completionOptionId!) : [], totalCents: total, requestId: crypto.randomUUID(), confirmed: true });
+    saveAttempt({ review: true });
     setOverlay("purchase");
   }
-  async function addFunds() {
-    if (inFlight.current || locked || fundingBlocked || !fundingAvailable || !card || !selectedCard || !acknowledged) return;
-    if (!validDeposit) { setError("Only whole-dollar amounts are accepted. Enter extra dollars such as 50, without a decimal point."); return; }
+  async function addFunds(retry?: CheckoutDepositAttempt) {
+    if (inFlight.current || !fundingAvailable || (retry ? !depositMissing || !cards.some(saved => saved.token === retry.token) : locked || fundingBlocked || !card || !selectedCard || !acknowledged)) return;
+    if (!retry && !validDeposit) { setError("Only whole-dollar amounts are accepted. Enter extra dollars such as 50, without a decimal point."); return; }
     inFlight.current = true; setBusy(true); setError("");
     const form = new FormData();
-    const requestKey = `purchase_fund_${crypto.randomUUID()}`;
-    setDepositRequestKey(requestKey);
-    form.set("idempotencyKey", requestKey); form.set("amountCents", String(deposit)); form.set("currency", "USD");
-    form.set("paymentMethod", card); form.set("makeDefault", String(cards.find(saved => saved.token === card)?.isDefault ?? false)); form.set("fundingPolicy", "funding-confirmation-v1");
+    const original = retry ?? { key: `purchase_fund_${crypto.randomUUID()}`, amount: deposit, token: card!, makeDefault: selectedCard?.isDefault ?? false };
+    setDepositMissing(false);
+    setDepositAttempt(original);
+    saveAttempt({ deposit: original });
+    form.set("idempotencyKey", original.key); form.set("amountCents", String(original.amount)); form.set("currency", "USD");
+    form.set("paymentMethod", original.token); form.set("makeDefault", String(original.makeDefault)); form.set("fundingPolicy", "funding-confirmation-v1");
     try {
       const result = await fundPurchaseWallet(form);
       if ((result.status === "succeeded" || result.status === "already_credited") && "balanceCents" in result) {
+        saveAttempt(null);
         setBalance(result.balanceCents); setExtra(""); setAcknowledged(false);
-        setNotice(`${usd(deposit)} added to your wallet. Confirm the purchase separately.`);
-        if (result.balanceCents >= total) {
+        setDepositAttempt(undefined); setRecovery(null);
+        setNotice(`${usd(original.amount)} added to your wallet. Confirm the purchase separately.`);
+        if (!retry && result.balanceCents >= total) {
           setPurchaseRequest({ slug: item.slug, purchaseIds: [...selected], declineIds: decline ? options.filter(option => !selected.includes(option.completionOptionId!)).map(option => option.completionOptionId!) : [], totalCents: total, requestId: crypto.randomUUID(), confirmed: true });
+          saveAttempt({ review: true });
           setOverlay("purchase");
-        } else { setOverlay(null); setNotice("Deposit saved. Your balance has changed; review the amount still needed before continuing."); }
+        } else { setOverlay(null); setNotice("Deposit saved. Review the updated balance before continuing."); }
         router.refresh();
       } else {
         setError("message" in result ? result.message : "Check the deposit in your wallet.");
-        setRecovery(result.status === "error" && result.beforePayment ? null : "deposit");
+        const earlyError = result.status === "error" && result.beforePayment;
+        if (earlyError && !retry) { saveAttempt(null); setDepositAttempt(undefined); }
+        setRecovery(earlyError && !retry ? null : "deposit");
       }
     } catch { setError("The connection was interrupted. Check Payment deposits in your wallet before adding more money. No purchase has been submitted."); setRecovery("deposit"); }
+    finally { inFlight.current = false; setBusy(false); }
+  }
+  async function checkDeposit() {
+    if (!walletId || !depositAttempt || inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setDepositMissing(false);
+    try {
+      const result = await checkDemoDeposit(depositAttempt.key, depositAttempt.amount, walletId);
+      if (result.status === "credited") {
+        saveAttempt(null);
+        setBalance(result.balanceCents);
+        setDepositAttempt(undefined);
+        setRecovery(null);
+        setError("");
+        setNotice("Your deposit was credited. Review your purchase before continuing.");
+        router.refresh();
+      } else if (result.status === "missing") {
+        setError("No deposit receipt was found for this attempt. You can confirm the same demo deposit again.");
+        setDepositMissing(true);
+      } else setError("Open the exact deposit in your wallet to see its current status.");
+    } catch { setError("We couldn’t verify this deposit yet. Check again."); }
     finally { inFlight.current = false; setBusy(false); }
   }
   async function confirm(retry = false) {
     if (!purchaseRequest || inFlight.current || (retry ? !receiptMissing || recovery !== "purchase" : locked)) return;
     setReceiptMissing(false);
+    saveAttempt({ purchase: purchaseRequest });
     inFlight.current = true; setBusy(true); setError("");
     try {
       const result = await completeDemoPurchaseOptions(purchaseRequest);
-      if (result.status === "succeeded") { clearChoice(); setRecovery("purchase"); window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(result.href); router.refresh(); return; }
+      if (result.status === "succeeded") { saveAttempt(null); clearChoice(); setRecovery("purchase"); window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(result.href); router.refresh(); return; }
       setError(result.message); setRecovery(result.recovery === "offers" ? "offers" : result.recovery === "check" ? "purchase" : null); setOverlay(null);
-      if (result.recovery !== "check") setPurchaseRequest(null);
+      if (result.recovery !== "check") { saveAttempt(null); setPurchaseRequest(null); }
       if (result.recovery === "balance") { router.refresh(); setNotice("Your balance changed. Review the updated amount before continuing."); }
     } catch { setError("We couldn’t confirm the result. Check this purchase before trying again."); setRecovery("purchase"); setOverlay(null); }
     finally { inFlight.current = false; setBusy(false); }
@@ -203,6 +276,7 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
     try {
       const result = await checkDemoPurchaseReceipt(purchaseRequest.requestId, purchaseRequest.slug);
       if (result.status === "succeeded") {
+        saveAttempt(null);
         clearChoice();
         window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
         router.replace(result.href);
@@ -221,7 +295,11 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
     {recovery === "purchase" && purchaseRequest ? <button className={styles.secondary} type="button" disabled={busy} onClick={() => void checkPurchase()}>{busy ? "Checking…" : "Check this purchase"}</button> : null}
     {recovery === "purchase" && receiptMissing ? <button className={styles.primary} type="button" disabled={busy} onClick={() => void confirm(true)}>Confirm same purchase · {usd(purchaseRequest?.totalCents ?? total)}</button> : null}
     {recovery === "offers" ? <a className={styles.secondary} href={refreshOffersHref}>Refresh available offers</a> : null}
-    {recovery === "deposit" ? <Link className={styles.secondary} href={walletHref} onClick={rememberSelection}>Check this deposit</Link> : null}
+    {recovery === "deposit" ? <>
+      {walletId && depositAttempt ? <button type="button" className={styles.secondary} disabled={busy} onClick={() => void checkDeposit()}>Check this deposit</button> : null}
+      <Link className={styles.secondary} href={walletHref} onClick={rememberSelection}>{walletId && depositAttempt ? "Open deposit in wallet" : "Check this deposit"}</Link>
+      {depositMissing && depositAttempt && cards.some(saved => saved.token === depositAttempt.token) ? <button type="button" className={styles.primary} disabled={busy || !fundingAvailable} onClick={() => void addFunds(depositAttempt)}>Confirm same {usd(depositAttempt.amount)} demo deposit · {demoCardFixture(depositAttempt.token)?.issuer}</button> : null}
+    </> : null}
     <Link className={styles.secondary} href="/account/entries?filter=completed">View completed purchases</Link>
   </div> : null}</>;
   const money = (onPage = false) => <div className={styles.facts}><div><span>Purchase total</span><strong>{usd(total)}</strong></div><div><span>In your wallet</span><strong>{usd(balance)}</strong></div>{onPage
@@ -270,8 +348,8 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
       </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onExpire={expirePurchase} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
         <PurchaseOptionPicker optionIds={available} selected={declineDraft ?? selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}
           onDecline={ids => { setDeclineDraft(ids); setOverlay("decline"); }}>
-          {draft => <div className={styles.optionDetails}>{options.filter(option => draft.includes(option.completionOptionId!)).map(option =>
-            <p key={option.completionOptionId}><strong>{ticketLabels[option.completionOptionId!]}</strong><br />{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining<br />Available until {option.completionExpiresAt ? <time dateTime={option.completionExpiresAt}>{formatOfferDeadline(option.completionExpiresAt, timeZone)}</time> : "its original deadline"}</p>
+          {draft => <div className={styles.optionDetails}>{options.map((option, index) =>
+            <p key={option.completionOptionId}><strong>Option {index + 1} · {ticketLabels[option.completionOptionId!]}</strong> · {draft.includes(option.completionOptionId!) ? "Selected" : "Not selected"}<br />{usd(option.paidCents)} applied · {usd(option.remainingCents)} remaining<br />Available until {option.completionExpiresAt ? <time dateTime={option.completionExpiresAt}>{formatOfferDeadline(option.completionExpiresAt, timeZone)}</time> : "its original deadline"}</p>
           )}</div>}
         </PurchaseOptionPicker></>}
     </PurchaseDialog> : null}</div>;

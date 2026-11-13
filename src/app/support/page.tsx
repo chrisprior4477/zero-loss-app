@@ -6,7 +6,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { SupportForm } from "@/components/support/SupportForm";
 import { createClient } from "@/lib/supabase/server";
 import { getAccountContext } from "@/lib/account/context";
-import { exactOrderHref } from "@/lib/account/fulfillment";
+import { exactOrderHref, fulfillmentFilter } from "@/lib/account/fulfillment";
 import { walletTransactionsHref } from "@/lib/account/activity";
 import { getSupportOrder } from "@/lib/account/order-support";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
@@ -55,7 +55,7 @@ function transactionDetails(value: unknown, timeZone: string) {
   };
 }
 
-export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; rewardId?: string; deposit?: string; view?: string; page?: string; messages?: string }> }) {
+export default async function SupportPage({ searchParams }: { searchParams: Promise<{ case?: string; transaction?: string; rewardId?: string; deposit?: string; view?: string; orderFilter?: string; page?: string; messages?: string }> }) {
   const query = await searchParams;
   const account = await getAccountContext();
   const validCase = typeof query.case === "string" && uuid.test(query.case) ? query.case : null;
@@ -70,7 +70,12 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const access = await db.rpc("has_support_access");
   const staff = access.data === true;
   const inbox = query.view === "inbox" && staff;
-  const navigation = <nav aria-label="Support navigation" className={styles.navigation}><Link className={button} data-tone="support" href="/support#case-list">My support cases</Link><Link className={button} data-tone="wallet" href={walletTransactionsHref}>Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href="/support?view=inbox#case-list">Private support inbox</Link> : null}</nav>;
+  const casePage = pageIndex(query.page);
+  const inboxContext = inbox ? `&view=inbox${casePage ? `&page=${casePage + 1}` : ""}` : "";
+  const orderFilter = fulfillmentFilter(query.orderFilter);
+  const orderContext = orderFilter === "all" ? "" : `&orderFilter=${orderFilter}`;
+  const caseInboxHref = `/support?view=inbox${casePage ? `&page=${casePage + 1}` : ""}#case-list`;
+  const navigation = <nav aria-label="Support navigation" className={styles.navigation}><Link className={button} data-tone="support" href="/support#case-list">My support cases</Link><Link className={button} data-tone="wallet" href={walletTransactionsHref}>Wallet history</Link><Link className={button} href="/faq#faq-intro">Quick answers</Link>{staff ? <Link className={button} href={caseInboxHref}>Private support inbox</Link> : null}</nav>;
   if ((query.case && !validCase) || (query.transaction && !validTransaction) || (query.rewardId && !validReward) || (query.deposit !== undefined && !validDeposit) ||
     (validReward && (validTransaction || validCase)) || (validDeposit && (validCase || validTransaction || validReward || inbox)) ||
     (query.view === "inbox" && !staff)) return <PageContainer>{heading}{navigation}<p role="alert">That support view is not available for your account.</p></PageContainer>;
@@ -84,16 +89,30 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
     const staffView = staff && supportCase.customer_id !== account.userId;
     const transaction = supportCase.ledger_entry_id ? await db.rpc("get_support_case_transaction", { p_case_id: validCase }) : null;
     const charge = transactionDetails(transaction?.data, account.timezone);
+    const ownerCase = supportCase.customer_id === account.userId;
+    const caseHref = `/support?case=${validCase}${inboxContext}`;
+    const opening = ownerCase && !supportCase.ledger_entry_id
+      ? await db.from("support_case_events").select("body").eq("case_id", validCase).eq("event_name", "support.case.opened").maybeSingle()
+      : null;
+    const openingBody = typeof opening?.data?.body === "string" ? opening.data.body : "";
+    const rewardId = /^Reward reference: ([a-f0-9-]{36})\n\n/i.exec(openingBody)?.[1];
+    const depositId = /^Deposit reference: ([a-f0-9-]{36})\nDeposit amount: /i.exec(openingBody)?.[1];
+    const reward = rewardId ? account.activity.activity.find(item => item.rewardId === rewardId) : undefined;
+    const deposit = depositId && account.wallet?.scope === "demo"
+      ? await new DemoPaymentProvider(db).getRequests().then(requests => requests.find(request => request.id === depositId)).catch(() => undefined)
+      : undefined;
     return <PageContainer>{heading}{navigation}<section id="conversation" className={`${card} ${styles.anchor}`}>
       <p className={`break-all text-xs font-bold uppercase tracking-wide ${styles.eyebrow}`}>Case {supportCase.case_number}</p>
       <h2 className="mt-3 break-words text-2xl font-black">{supportCase.subject}</h2><p className={`mt-2 font-bold ${styles.status}`}>{statusLabel(supportCase.status, staffView)}</p>
-      {charge && <p className={`${note} mt-3 text-sm`}>Linked wallet transaction: {charge.amount} · {charge.date}</p>}
+      {charge && <div className={`${note} mt-3 text-sm`}><p>Linked wallet transaction: {charge.amount} · {charge.date}</p>{ownerCase && <Link href={`${walletTransactionsHref.split("#")[0]}&transaction=${supportCase.ledger_entry_id}#transaction-${supportCase.ledger_entry_id}`}>Back to this transaction</Link>}</div>}
+      {reward && <p className={`${note} mt-3 text-sm`}><Link href={`/account/wallet?rewardId=${rewardId}#reward-pass`}>Back to this reward · {reward.title}</Link></p>}
+      {deposit && <p className={`${note} mt-3 text-sm`}><Link href={depositRecoveryHref(deposit.idempotencyKey)}>Back to this deposit · {formatUsdFromCents(deposit.amount)}</Link></p>}
       <p className={`mt-3 text-sm ${styles.muted}`}>Check this case for the next reply. If more information is needed, you can add it below. No email is sent by this preview.</p>
       {events.error ? <p role="alert" className="mt-5">We couldn’t load the conversation. Refresh to try again.</p> : <ol className="my-6 space-y-4">{messages.map(event => <li key={event.id} data-staff={event.actor_kind === "staff"} className={`${styles.ticket} ${styles.message}`}>
         <p className={`text-xs font-bold ${styles.eyebrow}`}>{event.actor_kind === "staff" ? "Zero Loss support" : "Customer"} · {formatOfferDeadline(event.created_at, account.timezone)}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{event.body}</p>
       </li>)}</ol>}
-      {!events.error ? pageLinks(`/support?case=${validCase}`, messagePage, (events.data?.length ?? 0) > pageSize, true) : null}
-      {messagePage === 0 ? <SupportForm ownerId={account.userId} key={`${validCase}-${events.data?.[0]?.id ?? "new"}`} requestKey={randomUUID()} caseId={validCase} staff={staffView} /> : <Link className={button} href={`/support?case=${validCase}#conversation`}>Return to the latest messages to reply</Link>}
+      {!events.error ? pageLinks(caseHref, messagePage, (events.data?.length ?? 0) > pageSize, true) : null}
+      {messagePage === 0 ? <SupportForm ownerId={account.userId} key={`${validCase}-${events.data?.[0]?.id ?? "new"}`} requestKey={randomUUID()} caseId={validCase} staff={staffView} caseContext={inboxContext} /> : <Link className={button} href={`${caseHref}#conversation`}>Return to the latest messages to reply</Link>}
     </section></PageContainer>;
   }
   // Ledger RLS already selects this customer's current wallet. wallet_scope is
@@ -108,7 +127,6 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const rewardTitle = validReward ? account.activity?.activity.find(item => item.rewardId === validReward)?.title : undefined;
   const deposit = validDeposit && account.wallet?.scope === "demo"
     ? await new DemoPaymentProvider(db).getRequest(validDeposit).catch(() => undefined) : undefined;
-  const casePage = pageIndex(query.page);
   let casesQuery = db.from("support_cases").select("id,case_number,subject,status,updated_at").order("updated_at", { ascending: false }).order("id", { ascending: false }).range(casePage * pageSize, (casePage + 1) * pageSize);
   if (!inbox) casesQuery = casesQuery.eq("customer_id", account.userId);
   const cases = await casesQuery;
@@ -123,15 +141,15 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
               <strong>{linkedOrder.title}</strong>
             </div>
             <p className={styles.orderCharge}><strong>{charge.amount}</strong><time dateTime={charge.timestamp}>{charge.date}</time></p>
-            <Link href={exactOrderHref(linkedOrder.orderNumber)}>Back to this order</Link>
+            <Link href={exactOrderHref(linkedOrder.orderNumber, orderFilter)}>Back to this order</Link>
           </div> : <div className={`${note} mb-4 text-sm`}><p>Linked wallet transaction: {charge.amount} · {charge.date}</p>{validTransaction && <Link className={`${button} ${styles.rewardReturn}`} href={`/account/wallet?view=history&transaction=${validTransaction}#transaction-${validTransaction}`}>Back to this transaction</Link>}</div>)}
-          {validReward ? <div className={`${note} mb-4 break-words text-sm`}><p>Linked reward: <strong>{rewardTitle ?? "Saved reward"}</strong><span className="mt-1 block break-all">Reward reference: {validReward}</span></p><Link className={`${button} ${styles.rewardReturn}`} href={`/account/wallet?rewardId=${validReward}#reward-pass`}>Back to this reward</Link></div> : null}
+          {validReward ? <div className={`${note} mb-4 break-words text-sm`}><p>Linked reward: <strong>{rewardTitle ?? "Saved reward"}</strong><span className="mt-1 block break-all">Reward reference: {validReward}</span></p><Link className={`${button} ${styles.rewardReturn}`} href={`/account/wallet?rewardId=${validReward}${orderContext}#reward-pass`}>Back to this reward</Link></div> : null}
           {deposit ? <div className={`${note} mb-4 break-words text-sm`}><p>Linked deposit: <strong>{formatUsdFromCents(deposit.amount)} USD</strong><span className="mt-1 block break-all">Deposit reference: {deposit.id}</span></p><Link className={`${button} ${styles.rewardReturn}`} href={depositRecoveryHref(deposit.idempotencyKey)}>Back to this deposit</Link></div> : null}
           <SupportForm ownerId={account.userId} key={validTransaction ?? validReward ?? validDeposit ?? "new-case"} requestKey={randomUUID()} transactionId={validTransaction ?? undefined} rewardId={validReward ?? undefined} deposit={deposit ? { key: deposit.idempotencyKey, id: deposit.id, amount: deposit.amount } : undefined} />
         </>}
       </section> : null}
       <section id="case-list" className={`${card} ${styles.anchor} ${inbox ? "lg:col-span-2" : ""}`}><h2 className="text-xl font-black">{inbox ? "Support inbox" : "Your support cases"}</h2>
-        {cases.error ? <p role="alert" className="mt-4">We couldn’t load cases. Please refresh to try again.</p> : !cases.data?.length ? <p className={`mt-4 ${styles.muted}`}>{casePage > 0 ? "No more cases on this page." : "No cases yet."}</p> : <ul className="mt-4 space-y-3">{cases.data.slice(0, pageSize).map(c => <li key={c.id}><Link href={`/support?case=${c.id}#conversation`} className={`${styles.ticket} ${styles.caseLink}`}><strong className="block break-words">{c.subject}</strong><span className={`mt-1 block text-sm ${styles.eyebrow}`}>{statusLabel(c.status, inbox)}</span><span className={`mt-2 block break-all text-xs ${styles.muted}`}>{c.case_number}</span></Link></li>)}</ul>}
+        {cases.error ? <p role="alert" className="mt-4">We couldn’t load cases. Please refresh to try again.</p> : !cases.data?.length ? <p className={`mt-4 ${styles.muted}`}>{casePage > 0 ? "No more cases on this page." : "No cases yet."}</p> : <ul className="mt-4 space-y-3">{cases.data.slice(0, pageSize).map(c => <li key={c.id}><Link href={`/support?case=${c.id}${inboxContext}#conversation`} className={`${styles.ticket} ${styles.caseLink}`}><strong className="block break-words">{c.subject}</strong><span className={`mt-1 block text-sm ${styles.eyebrow}`}>{statusLabel(c.status, inbox)}</span><span className={`mt-2 block break-all text-xs ${styles.muted}`}>{c.case_number}</span></Link></li>)}</ul>}
         {!cases.error ? pageLinks(inbox ? "/support?view=inbox" : validTransaction ? `/support?transaction=${validTransaction}` : validReward ? `/support?rewardId=${validReward}` : validDeposit ? depositSupportHref(validDeposit).split("#")[0] : "/support", casePage, (cases.data?.length ?? 0) > pageSize) : null}
       </section>
     </div>

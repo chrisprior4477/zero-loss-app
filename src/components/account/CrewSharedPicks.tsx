@@ -46,10 +46,12 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     if (!storageKey) return;
     try {
       const audience = JSON.parse(sessionStorage.getItem(`${storageKey}:scope`) ?? "null");
+      const shared = JSON.parse(sessionStorage.getItem(`${storageKey}:shared-only`) ?? "null");
       const stacks = JSON.parse(sessionStorage.getItem(`${storageKey}:expanded`) ?? "null");
       // Browser storage is read after hydration so the first render matches the server.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (typeof audience === "string") setSelectedScope(audience);
+      if (typeof shared === "boolean") setSharedOnly(shared);
       if (stacks && typeof stacks === "object" && !Array.isArray(stacks)) setExpandedByScope(stacks);
       const saved = JSON.parse(sessionStorage.getItem(`${storageKey}:operation`) ?? "null");
       if (saved?.operation?.id && saved.operation.selection?.scope) {
@@ -167,7 +169,7 @@ export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, 
     <p className={styles.intro}>{scope === "crew" ? "Picks shared with your whole Crew or individually chosen people." : `Picks shared with ${label}. Cleanup applies only to this group.`}</p>
     {!scopeAvailable ? <p role="alert">That group is no longer available. Choose another audience to continue.</p> : null}
     <div className={styles.toolbar}>
-      <label><input type="checkbox" checked={sharedOnly} onChange={e => { setSharedOnly(e.target.checked); resetList(); }} /> Shared only</label>
+      <label><input type="checkbox" checked={sharedOnly} onChange={e => { setSharedOnly(e.target.checked); writePreference("shared-only", e.target.checked); resetList(); }} /> Shared only</label>
       <button type="button" disabled={disabled} onClick={() => { setCleanupAudience({ scope, label }); setCleanup("choose"); setReview(null); }}>Clean up sharing</button>
     </div>
     {status}

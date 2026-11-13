@@ -10,7 +10,11 @@ export function ProductSuggestion({ ownerId }: { ownerId?: string }) {
     const revealTarget = () => {
       if (window.location.hash !== "#product-request" || !panel.current) return;
       panel.current.open = true;
-      frame = window.requestAnimationFrame(() => panel.current?.scrollIntoView({ block: "start" }));
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        panel.current?.scrollIntoView({ block: "start" });
+        panel.current?.querySelector("input")?.focus({ preventScroll: true });
+      });
     };
     revealTarget();
     window.addEventListener("hashchange", revealTarget);

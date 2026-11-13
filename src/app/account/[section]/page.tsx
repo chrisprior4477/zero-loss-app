@@ -98,8 +98,10 @@ export default async function LiveAccountSection({
     const supportHref = selectedOrder && account.wallet?.scope === "demo"
       ? await getOrderSupportHref(await createClient(), account.userId, selectedOrder.orderNumber)
       : walletTransactionHelpHref;
-    if (query?.support === "report" && selectedOrder && supportHref !== walletTransactionHelpHref) redirect(supportHref);
-    return <OrdersFulfillment state={account.orders} filter={fulfillmentFilter(query?.filter)} selectedRewardId={selectedRewardId} selectedOrderNumber={selectedOrderNumber} supportHref={supportHref} supportUnavailable={query?.support === "report" && Boolean(selectedOrder) && supportHref === walletTransactionHelpHref} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
+    const filter = fulfillmentFilter(query?.filter);
+    const reportHref = filter === "all" ? supportHref : supportHref.replace("#report-problem", `&orderFilter=${filter}#report-problem`);
+    if (query?.support === "report" && selectedOrder && supportHref !== walletTransactionHelpHref) redirect(reportHref);
+    return <OrdersFulfillment state={account.orders} filter={filter} selectedRewardId={selectedRewardId} selectedOrderNumber={selectedOrderNumber} supportHref={reportHref} supportUnavailable={query?.support === "report" && Boolean(selectedOrder) && supportHref === walletTransactionHelpHref} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
   }
 
   return (

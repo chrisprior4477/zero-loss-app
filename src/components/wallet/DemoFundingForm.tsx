@@ -4,7 +4,7 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
-import { DepositReceiptDate } from "./WeeklyDeposits";
+import { DepositCreditLink, DepositReceiptDate } from "./WeeklyDeposits";
 import { WalletColumnHeadings } from "./WalletColumnHeadings";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import batchStyles from "@/components/account/ticket-batches.module.css";
@@ -81,6 +81,21 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
   const [cards, setCards] = useState<DemoCard[]>(savedCards ?? (savedCard ? [savedCard] : []));
   const [visibleTokens, setVisibleTokens] = useState<DemoCardToken[]>(() => cards.length ? cards.map(card => card.token) : [DEMO_CARD_TOKEN]);
   const [selectedToken, setSelectedToken] = useState<DemoCardToken | null>(initialToken ?? preferredDepositCard(cards) ?? cards[0]?.token ?? DEMO_CARD_TOKEN);
+  const cardChoiceKey = `zero-loss-funding-card:${walletId}:${continueTo?.href ?? "wallet"}`;
+  useEffect(() => {
+    if (recovered || initialToken) return;
+    try {
+      const token = sessionStorage.getItem(cardChoiceKey);
+      const saved = savedCards?.find(item => item.token === token) ?? (savedCard?.token === token ? savedCard : null);
+      // Read tab state only after the server render has hydrated.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (saved) setSelectedToken(saved.token);
+    } catch { /* The saved default remains available. */ }
+  }, [cardChoiceKey, initialToken, recovered, savedCard, savedCards]);
+  function chooseDepositCard(token: DemoCardToken) {
+    setSelectedToken(token);
+    try { sessionStorage.setItem(cardChoiceKey, token); } catch { /* The current selection still works. */ }
+  }
   const [defaultToken, setDefaultToken] = useState<DemoCardToken | null>(() => initialDefault === false ? null : initialDefault === true ? (initialToken ?? cards.find(card => card.isDefault)?.token ?? DEMO_CARD_TOKEN) : cards.find(card => card.isDefault)?.token ?? null);
   const [savingCard, setSavingCard] = useState<DemoCardToken | null>(null);
   const [cardMessage, setCardMessage] = useState("");
@@ -239,9 +254,12 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
   }
   useEffect(() => {
     if (state.status === "succeeded" || state.status === "already_credited" || (state.status === "error" && state.beforePayment)) {
-      try { sessionStorage.removeItem(storageKey); } catch { /* DB recovery remains available. */ }
+      try {
+        if (state.status !== "error") sessionStorage.removeItem(cardChoiceKey);
+        sessionStorage.removeItem(storageKey);
+      } catch { /* DB recovery remains available. */ }
     }
-  }, [state, storageKey]);
+  }, [state, storageKey, cardChoiceKey]);
   useEffect(() => {
     if (state.status === "already_credited" || (state.status === "succeeded" && !continueTo?.href)) onSuccess(state.message);
   }, [state, continueTo?.href, onSuccess]);
@@ -269,7 +287,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
           {allSamplesSaved ? <button type="button" className={styles.seeCard} disabled={locked || cardUnavailable || savingCard !== null} onClick={() => addCard(token)}>Edit</button> : null}
           {saved ? <button type="button" className={styles.deleteSampleCard} disabled={locked || cardUnavailable || deletingCard} onClick={() => { setCardMessage(""); setDeleteToken(token); }}>Delete Card</button> : null}
         </>}>
-          <label className={styles.cardChoice}><input type="radio" name="cardChoice" checked={selectedToken === token} onChange={() => setSelectedToken(token)} disabled={locked || cardUnavailable} />Use for this deposit</label>
+          <label className={styles.cardChoice}><input type="radio" name="cardChoice" checked={selectedToken === token} onChange={() => chooseDepositCard(token)} disabled={locked || cardUnavailable} />Use for this deposit</label>
           <label className={styles.cardChoice}><input type="checkbox" checked={defaultToken === token} onChange={() => {
             if (defaultToken === token) { if (saved) void persistCard(token, false); else setDefaultToken(null); }
             else { if (saved) void persistCard(token, true); else setDefaultToken(token); }
@@ -306,7 +324,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
       {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
       {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
-      {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={setSelectedToken} /> : null}
+      {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={chooseDepositCard} /> : null}
       <div className={styles.fundingAmounts}>
       <WalletRollerPicker id="demo-funding-amount" label="Amount (USD)" placeholder="Choose an amount" options={presetChoices}
         value={selectedPreset} onChange={value => { setAmount(value); setCustomAmount(""); }} disabled={locked} />
@@ -345,7 +363,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
     {!recoveryOnly && desktop && <div className={styles.desktopCards}>
       <div className={styles.savedHeading}><strong>Saved cards</strong><button type="button" className={styles.manageCards} aria-expanded={manageCards} aria-controls="add-card" onClick={() => setManageCards(value => !value)}>{manageCards ? "Close saved cards" : "Manage saved cards"}</button></div>
-      {cards.length > 0 && <div className={styles.savedChoices}>{cards.map(card => <button key={card.token} type="button" disabled={locked || cardUnavailable} aria-pressed={card.token === selectedToken} onClick={() => setSelectedToken(card.token)}>{demoCardFixture(card.token)?.issuer} · {card.lastFour}</button>)}</div>}
+      {cards.length > 0 && <div className={styles.savedChoices}>{cards.map(card => <button key={card.token} type="button" disabled={locked || cardUnavailable} aria-pressed={card.token === selectedToken} onClick={() => chooseDepositCard(card.token)}>{demoCardFixture(card.token)?.issuer} · {card.lastFour}</button>)}</div>}
       <div hidden={!manageCards}>{cardPanel}</div>
     </div>}
     <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}><a href="#balance" className={paymentStyles.secondary}>Back to wallet</a><Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link></div>
@@ -457,13 +475,20 @@ function CheckFundingRequest({ id, continueTo }: { id: string; continueTo?: Cont
   </form>;
 }
 
-export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hiddenIds = [], hideArchived = false, canResetDemoHistory = false, timeZone }: { requests: DemoFundingRequest[] | null; fundingEnabled: boolean; continueTo?: ContinueDestination; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean; timeZone?: string }) {
+export function DemoFundingRequests({ walletId, requests, fundingEnabled, continueTo, hiddenIds = [], hideArchived = false, canResetDemoHistory = false, timeZone }: { walletId?: string; requests: DemoFundingRequest[] | null; fundingEnabled: boolean; continueTo?: ContinueDestination; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean; timeZone?: string }) {
   const [showArchived, setShowArchived] = useState(false);
   const desktop = useMenuViewport() === "desktop";
   const [allDeposits, setAllDeposits] = useState(false);
+  const [receipt, setReceipt] = useState<string | null>(null);
+  const viewKey = walletId ? `zero-loss-deposit-view:${walletId}` : null;
+  function remember(start: number, size: number, all: boolean, opened: string | null) {
+    if (viewKey) try { sessionStorage.setItem(viewKey, JSON.stringify({ start, size, all, receipt: opened })); } catch { /* The list remains usable. */ }
+  }
   function close() {
     batches.reset();
     setAllDeposits(false);
+    setReceipt(null);
+    remember(0, 5, false, null);
     document.getElementById("payment-deposits-heading")?.focus({ preventScroll: true });
     document.getElementById("payment-deposits")?.scrollIntoView?.({ block: "start", behavior: "auto" });
   }
@@ -473,23 +498,49 @@ export function DemoFundingRequests({ requests, fundingEnabled, continueTo, hidd
     Date.parse(b.postedAt ?? b.created_at) - Date.parse(a.postedAt ?? a.created_at) || b.id.localeCompare(a.id)) : visibleRequests;
   const count = displayRequests?.length ?? 0;
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(count, 5, 0, desktop ? "pages" : "fit");
+  const restoreRange = batches.restoreRange;
+  useEffect(() => {
+    if (!viewKey) return;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(viewKey) ?? "null");
+      if (!saved) return;
+      if (Number.isSafeInteger(saved.start) && saved.start >= 0 && Number.isSafeInteger(saved.size) && saved.size > 0) {
+        restoreRange(saved.start, saved.size);
+      }
+      // Hydrate the tab's receipt view after the server render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAllDeposits(saved.all === true);
+      setReceipt(typeof saved.receipt === "string" ? saved.receipt : null);
+    } catch { /* Use the first batch. */ }
+  }, [viewKey, restoreRange]);
   const end = desktop ? Math.min(count, allDeposits ? count : 6) : batches.end;
   const twoColumns = desktop && end > 3;
-  const controls = { ...(desktop ? { remaining: count - end, expanded: allDeposits && count > 6, more: () => setAllDeposits(true) } : batches), close, listId: "wallet-deposit-list", noun: "deposits" };
+  const controls = { ...(desktop ? { remaining: count - end, expanded: allDeposits && count > 6 } : batches), close, listId: "wallet-deposit-list", noun: "deposits", more: () => {
+    if (desktop) setAllDeposits(true);
+    else batches.more();
+    remember(desktop ? batches.start : batches.end, batches.size, desktop || allDeposits, receipt);
+  } };
   return <section id="payment-deposits" className={styles.fundingRequests} aria-labelledby="payment-deposits-heading"><div className={styles.depositHeading}><h2 id="payment-deposits-heading" tabIndex={-1}>Payment deposits</h2><Link href="/" className={styles.depositShoppingButton}>Continue shopping</Link></div>
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
       : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>
       : <><TicketBatchControls {...controls} top />{twoColumns && <WalletColumnHeadings />}<ul id={controls.listId} tabIndex={-1} ref={listRef} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(end / 2)}, auto)` } : undefined} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, end).map(request => <li key={request.id} className="p-4">
-        <details className={styles.depositMeta}>
+        <details className={styles.depositMeta} open={receipt === request.id} onToggle={event => {
+          const isOpen = event.currentTarget.open;
+          if (!isOpen && receipt !== request.id) return;
+          const next = isOpen ? request.id : null;
+          if (next === receipt) return;
+          setReceipt(next);
+          remember(batches.start, batches.size, allDeposits, next);
+        }}>
           <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
-          <p>Request {request.id}</p>
+          <p>Request {request.id}</p><DepositCreditLink request={request} />
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : fundingEnabled && request.reconciliation !== "reconciled" ? <CheckFundingRequest id={request.id} continueTo={continueTo} /> : null}
       </li>)}</ul></>}
     <TicketBatchControls {...controls} />
     {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}
-    {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setShowArchived(value => !value); setAllDeposits(false); batches.reset(); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
+    {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setShowArchived(value => !value); setAllDeposits(false); setReceipt(null); batches.reset(); remember(0, 5, false, null); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
   </section>;
 }

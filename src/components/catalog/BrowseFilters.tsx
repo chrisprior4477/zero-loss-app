@@ -7,7 +7,7 @@ import { MAX_PRIZE_VALUE, type BrowseFilterState } from "@/lib/catalog/browse-fi
 import type { RetailerFilterGroup } from "@/lib/catalog/browse-filters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
-import type { MarketplaceCategoryId } from "@/lib/catalog/navigation";
+import { marketplaceCategories, type MarketplaceCategoryId } from "@/lib/catalog/navigation";
 import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
 import { PrizeDollarField } from "./PrizeDollarField";
 
@@ -25,6 +25,8 @@ export type BrowseFilterProps = {
 
 export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, selectedCategory, searchTerm, subcategory, clearHref, id, onNavigate }: BrowseFilterProps & { id: string }) {
   const router = useRouter();
+  const department = subcategory || marketplaceCategories.find(category => category.id === selectedCategory)?.label || selectedRetailerGroup?.category;
+  const scope = [filters.retailer, department].filter(Boolean).join(" in ");
   const selectingByKeyboard = useRef(false);
   const [searchDraft, setSearchDraft] = useState(searchTerm);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -90,7 +92,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
       <div onFocusCapture={() => setSearchFocused(true)} onBlurCapture={event => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSearchFocused(false);
       }}>
-        <label htmlFor={`${id}-search`} className="mb-2 block text-xs font-black uppercase tracking-[.1em] text-cyan-200">Search products &amp; categories</label>
+        <label htmlFor={`${id}-search`} className="mb-2 block text-xs font-black uppercase tracking-[.1em] text-cyan-200">{scope ? `Search ${scope}` : "Search all prizes"}</label>
         <div className="flex min-h-11 w-full items-center rounded-full bg-white px-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55)] focus-within:outline focus-within:outline-2 focus-within:outline-cyan-300">
           <button type="submit" aria-label="Search catalog" title="Search catalog" className="relative mr-2 h-5 w-5 shrink-0 text-[#087feb]">
             <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />

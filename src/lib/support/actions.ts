@@ -7,12 +7,28 @@ import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 import { supportReferencePrefix } from "./references";
 
-export type SupportActionState = { status: "idle" } | { status: "error"; message: string; uncertain?: boolean; field?: "subject" | "body" } | { status: "saved"; caseId: string };
+export type SupportActionState = { status: "idle" } | { status: "error"; message: string; uncertain?: boolean; canResend?: boolean; field?: "subject" | "body" } | { status: "saved"; caseId: string };
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const key = /^[A-Za-z0-9_-]{16,128}$/;
 
 function bodyError(limit: number): SupportActionState {
   return { status: "error", field: "body", message: `Please enter a message of 10–${limit.toLocaleString("en-US")} characters, excluding spaces at the beginning and end.` };
+}
+
+export async function checkSupportMessage(requestKey: string, caseId?: string): Promise<SupportActionState> {
+  const failure = { status: "error", uncertain: true, message: "We couldn’t check your message. Try again." } as const;
+  if (!isPreviewDataEnvironment() || !key.test(requestKey) || (caseId && !uuid.test(caseId))) return failure;
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user) return { ...failure, message: "Sign in again to check your message." };
+    let lookup = db.from("support_case_events").select("case_id").eq("actor_id", user.id).eq("idempotency_key", requestKey);
+    lookup = caseId ? lookup.eq("case_id", caseId).neq("event_name", "support.case.opened") : lookup.eq("event_name", "support.case.opened");
+    const { data, error } = await lookup.maybeSingle();
+    if (error) return failure;
+    if (!data) return { status: "error", uncertain: true, canResend: true, message: "No saved message was found. You can resend the same message." };
+    return typeof data.case_id === "string" && uuid.test(data.case_id) ? { status: "saved", caseId: data.case_id } : failure;
+  } catch { return failure; }
 }
 
 export async function saveSupportCase(_previous: SupportActionState, form: FormData): Promise<SupportActionState> {
@@ -63,6 +79,6 @@ export async function saveSupportCase(_previous: SupportActionState, form: FormD
     revalidatePath("/account/notifications");
     return { status: "saved", caseId: result.data };
   } catch {
-    return { status: "error", uncertain: true, message: "We couldn’t confirm your message. Check the saved result below; we’ll resend the exact same request safely." };
+    return { status: "error", uncertain: true, message: "We couldn’t confirm your message. Check the saved result below before sending again." };
   }
 }

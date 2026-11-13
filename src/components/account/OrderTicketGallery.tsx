@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { type CSSProperties, type PointerEvent, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { FulfillmentRecord } from "@/lib/account/fulfillment";
+import type { FulfillmentRecord, FulfillmentFilter } from "@/lib/account/fulfillment";
 import { walletRewardHref } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
@@ -64,7 +64,7 @@ function CopyIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>;
 }
 
-function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; anchor: HTMLButtonElement; onClose: () => void }) {
+function OrderDetails({ order, anchor, onClose, filter }: { filter: FulfillmentFilter; order: FulfillmentRecord; anchor: HTMLButtonElement; onClose: () => void }) {
   const panel = useRef<HTMLElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -132,7 +132,7 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
         {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd><span title={value}>{value.slice(-8).toUpperCase()}</span><button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
         <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone)}</time> : "Unavailable"}</dd></div>
       </dl>
-      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report` : `/support?rewardId=${encodeURIComponent(order.rewardId)}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
+      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => { element?.select(); }} /> : null}
@@ -140,7 +140,7 @@ function OrderDetails({ order, anchor, onClose }: { order: FulfillmentRecord; an
   </div>;
 }
 
-export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) {
+export function OrderTicketGallery({ orders, filter = "all" }: { orders: FulfillmentRecord[]; filter?: FulfillmentFilter }) {
   const phone = useSyncExternalStore(subscribePhone, isPhone, serverPhone);
   const [pageAnchor, setPageAnchor] = useState<string | null>(null);
   const [opened, setOpened] = useState<{ id: string; anchor: HTMLButtonElement } | null>(null);
@@ -349,7 +349,7 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
         {Array.from({ length: lastPage + 1 }, (_, page) => <span key={page} data-order-page={page} className={styles.pageMarker} aria-hidden="true" style={{ gridColumn: `${page * columns + 1} / span ${columns}` }} />)}
         {orders.map((order, index) => {
           const detail = orderPresentation(order);
-          const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId });
+          const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId }) + (filter === "all" ? "" : `&orderFilter=${filter}`);
           const position = index % size;
           const page = Math.floor(index / size);
           const column = page * columns + position % columns;
@@ -367,7 +367,7 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
       {hasPrevious ? <button type="button" className={styles.peekButton} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(previousPage)} /> : null}
       {hasNext ? <button type="button" className={styles.peekButton} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(nextPage)} /> : null}
       </div>
-      {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} anchor={opened.anchor} onClose={closeDetails} /> : null}
+      {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} filter={filter} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
     <nav className={styles.paging} aria-label="Order tickets"><span role="status">{start + 1}–{Math.min(start + size, orders.length)} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={!hasPrevious || Boolean(selected)} onClick={() => changePage(previousPage)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={!hasNext || Boolean(selected)} onClick={() => changePage(nextPage)}><AccountIcon name="chevron" /></button></div></nav>
   </div>;
