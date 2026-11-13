@@ -20,9 +20,10 @@ export function productBrowseReturnPath(value: unknown): string | null {
     const keys = [...url.searchParams.keys()];
     const share = url.searchParams.get("share");
     if (url.hash || url.searchParams.get("tab") !== "shared"
-      || keys.some(key => key !== "tab" && key !== "share") || new Set(keys).size !== keys.length
+      || keys.some(key => key !== "tab" && key !== "share" && key !== "view") || new Set(keys).size !== keys.length
+      || (url.searchParams.has("view") && !["available", "declined"].includes(url.searchParams.get("view")!))
       || (share !== null && !shareUuid.test(share))) return null;
-    return savedShareHref(share ?? undefined);
+    return savedShareHref(share ?? undefined, url.searchParams.get("view") === "declined" ? "declined" : "available");
   }
   const retailer = /^\/rewards\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(value);
   if (retailer) return getPopularRewardBrand(retailer[1]) ? value : null;

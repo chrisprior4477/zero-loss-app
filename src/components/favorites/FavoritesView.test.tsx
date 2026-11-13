@@ -28,13 +28,14 @@ test("personal favorites are the default and the two tabs replace the introducto
   expect(screen.getByText("From Alex")).toBeTruthy(); expect(window.location.search).toBe("?tab=shared"); expect(mocks.toggle).not.toHaveBeenCalled();
   expect(replace).toHaveBeenLastCalledWith(null, "", "/account/favorites?tab=shared"); replace.mockRestore();
 });
-test("declining keeps the shared card and never changes personal favorites", async () => {
+test("declining moves the shared card to Declined and never changes personal favorites", async () => {
   window.history.replaceState({}, "", "/account/favorites?tab=shared");
   show({ initialTab: "shared" }); fireEvent.click(screen.getByRole("button", { name: /View prize/ }));
   fireEvent.click(screen.getByRole("button", { name: "Decline this share" }));
-  await waitFor(() => expect(screen.getByText("Declined")).toBeTruthy());
+  await screen.findByRole("heading", { name: "No available shares" });
   expect(screen.getByRole("tab", { name: "Shared with You 1" })).toBeTruthy(); expect(screen.getByRole("tab", { name: "Your Favorites 1" })).toBeTruthy();
-  await waitFor(() => expect(screen.getByRole("button", { name: /View prize/ })).toBeTruthy()); expect(mocks.toggle).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Declined 1" }));
+  expect(screen.getByRole("button", { name: /View declined share/ })).toBeTruthy(); expect(mocks.toggle).not.toHaveBeenCalled();
 });
 
 test("a delayed decline saves the share without closing a newly opened favorite", async () => {
@@ -54,7 +55,8 @@ test("a delayed decline saves the share without closing a newly opened favorite"
   expect(screen.queryByText("Declined.")).toBeNull();
 
   fireEvent.click(screen.getByRole("tab", { name: "Shared with You 1" }));
-  expect(screen.getByText("Declined")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Declined 1" }));
+  expect(screen.getByText("Declined", { selector: "span" })).toBeTruthy();
   expect(mocks.toggle).not.toHaveBeenCalled();
 });
 
@@ -71,9 +73,10 @@ test("a late viewed response cannot erase a completed decline", async () => {
   let finishView!: (value: unknown) => void;
   mocks.state.mockImplementation((_id, state) => state === "viewed" ? new Promise(resolve => { finishView = resolve; }) : Promise.resolve({ ok: true, viewedAt: "today", declinedAt: "today", message: "Kept" }));
   show({ initialTab: "shared" }); fireEvent.click(screen.getByRole("button", { name: /View prize/ })); fireEvent.click(screen.getByRole("button", { name: "Decline this share" }));
-  await waitFor(() => expect(screen.getByText("Declined")).toBeTruthy());
+  await screen.findByRole("heading", { name: "No available shares" });
+  fireEvent.click(screen.getByRole("button", { name: "Declined 1" }));
   await act(async () => finishView({ ok: true, viewedAt: "today", declinedAt: null }));
-  expect(screen.getByText("Declined")).toBeTruthy();
+  expect(screen.getByText("Declined", { selector: "span" })).toBeTruthy();
 });
 test("after a pool closes a saved detail, its entry button and its list count disappear together", () => {
   const view = show({ initialItem: "nike-court-shot-shoes" });
@@ -182,13 +185,16 @@ test("fresh decline and restore states remain authoritative after a local respon
   const view = show({ initialTab: "shared" });
   fireEvent.click(screen.getByRole("button", { name: /View prize/ }));
   fireEvent.click(screen.getByRole("button", { name: "Decline this share" }));
-  await screen.findByText("Declined");
+  await screen.findByRole("heading", { name: "No available shares" });
+  fireEvent.click(screen.getByRole("button", { name: "Declined 1" }));
   const refreshed = (declined: string | null) => <FavoritesView availability={null} initialAlerts={{}} emailEnabled initialTab="shared" initialShares={[{ ...share, viewedAt, declinedAt: declined }]} />;
   view.rerender(refreshed(declinedAt));
   await act(async () => finishView({ ok: true, viewedAt, declinedAt: null }));
-  expect(screen.getByText("Declined")).toBeTruthy();
+  expect(screen.getByText("Declined", { selector: "span" })).toBeTruthy();
   view.rerender(refreshed(null));
-  expect(screen.queryByText("Declined")).toBeNull();
+  expect(screen.queryByText("Declined", { selector: "span" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "No declined shares" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Available 1" }));
   expect(screen.getByText("Viewed")).toBeTruthy();
 });
 test("unavailable shared history does not hide personal favorites", () => {
@@ -276,4 +282,54 @@ test("a cached Favorites route reopens the detail from the current history URL",
   show();
   expect(screen.getByRole("button", { name: "Back to list" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Enter for $1" })).toBeTruthy();
+});
+
+test("shared filters count only open shares and reopening preserves the exact declined share", () => {
+  const declined = { ...share, id: "33333333-3333-4333-8333-333333333333", declinedAt: "today" };
+  show({ initialTab: "shared", hiddenSlugs: ["nike-court-shot-shoes"], initialShares: [share, declined, { ...declined, id: "closed", slug: "nike-court-shot-shoes" }] });
+  expect(screen.getByRole("button", { name: "Available 1" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getAllByRole("button", { name: /View prize/ })).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Declined 1" }));
+  expect(window.location.search).toBe("?tab=shared&view=declined");
+  expect(screen.queryByRole("button", { name: /View prize/ })).toBeNull();
+  const href = new URL(screen.getByRole("link", { name: "Reopen prize →" }).getAttribute("href")!, "https://example.test");
+  expect(href.pathname).toBe("/items/playstation-5-slim");
+  expect(href.searchParams.get("from")).toBe(`/account/favorites?tab=shared&share=${declined.id}&view=declined`);
+  expect(href.searchParams.get("share")).toBe(share.token);
+  expect(mocks.state).not.toHaveBeenCalled();
+});
+
+test("Declined survives refresh, preview Back/Forward and a closed pool removes Reopen", async () => {
+  window.history.replaceState({}, "", "/account/favorites?tab=shared&view=declined");
+  const props = { initialTab: "shared" as const, initialSharedView: "declined" as const, initialShares: [{ ...share, declinedAt: "today" }] };
+  const view = show(props);
+  fireEvent.click(screen.getByRole("button", { name: /View declined share/ }));
+  expect(screen.getByRole("link", { name: "Reopen prize →" })).toBeTruthy();
+  act(() => window.history.back());
+  await screen.findByRole("button", { name: /View declined share/ });
+  expect(screen.getByRole("button", { name: "Declined 1" }).getAttribute("aria-pressed")).toBe("true");
+  act(() => window.history.forward());
+  await screen.findByRole("button", { name: "Undo decline" });
+  view.rerender(<FavoritesView availability={null} initialAlerts={{}} emailEnabled {...props} hiddenSlugs={[share.slug]} />);
+  expect(screen.queryByRole("link", { name: "Reopen prize →" })).toBeNull();
+  expect(screen.getByRole("tab", { name: "Shared with You 0" })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "This shared prize is no longer available" })).toBeTruthy();
+});
+
+test("undo decline waits for a confirmed save and moves the share into Available", async () => {
+  window.history.replaceState({}, "", `/account/favorites?tab=shared&share=${share.id}&view=declined`);
+  let finish!: (value: unknown) => void;
+  mocks.state.mockImplementation((_id, state) => state === "restore" ? new Promise(resolve => { finish = resolve; }) : Promise.resolve({ ok: true, viewedAt: "today", declinedAt: "today" }));
+  show({ initialTab: "shared", initialSharedView: "declined", initialShareId: share.id, initialShares: [{ ...share, declinedAt: "today" }] });
+  fireEvent.click(screen.getByRole("button", { name: "Undo decline" }));
+  expect(screen.getByRole("button", { name: "Saving…" })).toHaveProperty("disabled", true);
+  await act(async () => finish({ ok: false, message: "Please try again." }));
+  expect(screen.getByText("Please try again.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Undo decline" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Undo decline" }));
+  await act(async () => finish({ ok: true, viewedAt: "today", declinedAt: null, message: "Restored." }));
+  expect(screen.getByRole("heading", { name: "No declined shares" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Available 1" }));
+  expect(screen.getByRole("button", { name: /View prize/ })).toBeTruthy();
+  expect(mocks.toggle).not.toHaveBeenCalled();
 });

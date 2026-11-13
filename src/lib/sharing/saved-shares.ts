@@ -19,8 +19,10 @@ export function parseSavedProductShares(value: unknown): SavedProductShare[] | n
   return result;
 }
 export const sharedWithYouHref = "/account/favorites?tab=shared";
-export function savedShareHref(id?: string) {
-  return id && shareUuid.test(id) ? `${sharedWithYouHref}&share=${id}` : sharedWithYouHref;
+export type SharedView = "available" | "declined";
+export function savedShareHref(id?: string, view: SharedView = "available") {
+  const href = id && shareUuid.test(id) ? `${sharedWithYouHref}&share=${id}` : sharedWithYouHref;
+  return view === "declined" ? `${href}&view=declined` : href;
 }
 export function savedShareStatus(share: SavedProductShare) {
   return share.declinedAt ? "Declined" : share.savedAt ? "Saved" : share.viewedAt ? "Viewed" : "New";

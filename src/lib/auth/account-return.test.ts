@@ -3,6 +3,7 @@ import { accountPageReturnPath, accountReturnPath } from "./account-return";
 import { authNavigationHref, signInReturnPath, signupVerificationPath } from "./entry-return";
 const id = "11111111-1111-4111-8111-111111111111";
 const destinations = [
+  `/account/favorites?tab=shared&share=${id}&view=declined`, "/account/favorites?tab=shared&view=declined",
   "/account/wallet?rewards=ready#ready-rewards", "/account/wallet?rewards=used#reward-history",
   "/account/wallet?rewards=expired#reward-history", "/account/wallet?rewards=history#reward-history",
   "/account/crew?tab=privacy#crew-privacy",
@@ -40,6 +41,7 @@ test.each(destinations)("preserves the approved destination through every auth s
   }
 });
 test.each([
+  "/account/favorites?tab=shared&view=unknown", "/account/favorites?tab=shared&view=available&view=declined",
   "/account/wallet?rewards=admin#reward-history", "/account/wallet?rewards=used&rewards=expired#reward-history",
   "/account/crew?tab=privacy&tab=crew#crew-privacy", "/account/crew?tab=privacy#outside",
   "/account/orders?order=ord_1&support=https%3A%2F%2Fevil.test", "/account/orders?order=ord_1&support=report&support=report",

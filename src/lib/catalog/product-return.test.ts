@@ -2,6 +2,13 @@ import { expect, test } from "vitest";
 import { freeEntryHref, productBrowseReturnHref, productBrowseReturnLabel, productHrefWithBrowseReturn } from "./product-return";
 import { popularRewardBrands } from "./popular-rewards";
 
+test("declined shared prizes retain their filtered return and reject unknown or repeated filters", () => {
+  const route = "/account/favorites?tab=shared&share=11111111-1111-4111-8111-111111111111&view=declined";
+  expect(productBrowseReturnHref(route)).toBe(route);
+  expect(productBrowseReturnHref("/account/favorites?tab=shared&view=declined")).toBe("/account/favorites?tab=shared&view=declined");
+  for (const value of [route.replace("view=declined", "view=unknown"), `${route}&view=available`]) expect(productBrowseReturnHref(value)).toBe("/browse");
+});
+
 test("product links carry their exact marketplace category or search", () => {
   expect(productHrefWithBrowseReturn("dyson-v8-cordless-vacuum", "/browse?category=home-essentials&available=1"))
     .toBe("/items/dyson-v8-cordless-vacuum?from=%2Fbrowse%3Fcategory%3Dhome-essentials%26available%3D1");

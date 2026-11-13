@@ -10,7 +10,7 @@ import { accountPageReturnPath } from "@/lib/auth/account-return";
 
 export const metadata: Metadata = { title: "Favorites & Sent to You" };
 
-export default async function FavoritesPage({ searchParams }: { searchParams: Promise<{ tab?: string; share?: string; item?: string }> }) {
+export default async function FavoritesPage({ searchParams }: { searchParams: Promise<{ tab?: string; share?: string; item?: string; view?: string }> }) {
   const params = await searchParams;
   const { account, hidden, availability } = await getShoppingCatalog();
   if (!account) redirect(authNavigationHref("/login", accountPageReturnPath(accountRoutes.favorites, params)));
@@ -20,7 +20,8 @@ export default async function FavoritesPage({ searchParams }: { searchParams: Pr
     db.rpc("get_favorite_alert_email_enabled"),
     db.rpc("get_saved_product_shares"),
   ]);
-  return <FavoritesView key={`${params.tab ?? "favorites"}:${params.share ?? ""}:${params.item ?? ""}`} availability={availability} hiddenSlugs={[...hidden]}
+  return <FavoritesView key={`${params.tab ?? "favorites"}:${params.share ?? ""}:${params.item ?? ""}:${params.view ?? ""}`} availability={availability} hiddenSlugs={[...hidden]}
+    initialSharedView={params.view === "declined" ? "declined" : "available"}
     initialTab={params.tab === "shared" ? "shared" : "favorites"} initialShareId={params.share} initialItem={params.item}
     initialShares={shares.error ? null : parseSavedProductShares(shares.data)}
     initialAlerts={alerts.error ? null : Object.fromEntries((alerts.data ?? []).map(row => [row.product_slug, row.email_almost_full_enabled === true]))}
