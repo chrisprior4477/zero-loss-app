@@ -2,10 +2,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { afterEach, expect, test, vi } from "vitest";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 
-const mocks = vi.hoisted(() => ({ router: { replace: vi.fn(), refresh: vi.fn() }, decline: vi.fn(), undo: vi.fn(), close: vi.fn() }));
+const mocks = vi.hoisted(() => ({ router: { replace: vi.fn(), refresh: vi.fn() }, decline: vi.fn(), undo: vi.fn(), check: vi.fn(), close: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => mocks.router }));
 vi.mock("next/image", () => ({ default: () => <span /> }));
-vi.mock("@/lib/account/bulk-decline-actions", () => ({ declineAllDemoPurchaseOptions: mocks.decline, undoBulkDemoPurchaseOptions: mocks.undo }));
+vi.mock("@/lib/account/bulk-decline-actions", () => ({ declineAllDemoPurchaseOptions: mocks.decline, undoBulkDemoPurchaseOptions: mocks.undo, checkDeclinedOfferStatuses: mocks.check }));
 import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
 
 const item = storedActivityFixture().activity[2];
@@ -71,7 +71,7 @@ test("the countdown finishes a saved decline once, without writing or refunding 
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Decline 2 offers" })); });
   expect(screen.getByRole("timer", { name: /30 seconds left to undo/ })).toBeTruthy();
   act(() => { vi.advanceTimersByTime(31_000); });
-  expect(mocks.router.replace).toHaveBeenCalledExactlyOnceWith("/account/declined-offers");
+  expect(mocks.router.replace).toHaveBeenCalledExactlyOnceWith(`/account/declined-offers?offer=${ids[0]}#declined-offer-${ids[0]}`);
   act(() => { vi.advanceTimersByTime(31_000); });
   expect(mocks.router.replace).toHaveBeenCalledTimes(1);
   expect(mocks.decline).toHaveBeenCalledOnce();
@@ -100,7 +100,7 @@ test("Finish or closing after the decline opens Declined Offers without another 
   fireEvent.click(screen.getByRole("button", { name: "Decline 2 offers" }));
   await screen.findByRole("button", { name: "Undo decline" });
   fireEvent.click(screen.getByRole("button", { name: "View Declined Offers" }));
-  expect(mocks.router.replace).toHaveBeenCalledExactlyOnceWith("/account/declined-offers");
+  expect(mocks.router.replace).toHaveBeenCalledExactlyOnceWith(`/account/declined-offers?offer=${ids[0]}#declined-offer-${ids[0]}`);
   expect(mocks.decline).toHaveBeenCalledOnce();
   expect(mocks.undo).not.toHaveBeenCalled();
   expect(mocks.close).not.toHaveBeenCalled();
@@ -111,7 +111,10 @@ test("a lost response leads to recovery instead of another decline submission", 
   fireEvent.click(screen.getByRole("button", { name: "Decline 2 offers" }));
   expect((await screen.findByRole("alert")).textContent).toContain("some offers may already have changed");
   expect(screen.queryByRole("button", { name: "Decline 2 offers" })).toBeNull();
-  expect(screen.getByRole("link", { name: "Check Declined Offers" }).getAttribute("href")).toBe("/account/declined-offers");
+  mocks.check.mockResolvedValue({ [ids[0]]: "declined" });
+  fireEvent.click(screen.getByRole("button", { name: "Check these offers" }));
+  const exact = await screen.findByRole("link", { name: "Declined" });
+  expect(exact.getAttribute("href")).toBe(`/account/declined-offers?offer=${ids[0]}#declined-offer-${ids[0]}`);
   expect(mocks.decline).toHaveBeenCalledOnce();
 });
 

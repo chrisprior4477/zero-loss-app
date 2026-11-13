@@ -60,7 +60,7 @@ test("order Back preserves the category, expanded batches, internal scroll and p
   expect(window.location.pathname).toBe(href);
   page.unmount();
   window.history.replaceState({}, "", link.getAttribute("href"));
-  window.history.replaceState(saved, "", href);
+  window.history.replaceState(saved, "", saved[notificationReturnKey].href);
   scrollTo.mockClear(); render(<Page />); flush();
   expect(screen.getByRole("button", { name: /Orders30/ }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getAllByRole("article")).toHaveLength(24);
@@ -75,7 +75,7 @@ test("order Back preserves the category, expanded batches, internal scroll and p
 test("restores variable phone batches without rounding them to desktop page sizes", () => {
   const { page, saved } = depart(); page.unmount();
   saved[notificationReturnKey].start = 5; saved[notificationReturnKey].size = 2;
-  window.history.replaceState(saved, "", href); render(<Page />); flush();
+  window.history.replaceState(saved, "", saved[notificationReturnKey].href); render(<Page />); flush();
   expect(screen.getAllByRole("article")).toHaveLength(7);
   expect(screen.getByRole("button", { name: "See more updates (23 remaining)" })).toBeTruthy();
 });
@@ -105,7 +105,7 @@ test.each(["fresh visit", "different account", "different URL"])("does not reuse
 test("Back and Forward restore a retained component; fewer current records do not leave a blank list", () => {
   const { page, saved } = depart();
   fireEvent.click(screen.getByRole("button", { name: /All32/ }));
-  window.history.replaceState(saved, "", href);
+  window.history.replaceState(saved, "", saved[notificationReturnKey].href);
   act(() => window.dispatchEvent(new PopStateEvent("popstate"))); flush();
   expect(screen.getByRole("button", { name: /Orders30/ }).getAttribute("aria-pressed")).toBe("true");
   page.unmount(); render(<Page notifications={orders.slice(0, 2)} />); flush();

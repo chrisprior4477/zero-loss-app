@@ -153,7 +153,7 @@ test.each([
   render(<BrowseDiscoveryBar {...props} selectedCategory="groceries" selectedRetailerGroup={null}
     browseHref={`/browse?category=groceries&type=gift-cards&available=1&sort=fewest-left&retailer=Publix&batch=2${range.minValue === null ? "" : `&minValue=${range.minValue}`}${range.maxValue === null ? "" : `&maxValue=${range.maxValue}`}`}
     filters={{ ...props.filters, ...range, type: "gift-cards", availableOnly: true, sort: "fewest-left", retailer: "Publix" }} />);
-  fireEvent.change(within(searchForm()).getByRole("searchbox", { name: "Search Groceries" }), { target: { value: "Publix" } });
+  fireEvent.change(within(searchForm()).getByRole("searchbox", { name: "Search Publix in Groceries" }), { target: { value: "Publix" } });
   fireEvent.submit(searchForm());
   const url = new URL(navigation.push.mock.calls.at(-1)![0], "https://example.test");
   expect(Object.fromEntries(url.searchParams)).toEqual({
