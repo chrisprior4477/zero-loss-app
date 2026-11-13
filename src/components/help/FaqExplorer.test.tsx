@@ -23,8 +23,9 @@ test("topics filter in place, zero results recover, and support always has a des
   fireEvent.click(screen.getByRole("button", { name: "Wallet & funding" }));
   expect(screen.getByRole("button", { name: "Wallet & funding" }).getAttribute("aria-pressed")).toBe("true");
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "unmatched-phrase" } });
-  expect(screen.getByRole("link", { name: "Contact support →" }).getAttribute("href")).toBe("/contact#message");
-  fireEvent.click(screen.getByRole("button", { name: "Show all questions" }));
+  expect(screen.getByRole("heading", { name: /No answers found for/ }).textContent).toContain("unmatched-phrase");
+  expect(screen.getByRole("link", { name: "Contact Support" }).getAttribute("href")).toBe("/contact#message");
+  fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
   expect(screen.getByRole("searchbox")).toHaveProperty("value", "");
   expect(screen.getByRole("button", { name: "All questions" }).getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("status").textContent).toContain(`${faqItems.length} answers`);
