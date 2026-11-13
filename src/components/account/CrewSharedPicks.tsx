@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { OwnCrewEntry } from "@/app/account/crew/page";
 import type { CrewVisibilityGroup, CrewVisibilityRule } from "@/lib/crew/visibility";
@@ -10,14 +10,14 @@ import { CrewSharingDialog } from "./CrewSharingDialog";
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import styles from "./crew-shared-picks.module.css";
 
-type Props = { entries: OwnCrewEntry[]; groups: CrewVisibilityGroup[]; defaultRule: CrewVisibilityRule; rules: Record<string, CrewVisibilityRule>; available: boolean; onPrivacy: () => void };
+type Props = { ownerId?: string; entries: OwnCrewEntry[]; groups: CrewVisibilityGroup[]; defaultRule: CrewVisibilityRule; rules: Record<string, CrewVisibilityRule>; available: boolean; onPrivacy: () => void };
 type Operation = { id: string; selection: SharingSelection; label: string };
 const ages = [[15, "15 days"], [30, "30 days"], [60, "60 days"], [90, "90 days"], [180, "6 months"], [0, "All time"]] as const;
 function TrashIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
-export function CrewSharedPicks({ entries, groups, defaultRule, rules, available, onPrivacy }: Props) {
+export function CrewSharedPicks({ ownerId, entries, groups, defaultRule, rules, available, onPrivacy }: Props) {
   const router = useRouter();
   const timeZone = useAccountTimeZone();
   const [selectedScope, setSelectedScope] = useState(() => {
@@ -25,22 +25,50 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
     return groups.find(group => entries.some(entry => entrySharedInScope(entry, group.id, defaultRule, rules)))?.id ?? "crew";
   });
   const group = groups.find(g => g.id === selectedScope);
-  const scope = selectedScope;
+  const scope = group?.id ?? "crew";
   const scopeAvailable = scope === "crew" || Boolean(group);
   const label = scope === "crew" ? "Your Crew" : group?.name ?? "Unavailable group";
   const [sharedOnly, setSharedOnly] = useState(true);
   const [visible, setVisible] = useState(5);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expandedByScope, setExpandedByScope] = useState<Record<string, string | null>>({});
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState(false);
+  const [undoId, setUndoId] = useState<string | null>(null);
+  const [retry, setRetry] = useState<Operation | null>(null);
+  const expanded = expandedByScope[scope] ?? null;
+  const storageKey = ownerId ? `zero-loss-crew-picks:${ownerId}` : null;
+  function writePreference(key: string, value: unknown) {
+    if (!storageKey) return;
+    try { sessionStorage.setItem(`${storageKey}:${key}`, JSON.stringify(value)); }
+    catch { /* Storage is optional. */ }
+  }
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const audience = JSON.parse(sessionStorage.getItem(`${storageKey}:scope`) ?? "null");
+      const stacks = JSON.parse(sessionStorage.getItem(`${storageKey}:expanded`) ?? "null");
+      // Browser storage is read after hydration so the first render matches the server.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (typeof audience === "string") setSelectedScope(audience);
+      if (stacks && typeof stacks === "object" && !Array.isArray(stacks)) setExpandedByScope(stacks);
+      const saved = JSON.parse(sessionStorage.getItem(`${storageKey}:operation`) ?? "null");
+      if (saved?.operation?.id && saved.operation.selection?.scope) {
+        if (saved.undoId === saved.operation.id && Date.now() < saved.undoUntil) {
+          setUndoId(saved.undoId);
+          setMessage(saved.message);
+        } else if (!saved.undoId) {
+          setRetry(saved.operation);
+          setMessage("Check the cleanup request before starting another.");
+        }
+      }
+    } catch { /* The default Crew view remains usable. */ }
+  }, [storageKey]);
   const [entryLimit, setEntryLimit] = useState(5);
   const [picker, setPicker] = useState(false);
   const [cleanup, setCleanup] = useState<"choose" | "review" | null>(null);
   const [cleanupAudience, setCleanupAudience] = useState<{ scope: string; label: string } | null>(null);
   const [days, setDays] = useState(30);
   const [review, setReview] = useState<{ before?: string; entries: OwnCrewEntry[] } | null>(null);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState(false);
-  const [undoId, setUndoId] = useState<string | null>(null);
-  const [retry, setRetry] = useState<Operation | null>(null);
   const [pending, startTransition] = useTransition();
   const inFlight = useRef(false);
   const listTop = useRef<HTMLHeadingElement>(null);
@@ -71,16 +99,28 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
   }
   const selectedAge = days === 0 ? "All time" : days === 180 ? "Older than six months" : `Older than ${days} days`;
 
-  function resetList() { setVisible(5); setExpanded(null); setEntryLimit(5); }
+  function resetList() { setVisible(5); setEntryLimit(5); }
+  function selectScope(next: string) {
+    setSelectedScope(next); writePreference("scope", next); resetList();
+  }
+  function toggleStack(next: string | null) {
+    const stacks = { ...expandedByScope, [scope]: next };
+    setExpandedByScope(stacks); writePreference("expanded", stacks); setEntryLimit(5);
+  }
   function feedback(result: SharingResult) { setMessage(result.message); setError(!result.ok); }
   function stop(operation: Operation) {
     if (inFlight.current || !available) return;
-    inFlight.current = true; setMessage(""); setRetry(null);
+    inFlight.current = true; setMessage(""); setRetry(null); setUndoId(null);
+    writePreference("operation", { operation });
     startTransition(async () => {
       try {
         const result = await cleanupCrewShares(operation.id, operation.selection);
         feedback({ ...result, message: result.ok && result.count ? `${result.message} Audience: ${operation.label}.` : result.message });
-        if (result.ok) { setUndoId(result.undoId ?? null); setCleanup(null); router.refresh(); }
+        if (result.ok) {
+          setUndoId(result.undoId ?? null);
+          writePreference("operation", result.undoId ? { operation, undoId: result.undoId, undoUntil: Date.now() + 86_400_000, message: `${result.message} Audience: ${operation.label}.` } : null);
+          setCleanup(null); router.refresh();
+        }
         else setRetry(operation);
       } catch { setMessage("We couldn’t confirm cleanup. Retry checks the same request safely."); setError(true); setRetry(operation); }
       finally { inFlight.current = false; }
@@ -91,7 +131,7 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
     if (!undoId || inFlight.current) return;
     inFlight.current = true;
     startTransition(async () => {
-      try { const result = await undoCrewShareCleanup(undoId); feedback(result); if (result.ok) { setUndoId(null); router.refresh(); } }
+      try { const result = await undoCrewShareCleanup(undoId); feedback(result); if (result.ok) { setUndoId(null); writePreference("operation", null); router.refresh(); } }
       catch { setError(true); setMessage("Couldn’t confirm Undo. Try again."); }
       finally { inFlight.current = false; }
     });
@@ -117,7 +157,7 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
     </div>
     <div className={styles.groupPicker}>
       <label id="shared-with-label" htmlFor="shared-pick-group">Shared with</label>
-      <select id="shared-pick-group" className={styles.desktopPicker} value={scope} disabled={pending} onChange={e => { setSelectedScope(e.target.value); resetList(); }}>
+      <select id="shared-pick-group" className={styles.desktopPicker} value={scope} disabled={pending} onChange={e => { selectScope(e.target.value); }}>
         <option value="crew">Your Crew</option>
         {!scopeAvailable ? <option value={scope} disabled>Unavailable group</option> : null}
         {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -143,7 +183,7 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
                 <button type="button" className={styles.trash} disabled={disabled || !sharedCount || !item.offeringSlug} aria-label={`Stop sharing all ${item.title} entries with ${label}`} title={`Stop sharing this prize with ${label}`} onClick={() => stopSelection({ scope, offeringSlug: item.offeringSlug })}><TrashIcon /></button>
               </div></div>
             </div>
-            <button type="button" className={styles.expand} aria-expanded={open} onClick={() => { setExpanded(open ? null : key); setEntryLimit(5); }}>
+            <button type="button" className={styles.expand} aria-expanded={open} onClick={() => { toggleStack(open ? null : key); }}>
               <span>{open ? "Close entries" : "View entries"} <strong>{rows.length}</strong></span><span aria-hidden="true">{open ? "−" : "+"}</span>
             </button>
             {open ? <div className={styles.entries}>
@@ -166,8 +206,8 @@ export function CrewSharedPicks({ entries, groups, defaultRule, rules, available
     {visible > 5 ? <button type="button" className={styles.blue} onClick={() => { resetList(); listTop.current?.scrollIntoView({ block: "start" }); }}>Close to first five</button> : null}
     {picker ? <CrewSharingDialog title="Shared with" onClose={() => setPicker(false)}>
       <div className={styles.mobileGroupList} role="group" aria-label="Sharing audiences">
-        <button type="button" aria-pressed={scope === "crew"} onClick={() => { setSelectedScope("crew"); resetList(); setPicker(false); }}>Your Crew<span>Whole Crew or individually chosen people</span></button>
-        {groups.map(g => <button type="button" key={g.id} aria-pressed={g.id === scope} onClick={() => { setSelectedScope(g.id); resetList(); setPicker(false); }}>{g.name}<span>{g.memberIds.length} connected {g.memberIds.length === 1 ? "person" : "people"}</span></button>)}
+        <button type="button" aria-pressed={scope === "crew"} onClick={() => { selectScope("crew"); setPicker(false); }}>Your Crew<span>Whole Crew or individually chosen people</span></button>
+        {groups.map(g => <button type="button" key={g.id} aria-pressed={g.id === scope} onClick={() => { selectScope(g.id); setPicker(false); }}>{g.name}<span>{g.memberIds.length} connected {g.memberIds.length === 1 ? "person" : "people"}</span></button>)}
       </div>
     </CrewSharingDialog> : null}
     {cleanup ? <CrewSharingDialog title={cleanup === "choose" ? "Clean up sharing" : "Review cleanup"} onClose={() => { if (!pending) setCleanup(null); }}>

@@ -10,6 +10,19 @@ export type DeclineReceipt = { optionId: string; declineEventId: string };
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+export async function checkDeclinedOfferStatuses(slug: string, ids: string[]): Promise<Record<string, string>> {
+  if (!isPreviewDataEnvironment() || !/^[a-z0-9-]{1,120}$/.test(slug)
+    || !Array.isArray(ids) || ids.some(id => typeof id !== "string" || !uuidPattern.test(id))) return {};
+  const account = await getAccountContext();
+  if (!account || account.wallet?.scope !== "demo" || account.activity.source === "unavailable") return {};
+  const requested = new Set(ids);
+  return Object.fromEntries(account.activity.activity.flatMap(item => {
+    const id = item.completionOptionId;
+    const status = item.completionOptionStatus;
+    return id && requested.has(id) && item.slug === slug && status ? [[id, status]] : [];
+  }));
+}
+
 async function runOptionActions<T, R>(items: T[], action: (db: Awaited<ReturnType<typeof createClient>>, item: T) => Promise<R>) {
   const db = await createClient();
   const { data: { user }, error: authError } = await db.auth.getUser();

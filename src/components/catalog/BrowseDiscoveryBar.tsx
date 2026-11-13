@@ -13,6 +13,7 @@ import { containDialogTab } from "@/components/account/dialog-keyboard";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import styles from "./browse-discovery.module.css";
+import { useBrowseResultsSearch } from "./BrowseResultsSearch";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 const BrowseControlsContext = createContext<ReactNode>(null);
@@ -31,10 +32,16 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const [panel, setPanel] = useState<"categories" | "filters" | null>(null);
   const [mode, setMode] = useState<"categories" | "retailers">("categories");
   const [query, setQuery] = useState("");
-  const [search, setSearch] = useState(props.searchTerm);
+  const [localSearch, setLocalSearch] = useState(props.searchTerm);
+  const session = useBrowseResultsSearch();
+  const search = session?.draft ?? localSearch;
+  const setSearch = session?.setDraft ?? setLocalSearch;
   const voice = useVoiceSearch(setSearch);
   const id = useId();
-  const scope = props.subcategory || props.selectedRetailerGroup?.category || marketplaceCategories.find(category => category.id === props.selectedCategory)?.label;
+  const categoryLabel = props.subcategory || marketplaceCategories.find(category => category.id === props.selectedCategory)?.label;
+  const scope = props.filters.retailer
+    ? [props.filters.retailer, categoryLabel].filter(Boolean).join(" in ")
+    : categoryLabel || props.selectedRetailerGroup?.category;
   const searchLabel = scope ? `Search ${scope}` : "Search all prizes";
   const withoutRetailer = new URL(props.browseHref, "https://zeroloss.local");
   withoutRetailer.searchParams.delete("retailer");

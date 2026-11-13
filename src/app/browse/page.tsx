@@ -97,7 +97,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const allSearchHref = `/browse?${new URLSearchParams({ q: searchTerm })}`;
   const clearHrefParams = new URLSearchParams();
   if (selectedCategory) clearHrefParams.set("category", selectedCategory);
-  if (selectedRetailerGroup) clearHrefParams.set("partnerCategory", selectedRetailerGroup.id);
+  if (selectedRetailerGroup && !(selectedCategory && filters.retailer)) clearHrefParams.set("partnerCategory", selectedRetailerGroup.id);
   if (searchTerm) clearHrefParams.set("q", searchTerm);
   const clearHref = `/browse${clearHrefParams.size ? `?${clearHrefParams}` : ""}`;
   const searchParamsForView = new URLSearchParams();

@@ -13,7 +13,7 @@ export function FaqExplorer() {
   const [expanded, setExpanded] = useState<string[]>([]);
   const panel = useRef<HTMLElement>(null);
   const items = filterFaqs(query, category);
-  const searching = Boolean(query.trim());
+  const searching = /[a-z0-9]/i.test(query);
   function updateBookmark(changes: Partial<FaqReturn>) {
     const saved = readFaqReturn(window.history.state, window.location.href);
     if (!saved) return;

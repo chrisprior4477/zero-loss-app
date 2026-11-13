@@ -17,15 +17,16 @@ export function purchaseOptionHref(slug: string, entryId: string, choice?: unkno
   return purchaseOptionReturnPath(`/account/purchase-options/${slug}?option=${entryId}&resume=wallet${typeof choice === "string" && purchaseChoicePattern.test(choice) ? `&choice=${choice}` : ""}`);
 }
 
-export function entryReviewHref(entryId: string, quantity = 1): string {
+export function entryReviewHref(entryId: string, quantity = 1, filter?: unknown): string {
   if (!entryPattern.test(entryId)) return "/account/entries";
-  return `/account/entries/${entryId}?quantity=${isEntryQuantity(quantity) ? quantity : 1}&review=entry#additional-entry-checkout`;
+  return `/account/entries/${entryId}?quantity=${isEntryQuantity(quantity) ? quantity : 1}&review=entry${filter === "active" ? "&filter=active" : ""}#additional-entry-checkout`;
 }
 
 /** An existing entry review is distinct from a purchase-option return. */
-export function entryReviewFundingHref(slug: string, entryId: string | undefined, quantity: number): string {
+export function entryReviewFundingHref(slug: string, entryId: string | undefined, quantity: number, filter?: unknown): string {
   if (!entryId || !entryPattern.test(entryId) || !productSlugPattern.test(slug)) return fundingHref(slug, undefined, quantity);
   const params = new URLSearchParams({ view: "history", from: slug, entry: entryId, quantity: String(isEntryQuantity(quantity) ? quantity : 1), review: "entry" });
+  if (filter === "active") params.set("filter", "active");
   return `/account/wallet?${params}#add-funds`;
 }
 
@@ -68,7 +69,7 @@ export function depositRecoveryHref(requestKey: string): string {
 /** Exact allowlist for the funding destination used after sign-in. */
 export function fundingReturnPath(value: unknown): string | null {
   if (typeof value !== "string" || value.length > 4096 || /[\\\s\u0000-\u001f]/.test(value)) return null;
-  if (/^\/account\/wallet\?view=history&from=[a-z0-9]+(?:-[a-z0-9]+)*&entry=ent_[a-f0-9]{32}&quantity=[1-9]\d*&review=entry#add-funds$/.test(value)) {
+  if (/^\/account\/wallet\?view=history&from=[a-z0-9]+(?:-[a-z0-9]+)*&entry=ent_[a-f0-9]{32}&quantity=[1-9]\d*&review=entry(?:&filter=active)?#add-funds$/.test(value)) {
     return parseEntryQuantity(new URL(value, "https://navigation.invalid").searchParams.get("quantity")) !== null ? value : null;
   }
   if (!/^\/account\/wallet\?view=history(?:&panel=funding|&from=[a-z0-9]+(?:-[a-z0-9]+)*(?:&entry=ent_[a-f0-9]{32}|&quantity=[1-9]\d*)?(?:&browse=[^&#]+)?(?:&choice=[0-9a-f-]{36})?)?#add-funds$/.test(value)) return null;

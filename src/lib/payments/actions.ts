@@ -75,7 +75,7 @@ function fundingContinuation(value: unknown): string | null {
   const product = entryReturnPath(value);
   if (product) return fundedProductEntryHref(product);
   const account = accountReturnPath(value);
-  return account && (account.startsWith("/account/entries?item=") || /^\/account\/entries\/ent_[a-f0-9]{32}\?quantity=[1-9]\d*&review=entry#(?:add-entries-title|additional-entry-checkout)$/.test(account)) ? account : null;
+  return account && (account.startsWith("/account/entries?item=") || /^\/account\/entries\/ent_[a-f0-9]{32}\?quantity=[1-9]\d*&review=entry(?:&filter=active)?#(?:add-entries-title|additional-entry-checkout)$/.test(account)) ? account : null;
 }
 
 export async function completeDemoFunding(

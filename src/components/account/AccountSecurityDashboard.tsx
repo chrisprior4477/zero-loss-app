@@ -126,7 +126,7 @@ export function AccountSecurityDashboard({ accountId, displayName, initials, ema
           {signIn ? <div className={styles.signInFacts}><time dateTime={signIn.iso}>{signIn.label}</time><span>Device: Not recorded</span><span>Location: Not recorded</span></div> : <p>Sign-in history is not available from this account yet.</p>}
         </section>
         <section className={styles.lowerTicket} aria-labelledby="personal-info-heading">
-          <header><h2 id="personal-info-heading">Personal information</h2><Link href="/account/profile">Edit profile <AccountIcon name="arrow" /></Link></header>
+          <header><h2 id="personal-info-heading">Personal information</h2><Link href="/account/profile#personal-details-heading">Edit profile <AccountIcon name="arrow" /></Link></header>
           <dl><div><dt>Name</dt><dd>{displayName}</dd></div><div><dt>Email</dt><dd>{emailLabel}</dd></div><div><dt>Phone</dt><dd>{phone ?? "Not added"}</dd></div><div><dt>Member since</dt><dd>{formatDate(memberSince, timeZone)}</dd></div></dl>
         </section>
         <section className={styles.lowerTicket} aria-labelledby="crew-heading">

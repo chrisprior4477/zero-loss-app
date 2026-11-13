@@ -213,6 +213,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   function sender(share: SavedProductShare) {
     return <div className={styles.sender}><span aria-hidden="true">{share.sender[0]?.toUpperCase() ?? "?"}</span><div>From {share.sender}<small>{share.demo ? "Demo share · " : ""}{new Date(share.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone })}</small></div></div>;
   }
+  const missingFavorite = tab === "favorites" && available && selection?.slug && !selectedSlug ? productState(selection.slug) : null;
   const detailProduct = selectedSlug ? getDemoProduct(selectedSlug) : null;
   const detailHref = detailProduct ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id) : "/account/favorites")
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
@@ -247,6 +248,11 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
             </div>
           </article>
         </> : tab === "favorites" ? <>
+          {missingFavorite ? <div role="status" className={styles.empty}>
+            <h2>This prize is no longer in your Favorites</h2>
+            <button type="button" className={styles.back} onClick={back}>Back to Favorites</button>
+            {missingFavorite.product && (missingFavorite.status?.remaining ?? 0) > 0 ? <Link href={`/items/${missingFavorite.product.slug}`}>View prize →</Link> : null}
+          </div> : null}
           {emailEnabled === false ? <p className={styles.notice}>Favorite emails are paused in <Link href="/account/notifications#favorite-alert-preference">Notifications</Link>.</p> : null}
           {initialAlerts === null || emailEnabled === null ? <p role="status" className={styles.notice}>Alert choices are unavailable. Your saved items are unchanged.</p> : null}
           {!available ? <p role="alert" className={styles.empty}>Favorites couldn’t be loaded. Refresh to try again; nothing has been removed.</p>

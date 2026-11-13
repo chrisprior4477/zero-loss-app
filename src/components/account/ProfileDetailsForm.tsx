@@ -122,10 +122,16 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
   const selectedCountry = details.country ?? "United States";
   const hasNonStandardCountry = !PROFILE_COUNTRIES.some(country => country === selectedCountry);
   const [address, setAddress] = useState({ country: selectedCountry, region: details.region ?? "", postalCode: details.postalCode ?? "", street: details.addressLine1 ?? "", city: details.city ?? "" });
+  const [addressLine2, setAddressLine2] = useState(details.addressLine2 ?? "");
   const [selectedZone, setSelectedZone] = useState(details.timezone ?? "");
   const [lookup, setLookup] = useState<{ key: string; zone: string | null; options: string[]; failed?: boolean } | null>(null);
   const [lookupAttempt, setLookupAttempt] = useState(0);
   const completeAddress = completeMailingAddress(address);
+  const addressChanged = [
+    [address.country, baseline.fields.country], [address.region, baseline.fields.region],
+    [address.postalCode, baseline.fields.postal_code], [address.street, baseline.fields.address_line_1],
+    [address.city, baseline.fields.city], [addressLine2, baseline.fields.address_line_2],
+  ].some(([value, original]) => value.trim() !== original.trim());
   const requiredFields = addressRequirements(address.country)?.required ?? "AC";
   const lookupKey = JSON.stringify([address.country, address.region, address.postalCode]);
   useEffect(() => {
@@ -152,7 +158,8 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     setShowFeedback(false);
     const data = new FormData(event.currentTarget);
     const next = { country: String(data.get("country") ?? ""), region: String(data.get("region") ?? ""), postalCode: String(data.get("postal_code") ?? ""), street: String(data.get("address_line_1") ?? ""), city: String(data.get("city") ?? "") };
-    if (next.country !== address.country || next.region !== address.region || next.postalCode !== address.postalCode || next.city !== address.city || next.street !== address.street) setSelectedZone("");
+    if (next.country !== address.country || next.region !== address.region || next.postalCode !== address.postalCode) setSelectedZone("");
+    setAddressLine2(String(data.get("address_line_2") ?? ""));
     setAddress(next);
   }}>
     <input type="hidden" name="profile_baseline" value={JSON.stringify(baseline)} />
@@ -187,7 +194,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
         <div className={styles.field}><label htmlFor="profile-country">Country</label><div className={styles.inputWrap}><select id="profile-country" name="country" defaultValue={selectedCountry} autoComplete="country-name"><option value="United States">United States</option>{hasNonStandardCountry ? <option value={selectedCountry}>{selectedCountry}</option> : null}{PROFILE_COUNTRIES.slice(1).map(country => <option key={country} value={country}>{country}</option>)}</select></div></div>
         {completeAddress && !currentLookup ? <p role="status">Checking your address time zone…</p> : null}
         {currentLookup?.failed ? <div role="alert">We couldn’t check the time zones. <button type="button" onClick={() => { setLookup(null); setLookupAttempt(attempt => attempt + 1); }}>Try again</button></div> : null}
-        {currentLookup && !currentLookup.failed && !currentLookup.zone ? <div className={styles.field}><label htmlFor="address-timezone">Time zone for your address</label><div className={styles.inputWrap}><select id="address-timezone" name="timezone" required value={fallbackZones.includes(selectedZone) ? selectedZone : ""} onChange={event => setSelectedZone(event.target.value)}><option value="">Choose your time zone</option>{fallbackZones.map(zone => <option key={zone} value={zone}>{timeZoneLabel(zone)}</option>)}</select></div><small>We couldn’t determine the time zone from this address. Choose the time zone used where you live.</small></div> : null}
+        {currentLookup && !currentLookup.failed && !currentLookup.zone ? <div className={styles.field}><label htmlFor="address-timezone">Time zone for your address</label><div className={styles.inputWrap}><select id="address-timezone" name="timezone" required={addressChanged} value={fallbackZones.includes(selectedZone) ? selectedZone : ""} onChange={event => setSelectedZone(event.target.value)}><option value="">Choose your time zone</option>{fallbackZones.map(zone => <option key={zone} value={zone}>{timeZoneLabel(zone)}</option>)}</select></div><small>We couldn’t determine the time zone from this address. Choose the time zone used where you live.</small></div> : null}
       </div>
     </section>
 
@@ -202,7 +209,7 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
     {showFeedback && !pending && state.status !== "idle" ? <p role="status" className={state.status === "succeeded" ? styles.success : styles.error}>{state.message}</p> : null}
     {showFeedback && state.status === "error" && state.conflict ? <Link href="/account/profile#personal-details-heading" target="_blank" rel="noopener">Open latest Profile</Link> : null}
     <div className={styles.actions}>
-      <button type="submit" disabled={pending || (completeAddress && (!currentLookup || currentLookup.failed))}>{pending ? "Saving profile…" : "Save profile"}<AccountIcon name="arrow" /></button>
+      <button type="submit" disabled={pending || (addressChanged && completeAddress && (!currentLookup || currentLookup.failed))}>{pending ? "Saving profile…" : "Save profile"}<AccountIcon name="arrow" /></button>
       <Link href="/account/security">Back to Account &amp; Security</Link>
     </div>
   </form>;

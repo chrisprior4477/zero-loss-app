@@ -40,7 +40,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "purchase-options", category: "entries", question: "Where do I find what I can still purchase?",
     answer: "Open Purchase Options in My Activity. Select an available option to see the amount already applied, the remaining amount, and its decision deadline. Completing the purchase is a separate choice; entering does not automatically purchase the gift card. Completed activity remains in your history.",
-    keywords: "completion non selected buy remaining paid difference deadline", action: { label: "Continue with Purchase", href: "/account/entries?filter=completion" },
+    keywords: "purchase option purchase options completion non selected buy remaining paid difference deadline", action: { label: "Continue with Purchase", href: "/account/entries?filter=completion" },
   },
   {
     id: "purchase-meaning", category: "entries", question: "Does completing a purchase order the pictured product?",
@@ -134,7 +134,7 @@ export const faqItems: FaqItem[] = [
   },
 ];
 
-const faqFiller = new Set(["a", "an", "can", "could", "do", "does", "how", "i", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "would", "you", "your"]);
+const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "how", "i", "is", "it", "me", "my", "please", "the", "to", "what", "when", "where", "would", "you", "your"]);
 
 export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
   const normalize = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replaceAll("can't", "cannot");

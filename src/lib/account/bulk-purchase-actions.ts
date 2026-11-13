@@ -44,12 +44,31 @@ export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest):
     // Open the actual issued reward (the same barcode/details reached from My
     // Activity), never a client-only sample result. A missing reward falls back
     // to the completed activity list without attempting the purchase again.
-    const rewardId = Array.isArray(data.rewardIds) ? data.rewardIds.find((id: unknown) => typeof id === "string" && uuid.test(id)) : undefined;
-    const href = rewardId
-      ? purchasedRewardHref(rewardId, request.slug)
-      : "/account/entries?filter=completed";
-    return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, href };
+    return completedPurchase(request.slug, data);
   } catch {
     return { status: "error", recovery: "check", message: "The connection was interrupted. Check your purchases before trying again; they may already be saved." };
   }
+}
+
+function completedPurchase(slug: string, data: { purchasedCount: number; declinedCount: number; rewardIds?: unknown }): BulkPurchaseResult {
+    const rewardId = Array.isArray(data.rewardIds) ? data.rewardIds.find((id: unknown) => typeof id === "string" && uuid.test(id)) : undefined;
+    const href = rewardId
+      ? purchasedRewardHref(rewardId, slug)
+      : "/account/entries?filter=completed";
+    return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, href };
+}
+
+export async function checkDemoPurchaseReceipt(requestId: string, slug: string): Promise<BulkPurchaseResult | { status: "not_found" }> {
+  const unavailable = { status: "error", recovery: "check", message: "We couldn’t verify this purchase yet. Check again." } as const;
+  if (!isPreviewDataEnvironment() || !uuid.test(requestId) || !/^[a-z0-9-]{1,120}$/.test(slug)) return unavailable;
+  try {
+    const db = await createClient();
+    const { data: { user }, error: authError } = await db.auth.getUser();
+    if (authError || !user) return unavailable;
+    const { data, error } = await db.rpc("read_preview_checkout_receipt", { p_request_id: requestId, p_slug: slug });
+    if (error) return unavailable;
+    if (data === null) return { status: "not_found" };
+    if (data.status !== "purchased" || !Number.isSafeInteger(data.purchasedCount) || data.purchasedCount < 1 || !Number.isSafeInteger(data.declinedCount)) return unavailable;
+    return completedPurchase(slug, data);
+  } catch { return unavailable; }
 }

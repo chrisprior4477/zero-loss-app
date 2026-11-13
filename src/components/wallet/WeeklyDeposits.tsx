@@ -23,11 +23,13 @@ function ReceiptDetails({ request, timeZone }: { request: DemoFundingRequest; ti
 type ChartProps = { requests: DemoFundingRequest[] | null; hiddenIds?: string[]; asOf: string; timeZone?: string };
 
 export function WeeklyDeposits(props: ChartProps) {
-  return useMenuViewport() === "desktop" ? <DepositChart {...props} /> : null;
+  const [openWeek, setOpenWeek] = useState<string | null>(null);
+  return useMenuViewport() === "desktop" ? <DepositChart {...props} openWeek={openWeek} setOpenWeek={setOpenWeek} /> : null;
 }
 
-function DepositChart({ requests, hiddenIds, asOf, timeZone }: ChartProps) {
-  const [openWeek, setOpenWeek] = useState<string | null>(null);
+function DepositChart({ requests, hiddenIds, asOf, timeZone, openWeek, setOpenWeek }: ChartProps & {
+  openWeek: string | null; setOpenWeek: (week: string | null) => void;
+}) {
   const chart = useMemo(() => {
     if (!requests) return null;
     const hidden = new Set(hiddenIds);

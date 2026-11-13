@@ -2,7 +2,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), preview: vi.fn() }));
 vi.mock("@/lib/preview/environment", () => ({ isPreviewDataEnvironment: mocks.preview }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.getUser }, rpc: mocks.rpc }) }));
-import { completeDemoPurchaseOptions } from "./bulk-purchase-actions";
+import { checkDemoPurchaseReceipt, completeDemoPurchaseOptions } from "./bulk-purchase-actions";
 const id = (n: number) => `${String(n).padStart(8,"0")}-1111-4111-8111-111111111111`;
 const request = { slug: "gift-card", purchaseIds: [id(1), id(2)], declineIds: [id(3)], totalCents: 29800, requestId: id(4), confirmed: true };
 beforeEach(() => { vi.resetAllMocks(); mocks.preview.mockReturnValue(true); mocks.getUser.mockResolvedValue({ data: { user: { id: "owner" } } }); });
@@ -50,4 +50,12 @@ test.each([
 test("an unexpected database error remains uncertain purchase recovery", async () => {
   mocks.rpc.mockResolvedValue({ error: { code: "P0001", message: "Unexpected failure" } });
   expect(await completeDemoPurchaseOptions(request)).toMatchObject({ status: "error", recovery: "check", message: expect.stringContaining("may already be saved") });
+});
+
+test("checks the exact committed purchase receipt without running the purchase again", async () => {
+  mocks.rpc.mockResolvedValueOnce({ data: null, error: null });
+  expect(await checkDemoPurchaseReceipt(request.requestId, request.slug)).toEqual({ status: "not_found" });
+  mocks.rpc.mockResolvedValueOnce({ data: { status: "purchased", purchasedCount: 2, declinedCount: 1, rewardIds: [id(8)] } });
+  expect(await checkDemoPurchaseReceipt(request.requestId, request.slug)).toMatchObject({ status: "succeeded", href: expect.stringContaining(id(8)) });
+  expect(mocks.rpc.mock.calls).toEqual(Array.from({ length: 2 }, () => ["read_preview_checkout_receipt", { p_request_id: request.requestId, p_slug: request.slug }]));
 });

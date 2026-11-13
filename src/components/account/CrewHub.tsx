@@ -282,7 +282,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
         <div className={styles.utilityPanel}><h2>Requests you sent</h2>{sent.length ? <div className={styles.utilityList}>{sent.map((item) => <article key={item.id} className={styles.utilityItem}><strong>{item.recipient_name}</strong><p>Waiting for approval since {formatDate(item.created_at, timeZone)}.</p><button type="button" disabled={pending} onClick={() => run(() => removeCrewConnection(item.id))} className={styles.cancelButton}>Cancel request</button></article>)}</div> : <p className={styles.emptyUtility}>No outgoing requests.</p>}</div>
       </section> : null}
 
-      {tab === "picks" ? <CrewSharedPicks entries={entries} available={available && visibilityAvailable}
+      {tab === "picks" ? <CrewSharedPicks ownerId={currentUserId} entries={entries} available={available && visibilityAvailable}
         groups={visibility?.groups ?? []} defaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule}
         rules={visibility?.entryRules ?? {}} onPrivacy={() => selectTab("privacy")} /> : null}
       <p className={firstStyles.footer}>Your entries stay private unless you choose to share them. Your wallet and payment details are never shared with Crew.</p>

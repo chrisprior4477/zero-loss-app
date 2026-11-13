@@ -141,6 +141,8 @@ test("does not restore a saved zone outside the current country's choices", asyn
   render(<ProfileDetailsForm details={{ ...details, country: "Canada", timezone: "Europe/London" }} />);
   const picker = await screen.findByLabelText("Time zone for your address", {}, { timeout: 3000 }) as HTMLSelectElement;
   expect(picker.value).toBe("");
+  expect(picker.checkValidity()).toBe(true);
+  fireEvent.input(screen.getByLabelText("Street address"), { target: { value: "126 Market Street" } });
   expect(picker.checkValidity()).toBe(false);
 });
 
@@ -149,6 +151,8 @@ test("keeps Save disabled and offers a retry if the lookup fails", async () => {
   vi.mocked(lookupAddressTimeZone).mockResolvedValueOnce({ zone: "Europe/London", options: ["Europe/London"] });
   render(<ProfileDetailsForm details={{ ...details, country: "United Kingdom", region: "England", postalCode: "SW1A 1AA" }} />);
   const retry = await screen.findByRole("button", { name: "Try again" }, { timeout: 3000 });
+  expect((screen.getByRole("button", { name: /Save profile/ }) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.input(screen.getByLabelText("Street address"), { target: { value: "126 Market Street" } });
   expect((screen.getByRole("button", { name: /Save profile/ }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.click(retry);
   await waitFor(() => expect((screen.getByRole("button", { name: /Save profile/ }) as HTMLButtonElement).disabled).toBe(false));
@@ -197,6 +201,7 @@ test('every editable Profile field and clear button stays locked until its save 
  vi.mocked(saveProfileDetails).mockImplementation(()=>new Promise(resolve=>{finish=resolve;}));
  render(<ProfileDetailsForm details={details}/>);
  fireEvent.change(screen.getByLabelText('Display name'),{target:{value:'Submitted name'}});
+ await waitFor(() => expect(screen.queryByText("Checking your address time zone…")).toBeNull());
  await waitFor(()=>expect(screen.getByRole('button',{name:'Save profile'})).toHaveProperty('disabled',false));
  fireEvent.submit(screen.getByRole('form',{name:'Edit profile'}));
  await screen.findByRole('button',{name:'Saving profile…'});

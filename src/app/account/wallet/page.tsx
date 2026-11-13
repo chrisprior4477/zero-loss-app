@@ -22,7 +22,7 @@ import { parseDemoWalletHistoryVisibility, type DemoWalletHistoryVisibility } fr
 
 export const metadata: Metadata = { title: "Gift Cards & Rewards" };
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; transaction?: string | string[]; choice?: string | string[]; deposit?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; choice?: string | string[]; deposit?: string | string[] }> }) {
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
@@ -42,7 +42,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       : history && !query.transaction && (query.panel === "transactions" || query.panel === "deposits")
       ? accountPageReturnPath("/account/wallet", query, query.panel === "transactions" ? "#transactions" : "#payment-deposits")
       : history && !query.transaction && (fromProduct || query.panel === "funding") ? query.review === "entry" && fromProduct
-      ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity)
+      ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.filter)
       : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse, query.choice)
       : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : purchaseArrival ? "#reward-pass" : rewardSection);
     redirect(`${authNavigationHref("/login", next)}&focus=email#login-form`);
@@ -55,7 +55,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const amounts = forEntry ? entryFundingAmounts(availability?.[fromProduct.slug]?.entryPriceCents ?? null, requestedQuantity, account.wallet?.balanceCents ?? null) : undefined;
   const fundingReturn: FundingContinuation | undefined = query.entry !== undefined
     ? fromEntry ? fromEntry.status === "active"
-      ? { title: fromEntry.title, href: entryReviewHref(fromEntry.entryId!, requestedQuantity), label: "Back to entry review", entryQuantity: requestedQuantity, ...amounts }
+      ? { title: fromEntry.title, href: entryReviewHref(fromEntry.entryId!, requestedQuantity, query.filter), label: "Back to entry review", entryQuantity: requestedQuantity, ...amounts }
       : { title: fromEntry.title, href: fromEntry.status === "completion" || isPurchasedReward(fromEntry) ? purchaseOptionHref(fromEntry.slug, fromEntry.entryId!, query.choice) ?? activityHref(fromEntry) : activityHref(fromEntry), label: "Back to purchase option" } : undefined
     : fromProduct ? { title: fromProduct.title, href: productEntryHref(fromProduct.slug, requestedQuantity, query.browse) } : undefined;
   if (fundingReturn && forEntry) Object.assign(fundingReturn, { entryQuantity: requestedQuantity, ...amounts });
@@ -103,7 +103,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     }
     if (reward) {
       const fromPurchase = query.via === "purchase" && typeof query.rewardId === "string" && isPurchasedReward(reward);
-      return <WalletRewardDetail fromPurchase={fromPurchase} timeZone={account.timezone} item={reward}
+      return <WalletRewardDetail fromPurchase={fromPurchase} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} item={reward}
         isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers}
         overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />;
     }

@@ -21,6 +21,10 @@ export function readProfileBaseline(value: FormDataEntryValue | null): ProfileEd
   return baseline;
 }
 
+export function hasProfileAddressChange(form: FormData, baseline: ProfileEditBaseline) {
+  return addressFields.some(key => form.has(key) && String(form.get(key) ?? "").trim() !== baseline.fields[key].trim());
+}
+
 export function profilePatch(updates: ProfileSavedFields, form: FormData, baseline: ProfileEditBaseline) {
   const changed = profileFields.filter(key => {
     // A resolved zone has no visible input. Recalculate it only with its address.

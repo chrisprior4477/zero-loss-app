@@ -10,9 +10,10 @@ import { authNavigationHref } from "@/lib/auth/entry-return";
 export const metadata: Metadata = { title: "Notifications" };
 
 export default async function NotificationsPage({ searchParams }: { searchParams?: Promise<{ filter?: string | string[] }> }) {
-  const filter = (await searchParams)?.filter === "account" ? "account" : "all";
+  const requested = (await searchParams)?.filter;
+  const filter = requested === "action" || requested === "account" || requested === "activity" || requested === "orders" || requested === "crew" ? requested : "all";
   const account = await getAccountContext();
-  if (!account) redirect(authNavigationHref("/login", filter === "account" ? "/account/notifications?filter=account#notification-tickets-filters" : "/account/notifications"));
+  if (!account) redirect(authNavigationHref("/login", filter !== "all" ? `/account/notifications?filter=${filter}#notification-tickets-filters` : "/account/notifications"));
   const db = await createClient();
   const snapshot = (await getNotificationSnapshot())!;
   const { data: outcomeEmailEnabled, error: outcomeEmailError } = await db.rpc("get_entry_outcome_email_enabled");

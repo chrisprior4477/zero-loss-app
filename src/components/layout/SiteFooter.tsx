@@ -6,7 +6,7 @@ export function SiteFooter({ demoSharing = false }: { demoSharing?: boolean }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-cyan-300/10 bg-[#000f25]">
+    <footer id="footer" className="mt-auto border-t border-cyan-300/10 bg-[#000f25]">
       <div className="mx-auto grid max-w-[1600px] grid-cols-3 gap-x-4 gap-y-4 px-4 py-5 sm:px-6 md:grid-cols-[1.5fr_repeat(4,1fr)] md:gap-8 md:py-8 lg:px-[clamp(3rem,6vw,7rem)]">
         <div className="col-span-2 md:col-span-1">
           <p className="text-[22px] font-extrabold uppercase tracking-[-0.04em] text-white">

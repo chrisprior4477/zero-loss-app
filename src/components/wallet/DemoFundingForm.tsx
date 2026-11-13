@@ -415,7 +415,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   }, []);
   if (successMessage) return <section id="funding-success" aria-label="Deposit complete" className={paymentStyles.editor}>
     <p role="status" className={paymentStyles.notice}>{successMessage}</p>
-    {(receiptBalance ?? balanceLabel) ? <p><strong>Current balance: {receiptBalance ?? balanceLabel}</strong></p> : null}
+    {(receiptBalance ?? balanceLabel) ? <p><strong>{receiptBalance ? "Balance after this deposit" : "Current balance"}: {receiptBalance ?? balanceLabel}</strong></p> : null}
     <div className={`${paymentStyles.actions} ${paymentStyles.pairedActions}`}>
       <a href="#balance" className={paymentStyles.secondary}>Back to wallet</a>
       <Link href="/" className={paymentStyles.confirm}>Continue Shopping</Link>

@@ -11,7 +11,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   auth: { getUser: async () => ({ data: { user: mock.user }, error: null }) }, rpc: mock.rpc,
 }) }));
 vi.mock("next/cache", () => ({ revalidatePath: mock.revalidate }));
-import { clearDemoWalletHistory, previewDemoHistoryClear } from "./demo-history-actions";
+import { checkDemoHistoryReset, clearDemoWalletHistory, previewDemoHistoryClear } from "./demo-history-actions";
 
 const snapshot = { walletAccountId: "11111111-1111-4111-8111-111111111111", scope: "demo", currency: "USD", balanceCents: "2500", transactionCount: "0", fundingAvailable: true, entries: [] };
 afterEach(() => { mock.preview = true; mock.user = { email_confirmed_at: "2026-10-16T12:00:00Z" }; mock.rpc.mockReset(); mock.revalidate.mockReset(); });
@@ -40,4 +40,12 @@ test("history reset is unavailable outside the preview environment", async () =>
   mock.preview = false;
   expect(await clearDemoWalletHistory("transactions", 2500, "stable_demo_history_reset_01")).toMatchObject({ status: "error" });
   expect(mock.rpc).not.toHaveBeenCalled();
+});
+
+test("checking a reset reads its original receipt without clearing history", async () => {
+  mock.rpc.mockResolvedValueOnce({ data: snapshot }).mockResolvedValueOnce({ data: { hiddenCount: 3, clearedCents: "2500" } });
+  const key = "stable_demo_history_reset_01";
+  expect(await checkDemoHistoryReset("deposits", key)).toEqual({ status: "succeeded", hiddenCount: 3, clearedCents: 2500 });
+  expect(mock.rpc).toHaveBeenLastCalledWith("read_demo_wallet_history_reset", { p_kind: "deposits", p_request_key: key });
+  expect(mock.rpc).not.toHaveBeenCalledWith("clear_demo_wallet_history", expect.anything());
 });

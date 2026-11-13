@@ -184,7 +184,7 @@ test.each(["lost response", "uncertain server result"])("%s can be checked after
   await screen.findByText(/Check your connection/);
   fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
   await screen.findByText("Your $25 demo deposit was credited to your wallet.");
-  expect(screen.getByText("Current balance: $35")).toBeTruthy();
+  expect(screen.getByText("Balance after this deposit: $35")).toBeTruthy();
   expect(checkDemoDeposit).toHaveBeenLastCalledWith(props.requestKey, 2500, props.walletId);
   expect(completeDemoFunding).toHaveBeenCalledTimes(1);
   expect(reconcileDemoFunding).not.toHaveBeenCalled();

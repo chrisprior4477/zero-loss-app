@@ -60,6 +60,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
   const [savingRead, startReadTransition] = useTransition();
   const [crewMessage, setCrewMessage] = useState("");
   const [readMessage, setReadMessage] = useState("");
+  const failedReadKey = userId ? `zero-loss-notification-read-retry:${userId}` : null;
   const [locallyRead, setLocallyRead] = useState<Set<string>>(() => new Set());
   const read = useMemo(() => new Set([...initialReadIds, ...locallyRead]), [initialReadIds, locallyRead]);
   const headingRef = useRef<HTMLElement>(null);
@@ -173,7 +174,13 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
   }
 
   function selectFilter(nextFilter: FilterKey) {
-    updateBookmark({ filter: nextFilter, start: 0, size: groupsPerPage, listScrollTop: 0 });
+    const url = new URL(window.location.href);
+    if (nextFilter === "all") url.searchParams.delete("filter");
+    else url.searchParams.set("filter", nextFilter);
+    const state = { ...window.history.state };
+    const saved = userId ? readNotificationReturn(state, userId, window.location.href) : null;
+    if (saved) state[notificationReturnKey] = { ...saved, href: url.href, filter: nextFilter, start: 0, size: groupsPerPage, listScrollTop: 0, linkId: "", linkTop: 0 };
+    window.history.replaceState(state, "", url);
     setFilter(nextFilter);
     batches.reset();
     if (!window.matchMedia?.("(max-width: 620px)").matches) return;
@@ -192,6 +199,22 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
     try { const result = await markNotificationsRead(ids); if (result.ok) window.dispatchEvent(new Event("zero-loss-notifications-read")); return result; }
     catch { return { ok: false, message: "We couldn’t save your notification status. Please try again." }; }
   }
+
+  useEffect(() => {
+    if (!failedReadKey || !readAvailable) return;
+    let id: string | null;
+    try { id = sessionStorage.getItem(failedReadKey); } catch { return; }
+    if (!id) return;
+    let active = true;
+    void markNotificationsRead([id]).then(result => {
+      if (!active) return;
+      if (!result.ok) { setReadMessage(result.message); return; }
+      try { if (sessionStorage.getItem(failedReadKey) === id) sessionStorage.removeItem(failedReadKey); } catch { /* Read state is saved. */ }
+      setLocallyRead(previous => new Set(previous).add(id));
+      window.dispatchEvent(new Event("zero-loss-notifications-read"));
+    }).catch(() => { if (active) setReadMessage("We couldn’t save that notification’s read status. Refresh to try again."); });
+    return () => { active = false; };
+  }, [failedReadKey, readAvailable]);
 
   function updateCrewRequest(id: string, accept?: boolean) {
     setCrewMessage("");
@@ -249,10 +272,14 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
 
   function openNotification(notification: AccountNotification) {
     setLocallyRead((previous) => new Set(previous).add(notification.id));
+    try { if (failedReadKey) sessionStorage.setItem(failedReadKey, notification.id); } catch { /* The initial read save still runs. */ }
     // The optional read receipt must not hold up the customer's destination.
     router.push(notification.href);
     startReadTransition(async () => {
       const result = await saveRead([notification.id]);
+      if (result.ok && failedReadKey) {
+        try { if (sessionStorage.getItem(failedReadKey) === notification.id) sessionStorage.removeItem(failedReadKey); } catch { /* Read state is saved. */ }
+      }
       if (!result.ok) {
         setLocallyRead((previous) => {
           const next = new Set(previous);

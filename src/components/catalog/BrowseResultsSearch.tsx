@@ -13,6 +13,7 @@ type SearchSession = {
   search: (value: string, anchor?: string) => void; voice: ReturnType<typeof useVoiceSearch>; endingSoon: boolean;
 };
 const Session = createContext<SearchSession | null>(null);
+export function useBrowseResultsSearch() { return useContext(Session); }
 
 export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon = false, children }: {
   browseHref: string; searchTerm: string; endingSoon?: boolean; children: ReactNode;

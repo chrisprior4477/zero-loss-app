@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
-import { declinedOfferHref, type ActivityItem } from "@/lib/account/activity";
+import { activityHref, declinedOfferHref, type ActivityItem } from "@/lib/account/activity";
 import { crewUuid } from "@/lib/crew/visibility";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -27,6 +27,8 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
   if (!account) redirect(authNavigationHref("/login", declinedOfferHref(offerId)));
   const declined = account.activity.activity.filter((item): item is DeclinedOffer =>
     item.completionOptionStatus === "declined" && Boolean(item.completionOptionId));
+  const requestedMissing = offerId && account.activity.source !== "unavailable" && !declined.some(item => item.completionOptionId === offerId);
+  const currentOffer = requestedMissing ? account.activity.activity.find(item => item.completionOptionId === offerId) : undefined;
   const groups = new Map<string, DeclinedOffer[]>();
   for (const offer of declined) {
     const group = groups.get(offer.slug);
@@ -64,9 +66,13 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
         <Link href="/">Continue shopping</Link>
       </nav>
     </div>
+    {requestedMissing && <div role="status" className={styles.empty}>
+      <h2>This offer is no longer in Declined Offers</h2>
+      {currentOffer && <Link href={activityHref(currentOffer)}>View its current status →</Link>}
+    </div>}
     {account.activity.source === "unavailable" ? <div className={styles.empty}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p></div>
       : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href="/account/entries">Back to My Activity →</Link></div>
-      : <DeclinedOfferList offerId={offerId}>{Array.from(groups, ([slug, offers]) => {
+      : <DeclinedOfferList offerId={offerId} ownerId={account.userId}>{Array.from(groups, ([slug, offers]) => {
         const [product] = offers;
         const multiple = offers.length > 1;
         const deadlines = offers.map(offer => Date.parse(offer.completionExpiresAt ?? ""))
@@ -83,7 +89,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
               <DeclinedOfferCountdown deadlines={deadlines} />
             </div>
           </div>
-          <details className={styles.declinedDisclosure}>
+          <details className={styles.declinedDisclosure} data-declined-product={slug}>
             <summary className={styles.declinedToggle}>
               <span className={styles.declinedShow}>{multiple ? `View ${offers.length} offers` : "View offer"}</span>
               <span className={styles.declinedHide}>{multiple ? "Hide offers" : "Hide offer"}</span>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
-import { completeDemoPurchaseOptions, type BulkPurchaseRequest } from "@/lib/account/bulk-purchase-actions";
+import { checkDemoPurchaseReceipt, completeDemoPurchaseOptions, type BulkPurchaseRequest } from "@/lib/account/bulk-purchase-actions";
 import { fundPurchaseWallet } from "@/lib/account/purchase-funding-actions";
 import type { DemoCard, DemoCardToken } from "@/lib/payments/demo-card";
 import { demoCardFixture } from "@/lib/payments/demo-card";
@@ -70,6 +70,7 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
   const [notice, setNotice] = useState("");
   const [purchaseExpired, setPurchaseExpired] = useState(false);
   const [purchaseRequest, setPurchaseRequest] = useState<BulkPurchaseRequest | null>(null);
+  const [receiptMissing, setReceiptMissing] = useState(false);
   const inFlight = useRef(false);
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
   const selectedEntryId = chosen[0]?.entryId;
@@ -87,8 +88,8 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
     setBalance(initialBalance);
     // A different tab can change the amount needed while a popup is open.
     // Preserve the offers, but never reuse approval for a changed deposit.
+    if (balance !== initialBalance) setAcknowledged(false);
     if (balance !== initialBalance && !busy && !checkRequired) {
-      setAcknowledged(false);
       if ((overlay === "fund" && initialBalance >= total) || (overlay === "purchase" && initialBalance < total)) {
         setOverlay(null);
         setPurchaseRequest(null);
@@ -182,21 +183,43 @@ export function PurchaseCheckout({ ownerId, options, ticketLabels = offerTicketL
     } catch { setError("The connection was interrupted. Check Payment deposits in your wallet before adding more money. No purchase has been submitted."); setRecovery("deposit"); }
     finally { inFlight.current = false; setBusy(false); }
   }
-  async function confirm() {
-    if (!purchaseRequest || inFlight.current || locked) return;
+  async function confirm(retry = false) {
+    if (!purchaseRequest || inFlight.current || (retry ? !receiptMissing || recovery !== "purchase" : locked)) return;
+    setReceiptMissing(false);
     inFlight.current = true; setBusy(true); setError("");
     try {
       const result = await completeDemoPurchaseOptions(purchaseRequest);
       if (result.status === "succeeded") { clearChoice(); setRecovery("purchase"); window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT)); router.replace(result.href); router.refresh(); return; }
-      setError(result.message); setRecovery(result.recovery === "offers" ? "offers" : result.recovery === "check" ? "purchase" : null); setOverlay(null); setPurchaseRequest(null);
+      setError(result.message); setRecovery(result.recovery === "offers" ? "offers" : result.recovery === "check" ? "purchase" : null); setOverlay(null);
+      if (result.recovery !== "check") setPurchaseRequest(null);
       if (result.recovery === "balance") { router.refresh(); setNotice("Your balance changed. Review the updated amount before continuing."); }
-    } catch { setError("We couldn’t confirm the result. Check your completed purchases before trying again; your purchase may already be saved."); setRecovery("purchase"); setOverlay(null); setPurchaseRequest(null); }
+    } catch { setError("We couldn’t confirm the result. Check this purchase before trying again."); setRecovery("purchase"); setOverlay(null); }
+    finally { inFlight.current = false; setBusy(false); }
+  }
+  async function checkPurchase() {
+    if (!purchaseRequest || inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    try {
+      const result = await checkDemoPurchaseReceipt(purchaseRequest.requestId, purchaseRequest.slug);
+      if (result.status === "succeeded") {
+        clearChoice();
+        window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+        router.replace(result.href);
+        router.refresh();
+      } else if (result.status === "not_found") {
+        setError("No completed purchase was found for this attempt. You can confirm the same purchase again without being charged twice.");
+        setReceiptMissing(true);
+      } else setError(result.message);
+    } catch { setError("We couldn’t verify this purchase yet. Check again."); }
     finally { inFlight.current = false; setBusy(false); }
   }
   // Full navigation clears the locked checkout response and reads current offers.
   // The saved selection is reconciled on mount; a paid exact ticket opens its reward.
   const refreshOffersHref = `/account/purchase-options/${encodeURIComponent(item.slug)}${initiallySelectedEntryId ? `?option=${encodeURIComponent(initiallySelectedEntryId)}` : ""}`;
   const feedback = <>{error ? <p className={styles.error} role="alert">{error}</p> : null}{recovery ? <div className={recovery === "purchase" ? undefined : styles.twoButtons}>
+    {recovery === "purchase" && purchaseRequest ? <button className={styles.secondary} type="button" disabled={busy} onClick={() => void checkPurchase()}>{busy ? "Checking…" : "Check this purchase"}</button> : null}
+    {recovery === "purchase" && receiptMissing ? <button className={styles.primary} type="button" disabled={busy} onClick={() => void confirm(true)}>Confirm same purchase · {usd(purchaseRequest?.totalCents ?? total)}</button> : null}
     {recovery === "offers" ? <a className={styles.secondary} href={refreshOffersHref}>Refresh available offers</a> : null}
     {recovery === "deposit" ? <Link className={styles.secondary} href={walletHref} onClick={rememberSelection}>Check this deposit</Link> : null}
     <Link className={styles.secondary} href="/account/entries?filter=completed">View completed purchases</Link>

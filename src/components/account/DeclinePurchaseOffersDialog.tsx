@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ActivityItem } from "@/lib/account/activity";
-import { declineAllDemoPurchaseOptions, undoBulkDemoPurchaseOptions, type DeclineReceipt } from "@/lib/account/bulk-decline-actions";
+import { declinedOfferHref, type ActivityItem } from "@/lib/account/activity";
+import { checkDeclinedOfferStatuses, declineAllDemoPurchaseOptions, undoBulkDemoPurchaseOptions, type DeclineReceipt } from "@/lib/account/bulk-decline-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { PurchaseDialog } from "./PurchaseCheckoutDialog";
@@ -21,6 +21,8 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("confirm");
   const [message, setMessage] = useState("");
+  const [checked, setChecked] = useState<Record<string, string> | null>(null);
+  const [checking, setChecking] = useState(false);
   const [receipts, setReceipts] = useState<DeclineReceipt[]>([]);
   const optionIds = receipts.map(receipt => receipt.optionId);
   const [undoUntil, setUndoUntil] = useState<number | null>(null);
@@ -44,6 +46,7 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
 
   useEffect(() => () => releaseRefresh.current?.(), []);
 
+  const firstDeclined = receipts[0]?.optionId;
   const finish = useCallback(() => {
     if (inFlight.current || leaving.current) return;
     leaving.current = true;
@@ -51,9 +54,9 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
     setUndoUntil(null);
     setPhase("leaving");
     if (returnToRemaining) onClose();
-    router.replace(returnToRemaining ? `/account/purchase-options/${encodeURIComponent(item.slug)}` : "/account/declined-offers");
+    router.replace(returnToRemaining ? `/account/purchase-options/${encodeURIComponent(item.slug)}` : declinedOfferHref(firstDeclined));
     router.refresh();
-  }, [router, item.slug, onClose, returnToRemaining]);
+  }, [router, item.slug, onClose, returnToRemaining, firstDeclined]);
 
   // Keep the saved decline visible until Undo, Finish, or the original deadline.
   // An Undo already in flight must finish before any countdown navigation.
@@ -73,6 +76,15 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
     if (phase === "confirm") cancelReview();
     else finish();
   }, [phase, cancelReview, finish]);
+
+  async function checkOffers() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setChecking(true);
+    try { setChecked(await checkDeclinedOfferStatuses(item.slug, reviewedOptionIds)); }
+    catch { setChecked({}); }
+    finally { inFlight.current = false; setChecking(false); }
+  }
 
   async function decline() {
     if (inFlight.current || phase !== "confirm" || offersChanged || !count) return;
@@ -160,7 +172,15 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
       {selective && <div className={styles.reviewTickets}>{ticketList(optionIds, "Declined")}{ticketList(kept, "Still available")}</div>}
     </> : phase === "error" ? <>
       <p className={styles.message} role="alert">{message}</p>
-      <Link href="/account/declined-offers" className={styles.recovery}>Check Declined Offers</Link>
+      <button type="button" className={styles.keep} onClick={() => void checkOffers()} disabled={checking}>{checking ? "Checking…" : "Check these offers"}</button>
+      {checked && <ul aria-live="polite" className={styles.reviewTickets}>
+        {reviewedOptionIds.map((id, index) => <li key={id}>
+          {ticketLabels?.[id] ?? `Offer ${index + 1}`} · {checked[id] === "declined"
+            ? <Link href={declinedOfferHref(id)}>Declined</Link>
+            : checked[id] === "available" ? "Available in Purchase Options"
+            : checked[id] === "purchased" ? "Purchased" : checked[id] === "expired" ? "Expired" : "Still checking"}
+        </li>)}
+      </ul>}
     </> : <p className={styles.message} role="status">{phase === "leaving" ? "Opening Declined Offers…" : "Saving your decline…"}</p>}
   </PurchaseDialog>;
 }

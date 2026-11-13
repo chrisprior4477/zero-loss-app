@@ -6,7 +6,7 @@ import { isAtLeastAge, MIN_ACCOUNT_AGE_YEARS } from "@/lib/auth/validation";
 import { addressTimeZone, countryTimeZones } from "./address-timezone";
 import { missingAddressFields } from "./address-requirements";
 import { DEFAULT_TIME_ZONE, safeTimeZone } from "./timezone";
-import { profilePatch, readProfileBaseline, type ProfileSavedFields } from "./profile-edit";
+import { hasProfileAddressChange, profilePatch, readProfileBaseline, type ProfileSavedFields } from "./profile-edit";
 
 const allowedPhotoTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxPhotoBytes = 5 * 1024 * 1024;
@@ -68,15 +68,17 @@ export async function saveProfileDetails(
     if (phoneNumber && (!/^[0-9+().\-\s]{7,32}$/.test(phoneNumber) || phoneNumber.replace(/\D/g, "").length < 7)) {
       throw new Error("Enter a valid phone number, or leave it blank.");
     }
+    const baseline = readProfileBaseline(formData.get("profile_baseline"));
+    const addressChanged = hasProfileAddressChange(formData, baseline);
     const hasAddress = [addressLine1, addressLine2, city, region, postalCode].some(Boolean);
     const missing = missingAddressFields({ street: addressLine1, city, region, postalCode, country: countryInput });
-    if (hasAddress && missing.length) {
+    if (addressChanged && hasAddress && missing.length) {
       throw new Error(`Complete the ${missing.join(", ")} for your mailing address in ${countryInput || "your selected country"}.`);
     }
     if (!supportedLocales.has(preferredLocale)) throw new Error("Choose a supported language.");
     const detectedZone = hasAddress ? addressTimeZone(countryInput, region, postalCode) : DEFAULT_TIME_ZONE;
     const allowedZones = hasAddress ? countryTimeZones(countryInput) : [];
-    if (hasAddress && !detectedZone && (!timezone || (allowedZones.length ? !allowedZones.includes(timezone) : safeTimeZone(timezone) !== timezone))) {
+    if (addressChanged && hasAddress && !detectedZone && (!timezone || (allowedZones.length ? !allowedZones.includes(timezone) : safeTimeZone(timezone) !== timezone))) {
       throw new Error("Choose your time zone below your country to finish saving your address.");
     }
     updates = {
@@ -92,9 +94,9 @@ export async function saveProfileDetails(
       postal_code: hasAddress ? postalCode || null : null,
       country: hasAddress ? countryInput : null,
       preferred_locale: preferredLocale,
-      timezone: detectedZone ?? timezone,
+      timezone: detectedZone ?? (timezone || baseline.saved.timezone),
     };
-    selection = profilePatch(updates, formData, readProfileBaseline(formData.get("profile_baseline")));
+    selection = profilePatch(updates, formData, baseline);
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "Check the profile details and try again." };
   }

@@ -62,6 +62,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   // Expired purchase options may never have issued a digital reward. Keep their
   // authorized records visible too, with their existing activity destination.
   const records = state.source === "unavailable" ? [] : [...allRewards, ...state.activity.filter(item => item.completionOptionStatus === "expired" && !allRewards.includes(item))];
+  const rewardFromHistory = (item: ActivityItem) => view === "all" ? walletRewardHref(item) : `${walletRewardHref(item)}&rewards=${view}`;
   const history = records.filter(item => !ready.includes(item));
   const used = allRewards.filter(item => rewardState(item) === "redeemed");
   const expired = records.filter(item => rewardState(item) === "expired");
@@ -126,7 +127,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe or drag to browse rewards</p> : null}
           <RewardHistoryCarousel key={view}>
           <div className={overview.tableHeader} aria-hidden="true"><span>Date</span><span>Reward</span><span>Type</span><span>Status</span><span>Value</span><span className={overview.visuallyHidden}>Open</span></div>
-          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} href={isWalletReward(item) ? walletRewardHref(item) : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}`} className={overview.historyRow}>
+          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId ? `wallet-reward-${item.rewardId}` : undefined} href={isWalletReward(item) ? rewardFromHistory(item) : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}`} className={overview.historyRow}>
             <span>{claimedDate(item.rewardClaimedAt, timeZone)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><strong>{item.title}</strong></span>
             <span>{isWalletReward(item) ? "Gift Card" : "Purchase Option"}</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item, state.isPreview)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
           </Link>)}
@@ -174,7 +175,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, fromPurchase = false, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
+export function WalletRewardDetail({ item, isPreview, fromPurchase = false, returnView, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; returnView?: RewardView; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -294,7 +295,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, clai
       <nav aria-label="Reward detail exits" className={styles.detailExitActions}>
         {item.rewardId ? <Link href={fulfillmentHref(item.rewardId)} className={styles.backToRewards}>View fulfillment status</Link> : null}
         <Link href="/" className={styles.detailShoppingButton}>Continue shopping</Link>
-        <Link href="/account/wallet" className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>
+        <Link href={returnView ? `/account/wallet?rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}` : "/account/wallet"} className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>
       </nav>
     </section>
   </main>;

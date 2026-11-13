@@ -163,6 +163,7 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
   const rail = useRef<HTMLDivElement>(null);
   const drag = useRef<TicketDrag | null>(null);
   const suppressTicketClick = useRef(false);
+  const railPosition = useRef<{ step: number; fraction: number } | null>(null);
   const canPage = !selected && lastPage > 0;
 
   function rememberPage(anchor: string | null, openId: string | null = opened?.id ?? null, position?: number) {
@@ -216,11 +217,30 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     drag.current = null;
     delete track.dataset.dragging;
     track.scrollLeft = pageOffset(track, currentPage);
+    const step = pageOffset(track, 1);
+    railPosition.current = step ? { step, fraction: track.scrollLeft / step } : null;
   });
 
   useLayoutEffect(() => {
     alignPage();
   }, [size]);
+
+  const resizeRail = useEffectEvent(() => {
+    const track = rail.current;
+    if (!track) return;
+    const step = pageOffset(track, 1);
+    const saved = railPosition.current;
+    if (saved && step && saved.step !== step) track.scrollLeft = saved.fraction * step;
+    syncView(track);
+  });
+
+  useEffect(() => {
+    const track = rail.current;
+    if (!track || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => resizeRail());
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, []);
 
   function changePage(page: number) {
     const anchor = orders[page * size]?.rewardId;
@@ -237,6 +257,7 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     const step = pageOffset(track, 1);
     if (step <= 0 || !track.clientWidth) return;
     const position = track.scrollLeft / step;
+    railPosition.current = { step, fraction: position };
     const tolerance = 2 / step;
     // Ignore the narrow ticket peeks at each edge when deciding which controls to expose.
     const first = Math.floor((position + tolerance) * columns);

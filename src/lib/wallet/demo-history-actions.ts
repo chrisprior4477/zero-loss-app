@@ -7,7 +7,7 @@ import { parseWalletSnapshot } from "./snapshot";
 
 export type DemoHistoryKind = "transactions" | "deposits";
 type Preview = { status: "ready"; balanceCents: number } | { status: "error"; message: string };
-type Result = { status: "succeeded"; hiddenCount: number; clearedCents: number } | { status: "error"; message: string };
+type Result = { status: "succeeded"; hiddenCount: number; clearedCents: number } | { status: "error"; message: string; uncertain?: boolean };
 
 async function authorizedDemoWallet() {
   if (!isPreviewDataEnvironment()) throw new Error("Demo history reset is unavailable here.");
@@ -50,18 +50,34 @@ export async function clearDemoWalletHistory(kind: DemoHistoryKind, expectedBala
     const { data, error } = await db.rpc("clear_demo_wallet_history", {
       p_kind: kind, p_expected_balance_cents: expectedBalanceCents, p_request_key: requestKey,
     });
-    if (error) return { status: "error", message: error.code === "P0001"
+    if (error) return { status: "error", uncertain: !["P0001", "P0002"].includes(error.code), message: error.code === "P0001"
       ? "Your balance changed. Review the new amount before clearing it."
       : error.code === "P0002" ? "Finish or check pending demo deposits before clearing this history."
         : "The reset could not be confirmed. Refresh your wallet before trying again." };
     const hiddenCount = Number(data?.hiddenCount);
     const clearedCents = Number(data?.clearedCents);
     if (!Number.isSafeInteger(hiddenCount) || hiddenCount < 0 || !Number.isSafeInteger(clearedCents) || clearedCents < 0) {
-      return { status: "error", message: "The reset result could not be verified. Refresh your wallet." };
+      return { status: "error", uncertain: true, message: "The reset result could not be verified." };
     }
     revalidatePath("/", "layout");
     return { status: "succeeded", hiddenCount, clearedCents };
-  } catch (error) {
-    return { status: "error", message: error instanceof Error ? error.message : "The demo history could not be cleared." };
+  } catch {
+    return { status: "error", uncertain: true, message: "We couldn’t confirm the reset. Check its status before trying again." };
   }
+}
+
+export async function checkDemoHistoryReset(kind: DemoHistoryKind, requestKey: string): Promise<Result | { status: "not_found" }> {
+  const unavailable = { status: "error", message: "We couldn’t verify the reset. Check again." } as const;
+  if (!["transactions", "deposits"].includes(kind) || !/^[A-Za-z0-9_-]{16,128}$/.test(requestKey)) return unavailable;
+  try {
+    const { db } = await authorizedDemoWallet();
+    const { data, error } = await db.rpc("read_demo_wallet_history_reset", { p_kind: kind, p_request_key: requestKey });
+    if (error) return unavailable;
+    if (data === null) return { status: "not_found" };
+    const hiddenCount = Number(data?.hiddenCount);
+    const clearedCents = Number(data?.clearedCents);
+    if (!Number.isSafeInteger(hiddenCount) || hiddenCount < 0 || !Number.isSafeInteger(clearedCents) || clearedCents < 0) return unavailable;
+    revalidatePath("/", "layout");
+    return { status: "succeeded", hiddenCount, clearedCents };
+  } catch { return unavailable; }
 }

@@ -5,7 +5,7 @@ import popupStyles from "@/components/layout/responsive-popup.module.css";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { clearDemoWalletHistory, previewDemoHistoryClear, type DemoHistoryKind } from "@/lib/wallet/demo-history-actions";
+import { checkDemoHistoryReset, clearDemoWalletHistory, previewDemoHistoryClear, type DemoHistoryKind } from "@/lib/wallet/demo-history-actions";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import styles from "./demo-history-clear-button.module.css";
 
@@ -13,6 +13,7 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
   const router = useRouter();
   const [balanceCents, setBalanceCents] = useState<number | null>(null);
   const [notice, setNotice] = useState("");
+  const [checkingReset, setCheckingReset] = useState(false);
   const [pending, startTransition] = useTransition();
   const dialog = useRef<HTMLDialogElement>(null);
   const requestKey = useRef<string | null>(null);
@@ -25,6 +26,7 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
   function close() {
     dialog.current?.close();
     setBalanceCents(null);
+    setCheckingReset(false);
     requestKey.current = null;
   }
 
@@ -44,14 +46,26 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
     if (balanceCents === null || !requestKey.current) return;
     startTransition(async () => {
       try {
-        const result = await clearDemoWalletHistory(kind, balanceCents, requestKey.current!);
-        if (result.status === "error") { setNotice(result.message); return; }
+        const result = checkingReset ? await checkDemoHistoryReset(kind, requestKey.current!)
+          : await clearDemoWalletHistory(kind, balanceCents, requestKey.current!);
+        if (result.status === "not_found") {
+          setNotice("No completed reset was found yet. Check again before starting a new reset.");
+          return;
+        }
+        if (result.status === "error") {
+          if (result.uncertain) setCheckingReset(true);
+          setNotice(result.message);
+          return;
+        }
         close();
         setNotice(kind === "transactions"
           ? `${result.hiddenCount} demo transactions cleared from this view. Your balance and audit records remain.`
           : `${result.hiddenCount} demo deposits cleared from this view. ${formatUsdFromCents(result.clearedCents)} in playable funds reset; audit records remain.`);
         router.refresh();
-      } catch { setNotice("The reset could not be confirmed. Refresh your wallet before trying again."); }
+      } catch {
+        setCheckingReset(true);
+        setNotice("We couldn’t confirm the reset. Check its status before trying again.");
+      }
     });
   }
 
@@ -73,7 +87,7 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
         {notice ? <p role="alert" className={styles.error}>{notice}</p> : null}
         <div className={styles.actions}>
           <button type="button" className={styles.cancel} disabled={pending} onClick={close}>Cancel</button>
-          <button type="button" className={styles.confirm} disabled={pending} onClick={confirm}>{pending ? "Clearing…" : label}</button>
+          <button type="button" className={styles.confirm} disabled={pending} onClick={confirm}>{checkingReset ? pending ? "Checking…" : "Check reset status" : pending ? "Clearing…" : label}</button>
         </div>
       </dialog>, document.body) : null}
   </>;
