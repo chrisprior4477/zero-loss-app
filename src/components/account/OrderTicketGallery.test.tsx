@@ -143,7 +143,18 @@ test("Tab and Shift+Tab wrap within the open details", () => {
 
 test("a complete single page has no extra-ticket edges", () => {
   render(<OrderTicketGallery orders={[record(1)]} />);
+  expect(screen.getByText("1 of 1")).toBeTruthy();
   expect(screen.queryByRole("button", { name: /Show (next|previous) order tickets/ })).toBeNull();
+});
+
+test("the last page of three phone records shows one ticket without a repeated number", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  render(<OrderTicketGallery orders={[record(1), record(2), record(3)]} />);
+  expect(screen.getByText("1–2 of 3")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Next tickets" }));
+  expect(screen.getByText("3 of 3")).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "Reward 3" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Next tickets" }).hasAttribute("disabled")).toBe(true);
 });
 
 test('a winning reward opens a direct support form with its own reward reference and no purchase transaction',()=>{

@@ -151,6 +151,8 @@ export function OrderTicketGallery({ orders, filter = "all" }: { orders: Fulfill
   const anchorIndex = orders.findIndex(order => order.rewardId === (opened?.id ?? pageAnchor));
   const currentPage = Math.floor(Math.max(0, anchorIndex) / size);
   const start = currentPage * size;
+  const end = Math.min(start + size, orders.length);
+  const range = start + 1 === end ? String(end) : `${start + 1}–${end}`;
   const columns = phone ? 1 : 2;
   const currentView = view?.size === size ? view : null;
   const previousPage = currentView?.previous ?? currentPage - 1;
@@ -369,6 +371,6 @@ export function OrderTicketGallery({ orders, filter = "all" }: { orders: Fulfill
       </div>
       {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} filter={filter} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
-    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{start + 1}–{Math.min(start + size, orders.length)} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={!hasPrevious || Boolean(selected)} onClick={() => changePage(previousPage)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={!hasNext || Boolean(selected)} onClick={() => changePage(nextPage)}><AccountIcon name="chevron" /></button></div></nav>
+    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{range} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={!hasPrevious || Boolean(selected)} onClick={() => changePage(previousPage)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={!hasNext || Boolean(selected)} onClick={() => changePage(nextPage)}><AccountIcon name="chevron" /></button></div></nav>
   </div>;
 }

@@ -35,6 +35,10 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
   const visibleOrders = records.filter(order => (selectedOrderNumber ? order.orderNumber === selectedOrderNumber : selectedRewardId || matchesFulfillmentFilter(order, filter)) && (!selectedRewardId || order.rewardId === selectedRewardId));
   const selectionAnchor = selectedOrderNumber ? `order-${selectedOrderNumber}` : "fulfillment-records";
   const countLabel = (count: number) => complete ? String(count) : count ? `${count}+` : "—";
+  const resultsCount = visibleOrders.length;
+  const resultsLabel = showingPayments
+    ? `${resultsCount} paid ${resultsCount === 1 ? "order" : "orders"}`
+    : `${resultsCount} ${resultsCount === 1 ? "record" : "records"}`;
   const readyRewards = overview ? readyWalletRewards(overview.activity) : [];
   const singleReward = readyRewards.length === 1 ? readyRewards[0] : null;
   const optionsCount = overview?.activity.source === "unavailable" ? null : overview?.activity.activity.filter(item => item.status === "completion").length;
@@ -56,30 +60,31 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
 
       {supportUnavailable ? <p role="alert" className={styles.warning}>We couldn’t attach this order’s transaction right now. <Link href={walletTransactionHelpHref}>Choose its transaction from wallet history</Link> to report the problem.</p> : null}
 
+      {/* Use native navigation for these filter links. The route cache can append the results fragment twice. */}
       <section className={styles.summary} aria-label="Order status filters">
         {([
           { key: "all", label: "All", count: records.length, icon: "all" },
           { key: "processing", label: "In progress", count: processing, icon: "active" },
           { key: "fulfilled", label: "Issued", count: fulfilled, icon: "gift" },
           { key: "exceptions", label: "Exceptions", count: exceptions, icon: "bell" },
-        ] as const).map(item => <Link key={item.key} href={fulfillmentHref(undefined, item.key)} aria-label={`${item.label}: ${complete ? `${item.count} ${item.count === 1 ? "record" : "records"}` : "total unavailable"}`} aria-current={!hasSelection && filter === item.key ? "page" : undefined}>
+        ] as const).map(item => <a key={item.key} href={fulfillmentHref(undefined, item.key)} aria-label={`${item.label}: ${complete ? `${item.count} ${item.count === 1 ? "record" : "records"}` : "total unavailable"}`} aria-current={!hasSelection && filter === item.key ? "page" : undefined}>
           <AccountIcon name={item.icon} /><span>{item.label}</span><strong>{countLabel(item.count)}</strong>
-        </Link>)}
+        </a>)}
       </section>
 
-      {selectedOrderNumber ? <SelectedOrderScroll targetId={selectionAnchor} /> : null}
+      <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!selectedOrderNumber} />
       <div id={selectionAnchor} className={styles.contentGrid}>
         <header className={styles.sectionHeading}>
           <div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading">Retailer gift-card fulfillment</h2></div>
           <div className={styles.resultControls}>
-            <span role="status">{visibleOrders.length} of {countLabel(records.length)} records</span>
-            {!hasSelection ? <Link href={paymentHref} className={styles.paymentFilter} aria-current={showingPayments ? "page" : undefined}>Confirmed payments</Link> : null}
-            {filter !== "all" || hasSelection ? <Link href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</Link> : null}
+            <span role="status">{resultsLabel}{!selectionComplete ? " found so far" : ""}</span>
+            {!hasSelection ? <a href={paymentHref} className={styles.paymentFilter} aria-current={showingPayments ? "page" : undefined}>Confirmed payments</a> : null}
+            {filter !== "all" || hasSelection ? <a href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</a> : null}
           </div>
         </header>
         <section className={styles.orders} aria-labelledby="your-orders-heading">
-          {hasSelection && filter !== "all" ? <Link href={fulfillmentHref(undefined, filter)} className={styles.showAll}>Return to {fulfillmentFilterLabel[filter]}</Link> : null}
-          {!selectedOrderNumber && filter === "payment" ? <p className={styles.filterNote}>Recorded Purchase Option checkouts. Winning prizes do not require a gift-card purchase.</p> : !selectedOrderNumber && filter === "exceptions" ? <p className={styles.filterNote}>Issuance problems, expired or cancelled rewards, and corrected orders. Open a record for its current status.</p> : null}
+          {hasSelection && filter !== "all" ? <a href={fulfillmentHref(undefined, filter)} className={styles.showAll}>Return to {fulfillmentFilterLabel[filter]}</a> : null}
+          {showingPayments ? <p className={styles.filterNote}>This view shows paid orders only. To see prize wins too, select Show all orders &amp; rewards.</p> : !selectedOrderNumber && filter === "exceptions" ? <p className={styles.filterNote}>Issuance problems, expired or cancelled rewards, and corrected orders. Open a record for its current status.</p> : null}
           {visibleOrders.length ? <>
             {!complete ? <div className={`${styles.warning} ${styles.retryWarning}`}>
               <p role="status">Some fulfillment records could not be verified right now. The records below are available, and totals may be incomplete.</p>
@@ -93,7 +98,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
             <OrdersRetryButton label={retryLabel} />
           </div> : records.length || hasSelection || filter !== "all" ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span><h3>{selectedOrderNumber ? "That order is not available here" : selectedRewardId ? "That reward is not available here" : "No records in this status"}</h3><p>{hasSelection ? "Only records saved to your account can be opened here." : "Your other orders and rewards remain available in the full list."}</p>
-            <Link href={fulfillmentHref()}>{hasSelection ? "View all orders" : "Show all records"}<AccountIcon name="arrow" /></Link>
+            <a href={fulfillmentHref()}>{hasSelection ? "View all orders" : "Show all records"}<AccountIcon name="arrow" /></a>
           </div> : <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
             <h3>No orders or winning rewards yet</h3>
@@ -117,11 +122,9 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
           <Link href={accountRoutes.activity}><AccountIcon name="layers" /><span>My Activity</span></Link>
           <Link href={accountRoutes.rewards}><AccountIcon name="gift" /><span>Gift Cards &amp; Rewards</span></Link>
           <Link href={walletHistoryHref}><AccountIcon name="wallet" /><span>Wallet &amp; Transactions</span></Link>
-          {showingPayments ? <a href="#fulfillment-records" aria-current="page">
+          <a href={paymentHref} aria-current={showingPayments ? "page" : undefined}>
             <AccountIcon name="completion" /><span>Confirmed payments</span>
-          </a> : <Link href={paymentHref}>
-            <AccountIcon name="completion" /><span>Confirmed payments</span>
-          </Link>}
+          </a>
         </div>
       </nav>
       <p className={styles.retailerNote}>Zero Loss issues retailer gift cards. Product selection, inventory, checkout, shipping and retailer fees remain on the retailer’s site.</p>

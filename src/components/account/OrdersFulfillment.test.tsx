@@ -70,11 +70,13 @@ test("both confirmed payment links open checkout records and the filter can be c
     expect(within(parent).getByRole("link", { name: "Confirmed payments" }).getAttribute("href")).toBe("/account/orders?filter=payment#fulfillment-records");
   }
   expect(screen.getByText("You won")).toBeTruthy();
+  expect(within(header).getByRole("status").textContent).toBe("3 records");
 
   rerender(<OrdersFulfillment state={state} overview={overview} filter="payment" />);
-  expect(within(header).getByRole("status").textContent).toBe("2 of 3 records");
+  expect(within(header).getByRole("status").textContent).toBe("2 paid orders");
+  expect(screen.getByText(/this view shows paid orders only/i)).toBeTruthy();
   expect(within(header).getByRole("link", { name: "Confirmed payments" }).getAttribute("aria-current")).toBe("page");
-  expect(within(related).getByRole("link", { name: "Confirmed payments" }).getAttribute("href")).toBe("#fulfillment-records");
+  expect(within(related).getByRole("link", { name: "Confirmed payments" }).getAttribute("href")).toBe("/account/orders?filter=payment#fulfillment-records");
   expect(screen.getByText("purchased gift card")).toBeTruthy();
   expect(screen.getByText("pending gift card")).toBeTruthy();
   expect(screen.queryByText("You won")).toBeNull();
@@ -90,6 +92,24 @@ test("two orders for the same product open their own saved gift cards", () => {
     "/account/wallet?reward=ready-reward&rewardId=ready-reward-id",
     "/account/wallet?reward=ready-reward&rewardId=second-reward-id",
   ]);
+});
+
+test("repairs a duplicate fulfillment fragment without clearing the filter", () => {
+  const previousHref = window.location.href;
+  const previousState = window.history.state;
+  const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  try {
+    window.history.replaceState({ saved: true }, "", "/account/orders?filter=payment#fulfillment-records#fulfillment-records");
+    render(<OrdersFulfillment state={{ source: "stored", orders: [order("fulfilled", "purchased")] }} filter="payment" />);
+    expect(window.location.search).toBe("?filter=payment");
+    expect(window.location.hash).toBe("#fulfillment-records");
+    expect(window.history.state).toEqual({ saved: true });
+    expect(screen.getByText("1 paid order")).toBeTruthy();
+  } finally {
+    cleanup();
+    scrollTo.mockRestore();
+    window.history.replaceState(previousState, "", previousHref);
+  }
 });
 
 test("uses honest empty and unavailable states", () => {
@@ -136,7 +156,7 @@ test("ticket filters use actual order statuses without changing saved destinatio
   rerender(<OrdersFulfillment state={state} overview={overview} filter="processing" />);
   expect(screen.getByRole("heading", { name: "pending gift card" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "ready gift card" })).toBeNull();
-  expect(screen.getByText("1 of 2 records")).toBeTruthy();
+  expect(screen.getByText("1 record")).toBeTruthy();
   rerender(<OrdersFulfillment state={state} overview={overview} filter="fulfilled" />);
   expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id&orderFilter=fulfilled");
   rerender(<OrdersFulfillment state={state} overview={overview} filter="exceptions" />);
