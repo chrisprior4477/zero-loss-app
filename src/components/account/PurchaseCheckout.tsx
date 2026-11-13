@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ActivityItem } from "@/lib/account/activity";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { checkDemoPurchaseReceipt, completeDemoPurchaseOptions, type BulkPurchaseRequest } from "@/lib/account/bulk-purchase-actions";
@@ -27,6 +27,7 @@ import { purchaseFundingHref, rememberWalletSelection, setWalletFundingContext }
 import { fundingHref, purchaseDepositRecoveryHref, purchaseDepositKeyPattern } from "@/lib/wallet/funding-navigation";
 import { useCheckoutSelection } from "./useCheckoutSelection";
 import { DeclinePurchaseOffersDialog } from "./DeclinePurchaseOffersDialog";
+import { AccountIcon } from "./AccountIcon";
 
 function Product({ item }: { item: ActivityItem }) {
   return <div className={styles.product}><Image src={item.image} alt={item.title} width={64} height={60} /><div><p className={styles.retailer}>{item.retailer}</p><h2>{item.title}</h2><p>{usd(item.priceCents)} gift card · Each entry counts toward its own option</p></div></div>;
@@ -58,6 +59,9 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const timeZone = useAccountTimeZone();
   const router = useRouter();
   const item = options[0];
+  const singleOffer = options.length === 1;
+  const offerDetailsId = useId();
+  const [offerDetailsOpen, setOfferDetailsOpen] = useState(false);
   const { selected, decline, available, needsReview, handoffId, updateChoice, clearChoice } = useCheckoutSelection(ownerId, options, initiallySelectedEntryId);
   const [balance, setBalance] = useState(initialBalance);
   const [lastServerBalance, setLastServerBalance] = useState(initialBalance);
@@ -353,7 +357,10 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   return <div className={styles.page}><AccountSettingsLandingScroll target="purchase-options-intro" settleAfterNavigation allScreens /><div className={styles.shell}>
     <section id="purchase-options-intro" className={`${styles.ticket} ${styles.content} ${styles.refined}`} aria-label="Your purchase options">
       <h1>Your {options.length} purchase {options.length === 1 ? "option" : "options"}</h1><Product item={item} />
-      <div className={styles.quantity}><NumberWheel label="Buying" min={1} max={options.length} value={chosen.length} disabled={locked || overlay !== null} onChange={changeQuantity} /><div><h3>{buyLabel}</h3><p className={styles.credit}>Your <b>{usd(paid)}</b> already paid + <b>{usd(total)}</b> remaining = <b>{usd(face)}</b><small>Your entry {chosen.length === 1 ? "dollar still counts." : "dollars still count toward their own options."}</small></p></div></div>
+      <div className={singleOffer ? `${styles.quantity} ${styles.singleQuantity}` : styles.quantity}>
+        {!singleOffer ? <NumberWheel label="Buying" min={1} max={options.length} value={chosen.length} disabled={locked || overlay !== null} onChange={changeQuantity} /> : null}
+        <div><h3>{buyLabel}</h3><p className={styles.credit}>Your <b>{usd(paid)}</b> already paid + <b>{usd(total)}</b> remaining = <b>{usd(face)}</b><small>Your entry {chosen.length === 1 ? "dollar still counts." : "dollars still count toward their own options."}</small></p></div>
+      </div>
       {rest ? <fieldset className={styles.offerChoices} disabled={locked}><legend>The other {rest} {rest === 1 ? "offer" : "offers"}</legend><div className={styles.offerTiles}>
         <button type="button" aria-pressed={decline} onClick={() => updateChoice({ decline: true })}>
           <span className={styles.choiceHeading}><span className={styles.choiceMark} aria-hidden="true">{decline ? "✓" : ""}</span><strong>Decline &amp; remove</strong></span>{" "}
@@ -366,13 +373,24 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
           <span className={styles.choiceCount}><span>Keeping for later</span>{" "}<b>{rest}</b></span>
         </button>
       </div><p className={styles.offerHelp}>{selectionSummary}</p></fieldset> : null}
-      <div className={styles.optionLine}><span>{usd(item.remainingCents)} per option</span><button type="button" disabled={locked} onClick={() => setOverlay("options")}>Choose offers to complete · {chosen.length} selected</button></div>
+      {singleOffer ? <div className={styles.singleOfferDetails}>
+        <button type="button" className={styles.offerDetailsButton} aria-expanded={offerDetailsOpen} aria-controls={offerDetailsId} onClick={() => setOfferDetailsOpen(open => !open)}>
+          Offer details<AccountIcon name="chevron" />
+        </button>
+        <div id={offerDetailsId} className={styles.offerDetailsBody} hidden={!offerDetailsOpen}>
+          <strong>{ticketLabels[item.completionOptionId!]}</strong>
+          <dl>
+            <div><dt>Entry credit</dt><dd>{usd(item.paidCents)} applied</dd></div>
+            <div><dt>Available until</dt><dd>{item.completionExpiresAt ? <time dateTime={item.completionExpiresAt}>{formatOfferDeadline(item.completionExpiresAt, timeZone)}</time> : "Original deadline"}</dd></div>
+          </dl>
+        </div>
+      </div> : <div className={styles.optionLine}><span>{usd(item.remainingCents)} per option</span><button type="button" disabled={locked} onClick={() => setOverlay("options")}>Choose offers to complete · {chosen.length} selected</button></div>}
       {money(true)}{needsReview && <p role="status" className={styles.status}>Your available offers changed. Check which offers you want to buy before continuing.</p>}{notice ? <p className={styles.status} role="status">{notice}</p> : null}{!overlay ? feedback : null}{purchaseReceipt}
       <p className={styles.purchaseExpired} role="status">{purchaseExpired ? "Time ran out. No purchase was made." : ""}</p>
       {receipt?.status !== "ready" && <button type="button" className={`${styles.primary} ${needsReview ? "" : styles.purchaseAction}`} aria-label={needsReview ? "Review updated options" : shortfall ? `Add funds: ${usd(required)} to continue` : `Make purchase: ${usd(total)}`} disabled={locked} onClick={review}>{needsReview ? "Review updated options" : <><span>{shortfall ? "Add funds" : "Make purchase"}</span><span className={styles.actionAmount}>{usd(shortfall ? required : total)}</span></>}</button>}
       {!needsReview && recovery !== "purchase" && <p className={`${styles.footnote} ${styles.actionHelp}`}>{shortfall ? "Add funds first. Confirm your purchase next." : "Confirm your purchase in the next step."}</p>}
       <div className={styles.utility}><Link href="/account/entries?filter=completion"><span aria-hidden="true">←</span> My Activity</Link><Link href="/">Continue shopping</Link></div>
-      <div className={styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{options.length === 1 ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
+      <div className={singleOffer ? `${styles.utilityTools} ${styles.singleOfferTools}` : styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{singleOffer ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
     </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog item={item} offeredOptionIds={available} ticketLabels={ticketLabels}
       selectedOptionIds={declineDraft} onBackToSelection={backToSelection} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>

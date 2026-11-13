@@ -109,7 +109,7 @@ test.each([
   ["2026-11-28T02:30:00Z", "America/Los_Angeles", "Nov 27, 2026, 6:30 PM PST"],
   ["2026-07-15T17:00:00Z", "America/New_York", "Jul 15, 2026, 1:00 PM EDT"],
   ["2026-11-28T17:00:00Z", "Asia/Kolkata", "Nov 28, 2026, 10:30 PM GMT+5:30"],
-])("the summary and offer chooser show the same exact account deadline for %s in %s", (deadline, timeZone, label) => {
+])("the summary and offer details show the same exact account deadline for %s in %s", (deadline, timeZone, label) => {
   const datedOptions = [{ ...options[0], completionExpiresAt: deadline }];
   render(<TimeZoneProvider value={timeZone}>
     <PurchaseOptionSummary options={datedOptions} />
@@ -117,8 +117,8 @@ test.each([
   </TimeZoneProvider>);
   const summary = screen.getByText(`Available until ${label}`);
   expect(summary.getAttribute("dateTime")).toBe(deadline);
-  fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
-  const exactDeadline = within(screen.getByRole("dialog")).getByText(label);
+  fireEvent.click(screen.getByRole("button", { name: "Offer details" }));
+  const exactDeadline = within(screen.getByRole("region", { name: "Your purchase options" })).getByText(label);
   expect(exactDeadline.getAttribute("dateTime")).toBe(deadline);
   expect(mocks.fund).not.toHaveBeenCalled();
   expect(mocks.purchase).not.toHaveBeenCalled();
@@ -171,6 +171,38 @@ test("a single purchase option opens a singular decline popup over the current t
   fireEvent.click(screen.getByRole("button", { name: "Keep my offer" }));
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(mocks.replace).not.toHaveBeenCalled();
+});
+
+test("one offer has an expandable ticket summary and goes directly to checkout review", () => {
+  render(<PurchaseCheckout ownerId="account-a" options={[options[0]]} initialBalance={50000} cards={[]} fundingAvailable />);
+  expect(screen.queryByRole("radiogroup", { name: "Buying" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Choose offers to complete/ })).toBeNull();
+  const details = screen.getByRole("button", { name: "Offer details", expanded: false });
+  const panel = document.getElementById(details.getAttribute("aria-controls")!)!;
+  expect(panel.hidden).toBe(true);
+  fireEvent.click(details);
+  expect(details.getAttribute("aria-expanded")).toBe("true");
+  expect(panel.hidden).toBe(false);
+  expect(within(panel).getByText("Ticket #entry-0")).toBeTruthy();
+  expect(within(panel).getByText("$1 applied")).toBeTruthy();
+  expect(panel.querySelector("time")?.getAttribute("datetime")).toBe(options[0].completionExpiresAt);
+  fireEvent.click(details);
+  expect(panel.hidden).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $399" }));
+  expect(screen.getByRole("dialog", { name: "Confirm your purchase" })).toBeTruthy();
+  expect(mocks.purchase).not.toHaveBeenCalled();
+});
+
+test("a return with changed offers still requires review when only one offer remains", () => {
+  setup(50000);
+  cleanup();
+  render(<PurchaseCheckout ownerId="account-a" options={[options[1]]} initialBalance={50000} cards={[]} fundingAvailable />);
+  fireEvent.click(screen.getByRole("button", { name: "Review updated options" }));
+  const dialog = within(screen.getByRole("dialog", { name: "Choose your options" }));
+  expect(dialog.getByText("Option 1 · Ticket #entry-1")).toBeTruthy();
+  fireEvent.click(dialog.getByRole("button", { name: "Use these options" }));
+  expect(screen.getByRole("button", { name: "Make purchase: $399" })).toBeTruthy();
+  expect(mocks.purchase).not.toHaveBeenCalled();
 });
 
 test("canceling decline keeps the exact purchase choices, quantity and wallet in place", () => {
