@@ -2,6 +2,29 @@ export type LedgerFilter = "all" | "funding" | "entries" | "purchases" | "refund
 
 export const ledgerReturnKey = "zeroLossWalletLedgerReturn";
 
+export function walletSupportReturnHref(transactionId: string, restoreView: boolean) {
+  const id = encodeURIComponent(transactionId);
+  return `/account/wallet?view=history&transaction=${id}${restoreView ? "&walletView=1" : ""}#transaction-${id}`;
+}
+
+function supportReturnKey(walletId: string, transactionId: string) {
+  return `zero-loss-wallet-support:${walletId}:${transactionId}`;
+}
+
+export function rememberLedgerSupportReturn(saved: LedgerReturn, transactionId: string) {
+  const href = new URL(walletSupportReturnHref(transactionId, true), window.location.origin).href;
+  const state = { [ledgerReturnKey]: { ...saved, href, selectedId: transactionId } };
+  try { sessionStorage.setItem(supportReturnKey(saved.walletId, transactionId), JSON.stringify(state)); }
+  catch { /* The exact transaction link still works. */ }
+}
+
+export function readLedgerSupportReturn(walletId: string, href: string, selectedId?: string) {
+  if (!selectedId || new URL(href).searchParams.get("walletView") !== "1") return null;
+  try {
+    return readLedgerReturn(JSON.parse(sessionStorage.getItem(supportReturnKey(walletId, selectedId)) ?? "null"), walletId, href, selectedId);
+  } catch { return null; }
+}
+
 export type LedgerReturn = {
   walletId: string;
   href: string;

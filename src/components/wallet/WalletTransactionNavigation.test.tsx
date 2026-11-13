@@ -11,7 +11,7 @@ const wallet: WalletSnapshot = { walletAccountId: entry.id, scope: "demo", curre
 test("a recent notification highlights exactly its transaction and retains the support shortcut", () => {
   render(<WalletOverview wallet={wallet} selectedTransaction={{ requested: true, entry }} />);
   expect(document.getElementById(`transaction-${entry.id}`)?.getAttribute("data-selected")).toBe("true");
-  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe(`/support?transaction=${entry.id}`);
+  expect(screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")).toBe(`/support?transaction=${entry.id}&walletView=1`);
 });
 test("an older transaction stays accessible without inflating the recent history count", () => {
   render(<WalletOverview wallet={{ ...wallet, entries: [], transactionCount: 51 }} selectedTransaction={{ requested: true, entry }} />);
@@ -25,7 +25,7 @@ test("a notification reveals its exact row beyond the first batch and ordinary v
   const selected = history[17];
   const page = render(<WalletOverview wallet={wallet} ledgerEntries={history} selectedTransaction={{ requested: true, entry: selected }} />);
   expect(document.getElementById(`transaction-${selected.id}`)?.dataset.selected).toBe("true");
-  expect(document.getElementById(`transaction-${selected.id}`)?.querySelector('[aria-label="Report a problem"]')?.getAttribute("href")).toBe(`/support?transaction=${selected.id}`);
+  expect(document.getElementById(`transaction-${selected.id}`)?.querySelector('[aria-label="Report a problem"]')?.getAttribute("href")).toBe(`/support?transaction=${selected.id}&walletView=1`);
   fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
   expect(document.getElementById(`transaction-${history[0].id}`)).toBeTruthy();
   expect(document.getElementById(`transaction-${selected.id}`)).toBeNull();

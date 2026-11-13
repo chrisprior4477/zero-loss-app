@@ -176,6 +176,14 @@ test("a reservation receipt uses the exact owner-scoped entry request for the pr
   expect(screen.getByRole("link", { name: "Back to this transaction" }).getAttribute("href")).toBe(`/account/wallet?view=history&transaction=${caseId}#transaction-${caseId}`);
 });
 
+test("a wallet report carries the return marker without exposing the search or dates", async () => {
+  const ledger = query({ id: caseId, amount: 100, created_at: "2026-09-21T12:00:00Z", entry_type: "DEPOSIT", source_event: "funding-event" });
+  mocks.from.mockImplementation(table => table === "ledger_entries" ? ledger : query([]));
+  render(await SupportPage({ searchParams: Promise.resolve({ transaction: caseId, walletView: "1" }) }));
+  expect(screen.getByRole("link", { name: "Back to this transaction" }).getAttribute("href"))
+    .toBe(`/account/wallet?view=history&transaction=${caseId}&walletView=1#transaction-${caseId}`);
+});
+
 test.each(["matched", "archived", "unavailable"] as const)("a purchase report keeps the exact charge when its order is %s", async state => {
   const title = "Nintendo Switch – OLED Model";
   const orders = ["ord_first", "ord_second"].map(orderNumber => ({ orderNumber, title, image: "/catalog/nintendo-switch-oled.jpg", status: "fulfilled" }));

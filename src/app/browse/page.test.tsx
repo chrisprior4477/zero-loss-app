@@ -264,9 +264,10 @@ describe("Browse search results", () => {
     expect(screen.getByRole("heading", { name: "retailer" in query ? "No “kayak” matches in Best Buy." : "We don't have “kayak” in the catalog yet." })).toBeTruthy();
     expect(screen.getByText(/Shopping should never feel like a/i)).toBeTruthy();
     expect(screen.getByText("loss.").className).toContain("text-[#31e800]");
-    const request = new URL(screen.getByRole("link", { name: /Tell us what you'd like to see/i }).getAttribute("href")!, "https://example.test");
+    const request = new URL(screen.getByRole("link", { name: /Request a product/i }).getAttribute("href")!, "https://example.test");
     expect(request.pathname).toBe("/contact/product-request");
     expect(request.searchParams.get("product")).toBe("kayak");
+    expect(request.hash).toBe("#product-request-heading");
     cleanup();
     render(await ProductRequestPage({ searchParams: Promise.resolve(Object.fromEntries(request.searchParams)) }));
     expect((screen.getByLabelText("What would you like to see?") as HTMLInputElement).value).toBe("kayak");
@@ -333,7 +334,7 @@ describe("Browse search results", () => {
     fireEvent.click(screen.getByRole("button", { name: "Explore Stir-Fry Night" }));
     const popup = within(screen.getByRole("dialog", { name: "Stir-Fry Night" }));
     const offer = popup.getAllByRole("link", { name: /Publix Gift Card/ })[0];
-    expect(new URL(offer.getAttribute("href")!, "https://example.test").searchParams.get("from")).toBe("/browse?category=groceries");
+    expect(new URL(offer.getAttribute("href")!, "https://example.test").searchParams.get("from")).toBe("/browse?category=groceries&groceryIdea=stir-fry-night");
     fireEvent.click(popup.getByRole("button", { name: "Keep exploring ideas" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByRole("heading", { name: "Follow your appetite." })).toBeTruthy();
@@ -371,20 +372,15 @@ describe("Browse search results", () => {
   test("does not claim the whole catalog is empty when only a selected category has no matches", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels", category: "gas" }) }));
     expect(screen.getByRole("heading", { name: "No “paper towels” matches in Gas." })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=paper+towels");
+    expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=paper+towels#search-results");
   });
 
-  test("retries an empty category search in place without removing existing actions", async () => {
+  test("an empty category search has two search bars and keeps the recovery actions", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "PetSmart", maxValue: "500", batch: "3" }) }));
-    const retry = screen.getByRole<HTMLFormElement>("search", { name: "Search Electronics again" });
-    expect(retry.getAttribute("action")).toBe("/browse#search-results");
-    const field = within(retry).getByRole<HTMLInputElement>("searchbox", { name: "Search Electronics again" });
-    expect(field.value).toBe("");
-    fireEvent.change(field, { target: { value: "Sony" } });
-    expect(Object.fromEntries(new FormData(retry))).toEqual({ category: "electronics", maxValue: "500", q: "Sony" });
-    expect(within(retry).getByRole("button", { name: "Go" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=PetSmart");
-    expect(screen.getByRole("link", { name: /Tell us what you'd like to see/ })).toBeTruthy();
+    expect(screen.queryByRole("search", { name: "Search Electronics again" })).toBeNull();
+    expect(screen.getByRole("search", { name: "Search browse results at the bottom" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=PetSmart#search-results");
+    expect(screen.getByRole("link", { name: /Request a product/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Browse available rewards" })).toBeTruthy();
     expect(screen.getByRole("search", { name: "Search marketplace" })).toBeTruthy();
   });

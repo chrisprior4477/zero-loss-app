@@ -22,6 +22,14 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); document.body.style.overflow = ""; });
 
+test("an older exact activity link opens the matching declined offer", () => {
+  const state = storedActivityFixture();
+  const item = { ...state.activity[2], entryId: "ent_1234", completionOptionStatus: "declined" as const, completionOptionId: "a0e941bf-8f2c-4bb9-905c-ebf1872f4d71" };
+  state.activity = [item];
+  expect(() => ActivitySelection({ state, selectedEntryId: item.entryId, destination: "/account/entries" }))
+    .toThrow(`redirect:/account/declined-offers?offer=${item.completionOptionId}#declined-offer-${item.completionOptionId}`);
+});
+
 test("a saved purchase-option result renders the same deadline in different server and browser time zones", () => {
   const state = storedActivityFixture();
   const option = { ...state.activity[2], completionExpiresAt: "2026-11-19T05:00:00Z" };

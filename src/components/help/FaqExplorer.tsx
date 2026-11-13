@@ -69,7 +69,7 @@ export function FaqExplorer() {
     </div>
     <div aria-label="Question topics" className={styles.topics}>{faqCategories.map(([key, label]) => <button key={key} type="button" aria-controls="faq-results" aria-pressed={category === key} onClick={() => { updateBookmark({ category: key }); setCategory(key); }} className={`${styles.ticket} ${styles.button}`}>{label}</button>)}</div>
     <p role="status" className="mb-4 text-sm text-white/65">{items.length} {items.length === 1 ? "answer" : "answers"}{searching ? " matching your search" : ""}</p>
-    <div id="faq-results" className="space-y-3">{items.length ? items.map(item => <FaqAnswer key={`${item.id}-${searching}`} item={item} expanded={searching || expanded.includes(item.id)} onToggle={open => {
+    <div id="faq-results" className="space-y-3">{items.length ? items.map(item => <FaqAnswer key={JSON.stringify([item.id, searching ? query.trim() : null])} item={item} expanded={searching || expanded.includes(item.id)} onToggle={open => {
       if (!searching && open !== expanded.includes(item.id)) {
         const next = open ? expanded.includes(item.id) ? expanded : [...expanded, item.id] : expanded.filter(id => id !== item.id);
         // Ignore a native toggle caused by restoring the same controlled state.

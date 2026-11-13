@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { WalletLedger } from "./WalletLedger";
 import { WalletHistoryLandingScroll } from "./WalletLandingScroll";
-import { ledgerReturnKey, type LedgerReturn } from "@/lib/wallet/ledger-return";
+import { ledgerReturnKey, walletSupportReturnHref, type LedgerReturn } from "@/lib/wallet/ledger-return";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: () => null }));
@@ -27,7 +27,7 @@ beforeEach(() => {
   vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { frames.set(++id, callback); return id; });
   vi.spyOn(window, "cancelAnimationFrame").mockImplementation(id => { frames.delete(id); });
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); window.history.replaceState({}, "", "/"); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); window.history.replaceState({}, "", "/"); });
 function flush() {
   act(() => {
     while (frames.size) {
@@ -85,7 +85,7 @@ test("Support Back restores both dates, category, the five-ticket page and posit
   const saved = window.history.state;
   expect(saved.frameworkState).toBe("keep");
   expect(saved[ledgerReturnKey]).toMatchObject({ filter: "funding", from: "2026-11-01", through: "2026-11-06", offset: 5, rowId: "transaction-funding-7" });
-  expect(screen.getAllByRole("link", { name: "Report a problem" })[2].getAttribute("href")).toBe("/support?transaction=funding-7");
+  expect(screen.getAllByRole("link", { name: "Report a problem" })[2].getAttribute("href")).toBe("/support?transaction=funding-7&walletView=1");
   page.unmount();
   window.history.replaceState({}, "", "/support?transaction=funding-7");
   window.history.replaceState(saved, "", href);
@@ -103,6 +103,22 @@ test("Support Back restores both dates, category, the five-ticket page and posit
   fireEvent.click(screen.getByRole("button", { name: "Entries" }));
   fireEvent.click(screen.getByRole("link", { name: "Report a problem" }));
   expect(window.history.state[ledgerReturnKey]).toMatchObject({ filter: "entries", from: "", through: "", offset: 0, rowId: "transaction-entry-1" });
+});
+
+test("the explicit Support link restores the search, date range and filter for the selected transaction", () => {
+  const page = saveView();
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search transactions" }), { target: { value: "$1" } });
+  fireEvent.submit(screen.getByRole("search", { name: "Search wallet transactions" }));
+  fireEvent.click(screen.getAllByRole("link", { name: "Report a problem" })[1]);
+  page.unmount();
+  window.history.replaceState({}, "", walletSupportReturnHref("funding-1", true));
+  render(<WalletLedger walletId="wallet-1" selectedId="funding-1" entries={allEntries} />);
+  flush();
+  expect(screen.getByRole("button", { name: "Funding" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("searchbox", { name: "Search transactions" })).toHaveProperty("value", "$1");
+  expect(screen.getByLabelText("From date")).toHaveProperty("value", "2026-11-01");
+  expect(screen.getByLabelText("To date")).toHaveProperty("value", "2026-11-06");
+  expect(document.getElementById("transaction-funding-1")?.getAttribute("aria-current")).toBe("true");
 });
 
 test("returning from Support restores the Purchases filter and its page", () => {

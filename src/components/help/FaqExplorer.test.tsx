@@ -31,6 +31,18 @@ test("topics filter in place, zero results recover, and support always has a des
   expect(screen.getByRole("status").textContent).toContain(`${faqItems.filter(item => item.category === "wallet").length} answers`);
 });
 
+test("refining search reopens a collapsed answer that still matches", () => {
+  const { container } = render(<FaqExplorer />);
+  const search = screen.getByRole("searchbox");
+  fireEvent.change(search, { target: { value: "password" } });
+  const answer = () => container.querySelector<HTMLDetailsElement>('[data-faq-id="password"]')!;
+  expect(answer().open).toBe(true);
+  answer().open = false;
+  expect(answer().open).toBe(false);
+  fireEvent.change(search, { target: { value: "reset password" } });
+  expect(answer().open).toBe(true);
+});
+
 test("Back restores the funding topic, pending search, and open answers", async () => {
   const page = render(<FaqExplorer />);
   fireEvent.click(screen.getByRole("button", { name: "Wallet & funding" }));

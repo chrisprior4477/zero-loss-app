@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { findActivityItem, isWalletReward, walletRewardHref, type AccountActivity, type ActivityDestination, type ActivityFilter } from "@/lib/account/activity";
+import { declinedOfferHref, findActivityItem, isWalletReward, walletRewardHref, type AccountActivity, type ActivityDestination, type ActivityFilter } from "@/lib/account/activity";
 import { ActivityDetailDialog } from "./ActivityDetailDialog";
 import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 
@@ -19,7 +19,7 @@ export function ActivitySelection({ state, selectedSlug, selectedEntryId, destin
   const item = findActivityItem(state.activity, selectedSlug, selectedEntryId, filter);
   // Keep previously shared detail URLs working, without the old second panel.
   if (item && isWalletReward(item) && state.source !== "unavailable") redirect(walletRewardHref(item));
-  if (item?.completionOptionStatus === "declined") redirect("/account/declined-offers");
+  if (item?.completionOptionStatus === "declined") redirect(declinedOfferHref(item.completionOptionId));
   if (item?.status === "completion" && item.entryId && state.isPreview && state.source !== "unavailable") {
     redirect(`/account/purchase-options/${encodeURIComponent(item.slug)}?option=${encodeURIComponent(item.entryId)}`);
   }

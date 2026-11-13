@@ -125,7 +125,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const nextProduct = products[visibleProducts.length];
   const nextBatchParams = new URLSearchParams(returnParams);
   nextBatchParams.set("batch", String(batch + 1));
-  const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}`;
+  const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}#product-request-heading`;
   const department = subcategory || selectedLabel || selectedRetailerGroup?.category;
   const retryScope = [filters.retailer, department].filter(Boolean).join(" in ");
   const withoutBudget = new URLSearchParams(searchParamsForView);
@@ -136,16 +136,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       className="mt-3 inline-flex min-h-11 max-w-full items-center justify-center rounded-lg bg-cyan-200 px-4 py-2 text-sm font-bold text-[#102e50] hover:bg-cyan-100">
       Remove price limit
     </Link>
-  ) : null;
-  const categorySearchRetry = searchTerm && retryScope && !endingSoon && !unavailable ? (
-    <form action="/browse#search-results" method="get" role="search" aria-labelledby="category-retry-label" className="mt-5 max-w-lg text-left">
-      {Array.from(searchParamsForView, ([name, value]) => name !== "q" && <input key={name} type="hidden" name={name} value={value} />)}
-      <label id="category-retry-label" htmlFor="category-retry-query" className="mb-2 block text-sm font-bold">Search {retryScope} again</label>
-      <div className={`${browseStyles.search} ${browseStyles.resultsSearch}`}>
-        <input id="category-retry-query" type="search" name="q" placeholder="Enter a new search" enterKeyHint="search" autoComplete="off" required />
-        <button type="submit" className={browseStyles.go}>Go</button>
-      </div>
-    </form>
   ) : null;
   const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;
   const groceryOffers = products.filter(product => groceryInspirationOfferSlugs.has(product.slug)).flatMap(product => {
@@ -254,7 +244,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               {savedWithinFilters.size === 0 ? "Saved in your account · outside your filters" : "Saved in your account · includes results outside your filters"}
             </h3> : null}
             {removePriceLimit}
-            {categorySearchRetry}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {savedMatches.map(({ product }) => {
                 const result = resolvedProductDestination(account?.activity, product.slug);
@@ -276,7 +265,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <h2 className="text-2xl font-bold">{filters.retailer ? `No current ${filters.retailer} offer matches here.` : selectedRetailerGroup ? `No current ${selectedRetailerGroup.category} offers match here.` : "No products match these filters."}</h2>
             <p className="mt-2 text-white/65">{budgetLabel ? `Your prize-value filter is ${budgetLabel}. This is the prize value, not the cost to enter. Clear filters or search all prizes to see more.` : activeFilters ? "Try another retailer or clear your filters to see more prizes." : "Choose another category to see more prizes."}</p>
             {removePriceLimit}
-            {categorySearchRetry}
             {searchTerm ? <Link href={searchResultsHref(searchTerm)} className="mr-3 mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e]">Search all prizes</Link> : null}
             {activeFilters ? <Link href={clearHref} className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-black text-[#00132e]">Clear filters</Link> : null}
           </section>
@@ -293,10 +281,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             </p>
             <p className="mt-7 text-xl font-black sm:text-2xl">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
             {removePriceLimit}
-            {categorySearchRetry}
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              {retryScope ? <Link href={allSearchHref} className="zl-see-all">See all search results</Link> : null}
-              <Link href={requestHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Tell us what you&apos;d like to see →</Link>
+              {retryScope ? <Link href={`${allSearchHref}#search-results`} className="zl-see-all">See all search results</Link> : null}
+              <Link href={requestHref} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#31e800] px-5 py-3 font-black text-[#00132e] hover:bg-[#62ff3b]">Request a product →</Link>
               <Link href="/browse" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-cyan-300/45 px-5 py-3 font-bold text-cyan-200 hover:border-cyan-200 hover:text-white">Browse available rewards</Link>
             </div>
           </section>

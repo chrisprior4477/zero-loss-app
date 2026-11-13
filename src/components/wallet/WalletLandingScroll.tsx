@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
-import { readLedgerReturn } from "@/lib/wallet/ledger-return";
+import { readLedgerReturn, readLedgerSupportReturn } from "@/lib/wallet/ledger-return";
 
 function subscribeToHistory(callback: () => void) {
   window.addEventListener("popstate", callback);
@@ -20,7 +20,8 @@ export function WalletHistoryLandingScroll({ walletId, selectedId, selectedReque
   walletId?: string; selectedId?: string; selectedRequested?: boolean; enabled: boolean; target: string;
 }) {
   const returning = useSyncExternalStore(subscribeToHistory,
-    () => Boolean(walletId && readLedgerReturn(window.history.state, walletId, window.location.href, selectedId)),
+    () => Boolean(walletId && (readLedgerReturn(window.history.state, walletId, window.location.href, selectedId)
+      || readLedgerSupportReturn(walletId, window.location.href, selectedId))),
     () => false);
   return <>
     <WalletLandingScroll enabled={enabled && !returning} />

@@ -14,7 +14,7 @@ import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { TicketBatchControls } from "@/components/account/TicketBatchControls";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { WalletColumnHeadings } from "./WalletColumnHeadings";
-import { ledgerReturnKey, readLedgerReturn, type LedgerFilter, type LedgerReturn } from "@/lib/wallet/ledger-return";
+import { ledgerReturnKey, readLedgerReturn, readLedgerSupportReturn, rememberLedgerSupportReturn, type LedgerFilter, type LedgerReturn } from "@/lib/wallet/ledger-return";
 import { searchLedger } from "@/lib/wallet/ledger-search";
 import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
 import { useVoiceSearch } from "@/components/search/useVoiceSearch";
@@ -126,6 +126,11 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       if (!saved && bookmarkKey && navigation?.type === "reload") try {
         saved = readLedgerReturn(JSON.parse(sessionStorage.getItem(bookmarkKey) ?? "null"), walletId!, window.location.href, selectedId);
       } catch { /* The list remains available. */ }
+      const supportReturn = !saved && readLedgerSupportReturn(walletId!, window.location.href, selectedId);
+      if (supportReturn) {
+        saved = supportReturn;
+        window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: saved }, "");
+      }
       if (!saved) return;
       // Restore the whole view before painting the returned wallet, then let
       // Next/browser navigation settle before restoring the transaction's position.
@@ -156,7 +161,10 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
               detail.open = saved.expandedRows.includes(detail.closest("li")?.id ?? "");
             }
             const row = document.getElementById(saved.rowId);
-            const top = row && list?.contains(row) ? window.scrollY + row.getBoundingClientRect().top - saved.rowTop : saved.scrollY;
+            const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+            const top = row && (list?.contains(row) || supportReturn)
+              ? window.scrollY + row.getBoundingClientRect().top - (supportReturn ? Math.max(headerBottom + 12, saved.rowTop) : saved.rowTop)
+              : saved.scrollY;
             window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
           });
         });
@@ -209,6 +217,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     // Merge, rather than replace, Next's own navigation state. Keep the URL and
     // outgoing transaction link unchanged and don't add a Back-button step.
     window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: saved }, "");
+    const transactionId = new URL(anchor.href).searchParams.get("transaction");
+    if (anchor.hasAttribute("data-wallet-support") && transactionId) rememberLedgerSupportReturn(saved, transactionId);
   }
   function applySearch(next: string) {
     cancelVoice();
@@ -296,7 +306,8 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
         const links = transactionLinks(entry, activity);
         const productHref = entry.product?.slug ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
-        const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" ? "&from=wallet" : ""}`;
+        const preserveView = !compact && Boolean(walletId);
+        const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}`;
         const selected = entry.id === selectedId;
         return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={selected}
           ref={selected ? selectedRow : undefined} tabIndex={selected ? -1 : undefined} aria-current={selected || undefined}>
@@ -318,7 +329,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
             <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
           </details> : null}
           {productHref ? <Link href={productHref} className={styles.productAction}>View product</Link> : null}
-          <Link href={supportHref} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
+          <Link href={supportHref} data-wallet-support={preserveView || undefined} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
         </div>
       </li>; })}</ul>
     </div>}
