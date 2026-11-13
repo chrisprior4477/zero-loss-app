@@ -32,6 +32,43 @@ test("mobile pages two cards; desktop pages six, without dropping repeated produ
   expect(screen.getAllByRole("article")).toHaveLength(2);
 });
 
+test.each([true, false])("ticket gestures page on phone=%s without activating the starting button", phone => {
+  vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  const pointer = { pointerId: 1, isPrimary: true, pointerType: phone ? "touch" : "mouse" };
+  const { container } = render(<OrderTicketGallery orders={Array.from({ length: 8 }, (_, i) => record(i + 1))} />);
+  const window = container.querySelector<HTMLElement>("[data-swipeable]")!;
+  const gesture = (target: HTMLElement, name: string, clientX: number, clientY: number) => {
+    const event = new MouseEvent(name, { bubbles: true, cancelable: true, clientX, clientY });
+    Object.assign(event, pointer);
+    fireEvent(target, event);
+  };
+  const details = () => screen.getAllByRole("button", { name: "Order details" })[0];
+
+  gesture(details(), "pointerdown", 140, 40);
+  gesture(details(), "pointermove", 139, 100);
+  gesture(details(), "pointerup", 75, 110);
+  expect(screen.getByText(phone ? "1–2 of 8" : "1–6 of 8")).toBeTruthy();
+
+  gesture(details(), "pointerdown", 140, 40);
+  gesture(details(), "pointermove", 75, 43);
+  expect(window.dataset.dragging).toBe("true");
+  if (phone) gesture(details(), "lostpointercapture", 75, 43);
+  gesture(window, "pointerup", 75, 43);
+  expect(window.dataset.dragging).toBeUndefined();
+  expect(screen.getByText(phone ? "3–4 of 8" : "7–8 of 8")).toBeTruthy();
+  fireEvent.click(details(), { detail: 1 });
+  expect(screen.queryByRole("dialog")).toBeNull();
+
+  gesture(details(), "pointerdown", 75, 43);
+  gesture(window, "pointermove", 140, 40);
+  gesture(window, "pointerup", 140, 40);
+  expect(screen.getByText(phone ? "1–2 of 8" : "1–6 of 8")).toBeTruthy();
+  gesture(details(), "pointerdown", 75, 43);
+  gesture(details(), "pointerup", 75, 43);
+  fireEvent.click(details(), { detail: 1 });
+  expect(screen.getByRole("dialog", { name: "Order details" })).toBeTruthy();
+});
+
 test("details copy full references and exact checkout amounts, then return focus on close", async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal("navigator", { clipboard: { writeText } });

@@ -1,6 +1,10 @@
 .gallery { min-width: 0; container-type: inline-size; }
 .galleryBody { position: relative; }
 .ticketWindow { position: relative; overflow: hidden; }
+.ticketWindow[data-swipeable="true"] { cursor: grab; touch-action: pan-y pinch-zoom; user-select: none; }
+.ticketWindow[data-swipeable="true"]:active { cursor: grabbing; }
+.ticketWindow[data-dragging="true"] * { cursor: grabbing; }
+.ticketWindow[data-dragging="true"] .grid { translate: var(--order-drag-offset, 0px) 0; }
 .ticketWindow[data-previous="true"] { padding-left: 22px; }
 .ticketWindow[data-next="true"] { padding-right: 22px; }
 .peekStack { position: absolute; top: 0; bottom: 0; display: grid; grid-auto-rows: 244px; align-content: start; gap: 16px; width: 12px; padding: 0; border: 0; overflow: hidden; background: transparent; cursor: pointer; }

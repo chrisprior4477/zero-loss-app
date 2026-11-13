@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type PointerEvent, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { FulfillmentRecord } from "@/lib/account/fulfillment";
 import { walletRewardHref } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
@@ -18,6 +18,8 @@ function subscribePhone(change: () => void) {
 }
 const isPhone = () => window.matchMedia?.("(max-width: 700px)")?.matches ?? false;
 const serverPhone = () => false;
+
+type TicketDrag = { pointerId: number; x: number; y: number; horizontal: boolean };
 
 function orderPresentation(order: FulfillmentRecord) {
   if (order.rewardStatus === "redeemed") return { label: "Already used", tone: "complete", action: "View used card", message: "This gift card has already been used. Its saved record remains available for reference." };
@@ -147,6 +149,9 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
   const selected = opened ? shown.find(order => order.rewardId === opened.id) : null;
   const galleryId = useId();
   const gallery = useRef<HTMLDivElement>(null);
+  const drag = useRef<TicketDrag | null>(null);
+  const suppressTicketClick = useRef(false);
+  const canPage = !selected && (hasPrevious || hasNext);
 
   function rememberPage(anchor: string | null, openId: string | null = opened?.id ?? null) {
     if (window.location.pathname !== "/account/orders") return;
@@ -189,6 +194,43 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     rememberPage(anchor, null);
   }
 
+  function startDrag(event: PointerEvent<HTMLDivElement>) {
+    if (!canPage || !event.isPrimary || event.button !== 0) return;
+    drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, horizontal: false };
+  }
+
+  function moveDrag(event: PointerEvent<HTMLDivElement>) {
+    const gesture = drag.current;
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    const distance = event.clientX - gesture.x;
+    const vertical = Math.abs(event.clientY - gesture.y);
+    if (!gesture.horizontal) {
+      if (Math.max(Math.abs(distance), vertical) < 8) return;
+      if (vertical >= Math.abs(distance)) { drag.current = null; return; }
+      gesture.horizontal = true;
+      event.currentTarget.dataset.dragging = "true";
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
+    event.preventDefault();
+    const hasNeighbor = distance < 0 ? hasNext : hasPrevious;
+    const limit = hasNeighbor ? event.currentTarget.clientWidth / 2 : 24;
+    const offset = hasNeighbor ? distance : distance / 5;
+    event.currentTarget.style.setProperty("--order-drag-offset", `${Math.max(-limit, Math.min(limit, offset))}px`);
+  }
+
+  function finishDrag(event: PointerEvent<HTMLDivElement>) {
+    const gesture = drag.current;
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    drag.current = null;
+    delete event.currentTarget.dataset.dragging;
+    event.currentTarget.style.removeProperty("--order-drag-offset");
+    if (!gesture.horizontal || event.type !== "pointerup") return;
+    suppressTicketClick.current = true;
+    const distance = event.clientX - gesture.x;
+    if (distance <= -40 && hasNext) changePage(currentPage + 1);
+    if (distance >= 40 && hasPrevious) changePage(currentPage - 1);
+  }
+
   function openDetails(id: string, anchor: HTMLButtonElement) {
     setPageAnchor(id);
     setOpened({ id, anchor });
@@ -200,7 +242,13 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     rememberPage(opened?.id ?? pageAnchor, null);
   }
 
-  return <div ref={gallery} className={styles.gallery} data-order-gallery onClickCapture={event => {
+  return <div ref={gallery} className={styles.gallery} data-order-gallery onPointerDownCapture={() => { suppressTicketClick.current = false; }} onClickCapture={event => {
+    if (suppressTicketClick.current && event.detail > 0) {
+      suppressTicketClick.current = false;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const target = event.target instanceof Element ? event.target : null;
     if (!target?.closest("a[href]")) return;
@@ -208,7 +256,11 @@ export function OrderTicketGallery({ orders }: { orders: FulfillmentRecord[] }) 
     rememberPage(ticket?.id.replace(/^reward-/, "") ?? opened?.id ?? pageAnchor);
   }}>
     <div className={styles.galleryBody}>
-      <div className={styles.ticketWindow} data-previous={hasPrevious} data-next={hasNext}>
+      <div className={styles.ticketWindow} data-previous={hasPrevious} data-next={hasNext} data-swipeable={canPage}
+        onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag}
+        onLostPointerCapture={event => { if (event.target === event.currentTarget) finishDrag(event); }}
+        onPointerLeave={event => { if (!drag.current?.horizontal) finishDrag(event); }}
+        onDragStart={event => { if (canPage) event.preventDefault(); }}>
       {hasPrevious ? <button type="button" className={styles.peekStack} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(currentPage - 1)}>
         {Array.from({ length: phone ? 2 : 3 }, (_, index) => <span key={index} className={`${styles.card} ${styles.peekCard}`} aria-hidden="true" />)}
       </button> : null}
