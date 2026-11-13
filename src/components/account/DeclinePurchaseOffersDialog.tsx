@@ -14,9 +14,9 @@ import styles from "./decline-purchase-offers.module.css";
 
 type Phase = "confirm" | "working" | "undo" | "undoing" | "error" | "leaving";
 
-export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOptionIds, ticketLabels, onBackToSelection, onClose, sample = false }: {
+export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOptionIds, ticketLabels, onBackToSelection, onClose }: {
   item: ActivityItem; offeredOptionIds: string[]; selectedOptionIds?: string[] | null;
-  ticketLabels?: Record<string, string>; onBackToSelection?: () => void; onClose: () => void; sample?: boolean;
+  ticketLabels?: Record<string, string>; onBackToSelection?: () => void; onClose: () => void;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("confirm");
@@ -87,7 +87,7 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
   }
 
   async function decline() {
-    if (sample || inFlight.current || phase !== "confirm" || offersChanged || !count) return;
+    if (inFlight.current || phase !== "confirm" || offersChanged || !count) return;
     inFlight.current = true;
     releaseRefresh.current = holdAccountRefresh();
     setPhase("working");
@@ -157,9 +157,9 @@ export function DeclinePurchaseOffersDialog({ item, offeredOptionIds, selectedOp
       <p className={styles.message}>{selective ? `${kept.length} ${kept.length === 1 ? "offer stays" : "offers stay"} available. $0 charged.` : `${count === 1 ? "This offer will" : "These offers will"} leave your active purchase options. No refund is issued. Your entry and wallet history stay.`}</p>
       <div className={styles.actions}>
         <button type="button" className={styles.keep} onClick={cancelReview}>{selective ? "Back to selection" : `Keep my ${offerWord}`}</button>
-        <button type="button" className={styles.decline} data-selective={selective} disabled={sample || offersChanged || !count} onClick={() => void decline()}>Decline {count} {offerWord}</button>
+        <button type="button" className={styles.decline} data-selective={selective} disabled={offersChanged || !count} onClick={() => void decline()}>Decline {count} {offerWord}</button>
       </div>
-      <p className={styles.note}>{sample ? "Sample offers · Standalone declines are disabled here." : "30 seconds to Undo after declining."}</p>
+      <p className={styles.note}>30 seconds to Undo after declining.</p>
     </> : phase === "undo" || phase === "undoing" ? <>
       <div className={styles.undoPanel}>
         <div className={styles.undoHeading}><h3>{savedCount} {savedCount === 1 ? "offer declined" : "offers declined"}.<br />{phase === "undoing" ? "Restoring…" : "Undo available."}</h3><EntryUndoCountdown seconds={seconds} compact /></div>

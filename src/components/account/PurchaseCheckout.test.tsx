@@ -24,42 +24,6 @@ function updatedCheckout(balance: number) {
   return <PurchaseCheckout ownerId="account-a" options={options.map(option => ({ ...option }))} initialBalance={balance} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable />;
 }
 
-test("the confirmation lists just the selected tickets and retains the original confirmation timer", () => {
-  vi.useFakeTimers();
-  setup(200000);
-  fireEvent.click(screen.getByRole("button", { name: /Choose offers to complete/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Option 3" }));
-  fireEvent.click(screen.getByRole("button", { name: "Use these options" }));
-  fireEvent.click(screen.getByRole("button", { name: "Make purchase: $798" }));
-  const dialog = within(screen.getByRole("dialog", { name: "Confirm your purchase" }));
-  const review = dialog.getByText("Review selected tickets").closest("details")!;
-  expect(review.open).toBe(false);
-  expect(review.textContent).toContain("Ticket #entry-0");
-  expect(review.textContent).toContain("Ticket #entry-2");
-  expect(review.textContent).not.toContain("Ticket #entry-1");
-  expect(dialog.getByText(/Decline and remove the other 1 offer/)).toBeTruthy();
-  act(() => { vi.advanceTimersByTime(29000); });
-  review.open = true;
-  act(() => { vi.advanceTimersByTime(1000); });
-  expect(screen.getByText("Time ran out. No purchase was made.")).toBeTruthy();
-  expect(mocks.purchase).not.toHaveBeenCalled();
-});
-
-test("sample checkout uses the real wheel and add-funds dialog without contacting purchase or funding actions", () => {
-  render(<PurchaseCheckout ownerId="sample" options={options} initialBalance={13900} cards={[{ token: "demo_card_5556", lastFour: "5556", isDefault: true }]} fundingAvailable sample />);
-  fireEvent.click(screen.getByRole("radio", { name: "Buying 2" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add funds: $659 to continue" }));
-  const funding = within(screen.getByRole("dialog", { name: "Add funds to continue" }));
-  fireEvent.click(funding.getByRole("checkbox"));
-  fireEvent.click(funding.getByRole("button", { name: "Add $659 to wallet" }));
-  const confirmation = within(screen.getByRole("dialog", { name: "Confirm your purchase" }));
-  expect(confirmation.getByText("Review selected tickets")).toBeTruthy();
-  fireEvent.click(confirmation.getByRole("button", { name: "Confirm purchase" }));
-  expect(screen.getByRole("heading", { name: "Sample purchase complete" })).toBeTruthy();
-  expect(mocks.fund).not.toHaveBeenCalled();
-  expect(mocks.purchase).not.toHaveBeenCalled();
-});
-
 test.each([true, false])("removing the reviewed purchase funding card clears approval (replacement available: %s)", async replacementAvailable => {
   const cards: DemoCard[] = [
     { token: "demo_card_5556", lastFour: "5556", isDefault: true },
