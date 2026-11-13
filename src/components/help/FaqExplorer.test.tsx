@@ -27,8 +27,8 @@ test("topics filter in place, zero results recover, and support always has a des
   expect(screen.getByRole("link", { name: "Contact Support" }).getAttribute("href")).toBe("/contact#message");
   fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
   expect(screen.getByRole("searchbox")).toHaveProperty("value", "");
-  expect(screen.getByRole("button", { name: "All questions" }).getAttribute("aria-pressed")).toBe("true");
-  expect(screen.getByRole("status").textContent).toContain(`${faqItems.length} answers`);
+  expect(screen.getByRole("button", { name: "Wallet & funding" }).getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("status").textContent).toContain(`${faqItems.filter(item => item.category === "wallet").length} answers`);
 });
 
 test("Back restores the funding topic, pending search, and open answers", async () => {
@@ -62,7 +62,7 @@ test('search and topic changes after Back survive reload without restoring the o
   expect(window.history.state[faqReturnKey]).toMatchObject({ query: 'password', answer: null });
   page.unmount(); page = render(<FaqExplorer />);
   expect(screen.getByRole('searchbox')).toHaveProperty('value', 'password');
-  expect(screen.getByRole('status').textContent).toContain('2 answers');
+  expect(screen.getByRole('status').textContent).toContain('1 answer matching');
   fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
   fireEvent.click(screen.getByRole('button', { name: 'Wallet & funding' }));
   page.unmount(); render(<FaqExplorer />);

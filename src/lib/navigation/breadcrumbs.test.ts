@@ -48,6 +48,10 @@ test("wallet states keep the destination accurate", () => {
     { label: "Gift Cards & Rewards", href: "/account/wallet" },
     { label: "Reward details" },
   ]);
+  expect(trail("/account/wallet", "rewardId=5506167a").slice(-2)).toEqual([
+    { label: "Gift Cards & Rewards", href: "/account/wallet" },
+    { label: "Reward details" },
+  ]);
 });
 
 test("marketplace and informational routes have a route back home", () => {

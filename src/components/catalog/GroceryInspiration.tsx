@@ -4,11 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { groceryThemes, groceryThemeImage, type GroceryTheme } from "@/lib/catalog/grocery-themes";
+import { productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
 import { useCrewCarousel } from "@/components/account/useCrewCarousel";
 import { containDialogTab } from "@/components/account/dialog-keyboard";
 import styles from "./grocery-inspiration.module.css";
 
-export type GroceryInspirationOffer = { slug: string; title: string; entryPrice: number; remaining: number; href: string };
+export type GroceryInspirationOffer = { slug: string; title: string; entryPrice: number; remaining: number };
 
 function GroceryRail({ children, label }: { children: ReactNode; label: string }) {
   const { rail, move, ...gestures } = useCrewCarousel();
@@ -26,20 +27,25 @@ function GroceryRail({ children, label }: { children: ReactNode; label: string }
 }
 
 function ThemeCard({ theme, onChoose }: { theme: GroceryTheme; onChoose: () => void }) {
-  return <button type="button" className={styles.themeCard} aria-label={`Explore ${theme.title}`} aria-haspopup="dialog" onClick={onChoose}>
+  return <button type="button" className={styles.themeCard} data-grocery-idea={theme.id} aria-label={`Explore ${theme.title}`} aria-haspopup="dialog" onClick={onChoose}>
     <span className={styles.themePhoto}><Image src={groceryThemeImage(theme.id)} alt="" fill sizes="(max-width: 640px) 45vw, 280px" draggable={false} className={styles.foodImage} /></span>
     <span className={styles.themeText}><strong>{theme.title}</strong></span>
     <span aria-hidden="true" className={styles.cardArrow}>↗</span>
   </button>;
 }
 
-export function GroceryInspiration({ offers }: { offers: GroceryInspirationOffer[] }) {
-  const [selected, setSelected] = useState<GroceryTheme | null>(null);
+export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers: GroceryInspirationOffer[]; browseHref: string; initialIdea?: string | string[] }) {
+  const [selected, setSelected] = useState<GroceryTheme | null>(() => groceryThemes.find(theme => theme.id === initialIdea) ?? null);
+  const shelf = useRef<HTMLElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
+  const returnParams = new URLSearchParams(browseHref.split("?")[1]);
+  if (selected) returnParams.set("groceryIdea", selected.id);
+  const returnHref = `/browse?${returnParams}`;
   useLayoutEffect(() => {
     if (!selected) return;
     const element = dialog.current;
+    const trigger = opener.current ?? shelf.current?.querySelector<HTMLElement>(`[data-grocery-idea="${selected.id}"]`);
     const overflow = document.body.style.overflow;
     const rootOverflow = document.documentElement.style.overflow;
     element?.showModal();
@@ -49,12 +55,12 @@ export function GroceryInspiration({ offers }: { offers: GroceryInspirationOffer
       element?.close();
       document.body.style.overflow = overflow;
       document.documentElement.style.overflow = rootOverflow;
-      if (opener.current?.isConnected) opener.current.focus({ preventScroll: true });
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
   }, [selected]);
   function choose(theme: GroceryTheme) { opener.current = document.activeElement as HTMLElement; setSelected(theme); }
   return <>
-    <section id="grocery-inspiration" aria-labelledby="grocery-inspiration-heading" className={styles.panel}>
+    <section ref={shelf} id="grocery-inspiration" aria-labelledby="grocery-inspiration-heading" className={styles.panel}>
       <header className={styles.panelHeader}>
         <p className={styles.eyebrow}>A little inspiration for your next grocery run</p>
         <h2 id="grocery-inspiration-heading">Follow your appetite.</h2>
@@ -72,7 +78,7 @@ export function GroceryInspiration({ offers }: { offers: GroceryInspirationOffer
           <span className={styles.eyebrow}>Your next grocery run, reimagined</span>
           <h2 id="grocery-theme-title">{selected.title}</h2><p>{selected.ingredients}</p>
           <h3>Make it happen with a grocery gift card</h3>
-          <div className={styles.offerList}>{offers.length ? offers.map(offer => <Link key={offer.slug} href={offer.href}>
+          <div className={styles.offerList}>{offers.length ? offers.map(offer => <Link key={offer.slug} href={productHrefWithBrowseReturn(offer.slug, returnHref)}>
             <span><strong>{offer.title}</strong><small>${offer.entryPrice.toFixed(2)} per entry · {offer.remaining.toLocaleString()} left</small></span><span aria-hidden="true">→</span>
           </Link>) : <p>No open grocery gift-card offers match right now. Browse the other grocery rewards below.</p>}</div>
           <p className={styles.disclaimer}>Choose your groceries at the retailer. Pictures are inspiration; the reward is a gift card.</p>

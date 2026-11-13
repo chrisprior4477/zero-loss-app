@@ -36,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 type BrowsePageProps = {
-  searchParams: Promise<{ category?: string; sort?: string; batch?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; partnerCategory?: string; available?: string; minValue?: string; maxValue?: string }>;
+  searchParams: Promise<{ category?: string; sort?: string; batch?: string; subcategory?: string; q?: string | string[]; type?: string; retailer?: string; partnerCategory?: string; available?: string; minValue?: string; maxValue?: string; groceryIdea?: string | string[] }>;
 };
 const batchSize = 24;
 
@@ -150,7 +150,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const showGroceryInspiration = selectedCategory === "groceries" && !searchTerm && !activeFilters;
   const groceryOffers = products.filter(product => groceryInspirationOfferSlugs.has(product.slug)).flatMap(product => {
     const { remaining } = availabilityStatus(product.capacity, product.sold);
-    return remaining > 0 ? [{ slug: product.slug, title: product.title, entryPrice: product.entryPrice, remaining, href: productHrefWithBrowseReturn(product.slug, browseReturnHref) }] : [];
+    return remaining > 0 ? [{ slug: product.slug, title: product.title, entryPrice: product.entryPrice, remaining }] : [];
   });
 
   const page = (
@@ -173,7 +173,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
             searchField={endingSoon ? <BrowseResultsSearch position="top" /> : undefined}>
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
-          {showGroceryInspiration ? <GroceryInspiration offers={groceryOffers} /> : null}
+          {showGroceryInspiration ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} /> : null}
           {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
             <nav aria-label={`Shop ${selectedLabel} by retailer`} className="mt-4 flex flex-wrap items-center gap-2">
               <span className="mr-1 text-sm font-bold text-white">Shop by retailer</span>

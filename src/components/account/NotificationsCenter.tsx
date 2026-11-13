@@ -199,6 +199,7 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
     const url = new URL(window.location.href);
     if (nextFilter === "all") url.searchParams.delete("filter");
     else url.searchParams.set("filter", nextFilter);
+    url.hash = "notification-tickets-filters";
     const state = { ...window.history.state };
     const saved = userId ? readNotificationReturn(state, userId, window.location.href) : null;
     if (saved) state[notificationReturnKey] = { ...saved, href: url.href, filter: nextFilter, start: 0, size: groupsPerPage, listScrollTop: 0, linkId: "", linkTop: 0 };

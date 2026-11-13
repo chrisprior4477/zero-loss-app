@@ -59,7 +59,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "undo-entry", category: "entries", question: "I entered by accident. Can I undo it?",
-    answer: "Use Undo entry during the 30-second pending window. For a multiple-ticket submission, Undo all entries cancels that whole submission. A successful undo releases the reserved amount back to your playable balance—not to your payment card. After the window ends, check My Activity for the saved result. If something went wrong, contact support.",
+    answer: "Use Undo entry during the 30-second pending window. If you submitted several entries together, the button shows how many it will undo, such as Undo all 6 entries. A successful undo releases the reserved amount back to your playable balance—not to your payment card. After the window ends, check My Activity for the saved result. If something went wrong, contact support.",
     keywords: "cancel cancellation mistake accidental refund countdown reservation", action: { label: "Check My Activity", href: "/account/entries" },
   },
   {
@@ -80,7 +80,7 @@ export const faqItems: FaqItem[] = [
   {
     id: "add-funds", category: "wallet", question: "How do I add funds?",
     answer: "Open Add funds in Wallet & Transactions, choose a saved card and a whole-dollar amount, then review and confirm the deposit. In this MVP, funding uses the provided demo payment method and simulated money; do not enter real payment-card details.",
-    keywords: "deposit top up topup money wallet password card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
+    keywords: "deposit top up topup money wallet card payment", action: { label: "Go to Add funds", href: "/account/wallet?view=history&panel=funding#add-funds" },
   },
   {
     id: "insufficient-balance", category: "wallet", question: "What if I do not have enough balance for my entries?",

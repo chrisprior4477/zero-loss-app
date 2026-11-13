@@ -28,6 +28,7 @@ test("answers distinguish demo capabilities and do not promise a gift transfer o
 });
 test("question matches rank before incidental mentions and common apostrophes work", () => {
   expect(filterFaqs("password", "all")[0].id).toBe("password");
+  expect(filterFaqs("password", "wallet")).toEqual([]);
   expect(filterFaqs("can’t sign in", "all")[0].id).toBe("password");
 });
 

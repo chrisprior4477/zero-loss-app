@@ -22,7 +22,6 @@ export function FaqExplorer() {
     } }, "");
   }
   function changeQuery(value: string) { updateBookmark({ query: value }); setQuery(value); }
-  function reset() { updateBookmark({ query: "", category: "all", expanded: [] }); setQuery(""); setCategory("all"); setExpanded([]); }
   useLayoutEffect(() => {
     let first = 0, second = 0, interrupted = false;
     const timers: number[] = [];
@@ -76,6 +75,6 @@ export function FaqExplorer() {
         // Ignore a native toggle caused by restoring the same controlled state.
         if (next !== expanded) { updateBookmark({ expanded: next }); setExpanded(next); }
       }
-    }} />) : <div className={`${styles.ticket} ${styles.panel}`}><h2 className="text-xl font-extrabold break-words">{query.trim() ? <>No answers found for &ldquo;{query.trim()}&rdquo;.</> : "No answers found in this topic."}</h2><p className={`mt-2 ${styles.muted}`}>Try different words or contact Support.</p><div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={reset} className={`${styles.ticket} ${styles.button}`}>Clear search</button><Link href="/contact#message" className={`${styles.ticket} ${styles.button}`}>Contact Support</Link></div></div>}</div>
+    }} />) : <div className={`${styles.ticket} ${styles.panel}`}><h2 className="text-xl font-extrabold break-words">{query.trim() ? <>No answers found for &ldquo;{query.trim()}&rdquo;.</> : "No answers found in this topic."}</h2><p className={`mt-2 ${styles.muted}`}>Try different words or contact Support.</p><div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={() => changeQuery("")} className={`${styles.ticket} ${styles.button}`}>Clear search</button><Link href="/contact#message" className={`${styles.ticket} ${styles.button}`}>Contact Support</Link></div></div>}</div>
   </section>;
 }

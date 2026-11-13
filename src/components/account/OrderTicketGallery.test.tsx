@@ -101,6 +101,8 @@ test("details copy full references and exact checkout amounts, then return focus
   const trigger = screen.getByRole("button", { name: "Order details" });
   fireEvent.click(trigger);
   const dialog = screen.getByRole("dialog", { name: "Order details" });
+  expect(within(dialog).getByText("$99")).toBeTruthy();
+  expect(within(dialog).getByText("$100")).toBeTruthy();
   expect(within(dialog).getByRole("link", { name: "Report a problem to Support" }).getAttribute("href"))
     .toBe(`/account/orders?order=${order.orderNumber}&support=report`);
   expect(screen.getByRole("button", { name: "Close details" })).toBe(document.activeElement);
@@ -167,6 +169,7 @@ test('a winning reward opens a direct support form with its own reward reference
 });
 
 test.each([0, 1])("rotation keeps the selected order from a later phone page open (card %i)", async offset => {
+  const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   let phone = true;
   let change = () => {};
   vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: (_: string, fn: () => void) => { change = fn; }, removeEventListener: vi.fn() }));
@@ -188,6 +191,7 @@ test.each([0, 1])("rotation keeps the selected order from a later phone page ope
   expect(screen.getByRole("dialog")).toBe(dialog);
   expect(screen.getByText("3–4 of 8")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+  expect(scrollTo).not.toHaveBeenCalled();
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(document.activeElement).toBe(trigger);
   expect(screen.getByText("3–4 of 8")).toBeTruthy();

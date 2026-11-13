@@ -20,6 +20,10 @@ export const ENTRY_REQUEST_ROUTED_EVENT = "zero-loss-entry-request-routed-in-act
 export const RECENT_ENTRY_STORAGE_KEY = "zero-loss:recent-entry";
 const uuid = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
+export function undoEntryLabel(quantity: number): string {
+  return quantity === 1 ? "Undo entry" : `Undo all ${quantity.toLocaleString("en-US")} entries`;
+}
+
 export function entryReceiptHref(data: Record<string, unknown>, slug: string): string {
   const entryId = typeof data.entryId === "string" && /^ent_[0-9a-f]+$/.test(data.entryId) ? data.entryId : null;
   const rewardId = typeof data.rewardId === "string" && uuid.test(data.rewardId) ? data.rewardId : null;

@@ -226,11 +226,11 @@ test("30-second Undo appears inline by the entry controls, not in a floating toa
   expect(screen.getByRole("timer", { name: "30 seconds left to undo" }).textContent).toBe("30sec");
   expect(screen.getByText(/header counts active entries after confirmation/)).toBeTruthy();
   expect(screen.getByText(/Entry submitted · Undo available/).closest("[role=status]")?.className).toContain("bg-[#ff6a00]");
-  expect(screen.getByRole("button", { name: "Undo entry" }).className).toContain("bg-[#bcecff]");
+  expect(screen.getByRole("button", { name: "Undo all 7 entries" }).className).toContain("bg-[#bcecff]");
   expect(screen.getByRole("button", { name: "Confirm entry" }).className).toContain("bg-[#31e800]");
   expect(document.querySelector(".fixed[aria-label='Entry confirmations']")).toBeNull();
   actionMocks.resolve.mockResolvedValue({ request: { ...receipt, status: "cancelled" } });
-  fireEvent.click(screen.getByRole("button", { name: "Undo entry" }));
+  fireEvent.click(screen.getByRole("button", { name: "Undo all 7 entries" }));
   await waitFor(() => expect(actionMocks.resolve).toHaveBeenCalledWith(receipt.requestId, true));
 });
 test.each(["Undo entry", "Confirm entry"])("a refreshed holder can use %s on the final reserved ticket", async action => {

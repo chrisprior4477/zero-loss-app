@@ -13,7 +13,7 @@ import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
 import { fundingHref } from "@/lib/wallet/funding-navigation";
 import { useEntryWalletFunding } from "@/lib/wallet/wallet-funding-context";
 import { acknowledgeExtraEntryExplainer, confirmPendingEntryRequest, createPreviewEntry, listPendingEntryRequests, resetExtraEntryExplainer, resolvePendingEntryRequest } from "@/lib/entries/actions";
-import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, type EntryRequest } from "@/lib/entries/request";
+import { ENTRY_REQUEST_CREATED_EVENT, ENTRY_REQUEST_EVENT, RECENT_ENTRY_STORAGE_KEY, undoEntryLabel, type EntryRequest } from "@/lib/entries/request";
 import type { EntryRequestHead } from "@/lib/entries/request-head";
 import { clearEntryIntent, productEntryHref, readEntryIntent, saveEntryIntent } from "@/lib/entries/return-intent";
 import quantityTicketStyles from "./entry-quantity-ticket.module.css";
@@ -393,7 +393,7 @@ export function DemoParticipationPanel({
         </div>
         {undoError ? <p role="alert" className="mt-2 text-xs font-bold text-[#00132e]">{undoError}</p> : null}
         <div className={`mt-2 grid gap-2 ${undoSeconds > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
-          {undoSeconds > 0 ? <button type="button" disabled={undoBusy} onClick={() => void undoEntry()} className="min-h-11 rounded-lg bg-[#bcecff] px-2 font-bold text-[#00132e] transition hover:bg-[#def6ff] disabled:opacity-60">Undo entry</button> : null}
+          {undoSeconds > 0 ? <button type="button" disabled={undoBusy} onClick={() => void undoEntry()} className="min-h-11 rounded-lg bg-[#bcecff] px-2 font-bold text-[#00132e] transition hover:bg-[#def6ff] disabled:opacity-60">{undoEntryLabel(requestReceipt.quantity)}</button> : null}
           <button type="button" disabled={undoBusy} onClick={() => void confirmEntry()} className="min-h-11 rounded-lg bg-[#31e800] px-2 font-extrabold text-[#002719] transition hover:bg-[#66f34c] disabled:opacity-60">{undoBusy ? "Checking…" : "Confirm entry"}</button>
         </div>
       </div> : null}

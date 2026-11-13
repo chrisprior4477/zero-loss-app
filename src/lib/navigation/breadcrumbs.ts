@@ -39,7 +39,7 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams,
     if (!second || second === "entries") return [{ label: "My Activity" }];
     if (second === "wallet") {
       const rewardRoot: BreadcrumbItem = { label: "Gift Cards & Rewards", href: "/account/wallet" };
-      if (searchParams.has("reward")) return [accountRoot, rewardRoot, { label: "Reward details" }];
+      if (searchParams.get("reward") || searchParams.get("rewardId")) return [accountRoot, rewardRoot, { label: "Reward details" }];
       if (searchParams.get("view") === "card") return [accountRoot, { label: "Wallet & Transactions", href: "/account/wallet?view=history" }, { label: "Add Card" }];
       if (searchParams.get("view") === "history") return [accountRoot, { label: "Wallet & Transactions" }];
       return [accountRoot, { label: "Gift Cards & Rewards" }];

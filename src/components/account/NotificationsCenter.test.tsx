@@ -101,7 +101,9 @@ test("mobile filter changes reveal the Notifications section below the sticky si
     heading.getBoundingClientRect = vi.fn(() => new DOMRect(0, 520, 360, 120));
     while (frames.length) frames.shift()?.(0);
     scrollTo.mockClear();
+    window.history.replaceState({}, "", "/account/notifications#favorite-alert-preference");
     fireEvent.click(screen.getByRole("button", { name: /Action needed0/ }));
+    expect(window.location.hash).toBe("#notification-tickets-filters");
     expect(screen.getByText("No action needed updates")).toBeTruthy();
     frames.shift()?.(0);
     expect(scrollTo).toHaveBeenCalledWith({ top: 658, behavior: "auto" });

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { type CSSProperties, type PointerEvent, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { FulfillmentRecord, FulfillmentFilter } from "@/lib/account/fulfillment";
 import { walletRewardHref } from "@/lib/account/activity";
@@ -64,7 +65,7 @@ function CopyIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" /></svg>;
 }
 
-function OrderDetails({ order, anchor, onClose, filter }: { filter: FulfillmentFilter; order: FulfillmentRecord; anchor: HTMLButtonElement; onClose: () => void }) {
+function OrderDetails({ order, anchor, onClose, filter, phone }: { filter: FulfillmentFilter; order: FulfillmentRecord; anchor: HTMLButtonElement; onClose: () => void; phone: boolean }) {
   const panel = useRef<HTMLElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -72,36 +73,53 @@ function OrderDetails({ order, anchor, onClose, filter }: { filter: FulfillmentF
   const [manualCopy, setManualCopy] = useState<string | null>(null);
   const detail = orderPresentation(order);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (phone) return;
     const element = panel.current;
-    const gallery = element?.parentElement;
+    const layer = element?.parentElement;
     const card = anchor.closest<HTMLElement>("article");
+    const gallery = card?.closest<HTMLElement>(`.${styles.galleryBody}`);
     function position() {
-      if (!element || !gallery || !card) return;
+      if (!element || !layer || !gallery || !card) return;
       const cardBox = card.getBoundingClientRect(), galleryBox = gallery.getBoundingClientRect();
+      layer.style.setProperty("--gallery-top", `${galleryBox.top}px`);
+      layer.style.setProperty("--gallery-left", `${galleryBox.left}px`);
+      layer.style.setProperty("--gallery-width", `${galleryBox.width}px`);
+      layer.style.setProperty("--gallery-height", `${galleryBox.height}px`);
       const left = Math.max(0, Math.min(cardBox.left - galleryBox.left, gallery.clientWidth - element.offsetWidth));
-      const top = isPhone() ? 0 : Math.max(0, Math.min(cardBox.bottom - galleryBox.top - element.offsetHeight, gallery.clientHeight - element.offsetHeight));
+      const preferredTop = cardBox.bottom - element.offsetHeight;
+      const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
+      const visibleTop = Math.max(0, headerBottom) + 8;
+      const visibleBottom = Math.max(visibleTop, window.innerHeight - 8 - element.offsetHeight);
+      const top = Math.max(visibleTop, Math.min(preferredTop, visibleBottom)) - galleryBox.top;
       element.style.left = `${left}px`;
       element.style.top = `${top}px`;
-      // Rotation also changes document height and browser scroll anchoring.
-      // Keep the open details below the sticky header in either orientation.
-      if (element.offsetHeight) {
-        const box = element.getBoundingClientRect();
-        const headerBottom = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
-        const visibleTop = Math.max(0, headerBottom) + 8;
-        if (box.top < visibleTop || box.bottom > window.innerHeight - 8) {
-          window.scrollTo({ top: Math.max(0, window.scrollY + box.top - visibleTop), behavior: "instant" });
-        }
-      }
     }
     position();
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(position);
     if (element) observer?.observe(element);
     if (gallery) observer?.observe(gallery);
     window.addEventListener("resize", position);
+    window.addEventListener("scroll", position, { passive: true });
+    return () => { observer?.disconnect(); window.removeEventListener("resize", position); window.removeEventListener("scroll", position); };
+  }, [anchor, phone]);
+
+  useLayoutEffect(() => {
     close.current?.focus({ preventScroll: true });
-    return () => { observer?.disconnect(); window.removeEventListener("resize", position); if (anchor.isConnected) anchor.focus({ preventScroll: true }); };
+    return () => { if (anchor.isConnected) anchor.focus({ preventScroll: true }); };
   }, [anchor]);
+
+  useLayoutEffect(() => {
+    if (!phone) return;
+    const root = document.documentElement;
+    const { overflow, scrollbarGutter } = root.style;
+    if (root.clientWidth < window.innerWidth && root.clientWidth > 0) root.style.scrollbarGutter = "stable";
+    root.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = overflow;
+      root.style.scrollbarGutter = scrollbarGutter;
+    };
+  }, [phone]);
 
   useEffect(() => {
     function dismiss(event: KeyboardEvent) {
@@ -123,7 +141,7 @@ function OrderDetails({ order, anchor, onClose, filter }: { filter: FulfillmentF
     { label: order.orderNumber ? "Order number" : "Reward reference", value: order.orderNumber ?? order.rewardId },
     ...(order.entryId ? [{ label: "Entry reference", value: order.entryId }] : []),
   ];
-  return <div className={styles.detailsLayer} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
+  return createPortal(<div className={phone ? styles.mobileDetailsLayer : styles.detailsLayer} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={panel} className={styles.detailsPanel} role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={containDialogTab}>
       <header className={styles.detailsHeading}><h2 id={titleId}>{order.source === "winner" ? "Reward details" : "Order details"}</h2><button ref={close} className={styles.close} type="button" onClick={onClose} aria-label="Close details">×</button></header>
       <p className={styles.detailsProduct}>{order.title} · {order.retailer}</p>
@@ -132,12 +150,16 @@ function OrderDetails({ order, anchor, onClose, filter }: { filter: FulfillmentF
         {references.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd><span title={value}>{value.slice(-8).toUpperCase()}</span><button type="button" onClick={() => copy(value)} aria-label={`Copy ${label.toLowerCase()}`}><CopyIcon /></button></dd></div>)}
         <div><dt>{order.orderNumber ? "Checkout date" : "Entry date"}</dt><dd>{Number.isFinite(Date.parse(order.createdAt)) ? <time dateTime={order.createdAt}>{displayDate(order.createdAt, timeZone)}</time> : "Unavailable"}</dd></div>
       </dl>
+      <dl className={styles.detailsAmounts}>
+        <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>
+        {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
+      </dl>
       <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => { element?.select(); }} /> : null}
     </section>
-  </div>;
+  </div>, document.body);
 }
 
 export function OrderTicketGallery({ orders, filter = "all" }: { orders: FulfillmentRecord[]; filter?: FulfillmentFilter }) {
@@ -369,7 +391,7 @@ export function OrderTicketGallery({ orders, filter = "all" }: { orders: Fulfill
       {hasPrevious ? <button type="button" className={styles.peekButton} data-direction="previous" aria-label="Show previous order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(previousPage)} /> : null}
       {hasNext ? <button type="button" className={styles.peekButton} data-direction="next" aria-label="Show next order tickets" aria-controls={galleryId} disabled={Boolean(selected)} onClick={() => changePage(nextPage)} /> : null}
       </div>
-      {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} filter={filter} anchor={opened.anchor} onClose={closeDetails} /> : null}
+      {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} filter={filter} phone={phone} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
     <nav className={styles.paging} aria-label="Order tickets"><span role="status">{range} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={!hasPrevious || Boolean(selected)} onClick={() => changePage(previousPage)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={!hasNext || Boolean(selected)} onClick={() => changePage(nextPage)}><AccountIcon name="chevron" /></button></div></nav>
   </div>;

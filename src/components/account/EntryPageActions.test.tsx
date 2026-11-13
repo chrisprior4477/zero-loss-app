@@ -115,7 +115,7 @@ test("reserving the full balance never asks to fund the same 24 entries a second
   expect(screen.queryByText("Review additional entries")).toBeNull();
   expect(screen.queryByRole("checkbox", { name: /approve this demo entry transaction/i })).toBeNull();
   expect(screen.queryByText(/Only 0 additional/)).toBeNull();
-  expect(screen.getByRole("button", { name: "Undo entry" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Undo all 24 entries" })).toBeTruthy();
   expect(screen.getByRole("timer").className).toContain("compact");
 });
 
@@ -158,7 +158,7 @@ test("an unknown outcome can recover the original request after its hold reduces
   view.rerender(<EntryPageActions {...props} remaining={0} balanceCents={0} initialQuantity={24} resumeReview />);
   expect(screen.queryByRole("link", { name: "Add funds" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Check saved submission" }));
-  await screen.findByRole("button", { name: "Undo entry" });
+  await screen.findByRole("button", { name: "Undo all 24 entries" });
   expect(createPreviewEntry.mock.calls[1][1]).toBe(createPreviewEntry.mock.calls[0][1]);
 });
 
