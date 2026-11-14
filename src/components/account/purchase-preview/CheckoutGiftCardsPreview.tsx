@@ -114,7 +114,7 @@ export function CheckoutGiftCardsPreview({ product }: { product: Product }) {
       {bought.map((card, index) => <li key={card.ref} className={checkout.ticket} tabIndex={index === selected ? -1 : undefined}
         data-current={index === selected || undefined}>
         <Image src={product.image} alt="" width={48} height={48} />
-        <div><strong>Card ${index + 1} of ${quantity}</strong><p>$100 Best Buy · Ref. {card.ref}</p>{index === selected ? <p className={styles.current}>Last viewed</p> : null}</div>
+        <div><strong>Card {index + 1} of {quantity}</strong><p>$100 Best Buy · Ref. {card.ref}</p>{index === selected ? <p className={styles.current}>Last viewed</p> : null}</div>
         <button className={checkout.secondary} type="button" onClick={() => go("gift", index)}>Open card {index + 1}</button>
       </li>)}
     </ul>;
