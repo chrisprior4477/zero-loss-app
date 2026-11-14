@@ -6,6 +6,7 @@
 }
 
 .shell { max-width: 640px; margin: auto; }
+.lightTicket { color: #10234a; }
 .previewBar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-bottom: 8px; color: #b9def5; font-size: 12px; }
 .previewBar span { margin-right: auto; }
 .previewBar :is(a, button) { min-height: 44px; display: inline-flex; align-items: center; color: #b9ecff; font-weight: 800; text-decoration: underline; cursor: pointer; }

@@ -117,7 +117,7 @@ export function CheckoutGiftCardsPreview({ product }: { product: Product }) {
         {screen === "checkout" ? null : <button type="button" onClick={() => { setNotice(""); go("checkout", 0); }}>Start over</button>}
         <Link href="/account/entries?filter=completed">Exit preview</Link>
       </div>
-      {screen === "checkout" ? <section ref={destination} tabIndex={-1} className={`${checkout.ticket} ${checkout.content} ${styles.destination}`}>
+      {screen === "checkout" ? <section ref={destination} tabIndex={-1} className={`${checkout.ticket} ${checkout.content} ${styles.lightTicket} ${styles.destination}`}>
         <h1>Your 3 purchase options</h1>
         <ProductRow product={product} />
         <div className={checkout.quantity}>
@@ -163,7 +163,7 @@ export function CheckoutGiftCardsPreview({ product }: { product: Product }) {
         <button type="button" className={styles.activityBack} onClick={() => go("wallet")}>Open My Gift Cards &amp; Rewards</button>
       </article> : <section ref={destination} tabIndex={-1} className={styles.destination}>
         <h1>{screen === "wallet" ? "My Gift Cards & Rewards" : "My Activity"}</h1>
-        <div className={`${checkout.ticket} ${checkout.content}`}>
+        <div className={`${checkout.ticket} ${checkout.content} ${styles.lightTicket}`}>
           <h2 className={styles.listHeading}>{screen === "wallet" ? "Available rewards" : "Completed"}</h2>
           {screen === "activity" ? <ProductRow product={product} /> : null}
           <p className={checkout.small}>{screen === "wallet" ? "Your sample gift cards from this checkout." : `Purchase completed · ${quantity} gift ${quantity === 1 ? "card" : "cards"} · $${total} paid`}</p>
