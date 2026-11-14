@@ -12,6 +12,8 @@ import { availabilityStatus } from "@/lib/catalog/availability";
 import { ClearAllEntriesButton } from "./ClearAllEntriesButton";
 import { RECENT_ENTRY_STORAGE_KEY } from "@/lib/entries/request";
 import { PurchaseOptionSummary } from "./PurchaseOptionSummary";
+import { RepeatPurchaseStamp } from "./RepeatPurchaseStamp";
+import type { PurchaseStamp } from "@/lib/account/repeat-purchase";
 import { activityViewReturnKey, readActivityViewReturn, type ActivityViewReturn } from "@/lib/account/activity-view-return";
 
 const labels = { active: "Still open", prize: "You won", completion: "Purchase option", completed: "Completed" };
@@ -47,7 +49,7 @@ function action(item: ActivityItem) {
   return { active: "See My Entry", completion: "Continue with Purchase", completed: "View details" }[item.status];
 }
 
-export function MyZeroLossGallery({ ownerId, items, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId }: { ownerId?: string; items: ActivityItem[]; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string }) {
+export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId }: { ownerId?: string; items: ActivityItem[]; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string }) {
   const groups = groupGalleryEntries(items);
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
@@ -249,6 +251,7 @@ export function MyZeroLossGallery({ ownerId, items, filter, metricsBySlug, canCl
         const selectedIndex = Math.max(0, group.entries.findIndex(entry => entry.entryId === selectedId));
         const item = group.entries[selectedIndex];
         const purchasedReward = isPurchasedReward(item);
+        const purchaseStamp = purchasedReward && item.rewardId ? purchaseStamps?.[item.rewardId] : undefined;
         const multipleEntries = group.entries.length > 1;
         const enteredCents = item.status === "active"
           ? group.entries.reduce((total, entry) => total + entry.paidCents, 0)
@@ -280,7 +283,7 @@ export function MyZeroLossGallery({ ownerId, items, filter, metricsBySlug, canCl
                 {viewedEntry === item.entryId || isRecent ? <span className={styles.newEntryLabel} aria-label={viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}><span className={styles.newEntryLong}>{viewedEntry === item.entryId ? "This is the entry you were viewing" : "Your new entry"}</span><span className={styles.newEntryShort}>{viewedEntry === item.entryId ? "Viewing" : "New"}</span></span> : null}
               </div>
               <div className={styles.cardFoot}>
-                <div className={styles.noteStack}>{purchaseOption ? <PurchaseOptionSummary options={group.entries} /> : <p className={styles.productNote}>{item.status === "completion" ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
+                <div className={styles.noteStack}>{purchaseStamp ? <><RepeatPurchaseStamp {...purchaseStamp} /><span className={styles.srOnly}>Your purchased reward is ready.</span></> : purchaseOption ? <PurchaseOptionSummary options={group.entries} /> : <p className={styles.productNote}>{item.status === "completion" ? `${formatUsdFromCents(item.remainingCents)} remaining · ${formatUsdFromCents(item.paidCents)} applied`
                   : item.status === "active" ? <><span><strong>{formatUsdFromCents(enteredCents)}</strong> entered</span><span>{offerStatus ? (offerStatus.remaining === 0 ? "Pool full" : <><strong>{offerStatus.remaining.toLocaleString("en-US")}</strong> tickets left<span className={styles.forPrize}> for prize</span></>) : "Still in play"}</span></>
                   : item.status === "prize" ? (item.rewardKind === "digital" ? "Your digital reward is ready." : "Your prize is ready to claim.") : purchasedReward ? "Your purchased reward is ready." : item.completionOptionStatus === "declined" ? "Revive before the original deadline." : "Your completed activity."}</p>}</div>
                 <span className={styles.cardAction} data-activity-click>{item.status === "active"

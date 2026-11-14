@@ -15,6 +15,7 @@ import { activityOfferMetrics } from "@/lib/account/activity-progress";
 import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
+import { repeatPurchaseStamps } from "@/lib/account/repeat-purchase";
 
 export const metadata: Metadata = { title: "My Activity" };
 
@@ -53,7 +54,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   return <PreferenceSnapshot><div className={styles.page}><div className={styles.pageContent}>
     <h1 id="my-activity-heading" className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
-    <MyZeroLossActivity ownerId={account.userId} state={account.activity} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
+    <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>
         <p className={styles.eyebrow}>ACCOUNT DASHBOARD</p>

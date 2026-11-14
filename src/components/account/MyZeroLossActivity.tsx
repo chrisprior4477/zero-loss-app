@@ -10,6 +10,7 @@ import { buildAccountNotifications } from "@/lib/account/notifications";
 import styles from "./my-activity.module.css";
 import type { ActivityOfferMetrics } from "@/lib/account/activity-progress";
 import type { EntryRequest } from "@/lib/entries/request";
+import type { PurchaseStamp } from "@/lib/account/repeat-purchase";
 
 const galleryStatusOrder = { prize: 0, active: 1, completion: 2, completed: 3 } as const;
 const activityHeadings: Record<ActivityFilter, string> = {
@@ -31,7 +32,7 @@ function winnerFirst(items: AccountActivity["activity"]) {
   return [...items].sort((left, right) => galleryStatusOrder[left.status] - galleryStatusOrder[right.status]);
 }
 
-export function MyZeroLossActivity({ ownerId, state, filter, metricsBySlug = {}, pendingEntries = [], outcomeEmailPreference = null, selectedSlug, selectedEntryId, viewedEntryId, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { ownerId?: string; state: AccountActivity; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[]; outcomeEmailPreference?: boolean | null; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
+export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, metricsBySlug = {}, pendingEntries = [], outcomeEmailPreference = null, selectedSlug, selectedEntryId, viewedEntryId, returnToOptions = false, resumePurchase = false, canClearDemoEntries = false }: { ownerId?: string; state: AccountActivity; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug?: Record<string, ActivityOfferMetrics>; pendingEntries?: EntryRequest[]; outcomeEmailPreference?: boolean | null; selectedSlug?: string; selectedEntryId?: string; viewedEntryId?: string; returnToOptions?: boolean; resumePurchase?: boolean; canClearDemoEntries?: boolean }) {
   const verifiedState = state.source === "unavailable" ? { ...state, activity: [] } : state;
   const allItems = filterActivity(verifiedState.activity, "all");
   const items = winnerFirst(filterActivity(verifiedState.activity, filter));
@@ -52,7 +53,7 @@ export function MyZeroLossActivity({ ownerId, state, filter, metricsBySlug = {},
       </li>)}</ul>
     </div> : null}
     {items.length > 0 ? <h2 className={styles.activityHeading}>{activityHeadings[filter]}</h2> : null}
-    {items.length ? <MyZeroLossGallery ownerId={ownerId} key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
+    {items.length ? <MyZeroLossGallery ownerId={ownerId} key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} purchaseStamps={purchaseStamps} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
       <h2 className="text-xl font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : pendingOnly ? "Your entry is being confirmed" : emptyMessages[filter].title}</h2>
       <p className="mt-2 max-w-xl text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "We can’t verify your activity right now. No entries or outcomes have been assumed. Please try again shortly." : pendingOnly ? "Confirm your pending request above, or wait for the automatic result. Your activity will update when the entry is accepted." : emptyMessages[filter].detail}</p>
       {state.source !== "unavailable" && allItems.length > 0 ? <Link href="/account/entries" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-black text-[#002719]">See my other activity <span aria-hidden="true" className="ml-3">›</span></Link> : null}

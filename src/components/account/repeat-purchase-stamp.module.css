@@ -1,0 +1,13 @@
+.stamp {
+  display: inline-grid;
+  justify-items: start;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: #fff4ac;
+  color: #173b60;
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.stamp strong { font-weight: 850; }

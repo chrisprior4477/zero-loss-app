@@ -33,6 +33,16 @@ test("shows only real retailer gift-card orders", () => {
   expect(screen.getByText(/checkout, shipping and retailer fees remain on the retailer’s site/)).toBeTruthy();
 });
 
+test("identifies repeat payments by their actual checkout date and order number", () => {
+  const first = order("fulfilled", "FIRST123");
+  const second = { ...first, orderNumber: "ord_SECOND12", rewardId: "second", createdAt: "2026-09-19T12:00:00Z" };
+  const otherPrice = { ...first, orderNumber: "ord_OTHER123", rewardId: "different-price", amountPaidCents: 7300 };
+  render(<OrdersFulfillment state={{ source: "stored", orders: [first, second, otherPrice] }} filter="payment" />);
+  expect(within(screen.getByText("#FIRST123").closest("article")!).getByText("Purchased Sep 18")).toBeTruthy();
+  expect(within(screen.getByText("#SECOND12").closest("article")!).getByText("Purchased Sep 19")).toBeTruthy();
+  expect(screen.queryByText("#OTHER123")).toBeNull();
+});
+
 test("connects orders to rewards, activity and support", () => {
   render(<OrdersFulfillment state={{ source: "stored", orders: [order("fulfilled", "ready")] }} />);
   expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id");

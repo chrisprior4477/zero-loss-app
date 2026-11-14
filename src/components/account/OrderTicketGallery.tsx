@@ -11,6 +11,8 @@ import { AccountIcon } from "./AccountIcon";
 import styles from "./order-ticket-gallery.module.css";
 import { useAccountTimeZone } from "./TimeZoneProvider";
 import { containDialogTab } from "./dialog-keyboard";
+import { RepeatPurchaseStamp } from "./RepeatPurchaseStamp";
+import type { PurchaseStamp } from "@/lib/account/repeat-purchase";
 
 function subscribePhone(change: () => void) {
   const query = window.matchMedia?.("(max-width: 700px)");
@@ -162,7 +164,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone }: { filter: Fulfi
   </div>, document.body);
 }
 
-export function OrderTicketGallery({ orders, filter = "all", initialDetailsId, initialAnchorId }: { orders: FulfillmentRecord[]; filter?: FulfillmentFilter; initialDetailsId?: string; initialAnchorId?: string }) {
+export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", initialDetailsId, initialAnchorId }: { orders: FulfillmentRecord[]; purchaseStamps?: Record<string, PurchaseStamp>; filter?: FulfillmentFilter; initialDetailsId?: string; initialAnchorId?: string }) {
   const phone = useSyncExternalStore(subscribePhone, isPhone, serverPhone);
   const [pageAnchor, setPageAnchor] = useState<string | null>(initialDetailsId ?? initialAnchorId ?? null);
   const [opened, setOpened] = useState<{ id: string; anchor: HTMLButtonElement } | null>(null);
@@ -378,6 +380,7 @@ export function OrderTicketGallery({ orders, filter = "all", initialDetailsId, i
         {Array.from({ length: lastPage + 1 }, (_, page) => <span key={page} data-order-page={page} className={styles.pageMarker} aria-hidden="true" style={{ gridColumn: `${page * columns + 1} / span ${columns}` }} />)}
         {orders.map((order, index) => {
           const detail = orderPresentation(order);
+          const purchaseStamp = order.orderNumber ? purchaseStamps?.[order.rewardId] : undefined;
           const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId }) + (filter === "all" ? "" : `&orderFilter=${filter}`);
           const position = index % size;
           const page = Math.floor(index / size);
@@ -388,7 +391,11 @@ export function OrderTicketGallery({ orders, filter = "all", initialDetailsId, i
             style={{ gridColumn: column + 1, gridRow: Math.floor(position / columns) + 1 }}>
             <Link href={href} className={styles.art} aria-label={`View ${order.title} reward`}><Image src={order.image} alt="" fill sizes="(max-width: 700px) 64px, 200px" /></Link>
             <div className={styles.copy}><p className={styles.retailer}>{order.retailer}</p><h3><Link href={href} title={order.title}>{order.title}</Link></h3><div className={styles.statuses}><span className={styles.source} data-source={order.source}><AccountIcon name={order.source === "winner" ? "prize" : "orders"} />{order.source === "winner" ? "You won" : order.source === "purchase" ? "Purchased" : "Reward"}</span><span className={styles.status}>{detail.label}</span></div></div>
-            <dl className={styles.money}><div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>{order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}</dl>
+            <dl className={styles.money} data-repeat-purchase={Boolean(purchaseStamp)}>
+              <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>
+              {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
+              {purchaseStamp ? <div className={styles.purchaseStamp}><dt className="sr-only">Purchase reference</dt><dd><RepeatPurchaseStamp {...purchaseStamp} /></dd></div> : null}
+            </dl>
             <div className={styles.actions}><button type="button" data-order-details className={styles.detailsButton} aria-haspopup="dialog" aria-expanded={selected?.rewardId === order.rewardId} onClick={event => openDetails(order.rewardId, event.currentTarget)}>{order.source === "winner" ? "Reward details" : "Order details"}</button><Link href={href} className={styles.open}>{detail.action}<AccountIcon name="arrow" /></Link></div>
           </article>;
         })}

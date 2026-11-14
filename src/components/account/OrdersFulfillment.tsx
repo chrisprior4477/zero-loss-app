@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AccountIcon } from "./AccountIcon";
 import type { AccountOrders } from "@/lib/account/orders";
+import { repeatPurchaseStamps } from "@/lib/account/repeat-purchase";
 import { accountFulfillment, fulfillmentFilterLabel, fulfillmentHref, matchesFulfillmentFilter, type FulfillmentFilter } from "@/lib/account/fulfillment";
 import { OrderTicketGallery } from "./OrderTicketGallery";
 import { OrdersRetryButton } from "./OrdersRetryButton";
@@ -93,7 +94,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
               <p role="status">Some fulfillment records could not be verified right now. The records below are available, and totals may be incomplete.</p>
               <OrdersRetryButton label={retryLabel} />
             </div> : null}
-            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} filter={filter} initialAnchorId={focusRewardId} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
+            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} purchaseStamps={repeatPurchaseStamps(state.orders)} filter={filter} initialAnchorId={focusRewardId} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
           </> : !selectionComplete ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
             <h3>{selectedOrderNumber ? "We couldn’t load this order right now" : selectedRewardId ? "We couldn’t load this reward right now" : filter === "exceptions" ? "We couldn’t load Exceptions right now" : "Fulfillment unavailable"}</h3>

@@ -43,6 +43,13 @@
 .money { display: grid; grid-column: 2; grid-row: 2; grid-template-columns: 1fr 1fr; align-content: center; gap: 12px; }
 .money dt { color: #526d88; font-size: 11px; line-height: 14px; }
 .money dd { margin-top: 2px; font-size: 22px; line-height: 24px; font-weight: 850; letter-spacing: -.4px; overflow-wrap: anywhere; }
+.money[data-repeat-purchase="true"] {
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content) minmax(max-content, 1fr);
+  align-items: center;
+  column-gap: clamp(4px, 1.6vw, 12px);
+}
+.money .purchaseStamp { justify-self: end; }
+.money .purchaseStamp dd { margin: 0; font-size: inherit; line-height: 1; font-weight: 600; letter-spacing: normal; }
 .actions { display: flex; grid-column: 2; grid-row: 3; align-items: stretch; justify-content: space-between; gap: 8px; }
 .detailsButton, .open { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; gap: 5px; border: 0; border-radius: 7px; padding: 8px 10px; font-size: 12px; line-height: 15px; font-weight: 800; cursor: pointer; text-decoration: none; }
 .detailsButton { background: #e7f0f7; color: #2c5b7d; }
@@ -94,6 +101,8 @@
 @keyframes detailsFade { from { opacity: 0; } to { opacity: 1; } }
 @container (max-width: 850px) {
   .art { grid-row: 1/3; }
+  .card:has(.purchaseStamp) .art { grid-row: 1; }
+  .money[data-repeat-purchase="true"] { grid-column: 1 / -1; }
   .actions { grid-column: 1/3; }
   .copy h3 { font-size: 15px; line-height: 18px; }
   .statuses { gap: 3px; }
