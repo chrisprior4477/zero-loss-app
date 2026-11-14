@@ -25,9 +25,13 @@ export function HelpLandingScroll({ target, visitKey = target }: { target: strin
           if (disposed || interrupted) return;
           const headerBottom = measure();
           if (target === "faq-intro" && readFaqReturn(window.history.state, window.location.href)) return;
-          const id = window.location.hash.slice(1) || target;
+          const anchors = window.location.hash.slice(1).split("#");
+          const [anchor] = anchors;
+          const id = anchor || target;
+          if (anchors.length > 1 && !anchors.every(value => value === anchor)) return;
           const element = document.getElementById(id);
           if (!element) return;
+          if (anchors.length > 1) window.history.replaceState(window.history.state, "", `#${id}`);
           window.scrollTo({ top: Math.max(0, window.scrollY + element.getBoundingClientRect().top - headerBottom - 12), behavior: "instant" });
         });
       });

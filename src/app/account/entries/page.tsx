@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { MyZeroLossActivity } from "@/components/account/MyZeroLossActivity";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { getAccountContext } from "@/lib/account/context";
-import { activityFilter, findActivityItem } from "@/lib/account/activity";
+import { activityFilter, declinedOfferHref, findActivityItem } from "@/lib/account/activity";
 import styles from "@/components/account/my-activity.module.css";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
@@ -72,7 +72,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
           <span className={styles.accountToolText}><strong>{title}</strong><span>{detail}</span>{title === "Account & Security" && <small>{account.emailConfirmed ? "Email confirmed" : "Confirmation pending"}</small>}</span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />
         </Link>)}
-        <Link href="/account/declined-offers" className={`${styles.accountTool} ${styles.declinedTool}`}>
+        <Link href={declinedOfferHref(null, filter)} className={`${styles.accountTool} ${styles.declinedTool}`}>
           <span className={styles.accountToolIcon} data-treatment="declined"><Image src="/account/drawer/declined-offers-blue-bag.png" alt="" fill sizes="(max-width: 600px) 80px, 112px" className={styles.accountToolIllustration} /></span>
           <span className={styles.accountToolText}><strong>Declined Offers</strong><span>Changed your mind? Review saved options.</span></span>
           <AccountIcon name="chevron" className={styles.accountToolArrow} />

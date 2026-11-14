@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAccountContext } from "@/lib/account/context";
-import { activityHref, declinedOfferHref, openPrizeOptions, type ActivityItem } from "@/lib/account/activity";
+import { activityFilter, activityHref, declinedOfferHref, openEntriesAnchorId, openPrizeOptions, type ActivityItem } from "@/lib/account/activity";
 import { crewUuid } from "@/lib/crew/visibility";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { authNavigationHref } from "@/lib/auth/entry-return";
@@ -21,11 +21,14 @@ import styles from "@/components/account/my-activity.module.css";
 export const metadata: Metadata = { title: "Declined Offers" };
 type DeclinedOffer = ActivityItem & { completionOptionId: string };
 
-export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ offer?: string | string[] }> }) {
-  const requested = (await searchParams)?.offer;
+export default async function DeclinedOffersPage({ searchParams }: { searchParams?: Promise<{ offer?: string | string[]; filter?: string | string[] }> }) {
+  const query = await searchParams;
+  const requested = query?.offer;
   const offerId = typeof requested === "string" && crewUuid.test(requested) ? requested : undefined;
+  const filter = activityFilter(query?.filter);
+  const activityReturn = `/account/entries${filter === "all" ? "" : `?filter=${filter}`}#${openEntriesAnchorId}`;
   const account = await getAccountContext();
-  if (!account) redirect(authNavigationHref("/login", declinedOfferHref(offerId)));
+  if (!account) redirect(authNavigationHref("/login", declinedOfferHref(offerId, filter)));
   const declined = account.activity.activity.filter((item): item is DeclinedOffer =>
     item.completionOptionStatus === "declined" && Boolean(item.completionOptionId));
   const requestedMissing = offerId && account.activity.source !== "unavailable" && !declined.some(item => item.completionOptionId === offerId);
@@ -61,13 +64,13 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
   return <PreferenceSnapshot><main className={styles.page}><div className={styles.pageContent}>
     <div className={styles.declinedHeader}>
       <div className={styles.declinedIntro}>
-        <Link href="/account/entries" className={styles.declinedBack}>← My Activity</Link>
+        <Link href={activityReturn} className={styles.declinedBack}>← My Activity</Link>
         <p className={styles.eyebrow}>DECLINED OFFERS</p>
         <h1 className={styles.heading}>If you change your mind</h1>
         <p className={styles.subtitle}>Revive a declined offer before its original deadline.</p>
       </div>
       <nav className={styles.declinedActions} aria-label="Declined offers navigation">
-        <Link href="/account/entries">Return to My Activity</Link>
+        <Link href={activityReturn}>Return to My Activity</Link>
         <Link href="/">Continue shopping</Link>
       </nav>
     </div>
@@ -76,8 +79,8 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
       <h2>This offer is no longer in Declined Offers</h2>
       {currentOfferHref && <Link href={currentOfferHref}>View its current status →</Link>}
     </div>}
-    {account.activity.source === "unavailable" ? <div id={requestedAnchor} className={`${styles.empty} ${styles.declinedDestination}`}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p><a href={declinedOfferHref(offerId)}>Try again</a></div>
-      : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href="/account/entries">Back to My Activity →</Link></div>
+    {account.activity.source === "unavailable" ? <div id={requestedAnchor} className={`${styles.empty} ${styles.declinedDestination}`}><h2>Declined offers unavailable</h2><p>We can’t verify your saved options right now. Please try again shortly.</p><a href={declinedOfferHref(offerId, filter)}>Try again</a></div>
+      : declined.length === 0 ? <div className={styles.empty}><h2>No declined offers yet</h2><p>Any purchase option you decline will appear here while your demo activity is saved.</p><Link href={activityReturn}>Back to My Activity →</Link></div>
       : <DeclinedOfferList offerId={offerId} ownerId={account.userId}>{Array.from(groups, ([slug, offers]) => {
         const [product] = offers;
         const multiple = offers.length > 1;
@@ -104,6 +107,7 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
             <div className={styles.declinedTickets}>
               {offers.map(offer => {
                 const optionId = offer.completionOptionId;
+                const statusHref = declinedOfferHref(optionId, filter);
                 const ticketLabel = labels[optionId];
                 const expiresAt = offer.completionExpiresAt && Number.isFinite(Date.parse(offer.completionExpiresAt)) ? offer.completionExpiresAt : null;
                 return <article key={optionId} id={`declined-offer-${optionId}`} tabIndex={-1} className={styles.declinedRow}>
@@ -121,9 +125,9 @@ export default async function DeclinedOffersPage({ searchParams }: { searchParam
                   </div>
                   <DeclinedOfferReminder optionId={optionId} expiresAt={expiresAt}
                     initialReminderStatus={reminderStatus.get(optionId) ?? null}
-                    canRequestReminder={remindersAvailable && account.emailConfirmed} />
+                    canRequestReminder={remindersAvailable && account.emailConfirmed} statusHref={statusHref} />
                   <ReviveOptionButton optionId={optionId} ticketLabel={ticketLabel} productTitle={offer.title} expiresAt={expiresAt}
-                    statusHref={declinedOfferHref(optionId)} />
+                    statusHref={statusHref} />
                 </article>;
               })}
             </div>

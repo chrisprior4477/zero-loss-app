@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { BrowseDiscoveryBar } from "./BrowseDiscoveryBar";
+import { BrowseDiscoveryBar, BrowseDiscoveryFooterControls } from "./BrowseDiscoveryBar";
 import type { BrowseFilterProps } from "./BrowseFilters";
 
 const navigation = vi.hoisted(() => ({ push: vi.fn() }));
@@ -18,6 +18,18 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const searchForm = () => screen.getByRole("search", { name: "Search marketplace" });
+
+test.each(["Filter & sort", "Gas"])("only the Browse control that opened %s is expanded", name => {
+  render(<BrowseDiscoveryBar {...props}><BrowseDiscoveryFooterControls /></BrowseDiscoveryBar>);
+  const top = within(screen.getByRole("group", { name: "Browse options at the top" })).getByRole("button", { name });
+  const bottom = within(screen.getByRole("group", { name: "Browse options at the bottom" })).getByRole("button", { name });
+  fireEvent.click(bottom);
+  expect(top.getAttribute("aria-expanded")).toBe("false");
+  expect(bottom.getAttribute("aria-expanded")).toBe("true");
+  fireEvent.click(screen.getByRole("button", { name: "Close browse options" }));
+  expect(bottom.getAttribute("aria-expanded")).toBe("false");
+  expect(document.activeElement).toBe(bottom);
+});
 
 test("the category picker keeps the search and drops the previous retailer when switching to Beauty", () => {
   render(<BrowseDiscoveryBar {...props} searchTerm="PlayStation" filters={{ ...props.filters, retailer: "AutoZone" }} />);

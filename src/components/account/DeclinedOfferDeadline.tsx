@@ -40,11 +40,12 @@ export function DeclinedOfferCountdown({ deadlines }: { deadlines: number[] }) {
   </p>;
 }
 
-export function DeclinedOfferReminder({ optionId, expiresAt, initialReminderStatus, canRequestReminder }: {
+export function DeclinedOfferReminder({ optionId, expiresAt, initialReminderStatus, canRequestReminder, statusHref = declinedOfferHref(optionId) }: {
   optionId: string;
   expiresAt: string | null;
   initialReminderStatus: string | null;
   canRequestReminder: boolean;
+  statusHref?: string;
 }) {
   const now = useOfferClock();
   const preference = useServerPreference(initialReminderStatus);
@@ -87,10 +88,10 @@ export function DeclinedOfferReminder({ optionId, expiresAt, initialReminderStat
       : isExpired ? <small>This offer has expired.</small>
       : tooLateToSchedule && !checked ? <small>Too close to the deadline for a two-day reminder.</small> : null}
     {message ? <small role="status">{message}</small> : null}
-    {needsCheck ? <a href={declinedOfferHref(optionId)} onClick={event => {
+    {needsCheck ? <a href={statusHref} onClick={event => {
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
-      window.history.replaceState(window.history.state, "", declinedOfferHref(optionId));
+      window.history.replaceState(window.history.state, "", statusHref);
       window.location.reload();
     }} className="text-sm font-bold text-[#0069b3] underline">Reload reminder status →</a> : null}
   </div>;

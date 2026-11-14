@@ -22,6 +22,14 @@ test("only signed-in customers can open declined offers", async () => {
   await expect(DeclinedOffersPage({})).rejects.toThrow(/redirect:.*login.*declined-offers/);
 });
 
+test("all exit links restore the purchase-options filter, even when the list is empty", async () => {
+  mocks.account.mockResolvedValue({ userId: "owner", activity: { source: "stored", activity: [] } });
+  render(await DeclinedOffersPage({ searchParams: Promise.resolve({ filter: "completion" }) }));
+  for (const link of screen.getAllByRole("link", { name: /My Activity/ })) {
+    expect(link.getAttribute("href")).toBe("/account/entries?filter=completion#my-activity-filters");
+  }
+});
+
 test("a single declined offer keeps its countdown visible and its reminder in the disclosure", async () => {
   mocks.account.mockResolvedValue({ userId: "owner", emailConfirmed: true, timezone: "America/Los_Angeles", activity: { source: "stored", activity: [{
     entryId: "ent_one", completionOptionId: "11111111-1111-4111-8111-111111111111", completionOptionStatus: "declined",
@@ -34,7 +42,7 @@ test("a single declined offer keeps its countdown visible and its reminder in th
   render(await DeclinedOffersPage({}));
   expect(screen.getByRole("heading", { name: "If you change your mind" })).toBeTruthy();
   const exits = within(screen.getByRole("navigation", { name: "Declined offers navigation" }));
-  expect(exits.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe("/account/entries");
+  expect(exits.getByRole("link", { name: "Return to My Activity" }).getAttribute("href")).toBe("/account/entries#my-activity-filters");
   expect(exits.getByRole("link", { name: "Continue shopping" }).getAttribute("href")).toBe("/");
   expect(screen.getByText("$100 Walmart Gift Card")).toBeTruthy();
   expect(screen.queryByText("Unrelated purchase option")).toBeNull();

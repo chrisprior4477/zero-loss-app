@@ -25,6 +25,11 @@ test("login preserves the selected entry and filter", async () => {
   expect(new URL(mocks.redirect.mock.calls[0][0], "https://example.test").searchParams.get("next")).toBe("/account/entries?item=nike-court-shot-shoes&entry=ent_123&filter=completion");
 });
 
+test("Declined Offers carries the selected My Activity filter", async () => {
+  render(await MyZeroLossPage({ searchParams: Promise.resolve({ filter: "completion" }) }));
+  expect(screen.getByRole("link", { name: /Declined Offers/ }).getAttribute("href")).toBe("/account/declined-offers?filter=completion");
+});
+
 test("Your Profile opens the profile settings from My Activity", async () => {
   render(await MyZeroLossPage({ searchParams: Promise.resolve({}) }));
   const link = screen.getByRole("link", { name: "Open Your Profile" });

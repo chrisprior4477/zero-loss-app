@@ -17,6 +17,8 @@ import { useBrowseResultsSearch } from "./BrowseResultsSearch";
 import popupStyles from "@/components/layout/responsive-popup.module.css";
 
 const BrowseControlsContext = createContext<ReactNode>(null);
+type BrowsePanel = "categories" | "filters";
+type ControlsPosition = "top" | "bottom";
 
 export function BrowseDiscoveryFooterControls() {
   const controls = useContext(BrowseControlsContext);
@@ -29,7 +31,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const categoryList = useRef<HTMLDivElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
-  const [panel, setPanel] = useState<"categories" | "filters" | null>(null);
+  const [openPanel, setOpenPanel] = useState<{ panel: BrowsePanel; position: ControlsPosition } | null>(null);
+  const panel = openPanel?.panel;
   const [mode, setMode] = useState<"categories" | "retailers">("categories");
   const [query, setQuery] = useState("");
   const [localSearch, setLocalSearch] = useState(props.searchTerm);
@@ -83,14 +86,17 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     };
   }, [panel]);
 
-  function open(next: "categories" | "filters", button: HTMLButtonElement) {
+  function open(next: BrowsePanel, position: ControlsPosition, button: HTMLButtonElement) {
     opener.current = button;
-    setQuery(""); setMode("categories"); setPanel(next);
+    setQuery(""); setMode("categories"); setOpenPanel({ panel: next, position });
+  }
+  function close() {
+    setOpenPanel(null);
   }
   function choose(href: string) {
     const url = new URL(href, "https://zeroloss.local");
     if (props.searchTerm) url.searchParams.set("q", props.searchTerm);
-    setPanel(null);
+    close();
     router.push(`${url.pathname}${url.search}#search-results`, { scroll: false });
   }
   function choosePrizeCategory(value: string) {
@@ -132,16 +138,16 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     if (props.searchTerm) applySearch("");
   }
 
-  const controls = <>
-    <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories"} onClick={event => open("categories", event.currentTarget)}>
+  const controls = (position: ControlsPosition) => <>
+    <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "categories" && openPanel?.position === position} onClick={event => open("categories", position, event.currentTarget)}>
       <span aria-hidden="true">☷</span><span>{props.selectedRetailerGroup?.category ?? "Categories"}</span>
     </button>
-    <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "filters"} onClick={event => open("filters", event.currentTarget)}>
+    <button type="button" className={styles.control} aria-haspopup="dialog" aria-expanded={panel === "filters" && openPanel?.position === position} onClick={event => open("filters", position, event.currentTarget)}>
       Filter &amp; sort{activeCount ? <b>{activeCount}</b> : <span aria-hidden="true">↕</span>}
     </button>
   </>;
 
-  return <BrowseControlsContext.Provider value={controls}>
+  return <BrowseControlsContext.Provider value={controls("bottom")}>
   <div className={styles.discovery}>
     <span id="retailer-categories-heading" className={styles.anchor} />
     {props.searchField ?? <form role="search" aria-label="Search marketplace" onSubmit={submitSearch} className={styles.search}>
@@ -151,16 +157,16 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
       {search.trim() && !voice.listening ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
       <VoiceSearchControl {...voice} />
     </form>}
-    <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls}</div>
+    <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls("top")}</div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
       <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.searchTerm ? `Results for “${props.searchTerm}”${scope ? ` in ${scope}` : ""}` : props.selectedRetailerGroup?.category ?? (props.subcategory || "Filtered results")}</span>
       {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
       {activeCount > 0 || props.filters.retailer || props.subcategory ? <Link href={`${props.clearHref}#search-results`}>Clear filters</Link> : null}
     </div> : null}
-    {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onCancel={() => setPanel(null)} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) setPanel(null); }}>
+    {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onCancel={close} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) close(); }}>
       <div className={styles.sheet}>
-        <header className={styles.sheetHeader}><div><h2 id={`${id}-title`}>{panel === "categories" ? "Find your category" : "Filter & sort"}</h2><p>{panel === "categories" ? "Scroll or search, then tap to see the products." : "Choose what you’d like to see."}</p></div><button type="button" aria-label="Close browse options" onClick={() => setPanel(null)}>×</button></header>
+        <header className={styles.sheetHeader}><div><h2 id={`${id}-title`}>{panel === "categories" ? "Find your category" : "Filter & sort"}</h2><p>{panel === "categories" ? "Scroll or search, then tap to see the products." : "Choose what you’d like to see."}</p></div><button type="button" aria-label="Close browse options" onClick={close}>×</button></header>
         {panel === "categories" ? <>
           <div className={styles.pickerModes} role="group" aria-label="Browse by"><button type="button" aria-pressed={mode === "categories"} onClick={() => { setMode("categories"); setQuery(""); }}>Categories</button><button type="button" aria-pressed={mode === "retailers"} onClick={() => { setMode("retailers"); setQuery(""); }}>Retailers</button></div>
           <label className={styles.pickerSearch}><span className={styles.srOnly}>Find a category or retailer</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Automotive, groceries, a brand…" /></label>
@@ -173,7 +179,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
               : retailers.map(option => <button type="button" key={option.value} className={styles.choice} aria-current={props.filters.retailer === option.value ? "true" : undefined} onClick={() => choose(discoveryCategoryHref(option.groupId, props.filters, props.selectedCategory, option.value))}><span>{option.label}<small>{option.hasOffer ? "View current offers" : "No current offers"}</small></span><span aria-hidden="true">→</span></button>)}
             {(mode === "categories" ? prizeCategories.length + distinctGroups.length : retailers.length) === 0 ? <p className={styles.noMatches}>No match. Try another category or brand.</p> : null}
           </div>
-        </> : <div className={styles.filterBody}><FilterForm {...props} id={`${id}-filters`} onNavigate={() => setPanel(null)} /></div>}
+        </> : <div className={styles.filterBody}><FilterForm {...props} id={`${id}-filters`} onNavigate={close} /></div>}
       </div>
     </dialog> : null}
   </div>

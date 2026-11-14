@@ -47,6 +47,14 @@ test("explicit cases and conversation destinations win over the default heading"
   act(() => window.dispatchEvent(new HashChangeEvent("hashchange"))); flush();
   expect(scrollTo).toHaveBeenLastCalledWith({ top: 708, behavior: "instant" });
 });
+test("a repeated case-list fragment becomes a single shareable destination", () => {
+  const { scrollTo, flush } = setup();
+  window.history.replaceState({ navigation: "keep" }, "", "/support?page=2#case-list#case-list");
+  render(<HelpLandingScroll target="support-intro" />); flush();
+  expect(window.location.search + window.location.hash).toBe("?page=2#case-list");
+  expect(window.history.state).toEqual({ navigation: "keep" });
+  expect(scrollTo).toHaveBeenCalledWith({ top: 1008, behavior: "instant" });
+});
 test("new case visits scroll but ordinary rerenders do not interrupt reading", () => {
   const { scrollTo, flush } = setup(); const view = render(<HelpLandingScroll target="conversation" visitKey="case-one" />); flush();
   view.rerender(<HelpLandingScroll target="conversation" visitKey="case-one" />); flush(); expect(scrollTo).toHaveBeenCalledOnce();
