@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import type { ActivityItem } from "@/lib/account/activity";
+import { purchaseReceiptHref, type ActivityItem } from "@/lib/account/activity";
 import { offerTicketLabels } from "@/lib/account/offer-ticket-labels";
 import { checkDemoPurchaseReceipt, completeDemoPurchaseOptions, type BulkPurchaseRequest } from "@/lib/account/bulk-purchase-actions";
 import { checkDemoDeposit } from "@/lib/payments/actions";
@@ -49,7 +49,7 @@ function ConfirmPurchase({ total, balance, quantity, summary, busy, onUndo, onEx
     <p className={styles.footnote}>Simulation only · No real payment or shipment.</p></>;
 }
 
-type PurchaseReceipt = { status: "unconfirmed" | "unavailable" } | { status: "ready"; href: string; cardReady: boolean; totalCents: number };
+type PurchaseReceipt = { status: "unconfirmed" | "unavailable" } | { status: "ready"; href: string; cardReady: boolean; totalCents: number; purchasedCount?: number };
 
 type CheckoutDepositAttempt = { key: string; amount: number; token: DemoCardToken; makeDefault: boolean };
 
@@ -278,9 +278,10 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     } catch { setError("We couldn’t verify this deposit yet. Check again."); }
     finally { inFlight.current = false; setBusy(false); }
   }
-  function recordRecoveredPurchase(result: { href: string; cardReady: boolean; totalCents: number }) {
+  function recordRecoveredPurchase(result: { href: string; cardReady: boolean; totalCents: number; rewardIds?: string[]; purchasedCount?: number }) {
     clearChoice();
-    setReceipt({ status: "ready", href: result.href, cardReady: result.cardReady, totalCents: result.totalCents });
+    const href = purchaseRequest && result.rewardIds ? purchaseReceiptHref(purchaseRequest.slug, purchaseRequest.requestId) : result.href;
+    setReceipt({ status: "ready", href, cardReady: result.cardReady, totalCents: result.totalCents, purchasedCount: result.purchasedCount });
     window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
   }
 
@@ -300,8 +301,7 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
           clearChoice();
           setRecovery("purchase");
           window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
-          router.replace(result.href);
-          router.refresh();
+          router.replace(purchaseReceiptHref(purchaseRequest.slug, purchaseRequest.requestId));
         }
         return;
       }
@@ -338,7 +338,8 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         : receipt?.status === "unavailable" ? "We couldn’t verify the result. Try checking again."
         : "Check whether your purchase was saved before trying again."}</p>}
     </div>
-    {receipt?.status === "ready" ? <Link href={receipt.href} className={styles.primary} onClick={() => saveAttempt(null)}>{receipt.cardReady ? "Open gift card" : "View completed purchases"}</Link>
+    {receipt?.status === "ready" ? <a href={receipt.href} className={styles.primary} onClick={() => saveAttempt(null)}>
+      {receipt.purchasedCount ? "View purchase receipt" : receipt.cardReady ? "Open gift card" : "View completed purchases"}</a>
       : receipt?.status === "unconfirmed" && !busy ? <button type="button" className={styles.primary} onClick={() => void confirm(true)}>Confirm same purchase · {usd(purchaseRequest.totalCents)}</button>
         : <button type="button" className={styles.secondary} disabled={busy} onClick={() => void checkPurchase()}>{busy ? checkingReceipt ? "Checking…" : "Confirming…" : "Check this purchase"}</button>}
   </section> : null;

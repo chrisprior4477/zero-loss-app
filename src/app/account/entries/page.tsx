@@ -16,6 +16,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseEntryRequest, type EntryRequest } from "@/lib/entries/request";
 import { repeatPurchaseStamps } from "@/lib/account/repeat-purchase";
+import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
+import { checkoutReceiptId } from "@/lib/account/checkout-cards";
 
 export const metadata: Metadata = { title: "My Activity" };
 
@@ -33,6 +35,13 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   const selectedSlug = typeof query.item === "string" ? query.item : undefined;
   const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;
   const viewedEntryId = typeof query.viewed === "string" && account.activity.activity.some(item => item.entryId === query.viewed) ? query.viewed : undefined;
+  const checkoutItem = filter === "completed" && viewedEntryId
+    ? account.activity.activity.find(item => item.entryId === viewedEntryId && item.rewardId && item.slug === query.checkout)
+    : undefined;
+  const receiptId = checkoutItem && typeof query.receipt === "string" && checkoutReceiptId.test(query.receipt) ? query.receipt : undefined;
+  const receipt = checkoutItem && receiptId ? await checkDemoPurchaseReceipt(receiptId, checkoutItem.slug) : null;
+  const checkout = receiptId && receipt?.status === "succeeded" && checkoutItem?.rewardId && receipt.rewardIds.includes(checkoutItem.rewardId)
+    ? { receipt: receiptId, rewardIds: receipt.rewardIds } : undefined;
   const availabilityPromise = getOfferingAvailability();
   let pendingEntries: EntryRequest[] = [];
   if (isPreviewDataEnvironment() && account.activity.source !== "unavailable") {
@@ -54,7 +63,7 @@ export default async function MyZeroLossPage({ searchParams }: { searchParams: P
   return <PreferenceSnapshot><div className={styles.page}><div className={styles.pageContent}>
     <h1 id="my-activity-heading" className={styles.heading}>Everything you chose. Every outcome.</h1>
     <p className={styles.subtitle}>Track your entries, see results, and take the next step.</p>
-    <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
+    <MyZeroLossActivity ownerId={account.userId} state={account.activity} purchaseStamps={repeatPurchaseStamps(account.orders?.orders ?? [])} filter={filter} metricsBySlug={metricsBySlug} pendingEntries={pendingEntries} outcomeEmailPreference={outcomeEmailPreference} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} viewedEntryId={viewedEntryId} checkout={checkout} returnToOptions={query.from === "purchase-options"} resumePurchase={query.resume === "purchase"} canClearDemoEntries={isPreviewDataEnvironment() && account.wallet?.scope === "demo" && account.activity.source !== "unavailable"} />
     <section aria-labelledby="account-tools-heading" className={styles.accountTools}>
       <div className={styles.accountToolsHeading}>
         <p className={styles.eyebrow}>ACCOUNT DASHBOARD</p>

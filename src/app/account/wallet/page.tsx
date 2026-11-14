@@ -8,7 +8,7 @@ import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { WalletOverview } from "@/components/wallet/WalletOverview";
 import { WalletRewardDetail, WalletRewards } from "@/components/wallet/WalletRewards";
-import { activityHref, findActivityItem, isPurchasedReward, openEntriesAnchorId, walletRewards } from "@/lib/account/activity";
+import { activityHref, completedActivityHref, findActivityItem, isPurchasedReward, openEntriesAnchorId, walletRewards } from "@/lib/account/activity";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
@@ -23,6 +23,12 @@ import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
 import { getCompleteLedgerHistory } from "@/lib/wallet/history";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
 import { parseDemoWalletHistoryVisibility, type DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
+import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
+import { checkoutCards, checkoutReceiptId } from "@/lib/account/checkout-cards";
+import { CheckoutGiftCardList } from "@/components/account/CheckoutGiftCardList";
+import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
+import checkout from "@/components/account/purchase-checkout.module.css";
+import cardStyles from "@/components/account/checkout-gift-cards.module.css";
 
 export async function generateMetadata({ searchParams }: PageProps<"/account/wallet">): Promise<Metadata> {
   const query = await searchParams;
@@ -30,7 +36,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/account/wal
   return { title: history ? "Wallet & Transactions" : "Gift Cards & Rewards" };
 }
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[]; receipt?: string | string[]; checkout?: string | string[] }> }) {
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
@@ -54,7 +60,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       : history && !query.transaction && (fromProduct || query.panel === "funding") ? query.review === "entry" && fromProduct
       ? entryReviewFundingHref(fromProduct.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.filter)
       : fundingHref(fromProduct?.slug, typeof query.entry === "string" ? query.entry : undefined, requestedQuantity, query.browse, query.choice)
-      : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : purchaseArrival ? "#reward-pass" : rewardSection);
+      : accountPageReturnPath("/account/wallet", query, history && typeof query.transaction === "string" ? `#transaction-${query.transaction}` : purchaseArrival ? "#reward-pass" : typeof query.checkout === "string" ? "#checkout-gift-cards" : rewardSection);
     redirect(`${authNavigationHref("/login", next)}&focus=email#login-form`);
   }
   if (cardView) redirect("/account/wallet?view=history&panel=card");
@@ -74,6 +80,27 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const reward = typeof query.rewardId === "string"
     ? matchingRewards.find(item => item.rewardId === query.rewardId)
     : typeof query.reward === "string" && matchingRewards.length === 1 ? matchingRewards[0] : undefined;
+  const checkoutSlug = requestedReward
+    ? query.via === "purchase" && reward && isPurchasedReward(reward) ? reward.slug : undefined
+    : !history && typeof query.checkout === "string" ? query.checkout : undefined;
+  const receiptId = typeof query.receipt === "string" && checkoutReceiptId.test(query.receipt) ? query.receipt : undefined;
+  const receipt = checkoutSlug && receiptId ? await checkDemoPurchaseReceipt(receiptId, checkoutSlug) : null;
+  const purchasedCards = receipt?.status === "succeeded" && checkoutSlug ? checkoutCards(account.activity, checkoutSlug, receipt.rewardIds) : [];
+  if (!requestedReward && checkoutSlug && receiptId) {
+    const focused = purchasedCards.find(card => card.id === query.card);
+    const target = focused ? `checkout-card-${focused.id}` : "checkout-gift-cards";
+    return <main className={checkout.page}><div className={checkout.shell}>
+      <AccountSettingsLandingScroll target={target} visitKey={`${receiptId}:${target}`} settleAfterNavigation allScreens />
+      <h1 id="checkout-gift-cards" className={cardStyles.title}>Gift Cards &amp; Rewards</h1>
+      <section className={`${checkout.ticket} ${checkout.content}`} aria-labelledby="checkout-cards-heading">
+        <h2 id="checkout-cards-heading" className={cardStyles.heading}>Cards from this checkout</h2>
+        {receipt?.status === "succeeded" ? <CheckoutGiftCardList cards={purchasedCards} count={receipt.purchasedCount} slug={checkoutSlug} receipt={receiptId} focused={focused?.id} />
+          : <p role="status">We couldn’t load this checkout. Try again or open all gift cards and rewards.</p>}
+        <Link href={completedActivityHref(focused?.item.entryId ?? purchasedCards[0]?.item.entryId, receipt?.status === "succeeded" ? { slug: checkoutSlug, receipt: receiptId } : undefined)} className={`${cardStyles.secondary} ${cardStyles.returnButton}`}>← Back to My Activity</Link>
+        <Link href="/account/wallet#ready-rewards" className={`${cardStyles.secondary} ${cardStyles.returnButton}`}>See all gift cards &amp; rewards</Link>
+      </section>
+    </div></main>;
+  }
   const rewardView = query.rewards === "ready" || query.rewards === "used" || query.rewards === "expired" || query.rewards === "history"
     ? query.rewards : "all";
   const rewardListHref = rewardView === "all" ? "/account/wallet"
@@ -116,6 +143,9 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     }
     if (reward) {
       const fromPurchase = query.via === "purchase" && typeof query.rewardId === "string" && isPurchasedReward(reward);
+      const currentCard = purchasedCards.find(card => card.id === reward.rewardId);
+      const checkoutContext = currentCard && receipt?.status === "succeeded" && receiptId
+        ? { receipt: receiptId, cards: purchasedCards, current: currentCard, count: receipt.purchasedCount } : undefined;
       const transactionId = typeof query.transaction === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(query.transaction) ? query.transaction : undefined;
       const orderFilter = fulfillmentFilter(query.orderFilter);
       const fromOrders = query.via === "orders" || query.via === "order-notification";
@@ -134,7 +164,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
               ? { href: `/account/entries?filter=${winFilter}&viewed=${encodeURIComponent(reward.entryId)}#${openEntriesAnchorId}`, label: "Back to this win in My Activity" }
               : undefined;
       return <WalletRewardDetail orderFilter={orderFilter} fulfillmentReturn={sourceOrder ? exactOrderHref(sourceOrder.orderNumber, orderFilter, false, true) : undefined} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnHistory={fromRewardHistory} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} item={reward}
-        isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} returnLink={returnLink}
+        isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} returnLink={returnLink} checkoutContext={checkoutContext}
         overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />;
     }
     return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href={rewardListHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;

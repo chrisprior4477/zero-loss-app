@@ -1,13 +1,14 @@
 "use server";
 
 import { purchasedRewardHref } from "./activity";
+import { checkoutReceiptId as uuid } from "./checkout-cards";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { createClient } from "@/lib/supabase/server";
 
 export type BulkPurchaseRequest = { slug: string; purchaseIds: string[]; declineIds: string[]; totalCents: number; requestId: string; confirmed: boolean };
-export type BulkPurchaseResult = { status: "succeeded"; purchasedCount: number; declinedCount: number; totalCents: number; href: string; cardReady: boolean }
+export type BulkPurchaseResult = CompletedCheckout
   | { status: "error"; message: string; recovery: "balance" | "offers" | "check" | "edit" };
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export type CompletedCheckout = { status: "succeeded"; purchasedCount: number; declinedCount: number; totalCents: number; href: string; cardReady: boolean; rewardIds: string[] };
 
 export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest): Promise<BulkPurchaseResult> {
   if (!isPreviewDataEnvironment() || !request || request.confirmed !== true
@@ -39,23 +40,17 @@ export async function completeDemoPurchaseOptions(request: BulkPurchaseRequest):
     if (error || data?.status !== "purchased" || data.purchasedCount !== request.purchaseIds.length || data.declinedCount !== request.declineIds.length || data.totalCents !== request.totalCents) {
       return { status: "error", recovery: "check", message: "We couldn’t confirm the result. Check your purchases before trying again; they may already be saved." };
     }
-    // Navigation reads a fresh account projection. Do not rerender this now-empty
-    // options page in the action response before the browser can open the rewards.
-    // Open the actual issued reward (the same barcode/details reached from My
-    // Activity), never a client-only sample result. A missing reward falls back
-    // to the completed activity list without attempting the purchase again.
     return completedPurchase(request.slug, data);
   } catch {
     return { status: "error", recovery: "check", message: "The connection was interrupted. Check your purchases before trying again; they may already be saved." };
   }
 }
 
-function completedPurchase(slug: string, data: { purchasedCount: number; declinedCount: number; totalCents: number; rewardIds?: unknown }): BulkPurchaseResult {
-    const rewardId = Array.isArray(data.rewardIds) ? data.rewardIds.find((id: unknown) => typeof id === "string" && uuid.test(id)) : undefined;
-    const href = rewardId
-      ? purchasedRewardHref(rewardId, slug)
-      : "/account/entries?filter=completed";
-  return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, totalCents: data.totalCents, href, cardReady: Boolean(rewardId) };
+function completedPurchase(slug: string, data: { purchasedCount: number; declinedCount: number; totalCents: number; rewardIds?: unknown }): CompletedCheckout {
+  const rewardIds = Array.isArray(data.rewardIds)
+    ? [...new Set(data.rewardIds.filter((id): id is string => typeof id === "string" && uuid.test(id)))] : [];
+  const href = rewardIds[0] ? purchasedRewardHref(rewardIds[0], slug) : "/account/entries?filter=completed";
+  return { status: "succeeded", purchasedCount: data.purchasedCount, declinedCount: data.declinedCount, totalCents: data.totalCents, href, cardReady: rewardIds.length > 0, rewardIds };
 }
 
 export async function checkDemoPurchaseReceipt(requestId: string, slug: string): Promise<BulkPurchaseResult | { status: "not_found" }> {

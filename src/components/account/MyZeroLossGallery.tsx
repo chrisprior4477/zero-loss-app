@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { activityHref, isPurchasedReward, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
+import { activityHref, isPurchasedReward, purchasedRewardHref, type ActivityFilter, type ActivityItem } from "@/lib/account/activity";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { AccountIcon } from "./AccountIcon";
 import styles from "./my-activity.module.css";
@@ -49,7 +49,7 @@ function action(item: ActivityItem) {
   return { active: "See My Entry", completion: "Continue with Purchase", completed: "View details" }[item.status];
 }
 
-export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId }: { ownerId?: string; items: ActivityItem[]; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string }) {
+export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metricsBySlug, canClearDemoEntries = false, viewedEntryId, checkout }: { ownerId?: string; items: ActivityItem[]; purchaseStamps?: Record<string, PurchaseStamp>; filter: ActivityFilter; metricsBySlug: Record<string, ActivityOfferMetrics>; canClearDemoEntries?: boolean; viewedEntryId?: string; checkout?: { receipt: string; rewardIds: string[] } }) {
   const groups = groupGalleryEntries(items);
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, pointerId: -1, startScrollLeft: 0, startX: 0 });
@@ -261,8 +261,10 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
         const purchaseOption = item.status === "completion" && group.entries.every(entry => entry.entryId);
         const activityCardHref = activityHref(item, "/account/entries", filter);
         const completedPurchase = filter === "completed" && purchasedReward && item.rewardId && item.entryId;
+        const checkoutCardHref = completedPurchase && item.rewardId && checkout?.rewardIds.includes(item.rewardId)
+          ? purchasedRewardHref(item.rewardId, item.slug, checkout.receipt) : undefined;
         const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}`
-          : completedPurchase ? `${activityCardHref}&via=completed`
+          : completedPurchase ? checkoutCardHref ?? `${activityCardHref}&via=completed`
           : item.status === "prize" && !purchasedReward && item.rewardId && item.entryId && (filter === "prize" || filter === "completed" || filter === "all")
             ? `${activityCardHref}&via=${filter === "all" ? "activity-win" : filter === "completed" ? "completed-win" : "won"}` : activityCardHref;
         const featured = item.status === "prize" && index === 0;

@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import PurchaseOptionsPage from "./page";
 
 const { getAccountContext, checkPurchase } = vi.hoisted(() => ({ getAccountContext: vi.fn(), checkPurchase: vi.fn() }));
@@ -94,13 +94,26 @@ test("saved decline links render the modern checkout with the compact confirmati
 
 test("refreshing an exact receipt after the final offer sells shows the authoritative amount and gift card", async () => {
   const receipt = "33333333-3333-4333-8333-333333333333";
-  getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [paid] } });
+  const card = { ...paid, rewardKind: "digital", rewardStatus: "ready" };
+  getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [card] } });
   const href = "/account/wallet?reward=publix&rewardId=reward-1&via=purchase#reward-pass";
-  checkPurchase.mockResolvedValueOnce({ status: "succeeded", totalCents: 9900, cardReady: true, href });
+  checkPurchase.mockResolvedValueOnce({ status: "succeeded", purchasedCount: 1, totalCents: 9900, rewardIds: [card.rewardId], href });
   const view = render(await PurchaseOptionsPage({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ receipt, option: paid.entryId }) }));
   expect(screen.getByRole("heading", { name: "Purchase receipt" })).toBeTruthy();
-  expect(screen.getByText("$99")).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Open gift card" }).getAttribute("href")).toBe(href);
+  expect(screen.getByText(/\$99 paid/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Open gift card" }).getAttribute("href")).toBe(href.replace("#", `&receipt=${receipt}#`));
   expect(checkPurchase).toHaveBeenCalledWith(receipt, slug);
+  view.unmount();
+});
+
+test("a multi-card receipt lists only cards from this checkout in receipt order", async () => {
+  const receipt = "33333333-3333-4333-8333-333333333333";
+  const card = { ...paid, rewardKind: "digital", rewardStatus: "ready", image: "/test.png", priceCents: 10000 };
+  getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [{ ...card, rewardId: "older" }, card, { ...card, rewardId: "reward-2" }] } });
+  checkPurchase.mockResolvedValueOnce({ status: "succeeded", purchasedCount: 2, totalCents: 19800, rewardIds: ["reward-2", "reward-1"] });
+  const view = render(await PurchaseOptionsPage({ params: Promise.resolve({ slug }), searchParams: Promise.resolve({ receipt }) }));
+  expect(screen.getByText("Your 2 gift cards are ready")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "View 2 gift cards" }));
+  expect(screen.getAllByRole("link", { name: /Open card/ }).map(link => new URL(link.getAttribute("href")!, "https://example.test").searchParams.get("rewardId"))).toEqual(["reward-2", "reward-1"]);
   view.unmount();
 });

@@ -68,12 +68,33 @@ export function walletRewardHref(item: Pick<ActivityItem, "slug" | "rewardId">):
   return `/account/wallet?${params}`;
 }
 /** Only a purchase arrival carries the shortcut back to other offers for this prize. */
-export function purchasedRewardHref(rewardId: string, slug?: string): string {
+export function purchasedRewardHref(rewardId: string, slug?: string, receipt?: string): string {
   const params = new URLSearchParams();
   if (slug) params.set("reward", slug);
   params.set("rewardId", rewardId);
   params.set("via", "purchase");
+  if (receipt && slug) params.set("receipt", receipt);
   return `/account/wallet?${params}#reward-pass`;
+}
+
+export function purchaseReceiptHref(slug: string, receipt: string) {
+  return `/account/purchase-options/${encodeURIComponent(slug)}?${new URLSearchParams({ receipt })}`;
+}
+
+export function checkoutRewardsHref(slug: string, receipt: string, rewardId?: string) {
+  const params = new URLSearchParams({ checkout: slug, receipt });
+  if (rewardId) params.set("card", rewardId);
+  return `/account/wallet?${params}#checkout-gift-cards`;
+}
+
+export function completedActivityHref(entryId?: string | null, checkout?: { slug: string; receipt: string }) {
+  const params = new URLSearchParams({ filter: "completed" });
+  if (entryId) params.set("viewed", entryId);
+  if (checkout) {
+    params.set("checkout", checkout.slug);
+    params.set("receipt", checkout.receipt);
+  }
+  return `/account/entries?${params}#${openEntriesAnchorId}`;
 }
 export function openPrizeOptions(items: ActivityItem[], slug: string): ActivityItem[] {
   return items.filter(item => item.slug === slug && item.status === "completion" && item.entryId

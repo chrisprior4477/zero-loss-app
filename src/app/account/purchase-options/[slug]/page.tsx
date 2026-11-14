@@ -13,6 +13,7 @@ import styles from "@/components/account/purchase-options.module.css";
 import { PurchaseCheckout } from "@/components/account/PurchaseCheckout";
 import { CompletedPurchaseReceipt } from "@/components/account/CompletedPurchaseReceipt";
 import { checkDemoPurchaseReceipt } from "@/lib/account/bulk-purchase-actions";
+import { checkoutCards } from "@/lib/account/checkout-cards";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,7 +40,8 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
     const result = await checkDemoPurchaseReceipt(receipt, slug);
     if (result.status === "succeeded") {
       const title = account.activity.activity.find(item => item.slug === slug)?.title ?? "Your purchase";
-      return <CompletedPurchaseReceipt title={title} totalCents={result.totalCents} cardReady={result.cardReady} href={result.href} />;
+      return <CompletedPurchaseReceipt title={title} totalCents={result.totalCents} count={result.purchasedCount}
+        cards={checkoutCards(account.activity, slug, result.rewardIds ?? [])} slug={slug} receipt={receipt} fallbackHref={result.href} />;
     }
     return <main className={styles.page}><section className={styles.shell} aria-labelledby="purchase-receipt-check">
       <h1 id="purchase-receipt-check">Check this purchase</h1>

@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { activityHref, isWalletReward, openPrizeOptions, readyWalletRewards, walletHistoryHref, walletRewardHref, walletRewards, type AccountActivity, type ActivityItem } from "@/lib/account/activity";
+import { activityHref, checkoutRewardsHref, completedActivityHref, isWalletReward, openPrizeOptions, purchasedRewardHref, readyWalletRewards, walletHistoryHref, walletRewardHref, walletRewards, type AccountActivity, type ActivityItem } from "@/lib/account/activity";
+import type { CheckoutCard } from "@/lib/account/checkout-cards";
+import checkoutStyles from "@/components/account/checkout-gift-cards.module.css";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { StatusTicket } from "@/components/account/StatusTicket";
 import stripStyles from "@/components/account/account-status-strip.module.css";
@@ -181,8 +183,10 @@ function sampleRewardNumber(slug: string) {
   return { raw: digits, display: digits.match(/.{1,4}/g)?.join(" ") ?? digits };
 }
 
+type CheckoutContext = { receipt: string; cards: CheckoutCard[]; current: CheckoutCard; count: number };
+
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView, returnTile = false, returnHistory = false, returnLink, fulfillmentReturn, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; fulfillmentReturn?: string; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
+export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView, returnTile = false, returnHistory = false, returnLink, fulfillmentReturn, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York", checkoutContext }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; fulfillmentReturn?: string; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[]; checkoutContext?: CheckoutContext }) {
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -224,7 +228,8 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
   if (item.rewardId && accountOverview && readyWalletRewards(accountOverview.activity).some(other => other.rewardId && other.rewardId !== item.rewardId && rewardGroup(other) === rewardGroup(item))) {
     detailRows.push(["Card reference", cardReference(item.rewardId)]);
   }
-  const walletReturnHref = returnTile && item.rewardId && available
+  const walletReturnHref = checkoutContext ? checkoutRewardsHref(item.slug, checkoutContext.receipt, checkoutContext.current.id)
+    : returnTile && item.rewardId && available
     ? `/account/wallet?${returnView === "ready" ? "rewards=ready&" : ""}card=${encodeURIComponent(item.rewardId)}`
     : returnHistory ? `/account/wallet?${returnView && returnView !== "all" ? `rewards=${returnView}&` : ""}rewardHistory=1${item.rewardId ? `&card=${encodeURIComponent(item.rewardId)}#wallet-reward-${encodeURIComponent(item.rewardId)}` : "#reward-history"}`
       : returnView ? `/account/wallet?rewards=${returnView}#${item.rewardId ? `wallet-reward-${item.rewardId}` : "reward-history"}` : "/account/wallet";
@@ -266,6 +271,15 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
                 <p className={styles.rewardIntro}>{rewardReady ? readyMessage : `Your digital reward ${unclaimedDemoPreview ? "is shown in this sample preview. Claim it to open your saved reward." : canClaim ? "is ready to claim." : "is shown below."}`}</p>
                 <ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100, ...(rewardReady && isWin && item.rewardId ? { win: { rewardId: item.rewardId, demo: isPreview } } : {}) }} label={rewardReady && isWin ? "Share your win" : "Share"} className={styles.rewardShare} />
               </div>
+              {checkoutContext ? <div className={checkoutStyles.identity}>
+                <p><strong>Card {checkoutContext.current.number} of {checkoutContext.count}</strong>
+                  <span>Ref. {cardReference(checkoutContext.current.id)}</span></p>
+                {checkoutContext.cards.length > 1 ? <nav aria-label="Switch gift cards" className={checkoutStyles.picker}>
+                  {checkoutContext.cards.map(({ id, number }) =>
+                    id === checkoutContext.current.id ? <span key={id} aria-current="page" aria-label={`Card ${number}, current card`}>{number}</span>
+                      : <Link key={id} href={purchasedRewardHref(id, item.slug, checkoutContext.receipt)} prefetch={false} aria-label={`Show card ${number}`}>{number}</Link>)}
+                </nav> : null}
+              </div> : null}
               {rewardReady || previewCode ? <div id="reward-barcode" className={styles.codePanel}>
                 {previewCode ? <p className={styles.previewCodeNotice}>Demo preview · Not claimed</p> : null}
                 {/^[0-9]+$/.test((visibleCode ?? "").replaceAll(/\s/g, "")) ? <SampleRewardBarcode value={visibleCode!.replaceAll(/\s/g, "")} /> : null}
@@ -276,6 +290,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
               </div></div> : null}
               {canClaim ? <RewardClaimControl rewardId={item.rewardId!} previewShown={unclaimedDemoPreview} /> : (
                 <RewardRedemptionActions displayCode={rewardReady ? displayCode : null} isPreview={isPreview}
+                  afterShopping={checkoutContext ? <Link className={`${checkoutStyles.secondary} ${checkoutStyles.returnButton}`} href={completedActivityHref(item.entryId, { slug: item.slug, receipt: checkoutContext.receipt })}>← Back to My Activity</Link> : undefined}
                   remainingOffers={rewardReady && remainingCount > 0 ? { count: remainingCount, retailer: item.retailer, slug: item.slug } : undefined} />
               )}
               {isPreview && available && repeatableDemoOutcome && item.rewardId && (item.status === "prize" || item.status === "completed") ? <DemoRewardRestartControl rewardId={item.rewardId} /> : null}

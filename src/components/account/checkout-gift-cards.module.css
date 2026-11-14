@@ -1,0 +1,39 @@
+.title { margin: 0 0 12px; color: #fff; font-size: clamp(26px, 5vw, 38px); font-weight: 900; }
+.heading { font-size: 20px; font-weight: 900; }
+.toast { position: relative; margin-bottom: 14px; padding: 14px; border: 1px solid #7be1a6; border-radius: 12px; background: #f0fff3; color: #103b28; box-shadow: 0 7px 18px #00152c55; }
+.toast [role="status"] { padding-right: 44px; margin-bottom: 12px; }
+.toast strong { font-size: clamp(17px, 3vw, 22px); line-height: 1.2; }
+.toast p { margin-top: 4px; font-size: 13px; }
+.dismiss { position: absolute; inset: 7px 7px auto auto; width: 44px; height: 44px; border-radius: 50%; background: #ddf5e7; font-size: 24px; cursor: pointer; }
+.actions, .cards { display: grid; gap: 8px; }
+.cards { margin: 10px 0; padding: 0; list-style: none; }
+.card {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 8px;
+  padding: 12px 16px; color: #10234a; background: #e6f4fd;
+  mask-image: radial-gradient(circle at top left, transparent 10px, #000 11px),
+    radial-gradient(circle at top right, transparent 10px, #000 11px),
+    radial-gradient(circle at bottom left, transparent 10px, #000 11px),
+    radial-gradient(circle at bottom right, transparent 10px, #000 11px),
+    radial-gradient(circle at left center, transparent 7px, #000 8px),
+    radial-gradient(circle at right center, transparent 7px, #000 8px);
+  mask-composite: intersect;
+}
+.card[data-focused="true"] { background: #d9f5e5; }
+.card img { object-fit: contain; }
+.card strong { font-size: 14px; }
+.card p { margin: 2px 0 0; font-size: 12px; overflow-wrap: anywhere; }
+.lastViewed { color: #145d3a; font-weight: 800; }
+.secondary { display: flex; align-items: center; justify-content: center; min-height: 44px; min-width: 0; padding: 8px 10px; border-radius: 8px; background: #bcecff; color: #12385b; font-size: 14px; font-weight: 850; text-align: center; }
+.card .secondary { font-size: 12px; background: #fff; }
+.returnButton { margin-top: 8px; width: 100%; }
+.identity { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 10px; margin-top: 10px; color: #18435f; font-size: 13px; }
+.identity p { display: grid; gap: 2px; }
+.identity strong { color: #10234a; font-size: 15px; }
+.picker { display: flex; gap: 4px; max-width: 100%; overflow-x: auto; padding: 3px; }
+.picker > * { display: grid; flex: 0 0 auto; place-items: center; min-width: 44px; height: 44px; padding-inline: 6px; border-radius: 8px; background: #d8eeff; color: #10234a; font-size: 16px; font-weight: 850; }
+.picker [aria-current="page"] { background: #104579; color: #fff; }
+.picker a:focus-visible, .secondary:focus-visible, .dismiss:focus-visible { outline: 2px solid #087bff; outline-offset: 2px; }
+@media (max-width: 360px) {
+  .card { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 6px; padding-inline: 12px; }
+  .card .secondary { padding-inline: 5px; }
+}
