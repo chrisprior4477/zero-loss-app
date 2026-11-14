@@ -320,6 +320,33 @@ test("unknown or outstanding requests block a new form submission", () => {
   render(<DemoFundingForm requestKey="stable_demo_request_001" blocked />);
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
 });
+test("Add funds recovers the exact older deposit before showing the credited toast", async () => {
+  const request = { id: "older-session", amount: 7300, currency: "USD" as const, status: "succeeded" as const, created_at: "2026-11-10T12:00:00Z", idempotencyKey: "older_deposit_request_01", reconciliation: "credit_pending" as const };
+  const requests = [
+    ...Array.from({ length: 7 }, (_, index) => ({ ...request, id: `new-${index}`, idempotencyKey: `new_deposit_request_${index}`, amount: 2500, reconciliation: "reconciled" as const })),
+    request,
+  ];
+  vi.mocked(checkDemoDeposit).mockResolvedValueOnce({ status: "credit_pending", sessionId: request.id })
+    .mockResolvedValueOnce({ status: "credited", amount: request.amount, balanceCents: 9000 });
+  vi.mocked(reconcileDemoFunding).mockResolvedValueOnce({ status: "succeeded", message: "Credited" });
+  render(<DemoFundingForm walletId="wallet-a" requestKey="stable_demo_request_001" requests={requests} />);
+
+  expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Check this deposit · $73" }));
+  expect(screen.getByRole("heading", { name: "Check your $73 deposit" })).toBeTruthy();
+  expect(checkDemoDeposit).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
+  expect(checkDemoDeposit).toHaveBeenCalledWith(request.idempotencyKey, request.amount, "wallet-a");
+  expect(screen.queryByLabelText("Deposit confirmation")).toBeNull();
+  fireEvent.click(await screen.findByRole("button", { name: "Finish this deposit" }));
+
+  expect((await screen.findByLabelText("Deposit confirmation")).textContent).toContain("$73 credited to your wallet");
+  expect(vi.mocked(reconcileDemoFunding).mock.calls[0]?.[1].get("sessionId")).toBe(request.id);
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss deposit confirmation" }));
+  expect(screen.queryByLabelText("Deposit confirmation")).toBeNull();
+  expect(screen.getByText("Balance after this deposit: $90")).toBeTruthy();
+});
 test("failed request list is unavailable, not empty", () => {
   render(<DemoFundingRequests requests={null} fundingEnabled />);
   expect(screen.getByRole("alert").textContent).toContain("unavailable");

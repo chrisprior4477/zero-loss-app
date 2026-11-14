@@ -16,10 +16,11 @@ const messages = {
   credit_pending: "Your payment was received. Finish this deposit to post the credit to your wallet.",
 };
 
-export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, onCredit, onReview }: {
-  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending"; embedded?: boolean;
-  onCredit: (amount: number, balance: number) => void; onReview?: () => void;
+export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, onCredit, onReview, onBack }: {
+  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending" | "discrepancy"; embedded?: boolean;
+  onCredit: (amount: number, balance: number) => void; onReview?: () => void; onBack?: () => void;
 }) {
+  const sectionId = onBack ? "funding-deposit-recovery" : "add-funds";
   const title = useRef<HTMLHeadingElement>(null);
   const actionButton = useRef<HTMLButtonElement>(null);
   const supportLink = useRef<HTMLAnchorElement>(null);
@@ -39,8 +40,8 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
   useEffect(() => {
     if (embedded) return;
     title.current?.focus({ preventScroll: true });
-    revealWalletSection("add-funds");
-  }, [embedded]);
+    revealWalletSection(sectionId);
+  }, [embedded, sectionId]);
   useEffect(() => {
     if (!pending && result && result.status !== "credited") {
       const next = result.status === "discrepancy" ? supportLink.current : actionButton.current;
@@ -61,9 +62,10 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
         : result && "sessionId" in result ? <button ref={actionButton} className={styles.confirm} name="intent" value="finish">Finish this deposit</button>
         : <button ref={actionButton} className={styles.primary} name="intent" value="check">Check this deposit</button>}
     </form>
+    {onBack && <button type="button" className={styles.secondary} onClick={onBack} disabled={pending}>Back to Add funds</button>}
   </DepositReceipt>;
   if (embedded) return card;
-  return <section id="add-funds" className={styles.editor} aria-labelledby="deposit-recovery-heading">
+  return <section id={sectionId} className={styles.editor} aria-labelledby="deposit-recovery-heading">
     <h3 ref={title} tabIndex={-1} id="deposit-recovery-heading">Check your {formatUsdFromCents(amount)} deposit</h3>
     {card}
   </section>;

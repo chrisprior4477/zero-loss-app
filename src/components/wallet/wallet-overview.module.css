@@ -250,6 +250,10 @@
 .fundingSubmitAdd { background: #31e800; color: #002719; }
 .fundingSubmit:hover:not(:disabled) { filter: brightness(1.07); }
 .fundingSubmit:disabled { cursor: not-allowed; opacity: .5; }
+.blockingDeposit { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 12px 14px; border: 1px solid #ebad72; border-radius: 9px; background: #fff2df; color: #482c12; }
+.blockingDeposit strong { margin-right: 8px; }
+.blockingDeposit :is(time, p) { font-size: 13px; }
+.blockingDeposit :is(a, button) { min-height: 44px; }
 .fundingForm .confirmationTicket {
   --corner-scoop: 20px;
   --side-scoop: 14px;

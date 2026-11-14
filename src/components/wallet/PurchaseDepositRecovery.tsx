@@ -11,6 +11,7 @@ import { depositSupportHref } from "@/lib/support/references";
 import { formatUsdFromCents as usd } from "@/lib/wallet/money";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { DepositRecovery } from "./DepositRecovery";
+import { DepositCreditedToast } from "./DepositCreditedToast";
 import { ContinueAfterDeposit, DepositReceipt } from "./DepositReceipt";
 import { DepositCreditLink, DepositReceiptDate } from "./WeeklyDeposits";
 import styles from "./wallet-overview.module.css";
@@ -31,6 +32,7 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
     ? { amount: request.amount, balance: wallet.balanceCents } : verified;
   return <section id="purchase-deposit" className={`${styles.ticketPanel} ${styles.purchaseDeposit}`} aria-labelledby="purchase-deposit-heading">
     <AccountSettingsLandingScroll target="purchase-deposit" allScreens settleAfterNavigation />
+    {verified && <DepositCreditedToast amount={verified.amount} />}
     <div className={paymentStyles.editor}>
       <h2 id="purchase-deposit-heading">{isPurchase ? "Your purchase deposit" : "Your deposit"}</h2>
       {continueTo && <p>{continueTo.title}</p>}

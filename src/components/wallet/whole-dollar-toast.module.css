@@ -19,6 +19,7 @@
 }
 .toast h2 { margin: 0; padding-right: 42px; font-size: 19px; font-weight: 850; line-height: 1.25; }
 .toast p { margin: 12px 0 16px; font-size: 14px; line-height: 1.45; }
+.credited { background: #d5f7e3; color: #103d2b; padding-right: 66px; }
 .close { position: absolute; top: 18px; right: 18px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #08264b; color: white; font-size: 26px; line-height: 1; cursor: pointer; }
 .save { width: 100%; min-height: 40px; padding: 8px 12px; border-radius: 8px; background: #31e800; color: #002719; font-size: 14px; font-weight: 800; cursor: pointer; }
 .toast button:focus-visible { outline: 3px solid #0872fb; outline-offset: 3px; }

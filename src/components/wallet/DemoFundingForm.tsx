@@ -32,6 +32,7 @@ import paymentStyles from "./wallet-payments.module.css";
 import { formatOfferDeadline } from "@/lib/account/timezone";
 import { fundedProductEntryHref } from "@/lib/entries/return-intent";
 import { depositRecoveryHref, type FundingContinuation } from "@/lib/wallet/funding-navigation";
+import { DepositCreditedToast } from "./DepositCreditedToast";
 
 type ContinueDestination = FundingContinuation;
 const noRequests: DemoFundingRequest[] = [];
@@ -45,7 +46,7 @@ type DepositAttempt = {
   createdAt?: string; destination?: string; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; awaitingReceipt?: boolean; reviewOnMount?: boolean;
 };
 
-function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, onNew, onSuccess, onStart, onInterrupted, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, displayName }: { requestKey: string; walletId: string; ready: boolean; reviewOnMount?: boolean; blocked: boolean; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; onInterrupted: (attempt: DepositAttempt) => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination; displayName?: string }) {
+function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, blockingRequests, onRecover, onNew, onSuccess, onStart, onInterrupted, storageKey, initialAmount = "2500", recovered = false, savedCard = null, savedCards, initialDefault, initialToken, recoveryOnly = false, cardUnavailable = false, continueTo, displayName, timeZone }: { requestKey: string; walletId: string; ready: boolean; reviewOnMount?: boolean; blocked: boolean; blockingRequests: DemoFundingRequest[] | null; onRecover: (request: DemoFundingRequest) => void; onNew: () => void; onSuccess: (message: string) => void; onStart: () => void; onInterrupted: (attempt: DepositAttempt) => void; storageKey: string; initialAmount?: string; recovered?: boolean; savedCard?: DemoCard | null; savedCards?: DemoCard[]; initialDefault?: boolean; initialToken?: DemoCardToken; recoveryOnly?: boolean; cardUnavailable?: boolean; continueTo?: ContinueDestination; displayName?: string; timeZone?: string }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof completeDemoFunding>>, form: FormData) => {
     let result: Awaited<ReturnType<typeof completeDemoFunding>>;
@@ -402,7 +403,16 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
       <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. This simulated deposit requires your signed-in account and the confirmation above.</p>
     </dialog> : null}
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
-    {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked ? <p className="text-xs leading-5 text-amber-100">Finish / check your existing request below before adding more.</p> : null}
+    {state.status !== "idle" ? <p role="status" className="text-sm leading-6 text-amber-100">{state.message}</p> : blocked && ready && (
+      blockingRequests?.length ? blockingRequests.map(request => <div key={request.id} className={styles.blockingDeposit}>
+        <div><strong>{formatUsdFromCents(request.amount)} deposit needs attention</strong>
+          <DepositReceiptDate request={request} timeZone={timeZone} />
+          <p>{request.reconciliation === "discrepancy" ? "Payment and wallet records need review" : request.reconciliation === "credit_pending" ? "Payment received · credit pending" : "Request saved · not processed"}</p>
+        </div>
+        {request.reconciliation === "discrepancy" ? <Link href={depositSupportHref(request.idempotencyKey)} className={paymentStyles.primary}>Contact Support</Link>
+          : <button type="button" className={paymentStyles.primary} onClick={() => onRecover(request)} aria-label={`Check this deposit · ${formatUsdFromCents(request.amount)}`}>Check this deposit</button>}
+      </div>) : <p role="status" className={styles.blockingDeposit}>We couldn’t verify your deposits. Refresh to check again before adding funds.</p>
+    )}
     <p className="text-xs font-bold leading-5 text-[#b5cce4]">Simulation only — no payment will be processed.</p>
     {!recoveryOnly && desktop && <div className={styles.desktopCards}>
       <div className={styles.savedHeading}><strong>Saved cards</strong><button type="button" className={styles.manageCards} aria-expanded={manageCards} aria-controls="add-card" onClick={() => setManageCards(value => !value)}>{manageCards ? "Close saved cards" : "Manage saved cards"}</button></div>
@@ -419,6 +429,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   const [successMessage, setSuccessMessage] = useState("");
   const [receiptBalance, setReceiptBalance] = useState<string>();
   const [recoveredCredit, setRecoveredCredit] = useState<{ key: string; amount: number; date?: string; destination?: string }>();
+  const [selectedDeposit, setSelectedDeposit] = useState<DemoFundingRequest>();
   const activeWallet = useRef("");
   const startingAmount = continueTo?.depositCents && isFundingAmount(continueTo.depositCents) && continueTo.depositCents % 100 === 0 ? String(continueTo.depositCents) : "2500";
   const [attempt, setAttempt] = useState<DepositAttempt>({ key: requestKey, amount: startingAmount, recovered: false, canRetry: false, ready: false });
@@ -427,6 +438,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     activeWallet.current = "";
     setReceiptBalance(balance);
     setRecoveredCredit(credit);
+    setSelectedDeposit(undefined);
     try { sessionStorage.removeItem(storageKey); } catch { /* Server history still identifies completed requests. */ }
     setSuccessMessage(message);
     newAttempt();
@@ -487,6 +499,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
     : attemptedAt ? <time dateTime={attemptedAt}>{formatOfferDeadline(attemptedAt, timeZone)}</time> : undefined;
   const recoveryDestination = continueTo?.href === (recoveredCredit?.destination ?? attempt.destination) ? continueTo : undefined;
   if (successMessage && recoveredCredit) return <section id="funding-success" aria-label="Deposit complete" className={paymentStyles.editor}>
+    <DepositCreditedToast amount={recoveredCredit.amount} />
     <DepositReceipt amount={recoveredCredit.amount} date={recoveryDate} tone="ready" status={successMessage}>
       {receiptBalance && <p><strong>Balance after this deposit: {receiptBalance}</strong></p>}
       {recoveryDestination ? <ContinueAfterDeposit destination={recoveryDestination} /> : <a href="#balance" className={paymentStyles.confirm}>Back to wallet</a>}
@@ -511,14 +524,23 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
       <button type="button" className={paymentStyles.secondary} onClick={() => { setSuccessMessage(""); revealWalletSection("add-funds"); }}>Add more funds</button>
     </div>
   </section>;
+  if (selectedDeposit) {
+    const request = requests?.find(item => item.idempotencyKey === selectedDeposit.idempotencyKey) ?? selectedDeposit;
+    return <DepositRecovery key={request.id} requestKey={request.idempotencyKey} walletId={walletId} amount={request.amount}
+      date={<DepositReceiptDate request={request} timeZone={timeZone} />} initialStatus={request.reconciliation === "reconciled" ? undefined : request.reconciliation}
+      onBack={() => { setSelectedDeposit(undefined); revealWalletSection("funding-payment"); }}
+      onCredit={(amount, balance) => onSuccess("Deposit credited to your wallet.", formatUsdFromCents(balance), { key: request.idempotencyKey, amount, destination: continueTo?.href })} />;
+  }
   if (attempt.awaitingReceipt) return <DepositRecovery requestKey={attempt.key} walletId={walletId} amount={Number(attempt.amount)}
     date={recoveryDate} initialStatus={recoveryRequest?.reconciliation === "credit_pending" || recoveryRequest?.reconciliation === "not_processed" ? recoveryRequest.reconciliation : undefined}
     onCredit={(credited, balance) => onSuccess(`Your ${formatUsdFromCents(credited)} demo deposit was credited to your wallet.`, formatUsdFromCents(balance), { key: attempt.key, amount: credited, date: attempt.createdAt, destination: attempt.destination })}
     onReview={() => setAttempt(current => ({ ...current, awaitingReceipt: false, reviewOnMount: true }))} />;
+  const blockingRequests = requests?.filter(request => request.reconciliation !== "reconciled") ?? null;
   return <>
     <FundingAttempt key={`${attempt.key}:${attempt.ready}`} requestKey={attempt.key} walletId={walletId} ready={attempt.ready} reviewOnMount={attempt.reviewOnMount} initialAmount={attempt.amount} recovered={attempt.recovered} storageKey={storageKey}
     displayName={displayName} savedCard={savedCard} savedCards={savedCards} initialDefault={attempt.initialDefault} initialToken={attempt.initialToken} recoveryOnly={attempt.recoveryOnly || (attempt.recovered && Number(attempt.amount) % 100 !== 0)} cardUnavailable={cardUnavailable}
-    blocked={!attempt.ready || ((blocked || requests === null || requests.some(request => request.reconciliation !== "reconciled")) && !attempt.canRetry)}
+    blocked={!attempt.ready || ((blocked || blockingRequests === null || blockingRequests.length > 0) && !attempt.canRetry)}
+    blockingRequests={blockingRequests} onRecover={setSelectedDeposit} timeZone={timeZone}
     continueTo={attempt.recovered && attempt.destination && attempt.destination !== continueTo?.href ? undefined : continueTo}
     onInterrupted={interruptDeposit} onNew={newAttempt} onSuccess={onSuccess} onStart={() => { activeWallet.current = storageKey; setSuccessMessage(""); }} />
   </>;
