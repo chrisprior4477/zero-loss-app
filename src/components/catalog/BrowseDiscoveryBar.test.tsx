@@ -65,7 +65,7 @@ test("category and retailer views reuse the search typed in the picker", () => {
   fireEvent.click(picker.getByRole("button", { name: "Retailers" }));
   expect(input.value).toBe("AutoZone");
   expect(picker.getByRole("button", { name: /AutoZone.*View current offers/ })).toBeTruthy();
-  fireEvent.click(picker.getByRole("button", { name: "Categories", exact: true }));
+  fireEvent.click(picker.getByRole("button", { name: "Categories" }));
   expect(input.value).toBe("AutoZone");
 });
 
