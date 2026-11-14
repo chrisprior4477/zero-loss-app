@@ -56,6 +56,28 @@ test("View all returns to the full prize category after selecting a retailer", (
     .toBe("/browse?category=electronics&maxValue=100#search-results");
 });
 
+test("category and retailer views reuse the search typed in the picker", () => {
+  render(<BrowseDiscoveryBar {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Gas" }));
+  const picker = within(screen.getByRole("dialog"));
+  const input = picker.getByRole("searchbox") as HTMLInputElement;
+  fireEvent.change(input, { target: { value: "AutoZone" } });
+  fireEvent.click(picker.getByRole("button", { name: "Retailers" }));
+  expect(input.value).toBe("AutoZone");
+  expect(picker.getByRole("button", { name: /AutoZone.*View current offers/ })).toBeTruthy();
+  fireEvent.click(picker.getByRole("button", { name: "Categories", exact: true }));
+  expect(input.value).toBe("AutoZone");
+});
+
+test("removing the retailer category preserves the prize category, query and other filters", () => {
+  render(<BrowseDiscoveryBar {...props} selectedCategory="electronics" searchTerm="sony"
+    selectedRetailerGroup={{ id: "digital-and-gaming", category: "Digital & Gaming", options: [] }}
+    browseHref="/browse?category=electronics&q=sony&partnerCategory=digital-and-gaming&maxValue=100&batch=2"
+    filters={{ ...props.filters, maxValue: 100 }} />);
+  expect(screen.getByRole("link", { name: "Remove Digital & Gaming" }).getAttribute("href"))
+    .toBe("/browse?category=electronics&q=sony&maxValue=100#search-results");
+});
+
 test.each(["value-high", "fewest-left", "price-low"] as const)("changing departments keeps the selected %s sorting and budget", sort => {
   render(<BrowseDiscoveryBar {...props} selectedCategory="beauty" selectedRetailerGroup={null}
     filters={{ ...props.filters, sort, maxValue: 100 }} />);

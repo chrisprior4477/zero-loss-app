@@ -49,6 +49,9 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const withoutRetailer = new URL(props.browseHref, "https://zeroloss.local");
   withoutRetailer.searchParams.delete("retailer");
   if (props.selectedCategory) withoutRetailer.searchParams.delete("partnerCategory");
+  const withoutRetailerGroup = new URL(props.browseHref, "https://zeroloss.local");
+  withoutRetailerGroup.searchParams.delete("partnerCategory");
+  withoutRetailerGroup.searchParams.delete("batch");
   const withoutBudget = new URL(props.browseHref, "https://zeroloss.local");
   withoutBudget.searchParams.delete("minValue");
   withoutBudget.searchParams.delete("maxValue");
@@ -162,13 +165,14 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
       <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.searchTerm ? `Results for “${props.searchTerm}”${scope ? ` in ${scope}` : ""}` : props.selectedRetailerGroup?.category ?? (props.subcategory || "Filtered results")}</span>
       {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
+      {!props.filters.retailer && props.selectedRetailerGroup ? <Link href={`${withoutRetailerGroup.pathname}${withoutRetailerGroup.search}#search-results`}>Remove {props.selectedRetailerGroup.category}</Link> : null}
       {activeCount > 0 || props.filters.retailer || props.subcategory ? <Link href={`${props.clearHref}#search-results`}>Clear filters</Link> : null}
     </div> : null}
     {panel ? <dialog ref={dialog} className={`${styles.dialog} ${popupStyles.dialog}`} aria-labelledby={`${id}-title`} onCancel={close} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) close(); }}>
       <div className={styles.sheet}>
         <header className={styles.sheetHeader}><div><h2 id={`${id}-title`}>{panel === "categories" ? "Find your category" : "Filter & sort"}</h2><p>{panel === "categories" ? "Scroll or search, then tap to see the products." : "Choose what you’d like to see."}</p></div><button type="button" aria-label="Close browse options" onClick={close}>×</button></header>
         {panel === "categories" ? <>
-          <div className={styles.pickerModes} role="group" aria-label="Browse by"><button type="button" aria-pressed={mode === "categories"} onClick={() => { setMode("categories"); setQuery(""); }}>Categories</button><button type="button" aria-pressed={mode === "retailers"} onClick={() => { setMode("retailers"); setQuery(""); }}>Retailers</button></div>
+          <div className={styles.pickerModes} role="group" aria-label="Browse by"><button type="button" aria-pressed={mode === "categories"} onClick={() => setMode("categories")}>Categories</button><button type="button" aria-pressed={mode === "retailers"} onClick={() => setMode("retailers")}>Retailers</button></div>
           <label className={styles.pickerSearch}><span className={styles.srOnly}>Find a category or retailer</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Automotive, groceries, a brand…" /></label>
           <div ref={categoryList} className={styles.wheel} role="region" aria-label={mode === "categories" ? "Scrollable categories" : "Scrollable retailers"} tabIndex={0}>
             <button type="button" className={styles.choice} aria-current={!props.selectedCategory && !props.selectedRetailerGroup && !props.filters.retailer ? "true" : undefined} onClick={() => choosePrizeCategory("")}>All categories<span aria-hidden="true">→</span></button>
