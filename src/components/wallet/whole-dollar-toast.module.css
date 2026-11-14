@@ -24,3 +24,23 @@
 .save { width: 100%; min-height: 40px; padding: 8px 12px; border-radius: 8px; background: #31e800; color: #002719; font-size: 14px; font-weight: 800; cursor: pointer; }
 .toast button:focus-visible { outline: 3px solid #0872fb; outline-offset: 3px; }
 @media (max-width: 380px) { .toast { padding: 22px; } .toast h2 { font-size: 17px; } }
+
+.warning {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(420px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: auto;
+  overscroll-behavior: contain;
+  box-shadow: none;
+  filter: drop-shadow(0 12px 26px #00112c66);
+}
+.warning::backdrop { background: #09294b66; backdrop-filter: blur(3px); }
+.warning .toast { position: relative; inset: auto; width: 100%; filter: none; }
+.warning .close { width: 44px; height: 44px; }
+.warning .save { min-height: 44px; }

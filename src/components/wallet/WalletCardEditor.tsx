@@ -17,9 +17,9 @@ export function openWalletPanel(hash: string, state: object | null = null, repla
   window.dispatchEvent(new HashChangeEvent("hashchange"));
 }
 
-export function revealWalletSection(id: string, mobileId?: string) {
+export function revealWalletSection(id: string, mobileId = id === "add-funds" ? "funding-amount" : id) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const target = document.getElementById(mobileId && window.innerWidth <= 767 ? mobileId : id);
+    const target = (window.innerWidth <= 767 ? document.getElementById(mobileId) : null) ?? document.getElementById(id);
     if (!target) return;
     const header = document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
     window.scrollTo({ top: Math.max(0, window.scrollY + target.getBoundingClientRect().top - header - 12), behavior: "auto" });

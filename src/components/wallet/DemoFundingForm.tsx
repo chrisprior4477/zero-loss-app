@@ -77,7 +77,6 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, b
       try { localStorage.setItem(noticeKey, "understood"); } catch { /* Keep the acknowledgement for this visit. */ }
     }
     setShowWholeDollarNotice(false);
-    document.getElementById("demo-funding-custom-amount")?.focus({ preventScroll: true });
   }
   const selectedPreset = customAmount ? "" : presetAmounts.includes(amount) ? amount : "";
   const amountIsValid = isFundingAmount(Number(amount)) && (recoveryOnly || Number(amount) % 100 === 0);

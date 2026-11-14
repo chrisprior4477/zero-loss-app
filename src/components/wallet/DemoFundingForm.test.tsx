@@ -579,11 +579,18 @@ test("desktop receipts start with the six most recent, and See more reveals ever
 
 
 test("whole-dollar notice can close or save acknowledgement without changing or submitting the amount", () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   const view = render(<DemoFundingForm requestKey="whole_notice_check_001" walletId="notice-wallet" />);
   const input = screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement;
+  input.focus();
   fireEvent.change(input, { target: { value: "50.50" } });
-  expect(screen.getByText("Only whole dollar amounts are accepted for deposits.")).toBeTruthy();
+  const notice = screen.getByRole("dialog", { name: "Whole-dollar deposit notice" });
+  expect(within(notice).getByText("Only whole dollar amounts are accepted for deposits.")).toBeTruthy();
+  expect(document.documentElement.style.overflow).toBe("hidden");
   fireEvent.click(screen.getByRole("button", { name: "Close whole-dollar notice" }));
+  expect(document.documentElement.style.overflow).toBe("");
+  expect(document.activeElement).toBe(input);
   expect(input.value).toBe("$50.50");
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(input, { target: { value: "50" } });

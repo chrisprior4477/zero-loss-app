@@ -308,6 +308,25 @@ test.each([{ width: 390, target: 560 }, { width: 1280, target: 360 }])("payment-
   expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
 });
 
+test.each([{ width: 390, target: 560 }, { width: 1280, target: 360 }])("Add funds lands at the right section at $width px from a link or the URL", ({ width, target }) => {
+  vi.stubGlobal("innerWidth", width);
+  vi.stubGlobal("scrollY", 0);
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation(callback => { callback(0); return 1; });
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    return new DOMRect(0, this.id === "funding-amount" ? 700 : this.id === "add-funds" ? 500 : 0, width, this.tagName === "HEADER" ? 128 : 50);
+  });
+  const view = <><header className="sticky" /><a href="#add-funds">Add funds</a><WalletPaymentMethods enabled />
+    <section id="add-funds"><DemoFundingForm requestKey="funding_landing_test" savedCards={initialCards} /></section></>;
+  const wallet = render(view);
+  fireEvent.click(screen.getByRole("link", { name: "Add funds" }));
+  expect(window.location.hash).toBe("#add-funds");
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
+  wallet.unmount();
+  vi.mocked(window.scrollTo).mockClear();
+  render(view);
+  expect(window.scrollTo).toHaveBeenLastCalledWith({ top: target, behavior: "auto" });
+});
+
 test("Back to wallet waits for the update, then leaves the editor with the updated card saved", async () => {
   let finish!: (result: Awaited<ReturnType<typeof saveDemoPaymentMethod>>) => void;
   vi.mocked(saveDemoPaymentMethod).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
