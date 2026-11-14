@@ -199,7 +199,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView, returnTile = false, returnHistory = false, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
+export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView, returnTile = false, returnHistory = false, returnLink, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -330,7 +330,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
         {item.rewardId ? <Link href={fulfillmentHref(item.rewardId, orderFilter)} className={styles.backToRewards}>View fulfillment status</Link> : null}
         {orderFilter !== "all" ? <Link href={fulfillmentHref(undefined, orderFilter, false, item.rewardId ?? undefined)} className={styles.backToRewards}>Return to {fulfillmentFilterLabel[orderFilter]}</Link> : null}
         <Link href="/" className={styles.detailShoppingButton}>Continue shopping</Link>
-        <Link href={walletReturnHref} className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>
+        <Link href={returnLink?.href ?? walletReturnHref} className={styles.backToRewards}>{returnLink?.label ?? "Back to Gift Cards & Rewards"}</Link>
       </nav>
     </section>
   </main>;

@@ -218,8 +218,10 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     // Merge, rather than replace, Next's own navigation state. Keep the URL and
     // outgoing transaction link unchanged and don't add a Back-button step.
     window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: saved }, "");
-    const transactionId = new URL(anchor.href).searchParams.get("transaction");
-    if (anchor.hasAttribute("data-wallet-support") && transactionId) rememberLedgerSupportReturn(saved, transactionId);
+    const destination = new URL(anchor.href);
+    const transactionId = destination.searchParams.get("transaction");
+    const rewardResult = destination.pathname === "/account/wallet" && destination.searchParams.has("rewardId") && destination.searchParams.get("walletView") === "1";
+    if (transactionId && (anchor.hasAttribute("data-wallet-support") || rewardResult)) rememberLedgerSupportReturn(saved, transactionId);
     if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
   }
   function applySearch(next: string) {
@@ -306,10 +308,10 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       {!compact && <TicketBatchControls {...controls} top />}
       {twoColumns && <WalletColumnHeadings />}
       <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
-        const links = transactionLinks(entry, activity);
+        const preserveView = !compact && Boolean(walletId);
+        const links = transactionLinks(entry, activity, preserveView);
         const productHref = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
         const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
-        const preserveView = !compact && Boolean(walletId);
         const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}`;
         const selected = entry.id === selectedId;
         return <li key={entry.id} id={`transaction-${entry.id}`} data-selected={selected}

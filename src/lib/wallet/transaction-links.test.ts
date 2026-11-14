@@ -37,6 +37,6 @@ test("reservation rows omit gift-card links while the exact purchase keeps its r
   for (const entry_type of ["ENTRY_HOLD", "ENTRY_HOLD_RELEASE"]) {
     expect(transactionLinks({ ...linkedRow, entry_type }, [purchased, active]).map(link => link.id)).toEqual([active.entryId]);
   }
-  const [result] = transactionLinks({ ...linkedRow, entry_type: "PURCHASE_DEBIT" }, [purchased, active]);
-  expect(result.href).toContain("rewardId=purchased-reward");
+  const [result] = transactionLinks({ ...linkedRow, entry_type: "PURCHASE_DEBIT" }, [purchased, active], true);
+  expect(result.href).toBe(`/account/wallet?reward=${purchased.slug}&rewardId=purchased-reward&transaction=${row.id}&walletView=1`);
 });

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { MyZeroLossActivity } from "@/components/account/MyZeroLossActivity";
 import { AccountIcon } from "@/components/account/AccountIcon";
 import { getAccountContext } from "@/lib/account/context";
-import { activityFilter, declinedOfferHref, findActivityItem } from "@/lib/account/activity";
+import { activityFilter, declinedOfferHref, findActivityItem, openEntriesAnchorId } from "@/lib/account/activity";
 import styles from "@/components/account/my-activity.module.css";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
@@ -28,7 +28,7 @@ const accountLinks = [
 export default async function MyZeroLossPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const account = await getAccountContext();
   const query = await searchParams;
-  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query)));
+  if (!account) redirect(authNavigationHref("/login", accountPageReturnPath("/account/entries", query, query.filter === "completed" && query.viewed ? `#${openEntriesAnchorId}` : "")));
   const filter = activityFilter(query.filter);
   const selectedSlug = typeof query.item === "string" ? query.item : undefined;
   const selectedEntryId = typeof query.entry === "string" ? query.entry : undefined;

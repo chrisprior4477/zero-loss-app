@@ -48,6 +48,18 @@ test("failed activity reads offer a full retry of the exact saved reward without
   expect(mocks.rpc).not.toHaveBeenCalled();
 });
 
+test.each([
+  [{ via: "completed" }, "Back to this purchase", `/account/entries?filter=completed&viewed=${purchaseEntry}#my-activity-filters`],
+  [{ transaction: "22222222-2222-4222-8222-222222222222", walletView: "1" }, "Back to this transaction", "/account/wallet?view=history&transaction=22222222-2222-4222-8222-222222222222&walletView=1#transaction-22222222-2222-4222-8222-222222222222"],
+  [{}, "Back to Gift Cards & Rewards", "/account/wallet"],
+])("gift card details return to the originating record: %j", async (query, label, href) => {
+  const rewardId = "11111111-1111-4111-8111-111111111111";
+  const paid = { ...purchaseActivity, status: "completed", rewardSource: "purchase", rewardStatus: "ready", rewardId };
+  mocks.getAccountContext.mockResolvedValue({ activity: { source: "stored", activity: [paid] }, wallet: null });
+  render(await WalletPage({ searchParams: Promise.resolve({ rewardId, ...query }) }));
+  expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe(href);
+});
+
 test.each(["ready", "used", "expired", "history"])("the %s reward view survives an expired session", async rewards => {
   mocks.getAccountContext.mockResolvedValue(null);
   mocks.redirect.mockImplementationOnce(() => { throw new Error("NEXT_REDIRECT"); });

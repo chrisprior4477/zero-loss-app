@@ -8,7 +8,7 @@ import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
 import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { WalletOverview } from "@/components/wallet/WalletOverview";
 import { WalletRewardDetail, WalletRewards } from "@/components/wallet/WalletRewards";
-import { activityHref, findActivityItem, isPurchasedReward, walletRewards } from "@/lib/account/activity";
+import { activityHref, findActivityItem, isPurchasedReward, openEntriesAnchorId, walletRewards } from "@/lib/account/activity";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { DemoPaymentProvider } from "@/lib/payments/demo-provider";
@@ -19,6 +19,7 @@ import { getOfferingAvailability } from "@/lib/catalog/availability-reader";
 import { authNavigationHref } from "@/lib/auth/entry-return";
 import { accountPageReturnPath } from "@/lib/auth/account-return";
 import { selectedTransaction } from "@/lib/wallet/selected-transaction";
+import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
 import { getCompleteLedgerHistory } from "@/lib/wallet/history";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
 import { parseDemoWalletHistoryVisibility, type DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
@@ -115,8 +116,14 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     }
     if (reward) {
       const fromPurchase = query.via === "purchase" && typeof query.rewardId === "string" && isPurchasedReward(reward);
+      const transactionId = typeof query.transaction === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(query.transaction) ? query.transaction : undefined;
+      const returnLink = transactionId && typeof query.rewardId === "string" && query.via === undefined
+        ? { href: walletSupportReturnHref(transactionId, query.walletView === "1"), label: "Back to this transaction" }
+        : query.via === "completed" && typeof query.rewardId === "string" && isPurchasedReward(reward) && reward.entryId
+          ? { href: `/account/entries?filter=completed&viewed=${encodeURIComponent(reward.entryId)}#${openEntriesAnchorId}`, label: "Back to this purchase" }
+          : undefined;
       return <WalletRewardDetail orderFilter={fulfillmentFilter(query.orderFilter)} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnHistory={fromRewardHistory} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} item={reward}
-        isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers}
+        isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} returnLink={returnLink}
         overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />;
     }
     return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href={rewardListHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;

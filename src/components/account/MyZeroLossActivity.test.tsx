@@ -248,6 +248,7 @@ test("Completed contains purchased options and wins, with an orange purchase lab
     ...state.activity[2], status: "completed" as const, rewardSource: "purchase" as const,
     completionOptionStatus: "purchased" as const, rewardStatus: "ready" as const,
     rewardId: "11111111-1111-4111-8111-111111111111",
+    entryId: "ent_11111111111111111111111111111111",
   };
   state.activity[2] = purchase;
   expect(filterActivity(state.activity, "completed")).toHaveLength(2);
@@ -262,7 +263,8 @@ test("Completed contains purchased options and wins, with an orange purchase lab
   expect(purchaseCard.getAttribute("href")).toBe("/account/wallet?reward=nike-court-shot-shoes&rewardId=11111111-1111-4111-8111-111111111111");
   expect(screen.getByRole("link", { name: "Completed2" })).toBeTruthy();
   rerender(<MyZeroLossActivity state={state} filter="completed" />);
-  expect(screen.getByRole("link", { name: /Nike Men's Court Shot Shoes/ })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Nike Men's Court Shot Shoes/ }).getAttribute("href"))
+    .toBe("/account/wallet?reward=nike-court-shot-shoes&rewardId=11111111-1111-4111-8111-111111111111&via=completed");
   expect(screen.getByRole("link", { name: /Samsung 50\" M70H Mini LED 4K Smart TV/ })).toBeTruthy();
   rerender(<MyZeroLossActivity state={state} filter="prize" />);
   expect(screen.queryByRole("link", { name: /Nike Men's Court Shot Shoes/ })).toBeNull();

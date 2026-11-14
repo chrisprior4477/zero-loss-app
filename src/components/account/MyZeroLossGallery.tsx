@@ -122,12 +122,14 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
     const frame = requestAnimationFrame(() => {
       const card = Array.from(track.current?.querySelectorAll<HTMLElement>("[data-activity-entry-ids]") ?? [])
         .find(element => element.dataset.activityEntryIds?.split(" ").includes(viewedEntryId));
-      card?.scrollIntoView?.({ block: "nearest", inline: "center", behavior: "smooth" });
+      const completedPurchase = filter === "completed" && card?.dataset.purchaseCompleted === "true";
+      card?.scrollIntoView?.({ block: completedPurchase ? "center" : "nearest", inline: "center", behavior: completedPurchase ? "instant" : "smooth" });
+      if (completedPurchase) card?.focus({ preventScroll: true });
       setViewedEntry(viewedEntryId);
     });
     const timer = window.setTimeout(() => setViewedEntry(null), 15000);
     return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
-  }, [items, viewedEntryId]);
+  }, [filter, items, viewedEntryId]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(syncSwipe);
@@ -257,7 +259,10 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
           ? group.entries.reduce((total, entry) => total + entry.paidCents, 0)
           : item.paidCents;
         const purchaseOption = item.status === "completion" && group.entries.every(entry => entry.entryId);
-        const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}` : activityHref(item, "/account/entries", filter);
+        const activityCardHref = activityHref(item, "/account/entries", filter);
+        const completedPurchase = filter === "completed" && purchasedReward && item.rewardId && item.entryId;
+        const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}`
+          : completedPurchase ? `${activityCardHref}&via=completed` : activityCardHref;
         const featured = item.status === "prize" && index === 0;
         const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
         const isRecent = recentEntry?.slug === item.slug && (!recentEntry.entryId || recentEntry.entryId === item.entryId);
