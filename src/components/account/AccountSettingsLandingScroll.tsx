@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { accountLandingTop } from "@/lib/account/landing-position";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
-export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, visitKey = target, settleAfterNavigation = false, allScreens = false }: { target: string; initialTarget?: string; landingAlias?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean }) {
+export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, visitKey = target, settleAfterNavigation = false, allScreens = false, restrictToTargetHash = false }: { target: string; initialTarget?: string; landingAlias?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean; restrictToTargetHash?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -14,7 +14,7 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
     let requestedId = "";
     const settlingTimers: number[] = [];
     let header: HTMLElement | null = null;
-    const scope = document.getElementById(target)?.closest("main");
+    const scope = restrictToTargetHash ? null : document.getElementById(target)?.closest("main");
     const cancel = () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
     const measure = () => {
       const currentHeader = document.querySelector<HTMLElement>("header.sticky");
@@ -45,6 +45,11 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
     };
     const reveal = (id = window.location.hash.slice(1)) => {
       if (disposed) return;
+      if (restrictToTargetHash && id !== target && id !== landingAlias) {
+        interrupted = true;
+        cancel();
+        return;
+      }
       requestedId = id;
       interrupted = false;
       settlingUntil = Date.now() + (settleAfterNavigation ? 1500 : 1000);
@@ -106,6 +111,6 @@ export function AccountSettingsLandingScroll({ target, initialTarget, landingAli
       document.removeEventListener("click", onAnchor, true);
       scope?.style.removeProperty("--settings-header-bottom");
     };
-  }, [target, initialTarget, landingAlias, visitKey, settleAfterNavigation, allScreens]);
+  }, [target, initialTarget, landingAlias, visitKey, settleAfterNavigation, allScreens, restrictToTargetHash]);
   return null;
 }

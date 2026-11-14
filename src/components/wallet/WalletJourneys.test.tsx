@@ -64,7 +64,7 @@ test.each(["add", "edit"])("refresh inside the funding card editor restores the 
     fireEvent.click(screen.getByRole("button", { name: "Update card" }));
   } else fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   await screen.findByRole("form", { name: "Add funds" });
-  expect(window.location.hash).toBe("#add-funds");
+  expect(window.location.hash).toBe(mode === "edit" ? "#funding-amount" : "#add-funds");
   expect(window.history.state?.fundingCardDraft).toBeUndefined();
   expect((screen.getByLabelText("Add specific amount (USD)") as HTMLInputElement).value).toBe("$73");
   expect(page.container.querySelector<HTMLInputElement>('[name="paymentMethod"]')?.value).toBe("demo_card_4242");

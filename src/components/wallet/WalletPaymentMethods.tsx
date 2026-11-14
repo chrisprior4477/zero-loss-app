@@ -54,7 +54,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   useEffect(() => {
     const sync = () => {
       let hash = window.location.hash;
-      if (initialSection && !hash.startsWith(savedCardEditPrefix) && !["#balance", "#add-funds", "#payment-methods", "#wallet-add-card", "#transactions", `#${fundingCardEditorId}`].includes(hash)) {
+      if (initialSection && !hash.startsWith(savedCardEditPrefix) && !["#balance", "#add-funds", "#funding-amount", "#payment-methods", "#wallet-add-card", "#transactions", `#${fundingCardEditorId}`].includes(hash)) {
         hash = initialSection === "card" ? "#wallet-add-card" : "#payment-methods";
         window.history.replaceState(null, "", hash);
       }

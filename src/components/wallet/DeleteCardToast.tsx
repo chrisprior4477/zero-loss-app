@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { EntryUndoCountdown } from "@/components/product/EntryUndoCountdown";
+import { FundingNoticeDialog } from "./FundingNoticeDialog";
 import styles from "./wallet-payments.module.css";
 
-export function DeleteCardToast({ busy, message, onUndo, onDelete }: { busy: boolean; message?: string; onUndo: () => void; onDelete: () => void }) {
+export function DeleteCardToast({ busy, message, onUndo, onDelete, mobileCard }: {
+  busy: boolean; message?: string; onUndo: () => void; onDelete: () => void;
+  mobileCard?: string;
+}) {
+  const description = useId();
   const [deadline] = useState(() => Date.now() + 30_000);
   const [seconds, setSeconds] = useState(30);
   useEffect(() => {
@@ -16,9 +21,21 @@ export function DeleteCardToast({ busy, message, onUndo, onDelete }: { busy: boo
     }, 250);
     return () => window.clearInterval(timer);
   }, [deadline, busy, onUndo]);
-  return <div className={styles.deleteToast} role="status">
-    <div className={styles.deleteToastHeader}><div><strong>Are you sure you want to delete this card?</strong><p>Undo keeps your card. No confirmation? We’ll keep it.</p></div><EntryUndoCountdown seconds={seconds} /></div>
+  const content = <>
+    <div className={styles.deleteToastHeader}>
+      <div id={description}>
+        <strong>Are you sure you want to delete this card?</strong>
+        {mobileCard && <p>{mobileCard}</p>}
+        <p>Undo keeps your card. No confirmation? We’ll keep it.</p>
+      </div>
+      <EntryUndoCountdown seconds={seconds} />
+    </div>
     {message ? <p role="alert">{message}</p> : null}
     <div className={styles.deleteToastActions}><button type="button" disabled={busy} onClick={() => { if (Date.now() >= deadline) onUndo(); else onDelete(); }}>{busy ? "Deleting…" : "Yes, delete"}</button><button type="button" disabled={busy} onClick={onUndo}>Undo</button></div>
-  </div>;
+  </>;
+  if (mobileCard) return <FundingNoticeDialog label="Delete saved card" description={description}
+    closeLabel="Keep saved card" onClose={onUndo} tone="delete" busy={busy}>
+    <div className={styles.deleteDialogContent}>{content}</div>
+  </FundingNoticeDialog>;
+  return <div className={styles.deleteToast} role="status">{content}</div>;
 }

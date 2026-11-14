@@ -482,10 +482,15 @@ test("saved card deletion asks for confirmation and leaves deposit history untou
     { token: "demo_card_5556", lastFour: "5556", isDefault: false },
   ]} />);
   fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
+  const confirmation = screen.getByRole("dialog", { name: "Delete saved card" });
+  expect(within(confirmation).getByText("Bank of America •••• 4242")).toBeTruthy();
+  expect(confirmation.closest("article")).toBeNull();
+  expect(document.documentElement.style.overflow).toBe("hidden");
   expect(screen.getByText("Are you sure you want to delete this card?")).toBeTruthy();
   expect(screen.getByRole("timer").getAttribute("aria-label")).toContain("30 seconds");
   fireEvent.click(screen.getByRole("button", { name: "Undo" }));
   expect(deleteDemoPaymentMethod).not.toHaveBeenCalled();
+  expect(document.documentElement.style.overflow).toBe("");
   fireEvent.click(screen.getAllByRole("button", { name: "Delete Card" })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
   await waitFor(() => expect(deleteDemoPaymentMethod).toHaveBeenCalledWith("demo_card_4242"));
@@ -510,6 +515,7 @@ test("removing the only saved card blocks funding until another card is chosen",
   fireEvent.click(screen.getByRole("button", { name: "Save card" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy());
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(false);
+  expect(window.location.hash).toBe("#funding-amount");
 });
 
 test("retry restores and locks the original default preference, not the current preference", () => {

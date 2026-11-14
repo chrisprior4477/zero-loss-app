@@ -117,6 +117,18 @@ test("header settling corrects the landing until the user starts scrolling", () 
   expect(scrollTo).toHaveBeenCalledTimes(2);
 });
 
+test("a scoped amount landing corrects the old anchor and lets a different card section take over", () => {
+  const { scrollTo, flush, setHeaderHeight } = setup({ hash: "#profile-intro", path: "/account/wallet" });
+  render(<AccountSettingsLandingScroll target="security-controls" landingAlias="profile-intro" restrictToTargetHash settleAfterNavigation />);
+  flush();
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 908, behavior: "instant" });
+  window.history.replaceState(null, "", "#account-settings-sections");
+  fireEvent(window, new HashChangeEvent("hashchange"));
+  setHeaderHeight(72);
+  flush();
+  expect(scrollTo).toHaveBeenCalledTimes(1);
+});
+
 test("a replaced streaming header is measured for the next section shortcut", async () => {
   const { scrollTo, flush, container } = setup();
   render(<AccountSettingsLandingScroll target="account-settings-intro" />); flush();

@@ -14,7 +14,7 @@ export function DepositCreditedToast({ amount }: { amount: number }) {
 
   if (!visible) return null;
   return <FundingNoticeDialog label="Deposit confirmation" description={description}
-    closeLabel="Dismiss deposit confirmation" onClose={() => setVisible(false)} credited>
+    closeLabel="Dismiss deposit confirmation" onClose={() => setVisible(false)} tone="credited">
     <strong id={description}>{formatUsdFromCents(amount)} credited to your wallet</strong>
   </FundingNoticeDialog>;
 }

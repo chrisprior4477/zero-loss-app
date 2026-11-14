@@ -396,10 +396,11 @@
 }
 @media (max-width: 767px) {
   .balanceCard { scroll-margin-top: calc(var(--site-header-height, 163px) + 12px); }
+  .fundingAmountSection { scroll-margin-top: calc(var(--site-header-height, 92px) + 12px); }
 }
 @media (max-width: 700px) {
   .transactions, .fundingRequests { scroll-margin-top: calc(var(--site-header-height, 163px) + 17px); }
-  .demoCardsPanel, .fundingAmountSection { scroll-margin-top: calc(var(--site-header-height, 163px) + 22px); }
+  .demoCardsPanel { scroll-margin-top: calc(var(--site-header-height, 163px) + 22px); }
   .fundingAmounts { grid-template-columns: 1fr; gap: 14px; }
   .showAllTicket { min-height: 62px; padding-inline: 25px; font-size: 14px; }
   .fundingForm .confirmationTicket { --corner-scoop: 15px; --side-scoop: 10px; }

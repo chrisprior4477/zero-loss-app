@@ -4,13 +4,14 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styles from "./whole-dollar-toast.module.css";
 
-export function FundingNoticeDialog({ label, description, closeLabel, onClose, children, credited = false }: {
+export function FundingNoticeDialog({ label, description, closeLabel, onClose, children, tone, busy = false }: {
   label: string;
   description: string;
   closeLabel: string;
   onClose: () => void;
   children: ReactNode;
-  credited?: boolean;
+  tone?: "credited" | "delete";
+  busy?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -35,10 +36,10 @@ export function FundingNoticeDialog({ label, description, closeLabel, onClose, c
 
   return createPortal(
     <dialog ref={dialog} className={styles.dialog} aria-label={label} aria-describedby={description}
-      onCancel={event => { event.preventDefault(); onClose(); }}
-      onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-      <div className={credited ? `${styles.toast} ${styles.credited}` : styles.toast}>
-        <button ref={closeButton} type="button" className={styles.close} onClick={onClose} aria-label={closeLabel}>×</button>
+      onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}
+      onClick={event => { if (!busy && event.target === event.currentTarget) onClose(); }}>
+      <div className={tone ? `${styles.toast} ${styles[tone]}` : styles.toast}>
+        <button ref={closeButton} type="button" className={styles.close} onClick={onClose} aria-label={closeLabel} disabled={busy}>×</button>
         {children}
       </div>
     </dialog>,
