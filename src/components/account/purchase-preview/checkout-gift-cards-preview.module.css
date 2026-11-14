@@ -1,0 +1,35 @@
+.page {
+  min-height: 75svh;
+  padding: 16px 12px 36px;
+  color: #f7fbff;
+  background: radial-gradient(ellipse at 50% 5%, #10345b, #061b38 75%);
+}
+
+.shell { max-width: 640px; margin: auto; }
+.previewBar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-bottom: 8px; color: #b9def5; font-size: 12px; }
+.previewBar span { margin-right: auto; }
+.previewBar :is(a, button) { min-height: 44px; display: inline-flex; align-items: center; color: #b9ecff; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.destination { scroll-margin-top: calc(var(--site-header-height, 110px) + 10px); }
+.destination:focus { outline: none; }
+.shell h1 { margin: 0 0 10px; font-size: clamp(23px, 4vw, 32px); line-height: 1.15; font-weight: 850; letter-spacing: -.03em; }
+.share { background: #ff7a00; color: #10234a; font-weight: 850; cursor: pointer; }
+.otherButton { margin-top: 10px; }
+.activityBack { display: flex; min-height: 44px; width: 100%; align-items: center; justify-content: center; color: #07598d; font-size: 14px; font-weight: 850; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.listHeading { font-size: 22px; font-weight: 850; }
+.cards { display: grid; gap: 8px; padding: 0; margin: 10px 0 0; list-style: none; }
+.cards li { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 17px; background: #e6f4fd; color: #10234a; }
+.cards li[data-current="true"] { background: #d9f5e5; scroll-margin-top: calc(var(--site-header-height, 110px) + 90px); }
+.cards img { object-fit: contain; }
+.cards strong { display: block; font-size: 14px; line-height: 1.2; }
+.cards p { margin: 3px 0 0; font-size: 12px; }
+.cards .current { color: #145d3a; font-weight: 800; }
+.cards button { width: auto; min-width: 0; font-size: 13px; }
+.successActions { display: grid; gap: 8px; }
+.notice { padding: 8px 10px; border-radius: 7px; margin: 0 0 9px; background: #ffe6e4; color: #9b190e; font-size: 14px; font-weight: 750; }
+.page :is(a, button):focus-visible { outline: 2px solid #087bff; outline-offset: 2px; }
+
+@media (max-width: 360px) {
+  .cards li { grid-template-columns: 34px minmax(0, 1fr) auto; gap: 6px; padding-inline: 13px; }
+  .cards img { width: 34px; height: 34px; }
+  .cards button { padding-inline: 7px; }
+}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 type RewardRedemptionActionsProps = {
   displayCode: string | null;
@@ -10,6 +10,8 @@ type RewardRedemptionActionsProps = {
   remainingOffers?: { count: number; retailer: string; slug: string };
   appleWalletUrl?: string | null;
   googleWalletUrl?: string | null;
+  afterWalletButtons?: ReactNode;
+  afterShopping?: ReactNode;
 };
 
 export function RewardRedemptionActions({
@@ -18,6 +20,8 @@ export function RewardRedemptionActions({
   remainingOffers,
   appleWalletUrl = null,
   googleWalletUrl = null,
+  afterWalletButtons,
+  afterShopping,
 }: RewardRedemptionActionsProps) {
   const [message, setMessage] = useState("");
 
@@ -61,7 +65,9 @@ export function RewardRedemptionActions({
         <span className="inline-grid min-h-6 min-w-6 place-items-center rounded-full bg-white px-1 align-middle leading-none">{remainingOffers.count}</span>{" "}
         {remainingOffers.retailer} {remainingOffers.count === 1 ? "offer" : "offers"}
       </Link>}
+      {afterWalletButtons}
       <Link href="/" className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl bg-[#31e800] px-4 py-3 text-sm font-black text-[#061630] transition hover:bg-[#65f33d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00b9ff] max-[700px]:mt-2">Continue Shopping</Link>
+      {afterShopping}
       {!appleWalletUrl && !googleWalletUrl ? <p className="mt-4 text-center text-[11px] leading-4 text-[#4a667c]">Wallet passes are not connected in this preview yet.</p> : null}
     </section>
   </>;

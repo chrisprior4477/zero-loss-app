@@ -9,6 +9,7 @@ import { accountRoutes } from "@/lib/account/navigation";
 import { fulfillmentFilterLabel, type FulfillmentFilter, fulfillmentHref } from "@/lib/account/fulfillment";
 import { rewardSupportHref } from "@/lib/support/references";
 import { RewardRedemptionActions } from "./RewardRedemptionActions";
+import { SampleRewardBarcode } from "./SampleRewardBarcode";
 import { AccountSettingsLandingScroll } from "@/components/account/AccountSettingsLandingScroll";
 import { RewardPassAutoScroll } from "./RewardPassAutoScroll";
 import { WalletRewardLink } from "./WalletRewardLink";
@@ -170,11 +171,6 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
   </main>;
 }
 
-const CODE39: Record<string, string> = {
-  "0": "nnnwwnwnn", "1": "wnnwnnnnw", "2": "nnwwnnnnw", "3": "wnwwnnnnn", "4": "nnnwwnnnw",
-  "5": "wnnwwnnnn", "6": "nnwwwnnnn", "7": "nnnwnnwnw", "8": "wnnwnnwnn", "9": "nnwwnnwnn", "*": "nwnnwnwnn",
-};
-
 function sampleRewardNumber(slug: string) {
   let hash = 2166136261;
   for (const character of slug) {
@@ -183,20 +179,6 @@ function sampleRewardNumber(slug: string) {
   }
   const digits = `45${(hash >>> 0).toString().padStart(10, "0")}`.slice(0, 12);
   return { raw: digits, display: digits.match(/.{1,4}/g)?.join(" ") ?? digits };
-}
-
-function SampleRewardBarcode({ value }: { value: string }) {
-  const bars = `*${value}*`.split("").flatMap((character, characterIndex) => {
-    const pattern = CODE39[character] ?? CODE39["0"];
-    return [...pattern.split("").map((width, index) => ({
-      dark: index % 2 === 0,
-      width: width === "w" ? 3 : 1,
-      key: `${characterIndex}-${index}`,
-    })), { dark: false, width: 1, key: `${characterIndex}-gap` }];
-  });
-  return <div className={styles.sampleBarcode} aria-label="Sample reward barcode">
-    {bars.map(bar => <span key={bar.key} className={bar.dark ? "bg-[#061630]" : "bg-white"} style={{ width: `${bar.width}px` }} />)}
-  </div>;
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
