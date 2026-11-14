@@ -44,8 +44,12 @@ export function MyZeroLossActivity({ ownerId, state, filter, metricsBySlug = {},
     </nav>
     {pendingEntries.length > 0 && state.source !== "unavailable" ? <div className="mb-5 rounded-2xl border border-cyan-300/50 bg-[#062b4d] px-5 py-4 text-white" role="status">
       <p className="font-extrabold">{pendingEntries.length === 1 ? "Entry request awaiting confirmation" : `${pendingEntries.length} entry requests awaiting confirmation`}</p>
-      <p className="mt-1 text-sm text-[#b5cce4]">{pendingEntries[0].title} is saved as a pending request. It will appear in your activity after confirmation; it is not a completed entry yet.</p>
-      <Link href={`/items/${pendingEntries[0].slug}#enter-entry`} className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">Review pending entry <span aria-hidden="true" className="ml-2">›</span></Link>
+      <p className="mt-1 text-sm text-[#b5cce4]">Pending requests appear in your activity after confirmation.</p>
+      <ul className="mt-3 space-y-2">{pendingEntries.map(request => <li key={request.requestId}>
+        <Link href={`/items/${request.slug}#enter-entry`} className="inline-flex min-h-10 items-center rounded-lg bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">
+          Review pending entry <span className="ml-1">· {request.title}</span>
+        </Link>
+      </li>)}</ul>
     </div> : null}
     {items.length > 0 ? <h2 className={styles.activityHeading}>{activityHeadings[filter]}</h2> : null}
     {items.length ? <MyZeroLossGallery ownerId={ownerId} key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>

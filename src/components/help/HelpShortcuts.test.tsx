@@ -23,7 +23,7 @@ test("multiple choices, unavailable activity and closed rewards use safe collect
   state.activity[2].completionOptionStatus = "available";
   state.activity[3].completionOptionStatus = "available";
   state.activity[1].rewardStatus = "expired";
-  expect(helpShortcuts(state).map(item => item.href)).toEqual(["/account/wallet", "/account/entries?filter=completion", "/account/wallet?view=history"]);
+  expect(helpShortcuts(state).map(item => item.href)).toEqual(["/account/wallet", "/account/entries?filter=completion", "/account/wallet?view=history#transactions"]);
   state.source = "unavailable";
   expect(helpShortcuts(state)).toEqual(helpShortcuts());
 });

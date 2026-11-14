@@ -4,6 +4,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { getAccountContext } from "@/lib/account/context";
+import { resolvedCatalogSlugs } from "@/lib/catalog/demo-visibility";
+import { getShoppingCatalog } from "@/lib/catalog/shopping-catalog";
 import { WalletOverview } from "@/components/wallet/WalletOverview";
 import { WalletRewardDetail, WalletRewards } from "@/components/wallet/WalletRewards";
 import { activityHref, findActivityItem, isPurchasedReward, walletRewards } from "@/lib/account/activity";
@@ -27,7 +29,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/account/wal
   return { title: history ? "Wallet & Transactions" : "Gift Cards & Rewards" };
 }
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; walletView?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[] }> }) {
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
@@ -77,12 +79,13 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     : `/account/wallet?rewards=${rewardView}#${rewardView === "ready" ? "ready-rewards" : "reward-history"}`;
   const demoDb = history && account.wallet?.scope === "demo" ? await createClient() : null;
   const provider = demoDb ? new DemoPaymentProvider(demoDb) : null;
-  const [requests, savedCards, transaction, ledgerEntries, visibilityResult] = await Promise.all([
+  const [requests, savedCards, transaction, ledgerEntries, visibilityResult, catalog] = await Promise.all([
     history && provider ? provider.getRequests().catch(() => null) : null,
     provider && account.fundingEnabled ? provider.getPaymentMethods().catch(() => undefined) : [],
     history ? selectedTransaction(query.transaction, account.userId, account.wallet).catch(() => ({ requested: true, entry: null })) : undefined,
     history ? getCompleteLedgerHistory(account.userId, account.wallet).catch(() => null) : null,
     demoDb ? Promise.resolve(demoDb.rpc("get_demo_wallet_history_visibility")).catch(() => null) : undefined,
+    history ? getShoppingCatalog().catch(() => null) : null,
   ]);
   let demoHistoryVisibility: DemoWalletHistoryVisibility | null | undefined = undefined;
   if (demoDb) {
@@ -118,7 +121,10 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     }
     return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href={rewardListHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
   }
-  if (history) return <WalletOverview timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} depositRow={depositRow} fromDeposits={query.panel === "deposits"} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
+  if (history) {
+    const hiddenProducts = catalog && !catalog.unavailable ? catalog.hidden : new Set(resolvedCatalogSlugs(account.activity));
+    return <WalletOverview hiddenProducts={hiddenProducts} restoreLedgerView={query.walletView === "1"} timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} depositRow={depositRow} fromDeposits={query.panel === "deposits"} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
+  }
   const focusCard = typeof query.card === "string" ? query.card : undefined;
   return <WalletRewards timeZone={account.timezone} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={fromRewardHistory ? focusCard : undefined} />;
 }

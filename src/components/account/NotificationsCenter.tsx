@@ -281,14 +281,20 @@ export function NotificationsCenter({ userId, initialFilter = "all", supportEnab
     setReadMessage("");
     setLocallyRead((previous) => new Set([...previous, ...ids]));
     startReadTransition(async () => {
-      const result = await saveRead(ids);
-      if (!result.ok) {
+      const failed: string[] = [];
+      let message = "";
+      for (let start = 0; start < ids.length; start += 200) {
+        const batch = ids.slice(start, start + 200);
+        const result = await saveRead(batch);
+        if (!result.ok) { failed.push(...batch); message = result.message; }
+      }
+      if (failed.length) {
         setLocallyRead((previous) => {
           const next = new Set(previous);
-          ids.forEach((id) => next.delete(id));
+          failed.forEach((id) => next.delete(id));
           return next;
         });
-        setReadMessage(result.message);
+        setReadMessage(message);
       }
     });
   }

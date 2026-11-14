@@ -37,7 +37,16 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
   useEffect(() => { if (!previewActive.current) setPopupStyle(initialPopupStyle); }, [initialPopupStyle]);
   useEffect(() => { if (!previewActive.current) setSpeed(initialSpeed); }, [initialSpeed]);
   useEffect(() => { if (!previewActive.current) setDisplaySeconds(initialDisplaySeconds); }, [initialDisplaySeconds]);
-  useEffect(() => { setSnapshot(mergeReads(initial)); }, [initial, mergeReads]); // eslint-disable-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    // Merge incoming server snapshots without discarding verified read state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSnapshot(current => mergeReads(initial && {
+      ...initial,
+      preferences: initial.preferences ?? current?.preferences ?? null,
+      readIds: initial.readAvailable ? initial.readIds : current?.readIds ?? initial.readIds,
+      readAvailable: initial.readAvailable || Boolean(current?.readAvailable),
+    }));
+  }, [initial, mergeReads]);
   useEffect(() => { if (!previewActive.current) setEnabled(initialEnabled); }, [initialEnabled]);
   useEffect(() => { if (!previewActive.current) setStyle(initialStyle); }, [initialStyle]);
   useEffect(() => {
@@ -58,8 +67,13 @@ export function NotificationProvider({ children, initial, initialStyle, initialE
           if (requestedRevision !== revision.current) return;
           next.notifications.forEach(n => received.current.delete(n.id));
           const confirmed = new Set(next.readIds);
-          readChanges.current.forEach((isRead, id) => { if (confirmed.has(id) === isRead) readChanges.current.delete(id); });
-          setSnapshot(mergeReads(next));
+          if (next.readAvailable) readChanges.current.forEach((isRead, id) => { if (confirmed.has(id) === isRead) readChanges.current.delete(id); });
+          setSnapshot(current => mergeReads({
+            ...next,
+            preferences: next.preferences ?? current?.preferences ?? null,
+            readIds: next.readAvailable ? next.readIds : current?.readIds ?? next.readIds,
+            readAvailable: next.readAvailable || Boolean(current?.readAvailable),
+          }));
         }
       } catch { /* Keep the last verified snapshot when offline. */ }
       finally { pending = false; if (queued) { queued = false; void refresh(); } }

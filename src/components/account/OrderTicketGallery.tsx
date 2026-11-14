@@ -162,9 +162,9 @@ function OrderDetails({ order, anchor, onClose, filter, phone }: { filter: Fulfi
   </div>, document.body);
 }
 
-export function OrderTicketGallery({ orders, filter = "all", initialDetailsId }: { orders: FulfillmentRecord[]; filter?: FulfillmentFilter; initialDetailsId?: string }) {
+export function OrderTicketGallery({ orders, filter = "all", initialDetailsId, initialAnchorId }: { orders: FulfillmentRecord[]; filter?: FulfillmentFilter; initialDetailsId?: string; initialAnchorId?: string }) {
   const phone = useSyncExternalStore(subscribePhone, isPhone, serverPhone);
-  const [pageAnchor, setPageAnchor] = useState<string | null>(initialDetailsId ?? null);
+  const [pageAnchor, setPageAnchor] = useState<string | null>(initialDetailsId ?? initialAnchorId ?? null);
   const [opened, setOpened] = useState<{ id: string; anchor: HTMLButtonElement } | null>(null);
   const [view, setView] = useState<TicketView | null>(null);
   const size = phone ? 2 : 6;
@@ -206,7 +206,7 @@ export function OrderTicketGallery({ orders, filter = "all", initialDetailsId }:
       const saved = window.history.state?.zeroLossOrderTickets;
       const hasSaved = saved?.href === window.location.href && orders.some(order => order.rewardId === saved.anchor)
         && Number.isFinite(saved.scrollY) && saved.scrollY >= 0;
-      const anchorId = hasSaved ? saved.anchor : initialDetailsId;
+      const anchorId = hasSaved ? saved.anchor : initialDetailsId ?? initialAnchorId;
       if (!anchorId || !orders.some(order => order.rewardId === anchorId)) return;
       const href = window.location.href;
       setPageAnchor(anchorId);
@@ -225,7 +225,7 @@ export function OrderTicketGallery({ orders, filter = "all", initialDetailsId }:
         if (hasSaved) window.scrollTo({ top: saved.scrollY, behavior: "instant" });
         // The page containing this ticket has now rendered. Recover only a
         // details button for a record still present in the authorized list.
-        if (hasSaved && saved.openId !== anchorId) return;
+        if (hasSaved ? saved.openId !== anchorId : !initialDetailsId) return;
         const ticket = Array.from(gallery.current?.querySelectorAll<HTMLElement>("[data-order-ticket]") ?? [])
           .find(element => element.id === `reward-${anchorId}`);
         const anchor = ticket?.querySelector<HTMLButtonElement>("[data-order-details]");
@@ -236,7 +236,7 @@ export function OrderTicketGallery({ orders, filter = "all", initialDetailsId }:
     window.addEventListener("popstate", restorePage);
     window.addEventListener("pageshow", restorePage);
     return () => { cancelAnimationFrame(frame); window.removeEventListener("popstate", restorePage); window.removeEventListener("pageshow", restorePage); };
-  }, [initialDetailsId, orders]);
+  }, [initialAnchorId, initialDetailsId, orders]);
 
   const alignPage = useEffectEvent(() => {
     const track = rail.current;
@@ -345,7 +345,9 @@ export function OrderTicketGallery({ orders, filter = "all", initialDetailsId }:
   }
 
   function closeDetails() {
+    const anchor = opened?.anchor;
     setOpened(null);
+    if (anchor) requestAnimationFrame(() => { if (anchor.isConnected) anchor.focus({ preventScroll: true }); });
     rememberPage(opened?.id ?? pageAnchor, null);
   }
 
@@ -396,6 +398,6 @@ export function OrderTicketGallery({ orders, filter = "all", initialDetailsId }:
       </div>
       {selected && opened ? <OrderDetails key={selected.rewardId} order={selected} filter={filter} phone={phone} anchor={opened.anchor} onClose={closeDetails} /> : null}
     </div>
-    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{range} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={!hasPrevious || Boolean(selected)} onClick={() => changePage(previousPage)}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={!hasNext || Boolean(selected)} onClick={() => changePage(nextPage)}><AccountIcon name="chevron" /></button></div></nav>
+    <nav className={styles.paging} aria-label="Order tickets"><span role="status">{range} of {orders.length}</span><div><button type="button" aria-label="Previous tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasPrevious || undefined} onClick={() => { if (hasPrevious) changePage(previousPage); }}><AccountIcon name="chevron" /></button><button type="button" aria-label="Next tickets" aria-controls={galleryId} disabled={Boolean(selected)} aria-disabled={!hasNext || undefined} onClick={() => { if (hasNext) changePage(nextPage); }}><AccountIcon name="chevron" /></button></div></nav>
   </div>;
 }

@@ -31,8 +31,10 @@ test.each(popularRewardBrands)("$name cards offer a mobile-sized $1 entry action
   actions.forEach((action, index) => {
     expect(action.className).toContain("rounded-lg bg-[#31e800]");
     expect(action.className).toContain("whitespace-nowrap");
+    const slug = popularRewardProductSlug(brand.slug, popularRewardAmounts[index]);
+    expect(action.closest("a")?.id).toBe(`prize-${slug}`);
     expect(action.closest("a")?.getAttribute("href")).toBe(
-      `/items/${popularRewardProductSlug(brand.slug, popularRewardAmounts[index])}?from=${encodeURIComponent(`/rewards/${brand.slug}`)}#enter-entry`,
+      `/items/${slug}?from=${encodeURIComponent(`/rewards/${brand.slug}#prize-${slug}`)}#enter-entry`,
     );
   });
 });

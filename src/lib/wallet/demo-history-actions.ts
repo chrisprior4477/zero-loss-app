@@ -6,8 +6,8 @@ import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseWalletSnapshot } from "./snapshot";
 
 export type DemoHistoryKind = "transactions" | "deposits";
-type Preview = { status: "ready"; balanceCents: number } | { status: "error"; message: string };
-type Result = { status: "succeeded"; hiddenCount: number; clearedCents: number } | { status: "error"; message: string; uncertain?: boolean };
+type Preview = { status: "ready"; balanceCents: number; revision?: string } | { status: "error"; message: string };
+type Result = { status: "succeeded"; hiddenCount: number; clearedCents: number } | { status: "error"; message: string; uncertain?: boolean; stale?: boolean };
 
 async function authorizedDemoWallet() {
   if (!isPreviewDataEnvironment()) throw new Error("Demo history reset is unavailable here.");
@@ -27,6 +27,14 @@ export async function previewDemoHistoryClear(kind: DemoHistoryKind): Promise<Pr
   if (kind !== "transactions" && kind !== "deposits") return { status: "error", message: "Invalid reset request." };
   try {
     const { db, balanceCents } = await authorizedDemoWallet();
+    if (kind === "transactions") {
+      const { data, error } = await db.rpc("get_demo_transaction_clear_preview");
+      const balance = Number(data?.balanceCents);
+      if (error || !Number.isSafeInteger(balance) || balance < 0 || typeof data?.revision !== "string" || !/^[0-9a-f]{64}$/.test(data.revision)) {
+        throw new Error("Your demo transaction list could not be verified.");
+      }
+      return { status: "ready", balanceCents: balance, revision: data.revision };
+    }
     if (kind === "deposits") {
       const { data, error } = await db.rpc("get_demo_funding_requests");
       if (error || !Array.isArray(data)) throw new Error("Payment status is unavailable. Try again later.");
@@ -40,17 +48,18 @@ export async function previewDemoHistoryClear(kind: DemoHistoryKind): Promise<Pr
   }
 }
 
-export async function clearDemoWalletHistory(kind: DemoHistoryKind, expectedBalanceCents: number, requestKey: string): Promise<Result> {
+export async function clearDemoWalletHistory(kind: DemoHistoryKind, expectedBalanceCents: number, requestKey: string, revision?: string): Promise<Result> {
   if ((kind !== "transactions" && kind !== "deposits") || !Number.isSafeInteger(expectedBalanceCents)
-    || expectedBalanceCents < 0 || !/^[A-Za-z0-9_-]{16,128}$/.test(requestKey)) {
+    || (kind === "transactions" && !/^[0-9a-f]{64}$/.test(revision ?? "")) || expectedBalanceCents < 0 || !/^[A-Za-z0-9_-]{16,128}$/.test(requestKey)) {
     return { status: "error", message: "Invalid reset request. Please try again." };
   }
   try {
     const { db } = await authorizedDemoWallet();
-    const { data, error } = await db.rpc("clear_demo_wallet_history", {
-      p_kind: kind, p_expected_balance_cents: expectedBalanceCents, p_request_key: requestKey,
+    const { data, error } = await db.rpc(kind === "transactions" ? "clear_reviewed_demo_transactions" : "clear_reviewed_demo_deposits", {
+      p_expected_balance_cents: expectedBalanceCents, p_request_key: requestKey,
+      ...(kind === "transactions" ? { p_expected_revision: revision } : {}),
     });
-    if (error) return { status: "error", uncertain: !["P0001", "P0002"].includes(error.code), message: error.code === "P0001"
+    if (error) return { status: "error", stale: error.code === "40001", uncertain: !["P0001", "P0002", "40001"].includes(error.code), message: error.code === "40001" ? error.message : error.code === "P0001"
       ? "Your balance changed. Review the new amount before clearing it."
       : error.code === "P0002" ? "Finish or check pending demo deposits before clearing this history."
         : "The reset could not be confirmed. Refresh your wallet before trying again." };

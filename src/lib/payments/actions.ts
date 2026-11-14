@@ -121,7 +121,7 @@ export async function completeDemoFunding(
       : { status: "succeeded", message: "Demo funds added. Your updated balance comes from the database ledger. No real money was charged." };
   } catch (error) { result = failure(error); }
   updateWalletViews();
-  if (result.status === "succeeded" && returnTo) redirect(returnTo);
+  if ((result.status === "succeeded" || result.status === "already_credited") && returnTo) redirect(returnTo);
   return result;
 }
 
@@ -189,6 +189,6 @@ export async function reconcileDemoFunding(_previous: DemoFundingActionState, fo
       : { status: "succeeded", message: "Payment checked and ledger credit confirmed. Rechecking cannot add another credit." };
   } catch (error) { result = failure(error); }
   updateWalletViews();
-  if (result.status === "succeeded" && returnTo) redirect(returnTo);
+  if ((result.status === "succeeded" || result.status === "already_credited") && returnTo) redirect(returnTo);
   return result;
 }

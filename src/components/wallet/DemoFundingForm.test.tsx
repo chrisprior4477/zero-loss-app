@@ -385,14 +385,15 @@ test.each(["button", "wallet link"])("a completed deposit can start again throug
 
 });
 
-test("a duplicate deposit cannot appear as new funding or redirect to a prize", async () => {
+test("a previously credited deposit keeps its original prize continuation without claiming new funds", async () => {
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
   vi.mocked(completeDemoFunding).mockResolvedValueOnce({ status: "already_credited", message: "This deposit was already credited. No new funds were added." });
   render(<DemoFundingForm requestKey="stable_demo_request_001" walletId="wallet-a" continueTo={{ title: "Samsung TV", href: "/items/samsung-m70h-tv#enter-entry" }} />);
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Confirm $25 deposit" }));
-  await waitFor(() => expect(screen.getByRole("region", { name: "Deposit complete" })).toBeTruthy());
+  const continuation = await screen.findByRole("link", { name: /Continue your entry/ });
+  expect(continuation.getAttribute("href")).toBe("/items/samsung-m70h-tv?funded=1#enter-entry");
   expect(screen.getByRole("status").textContent).toContain("No new funds were added");
   expect(navigation.replace).not.toHaveBeenCalled();
 });

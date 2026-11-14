@@ -8,6 +8,7 @@ import { demoCardFixture } from "@/lib/payments/demo-card";
 import type { DemoFundingRequest } from "@/lib/payments/demo-provider";
 import { getDepositWeeks, formatDepositTotal } from "@/lib/payments/deposit-weeks";
 import { formatUsdFromCents } from "@/lib/wallet/money";
+import { walletSupportReturnHref } from "@/lib/wallet/ledger-return";
 import styles from "./wallet-overview.module.css";
 
 export function DepositReceiptDate({ request, timeZone }: { request: DemoFundingRequest; timeZone?: string }) {
@@ -16,10 +17,10 @@ export function DepositReceiptDate({ request, timeZone }: { request: DemoFunding
   return <span><time dateTime={timestamp}>{formatOfferDeadline(timestamp, timeZone)}</time>{card && <> <span className={styles.receiptCard}>{card.issuer} •••• {card.lastFour}</span></>}</span>;
 }
 
-export function DepositCreditLink({ request }: { request: DemoFundingRequest }) {
+export function DepositCreditLink({ request, restoreLedgerView = false }: { request: DemoFundingRequest; restoreLedgerView?: boolean }) {
   const id = request.ledgerId;
   if (request.reconciliation !== "reconciled" || !id || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)) return null;
-  return <Link href={`/account/wallet?view=history&transaction=${id}#transaction-${id}`} className="font-bold underline">View wallet credit →</Link>;
+  return <Link href={walletSupportReturnHref(id, restoreLedgerView)} className="font-bold underline">View wallet credit →</Link>;
 }
 
 function ReceiptDetails({ request, timeZone }: { request: DemoFundingRequest; timeZone?: string }) {

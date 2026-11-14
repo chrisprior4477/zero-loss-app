@@ -89,7 +89,7 @@ test("native phone scrolling updates the current page and the chevrons", () => {
   fireEvent.scroll(rail);
   fireEvent(rail, new Event("scrollend"));
   expect(screen.getByText("3–4 of 4")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Next tickets" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Next tickets" }).getAttribute("aria-disabled")).toBe("true");
 });
 
 test("details copy full references and exact checkout amounts, then return focus on close", async () => {
@@ -156,7 +156,7 @@ test("the last page of three phone records shows one ticket without a repeated n
   fireEvent.click(screen.getByRole("button", { name: "Next tickets" }));
   expect(screen.getByText("3 of 3")).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Reward 3" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Next tickets" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Next tickets" }).getAttribute("aria-disabled")).toBe("true");
 });
 
 test('a winning reward opens a direct support form with its own reward reference and no purchase transaction',()=>{

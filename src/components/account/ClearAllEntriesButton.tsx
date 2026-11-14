@@ -15,13 +15,21 @@ export function ClearAllEntriesButton() {
   const [notice, setNotice] = useState("");
   const [pending, startTransition] = useTransition();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
+  const revision = useRef("");
   const requestKey = useRef<string | null>(null);
 
   useEffect(() => {
     if (entryCount !== null && !dialogRef.current?.open) dialogRef.current?.showModal();
-  }, [entryCount]);
+    if (entryCount === null && !pending && restoreFocus.current) {
+      restoreFocus.current = false;
+      trigger.current?.focus({ preventScroll: true });
+    }
+  }, [entryCount, pending]);
 
   function closeDialog() {
+    restoreFocus.current = true;
     dialogRef.current?.close();
     setEntryCount(null);
     requestKey.current = null;
@@ -36,6 +44,7 @@ export function ClearAllEntriesButton() {
         if (preview.status === "error") { setNotice(preview.message); return; }
         if (preview.entryCount === 0) { setNotice("There are no current demo entries to clear."); return; }
         requestKey.current = crypto.randomUUID();
+        revision.current = preview.revision;
         setEntryCount(preview.entryCount);
       } catch { setNotice("We couldn’t check your entries. Check your connection and try again. No reset was requested."); }
     });
@@ -45,8 +54,8 @@ export function ClearAllEntriesButton() {
     if (entryCount === null || !requestKey.current || uncertain) return;
     startTransition(async () => {
       try {
-        const result = await clearOwnDemoEntries(entryCount, requestKey.current!);
-        if (result.status === "error") { setNotice(result.message); setUncertain(true); return; }
+        const result = await clearOwnDemoEntries(entryCount, requestKey.current!, revision.current);
+        if (result.status === "error") { setNotice(result.message); if (result.stale) closeDialog(); else setUncertain(true); return; }
         closeDialog();
         setNotice(`${result.clearedCount} demo ${result.clearedCount === 1 ? "entry" : "entries"} cleared from your current activity. Your wallet and transaction history were not changed.`);
         router.refresh();
@@ -71,7 +80,7 @@ export function ClearAllEntriesButton() {
 
   return <>
     <div className={styles.control}>
-      <button type="button" className={styles.trigger} onClick={openConfirmation} disabled={pending}>
+      <button type="button" ref={trigger} className={styles.trigger} onClick={openConfirmation} disabled={pending}>
         {pending && entryCount === null ? "Checking entries…" : "Clear All Entries"}
       </button>
       {notice && entryCount === null ? <span className={styles.notice} role="status">{notice}</span> : null}

@@ -106,7 +106,11 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   }
   return <section id="payment-methods" hidden={!panelOpen} className={`${walletStyles.ticketPanel} ${walletStyles.funding} ${styles.panel}`} aria-label="Payment methods">
     {unavailable ? <p role="alert">Your saved payment methods couldn’t be loaded. Refresh before changing them.</p> : null}
-    {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onCancel={showMethods} onSaved={(card, source) => {
+    {editorToken ? <WalletCardEditor key={panelHash + editorToken} token={editorToken} savedCard={savedCard} displayName={displayName} disabled={!enabled || unavailable} onCancel={() => {
+      const target = isEdit ? `edit-saved-card-${editorToken}` : "wallet-add-card-trigger";
+      showMethods();
+      requestAnimationFrame(() => document.getElementById(target)?.focus());
+    }} onSaved={(card, source) => {
       if (source === "camera" || !isEdit || card.token !== editorToken) showMethods();
       acceptSavedCard(card);
     }} /> : <>
@@ -114,12 +118,12 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       {message ? <p role="status" className={styles.notice}>{message}</p> : null}
       <div id="payment-methods-controls">
       {!availableToken && enabled && !unavailable ? <p className={styles.notice}>All five sample cards are saved. Choose a saved card to edit.</p> : null}
-        <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>{availableToken ? "Add Card" : "Choose saved card"}</button><MobileCardCamera token={cameraToken} savedCard={cards.find(card => card.token === cameraToken)} displayName={displayName} disabled={!enabled || unavailable || busy} onSaved={acceptSavedCard} /></div>
+        <div className={`${styles.actions} ${styles.pairedActions} ${styles.cardEntryActions}`}><button type="button" id="wallet-add-card-trigger" className={styles.primary} disabled={!enabled || unavailable || busy} onClick={() => addCard()}>{availableToken ? "Add Card" : "Choose saved card"}</button><MobileCardCamera token={cameraToken} savedCard={cards.find(card => card.token === cameraToken)} displayName={displayName} disabled={!enabled || unavailable || busy} onSaved={acceptSavedCard} /></div>
       </div>
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
         <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} disabled={!enabled || unavailable || busy} onChange={event => void setDefault(card, event.target.checked)} />Use as my default payment method</label>
-        <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} onClick={() => openWalletPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={() => selectPreview(expanded === card.token ? undefined : card.token)}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => setDeleting(card.token)}>Delete Card</button></div>
+        <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} id={`edit-saved-card-${card.token}`} onClick={() => openWalletPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={() => selectPreview(expanded === card.token ? undefined : card.token)}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => setDeleting(card.token)}>Delete Card</button></div>
         <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
         {deleting === card.token ? <DeleteCardToast key={card.token} busy={busy} onUndo={() => setDeleting(null)} onDelete={() => void removeCard(card.token)} /> : null}
       </article>)}</div>

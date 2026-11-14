@@ -1,5 +1,5 @@
 import { marketplaceCategories } from "./navigation";
-import { getPopularRewardBrand } from "./popular-rewards";
+import { getPopularRewardBrand, popularRewardAmounts, popularRewardProductSlug } from "./popular-rewards";
 import { savedShareHref, shareUuid } from "../sharing/saved-shares";
 import { crewPickReturnPath } from "../crew/view-return";
 import { isEntryQuantity } from "../entries/quantity";
@@ -30,8 +30,11 @@ export function productBrowseReturnPath(value: unknown): string | null {
       || (share !== null && !shareUuid.test(share))) return null;
     return savedShareHref(share ?? undefined, url.searchParams.get("view") === "declined" ? "declined" : "available");
   }
-  const retailer = /^\/rewards\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(value);
-  if (retailer) return getPopularRewardBrand(retailer[1]) ? value : null;
+  const retailer = /^\/rewards\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:#prize-([a-z0-9]+(?:-[a-z0-9]+)*))?$/.exec(value);
+  if (retailer) {
+    const brand = getPopularRewardBrand(retailer[1]);
+    return brand && (!retailer[2] || popularRewardAmounts.some(amount => popularRewardProductSlug(brand.slug, amount) === retailer[2])) ? value : null;
+  }
   if (!/^\/browse(?:[?#]|$)/.test(value)) return null;
   try {
     const url = new URL(value, "https://zeroloss.local");

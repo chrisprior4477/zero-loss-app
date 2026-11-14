@@ -185,7 +185,7 @@ test("a saved pending request is visible without counting it as a confirmed entr
     quantity: 1, amountCents: 100, status: "pending" as const, duplicate: false, undoUntil: "2026-10-08T12:00:30Z", serverNow: "2026-10-08T12:00:00Z", href: null };
   render(<MyZeroLossActivity state={drawerState(true)} filter="all" pendingEntries={[pending]} />);
   expect(screen.getByText("Your entry is being confirmed")).toBeTruthy();
-  expect(screen.getByText(/Best Buy Gift Card is saved as a pending request/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Review pending entry.*Best Buy Gift Card/ })).toBeTruthy();
   expect(screen.getByRole("link", { name: /Review pending entry/ }).getAttribute("href")).toBe("/items/best-buy-100-gift-card#enter-entry");
   expect(screen.getByRole("link", { name: "See Open Entries0" })).toBeTruthy();
 });

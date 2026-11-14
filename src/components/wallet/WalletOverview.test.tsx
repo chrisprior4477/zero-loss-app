@@ -48,7 +48,7 @@ test("enabled preview wallet puts Add Card beside Add funds", () => {
   expect(screen.getByRole("article", { name: "Current balance" }).querySelector<HTMLAnchorElement>('a[href="#wallet-add-card"]')?.textContent).toBe("Add Card");
   expect(screen.getByRole("link", { name: "View payment methods" }).getAttribute("href")).toBe("#payment-methods");
   expect(screen.getByRole("form", { name: "Add funds" })).toBeTruthy();
-  expect(screen.getByRole("form", { name: "Add funds" }).querySelector("#add-funds")).toBeTruthy();
+  expect(document.querySelector("#add-funds h2")?.textContent).toBe("Add funds");
   expect(document.querySelectorAll("#add-funds")).toHaveLength(1);
   expect(screen.getByRole("button", { name: "Add funds" })).toBeTruthy();
   expect(screen.getByRole("article", { name: "Current balance" }).querySelector("button")?.textContent).toBe("Delete Funds");

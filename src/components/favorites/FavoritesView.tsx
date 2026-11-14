@@ -62,6 +62,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   // missing receipt cannot turn the remembered prize into a favorite.
   const selectedShare = selection?.shareId ? shares.find(share => share.id === selection.shareId) : null;
   const requestedShareUnavailable = Boolean(selection?.shareId && initialShares !== null && !selectedShare);
+  const detailHeading = useRef<HTMLHeadingElement>(null);
   const selectedSlug = selectedShare?.slug ?? (selection?.slug && slugs.includes(selection.slug) ? selection.slug : null);
   const [alertOverrides, setAlertOverrides] = useState<Record<string, boolean>>({});
   const alerts = useMemo(() => ({ ...initialAlerts, ...alertOverrides }), [initialAlerts, alertOverrides]);
@@ -145,8 +146,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       listPosition.current = savedListPosition(state);
       setTab(nextTab); setSharedView(nextView); setSelected(nextSelected); setMessage("");
       if (!restoreScroll) return;
-      if (nextSelected) revealHeading();
-      else if (previousPosition?.href === (nextTab === "shared" ? savedShareHref(undefined, nextView) : "/account/favorites")) {
+      if (!nextSelected && previousPosition?.href === (nextTab === "shared" ? savedShareHref(undefined, nextView) : "/account/favorites")) {
         restoreListPosition(previousPosition.target, previousPosition.top);
       }
     }
@@ -158,12 +158,22 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+  useLayoutEffect(() => {
+    if (!selectedSlug) return;
+    const frame = requestAnimationFrame(() => {
+      const heading = detailHeading.current;
+      if (!heading) return;
+      const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
+      heading.focus({ preventScroll: true });
+      window.scrollTo({ top: Math.max(0, window.scrollY + heading.getBoundingClientRect().top - header - 12), behavior: "instant" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedSlug, selectedShare?.id]);
   function openItem(slug: string, shareId?: string) {
     listPosition.current = { href: tab === "shared" ? savedShareHref(undefined, sharedView) : "/account/favorites", target: shareId ?? slug, top: window.scrollY };
     setSelected(shareId ? { shareId } : { slug }); setMessage("");
     // Keep the list in history; Next.js copies its router state into this entry.
     window.history.pushState({ zeroLossFavoritesReturn: listPosition.current }, "", shareId ? savedShareHref(shareId, sharedView) : `/account/favorites?item=${encodeURIComponent(slug)}`);
-    revealHeading();
     if (shareId) void setReceivedProductState(shareId, "viewed").then(result => applyShareResult(shareId, result, true))
       .catch(() => setMessage("The item is available, but its viewed status could not be saved."));
   }
@@ -237,7 +247,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, selectedShare.declinedAt ? "declined" : "available") : `/account/favorites?item=${detailProduct.slug}`)
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
-    <FavoritesLandingScroll enabled />
+    <FavoritesLandingScroll enabled={!selectedSlug} />
     <div className={styles.container}>
       <h1 id="saved-items-heading" className={styles.heading}>Favorites &amp; Sent to You</h1>
       <div ref={tabs} className={styles.tabs} role="tablist" aria-label="Saved items" onKeyDown={event => {
@@ -255,7 +265,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
           <article className={styles.detail}>
             {selectedShare ? sender(selectedShare) : null}{art(selectedSlug, true)}
             <div className={styles.detailBody}>
-              <p className={styles.merchant}>{detailProduct?.retailer ?? "Zero Loss"}</p><h2>{detailProduct?.title ?? selectedShare?.title ?? "Product unavailable"}</h2>
+              <p className={styles.merchant}>{detailProduct?.retailer ?? "Zero Loss"}</p><h2 tabIndex={-1} ref={detailHeading}>{detailProduct?.title ?? selectedShare?.title ?? "Product unavailable"}</h2>
               {selectedShare ? <span className={`${styles.badge} ${selectedShare.declinedAt ? styles.declined : ""}`}>{savedShareStatus(selectedShare)}</span> : null}
               {price(selectedSlug, true)}
               {detailHref && !selectedShare?.declinedAt ? <Link className={selectedShare ? styles.productLink : styles.entryButton} href={detailHref}>{selectedShare ? "Open prize details →" : `Enter for ${formatUsdFromCents(detailEntryPrice)}`}</Link> : null}

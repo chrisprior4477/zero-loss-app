@@ -14,7 +14,10 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
       const mobileBrowse = mobileBrowseKey && window.matchMedia?.("(max-width: 1023px)").matches;
       // A prefetched Browse URL can point to the results and the exact prize in one fragment.
       const anchors = window.location.hash.slice(1).split("#");
-      if (anchors.length > 1 && anchors.includes("search-results")) {
+      const footerAnchor = anchors.find(anchor => anchor === "ending-soon-search-input" || anchor === "browse-search-input");
+      if (anchors.length > 1 && footerAnchor && document.getElementById(footerAnchor)) {
+        window.history.replaceState(window.history.state, "", `#${footerAnchor}`);
+      } else if (anchors.length > 1 && anchors.includes("search-results")) {
         const prize = anchors.find(anchor => anchor.startsWith("prize-") && document.getElementById(anchor));
         if (prize || anchors.every(anchor => anchor === "search-results" || anchor.startsWith("prize-"))) {
           window.history.replaceState(window.history.state, "", `#${prize ?? "search-results"}`);

@@ -9,7 +9,7 @@ export function helpShortcuts(activity?: AccountActivity) {
   return [
     { label: rewards.length === 1 ? "Open my reward" : "My rewards", detail: rewards.length === 1 ? rewards[0].title : "Gift cards & prize details", href: rewards.length === 1 ? walletRewardHref(rewards[0]) : "/account/wallet", tone: "text-[#67ff42]" },
     { label: options.length === 1 ? "Review my purchase option" : "Purchase options", detail: options.length === 1 ? options[0].title : "See what you can complete", href: options.length === 1 ? activityHref(options[0], "/account/entries", "completion") : "/account/entries?filter=completion", tone: "text-[#ff9b62]" },
-    { label: "Wallet & transactions", detail: "Balance, funding & payment help", href: "/account/wallet?view=history", tone: "text-cyan-300" },
+    { label: "Wallet & transactions", detail: "Balance, funding & payment help", href: "/account/wallet?view=history#transactions", tone: "text-cyan-300" },
   ];
 }
 

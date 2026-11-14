@@ -328,7 +328,7 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
       </div> : null}
       <nav aria-label="Reward detail exits" className={styles.detailExitActions}>
         {item.rewardId ? <Link href={fulfillmentHref(item.rewardId, orderFilter)} className={styles.backToRewards}>View fulfillment status</Link> : null}
-        {orderFilter !== "all" ? <Link href={fulfillmentHref(undefined, orderFilter)} className={styles.backToRewards}>Return to {fulfillmentFilterLabel[orderFilter]}</Link> : null}
+        {orderFilter !== "all" ? <Link href={fulfillmentHref(undefined, orderFilter, false, item.rewardId ?? undefined)} className={styles.backToRewards}>Return to {fulfillmentFilterLabel[orderFilter]}</Link> : null}
         <Link href="/" className={styles.detailShoppingButton}>Continue shopping</Link>
         <Link href={walletReturnHref} className={styles.backToRewards}>Back to Gift Cards &amp; Rewards</Link>
       </nav>

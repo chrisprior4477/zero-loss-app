@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { recoverAuthForm } from "@/components/auth/recover-auth-form";
 import { changeAccountPasswordAction, type PasswordRecoveryState } from "@/lib/auth/actions";
 import { MIN_PASSWORD_LENGTH } from "@/lib/auth/validation";
@@ -37,10 +37,12 @@ function ChangePasswordForm({ onCancel }: { onCancel: () => void }) {
 
 export function ChangePasswordControl() {
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
 
   return <div className={styles.passwordControl}>
     <button
       type="button"
+      ref={trigger}
       className={styles.passwordToggle}
       aria-expanded={open}
       aria-controls="change-account-password-form"
@@ -51,6 +53,6 @@ export function ChangePasswordControl() {
       <span className={styles.rowText}><strong>Password</strong><small>Change your password</small></span>
       <span className={styles.passwordArrow} aria-hidden="true">{open ? "⌃" : "›"}</span>
     </button>
-    {open ? <ChangePasswordForm onCancel={() => setOpen(false)} /> : null}
+    {open ? <ChangePasswordForm onCancel={() => { setOpen(false); trigger.current?.focus(); }} /> : null}
   </div>;
 }

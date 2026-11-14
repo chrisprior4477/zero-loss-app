@@ -1,7 +1,7 @@
 "use client";
 
 import popupStyles from "@/components/layout/responsive-popup.module.css";
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTicketBatches } from "@/components/account/useTicketBatches";
 import { useMenuViewport } from "@/components/layout/useMenuViewport";
 import { DepositCreditLink, DepositReceiptDate } from "./WeeklyDeposits";
@@ -295,7 +295,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     }
   }, [state, storageKey, cardChoiceKey]);
   useEffect(() => {
-    if (state.status === "already_credited" || (state.status === "succeeded" && !continueTo?.href)) onSuccess(state.message);
+    if ((state.status === "already_credited" || state.status === "succeeded") && !continueTo?.href) onSuccess(state.message);
   }, [state, continueTo?.href, onSuccess]);
   function acceptSavedCard(card: DemoCard, fromCamera = false) {
     setCards(previous => [...previous.filter(item => item.token !== card.token).map(item => ({ ...item, isDefault: card.isDefault ? false : item.isDefault, isDepositDefault: card.isDepositDefault ? false : item.isDepositDefault })), card]);
@@ -332,8 +332,15 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
       {cardUnavailable ? <p role="alert" className={styles.cardMessage}>Your saved payment methods couldn’t be loaded. Refresh before adding funds.</p> : null}
       <p className={styles.cardMessage}>Only safe sample-card references are saved. You’ll confirm each deposit separately.</p>
     </section>;
-  if (editingCard) return <WalletCardEditor token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => { openWalletPanel("#add-funds", null, true); revealWalletSection("add-funds"); }} onSaved={card => acceptSavedCard(card)} />;
-  if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo && state.status === "succeeded" ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
+  if (editingCard) return <WalletCardEditor token={editingCard} savedCard={cards.find(card => card.token === editingCard)} displayName={displayName} depositLabel={amountIsValid ? formatUsdFromCents(Number(amount)) : "unfinished"} disabled={locked || cardUnavailable} onCancel={() => {
+    openWalletPanel("#add-funds", null, true);
+    requestAnimationFrame(() => {
+      const trigger = document.getElementById("funding-add-card-trigger");
+      trigger?.focus({ preventScroll: true });
+      if (trigger) revealWalletSection(trigger.id);
+    });
+  }} onSaved={card => acceptSavedCard(card)} />;
+  if (state.status === "succeeded" || state.status === "already_credited") return <div className="mt-5 space-y-3"><p role="status" className="text-sm leading-6 text-[#72ff9f]">{state.message}</p><div className="flex flex-wrap gap-3">{continueTo ? <Link href={fundedProductEntryHref(continueTo.href)} className="flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-4 text-sm font-extrabold text-[#002719]">{continueTo.label ?? "Continue your entry"} <span aria-hidden="true" className="ml-2">→</span></Link> : null}<button onClick={onNew} className="min-h-11 rounded-xl border border-cyan-300/40 px-4 text-sm font-bold text-cyan-300">Add more funds</button></div></div>;
   return <form id="funding-payment" action={action} onSubmit={event => {
     if (!recoveryOnly && (!approved || !selectedToken || !amountIsValid || pending || (cardUnavailable && !recovered) || (blocked && state.status === "idle"))) {
       event.preventDefault();
@@ -356,10 +363,10 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     {continueTo ? <input type="hidden" name="returnTo" value={continueTo.href} /> : null}
     {!recoveryOnly && !desktop && cardPanel}
     {cardMessage ? <p role="status" className={styles.cardMessage}>{cardMessage}</p> : null}
-    <div id="add-funds" className={styles.fundingAmountSection}>
+    <div id={continueTo ? "add-funds" : "funding-amount"} className={styles.fundingAmountSection}>
       {continueTo?.entryQuantity ? <p className="mb-3 text-sm font-bold text-[#153354]">{continueTo.shortfallCents === 0 ? "Your wallet now covers this entry selection." : continueTo.depositCents ? `Add ${formatUsdFromCents(continueTo.depositCents)} to cover ${continueTo.entryQuantity} ${continueTo.entryQuantity === 1 ? "entry" : "entries"}. You can choose a larger deposit.` : `Add funds for your ${continueTo.entryQuantity} selected ${continueTo.entryQuantity === 1 ? "entry" : "entries"}.`} <Link href={continueTo.href} className="underline">{continueTo.label ?? "Back to this prize"}</Link>. Confirm your entries separately.</p> : null}
       {continueTo?.label === "Back to purchase option" ? <p className="mb-3 text-sm font-bold text-[#153354]">Add funds to complete your purchase. You’ll return to the same purchase option to confirm it.</p> : null}
-      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
+      {!recoveryOnly ? <div className={styles.addCardActions}><button type="button" id="funding-add-card-trigger" className={styles.addCardShortcut} disabled={locked || cardUnavailable} onClick={() => addCard()}>{allSamplesSaved ? "Choose saved card" : "Add Card"}</button><MobileCardCamera token={cameraToken} savedCard={cameraCard} displayName={displayName} disabled={locked || cardUnavailable} onSaved={cameraSaved} /></div> : null}
       {!recoveryOnly ? <FundingCardPicker tokens={visibleTokens} value={selectedToken} disabled={locked || cardUnavailable} onChange={chooseDepositCard} /> : null}
       <div className={styles.fundingAmounts}>
       <WalletRollerPicker id="demo-funding-amount" label="Amount (USD)" placeholder="Choose an amount" options={presetChoices}
@@ -573,8 +580,21 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
     });
     return () => cancelAnimationFrame(frame);
   }, [end, focusId, focusIndex, receipt]);
+  const nextRow = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (!nextRow.current) return;
+    const row = document.getElementById(nextRow.current);
+    if (!row) return;
+    nextRow.current = null;
+    if (!desktop && listRef.current) listRef.current.scrollTop += row.getBoundingClientRect().top - listRef.current.getBoundingClientRect().top;
+    row.focus({ preventScroll: true });
+    const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
+    window.scrollTo({ top: Math.max(0, window.scrollY + row.getBoundingClientRect().top - header - 12), behavior: "instant" });
+  }, [desktop, end, listRef]);
   const twoColumns = desktop && end > 3;
   const controls = { ...(desktop ? { remaining: count - end, expanded: allDeposits && count > 6 } : batches), close, listId: "wallet-deposit-list", noun: "deposits", more: () => {
+    const firstNewRequest = displayRequests?.[end];
+    if (firstNewRequest) nextRow.current = `deposit-row-${firstNewRequest.id}`;
     if (desktop) setAllDeposits(true);
     else batches.more();
     remember(desktop ? batches.start : batches.end, batches.size, desktop || allDeposits, receipt);
@@ -583,7 +603,7 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusR
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
       : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>
-      : <><TicketBatchControls {...controls} top />{twoColumns && <WalletColumnHeadings />}<ul id={controls.listId} tabIndex={-1} ref={listRef} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(end / 2)}, auto)` } : undefined} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, end).map(request => <li key={request.id} id={`deposit-row-${request.id}`} className="p-4">
+      : <><TicketBatchControls {...controls} top />{twoColumns && <WalletColumnHeadings />}<ul id={controls.listId} tabIndex={-1} ref={listRef} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(end / 2)}, auto)` } : undefined} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, end).map(request => <li key={request.id} id={`deposit-row-${request.id}`} tabIndex={-1} className="p-4">
         <details className={styles.depositMeta} open={receipt === request.id} onToggle={event => {
           const isOpen = event.currentTarget.open;
           if (!isOpen && receipt !== request.id) return;

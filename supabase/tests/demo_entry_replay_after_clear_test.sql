@@ -48,7 +48,7 @@ select is((select count(*)::integer from public.customer_rewards r
   where e.offering_slug = 'replay-after-clear-test'), 0,
   'ordinary closed pool creates no customer winner reward');
 
-select is(public.clear_own_demo_entries(1, 'replay_clear_request_01')->>'clearedCount',
+select is(public.clear_own_demo_entries(1, 'replay_clear_request_01', public.get_demo_entry_reset_preview()->>'revision')->>'clearedCount',
   '1', 'Clear All Entries removes the saved entry from current activity');
 select is((select count(*)::integer from jsonb_array_elements(public.get_account_activity())),
   0, 'cleared purchase option disappears from My Activity');

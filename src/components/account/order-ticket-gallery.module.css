@@ -53,7 +53,7 @@
 .paging { display: flex; justify-content: space-between; align-items: center; min-height: 44px; gap: 10px; margin-top: 10px; color: #c4dff2; font-size: 12px; }
 .paging > div { display: flex; gap: 8px; }
 .paging button { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: #c8efff; color: #163c5c; cursor: pointer; }
-.paging button:disabled { opacity: .35; cursor: default; }
+.paging button:disabled, .paging button[aria-disabled="true"] { opacity: .35; cursor: default; }
 .paging button:first-child svg { transform: rotate(180deg); }
 .paging svg { width: 19px; height: 19px; }
 .detailsLayer { position: fixed; top: var(--gallery-top); left: var(--gallery-left); width: var(--gallery-width); height: var(--gallery-height); z-index: 40; background: #09274944; }

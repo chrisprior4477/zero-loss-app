@@ -64,7 +64,7 @@ export function FaqExplorer() {
   }}>
     <div className={`${styles.ticket} ${styles.panel}`}>
       <label htmlFor="faq-search" className="block text-lg font-extrabold">What do you need help with?</label>
-      <div className={styles.searchRow}><div className={`${styles.ticket} ${styles.field}`}><input id="faq-search" type="search" maxLength={200} value={query} onChange={event => changeQuery(event.target.value)} placeholder="Try ‘undo’, ‘gift card’, or ‘password’" aria-controls="faq-results" /></div>{searching ? <button type="button" onClick={() => changeQuery("")} className={`${styles.ticket} ${styles.button}`}>Clear</button> : null}</div>
+      <div className={styles.searchRow}><div className={`${styles.ticket} ${styles.field}`}><input id="faq-search" type="search" maxLength={200} value={query} onChange={event => changeQuery(event.target.value)} placeholder="Try ‘undo’, ‘gift card’, or ‘password’" aria-controls="faq-results" /></div>{searching ? <button type="button" onClick={() => { changeQuery(""); document.getElementById("faq-search")?.focus(); }} className={`${styles.ticket} ${styles.button}`}>Clear</button> : null}</div>
       <p className={`mt-2 text-xs leading-5 ${styles.muted}`}>Answers update as you type. No search button or extra page.</p>
     </div>
     <div aria-label="Question topics" className={styles.topics}>{faqCategories.map(([key, label]) => <button key={key} type="button" aria-controls="faq-results" aria-pressed={category === key} onClick={() => changeCategory(key)} className={`${styles.ticket} ${styles.button}`}>{label}</button>)}</div>

@@ -30,8 +30,8 @@ test("clearing demo history passes expected balance and idempotency key to the o
     : { data: { hiddenCount: 3, clearedCents: "2500" }, error: null });
   const key = "stable_demo_history_reset_01";
   expect(await clearDemoWalletHistory("deposits", 2500, key)).toEqual({ status: "succeeded", hiddenCount: 3, clearedCents: 2500 });
-  expect(mock.rpc).toHaveBeenCalledWith("clear_demo_wallet_history", {
-    p_kind: "deposits", p_expected_balance_cents: 2500, p_request_key: key,
+  expect(mock.rpc).toHaveBeenCalledWith("clear_reviewed_demo_deposits", {
+    p_expected_balance_cents: 2500, p_request_key: key,
   });
   expect(mock.revalidate).toHaveBeenCalledWith("/", "layout");
 });

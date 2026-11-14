@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isPreviewDataEnvironment } from "@/lib/preview/environment";
 import { parseWalletSnapshot } from "@/lib/wallet/snapshot";
 
-type Preview = { status: "ready"; entryCount: number } | { status: "error"; message: string };
-type Result = { status: "succeeded"; clearedCount: number } | { status: "error"; message: string };
+type Preview = { status: "ready"; entryCount: number; revision: string } | { status: "error"; message: string };
+type Result = { status: "succeeded"; clearedCount: number } | { status: "error"; message: string; stale?: boolean };
 
 async function authorizedDemoAccount() {
   if (!isPreviewDataEnvironment()) throw new Error("Demo entry reset is unavailable here.");
@@ -30,14 +30,15 @@ export async function previewDemoEntryReset(): Promise<Preview> {
     if (data?.pending === true) return { status: "error", message: "Wait for your pending entry countdown to finish, then try again." };
     const entryCount = Number(data?.entryCount);
     if (!Number.isSafeInteger(entryCount) || entryCount < 0) throw new Error("Your demo entry count could not be verified.");
-    return { status: "ready", entryCount };
+    if (typeof data?.revision !== "string" || !/^[0-9a-f]{64}$/.test(data.revision)) throw new Error("Your demo entry list could not be verified.");
+    return { status: "ready", entryCount, revision: data.revision };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "Unable to check demo entries." };
   }
 }
 
-export async function clearOwnDemoEntries(expectedCount: number, requestKey: string): Promise<Result> {
-  if (!Number.isSafeInteger(expectedCount) || expectedCount < 1 || !/^[A-Za-z0-9_-]{16,128}$/.test(requestKey)) {
+export async function clearOwnDemoEntries(expectedCount: number, requestKey: string, revision: string): Promise<Result> {
+  if (!Number.isSafeInteger(expectedCount) || expectedCount < 1 || !/^[0-9a-f]{64}$/.test(revision) || !/^[A-Za-z0-9_-]{16,128}$/.test(requestKey)) {
     return { status: "error", message: "Invalid reset request. Please try again." };
   }
   try {
@@ -45,8 +46,9 @@ export async function clearOwnDemoEntries(expectedCount: number, requestKey: str
     const { data, error } = await db.rpc("clear_own_demo_entries", {
       p_expected_count: expectedCount,
       p_request_key: requestKey,
+      p_expected_revision: revision,
     });
-    if (error) return { status: "error", message: error.code === "P0001"
+    if (error) return { status: "error", stale: error.code === "40001", message: ["P0001", "40001"].includes(error.code)
       ? error.message
       : "Your demo entries could not be cleared. Refresh and try again." };
     const clearedCount = Number(data?.clearedCount);

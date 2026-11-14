@@ -26,6 +26,6 @@ test("clearing deposits requires a second confirmation and refreshes only after 
   fireEvent.click(screen.getByRole("button", { name: "Delete All Demo Deposits" }));
   await waitFor(() => expect(screen.getByRole("dialog", { name: "Delete All Demo Deposits?" })).toBeTruthy());
   fireEvent.click(screen.getByRole("dialog").querySelector("button:last-child")!);
-  await waitFor(() => expect(clearDemoWalletHistory).toHaveBeenCalledWith("deposits", 2500, expect.any(String)));
+  await waitFor(() => expect(clearDemoWalletHistory).toHaveBeenCalledWith("deposits", 2500, expect.any(String), undefined));
   await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
 });

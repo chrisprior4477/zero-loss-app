@@ -60,9 +60,15 @@ export const getNotificationSnapshot = cache(async () => {
       // The reset already archives entries, orders and ledger records atomically.
       // This one-time account notice otherwise survives every demo reset.
       .filter(notification => !resetAt || notification.id !== "account-email-confirmed")];
-  const { data: readRows, error: readError } = await db.from("customer_notification_reads")
-    .select("notification_id").eq("customer_id", account.userId)
-    .in("notification_id", notifications.map((notification) => notification.id));
+  const notificationIds = [...new Set(notifications.map(notification => notification.id))];
+  const readBatches = [];
+  for (let start = 0; start < notificationIds.length; start += 100) {
+    readBatches.push(db.from("customer_notification_reads").select("notification_id")
+      .eq("customer_id", account.userId).in("notification_id", notificationIds.slice(start, start + 100)));
+  }
+  const readResults = await Promise.all(readBatches);
+  const readRows = readResults.flatMap(result => result.data ?? []);
+  const readError = readResults.some(result => result.error);
 
   // Claim/purchase completion is already persisted by the authoritative account
   // action. Derive acknowledgement from that record, including older rewards.

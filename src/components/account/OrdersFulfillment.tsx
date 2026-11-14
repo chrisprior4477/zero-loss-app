@@ -14,7 +14,7 @@ import styles from "./orders-fulfillment.module.css";
 
 type OrdersOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function OrdersFulfillment({ state, overview, filter = "all", selectedRewardId, selectedOrderNumber, fromNotification = false, openSelectionDetails = false, supportHref = walletTransactionHelpHref, supportUnavailable = false }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; selectedRewardId?: string; selectedOrderNumber?: string; fromNotification?: boolean; openSelectionDetails?: boolean; supportHref?: string; supportUnavailable?: boolean }) {
+export function OrdersFulfillment({ state, overview, filter = "all", focusRewardId, selectedRewardId, selectedOrderNumber, fromNotification = false, openSelectionDetails = false, supportHref = walletTransactionHelpHref, supportUnavailable = false }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; focusRewardId?: string; selectedRewardId?: string; selectedOrderNumber?: string; fromNotification?: boolean; openSelectionDetails?: boolean; supportHref?: string; supportUnavailable?: boolean }) {
   const chooseTransaction = supportHref === walletTransactionHelpHref;
   const supportLabel = chooseTransaction ? "Choose a transaction to report" : "Report a problem with this order";
   const fulfillment = accountFulfillment(state, overview?.activity ?? { source: "unavailable", isPreview: false, activeCount: null, activity: [] });
@@ -53,6 +53,8 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
       <header className={styles.heading}>
         <div><p>YOUR ACCOUNT</p><h1>Orders &amp; Fulfillment</h1><span>Your winning rewards and purchased gift cards, connected to My Activity and your wallet.</span></div>
         <nav aria-label="Order page actions" className={styles.headingActions}>
+          {/* The full navigation preserves the exact order-updates landing during reload. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           {fromNotification ? <a href="/account/notifications?filter=orders#notification-tickets-filters"><AccountIcon name="bell" />Back to order updates</a>
             : <Link href="/account/notifications"><AccountIcon name="bell" />Notifications</Link>}
           <Link href={supportHref}><AccountIcon name="security" />{supportLabel}</Link>
@@ -91,7 +93,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
               <p role="status">Some fulfillment records could not be verified right now. The records below are available, and totals may be incomplete.</p>
               <OrdersRetryButton label={retryLabel} />
             </div> : null}
-            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} filter={filter} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
+            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} filter={filter} initialAnchorId={focusRewardId} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
           </> : !selectionComplete ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
             <h3>{selectedOrderNumber ? "We couldn’t load this order right now" : selectedRewardId ? "We couldn’t load this reward right now" : filter === "exceptions" ? "We couldn’t load Exceptions right now" : "Fulfillment unavailable"}</h3>

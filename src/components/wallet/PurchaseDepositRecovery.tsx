@@ -17,9 +17,9 @@ import styles from "./wallet-overview.module.css";
 import paymentStyles from "./wallet-payments.module.css";
 
 /** Select only from the server's owner-scoped receipts, including older receipts. */
-export function PurchaseDepositRecovery({ requestKey, requests, wallet, continueTo, fundingEnabled, timeZone, fromDeposits = false }: {
+export function PurchaseDepositRecovery({ requestKey, requests, wallet, continueTo, fundingEnabled, timeZone, fromDeposits = false, restoreLedgerView = false }: {
   requestKey: string; requests: DemoFundingRequest[] | null; wallet: WalletSnapshot | null;
-  continueTo?: FundingContinuation; fundingEnabled: boolean; timeZone?: string; fromDeposits?: boolean;
+  continueTo?: FundingContinuation; fundingEnabled: boolean; timeZone?: string; fromDeposits?: boolean; restoreLedgerView?: boolean;
 }) {
   const router = useRouter();
   const [checking, startChecking] = useTransition();
@@ -36,7 +36,7 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
       {continueTo && <p>{continueTo.title}</p>}
       {credited ? <DepositReceipt amount={credited.amount} date={date} tone="ready"
         status={"Deposit credited to your wallet. Current balance: " + usd(credited.balance) + "." + (isPurchase ? " Confirm your purchase separately." : "")}>
-        {request && <DepositCreditLink request={request} />}
+        {request && <DepositCreditLink request={request} restoreLedgerView={restoreLedgerView} />}
         {continueTo ? <ContinueAfterDeposit destination={continueTo} />
           : isPurchase ? <Link href="/account/entries?filter=completion" className={paymentStyles.secondary}>View your purchase options</Link>
             : !fromDeposits && <Link href="/account/wallet?view=history#transactions" className={paymentStyles.secondary}>View wallet history</Link>}

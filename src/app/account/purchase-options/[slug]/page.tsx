@@ -41,6 +41,15 @@ export default async function PurchaseOptionsPage({ params, searchParams }: { pa
       const title = account.activity.activity.find(item => item.slug === slug)?.title ?? "Your purchase";
       return <CompletedPurchaseReceipt title={title} totalCents={result.totalCents} cardReady={result.cardReady} href={result.href} />;
     }
+    return <main className={styles.page}><section className={styles.shell} aria-labelledby="purchase-receipt-check">
+      <h1 id="purchase-receipt-check">Check this purchase</h1>
+      <p>{result.status === "not_found" ? "No saved receipt was found for this purchase." : "We couldn’t verify this purchase yet."}</p>
+      <div className={styles.topActions}>
+        <a href={returnPath} className={styles.shopping}>Check again</a>
+        {result.status === "not_found" ? <Link href={prizePath} className={styles.return}>Review current offers</Link> : null}
+        <Link href="/account/entries?filter=completed" className={styles.return}>Completed purchases</Link>
+      </div>
+    </section></main>;
   }
   if (account.activity.source === "unavailable") {
     return <section className={styles.page} aria-labelledby="offers-unavailable-title">

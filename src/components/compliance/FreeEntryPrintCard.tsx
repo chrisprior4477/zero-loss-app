@@ -34,6 +34,7 @@ type Props = { offeringTitle: string; offeringSlug: string; intro?: ReactNode; f
 export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer, initialLegalName = "", initialAccountReference = "" }: Props) {
   const [name, setName] = useState(initialLegalName);
   const [accountReference, setAccountReference] = useState(initialAccountReference);
+  const postcard = useRef<HTMLDivElement>(null);
   const [addressSide, setAddressSide] = useState(true);
   const [demoNoteVisible, setDemoNoteVisible] = useState(false);
   const [printPreview, setPrintPreview] = useState(false);
@@ -99,7 +100,7 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
 
     <div className="print:hidden mt-5 flex items-center justify-between gap-3 text-sm text-white/60"><span>Tap the postcard to see both sides.</span><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-full border border-cyan-300/30 px-3 py-1 font-bold text-cyan-300 transition hover:border-cyan-200 hover:bg-cyan-300/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-label={`Show ${addressSide ? "entry" : "address"} side of postcard`}>{addressSide ? "Address side" : "Entry side"}</button></div>
 
-    <div role="button" tabIndex={0} onClick={() => setAddressSide((side) => !side)} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setAddressSide((side) => !side); } }} className="relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] cursor-pointer text-left [container-type:inline-size] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 print:pointer-events-none print:mt-0 print:max-w-none" aria-label={`Show ${addressSide ? "entry" : "address"} side of postcard`}>
+    <div ref={postcard} role="button" tabIndex={0} onClick={() => setAddressSide((side) => !side)} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setAddressSide((side) => !side); } }} className="relative mx-auto mt-4 block aspect-[3/2] w-full max-w-[720px] cursor-pointer text-left [container-type:inline-size] focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300 print:pointer-events-none print:mt-0 print:max-w-none" aria-label={`Show ${addressSide ? "entry" : "address"} side of postcard`}>
       <div className="amo-postcard-artwork">
         <span className={`absolute inset-0 block transition-transform duration-700 [transform-style:preserve-3d] motion-reduce:duration-0 ${addressSide ? "[transform:rotateY(180deg)]" : ""}`}>
           <span aria-hidden={addressSide} style={{ backgroundImage: "url('/catalog/zero-loss-marketplace-postcard-front-v1.png')" }} className="absolute inset-0 block overflow-hidden border border-white bg-cover bg-center text-white shadow-[0_28px_70px_rgba(0,0,0,.38)] [backface-visibility:hidden] print:shadow-none">
@@ -130,7 +131,16 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       </div>
     </div>
 
-    <div className="print:hidden mt-5 grid gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 sm:grid-cols-[auto_auto_1fr] sm:items-center"><button type="button" ref={printTrigger} onClick={openPrintPreview} className="rounded-xl bg-[#00b9ff] px-5 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">Print entry insert</button><button type="button" onClick={() => setAddressSide((side) => !side)} className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/8">Flip postcard</button><p className="text-xs leading-5 text-white/60"><strong className="text-white">How to use it:</strong> Print on standard 8.5 × 11 paper, cut around the dotted line, and securely attach the insert to a standard postcard. Protect the paper from moisture where practical, but leave the Zero Loss barcode, mailing address, postal barcode area, and stamp uncovered. After an approved AMOE request is received and validated, Zero Loss will send a confirmation email.</p></div>
+    <div className="print:hidden mt-5 grid gap-4 rounded-2xl border border-white/12 bg-white/5 p-4 sm:grid-cols-[auto_auto_1fr] sm:items-center"><button type="button" ref={printTrigger} onClick={openPrintPreview} className="rounded-xl bg-[#00b9ff] px-5 py-3 font-extrabold text-[#00132e] hover:bg-cyan-200">Print entry insert</button><button type="button" onClick={() => {
+      setAddressSide(side => !side);
+      requestAnimationFrame(() => {
+        const card = postcard.current;
+        if (!card) return;
+        const header = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
+        card.focus({ preventScroll: true });
+        window.scrollTo({ top: Math.max(0, window.scrollY + card.getBoundingClientRect().top - header - 12), behavior: "instant" });
+      });
+    }} className="rounded-xl border border-white/20 px-5 py-3 font-bold text-white hover:bg-white/8">Flip postcard</button><p className="text-xs leading-5 text-white/60"><strong className="text-white">How to use it:</strong> Print on standard 8.5 × 11 paper, cut around the dotted line, and securely attach the insert to a standard postcard. Protect the paper from moisture where practical, but leave the Zero Loss barcode, mailing address, postal barcode area, and stamp uncovered. After an approved AMOE request is received and validated, Zero Loss will send a confirmation email.</p></div>
 
     <div className="amo-print-sheet" aria-hidden="true">
       <section className="amo-print-insert">

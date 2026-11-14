@@ -22,8 +22,10 @@ import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
 import { depositRequestKeyPattern } from "@/lib/payments/provider";
 
-export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, fromDeposits, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone }: {
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, fromDeposits, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone, restoreLedgerView, hiddenProducts }: {
   timeZone?: string;
+  restoreLedgerView?: boolean;
+  hiddenProducts?: ReadonlySet<string>;
   displayName?: string;
   initialSection?: "methods" | "card";
   wallet: WalletSnapshot | null;
@@ -77,7 +79,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Gift Cards &amp; Rewards</Link><Link href="#balance" aria-current="page">Funds &amp; history</Link></nav>
       </header>
 
-      {recoveryKey && <PurchaseDepositRecovery key={recoveryKey} requestKey={recoveryKey} requests={requests} wallet={wallet} continueTo={returnToProduct} fundingEnabled={fundingEnabled} timeZone={timeZone} fromDeposits={fromDeposits} />}
+      {recoveryKey && <PurchaseDepositRecovery key={recoveryKey} requestKey={recoveryKey} requests={requests} wallet={wallet} continueTo={returnToProduct} fundingEnabled={fundingEnabled} timeZone={timeZone} fromDeposits={fromDeposits} restoreLedgerView={restoreLedgerView} />}
 
       <section className={styles.summaryGrid} aria-label="Wallet summary">
         <article id="balance" className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance">
@@ -114,14 +116,14 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         <div className={styles.sectionHeading}><div><h2 id="transactions-heading" tabIndex={-1}>Transaction history</h2><p>Posted activity from this account’s ledger.</p></div></div>
         {demo && demoHistoryVisibility === null ? <p role="alert" className={styles.alert}>Demo history controls are unavailable right now. Refresh to try again; your financial records are still safe.</p> : null}
         {selectedTransaction?.requested && !selected ? <p role="status" className={styles.alert}>That transaction could not be opened for this account. Your available history is shown below.</p> : null}
-        {selected && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selected.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger timeZone={timeZone} compact entries={[selected]} activity={activity?.activity} selectedId={selected.id} depositsByLedgerId={depositsByLedgerId} /></section> : null}
+        {selected && !(ledgerEntries ?? wallet?.entries)?.some(entry => entry.id === selected.id) ? <section aria-label="Selected older transaction" className={styles.olderTransaction}><h3>Selected transaction · older than your recent history</h3><WalletLedger timeZone={timeZone} compact entries={[selected]} activity={activity?.activity} selectedId={selected.id} depositsByLedgerId={depositsByLedgerId} hiddenProducts={hiddenProducts} /></section> : null}
         {!wallet ? <div role="alert" className={styles.alert}>We couldn’t load your wallet. Balance and transaction history are unavailable. Refresh to try again.</div> : <WalletLedger key={selected?.id ?? "history"} walletId={wallet.walletAccountId ?? undefined} timeZone={timeZone} entries={ledgerEntries ?? wallet.entries} activity={activity?.source === "unavailable" ? [] : activity?.activity} totalCount={wallet.transactionCount} selectedId={selected?.id} hiddenIds={demoHistoryVisibility?.ledgerEntryIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} depositsByLedgerId={depositsByLedgerId} />}
         {wallet && !ledgerEntries && wallet.transactionCount > wallet.entries.length ? <p className={styles.finePrint}>Only the latest {wallet.entries.length} transactions could be loaded. Refresh to try the full history again. Balance includes all posted transactions.</p> : null}
       </section>
 
       <WalletPaymentMethods walletId={wallet?.walletAccountId ?? undefined} initialSection={initialSection} savedCards={savedCards ?? (savedCard ? [savedCard] : undefined)} displayName={displayName} enabled={canFund} unavailable={cardUnavailable} />
 
-      <section id={canFund && !recoveryKey ? undefined : "add-funds"} className={`${styles.ticketPanel} ${styles.funding} ${demo ? styles.fundingDashboard : ""}`} aria-labelledby="funding-heading">
+      <section id={canFund && !recoveryKey && returnToProduct ? undefined : "add-funds"} className={`${styles.ticketPanel} ${styles.funding} ${demo ? styles.fundingDashboard : ""}`} aria-labelledby="funding-heading">
         <div className={styles.fundingBody}>
         <div className={styles.sectionHeading}><div><h2 id="funding-heading">Add funds</h2><p>{canFund ? "Choose an amount and confirm your preview deposit." : "Add playable balance when funding is available for your account."}</p></div><span className={styles.fundingBadge}>{demo ? "Demo payment" : "Funding"}</span></div>
         {returnToProduct && !recoveryKey ? <div className={styles.fundingReturn}><p>{returnToProduct.label === "Back to purchase option" && canFund ? <>Add funds to complete your purchase of {returnToProduct.title}. After your deposit, you’ll return to confirm the purchase.</> : returnToProduct.title}</p><Link href={returnToProduct.href}>{returnToProduct.label ?? "Back to this prize"} <span aria-hidden="true">→</span></Link></div> : null}

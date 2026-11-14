@@ -58,7 +58,7 @@ export default async function LiveAccountSection({
   searchParams,
 }: {
   params: Promise<{ section: string }>;
-  searchParams?: Promise<{ filter?: string | string[]; rewardId?: string | string[]; order?: string | string[]; support?: string | string[]; details?: string | string[]; from?: string | string[] }>;
+  searchParams?: Promise<{ filter?: string | string[]; rewardId?: string | string[]; focusReward?: string | string[]; order?: string | string[]; support?: string | string[]; details?: string | string[]; from?: string | string[] }>;
 }) {
   const { section } = await params;
   if (!(section in liveSections)) notFound();
@@ -102,7 +102,7 @@ export default async function LiveAccountSection({
     const filter = fulfillmentFilter(query?.filter);
     const reportHref = filter === "all" ? supportHref : supportHref.replace("#report-problem", `&orderFilter=${filter}#report-problem`);
     if (query?.support === "report" && selectedOrder && supportHref !== walletTransactionHelpHref) redirect(query.details === "1" ? reportHref.replace("#report-problem", "&from=order&details=1#report-problem") : reportHref);
-    return <OrdersFulfillment state={account.orders} filter={filter} selectedRewardId={selectedRewardId} selectedOrderNumber={selectedOrderNumber} fromNotification={Boolean(selectedOrderNumber && query?.from === "notifications")} openSelectionDetails={query?.details === "1" && query.support !== "report"} supportHref={reportHref} supportUnavailable={query?.support === "report" && Boolean(selectedOrder) && supportHref === walletTransactionHelpHref} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
+    return <OrdersFulfillment state={account.orders} filter={filter} focusRewardId={typeof query?.focusReward === "string" ? query.focusReward : undefined} selectedRewardId={selectedRewardId} selectedOrderNumber={selectedOrderNumber} fromNotification={Boolean(selectedOrderNumber && query?.from === "notifications")} openSelectionDetails={query?.details === "1" && query.support !== "report"} supportHref={reportHref} supportUnavailable={query?.support === "report" && Boolean(selectedOrder) && supportHref === walletTransactionHelpHref} overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }} />;
   }
 
   return (

@@ -62,7 +62,7 @@ function icon(entry: LedgerEntryRow): { name: AccountIconName; tone: string } {
   return { name: "layers", tone: "adjustment" };
 }
 
-export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
+export function WalletLedger({ entries, activity = [], selectedId, compact = false, totalCount, hiddenIds = noHiddenIds, canResetDemoHistory = false, hideArchived = false, timeZone = "America/New_York", walletId, depositsByLedgerId, hiddenProducts }: { entries: LedgerEntryRow[]; activity?: readonly ActivityItem[]; selectedId?: string; compact?: boolean; totalCount?: number; hiddenIds?: string[]; canResetDemoHistory?: boolean; hideArchived?: boolean; timeZone?: string; walletId?: string; hiddenProducts?: ReadonlySet<string>; depositsByLedgerId?: ReadonlyMap<string, { requestKey: string; amount: number }> }) {
   const desktop = useMenuViewport() === "desktop";
   const [filter, setFilter] = useState<LedgerFilter>("all");
   const [query, setQuery] = useState("");
@@ -220,6 +220,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
     window.history.replaceState({ ...window.history.state, [ledgerReturnKey]: saved }, "");
     const transactionId = new URL(anchor.href).searchParams.get("transaction");
     if (anchor.hasAttribute("data-wallet-support") && transactionId) rememberLedgerSupportReturn(saved, transactionId);
+    if (anchor.hasAttribute("data-wallet-deposit") && row?.id.startsWith("transaction-")) rememberLedgerSupportReturn(saved, row.id.slice("transaction-".length));
   }
   function applySearch(next: string) {
     cancelVoice();
@@ -306,7 +307,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
       {twoColumns && <WalletColumnHeadings />}
       <ul id={compact ? undefined : controls.listId} ref={compact ? undefined : listRef} className={compact ? undefined : styles.transactionPage} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(visible.length / 2)}, auto)` } : undefined} aria-label={compact ? undefined : "Transaction tickets"} tabIndex={-1} onClickCapture={rememberView}>{visible.map(entry => { const [title, detail] = description(entry); const artwork = icon(entry);
         const links = transactionLinks(entry, activity);
-        const productHref = entry.product?.slug ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
+        const productHref = entry.product?.slug && !hiddenProducts?.has(entry.product.slug) ? `/items/${encodeURIComponent(entry.product.slug)}` : undefined;
         const deposit = entry.entry_type === "DEPOSIT" ? depositsByLedgerId?.get(entry.id) : undefined;
         const preserveView = !compact && Boolean(walletId);
         const supportHref = `/support?transaction=${encodeURIComponent(entry.id)}${entry.entry_type === "PURCHASE_DEBIT" ? "&from=wallet" : ""}${preserveView ? "&walletView=1" : ""}`;
@@ -331,7 +332,7 @@ export function WalletLedger({ entries, activity = [], selectedId, compact = fal
             <div>{links.map((link, index) => <Link key={link.id} href={link.href}>Entry {index + 1} · {link.label}<AccountIcon name="arrow" /></Link>)}</div>
           </details> : null}
           {productHref ? <Link href={productHref} className={styles.productAction}>View product</Link> : null}
-          {deposit && deposit.amount === entry.amount ? <Link href={depositRecoveryHref(deposit.requestKey)} prefetch={false}>View deposit receipt<AccountIcon name="arrow" /></Link> : null}
+          {deposit && deposit.amount === entry.amount ? <Link href={depositRecoveryHref(deposit.requestKey, false, preserveView)} data-wallet-deposit={preserveView || undefined} prefetch={false}>View deposit receipt<AccountIcon name="arrow" /></Link> : null}
           <Link href={supportHref} data-wallet-support={preserveView || undefined} className={styles.supportAction} aria-label="Report a problem">Report a problem</Link>
         </div>
       </li>; })}</ul>

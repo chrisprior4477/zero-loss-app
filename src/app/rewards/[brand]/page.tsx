@@ -37,7 +37,7 @@ export default async function RewardBrandPage({ params }: Props) {
           {amounts.map((amount) => {
             const slug = popularRewardProductSlug(brand.slug, amount);
             const open = !hidden.has(slug);
-            const cardClass = "rounded-3xl border border-white/15 bg-white/6 p-4";
+            const cardClass = "scroll-mt-40 rounded-3xl border border-white/15 bg-white/6 p-4";
             const card = <>
               <div className="relative aspect-[8/5] overflow-hidden rounded-2xl bg-white p-2 sm:p-3">
                 <Image src={brand.imagePath} alt={`${brand.name} gift card`} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-contain p-2 sm:p-3" />
@@ -49,8 +49,8 @@ export default async function RewardBrandPage({ params }: Props) {
               </div>
             </>;
             return open ? (
-              <Link key={amount} href={`${productHrefWithBrowseReturn(slug, `/rewards/${brand.slug}`)}#enter-entry`} className={`${cardClass} group transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300`}>{card}</Link>
-            ) : <article key={amount} className={cardClass}>{card}</article>;
+              <Link key={amount} id={`prize-${slug}`} href={`${productHrefWithBrowseReturn(slug, `/rewards/${brand.slug}#prize-${slug}`)}#enter-entry`} className={`${cardClass} group transition hover:-translate-y-1 hover:border-cyan-300/70 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300`}>{card}</Link>
+            ) : <article key={amount} id={`prize-${slug}`} className={cardClass}>{card}</article>;
           })}
         </section>
 

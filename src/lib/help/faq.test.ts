@@ -34,6 +34,7 @@ test("question matches rank before incidental mentions and common apostrophes wo
 
 test("common wallet questions return relevant help in ordinary language", () => {
   expect(filterFaqs("Can I get my money back?", "all")[0]?.id).toBe("withdrawals");
+  expect(filterFaqs("refunds", "all").some(item => item.id === "withdrawals")).toBe(true);
   expect(filterFaqs("Where can I see my wallet transactions?", "all")[0]?.id).toBe("wallet-history");
 });
 

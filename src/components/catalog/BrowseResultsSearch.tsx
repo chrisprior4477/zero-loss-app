@@ -30,7 +30,8 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
     if (term) url.searchParams.set("q", term); else url.searchParams.delete("q");
     // A new search starts at the first batch, retaining the shopper's filters.
     url.searchParams.delete("batch");
-    router.push(`${url.pathname}${url.search}#${anchor}`, { scroll: false });
+    const destination = `${url.pathname}${url.search}#${anchor}`;
+    router.push(destination, { scroll: false });
     if (term === searchTerm) document.getElementById(anchor)?.scrollIntoView?.({ block: "start" });
   }
   return <Session.Provider value={{ draft, setDraft, applied: searchTerm, editor, setEditor, search, voice, endingSoon }}>{children}</Session.Provider>;

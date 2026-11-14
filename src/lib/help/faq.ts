@@ -164,9 +164,14 @@ const faqFiller = new Set(["a", "an", "are", "can", "could", "do", "does", "how"
 export function filterFaqs(query: string, category: FaqCategory): FaqItem[] {
   const normalize = (value: string) => value.toLocaleLowerCase("en-US").replaceAll("’", "'").replaceAll("can't", "cannot");
   const normalized = normalize(query).replace(/[^a-z0-9\s-]/g, " ").replace(/\b(?:get\s+)?(?:my\s+)?money\s+back\b/g, "refund");
-  const words = normalized.trim().split(/\s+/).filter(word => word && !faqFiller.has(word));
-  const questionScore = (item: FaqItem) => words.filter(word => normalize(item.question).includes(word)).length;
+  const words = normalized.trim().split(/[\s-]+/).filter(word => word && !faqFiller.has(word));
+  const singular = (word: string) => word.length > 3 && !word.endsWith("ss") ? word.replace(/ies$/, "y").replace(/(?<!u)s$/, "") : word;
+  const matches = (value: string, word: string) => {
+    const text = normalize(value);
+    return text.includes(word) || (text.match(/[a-z0-9]+/g) ?? []).some(token => singular(token) === singular(word));
+  };
+  const questionScore = (item: FaqItem) => words.filter(word => matches(item.question, word)).length;
   return faqItems.filter(item => (category === "all" || item.category === category) && words.every(word =>
-    normalize(`${item.question} ${item.answer} ${item.keywords}`).includes(word)))
+    matches(`${item.question} ${item.answer} ${item.keywords}`, word)))
     .sort((left, right) => questionScore(right) - questionScore(left));
 }

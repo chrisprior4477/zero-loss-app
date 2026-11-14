@@ -104,16 +104,29 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
     if (!checkoutOpen) return;
     // Compact reviews sit in the middle of the usable screen. The pending
     // receipt retains its direct landing below the header.
+    let first = 0;
     let second = 0;
-    const first = requestAnimationFrame(() => { second = requestAnimationFrame(() => {
+    let width = window.innerWidth;
+    const align = (focus: boolean) => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+      first = requestAnimationFrame(() => { second = requestAnimationFrame(() => {
       if (!checkout.current || document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       const headerBottom = Math.max(0, document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0);
       const bounds = checkout.current.getBoundingClientRect();
-      checkout.current.focus({ preventScroll: true });
+      if (focus) checkout.current.focus({ preventScroll: true });
       window.scrollTo({ top: Math.max(0, window.scrollY + bounds.top - accountLandingTop(headerBottom, window.visualViewport?.height ?? window.innerHeight, bounds.height, checkout.current.dataset.landingAlign === "center")), behavior: "instant" });
-    }); });
-    return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
-  }, [checkoutOpen, receipt?.requestId, receipt?.status]);
+      }); });
+    };
+    const onResize = () => {
+      if (window.innerWidth === width) return;
+      width = window.innerWidth;
+      if (reviewing) align(false);
+    };
+    align(true);
+    window.addEventListener("resize", onResize);
+    return () => { window.removeEventListener("resize", onResize); cancelAnimationFrame(first); cancelAnimationFrame(second); };
+  }, [checkoutOpen, receipt?.requestId, receipt?.status, reviewing]);
 
   useEffect(() => { initializeSampleCrewPreview(); }, []);
   useEffect(() => {

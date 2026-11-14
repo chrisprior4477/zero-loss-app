@@ -54,10 +54,12 @@ test("a category hash navigation works on the existing browse page and stops for
 test.each([
   ["/browse?batch=2#prize-new", "prize-new"],
   ["/browse?category=gift-cards#browse-search-input", "browse-search-input"],
+  ["/browse?sort=ending-soon#search-results#ending-soon-search-input", "ending-soon-search-input"],
 ])("browse lands keyboard focus at the selected destination %s", (url, focusId) => {
   window.history.replaceState(null, "", url);
   render(<><article tabIndex={-1} id="prize-new" /><h2 id="browse-search-again">Search again</h2>
-    <input id="browse-search-input" /><SearchResultsAutoScroll searchKey={url} /></>);
+    <input id="browse-search-input" /><h2 id="ending-soon-search-again">Search Ending Soon</h2>
+    <input id="ending-soon-search-input" /><SearchResultsAutoScroll searchKey={url} /></>);
   act(() => vi.runAllTimers());
   expect(document.activeElement?.id).toBe(focusId);
 });

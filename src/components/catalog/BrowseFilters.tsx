@@ -28,6 +28,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const department = subcategory || marketplaceCategories.find(category => category.id === selectedCategory)?.label || selectedRetailerGroup?.category;
   const scope = [filters.retailer, department].filter(Boolean).join(" in ");
   const selectingByKeyboard = useRef(false);
+  const applyingPreset = useRef(false);
   const [searchDraft, setSearchDraft] = useState(searchTerm);
   const [searchFocused, setSearchFocused] = useState(false);
   const directoryMatches = searchFocused ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
@@ -62,8 +63,10 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
     } else if (["25", "50", "75", "100"].includes(valueMode)) {
       params.set("maxValue", valueMode);
     }
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const filtersOnly = applyingPreset.current || submitter?.hasAttribute("data-apply-filters");
     for (const key of ["category", "q", "subcategory", "partnerCategory", "type", "retailer", "available", "sort"]) {
-      const value = data.get(key)?.toString().trim() ?? "";
+      const value = key === "q" && filtersOnly ? searchTerm : data.get(key)?.toString().trim() ?? "";
       if (value && !(key === "type" && value === "all") && !(key === "sort" && value === "featured" && selectedCategory !== "ending-soon")) params.set(key, value);
     }
     const mobileDrawer = form.closest("details");
@@ -83,7 +86,11 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         if ((target instanceof HTMLInputElement || target instanceof HTMLSelectElement)
           && !(target instanceof HTMLInputElement && target.type === "radio" && selectingByKeyboard.current)
           && !["q", "minValue", "maxValue"].includes(target.name)
-          && (target.name === "valueMode" ? target.value !== "custom" : mode !== "custom")) event.currentTarget.requestSubmit();
+          && (target.name === "valueMode" ? target.value !== "custom" : mode !== "custom")) {
+          applyingPreset.current = true;
+          try { event.currentTarget.requestSubmit(); }
+          finally { applyingPreset.current = false; }
+        }
       }} className="space-y-5 rounded-2xl border border-cyan-300/25 bg-[#0d2b50] p-4 text-white shadow-[0_12px_30px_rgba(0,0,0,.14)]">
       {selectedCategory ? <input type="hidden" name="category" value={selectedCategory} /> : null}
       {subcategory ? <input type="hidden" name="subcategory" value={subcategory} /> : null}
@@ -161,7 +168,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
           </label>)}
         </div>
       </fieldset>
-      <button type="submit" className="min-h-11 w-full rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">Apply filters</button>
+      <button type="submit" data-apply-filters className="min-h-11 w-full rounded-xl bg-cyan-300 px-4 py-2 text-sm font-black text-[#00132e] hover:bg-cyan-200">Apply filters</button>
       <Link href={clearHref} onClick={event => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         setMode("all");

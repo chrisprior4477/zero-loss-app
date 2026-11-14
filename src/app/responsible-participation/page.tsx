@@ -35,7 +35,7 @@ export default function ResponsibleParticipationPage() {
             <li>Decide on a time and money limit in advance and stop when either is reached.</li>
             <li>Do not treat a gift-card outcome or purchase option as a way to recover losses.</li>
             <li>Pause notifications, leave the site, and talk with someone you trust if participation feels hard to control.</li>
-            <li>Check <Link className={legalCopy.link} href="/account/entries">My Activity</Link> and <Link className={legalCopy.link} href="/account/wallet">Wallet & Transactions</Link> for a clear view of your demo history.</li>
+            <li>Check <Link className={legalCopy.link} href="/account/entries">My Activity</Link> and <Link className={legalCopy.link} href="/account/wallet?view=history#transactions">Wallet & Transactions</Link> for a clear view of your demo history.</li>
           </ul>
         </LegalSection>
         <LegalSection id="pause" title="Ask Zero Loss for a pause or account closure">

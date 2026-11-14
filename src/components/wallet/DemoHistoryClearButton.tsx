@@ -16,14 +16,22 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
   const [checkingReset, setCheckingReset] = useState(false);
   const [pending, startTransition] = useTransition();
   const dialog = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
+  const revision = useRef<string | undefined>(undefined);
   const requestKey = useRef<string | null>(null);
   const label = kind === "transactions" ? "Clear All Demo Transactions" : "Delete All Demo Deposits";
 
   useEffect(() => {
     if (balanceCents !== null && !dialog.current?.open) dialog.current?.showModal();
-  }, [balanceCents]);
+    if (balanceCents === null && !pending && restoreFocus.current) {
+      restoreFocus.current = false;
+      trigger.current?.focus({ preventScroll: true });
+    }
+  }, [balanceCents, pending]);
 
   function close() {
+    restoreFocus.current = true;
     dialog.current?.close();
     setBalanceCents(null);
     setCheckingReset(false);
@@ -37,6 +45,7 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
         const preview = await previewDemoHistoryClear(kind);
         if (preview.status === "error") { setNotice(preview.message); return; }
         requestKey.current = crypto.randomUUID();
+        revision.current = preview.revision;
         setBalanceCents(preview.balanceCents);
       } catch { setNotice("Unable to check demo history. Refresh and try again."); }
     });
@@ -47,12 +56,13 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
     startTransition(async () => {
       try {
         const result = checkingReset ? await checkDemoHistoryReset(kind, requestKey.current!)
-          : await clearDemoWalletHistory(kind, balanceCents, requestKey.current!);
+          : await clearDemoWalletHistory(kind, balanceCents, requestKey.current!, revision.current);
         if (result.status === "not_found") {
           setNotice("No completed reset was found yet. Check again before starting a new reset.");
           return;
         }
         if (result.status === "error") {
+          if (result.stale) close();
           if (result.uncertain) setCheckingReset(true);
           setNotice(result.message);
           return;
@@ -71,7 +81,7 @@ export function DemoHistoryClearButton({ kind }: { kind: DemoHistoryKind }) {
 
   return <>
     <div className={styles.control} data-kind={kind}>
-      <button type="button" className={styles.trigger} onClick={open} disabled={pending}>
+      <button type="button" ref={trigger} className={styles.trigger} onClick={open} disabled={pending}>
         {pending && balanceCents === null ? "Checking demo history…" : label}
       </button>
       {notice && balanceCents === null ? <p role="status" className={styles.notice}>{notice}</p> : null}
