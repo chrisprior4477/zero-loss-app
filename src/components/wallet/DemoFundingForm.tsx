@@ -128,6 +128,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
   const policyInput = useRef<HTMLInputElement>(null);
   const [approved, setApproved] = useState(false);
   const [reviewNotice, setReviewNotice] = useState("");
+  const reviewStorageKey = `${storageKey}:unsubmitted-review:${returnHref ?? "wallet"}`;
   const reviewDetails = JSON.stringify([amount, selectedToken, makeDefault, cardUnavailable]);
   const [lastReviewDetails, setLastReviewDetails] = useState(reviewDetails);
   // Pending starts only after React has captured the approved FormData.
@@ -150,12 +151,43 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
   }
   function openConfirmation() {
     if (!amountIsValid || (!recoveryOnly && selectedToken === null) || pending || (locked && !recovered) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")) return;
+    if (!recovered && state.status === "idle") try {
+      sessionStorage.setItem(reviewStorageKey, JSON.stringify({ amountCents: Number(amount), custom: Boolean(customAmount), token: selectedToken, saved: cards.some(card => card.token === selectedToken), url: window.location.href }));
+    } catch { /* The review still works without tab storage. */ }
     clearConfirmation();
     confirmation.current?.showModal();
     policyInput.current?.focus();
   }
   const beforePaymentError = state.status === "error" && state.beforePayment === true;
   const locked = !ready || pending || (!beforePaymentError && (recovered || state.status !== "idle"));
+  const restoredReview = useRef(false);
+  useEffect(() => {
+    if (restoredReview.current || locked || blocked || cardUnavailable || !confirmation.current) return;
+    restoredReview.current = true;
+    if (window.location.hash === fundingEditorHash) return;
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(reviewStorageKey) ?? "null");
+      if (!draft || draft.url !== window.location.href || !isFundingAmount(draft.amountCents) || draft.amountCents % 100 !== 0) return;
+      const token = demoCardFixture(draft.token)?.token;
+      // Read tab-only draft state once after hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAmount(String(draft.amountCents));
+      setCustomAmount(draft.custom === true ? String(draft.amountCents / 100) : "");
+      if (!token || !visibleTokens.includes(token) || (draft.saved === true && !cards.some(card => card.token === token))) {
+        sessionStorage.removeItem(reviewStorageKey);
+        setSelectedToken(null);
+        setCardMessage("Your previous card is no longer available. Choose a card to review this deposit.");
+        return;
+      }
+      setSelectedToken(token);
+      confirmation.current.showModal();
+      policyInput.current?.focus();
+    } catch { /* The deposit can still be reviewed normally. */ }
+  }, [blocked, cardUnavailable, cards, fundingEditorHash, locked, reviewStorageKey, visibleTokens]);
+  function discardReview() {
+    try { sessionStorage.removeItem(reviewStorageKey); } catch { /* The dialog still closes. */ }
+    clearConfirmation();
+  }
   const [lastSavedCards, setLastSavedCards] = useState(savedCards);
   if (!locked && savedCards && savedCards !== lastSavedCards) {
     setLastSavedCards(savedCards);
@@ -310,7 +342,9 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     // Save BEFORE sending. A reload/lost reply must reuse this logical payment.
     onStart();
     try { sessionStorage.setItem(storageKey, JSON.stringify({ key: requestKey, amount, awaitingReceipt: true, createdAt: new Date().toISOString(), destination: continueTo?.href,
-      ...(recoveryOnly ? {} : { paymentMethod: selectedToken, makeDefault }) })); } catch { /* Owner-scoped pending requests remain in the database. */ }
+      ...(recoveryOnly ? {} : { paymentMethod: selectedToken, makeDefault }) }));
+      sessionStorage.removeItem(reviewStorageKey);
+    } catch { /* Owner-scoped pending requests remain in the database. */ }
   }} className={styles.fundingForm} aria-label="Add funds">
     <input type="hidden" name="walletId" value={walletId} />
     <input type="hidden" name="idempotencyKey" value={requestKey} />
@@ -349,7 +383,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
     {!locked && !amountIsValid ? <p id="funding-amount-error" role="alert" className={styles.fundingAmountError}>Use whole dollars only, such as $50. Enter at least $1; decimal amounts are not accepted.</p> : null}
     {showWholeDollarNotice ? <WholeDollarToast onClose={() => closeWholeDollarNotice()} onSave={() => closeWholeDollarNotice(true)} /> : null}
     <button type={recoveryOnly ? "submit" : "button"} onClick={recoveryOnly ? undefined : openConfirmation} disabled={pending || !amountIsValid || (!recoveryOnly && selectedToken === null) || (cardUnavailable && !recovered) || (blocked && state.status === "idle")} className={`${styles.fundingSubmit} ${!recovered && state.status === "idle" ? styles.fundingSubmitAdd : ""}`}>{pending ? "Checking payment…" : beforePaymentError ? "Confirm deposit again" : recovered || state.status !== "idle" ? "Retry same request" : "Add funds"}</button>
-    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={clearConfirmation} onCancel={event => { if (pending) event.preventDefault(); else clearConfirmation(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
+    {!recoveryOnly ? <dialog ref={confirmation} aria-labelledby="confirm-funding-title" onClose={discardReview} onCancel={event => { if (pending) event.preventDefault(); else discardReview(); }} className={`${styles.confirmationTicket} ${popupStyles.dialog} m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto p-6 text-white shadow-2xl backdrop:bg-[#001027]/80`}>
       <p className="text-xs font-black uppercase tracking-widest text-cyan-300">Secure deposit confirmation</p>
       <h2 id="confirm-funding-title" className="mt-3 text-2xl font-extrabold">Add {formatUsdFromCents(Number(amount))} to your balance?</h2>
       <p className="mt-2 text-sm text-[#b5cce4]">{selectedToken ? `${demoCardFixture(selectedToken)?.issuer} •••• ${demoCardFixture(selectedToken)?.lastFour} · USD · Simulation only` : "Your selected card was removed. Cancel and choose another card."}</p>
@@ -357,7 +391,7 @@ function FundingAttempt({ requestKey, walletId, ready, reviewOnMount, blocked, o
       <p className="mt-4 text-sm leading-6">Deposits stay in your Zero Loss balance and cannot normally be withdrawn. Exceptional refund requests are reviewed separately. This does not limit your rights for unauthorized charges or payment errors.</p>
       <label className="mt-4 flex items-start gap-3 text-sm leading-6"><input ref={policyInput} name="fundingPolicy" type="checkbox" value="funding-confirmation-v1" checked={approved} onChange={event => setApproved(event.target.checked)} required disabled={pending || !selectedToken || (cardUnavailable && !recovered)} className="mt-1 h-5 w-5 shrink-0 accent-[#31e800]" />I confirm this amount and understand how deposited funds can be used.</label>
       {state.status !== "idle" ? <p role="alert" className="mt-3 text-sm leading-6 text-amber-100">{state.message}</p> : null}
-      <div className="mt-5 flex flex-wrap gap-3"><button type="button" disabled={pending} onClick={() => { clearConfirmation(); confirmation.current?.close(); }} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending || !approved || !selectedToken || (cardUnavailable && !recovered)} className="min-h-12 flex-[2] rounded-xl bg-[#31e800] px-4 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
+      <div className="mt-5 flex flex-wrap gap-3"><button type="button" disabled={pending} onClick={() => { discardReview(); confirmation.current?.close(); }} className="min-h-12 flex-1 rounded-xl border border-cyan-300/40 px-4 font-bold disabled:opacity-60">Cancel</button><button disabled={pending || !approved || !selectedToken || (cardUnavailable && !recovered)} className="min-h-12 flex-[2] rounded-xl bg-[#31e800] px-4 font-extrabold text-[#002719] disabled:opacity-60">{pending ? "Verifying deposit…" : `Confirm ${formatUsdFromCents(Number(amount))} deposit`}</button></div>
       <p className="mt-3 text-xs leading-5 text-[#b5cce4]">No real money is charged. This simulated deposit requires your signed-in account and the confirmation above.</p>
     </dialog> : null}
     {recovered && !beforePaymentError ? <p className="text-xs leading-5 text-amber-100">An earlier request was saved on this device. Retrying checks that payment; it does not create another one.</p> : null}
@@ -483,7 +517,7 @@ export function DemoFundingForm({ requestKey, blocked = false, requests = noRequ
   </>;
 }
 
-export function DemoFundingRequests({ walletId, requests, fundingEnabled, hiddenIds = [], hideArchived = false, canResetDemoHistory = false, timeZone }: { walletId?: string; requests: DemoFundingRequest[] | null; fundingEnabled: boolean; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean; timeZone?: string }) {
+export function DemoFundingRequests({ walletId, requests, fundingEnabled, focusRequest, hiddenIds = [], hideArchived = false, canResetDemoHistory = false, timeZone }: { walletId?: string; requests: DemoFundingRequest[] | null; fundingEnabled: boolean; focusRequest?: string; hiddenIds?: string[]; hideArchived?: boolean; canResetDemoHistory?: boolean; timeZone?: string }) {
   const [showArchived, setShowArchived] = useState(false);
   const desktop = useMenuViewport() === "desktop";
   const [allDeposits, setAllDeposits] = useState(false);
@@ -501,27 +535,44 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, hidden
     document.getElementById("payment-deposits")?.scrollIntoView?.({ block: "start", behavior: "auto" });
   }
   const hidden = new Set(hiddenIds);
-  const visibleRequests = showArchived && !hideArchived ? requests : requests?.filter(request => !hidden.has(request.id));
+  const returningToArchived = !hideArchived && requests?.some(request => request.idempotencyKey === focusRequest && hidden.has(request.id));
+  const [dismissedArchiveReturn, setDismissedArchiveReturn] = useState<string>();
+  const includeArchived = (showArchived || Boolean(returningToArchived && dismissedArchiveReturn !== focusRequest)) && !hideArchived;
+  const visibleRequests = includeArchived ? requests : requests?.filter(request => !hidden.has(request.id));
   const displayRequests = desktop && visibleRequests ? [...visibleRequests].sort((a, b) =>
     Date.parse(b.postedAt ?? b.created_at) - Date.parse(a.postedAt ?? a.created_at) || b.id.localeCompare(a.id)) : visibleRequests;
   const count = displayRequests?.length ?? 0;
+  const focusIndex = focusRequest ? (displayRequests?.findIndex(request => request.idempotencyKey === focusRequest) ?? -1) : -1;
+  const focusId = focusIndex < 0 ? null : displayRequests![focusIndex].id;
   const { list: listRef, ...batches } = useTicketBatches<HTMLUListElement>(count, 5, 0, desktop ? "pages" : "fit");
   const restoreRange = batches.restoreRange;
   useEffect(() => {
-    if (!viewKey) return;
     try {
-      const saved = JSON.parse(sessionStorage.getItem(viewKey) ?? "null");
-      if (!saved) return;
-      if (Number.isSafeInteger(saved.start) && saved.start >= 0 && Number.isSafeInteger(saved.size) && saved.size > 0) {
-        restoreRange(saved.start, saved.size);
-      }
-      // Hydrate the tab's receipt view after the server render.
+      const saved = viewKey ? JSON.parse(sessionStorage.getItem(viewKey) ?? "null") : null;
+      const start = Number.isSafeInteger(saved?.start) && saved.start >= 0 ? saved.start : 0;
+      const size = Number.isSafeInteger(saved?.size) && saved.size > 0 ? saved.size : 5;
+      if (saved || focusId) restoreRange(focusIndex >= 0 && (focusIndex < start || focusIndex >= start + size) ? focusIndex : start, size);
+      if (!saved && !focusId) return;
+      // The requested row takes precedence over a previous disclosure in this tab.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAllDeposits(saved.all === true);
-      setReceipt(typeof saved.receipt === "string" ? saved.receipt : null);
+      setAllDeposits(saved?.all === true || (desktop && focusIndex >= 6));
+      setReceipt(focusId ?? (typeof saved?.receipt === "string" ? saved.receipt : null));
     } catch { /* Use the first batch. */ }
-  }, [viewKey, restoreRange]);
+  }, [viewKey, restoreRange, focusId, focusIndex, desktop]);
   const end = desktop ? Math.min(count, allDeposits ? count : 6) : batches.end;
+  const focusedRow = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusId) { focusedRow.current = null; return; }
+    if (focusIndex >= end || receipt !== focusId || focusedRow.current === focusId) return;
+    const frame = requestAnimationFrame(() => {
+      const row = document.getElementById(`deposit-row-${focusId}`);
+      if (!row) return;
+      focusedRow.current = focusId;
+      row.scrollIntoView?.({ block: "nearest", behavior: "instant" });
+      revealWalletSection(row.id);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [end, focusId, focusIndex, receipt]);
   const twoColumns = desktop && end > 3;
   const controls = { ...(desktop ? { remaining: count - end, expanded: allDeposits && count > 6 } : batches), close, listId: "wallet-deposit-list", noun: "deposits", more: () => {
     if (desktop) setAllDeposits(true);
@@ -532,7 +583,7 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, hidden
     <p className="mt-2 text-sm text-[#b5cce4]">Deposits are separate from posted ledger credits. Check an interrupted deposit here.</p>
     {requests === null ? <p role="alert" className="mt-3 text-sm text-amber-100">Payment status unavailable. Don’t start another payment until this can be checked.</p>
       : displayRequests?.length === 0 ? <p className="mt-3 text-sm text-[#b5cce4]">{hiddenIds.length ? hideArchived ? "Your demo payment-deposit history has been reset." : "No payment deposits in this demo view. Archived deposits can be viewed below." : "No payment deposits yet."}</p>
-      : <><TicketBatchControls {...controls} top />{twoColumns && <WalletColumnHeadings />}<ul id={controls.listId} tabIndex={-1} ref={listRef} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(end / 2)}, auto)` } : undefined} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, end).map(request => <li key={request.id} className="p-4">
+      : <><TicketBatchControls {...controls} top />{twoColumns && <WalletColumnHeadings />}<ul id={controls.listId} tabIndex={-1} ref={listRef} data-columns={twoColumns ? 2 : 1} style={twoColumns ? { gridTemplateRows: `repeat(${Math.ceil(end / 2)}, auto)` } : undefined} className={`${batchStyles.rows} mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#06223d]`}>{displayRequests?.slice(0, end).map(request => <li key={request.id} id={`deposit-row-${request.id}`} className="p-4">
         <details className={styles.depositMeta} open={receipt === request.id} onToggle={event => {
           const isOpen = event.currentTarget.open;
           if (!isOpen && receipt !== request.id) return;
@@ -543,13 +594,13 @@ export function DemoFundingRequests({ walletId, requests, fundingEnabled, hidden
         }}>
           <summary><DepositReceiptDate request={request} timeZone={timeZone} /><span className="sr-only"> · Request number</span></summary>
           <p>Request {request.id}</p><DepositCreditLink request={request} />
-          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey)} className="font-bold underline">View deposit receipt</Link></p>}
+          {request.reconciliation === "reconciled" && <p><Link href={depositRecoveryHref(request.idempotencyKey, true)} className="font-bold underline">View deposit receipt</Link></p>}
         </details>
         <p className={`${styles.depositAmounts} flex flex-wrap justify-between gap-2 text-sm font-bold text-white`}><span>{formatUsdFromCents(request.amount)} USD</span><span data-reconciliation={request.reconciliation}>{({ reconciled: "Payment & credit matched", credit_pending: "Payment received · credit pending", not_processed: "Request saved · not processed", discrepancy: "Needs review" })[request.reconciliation]}</span></p>
         {request.reconciliation === "discrepancy" ? <p role="alert" className="mt-2 text-xs text-amber-100">This payment needs operator review. Do not make another payment to correct it. <Link href={depositSupportHref(request.idempotencyKey)} className="font-bold text-[#075b8c] underline">Contact Support</Link></p> : fundingEnabled && request.reconciliation !== "reconciled" ? <Link href={depositRecoveryHref(request.idempotencyKey)} className={paymentStyles.secondary}>Check this deposit</Link> : null}
       </li>)}</ul></>}
     <TicketBatchControls {...controls} />
     {requests && canResetDemoHistory && requests.some(request => !hidden.has(request.id)) ? <DemoHistoryClearButton kind="deposits" /> : null}
-    {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setShowArchived(value => !value); setAllDeposits(false); setReceipt(null); batches.reset(); remember(0, 5, false, null); }} aria-expanded={showArchived}>{showArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
+    {!hideArchived && hiddenIds.length > 0 ? <button type="button" className={styles.archiveToggle} onClick={() => { setDismissedArchiveReturn(focusRequest); setShowArchived(!includeArchived); setAllDeposits(false); setReceipt(null); batches.reset(); remember(0, 5, false, null); }} aria-expanded={includeArchived}>{includeArchived ? "Hide archived demo deposits" : `View archived demo deposits (${hiddenIds.length})`}</button> : null}
   </section>;
 }

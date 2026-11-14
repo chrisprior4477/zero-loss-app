@@ -17,9 +17,9 @@ import styles from "./wallet-overview.module.css";
 import paymentStyles from "./wallet-payments.module.css";
 
 /** Select only from the server's owner-scoped receipts, including older receipts. */
-export function PurchaseDepositRecovery({ requestKey, requests, wallet, continueTo, fundingEnabled, timeZone }: {
+export function PurchaseDepositRecovery({ requestKey, requests, wallet, continueTo, fundingEnabled, timeZone, fromDeposits = false }: {
   requestKey: string; requests: DemoFundingRequest[] | null; wallet: WalletSnapshot | null;
-  continueTo?: FundingContinuation; fundingEnabled: boolean; timeZone?: string;
+  continueTo?: FundingContinuation; fundingEnabled: boolean; timeZone?: string; fromDeposits?: boolean;
 }) {
   const router = useRouter();
   const [checking, startChecking] = useTransition();
@@ -39,7 +39,7 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
         {request && <DepositCreditLink request={request} />}
         {continueTo ? <ContinueAfterDeposit destination={continueTo} />
           : isPurchase ? <Link href="/account/entries?filter=completion" className={paymentStyles.secondary}>View your purchase options</Link>
-            : <Link href="/account/wallet?view=history#transactions" className={paymentStyles.secondary}>View wallet history</Link>}
+            : !fromDeposits && <Link href="/account/wallet?view=history#transactions" className={paymentStyles.secondary}>View wallet history</Link>}
       </DepositReceipt> : request?.reconciliation === "discrepancy" ? <DepositReceipt amount={request.amount} date={date} tone="review"
         status="This deposit needs review. Contact Support before adding more funds.">
         <Link href={depositSupportHref(requestKey)} className={paymentStyles.secondary}>Contact Support</Link>
@@ -51,6 +51,7 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
             : "This deposit is not confirmed yet. Check its status before adding more funds."}>
         <button type="button" className={paymentStyles.primary} disabled={checking} onClick={() => startChecking(() => router.refresh())}>{checking ? "Checking…" : "Check this deposit"}</button>
       </DepositReceipt>}
+      {fromDeposits && <Link href={`/account/wallet?view=history&panel=deposits&depositRow=${encodeURIComponent(requestKey)}#payment-deposits`} className={paymentStyles.secondary}>Back to Payment deposits</Link>}
     </div>
   </section>;
 }

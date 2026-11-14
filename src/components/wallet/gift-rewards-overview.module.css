@@ -90,7 +90,8 @@
 .message p + p { margin-top: 10px; }
 .returnActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
 .returnActions a { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 10px; padding: 12px 20px; border-radius: 10px; background: #b7e8ff; color: #09203b; font-size: 14px; font-weight: 800; text-align: center; }
-.returnActions a:last-child { background: #32e800; }
+.returnActions:not([data-reward-view="expired"]) a:last-child,
+.returnActions[data-reward-view="expired"] a:first-child { background: #32e800; }
 .returnActions svg { width: 19px; height: 19px; flex-shrink: 0; }
 .empty h3 { color: #0a1741; font-size: 18px; font-weight: 850; }
 .empty p { margin-top: 5px; }

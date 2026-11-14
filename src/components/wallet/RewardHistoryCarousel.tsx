@@ -1,15 +1,22 @@
 "use client";
 
-import { useRef, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import styles from "./gift-rewards-overview.module.css";
 
 type Drag = { pointerId: number; startX: number; startY: number; scrollLeft: number; moved: boolean };
 
 /** Add mouse dragging to the compact carousel; touch and keyboard scrolling stay native. */
-export function RewardHistoryCarousel({ children }: { children: ReactNode }) {
+export function RewardHistoryCarousel({ children, focusRow }: { children: ReactNode; focusRow?: string }) {
+  const railRef = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const suppressClick = useRef(false);
   const settlingTarget = useRef<number | null>(null);
+  useEffect(() => {
+    const rail = railRef.current;
+    const row = focusRow && document.getElementById(focusRow);
+    if (!rail || !row || !rail.contains(row)) return;
+    rail.scrollTo?.({ left: rail.scrollLeft + row.getBoundingClientRect().left - rail.getBoundingClientRect().left, behavior: "instant" });
+  }, [focusRow]);
 
   function restoreSnap(rail: HTMLDivElement) {
     settlingTarget.current = null;
@@ -42,7 +49,7 @@ export function RewardHistoryCarousel({ children }: { children: ReactNode }) {
     if (reducedMotion || alreadySettled) restoreSnap(rail);
   }
 
-  return <div className={styles.historyTable} role="group" aria-roledescription="carousel" aria-label="Reward cards" tabIndex={0}
+  return <div ref={railRef} className={styles.historyTable} role="group" aria-roledescription="carousel" aria-label="Reward cards" tabIndex={0}
     onPointerDown={event => {
       suppressClick.current = false;
       const rail = event.currentTarget;

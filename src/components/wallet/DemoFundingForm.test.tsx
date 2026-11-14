@@ -113,11 +113,28 @@ test("deposit confirmation stays on the page and requires an unchecked acknowled
   fireEvent.click(screen.getByRole("checkbox", { name: /I confirm this amount/ }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(screen.queryByRole("dialog")).toBeNull();
+  expect(sessionStorage.length).toBe(0);
   fireEvent.change(screen.getByRole("combobox", { name: "Amount (USD)" }), { target: { value: "1000" } });
   fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
   expect(screen.getByRole("dialog", { name: "Add $10 to your balance?" })).toBeTruthy();
   expect((screen.getByRole("checkbox", { name: /I confirm this amount/ }) as HTMLInputElement).checked).toBe(false);
-  expect(sessionStorage.length).toBe(0);
+  expect(sessionStorage.getItem("zero-loss-demo-request:test")).toBeNull();
+});
+
+test("refresh restores an unsubmitted custom deposit without carrying approval forward", () => {
+  const props = { requestKey: "unsubmitted_review_key_01", walletId: "wallet-a", savedCards: refreshCards };
+  const view = render(<DemoFundingForm {...props} />);
+  fireEvent.change(screen.getByLabelText("Add specific amount (USD)"), { target: { value: "37" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add funds" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("checkbox"));
+  view.unmount();
+  render(<DemoFundingForm {...props} requestKey="unsubmitted_review_key_02" />);
+  const review = within(screen.getByRole("dialog", { name: "Add $37 to your balance?" }));
+  expect(review.getByText(/4242/)).toBeTruthy();
+  expect((review.getByRole("checkbox") as HTMLInputElement).checked).toBe(false);
+  expect((review.getByRole("button", { name: "Confirm $37 deposit" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(completeDemoFunding).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem("zero-loss-demo-request:wallet-a")).toBeNull();
 });
 afterEach(() => { cleanup(); sessionStorage.clear(); localStorage.clear(); vi.mocked(completeDemoFunding).mockReset(); vi.mocked(checkDemoDeposit).mockReset(); vi.mocked(reconcileDemoFunding).mockReset(); vi.mocked(saveDemoPaymentMethod).mockReset(); vi.mocked(deleteDemoPaymentMethod).mockReset(); navigation.replace.mockReset(); navigation.refresh.mockReset(); });
 test("a rejected confirmation clears the recovery marker and can be retried", async () => {

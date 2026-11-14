@@ -15,6 +15,12 @@ const continueTo = { title: "Nintendo Switch", href: "/account/purchase-options/
 const props = { requestKey: key, requests: [receipt], wallet, continueTo, fundingEnabled: true };
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
+test("a receipt opened from Payment deposits links back to the same deposit row", () => {
+  render(<PurchaseDepositRecovery {...props} continueTo={undefined} fromDeposits />);
+  expect(screen.getByRole("link", { name: "Back to Payment deposits" }).getAttribute("href"))
+    .toBe(`/account/wallet?view=history&panel=deposits&depositRow=${key}#payment-deposits`);
+});
+
 test("opens the exact older receipt and offers the original purchase review without paying again", () => {
   render(<PurchaseDepositRecovery {...props} requests={[...Array.from({ length: 12 }, (_, i) => ({ ...receipt, id: `new-${i}`, idempotencyKey: `other-${i}`, amount: 100 })), receipt]} />);
   expect(screen.getByText("$73 deposit")).toBeTruthy();

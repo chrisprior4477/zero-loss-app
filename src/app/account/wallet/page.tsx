@@ -27,11 +27,13 @@ export async function generateMetadata({ searchParams }: PageProps<"/account/wal
   return { title: history ? "Wallet & Transactions" : "Gift Cards & Rewards" };
 }
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; tile?: string | string[]; card?: string | string[]; orderFilter?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; choice?: string | string[]; deposit?: string | string[] }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ reward?: string | string[]; rewardId?: string | string[]; via?: string | string[]; view?: string | string[]; panel?: string | string[]; rewards?: string | string[]; tile?: string | string[]; card?: string | string[]; rewardHistory?: string | string[]; orderFilter?: string | string[]; from?: string | string[]; browse?: string | string[]; entry?: string | string[]; quantity?: string | string[]; review?: string | string[]; filter?: string | string[]; transaction?: string | string[]; choice?: string | string[]; deposit?: string | string[]; depositRow?: string | string[] }> }) {
   const query = await searchParams;
   const requestedReward = query.reward !== undefined || query.rewardId !== undefined;
   const history = !requestedReward && query.view === "history";
   const recoveryKey = history && typeof query.deposit === "string" && depositRequestKeyPattern.test(query.deposit) ? query.deposit : undefined;
+  const depositRow = history && !recoveryKey && query.panel === "deposits" && typeof query.depositRow === "string" && depositRequestKeyPattern.test(query.depositRow) ? query.depositRow : undefined;
+  const fromRewardHistory = query.rewardHistory === "1";
   const cardView = !requestedReward && query.view === "card";
   // A return link may name an existing catalog prize, not arbitrary content.
   const fromProduct = history && typeof query.from === "string" ? getDemoProduct(query.from) : undefined;
@@ -40,8 +42,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   if (!account) {
     const purchaseArrival = requestedReward && query.via === "purchase" && typeof query.rewardId === "string";
     const paymentPanel = history && (query.panel === "methods" || query.panel === "card");
-    const rewardSection = !requestedReward && !history && ["ready", "used", "expired", "history"].includes(String(query.rewards))
-      ? query.rewards === "ready" ? "#ready-rewards" : "#reward-history" : "";
+    const rewardSection = !requestedReward && !history && (fromRewardHistory || ["ready", "used", "expired", "history"].includes(String(query.rewards)))
+      ? query.rewards === "ready" && !fromRewardHistory ? "#ready-rewards" : "#reward-history" : "";
     const next = recoveryKey ? accountPageReturnPath("/account/wallet", query, "#purchase-deposit")
       : paymentPanel ? accountPageReturnPath("/account/wallet", query, query.panel === "card" ? "#wallet-add-card" : "#payment-methods")
       : history && !query.transaction && (query.panel === "transactions" || query.panel === "deposits")
@@ -110,12 +112,13 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     }
     if (reward) {
       const fromPurchase = query.via === "purchase" && typeof query.rewardId === "string" && isPurchasedReward(reward);
-      return <WalletRewardDetail orderFilter={fulfillmentFilter(query.orderFilter)} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} item={reward}
+      return <WalletRewardDetail orderFilter={fulfillmentFilter(query.orderFilter)} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnHistory={fromRewardHistory} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} item={reward}
         isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers}
         overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />;
     }
     return <PageContainer><main className="mx-auto w-full max-w-6xl pb-10"><Link href="/account/entries" className="text-sm text-[#b5cce4] hover:text-cyan-300">‹ My Activity</Link><div role="status" className="mt-6 rounded-2xl border border-white/10 bg-[#06223d] p-6"><h1 className="text-lg font-bold text-white">Reward unavailable</h1><p className="mt-2 text-sm text-[#b5cce4]">That reward is not available in your account.</p><Link href={rewardListHref} className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-cyan-300">Back to your wallet ›</Link></div></main></PageContainer>;
   }
-  if (history) return <WalletOverview timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
-  return <WalletRewards timeZone={account.timezone} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={typeof query.card === "string" ? query.card : undefined} />;
+  if (history) return <WalletOverview timeZone={account.timezone} initialSection={query.panel === "methods" || query.panel === "card" ? query.panel : undefined} displayName={account.displayName} wallet={account.wallet} ledgerEntries={ledgerEntries} demoHistoryVisibility={demoHistoryVisibility} activity={account.activity} selectedTransaction={transaction} fundingEnabled={account.fundingEnabled} requestKey={randomUUID()} recoveryKey={recoveryKey} depositRow={depositRow} fromDeposits={query.panel === "deposits"} requests={requests} savedCards={savedCards ?? []} cardUnavailable={savedCards === undefined} returnToProduct={fundingReturn} returnUnavailable={query.entry !== undefined && !fromEntry} />;
+  const focusCard = typeof query.card === "string" ? query.card : undefined;
+  return <WalletRewards timeZone={account.timezone} state={account.activity} balanceLabel={account.balanceLabel} fundingEnabled={account.fundingEnabled} view={rewardView} focusCard={fromRewardHistory ? undefined : focusCard} focusHistoryCard={fromRewardHistory ? focusCard : undefined} />;
 }

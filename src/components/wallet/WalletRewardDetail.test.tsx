@@ -155,6 +155,8 @@ test("a ready unclaimed demo reward shows an illustrative barcode above the unch
   expect(screen.getByLabelText("Sample reward barcode")).toBeTruthy();
   expect(screen.getByText("Demo preview · Not claimed")).toBeTruthy();
   expect(screen.getByText("Illustrative number only · Not redeemable")).toBeTruthy();
+  expect(screen.getByText("Claim your reward to open your saved gift-card number.")).toBeTruthy();
+  expect(screen.queryByText("Copy or show the code")).toBeNull();
   expect(screen.getAllByText("Ready to claim")).toHaveLength(2);
   expect(screen.queryByText("Claimed — ready to use")).toBeNull();
   expect(screen.queryByRole("button", { name: /Copy number/ })).toBeNull();

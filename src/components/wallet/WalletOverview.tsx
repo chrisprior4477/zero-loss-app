@@ -21,7 +21,7 @@ import type { SelectedTransaction } from "@/lib/wallet/selected-transaction";
 import type { DemoWalletHistoryVisibility } from "@/lib/wallet/demo-history";
 import type { FundingContinuation } from "@/lib/wallet/funding-navigation";
 
-export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone }: {
+export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, activity, selectedTransaction, fundingEnabled = false, requestKey = "", recoveryKey, depositRow, fromDeposits, requests = null, savedCard = null, savedCards, cardUnavailable = false, returnToProduct, returnUnavailable = false, displayName, initialSection, timeZone }: {
   timeZone?: string;
   displayName?: string;
   initialSection?: "methods" | "card";
@@ -33,6 +33,8 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
   fundingEnabled?: boolean;
   requestKey?: string;
   recoveryKey?: string;
+  depositRow?: string;
+  fromDeposits?: boolean;
   requests?: DemoFundingRequest[] | null;
   savedCard?: DemoCard | null;
   savedCards?: DemoCard[];
@@ -67,7 +69,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         <nav aria-label="Wallet sections" className={styles.walletSections}><Link href="/account/wallet">Gift Cards &amp; Rewards</Link><Link href="#balance" aria-current="page">Funds &amp; history</Link></nav>
       </header>
 
-      {recoveryKey && <PurchaseDepositRecovery key={recoveryKey} requestKey={recoveryKey} requests={requests} wallet={wallet} continueTo={returnToProduct} fundingEnabled={fundingEnabled} timeZone={timeZone} />}
+      {recoveryKey && <PurchaseDepositRecovery key={recoveryKey} requestKey={recoveryKey} requests={requests} wallet={wallet} continueTo={returnToProduct} fundingEnabled={fundingEnabled} timeZone={timeZone} fromDeposits={fromDeposits} />}
 
       <section className={styles.summaryGrid} aria-label="Wallet summary">
         <article id="balance" className={`${styles.ticketPanel} ${styles.balanceCard}`} aria-label="Current balance">
@@ -109,7 +111,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         {wallet && !ledgerEntries && wallet.transactionCount > wallet.entries.length ? <p className={styles.finePrint}>Only the latest {wallet.entries.length} transactions could be loaded. Refresh to try the full history again. Balance includes all posted transactions.</p> : null}
       </section>
 
-      <WalletPaymentMethods initialSection={initialSection} savedCards={savedCards ?? (savedCard ? [savedCard] : undefined)} displayName={displayName} enabled={canFund} unavailable={cardUnavailable} />
+      <WalletPaymentMethods walletId={wallet?.walletAccountId ?? undefined} initialSection={initialSection} savedCards={savedCards ?? (savedCard ? [savedCard] : undefined)} displayName={displayName} enabled={canFund} unavailable={cardUnavailable} />
 
       <section id={canFund && !recoveryKey ? undefined : "add-funds"} className={`${styles.ticketPanel} ${styles.funding} ${demo ? styles.fundingDashboard : ""}`} aria-labelledby="funding-heading">
         <div className={styles.fundingBody}>
@@ -119,7 +121,7 @@ export function WalletOverview({ wallet, ledgerEntries, demoHistoryVisibility, a
         {recoveryKey ? <p className={styles.fundingReturn}>Check the selected deposit before adding more funds. <a href="#purchase-deposit">Check this deposit →</a></p> : canFund ? <DemoFundingForm key={returnToProduct?.href ?? "wallet-funding"} displayName={displayName} timeZone={timeZone} balanceLabel={balance} requestKey={requestKey} walletId={wallet!.walletAccountId!} savedCard={savedCard} savedCards={savedCards} cardUnavailable={cardUnavailable} requests={requests} continueTo={returnToProduct} /> : <div className={styles.unavailable}><div><h3>Add funds is unavailable</h3><p>This account cannot start a deposit right now. Your balance and payment history remain available above.</p></div><button type="button" aria-label="Add funds unavailable" disabled>Add funds</button></div>}
         </div>
         {demo && <WeeklyDeposits requests={demoHistoryVisibility === null ? null : requests} hiddenIds={demoHistoryVisibility?.fundingSessionIds} asOf={new Date().toISOString()} timeZone={timeZone} />}
-        {demo ? <DemoFundingRequests walletId={wallet?.walletAccountId ?? undefined} requests={requests} timeZone={timeZone} fundingEnabled={fundingEnabled} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
+        {demo ? <DemoFundingRequests walletId={wallet?.walletAccountId ?? undefined} requests={requests} timeZone={timeZone} focusRequest={depositRow} fundingEnabled={fundingEnabled} hiddenIds={demoHistoryVisibility?.fundingSessionIds} hideArchived={demoHistoryVisibility?.fullReset} canResetDemoHistory={canResetHistory} /> : null}
       </section>
     </div>
   </main>;

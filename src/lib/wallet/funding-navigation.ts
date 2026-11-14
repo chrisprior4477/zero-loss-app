@@ -62,8 +62,8 @@ export function purchaseDepositRecoveryHref(slug: string, entryId: string | unde
   return href.replace("#add-funds", `&deposit=${requestKey}#purchase-deposit`);
 }
 
-export function depositRecoveryHref(requestKey: string): string {
-  return `/account/wallet?view=history&deposit=${encodeURIComponent(requestKey)}#purchase-deposit`;
+export function depositRecoveryHref(requestKey: string, fromDeposits = false): string {
+  return `/account/wallet?view=history&deposit=${encodeURIComponent(requestKey)}${fromDeposits ? "&panel=deposits" : ""}#purchase-deposit`;
 }
 
 /** Exact allowlist for the funding destination used after sign-in. */

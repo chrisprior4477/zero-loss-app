@@ -64,16 +64,16 @@ test("reward overview uses real statuses and retains authorized history links", 
   expect(screen.getByRole("link", { name: /Used.*Already redeemed.*1/ }).getAttribute("href")).toBe("/account/wallet?rewards=used#reward-history");
   expect(screen.getByRole("link", { name: /Expired.*No longer available.*1/ }).getAttribute("href")).toBe("/account/wallet?rewards=expired#reward-history");
   expect(screen.getByRole("region", { name: "Reward history" }).querySelectorAll('a[aria-label^="Open "]')).toHaveLength(3);
-  expect(screen.getByRole("link", { name: /Open Samsung.*Used/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=used-reward");
+  expect(screen.getByRole("link", { name: /Open Samsung.*Used/ }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=used-reward&rewardHistory=1");
 });
 
 test.each(["all", "ready"])("summary and history controls target the right ticket in the %s view", async rewards => {
   render(await WalletPage({ searchParams: Promise.resolve({ rewards }) }));
   const filters = within(screen.getByRole("navigation", { name: "Filter reward history" }));
-  expect(filters.getByRole("link", { name: "All" }).getAttribute("href")).toBe("/account/wallet#ready-rewards");
-  expect(filters.getByRole("link", { name: "Ready" }).getAttribute("href")).toBe("/account/wallet?rewards=ready#ready-rewards");
+  expect(filters.getByRole("link", { name: "All" }).getAttribute("href")).toBe("/account/wallet#reward-history");
+  expect(filters.getByRole("link", { name: "Ready" }).getAttribute("href")).toBe("/account/wallet?rewards=ready#reward-history");
   expect(filters.getByRole("link", { name: "Used" }).getAttribute("href")).toBe("/account/wallet?rewards=used#reward-history");
-  expect(screen.getByRole("link", { name: /Ready.*To claim or use/ }).getAttribute("href")).toBe(filters.getByRole("link", { name: "Ready" }).getAttribute("href"));
+  expect(screen.getByRole("link", { name: /Ready.*To claim or use/ }).getAttribute("href")).toBe("/account/wallet?rewards=ready#ready-rewards");
   expect(screen.getByRole("region", { name: "Available rewards" }).id).toBe("ready-rewards");
 });
 
@@ -87,10 +87,11 @@ test("empty Used is its own ticket with shopping and a return to the ready ticke
   expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
 });
 
-test("empty Expired has the requested reminder and both working destinations", async () => {
+test("empty Expired leads back to rewards and still offers Declined Offers", async () => {
   render(await WalletPage({ searchParams: Promise.resolve({ rewards: "expired" }) }));
   expect(screen.queryByRole("region", { name: "Available rewards" })).toBeNull();
   expect(screen.getByText("No expired rewards or purchase options.")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Back to Gift Cards & Rewards" }).getAttribute("href")).toBe("/account/wallet#ready-rewards");
   expect(screen.getByRole("link", { name: "Declined Offers" }).getAttribute("href")).toBe("/account/declined-offers");
   expect(screen.getByRole("link", { name: "Continue Shopping" }).getAttribute("href")).toBe("/");
 });

@@ -14,14 +14,32 @@ import styles from "./wallet-payments.module.css";
 
 const emptyCards: DemoCard[] = [];
 function revealMethods() { revealWalletSection("payment-methods", "payment-methods-controls"); }
-export function WalletPaymentMethods({ savedCards = emptyCards, displayName, enabled, unavailable = false, initialSection }: { initialSection?: "methods" | "card"; savedCards?: DemoCard[]; displayName?: string; enabled: boolean; unavailable?: boolean }) {
+export function WalletPaymentMethods({ savedCards = emptyCards, displayName, enabled, unavailable = false, initialSection, walletId }: { initialSection?: "methods" | "card"; savedCards?: DemoCard[]; displayName?: string; enabled: boolean; unavailable?: boolean; walletId?: string }) {
   const router = useRouter();
   const [cards, setCards] = useState(savedCards);
   const [panelHash, setPanelHash] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState<DemoCardToken | null>(null);
-  const [expanded, setExpanded] = useState<DemoCardToken | null>(null);
+  const [preview, setPreview] = useState<{ walletId?: string; token?: DemoCardToken }>({});
+  const previewKey = walletId ? `zero-loss-wallet-card-preview:${walletId}` : null;
+  const expanded = preview.walletId === walletId ? preview.token : undefined;
+  useEffect(() => {
+    if (!previewKey) return;
+    try {
+      const token = demoCardFixture(sessionStorage.getItem(previewKey))?.token;
+      // Hydrate the read-only preview from this wallet's tab state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPreview({ walletId, token });
+    } catch { /* The preview can always be opened manually. */ }
+  }, [previewKey, walletId]);
+  function selectPreview(token?: DemoCardToken) {
+    setPreview({ walletId, token });
+    if (previewKey) try {
+      if (token) sessionStorage.setItem(previewKey, token);
+      else sessionStorage.removeItem(previewKey);
+    } catch { /* The preview still works for this visit. */ }
+  }
   const [lastSavedCards, setLastSavedCards] = useState(savedCards);
   if (savedCards !== lastSavedCards) { setLastSavedCards(savedCards); setCards(savedCards); }
   const availableToken = DEMO_CARD_FIXTURES.find(fixture => !cards.some(card => card.token === fixture.token))?.token;
@@ -77,7 +95,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
   }
   async function removeCard(token: DemoCardToken) {
     setBusy(true);
-    try { const result = await deleteDemoPaymentMethod(token); setMessage(result.message); if (result.status === "succeeded") { setCards(current => current.filter(card => card.token !== token)); setDeleting(null); router.refresh(); } }
+    try { const result = await deleteDemoPaymentMethod(token); setMessage(result.message); if (result.status === "succeeded") { setCards(current => current.filter(card => card.token !== token)); if (expanded === token) selectPreview(); setDeleting(null); router.refresh(); } }
     catch { setMessage("Could not confirm the card was removed. Refresh before trying again."); }
     finally { setBusy(false); }
   }
@@ -101,7 +119,7 @@ export function WalletPaymentMethods({ savedCards = emptyCards, displayName, ena
       <div className={styles.cards}>{cards.map(card => <article key={card.token} className={styles.card} aria-label={`Saved card ${card.lastFour}`}>
         <strong>{demoCardFixture(card.token)?.issuer}</strong><p>Sample card •••• {card.lastFour}{card.isDepositDefault ? " · Deposit default" : ""}</p>
         <label className={styles.choice}><input type="checkbox" checked={card.isDefault} disabled={!enabled || unavailable || busy} onChange={event => void setDefault(card, event.target.checked)} />Use as my default payment method</label>
-        <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} onClick={() => openWalletPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={() => setExpanded(expanded === card.token ? null : card.token)}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => setDeleting(card.token)}>Delete Card</button></div>
+        <div className={`${styles.actions} ${styles.cardActions}`}><button type="button" className={styles.secondary} disabled={!enabled || unavailable || busy} onClick={() => openWalletPanel(savedCardEditPrefix + card.token)}>Edit</button><button type="button" className={styles.secondary} aria-expanded={expanded === card.token} aria-controls={`saved-art-${card.token}`} onClick={() => selectPreview(expanded === card.token ? undefined : card.token)}>{expanded === card.token ? "Hide card" : "See card"}</button><button type="button" className={styles.danger} disabled={!enabled || unavailable || busy} onClick={() => setDeleting(card.token)}>Delete Card</button></div>
         <div id={`saved-art-${card.token}`} hidden={expanded !== card.token} className={styles.artwork}><DemoCardArtwork token={card.token} artwork={card.artwork} /></div>
         {deleting === card.token ? <DeleteCardToast key={card.token} busy={busy} onUndo={() => setDeleting(null)} onDelete={() => void removeCard(card.token)} /> : null}
       </article>)}</div>
