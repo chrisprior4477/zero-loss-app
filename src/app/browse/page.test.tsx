@@ -295,6 +295,32 @@ describe("Browse search results", () => {
     expect(url.hash).toBe("#search-results");
   });
 
+  test.each([
+    ["Target", "electronics", /Cuisinart Frozen Yogurt/],
+    ["Best Buy", "beauty", /Apple AirPods/],
+    ["Cuisinart", "electronics", /Cuisinart Frozen Yogurt/],
+  ] as const)("offers a working all-category search for %s from %s", async (q, category, expectedProduct) => {
+    const filters = { available: "1", sort: "value-high" };
+    render(await BrowsePage({ searchParams: Promise.resolve({ category, q, ...filters }) }));
+    const matches = within(screen.getByRole("region", { name: "Matches in other categories" }));
+    const url = new URL(matches.getByRole("link", { name: /across all categories/ }).getAttribute("href")!, "https://example.test");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ q, ...filters });
+    expect(url.hash).toBe("#search-results");
+    expect(screen.queryByRole("region", { name: "Matching retailer categories" })).toBeNull();
+    cleanup();
+    render(await BrowsePage({ searchParams: Promise.resolve(Object.fromEntries(url.searchParams)) }));
+    expect(screen.getByRole("link", { name: expectedProduct })).toBeTruthy();
+  });
+
+  test("offers broader results only if another category has a match within the remaining filters", async () => {
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "Target", maxValue: "5" }) }));
+    expect(screen.queryByRole("region", { name: "Matches in other categories" })).toBeNull();
+    cleanup();
+    render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "Best Buy" }) }));
+    expect(screen.queryByRole("region", { name: "Matches in other categories" })).toBeNull();
+    expect(screen.getByRole("link", { name: /Apple AirPods/ })).toBeTruthy();
+  });
+
   test("finds baby essentials using everyday language", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "baby stuff" }) }));
     expect(screen.getByRole("link", { name: /Baby's Essentials Bundle/i }).getAttribute("href"))
@@ -372,14 +398,14 @@ describe("Browse search results", () => {
   test("does not claim the whole catalog is empty when only a selected category has no matches", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ q: "paper towels", category: "gas" }) }));
     expect(screen.getByRole("heading", { name: "No “paper towels” matches in Gas." })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=paper+towels#search-results");
+    expect(screen.getByRole("link", { name: /View results for “paper towels” across all categories/ }).getAttribute("href")).toBe("/browse?q=paper+towels#search-results");
   });
 
   test("an empty category search has two search bars and keeps the recovery actions", async () => {
     render(await BrowsePage({ searchParams: Promise.resolve({ category: "electronics", q: "PetSmart", maxValue: "500", batch: "3" }) }));
     expect(screen.queryByRole("search", { name: "Search Electronics again" })).toBeNull();
     expect(screen.getByRole("search", { name: "Search browse results at the bottom" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "See all search results" }).getAttribute("href")).toBe("/browse?q=PetSmart#search-results");
+    expect(screen.getByRole("link", { name: /View PetSmart across all categories/ }).getAttribute("href")).toBe("/browse?maxValue=500&q=PetSmart#search-results");
     expect(screen.getByRole("link", { name: /Request a product/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Browse available rewards" })).toBeTruthy();
     expect(screen.getByRole("search", { name: "Search marketplace" })).toBeTruthy();
