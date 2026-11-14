@@ -9,14 +9,20 @@ beforeEach(() => {
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })));
 });
 
-test.each([true, false])("a returned prize takes priority over the category landing on mobile=%s", mobile => {
+test.each([
+  [true, "#prize-mac-lipstick"], [false, "#prize-mac-lipstick"],
+  [true, "#search-results#prize-mac-lipstick"], [false, "#prize-mac-lipstick#search-results"],
+])("a returned prize takes priority on mobile=%s with %s", (mobile, hash) => {
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: mobile })));
-  window.history.replaceState(null, "", "/browse?category=beauty#prize-mac-lipstick");
+  window.history.replaceState({ frameworkState: "keep" }, "", `/browse?category=beauty&q=mac&batch=2${hash}`);
   render(<><article id="prize-mac-lipstick" /><div id="search-results" /><SearchResultsAutoScroll searchKey="" mobileBrowseKey="/browse?category=beauty" /></>);
   const prize = vi.fn(), search = vi.fn();
   document.getElementById("prize-mac-lipstick")!.scrollIntoView = prize;
   document.getElementById("search-results")!.scrollIntoView = search;
   act(() => vi.runAllTimers());
+  expect(window.location.hash).toBe("#prize-mac-lipstick");
+  expect(window.location.search).toBe("?category=beauty&q=mac&batch=2");
+  expect(window.history.state).toEqual({ frameworkState: "keep" });
   expect(prize).toHaveBeenCalledTimes(2);
   expect(search).not.toHaveBeenCalled();
 });

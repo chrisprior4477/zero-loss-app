@@ -12,9 +12,13 @@ export function SearchResultsAutoScroll({ searchKey, mobileBrowseKey = "", groce
     const start = () => {
       cancelAnimationFrame(first); cancelAnimationFrame(second); clearTimeout(settle);
       const mobileBrowse = mobileBrowseKey && window.matchMedia?.("(max-width: 1023px)").matches;
-      // Next.js can repeat the anchor when navigating to a prefetched Browse URL.
-      if (/^(?:#search-results){2,}$/.test(window.location.hash)) {
-        window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}#search-results`);
+      // A prefetched Browse URL can point to the results and the exact prize in one fragment.
+      const anchors = window.location.hash.slice(1).split("#");
+      if (anchors.length > 1 && anchors.includes("search-results")) {
+        const prize = anchors.find(anchor => anchor.startsWith("prize-") && document.getElementById(anchor));
+        if (prize || anchors.every(anchor => anchor === "search-results" || anchor.startsWith("prize-"))) {
+          window.history.replaceState(window.history.state, "", `#${prize ?? "search-results"}`);
+        }
       }
       const hashId = window.location.hash.slice(1);
       const footerField = hashId === "browse-search-input" || hashId === "ending-soon-search-input"

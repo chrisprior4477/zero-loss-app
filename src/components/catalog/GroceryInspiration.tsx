@@ -59,6 +59,14 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
     };
   }, [selected]);
   function choose(theme: GroceryTheme) { opener.current = document.activeElement as HTMLElement; setSelected(theme); }
+  function dismissIdea() {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("groceryIdea")) {
+      url.searchParams.delete("groceryIdea");
+      window.history.replaceState(window.history.state, "", url);
+    }
+    setSelected(null);
+  }
   return <>
     <section ref={shelf} id="grocery-inspiration" aria-labelledby="grocery-inspiration-heading" className={styles.panel}>
       <header className={styles.panelHeader}>
@@ -70,9 +78,9 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
         <GroceryRail label={index === 0 ? "Easy grocery ideas" : "Occasion grocery ideas"}>{groceryThemes.filter(theme => theme.mood === mood).map(theme => <ThemeCard key={theme.id} theme={theme} onChoose={() => choose(theme)} />)}</GroceryRail>
       </div>)}</div>
     </section>
-    {selected ? <dialog ref={dialog} className={styles.dialog} aria-labelledby="grocery-theme-title" onCancel={() => setSelected(null)} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) setSelected(null); }}>
+    {selected ? <dialog ref={dialog} className={styles.dialog} aria-labelledby="grocery-theme-title" onCancel={dismissIdea} onKeyDown={containDialogTab} onClick={event => { if (event.target === event.currentTarget) dismissIdea(); }}>
       <div className={styles.dialogBody}>
-        <button type="button" className={styles.close} aria-label="Close grocery idea" onClick={() => setSelected(null)}>×</button>
+        <button type="button" className={styles.close} aria-label="Close grocery idea" onClick={dismissIdea}>×</button>
         <div className={styles.dialogPhoto}><Image src={groceryThemeImage(selected.id)} alt="" fill sizes="(max-width: 640px) 100vw, 560px" className={styles.foodImage} /></div>
         <div className={styles.dialogCopy}>
           <span className={styles.eyebrow}>Your next grocery run, reimagined</span>
@@ -82,7 +90,7 @@ export function GroceryInspiration({ offers, browseHref, initialIdea }: { offers
             <span><strong>{offer.title}</strong><small>${offer.entryPrice.toFixed(2)} per entry · {offer.remaining.toLocaleString()} left</small></span><span aria-hidden="true">→</span>
           </Link>) : <p>No open grocery gift-card offers match right now. Browse the other grocery rewards below.</p>}</div>
           <p className={styles.disclaimer}>Choose your groceries at the retailer. Pictures are inspiration; the reward is a gift card.</p>
-          <button type="button" className={styles.back} onClick={() => setSelected(null)}>Keep exploring ideas</button>
+          <button type="button" className={styles.back} onClick={dismissIdea}>Keep exploring ideas</button>
         </div>
       </div>
     </dialog> : null}

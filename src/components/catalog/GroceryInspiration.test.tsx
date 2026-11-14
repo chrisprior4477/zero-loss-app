@@ -9,6 +9,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup(); vi.unstubAllGlobals();
+  window.history.replaceState(null, "", "/");
   document.body.style.overflow = "";
   document.documentElement.style.overflow = "";
 });
@@ -46,10 +47,16 @@ test("closing grocery ideas retains an existing outer scroll lock", () => {
   expect(document.body.style.overflow).toBe("hidden");
 });
 
-test("the return link opens the selected idea and closing takes focus back to it", () => {
+test.each(["close", "cancel", "backdrop", "explore"])("a returned grocery idea stays dismissed on %s", exit => {
+  window.history.replaceState({ frameworkState: "keep" }, "", "/browse?category=groceries&groceryIdea=steak-night&maxValue=100#search-results");
   render(<GroceryInspiration browseHref="/browse?category=groceries" initialIdea="steak-night" offers={[]} />);
-  expect(screen.getByRole("dialog", { name: "Steak Night" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Close grocery idea" }));
+  const dialog = screen.getByRole("dialog", { name: "Steak Night" });
+  if (exit === "close") fireEvent.click(screen.getByRole("button", { name: "Close grocery idea" }));
+  if (exit === "cancel") fireEvent(dialog, new Event("cancel", { cancelable: true }));
+  if (exit === "backdrop") fireEvent.click(dialog);
+  if (exit === "explore") fireEvent.click(screen.getByRole("button", { name: "Keep exploring ideas" }));
   expect(screen.queryByRole("dialog")).toBeNull();
+  expect(window.location.search + window.location.hash).toBe("?category=groceries&maxValue=100#search-results");
+  expect(window.history.state).toEqual({ frameworkState: "keep" });
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Explore Steak Night" }));
 });

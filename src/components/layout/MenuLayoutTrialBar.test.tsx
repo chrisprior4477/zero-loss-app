@@ -8,7 +8,7 @@ vi.mock("@/lib/account/menu-layout-action", () => ({ saveMenuLayout: save }));
 function Controls() {
   const choice = useMenuLayout();
   return <>{menuLayouts.map(option => <button key={option.id} onClick={() => choice.preview(option.id)}>Try {option.id}</button>)}
-    {menuDevices.map(device => <button key={device} onClick={() => choice.selectDevice(device)}>{device}</button>)}
+    {menuDevices.map(device => <button key={device} aria-pressed={choice.device === device} onClick={() => choice.selectDevice(device)}>{device}</button>)}
     <button onClick={choice.cancel}>Cancel</button><output>{choice.layout}:{choice.savedLayout}</output>
     <output data-testid="layouts">{JSON.stringify(choice.layouts)}</output></>;
 }
@@ -121,6 +121,15 @@ test("unfinished desktop trial restores its correct save destination across navi
   fireEvent.click(screen.getByRole("button", { name: "Save layout" }));
   await waitFor(() => expect(bar()).toBeNull());
   expect(save).toHaveBeenCalledExactlyOnceWith("search-down-browse", "desktop");
+});
+
+test.each(["tablet", "desktop"])("the %s editor tab survives a reload without a trial", async device => {
+  const first = setup();
+  fireEvent.click(screen.getByRole("button", { name: device }));
+  first.unmount(); setup();
+  await screen.findByRole("button", { name: device, pressed: true });
+  expect(bar()).toBeNull();
+  expect(save).not.toHaveBeenCalled();
 });
 
 test.each(menuDevices)("an old %s preview restores silently until a fresh picker action", async device => {

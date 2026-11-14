@@ -130,21 +130,16 @@ export function MenuLayoutProvider({ initialLayout, initialTabletLayout = "class
   const selected = useRef(false);
   const targetKey = accountId ? `zero-loss:menu-trial-target:${accountId}` : null;
   useEffect(() => {
-    if (!targetKey || !accountId) return;
+    if (!targetKey) return;
     const frame = requestAnimationFrame(() => {
       if (selected.current) return;
       try {
         const target = sessionStorage.getItem(targetKey);
-        const initial = { mobile: initialLayout, tablet: initialTabletLayout, desktop: initialDesktopLayout };
-        if (isMenuDevice(target)) {
-          const trial = JSON.parse(sessionStorage.getItem(trialKey(accountId, target)) ?? "null");
-          if (trial?.savedLayout === initial[target] && isMenuLayout(trial.layout) && trial.layout !== initial[target]) setDevice(target);
-          else sessionStorage.removeItem(targetKey);
-        }
-      } catch { /* Defaults to Mobile when no unfinished trial exists. */ }
+        if (isMenuDevice(target)) setDevice(target);
+      } catch { /* The picker defaults to Mobile when storage is unavailable. */ }
     });
     return () => cancelAnimationFrame(frame);
-  }, [targetKey, accountId, initialLayout, initialTabletLayout, initialDesktopLayout]);
+  }, [targetKey]);
   const pending = mobile.pending || tablet.pending || desktop.pending;
   return <MenuLayoutContext.Provider value={{ ...choices[device], pending, device,
     layouts: { mobile: mobile.layout, tablet: tablet.layout, desktop: desktop.layout },
