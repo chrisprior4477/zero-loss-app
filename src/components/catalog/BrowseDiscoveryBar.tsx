@@ -162,7 +162,7 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     <div className={styles.controls} role="group" aria-label="Browse options at the top">{controls("top")}</div>
     {(props.filters.retailer || props.selectedRetailerGroup || props.searchTerm || props.subcategory || activeCount > 0) ? <div className={styles.current}>
       {budgetLabel ? <span className={styles.budgetChip}>Prize value: <strong>{budgetLabel}</strong><Link href={`${withoutBudget.pathname}${withoutBudget.search}#search-results`} aria-label={`Remove prize value filter: ${budgetLabel}`}>×</Link></span> : null}
-      <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.searchTerm ? `Results for “${props.searchTerm}”${scope ? ` in ${scope}` : ""}` : props.selectedRetailerGroup?.category ?? (props.subcategory || "Filtered results")}</span>
+      <span>{props.filters.retailer ? `Showing ${props.filters.retailer}` : props.searchTerm ? `Results for “${props.searchTerm}”${scope ? ` · ${scope}` : ""}` : props.selectedRetailerGroup?.category ?? (props.subcategory || "Filtered results")}</span>
       {props.filters.retailer ? <Link href={`${withoutRetailer.pathname}${withoutRetailer.search}#search-results`}>View all in this category</Link> : null}
       {!props.filters.retailer && props.selectedRetailerGroup ? <Link href={`${withoutRetailerGroup.pathname}${withoutRetailerGroup.search}#search-results`}>Remove {props.selectedRetailerGroup.category}</Link> : null}
       {activeCount > 0 || props.filters.retailer || props.subcategory ? <Link href={`${props.clearHref}#search-results`}>Clear filters</Link> : null}
