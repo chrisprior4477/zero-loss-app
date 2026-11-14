@@ -362,7 +362,7 @@ export function DesktopMarketplaceRails() {
             <h2 className="text-[21px] font-bold tracking-[-0.02em] text-white sm:text-[24px]">Popular Rewards</h2>
             <span className="rounded-full border border-cyan-300/50 px-2 py-1 text-[9px] uppercase tracking-[0.08em] text-cyan-300">Demo order</span>
           </div>
-          <Link href="/browse" className="zl-see-all">See all prizes</Link>
+          <Link href="/browse?category=gift-cards#search-results" className="zl-see-all">See all gift cards</Link>
         </div>
 
         <div className="relative">
