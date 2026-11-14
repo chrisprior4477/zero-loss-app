@@ -98,9 +98,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     && products.some(product => isGiftCardListing(product) && !denomination.values.has(product.value));
   const requestedValues = Array.from(denomination.values, value => `$${value.toLocaleString("en-US")}`).join(" or ");
   const requestedBatch = typeof query.batch === "string" && /^[1-9]\d*$/.test(query.batch) ? Number(query.batch) : 1;
+  const lastBatch = Math.max(1, Math.ceil(products.length / batchSize));
+  const showingLastPrizes = endingSoon && query.batch === "last" && lastBatch > 1;
   const batch = Number.isSafeInteger(requestedBatch) && requestedBatch > 1
-    ? Math.min(requestedBatch, Math.max(1, Math.ceil(products.length / batchSize))) : 1;
-  const visibleProducts = products.slice(0, batch * batchSize);
+    ? Math.min(requestedBatch, lastBatch) : 1;
+  const visibleProducts = showingLastPrizes ? products.slice(-batchSize) : products.slice(0, batch * batchSize);
   const resultNoun = endingSoon ? products.length === 1 ? "prize" : "prizes" : products.length === 1 ? "product" : "products";
   const showBatchSearch = endingSoon || products.length > 0 || Boolean(searchTerm);
   const batchSearchHeading = endingSoon ? "ending-soon-search-again" : "browse-search-again";
@@ -142,11 +144,22 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     }
   }
   const returnParams = new URLSearchParams(searchParamsForView);
-  if (batch > 1) returnParams.set("batch", String(batch));
+  if (showingLastPrizes || batch > 1) returnParams.set("batch", showingLastPrizes ? "last" : String(batch));
   const browseReturnHref = `/browse${returnParams.size ? `?${returnParams}` : ""}`;
-  const nextProduct = products[visibleProducts.length];
+  const nextProduct = showingLastPrizes ? undefined : products[visibleProducts.length];
+  const nextCount = Math.min(batchSize, products.length - visibleProducts.length);
   const nextBatchParams = new URLSearchParams(returnParams);
   nextBatchParams.set("batch", String(batch + 1));
+  const firstBatchHref = `${searchHref}#search-results`;
+  const previousBatch = (showingLastPrizes ? lastBatch : batch) - 1;
+  const previousParams = new URLSearchParams(searchParamsForView);
+  previousParams.set("batch", String(previousBatch));
+  const previousProduct = previousBatch > 1 ? products[(previousBatch - 1) * batchSize] : undefined;
+  const previousBatchHref = previousProduct ? `/browse?${previousParams}#prize-${previousProduct.slug}` : firstBatchHref;
+  const lastBatchParams = new URLSearchParams(searchParamsForView);
+  lastBatchParams.set("batch", "last");
+  const showEndingSoonShortcuts = endingSoon && (batch > 1 || showingLastPrizes);
+  const offerLastShortcut = batch >= 4 && !showingLastPrizes;
   const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}#product-request-heading`;
   const retryScope = [...new Set([filters.retailer || selectedRetailerGroup?.category, subcategory || selectedLabel].filter(Boolean))].join(" in ");
   const withoutBudget = new URLSearchParams(searchParamsForView);
@@ -224,7 +237,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {showGroceryInspiration ? <div id="more-groceries" className="mt-4" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}><h2 className="text-2xl font-black leading-tight tracking-tight">More groceries &amp;<span className="block sm:inline"> rewards</span></h2></div> : null}
         {searchTooLong ? <p role="alert" className="mt-4 rounded-xl border border-orange-300/40 bg-orange-400/10 p-4 text-sm font-bold text-orange-100">Search is too long. Try a brand or product name.</p> : <div className={`${showGroceryInspiration ? "mt-2" : "mt-4"} flex flex-wrap items-center gap-x-3 gap-y-2`}>
           <p aria-live="polite" className="text-sm font-bold text-white/75">{endingSoon || products.length > batchSize
-            ? `Showing ${visibleProducts.length} of ${products.length} ${resultNoun}`
+            ? `Showing ${showingLastPrizes ? "the last " : ""}${visibleProducts.length} of ${products.length} ${resultNoun}`
             : `${products.length} ${resultNoun} shown`}{denomination.values.size > 0 &&
               <span className="ml-2">· {includesLowerGiftCards ? <>Requested value {requestedValues} · Includes lower-value gift cards</> : <>Exact prize value: {requestedValues}</>}</span>}</p>
           {appliedFilters.length ? <ul aria-label="Applied filters" className="flex min-w-0 flex-wrap gap-1.5">
@@ -328,8 +341,21 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <BrowseDiscoveryFooterControls />
           </div>
           <p className="text-sm text-white/75">Try a retailer and prize value, like “Walmart $100”.</p>
-          {nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
-            href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {Math.min(batchSize, products.length - visibleProducts.length)} more {products.length - visibleProducts.length === 1 ? "prize" : "prizes"}</Link>}
+          {endingSoon ? (
+            <div className={browseStyles.batchActions} role="group" aria-label="Ending Soon prize batches">
+              {showEndingSoonShortcuts && (
+                <Link replace scroll={false} prefetch={false} className={browseStyles.batchShortcut}
+                  href={offerLastShortcut ? `/browse?${lastBatchParams}#prize-${products[products.length - batchSize].slug}` : firstBatchHref}>
+                  {offerLastShortcut ? "Last 24" : "First 24"}
+                </Link>
+              )}
+              {nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
+                href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Next {nextCount} {nextCount === 1 ? "Prize" : "Prizes"}</Link>}
+              {showEndingSoonShortcuts && <Link replace scroll={false} prefetch={false} className={browseStyles.batchShortcut}
+                href={previousBatchHref}>Previous 24</Link>}
+            </div>
+          ) : nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
+            href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Show {nextCount} more {nextCount === 1 ? "prize" : "prizes"}</Link>}
         </section>}
         </BrowseDiscoveryBar>
         </div>

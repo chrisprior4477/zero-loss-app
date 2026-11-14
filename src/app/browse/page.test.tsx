@@ -161,7 +161,7 @@ describe("Browse search results", () => {
     expect(screen.queryByRole("complementary", { name: "Filter products" })).toBeNull();
     expect(screen.getAllByRole("article")).toHaveLength(24);
     expect(screen.getAllByRole("searchbox", { name: "Search all Ending Soon prizes" })).toHaveLength(2);
-    const more = screen.getByRole("link", { name: "Show 24 more prizes" }).getAttribute("href")!;
+    const more = screen.getByRole("link", { name: "Next 24 Prizes" }).getAttribute("href")!;
     expect(more).toMatch(/batch=2#prize-/);
     cleanup();
     render(await BrowsePage({ searchParams: Promise.resolve({ sort: "ending-soon", batch: "2" }) }));
@@ -170,6 +170,29 @@ describe("Browse search results", () => {
     const card = screen.getAllByRole("article")[34];
     const productHref = new URL(within(card).getByRole("link").getAttribute("href")!, "https://example.test");
     expect(productHref.searchParams.get("from")).toBe(`/browse?sort=ending-soon&batch=2#${card.id}`);
+  });
+
+  test("Ending Soon switches the first-batch shortcut at batch four and opens the final 24", async () => {
+    const filters = { sort: "ending-soon", maxValue: "100", available: "1" };
+    const browse = async (batch: string) => render(await BrowsePage({ searchParams: Promise.resolve({ ...filters, batch }) }));
+    await browse("3");
+    expect(screen.getByRole("link", { name: "First 24" }).getAttribute("href")).toBe("/browse?sort=ending-soon&available=1&maxValue=100#search-results");
+    expect(screen.getByRole("link", { name: "Previous 24" }).getAttribute("href")).toMatch(/batch=2#prize-/);
+    cleanup();
+    await browse("4");
+    expect(screen.queryByRole("link", { name: "First 24" })).toBeNull();
+    const last = new URL(screen.getByRole("link", { name: "Last 24" }).getAttribute("href")!, "https://example.test");
+    expect(Object.fromEntries(last.searchParams)).toEqual({ ...filters, batch: "last" });
+    cleanup();
+    await browse("last");
+    const cards = screen.getAllByRole("article");
+    expect(cards).toHaveLength(24);
+    expect(`#${cards[0].id}`).toBe(last.hash);
+    expect(screen.getByText(/Showing the last 24 of/)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Next .* Prize/ })).toBeNull();
+    const card = cards[0];
+    const href = new URL(within(card).getByRole("link").getAttribute("href")!, "https://example.test");
+    expect(href.searchParams.get("from")).toBe(`/browse${last.search}${last.hash}`);
   });
 
   test("loads the next 24 in a filtered category, preserves the card return, and starts a footer voice search at batch one", async () => {

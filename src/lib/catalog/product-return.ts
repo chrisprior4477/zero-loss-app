@@ -1,4 +1,4 @@
-import { marketplaceCategories } from "./navigation";
+import { marketplaceCategories, marketplaceCategoryId } from "./navigation";
 import { getPopularRewardBrand, popularRewardAmounts, popularRewardProductSlug } from "./popular-rewards";
 import { savedShareHref, shareUuid } from "../sharing/saved-shares";
 import { crewPickReturnPath } from "../crew/view-return";
@@ -41,7 +41,10 @@ export function productBrowseReturnPath(value: unknown): string | null {
     if (url.origin !== "https://zeroloss.local" || url.pathname !== "/browse") return null;
     if (url.hash && !/^#prize-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url.hash)) return null;
     const batch = url.searchParams.get("batch");
-    if (batch !== null && (!/^[1-9]\d*$/.test(batch) || !Number.isSafeInteger(Number(batch)))) return null;
+    const category = url.searchParams.get("category") ?? (url.searchParams.get("sort") === "ending-soon" ? "ending-soon" : "");
+    const endingSoon = marketplaceCategoryId(category) === "ending-soon";
+    if (batch !== null && !(batch === "last" && endingSoon)
+      && (!/^[1-9]\d*$/.test(batch) || !Number.isSafeInteger(Number(batch)))) return null;
     const idea = url.searchParams.get("groceryIdea");
     if (idea !== null && (url.searchParams.get("category") !== "groceries" || !groceryThemes.some(theme => theme.id === idea))) return null;
     const keys = [...url.searchParams.keys()];
