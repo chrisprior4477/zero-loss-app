@@ -18,6 +18,9 @@ export default async function ProductRequestPage({
   const [query, account] = await Promise.all([searchParams, getAccountContext()]);
   const initialProduct = (Array.isArray(query.product) ? query.product[0] : query.product)?.trim().slice(0, 160) ?? "";
   const browseReturn = productBrowseReturnPath(query.from);
+  const scope = new URL(browseReturn?.startsWith("/browse") ? browseReturn : "/browse", "https://zeroloss.local").searchParams;
+  for (const key of ["q", "batch"]) scope.delete(key);
+  scope.sort();
   const backHref = browseReturn?.startsWith("/browse")
     ? browseReturn.includes("#") ? browseReturn : `${browseReturn}#search-results`
     : initialProduct ? `/browse?${new URLSearchParams({ q: initialProduct })}` : "/browse";
@@ -33,7 +36,7 @@ export default async function ProductRequestPage({
           <p className="mt-4 max-w-2xl leading-7 text-white/70">We review customer requests when deciding which products, retailers, and rewards to add next.</p>
           <p className="mt-5 text-lg font-black">Shopping should never feel like a <span className="text-[#31e800]">loss.</span></p>
           <div className="my-7 h-px bg-cyan-300/18" />
-          <CatalogRequestForm initialProduct={initialProduct} ownerId={account?.userId} />
+          <CatalogRequestForm initialProduct={initialProduct} ownerId={account?.userId} scope={scope.toString()} />
         </section>
       </div>
     </main>

@@ -7,10 +7,10 @@ export function isCatalogRequestKey(value: unknown): value is string {
 const lifetime = 24 * 60 * 60 * 1000;
 
 /** Unsent text belongs to this tab, account and original search only. */
-export function catalogRequestDraftKey(ownerId: string | undefined, sourceQuery: string) {
+export function catalogRequestDraftKey(ownerId: string | undefined, sourceQuery: string, scope?: string) {
   // Older Contact forms wrote signed-in drafts into the guest slot. Its owner
   // cannot be established, so never expose that legacy text to a new guest.
-  return `zero-loss-catalog-request-draft:${ownerId ?? "guest-v2"}:${encodeURIComponent(sourceQuery)}`;
+  return `zero-loss-catalog-request-draft:${ownerId ?? "guest-v2"}:${encodeURIComponent(sourceQuery)}${scope ? `:${encodeURIComponent(scope)}` : ""}`;
 }
 
 export function readCatalogRequestDraft(key: string): CatalogRequestDraft | null {

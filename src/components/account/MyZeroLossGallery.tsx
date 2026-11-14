@@ -262,7 +262,9 @@ export function MyZeroLossGallery({ ownerId, items, purchaseStamps, filter, metr
         const activityCardHref = activityHref(item, "/account/entries", filter);
         const completedPurchase = filter === "completed" && purchasedReward && item.rewardId && item.entryId;
         const cardHref = purchaseOption ? `/account/purchase-options/${encodeURIComponent(item.slug)}`
-          : completedPurchase ? `${activityCardHref}&via=completed` : activityCardHref;
+          : completedPurchase ? `${activityCardHref}&via=completed`
+          : item.status === "prize" && !purchasedReward && item.rewardId && item.entryId && (filter === "prize" || filter === "completed" || filter === "all")
+            ? `${activityCardHref}&via=${filter === "all" ? "activity-win" : filter === "completed" ? "completed-win" : "won"}` : activityCardHref;
         const featured = item.status === "prize" && index === 0;
         const offerMetrics = item.status === "active" ? metricsBySlug[item.slug] : undefined;
         const isRecent = recentEntry?.slug === item.slug && (!recentEntry.entryId || recentEntry.entryId === item.entryId);

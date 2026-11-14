@@ -96,6 +96,7 @@ export function DemoParticipationPanel({
   const canAdjustQuantity = availabilityConfirmed && !entryBusy && !uncertain;
   const quantity = canAdjustQuantity ? Math.min(selectedQuantity, Math.max(1, remaining)) : selectedQuantity;
   const quantityReduced = quantity < selectedQuantity;
+  const [typedLimit, setTypedLimit] = useState<number | null>(null);
   const [adjustedQuantity, setAdjustedQuantity] = useState<number | null>(null);
   const [additionalEntryNoticeOpen, setAdditionalEntryNoticeOpen] = useState(false);
   const explanationVisit = useRef(0);
@@ -147,6 +148,7 @@ export function DemoParticipationPanel({
     requestedQuantity.current = null;
     if (next < 1 || next === quantity) return;
     setAdjustedQuantity(null);
+    setTypedLimit(null);
     setQuantity(next);
     rememberEntry(next);
     setSelectedTicketsToast(next);
@@ -372,12 +374,13 @@ export function DemoParticipationPanel({
         <fieldset disabled={uncertain || !availabilityConfirmed} data-testid="entry-quantity-ticket" className={`${quantityTicketStyles.ticket} ${compact ? compactStyles.quantity : ""}`}>
           <p className={quantityTicketStyles.label}>Add extra entries</p>
           <div className="flex shrink-0 items-center gap-2">
-            <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
-            <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of entries" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} onChange={next => { quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} />
+            <button type="button" onClick={() => { const next = Math.max(1, quantity - 1); setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); setTypedLimit(null); }} disabled={quantity === 1 || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#91b2cf] text-xl transition hover:border-[#0b1940] hover:bg-white disabled:cursor-not-allowed disabled:opacity-35" aria-label="Remove one entry">−</button>
+            <EntryQuantityInput value={quantity} maximum={maxQuantity} label="Number of entries" testId="entry-quantity" disabled={entryBusy || uncertain || !availabilityConfirmed || maxQuantity < 1} onChange={(next, clamped) => { setTypedLimit(clamped ? next : null); quantityTyped.current = true; setQuantity(next); rememberEntry(next); setSelectedTicketsToast(null); setAdjustedQuantity(null); }} />
             <button type="button" onClick={requestAdditionalEntry} disabled={quantity >= maxQuantity || entryBusy} className="grid h-10 w-10 place-items-center rounded-full border border-[#29ed14] bg-[#43f027] text-xl font-black text-[#002719] shadow-[0_0_15px_rgba(67,240,39,.72)] transition hover:bg-[#6aff50] hover:shadow-[0_0_22px_rgba(81,255,59,.95)] disabled:cursor-not-allowed disabled:border-[#91b2cf] disabled:bg-[#d9e9f5] disabled:text-[#7794ac] disabled:shadow-none" aria-label="Add one entry" aria-haspopup={!additionalEntryTermsSeen && !skipFutureExplainer ? "dialog" : undefined}>+</button>
           </div>
         </fieldset>
       </div>
+      {canAdjustQuantity && typedLimit === quantity && typedLimit === maxQuantity ? <p role="status" className="mt-2 text-sm text-cyan-200">Only {typedLimit} {typedLimit === 1 ? "entry is" : "entries are"} available in this pool. Your quantity was adjusted.</p> : null}
       {canAdjustQuantity && remaining > 0 && (quantityReduced || adjustedQuantity === quantity) ? <p role="status" className="mt-2 text-sm text-cyan-200">Availability changed. Your selection is now {quantity} {quantity === 1 ? "entry" : "entries"}.</p> : null}
       {signedOutCompact && !isSignedIn && !compact ? null : <p className={compact ? compactStyles.terms : "mt-2 text-xs leading-4 text-white/70"}>Each ${entryPrice.toFixed(2)} entry stands alone. If not selected, its payment stays with this {retailer} offering as its own completion option. Entries and completion options {compact && resetButton ? <span className={compactStyles.termsEnding}>never combine. {resetButton}</span> : <>never combine.{isPreviewExperience ? "" : " Terms apply."}</>}</p>}
       {!compact ? resetButton : null}

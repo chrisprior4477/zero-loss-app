@@ -164,7 +164,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone }: { filter: Fulfi
   </div>, document.body);
 }
 
-export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", initialDetailsId, initialAnchorId }: { orders: FulfillmentRecord[]; purchaseStamps?: Record<string, PurchaseStamp>; filter?: FulfillmentFilter; initialDetailsId?: string; initialAnchorId?: string }) {
+export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", fromNotification = false, initialDetailsId, initialAnchorId }: { orders: FulfillmentRecord[]; purchaseStamps?: Record<string, PurchaseStamp>; filter?: FulfillmentFilter; fromNotification?: boolean; initialDetailsId?: string; initialAnchorId?: string }) {
   const phone = useSyncExternalStore(subscribePhone, isPhone, serverPhone);
   const [pageAnchor, setPageAnchor] = useState<string | null>(initialDetailsId ?? initialAnchorId ?? null);
   const [opened, setOpened] = useState<{ id: string; anchor: HTMLButtonElement } | null>(null);
@@ -381,7 +381,8 @@ export function OrderTicketGallery({ orders, purchaseStamps, filter = "all", ini
         {orders.map((order, index) => {
           const detail = orderPresentation(order);
           const purchaseStamp = order.orderNumber ? purchaseStamps?.[order.rewardId] : undefined;
-          const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId }) + (filter === "all" ? "" : `&orderFilter=${filter}`);
+          const href = walletRewardHref({ slug: order.rewardSlug, rewardId: order.rewardId }) + `&via=${fromNotification ? "order-notification" : "orders"}`
+            + (filter === "all" ? "" : `&orderFilter=${filter}`);
           const position = index % size;
           const page = Math.floor(index / size);
           const column = page * columns + position % columns;

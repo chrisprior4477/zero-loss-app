@@ -87,14 +87,14 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
           </div>
         </header>
         <section className={styles.orders} aria-labelledby="your-orders-heading">
-          {hasSelection && filter !== "all" ? <a href={fulfillmentHref(undefined, filter)} className={styles.showAll}>Return to {fulfillmentFilterLabel[filter]}</a> : null}
+          {hasSelection && filter !== "all" ? <a href={fulfillmentHref(undefined, filter, false, visibleOrders[0]?.rewardId)} className={styles.showAll}>Return to {fulfillmentFilterLabel[filter]}</a> : null}
           {showingPayments ? <p className={styles.filterNote}>This view shows paid orders only. To see prize wins too, select Show all orders &amp; rewards.</p> : !selectedOrderNumber && filter === "exceptions" ? <p className={styles.filterNote}>Issuance problems, expired or cancelled rewards, and corrected orders. Open a record for its current status.</p> : null}
           {visibleOrders.length ? <>
             {!complete ? <div className={`${styles.warning} ${styles.retryWarning}`}>
               <p role="status">Some fulfillment records could not be verified right now. The records below are available, and totals may be incomplete.</p>
               <OrdersRetryButton label={retryLabel} />
             </div> : null}
-            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} purchaseStamps={repeatPurchaseStamps(state.orders)} filter={filter} initialAnchorId={focusRewardId} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
+            <OrderTicketGallery key={`${filter}:${selectedRewardId ?? "all"}:${selectedOrderNumber ?? "all"}:${openSelectionDetails}`} orders={visibleOrders} purchaseStamps={repeatPurchaseStamps(state.orders)} filter={filter} fromNotification={fromNotification} initialAnchorId={focusRewardId} initialDetailsId={hasSelection && openSelectionDetails ? visibleOrders[0]?.rewardId : undefined} />
           </> : !selectionComplete ? <div className={styles.empty}>
             <span><AccountIcon name="orders" /></span>
             <h3>{selectedOrderNumber ? "We couldn’t load this order right now" : selectedRewardId ? "We couldn’t load this reward right now" : filter === "exceptions" ? "We couldn’t load Exceptions right now" : "Fulfillment unavailable"}</h3>

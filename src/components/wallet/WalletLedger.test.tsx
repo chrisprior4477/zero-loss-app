@@ -60,8 +60,10 @@ test("searches past the visible batch by product, retailer, and exact posted amo
   expect(rows()).toEqual(["transaction-older-purchase", "transaction-refund"]);
   type("Best Buy");
   expect(rows()).toEqual(["transaction-older-purchase", "transaction-refund"]);
-  type("$249");
-  expect(screen.getByRole("button", { name: "All" }).textContent).toBe("All13");
+  for (const amount of ["$249", "249 dollars", "two hundred forty-nine dollars"]) {
+    type(amount);
+    expect(screen.getByRole("button", { name: "All" }).textContent).toBe("All13");
+  }
   fireEvent.click(screen.getByRole("button", { name: "Purchases" }));
   expect(rows()).toEqual(["transaction-older-purchase"]);
   type("AirPods −$249.00");

@@ -254,6 +254,18 @@
 .blockingDeposit strong { margin-right: 8px; }
 .blockingDeposit :is(time, p) { font-size: 13px; }
 .blockingDeposit :is(a, button) { min-height: 44px; }
+.fundingForm .confirmationTicket[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.confirmationContent {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .fundingForm .confirmationTicket {
   --corner-scoop: 20px;
   --side-scoop: 14px;

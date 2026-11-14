@@ -1,8 +1,9 @@
+import { searchDenominations } from "@/lib/catalog/search-denomination";
 import { normalizeSearch } from "@/lib/catalog/search-text";
 import type { LedgerEntryRow } from "./snapshot";
 
 const dollars = String.raw`(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?`;
-const amountOnly = new RegExp(String.raw`^[+−-]?\s*\$?\s*${dollars}$`);
+const amountOnly = new RegExp(String.raw`^[+−-]?\s*\$?\s*${dollars}(?:\s*(?:dollars?|USD))?$`, "i");
 const amountInText = new RegExp(String.raw`(?:^|\s)((?:[+−-]?\s*\$\s*|[+−-]\s*)${dollars})(?=\s|$)`, "g");
 const faceValue = new RegExp(String.raw`\$\s*(${dollars})(?![\d.,])`);
 
@@ -24,6 +25,14 @@ export function searchLedger<T extends LedgerEntryRow>(entries: T[], rawQuery: s
   if (amountOnly.test(query)) {
     const matches = amountMatch(query);
     return entries.filter(entry => matches(entry.amount));
+  }
+
+  if (/\bdollars?$/i.test(query)) {
+    const { text, values } = searchDenominations(query, []);
+    if (!text && values.size === 1) {
+      const [value] = values;
+      return entries.filter(entry => Math.abs(entry.amount) === value * 100);
+    }
   }
 
   const amounts: ReturnType<typeof amountMatch>[] = [];

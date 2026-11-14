@@ -8,7 +8,9 @@ import type { RetailerFilterGroup } from "@/lib/catalog/browse-filters";
 import { searchRetailerDirectory } from "@/lib/catalog/retailer-directory-search";
 import { discoveryCategoryHref } from "@/lib/catalog/discovery-navigation";
 import { marketplaceCategories, type MarketplaceCategoryId } from "@/lib/catalog/navigation";
-import { VoiceSearchButton } from "@/components/home/VoiceSearchButton";
+import { VoiceSearchControl } from "@/components/home/VoiceSearchButton";
+import { useVoiceSearch } from "@/components/search/useVoiceSearch";
+import { useBrowseResultsSearch } from "./BrowseResultsSearch";
 import { PrizeDollarField } from "./PrizeDollarField";
 
 export type BrowseFilterProps = {
@@ -29,7 +31,18 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
   const scope = [filters.retailer, department].filter(Boolean).join(" in ");
   const selectingByKeyboard = useRef(false);
   const applyingPreset = useRef(false);
-  const [searchDraft, setSearchDraft] = useState(searchTerm);
+  const [localDraft, setLocalDraft] = useState(searchTerm);
+  const session = useBrowseResultsSearch();
+  const searchDraft = session?.draft ?? localDraft;
+  const setSearchDraft = session?.setDraft ?? setLocalDraft;
+  const localVoice = useVoiceSearch(setLocalDraft);
+  const voice = session?.voice ?? localVoice;
+  function editSearch() {
+    if (session && session.editor !== "filters") {
+      voice.cancel();
+      session.setEditor("filters");
+    }
+  }
   const [searchFocused, setSearchFocused] = useState(false);
   const directoryMatches = searchFocused ? searchRetailerDirectory(retailerGroups, searchDraft) : [];
   const presetValue = filters.minValue === null && [25, 50, 75, 100].includes(filters.maxValue ?? -1)
@@ -69,6 +82,8 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
       const value = key === "q" && filtersOnly ? searchTerm : data.get(key)?.toString().trim() ?? "";
       if (value && !(key === "type" && value === "all") && !(key === "sort" && value === "featured" && selectedCategory !== "ending-soon")) params.set(key, value);
     }
+    if (voice.listening && !filtersOnly) return;
+    voice.cancel();
     const mobileDrawer = form.closest("details");
     if (mobileDrawer) mobileDrawer.open = false;
     onNavigate?.();
@@ -105,10 +120,17 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
             <span className="absolute left-0 top-0 h-3.5 w-3.5 rounded-full border-2 border-current" />
             <span className="absolute left-[12px] top-[12px] h-0.5 w-2 origin-left rotate-45 rounded-full bg-current" />
           </button>
-          <input id={`${id}-search`} type="search" name="q" value={searchDraft} onChange={event => setSearchDraft(event.target.value)} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
-          {searchDraft.trim() ? (
+          <input id={`${id}-search`} type="search" name="q" value={searchDraft} onFocus={editSearch} onChange={event => { voice.cancel(); setSearchDraft(event.target.value); }} enterKeyHint="search" placeholder="Product, brand, or category" className="min-w-0 flex-1 bg-transparent text-sm text-[#00132e] outline-none placeholder:text-slate-500" />
+          {searchDraft ? <button type="button" aria-label="Clear search" className="min-h-8 min-w-7 shrink-0 font-bold text-[#315878]" onClick={() => { voice.cancel(); setSearchDraft(""); document.getElementById(`${id}-search`)?.focus(); }}>×</button> : null}
+          {searchDraft.trim() && !voice.listening ? (
             <button type="submit" aria-label="Go to search results" className="ml-1 min-h-8 shrink-0 rounded-full bg-[#087feb] px-3 text-sm font-black text-white transition hover:bg-[#005fc4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087feb]">Go</button>
-          ) : <VoiceSearchButton key={searchDraft} onTranscript={setSearchDraft} />}
+          ) : null}
+          <VoiceSearchControl listening={voice.listening && (!session || session.editor === "filters")} error={(!session || session.editor === "filters") ? voice.error : ""}
+            toggle={() => {
+              if (session && session.editor !== "filters" && voice.listening) { editSearch(); return; }
+              session?.setEditor("filters");
+              voice.toggle();
+            }} />
         </div>
         {directoryMatches.length ? (
           <div role="region" aria-label="Matching retailer categories" className="mt-2 space-y-1 rounded-xl border border-cyan-300/45 bg-[#061e3d] p-2">

@@ -66,7 +66,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const retailerGroups = retailerFilterGroups(partnerGroups, categoryProducts.filter(product => !hidden.has(product.slug)), categoryProducts);
   const selectedRetailerGroup = retailerGroups.find(group => group.id === query.partnerCategory) ?? null;
   const denomination = searchDenominations(searchTooLong ? "" : searchTerm, demoProducts);
-  const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
+  const directoryMatches = searchTerm && !searchTooLong && !endingSoon && !denomination.values.size && !denomination.budget ? searchRetailerDirectory(retailerGroups, searchTerm) : [];
   const filters = parseBrowseFilterState(query, [...retailers, ...retailerGroups.flatMap(group => group.options.map(option => option.value))]);
   const budgetLabel = browsePrizeValueLabel(filters);
   const appliedFilters = [
@@ -99,10 +99,15 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const requestedValues = Array.from(denomination.values, value => `$${value.toLocaleString("en-US")}`).join(" or ");
   const requestedBatch = typeof query.batch === "string" && /^[1-9]\d*$/.test(query.batch) ? Number(query.batch) : 1;
   const lastBatch = Math.max(1, Math.ceil(products.length / batchSize));
-  const showingLastPrizes = endingSoon && query.batch === "last" && lastBatch > 1;
+  const tailMatch = typeof query.batch === "string" ? /^last-([1-9]\d{0,5})$/.exec(query.batch) : null;
+  const tailBatch = endingSoon && lastBatch > 1 && (query.batch === "last" || tailMatch)
+    ? Math.min(lastBatch, tailMatch ? Number(tailMatch[1]) : 1) : 0;
+  const tailEnd = products.length - (tailBatch - 1) * batchSize;
+  const tailStart = Math.max(0, tailEnd - batchSize);
+  const tailBatchValue = (index: number) => index === 1 ? "last" : `last-${index}`;
   const batch = Number.isSafeInteger(requestedBatch) && requestedBatch > 1
     ? Math.min(requestedBatch, lastBatch) : 1;
-  const visibleProducts = showingLastPrizes ? products.slice(-batchSize) : products.slice(0, batch * batchSize);
+  const visibleProducts = tailBatch ? products.slice(tailStart, tailEnd) : products.slice(0, batch * batchSize);
   const resultNoun = endingSoon ? products.length === 1 ? "prize" : "prizes" : products.length === 1 ? "product" : "products";
   const showBatchSearch = endingSoon || products.length > 0 || Boolean(searchTerm);
   const batchSearchHeading = endingSoon ? "ending-soon-search-again" : "browse-search-again";
@@ -144,22 +149,24 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     }
   }
   const returnParams = new URLSearchParams(searchParamsForView);
-  if (showingLastPrizes || batch > 1) returnParams.set("batch", showingLastPrizes ? "last" : String(batch));
+  if (tailBatch || batch > 1) returnParams.set("batch", tailBatch ? tailBatchValue(tailBatch) : String(batch));
   const browseReturnHref = `/browse${returnParams.size ? `?${returnParams}` : ""}`;
-  const nextProduct = showingLastPrizes ? undefined : products[visibleProducts.length];
-  const nextCount = Math.min(batchSize, products.length - visibleProducts.length);
+  const nextIndex = tailBatch ? tailEnd : visibleProducts.length;
+  const nextProduct = products[nextIndex];
+  const nextCount = Math.min(batchSize, products.length - nextIndex);
   const nextBatchParams = new URLSearchParams(returnParams);
-  nextBatchParams.set("batch", String(batch + 1));
+  nextBatchParams.set("batch", tailBatch > 1 ? tailBatchValue(tailBatch - 1) : String(batch + 1));
   const firstBatchHref = `${searchHref}#search-results`;
-  const previousBatch = (showingLastPrizes ? lastBatch : batch) - 1;
+  const previousBatch = batch - 1;
   const previousParams = new URLSearchParams(searchParamsForView);
-  previousParams.set("batch", String(previousBatch));
-  const previousProduct = previousBatch > 1 ? products[(previousBatch - 1) * batchSize] : undefined;
+  previousParams.set("batch", tailBatch ? tailBatchValue(tailBatch + 1) : String(previousBatch));
+  const previousProduct = tailBatch ? tailStart > 0 ? products[Math.max(0, tailStart - batchSize)] : undefined
+    : previousBatch > 1 ? products[(previousBatch - 1) * batchSize] : undefined;
   const previousBatchHref = previousProduct ? `/browse?${previousParams}#prize-${previousProduct.slug}` : firstBatchHref;
   const lastBatchParams = new URLSearchParams(searchParamsForView);
   lastBatchParams.set("batch", "last");
-  const showEndingSoonShortcuts = endingSoon && (batch > 1 || showingLastPrizes);
-  const offerLastShortcut = batch >= 4 && !showingLastPrizes;
+  const showEndingSoonShortcuts = endingSoon && (batch > 1 || tailBatch > 0);
+  const offerLastShortcut = batch >= 4 && !tailBatch;
   const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}#product-request-heading`;
   const retryScope = [...new Set([filters.retailer || selectedRetailerGroup?.category, subcategory || selectedLabel].filter(Boolean))].join(" in ");
   const withoutBudget = new URLSearchParams(searchParamsForView);
@@ -237,8 +244,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {showGroceryInspiration ? <div id="more-groceries" className="mt-4" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}><h2 className="text-2xl font-black leading-tight tracking-tight">More groceries &amp;<span className="block sm:inline"> rewards</span></h2></div> : null}
         {searchTooLong ? <p role="alert" className="mt-4 rounded-xl border border-orange-300/40 bg-orange-400/10 p-4 text-sm font-bold text-orange-100">Search is too long. Try a brand or product name.</p> : <div className={`${showGroceryInspiration ? "mt-2" : "mt-4"} flex flex-wrap items-center gap-x-3 gap-y-2`}>
           <p aria-live="polite" className="text-sm font-bold text-white/75">{endingSoon || products.length > batchSize
-            ? `Showing ${showingLastPrizes ? "the last " : ""}${visibleProducts.length} of ${products.length} ${resultNoun}`
-            : `${products.length} ${resultNoun} shown`}{denomination.values.size > 0 &&
+            ? tailBatch === 1 ? `Showing the last ${visibleProducts.length} of ${products.length} ${resultNoun}`
+              : tailBatch ? `Showing ${tailStart + 1}–${tailEnd} of ${products.length} ${resultNoun}` : `Showing ${visibleProducts.length} of ${products.length} ${resultNoun}`
+            : `${products.length} ${resultNoun} shown`}{denomination.budget ? <span className="ml-2">· Prize value {denomination.budget.inclusive ? "up to" : "under"} ${denomination.budget.maximum.toLocaleString("en-US")}</span> : denomination.values.size > 0 &&
               <span className="ml-2">· {includesLowerGiftCards ? <>Requested value {requestedValues} · Includes lower-value gift cards</> : <>Exact prize value: {requestedValues}</>}</span>}</p>
           {appliedFilters.length ? <ul aria-label="Applied filters" className="flex min-w-0 flex-wrap gap-1.5">
             {[...new Set(appliedFilters)].map(label => <li key={label} className="max-w-full rounded-full bg-[#d5f1ff] px-2.5 py-1 text-xs font-bold break-words text-[#123e68]">{label}</li>)}
@@ -351,7 +359,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
               )}
               {nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
                 href={`/browse?${nextBatchParams}#prize-${nextProduct.slug}`}>Next {nextCount} {nextCount === 1 ? "Prize" : "Prizes"}</Link>}
-              {showEndingSoonShortcuts && <Link replace scroll={false} prefetch={false} className={browseStyles.batchShortcut}
+              {showEndingSoonShortcuts && (!tailBatch || tailStart > 0) && <Link replace scroll={false} prefetch={false} className={browseStyles.batchShortcut}
                 href={previousBatchHref}>Previous 24</Link>}
             </div>
           ) : nextProduct && <Link replace scroll={false} prefetch={false} className={browseStyles.morePrizes}
@@ -362,5 +370,5 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
       </div>
     </main>
   );
-  return showBatchSearch ? <BrowseResultsSearchSession key={searchHref} browseHref={searchHref} searchTerm={searchTerm} endingSoon={endingSoon}>{page}</BrowseResultsSearchSession> : page;
+  return showBatchSearch ? <BrowseResultsSearchSession key={JSON.stringify([selectedCategory, subcategory, selectedRetailerGroup?.id, filters.retailer, searchTerm, endingSoon])} browseHref={searchHref} searchTerm={searchTerm} endingSoon={endingSoon}>{page}</BrowseResultsSearchSession> : page;
 }

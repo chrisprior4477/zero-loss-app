@@ -46,7 +46,14 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
   useEffect(() => {
     const restoreView = () => {
       const showingPrint = window.location.hash === printPreviewHash;
-      if (showingPrint && instructionScroll.current === null) instructionScroll.current = window.scrollY;
+      if (showingPrint) {
+        const saved = window.history.state?.zeroLossPrintDraft;
+        if (saved?.offering === offeringSlug && saved.owner === initialAccountReference && typeof saved.name === "string" && typeof saved.account === "string") {
+          setName(saved.name.slice(0, 80));
+          setAccountReference(initialAccountReference || saved.account.slice(0, 80));
+        }
+        if (instructionScroll.current === null) instructionScroll.current = typeof saved?.scroll === "number" ? saved.scroll : window.scrollY;
+      }
       setPrintPreview(showingPrint);
     };
     const initial = requestAnimationFrame(restoreView);
@@ -55,18 +62,21 @@ export function FreeEntryPrintCard({ offeringTitle, offeringSlug, intro, footer,
       cancelAnimationFrame(initial);
       window.removeEventListener("popstate", restoreView);
     };
-  }, []);
+  }, [offeringSlug, initialAccountReference]);
 
   function openPrintPreview() {
     if (window.location.hash === printPreviewHash) return;
     instructionScroll.current = window.scrollY;
-    window.history.pushState({ zeroLossPrintPreview: true }, "", printPreviewHash);
+    window.history.pushState({ ...window.history.state, zeroLossPrintPreview: true, zeroLossPrintDraft: {
+      offering: offeringSlug, owner: initialAccountReference, name: name.slice(0, 80), account: accountReference.slice(0, 80), scroll: instructionScroll.current,
+    } }, "", printPreviewHash);
     setPrintPreview(true);
   }
 
   function closePrintPreview() {
     if (window.history.state?.zeroLossPrintPreview) {
       window.history.back();
+      setPrintPreview(false);
       return;
     }
     window.history.replaceState(null, "", window.location.pathname + window.location.search);

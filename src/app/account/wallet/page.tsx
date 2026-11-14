@@ -1,4 +1,4 @@
-import { fulfillmentFilter } from "@/lib/account/fulfillment";
+import { exactOrderHref, fulfillmentFilter, fulfillmentFilterLabel, fulfillmentHref } from "@/lib/account/fulfillment";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -117,12 +117,23 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     if (reward) {
       const fromPurchase = query.via === "purchase" && typeof query.rewardId === "string" && isPurchasedReward(reward);
       const transactionId = typeof query.transaction === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(query.transaction) ? query.transaction : undefined;
+      const orderFilter = fulfillmentFilter(query.orderFilter);
+      const fromOrders = query.via === "orders" || query.via === "order-notification";
+      const sourceOrder = query.via === "order-notification" && reward.rewardId && typeof query.rewardId === "string"
+        ? account.orders?.orders.find(order => order.rewardId === reward.rewardId) : undefined;
+      const winFilter = query.via === "won" ? "prize" : query.via === "completed-win" ? "completed" : query.via === "activity-win" ? "all" : null;
       const returnLink = transactionId && typeof query.rewardId === "string" && query.via === undefined
         ? { href: walletSupportReturnHref(transactionId, query.walletView === "1"), label: "Back to this transaction" }
         : query.via === "completed" && typeof query.rewardId === "string" && isPurchasedReward(reward) && reward.entryId
           ? { href: `/account/entries?filter=completed&viewed=${encodeURIComponent(reward.entryId)}#${openEntriesAnchorId}`, label: "Back to this purchase" }
-          : undefined;
-      return <WalletRewardDetail orderFilter={fulfillmentFilter(query.orderFilter)} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnHistory={fromRewardHistory} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} item={reward}
+          : typeof query.rewardId === "string" && fromOrders && reward.rewardId
+            ? query.via === "order-notification"
+              ? { href: "/account/notifications?filter=orders#notification-tickets-filters", label: "Back to order updates" }
+              : { href: fulfillmentHref(undefined, orderFilter, false, reward.rewardId), label: `Return to ${orderFilter === "all" ? "All orders & rewards" : fulfillmentFilterLabel[orderFilter]}` }
+            : typeof query.rewardId === "string" && winFilter && !isPurchasedReward(reward) && reward.status === "prize" && reward.entryId
+              ? { href: `/account/entries?filter=${winFilter}&viewed=${encodeURIComponent(reward.entryId)}#${openEntriesAnchorId}`, label: "Back to this win in My Activity" }
+              : undefined;
+      return <WalletRewardDetail orderFilter={orderFilter} fulfillmentReturn={sourceOrder ? exactOrderHref(sourceOrder.orderNumber, orderFilter, false, true) : undefined} fromPurchase={fromPurchase} returnTile={query.tile === "1"} returnHistory={fromRewardHistory} returnView={query.rewards === rewardView ? rewardView : undefined} timeZone={account.timezone} item={reward}
         isPreview={account.activity.isPreview} claimedCode={claimedCode} crewMembers={crewMembers} returnLink={returnLink}
         overview={{ activity: account.activity, balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled }} />;
     }

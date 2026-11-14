@@ -8,6 +8,12 @@ describe("catalog search", () => {
     expect(matches.length).toBeGreaterThan(0);
     expect(matches.every(product => product.value === 100 && product.retailer.startsWith("Walmart"))).toBe(true);
   });
+  test.each([["Walmart gift cards under $100", false], ["Walmart gift cards up to one hundred dollars", true]])("applies the budget in %s", (query, inclusive) => {
+    const matches = searchCatalog(demoProducts, query);
+    expect(matches.some(product => product.value === 75)).toBe(true);
+    expect(matches.some(product => product.value === 100)).toBe(inclusive);
+    expect(matches.every(product => product.value <= 100 && product.title.includes("Gift Card") && product.retailer.startsWith("Walmart"))).toBe(true);
+  });
   test("spoken and numeric values filter even when another number appears in an item's description or title", () => {
     const sample = demoProducts.slice(0, 2).map((p, i) => ({ ...p, title: "Walmart 300-piece kit", retailer: "Walmart", value: i ? 300 : 100 }));
     expect(searchCatalog(sample, "Walmart three hundred dollars")).toEqual([sample[1]]);

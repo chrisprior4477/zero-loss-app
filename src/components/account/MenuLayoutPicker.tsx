@@ -17,7 +17,7 @@ export function MenuLayoutPicker({ previewAccount = emptyPreview, previewSearchR
   const current = menuLayouts.find(option => option.id === layout)!;
   const changed = layout !== savedLayout;
 
-  return <section id="personalize-menu" className={styles.ticket} aria-labelledby="personalize-menu-heading">
+  return <section id="personalize-menu" tabIndex={-1} className={styles.ticket} aria-labelledby="personalize-menu-heading">
       <div><span className={styles.eyebrow}>MAKE IT YOURS</span><h2 id="personalize-menu-heading">Personalize your top menu</h2><span className={styles.summaryText}>Choose how your menu and search look.</span>
         <div className={styles.styleToolbar}>
           <span className={styles.current}>Current style: {menuLayouts.find(option => option.id === savedLayout)!.name}</span>

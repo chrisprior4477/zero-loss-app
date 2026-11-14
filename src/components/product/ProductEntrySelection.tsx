@@ -30,12 +30,12 @@ export function useEntrySelection(initialQuantity: number): Selection {
   return shared ?? standalone;
 }
 
-export function FreeEntryLink({ slug, from, className, children }: {
-  slug: string; from?: string | string[]; className: string; children: ReactNode;
+export function FreeEntryLink({ slug, from, share, className, children }: {
+  slug: string; from?: string | string[]; share?: unknown; className: string; children: ReactNode;
 }) {
   const selection = useContext(EntrySelection);
   const quantity = selection?.[0];
-  return <Link href={freeEntryHref(slug, from, quantity)} className={className} onNavigate={() => {
+  return <Link href={freeEntryHref(slug, from, quantity, share)} className={className} onNavigate={() => {
     if (quantity === undefined) return;
     try { window.history.replaceState({ ...window.history.state, freeEntryDraft: { slug, quantity } }, ""); }
     catch { /* The instructions link still carries the selection. */ }

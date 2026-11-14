@@ -1,3 +1,4 @@
+import { shareUuid } from "@/lib/sharing/saved-shares";
 import { isEntryQuantity, parseEntryQuantity } from "./quantity";
 import { productBrowseReturnPath } from "@/lib/catalog/product-return";
 import { clearViewedProduct, SHOPPING_REMINDER_EVENT } from "@/lib/catalog/viewed-product";
@@ -9,13 +10,14 @@ const maxAgeMs = 24 * 60 * 60 * 1000;
 
 export type EntryIntent = { slug: string; title: string; quantity: number; savedAt: number; browseReturn?: string; resumeAfter?: "funding" | "sign-in" };
 
-export function productEntryHref(slug: string, quantity = 1, browseReturn?: unknown): string {
+export function productEntryHref(slug: string, quantity = 1, browseReturn?: unknown, share?: unknown): string {
   if (!productSlugPattern.test(slug)) return "/browse";
   const selected = isEntryQuantity(quantity) ? quantity : 1;
   const params = new URLSearchParams();
   if (selected > 1) params.set("quantity", String(selected));
   const browse = productBrowseReturnPath(browseReturn);
   if (browse) params.set("from", browse);
+  if (typeof share === "string" && shareUuid.test(share)) params.set("share", share);
   return `/items/${slug}${params.size ? `?${params}` : ""}#enter-entry`;
 }
 
@@ -25,9 +27,10 @@ export function productEntryReturnPath(value: unknown): string | null {
   if (!/^\/items\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\?[^#]+)?#enter-entry$/.test(value)) return null;
   const params = new URL(value, "https://navigation.invalid").searchParams;
   const keys = [...params.keys()];
-  if (keys.some(key => key !== "quantity" && key !== "from") || new Set(keys).size !== keys.length) return null;
+  if (keys.some(key => key !== "quantity" && key !== "from" && key !== "share") || new Set(keys).size !== keys.length) return null;
   if (params.has("quantity") && parseEntryQuantity(params.get("quantity")) === null) return null;
   if (params.has("from") && !productBrowseReturnPath(params.get("from"))) return null;
+  if (params.has("share") && !shareUuid.test(params.get("share")!)) return null;
   return value;
 }
 

@@ -7,9 +7,10 @@ import { useVoiceSearch } from "@/components/search/useVoiceSearch";
 import styles from "./browse-discovery.module.css";
 
 type Position = "top" | "bottom";
+type Editor = Position | "filters";
 type SearchSession = {
   draft: string; setDraft: (value: string) => void; applied: string;
-  editor: Position | null; setEditor: (value: Position | null) => void;
+  editor: Editor | null; setEditor: (value: Editor | null) => void;
   search: (value: string, anchor?: string) => void; voice: ReturnType<typeof useVoiceSearch>; endingSoon: boolean;
 };
 const Session = createContext<SearchSession | null>(null);
@@ -20,7 +21,7 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState(searchTerm);
-  const [editor, setEditor] = useState<Position | null>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
   const voice = useVoiceSearch(setDraft);
   function search(value: string, anchor = "search-results") {
     const term = value.trim();
@@ -65,8 +66,12 @@ export function BrowseResultsSearch({ position, retailerScope }: { position: Pos
     {draft || applied ? <button className={styles.clearSearch} type="button" aria-label="Clear search" title="Clear search"
       onClick={() => { voice.cancel(); setDraft(""); field.current?.focus(); if (applied) search("", position === "bottom" ? inputId : undefined); }}>×</button> : null}
     {draft.trim() && !voice.listening ? <button type="submit" className={styles.go} aria-label="Go to search results">Go</button> : null}
-    <VoiceSearchControl listening={voice.listening} error={editing ? voice.error : ""}
-      toggle={() => { setEditor(position); voice.toggle(); }} />
+    <VoiceSearchControl listening={editing && voice.listening} error={editing ? voice.error : ""}
+      toggle={() => {
+        if (!editing && voice.listening) { edit(); return; }
+        setEditor(position);
+        voice.toggle();
+      }} />
     {editing ? <button className={styles.closeSearch} type="button" aria-label="Close search" title="Close search" onClick={close}>×</button> : null}
   </form>;
 }

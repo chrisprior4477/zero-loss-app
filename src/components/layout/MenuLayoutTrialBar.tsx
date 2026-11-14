@@ -26,7 +26,15 @@ export function MenuLayoutTrialBar() {
       <p>{menuDeviceLabel(device)} · Trying: <strong>{menuLayouts.find(option => option.id === layout)!.name}</strong></p>
       <div className={styles.actions}>
         <button className={styles.saveButton} type="button" disabled={pending || layout === savedLayout} onClick={save}>{pending ? "Saving…" : layout === savedLayout ? "Layout saved" : "Save layout"}</button>
-        <Link className={styles.otherStyles} href="/account/profile#personalize-menu">Try other styles</Link>
+        <Link className={styles.otherStyles} href="/account/profile#personalize-menu" onNavigate={event => {
+          if (window.location.pathname !== "/account/profile") return;
+          const picker = document.getElementById("personalize-menu");
+          if (!picker) return;
+          event.preventDefault();
+          window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}#personalize-menu`);
+          picker.scrollIntoView({ block: "start" });
+          picker.focus({ preventScroll: true });
+        }}>Try other styles</Link>
         <button className={styles.closeButton} type="button" aria-label="Close layout bar" title="Close layout bar" disabled={pending} onClick={dismiss}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
         </button>

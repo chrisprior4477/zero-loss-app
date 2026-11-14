@@ -11,13 +11,14 @@ async function saveRequest(previous: CatalogRequestState, formData: FormData): P
   catch { return { status: "error", message: "We could not confirm your request. Your details are still here. Please try again." }; }
 }
 
-type Props = { initialProduct?: string; ownerId?: string };
+type Props = { initialProduct?: string; ownerId?: string; scope?: string };
 
-export function CatalogRequestForm({ initialProduct = "", ownerId }: Props) {
-  return <CatalogRequestSession key={JSON.stringify([ownerId, initialProduct])} initialProduct={initialProduct} ownerId={ownerId} />;
+export function CatalogRequestForm({ initialProduct = "", ownerId, scope }: Props) {
+  const draftKey = catalogRequestDraftKey(ownerId, initialProduct, scope);
+  return <CatalogRequestSession key={draftKey} initialProduct={initialProduct} draftKey={draftKey} />;
 }
 
-function CatalogRequestSession({ initialProduct = "", ownerId }: Props) {
+function CatalogRequestSession({ initialProduct, draftKey }: { initialProduct: string; draftKey: string }) {
   const initialDraft = (): CatalogRequestDraft => ({ requestedItem: initialProduct, email: "", notes: "" });
   const [draft, setDraft] = useState(initialDraft);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -27,7 +28,6 @@ function CatalogRequestSession({ initialProduct = "", ownerId }: Props) {
   useEffect(() => {
     if (window.location.hash === "#requested-item") requestedItem.current?.focus({ preventScroll: true });
   }, []);
-  const draftKey = catalogRequestDraftKey(ownerId, initialProduct);
   const dirty = draft.requestedItem !== initialProduct || Boolean(draft.email || draft.notes);
   useLayoutEffect(() => {
     if (restored.current) return;

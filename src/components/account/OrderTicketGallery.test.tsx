@@ -240,20 +240,20 @@ test("a failed copy provides selectable text instead of claiming success", async
   expect(screen.queryByText("Copied. Ready to paste into Support.")).toBeNull();
 });
 
-test("used rewards stay distinguishable and open the exact same destination as My Activity", () => {
+test("used rewards stay distinguishable and preserve their order context when opened", () => {
   const activity = { ...storedActivityFixture().activity[1], rewardId: "used-reward-id", rewardStatus: "redeemed" as const };
   render(<OrderTicketGallery orders={[record(1, { rewardId: activity.rewardId, rewardSlug: activity.slug, rewardStatus: "redeemed" })]} />);
   expect(screen.getByText("Already used")).toBeTruthy();
   expect(screen.queryByRole("link", { name: "Open gift card" })).toBeNull();
-  expect(screen.getByRole("link", { name: "View used card" }).getAttribute("href")).toBe(activityHref(activity));
+  expect(screen.getByRole("link", { name: "View used card" }).getAttribute("href")).toBe(`${activityHref(activity)}&via=orders`);
 });
 
 test("claimed wins and purchases open their usable wallet pass, with no redundant destinations", () => {
   const purchase = record(1), win = record(2, { source: "winner", orderNumber: null, amountPaidCents: null });
   render(<OrderTicketGallery orders={[purchase, win]} />);
   expect(screen.getAllByRole("link", { name: "Open gift card" }).map(a => a.getAttribute("href"))).toEqual([
-    "/account/wallet?reward=same-product&rewardId=reward-full-reference-1",
-    "/account/wallet?reward=same-product&rewardId=reward-full-reference-2",
+    "/account/wallet?reward=same-product&rewardId=reward-full-reference-1&via=orders",
+    "/account/wallet?reward=same-product&rewardId=reward-full-reference-2&via=orders",
   ]);
   expect(screen.getByText("You won")).toBeTruthy();
   expect(screen.getAllByText("Paid at checkout")).toHaveLength(1);

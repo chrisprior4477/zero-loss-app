@@ -74,7 +74,7 @@ export function breadcrumbItems(pathname: string, searchParams: URLSearchParams,
   if (root === "free-entry" && second === "print") {
     const offering = searchParams.get("offering");
     const href = offering && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(offering)
-      ? freeEntryHref(offering, searchParams.get("from"), parseEntryQuantity(searchParams.get("quantity")))
+      ? freeEntryHref(offering, searchParams.get("from"), parseEntryQuantity(searchParams.get("quantity")), searchParams.get("share"))
       : "/free-entry";
     return [{ label: "Free-entry information", href }, { label: "Print Form" }];
   }

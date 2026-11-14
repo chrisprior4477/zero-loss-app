@@ -93,6 +93,10 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
     setQuery(""); setMode("categories"); setOpenPanel({ panel: next, position });
   }
   function close() {
+    if (panel === "filters" && session?.editor === "filters") {
+      session.voice.cancel();
+      session.setEditor(null);
+    }
     setOpenPanel(null);
   }
   function choose(href: string) {

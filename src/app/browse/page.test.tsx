@@ -193,6 +193,15 @@ describe("Browse search results", () => {
     const card = cards[0];
     const href = new URL(within(card).getByRole("link").getAttribute("href")!, "https://example.test");
     expect(href.searchParams.get("from")).toBe(`/browse${last.search}${last.hash}`);
+    const previous = new URL(screen.getByRole("link", { name: "Previous 24" }).getAttribute("href")!, "https://example.test");
+    expect(previous.searchParams.get("batch")).toBe("last-2");
+    cleanup();
+    await browse("last-2");
+    const earlier = screen.getAllByRole("article");
+    expect(earlier).toHaveLength(24);
+    expect(`#${earlier[0].id}`).toBe(previous.hash);
+    expect(earlier.some(item => cards.some(lastCard => lastCard.id === item.id))).toBe(false);
+    expect(screen.getByRole("link", { name: "Next 24 Prizes" }).getAttribute("href")).toBe(`/browse${last.search}${last.hash}`);
   });
 
   test("loads the next 24 in a filtered category, preserves the card return, and starts a footer voice search at batch one", async () => {

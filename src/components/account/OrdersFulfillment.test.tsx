@@ -45,7 +45,7 @@ test("identifies repeat payments by their actual checkout date and order number"
 
 test("connects orders to rewards, activity and support", () => {
   render(<OrdersFulfillment state={{ source: "stored", orders: [order("fulfilled", "ready")] }} />);
-  expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id");
+  expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id&via=orders");
   const card = screen.getByRole("link", { name: /Open gift card/ }).closest("article")!;
   expect(within(card).queryByRole("link", { name: /My Activity|Wallet history/ })).toBeNull();
   const helpLinks = screen.getAllByRole("link", { name: "Choose a transaction to report" });
@@ -99,8 +99,8 @@ test("two orders for the same product open their own saved gift cards", () => {
     { ...order("fulfilled", "second"), rewardSlug: "ready-reward" },
   ] }} />);
   expect(screen.getAllByRole("link", { name: /Open gift card/ }).map(link => link.getAttribute("href"))).toEqual([
-    "/account/wallet?reward=ready-reward&rewardId=ready-reward-id",
-    "/account/wallet?reward=ready-reward&rewardId=second-reward-id",
+    "/account/wallet?reward=ready-reward&rewardId=ready-reward-id&via=orders",
+    "/account/wallet?reward=ready-reward&rewardId=second-reward-id&via=orders",
   ]);
 });
 
@@ -168,7 +168,7 @@ test("ticket filters use actual order statuses without changing saved destinatio
   expect(screen.queryByRole("heading", { name: "ready gift card" })).toBeNull();
   expect(screen.getByText("1 record")).toBeTruthy();
   rerender(<OrdersFulfillment state={state} overview={overview} filter="fulfilled" />);
-  expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id&orderFilter=fulfilled");
+  expect(screen.getByRole("link", { name: /Open gift card/ }).getAttribute("href")).toBe("/account/wallet?reward=ready-reward&rewardId=ready-reward-id&via=orders&orderFilter=fulfilled");
   rerender(<OrdersFulfillment state={state} overview={overview} filter="exceptions" />);
   expect(screen.getByText("No records in this status")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Show all records" }).getAttribute("href")).toBe("/account/orders#fulfillment-records");
@@ -182,7 +182,7 @@ test("winning rewards appear without a purchase order and link to the exact acti
   expect(screen.getByText("Ready to claim")).toBeTruthy();
   expect(screen.getByText("You won")).toBeTruthy();
   expect(screen.queryByText("No purchase required")).toBeNull();
-  expect(screen.getByRole("link", { name: "View winning reward" }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=winner-id");
+  expect(screen.getByRole("link", { name: "View winning reward" }).getAttribute("href")).toBe("/account/wallet?reward=samsung-m70h-tv&rewardId=winner-id&via=orders");
 });
 
 test("an unknown selected reward never falls back to another customer's or product's card", () => {

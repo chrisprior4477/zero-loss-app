@@ -6,7 +6,7 @@ import styles from "./entry-quantity-input.module.css";
 
 export function EntryQuantityInput({ value, maximum, disabled, label, testId, onChange }: {
   value: number; maximum: number; disabled?: boolean; label: string; testId?: string;
-  onChange: (quantity: number) => void;
+  onChange: (quantity: number, clamped?: boolean) => void;
 }) {
   // Keep a temporarily empty field editable without treating it as a new quantity.
   const [draft, setDraft] = useState<{ base: number; text: string } | null>(null);
@@ -21,9 +21,10 @@ export function EntryQuantityInput({ value, maximum, disabled, label, testId, on
       if (!/^[0-9]*$/.test(text)) return;
       if (text === "" || /^0+$/.test(text)) { setDraft({ base: value, text }); return; }
       const next = Number(text);
-      if (!isEntryQuantity(next)) return;
+      if (!isEntryQuantity(next) || maximum < 1) return;
+      const clamped = next > maximum;
       setDraft(null);
-      onChange(Math.min(next, maximum));
+      onChange(clamped ? maximum : next, clamped);
     }}
     onBlur={() => setDraft(null)}
     onKeyDown={event => {

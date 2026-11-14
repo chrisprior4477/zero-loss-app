@@ -5,19 +5,21 @@ import { redirect } from "next/navigation";
 import { freeEntryProduct } from "@/lib/catalog/shopping-catalog";
 import { getAccountContext } from "@/lib/account/context";
 import { productBrowseReturnPath, productHrefWithBrowseReturn } from "@/lib/catalog/product-return";
+import { shareUuid } from "@/lib/sharing/saved-shares";
 import { parseEntryQuantity, productEntryHref } from "@/lib/entries/return-intent";
 
 export const metadata: Metadata = { title: "Free Entry Information" };
 
-type Props = { searchParams: Promise<{ offering?: string; from?: string | string[]; quantity?: string | string[] }> };
+type Props = { searchParams: Promise<{ offering?: string; share?: string | string[]; from?: string | string[]; quantity?: string | string[] }> };
 
 export default async function FreeEntryPage({ searchParams }: Props) {
-  const { offering, from, quantity: rawQuantity } = await searchParams;
+  const { offering, from, share, quantity: rawQuantity } = await searchParams;
   const product = await freeEntryProduct(offering);
   if (!product) redirect("/browse");
   const browseReturn = productBrowseReturnPath(from);
   const quantity = offering === product.slug ? parseEntryQuantity(rawQuantity) : null;
-  const backHref = quantity ? productEntryHref(product.slug, quantity, browseReturn)
+  const sharedToken = offering === product.slug && typeof share === "string" && shareUuid.test(share) ? share : undefined;
+  const backHref = quantity || sharedToken ? productEntryHref(product.slug, quantity ?? 1, browseReturn, sharedToken)
     : browseReturn ? productHrefWithBrowseReturn(product.slug, browseReturn) : `/items/${product.slug}`;
   const account = await getAccountContext();
   const legalName = [account?.legalFirstName, account?.legalLastName].filter(Boolean).join(" ");

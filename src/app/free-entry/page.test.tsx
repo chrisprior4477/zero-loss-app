@@ -27,7 +27,7 @@ test("free-entry rejects unsafe return destinations", async () => {
 });
 
 test("seven unsubmitted entries survive the instructions and print-preview round trip", async () => {
-  const query = { offering: "airpods-pro", from: "/browse?category=electronics", quantity: "7" };
+  const query = { offering: "airpods-pro", from: "/browse?category=electronics", quantity: "7", share: "22222222-2222-4222-8222-222222222222" };
   const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
   try {
     render(await FreeEntryPage({ searchParams: Promise.resolve(query) }));
@@ -35,6 +35,7 @@ test("seven unsubmitted entries survive the instructions and print-preview round
     expect(back.pathname).toBe("/items/airpods-pro");
     expect(back.hash).toBe("#enter-entry");
     expect(back.searchParams.get("quantity")).toBe("7");
+    expect(back.searchParams.get("share")).toBe(query.share);
     expect(back.searchParams.get("from")).toBe(query.from);
     fireEvent.click(screen.getByRole("button", { name: "Print entry insert" }));
     expect(screen.getByRole("region", { name: "Letter-size print preview" })).toBeTruthy();

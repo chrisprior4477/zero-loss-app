@@ -508,6 +508,8 @@ test("signed-out extra entry explanation leads to sign-in instead of an unsavabl
 test("cannot select more entries than the displayed remaining capacity", () => {
   render(<DemoParticipationPanel {...props} sold={9} capacity={10} isSignedIn />);
   expect(screen.getByText("1 remaining")).toBeTruthy();
+  fireEvent.change(screen.getByTestId("entry-quantity"), { target: { value: "7" } });
+  expect(screen.getByText(/Only 1 entry is available/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "Add one entry" }).hasAttribute("disabled")).toBe(true);
   expect((screen.getByTestId("entry-quantity") as HTMLInputElement).value).toBe("1");
 });

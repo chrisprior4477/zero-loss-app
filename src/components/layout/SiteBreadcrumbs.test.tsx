@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(route.query),
 }));
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); route.pathname = "/account/wallet"; route.query = "view=history"; });
 
 test("the shared account trail has a labeled home exit and the right wallet destination", () => {
   render(<SiteBreadcrumbs />);
@@ -67,6 +67,22 @@ test("keyboard focus can move through a category menu, then dismiss it when leav
   fireEvent.blur(trigger, { relatedTarget: last });
   expect(screen.getByRole("menu")).toBeTruthy();
   fireEvent.blur(last, { relatedTarget: screen.getByRole("button", { name: "Outside header" }) });
+  expect(screen.queryByRole("menu")).toBeNull();
+});
+
+test("the current browse category stays marked and its menu supports arrows and Escape", () => {
+  route.pathname = "/browse"; route.query = "category=games-puzzles";
+  render(<DesktopCategoryNav endingSoonItems={[]} />);
+  const trigger = screen.getByRole("link", { name: "Games & Puzzles" });
+  expect(trigger.getAttribute("aria-current")).toBe("page");
+  fireEvent.focus(trigger);
+  const items = within(screen.getByRole("menu", { name: "Games & Puzzles menu" })).getAllByRole("menuitem");
+  fireEvent.keyDown(trigger, { key: "ArrowDown" });
+  expect(document.activeElement).toBe(items[0]);
+  fireEvent.keyDown(items[0], { key: "End" });
+  expect(document.activeElement).toBe(items.at(-1));
+  fireEvent.keyDown(items.at(-1)!, { key: "Escape" });
+  expect(document.activeElement).toBe(trigger);
   expect(screen.queryByRole("menu")).toBeNull();
 });
 

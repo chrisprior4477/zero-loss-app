@@ -48,6 +48,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
 }) {
   const router = useRouter();
   const [nextOpen, setNextOpen] = useState(false);
+  const [typedLimit, setTypedLimit] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(() => Math.min(isEntryQuantity(initialQuantity) ? initialQuantity : 1, isEntryQuantity(remaining) ? remaining : 1));
   const [checkoutOpen, setCheckoutOpen] = useState(resumeReview || initialReceipt !== null);
   const [approved, setApproved] = useState(false);
@@ -246,7 +247,8 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
     finally { setWorking(false); }
   }
 
-  function adjustQuantity(next: number) {
+  function adjustQuantity(next: number, clamped = false) {
+    setTypedLimit(clamped ? next : null);
     setQuantity(next);
     setApproved(false);
     setCheckoutOpen(false);
@@ -288,6 +290,7 @@ export function EntryPageActions({ itemTitle, itemImage, slug, entryId, initialQ
               <button type="button" aria-label="Add one extra entry" onClick={() => adjustQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity >= maxQuantity || busy || uncertain}>+</button>
             </div>
             <span>{quantity === 1 ? "extra entry" : "extra entries"}</span>
+            {typedLimit === quantity && typedLimit === maxQuantity ? <span role="status">Only {typedLimit} more {typedLimit === 1 ? "entry is" : "entries are"} available. Your quantity was adjusted.</span> : null}
           </div> : null}
           {!checkoutOpen && reviewing ? <button type="button" className={styles.primaryLink} onClick={openReview}>Add {quantity === 1 ? "more entries" : `${quantity} more entries`} to {shortPrizeName(slug, itemTitle)}</button> : null}
           {checkoutOpen ? <div id="additional-entry-checkout" ref={checkout} tabIndex={-1} className={styles.inlineCheckout} data-phase={receipt?.status ?? result.status} data-landing-align={reviewing ? "center" : "start"} aria-label="Additional entry checkout">

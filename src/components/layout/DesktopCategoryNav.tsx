@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { Suspense, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   categorySubcategories,
   endingSoonItemHrefs,
@@ -60,7 +61,28 @@ const desktopCategoryItems: Record<string, readonly string[]> = {
 
 type EndingSoonMenuItem = { title: string; href: string; remaining: number };
 
+function CurrentCategory({ onChange }: { onChange: (category: string | null) => void }) {
+  const pathname = usePathname();
+  const search = useSearchParams();
+  const category = pathname === "/browse" && search
+    ? marketplaceCategoryId(search.get("category") ?? (search.get("sort") === "ending-soon" ? "ending-soon" : "all")) ?? "all"
+    : null;
+  useEffect(() => { onChange(category); }, [category, onChange]);
+  return null;
+}
+
+function focusCategoryItem(menu: HTMLElement | null, key: string, current?: EventTarget | null) {
+  const items = Array.from(menu?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+  if (!items.length) return false;
+  const index = items.findIndex(item => item === current || (current instanceof Node && item.contains(current)));
+  const next = key === "Home" ? 0 : key === "End" ? items.length - 1
+    : key === "ArrowDown" ? (index + 1) % items.length : (index <= 0 ? items.length - 1 : index - 1);
+  items[next].focus();
+  return true;
+}
+
 export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], preview = false, showPinnedShortcuts = true }: { endingSoonItems: EndingSoonMenuItem[]; resolvedSlugs?: string[]; preview?: boolean; showPinnedShortcuts?: boolean }) {
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const resolved = new Set(resolvedSlugs);
   const navRef = useRef<HTMLElement>(null);
@@ -154,6 +176,23 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
     };
   }, [navRef, openCategory]);
 
+  useLayoutEffect(() => {
+    const rail = railRef.current;
+    const category = desktopCategories.find(label => (marketplaceCategoryId(label) ?? "all") === activeCategory);
+    const link = category ? categoryLinks.current.get(category) : undefined;
+    if (!rail || !link || !rail.contains(link)) return;
+    const reveal = () => {
+      const viewport = rail.getBoundingClientRect();
+      const current = link.getBoundingClientRect();
+      if (current.left < viewport.left) rail.scrollLeft += current.left - viewport.left;
+      else if (current.right > viewport.right) rail.scrollLeft += current.right - viewport.right;
+    };
+    reveal();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(reveal);
+    observer?.observe(rail);
+    return () => observer?.disconnect();
+  }, [activeCategory, edges.overflow]);
+
   function scrollCategories(direction: -1 | 1) {
     const rail = railRef.current;
     if (!rail || !(direction === -1 ? edges.left : edges.right)) return;
@@ -190,14 +229,25 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
           ref={element => { if (element) categoryLinks.current.set(category, element); else categoryLinks.current.delete(category); }}
           href={marketplaceCategoryHref(category)}
           data-ending-soon-link={isMerchandising || undefined}
+          aria-current={(categoryId ?? "all") === activeCategory ? "page" : undefined}
+          onKeyDown={event => {
+            if (preview || !["ArrowDown", "ArrowUp"].includes(event.key)) return;
+            const parent = event.currentTarget.parentElement;
+            event.preventDefault();
+            const key = event.key;
+            if (!focusCategoryItem(parent?.querySelector('[role="menu"]') ?? null, key)) {
+              openMenu(category);
+              requestAnimationFrame(() => focusCategoryItem(parent?.querySelector('[role="menu"]') ?? null, key));
+            }
+          }}
           aria-expanded={preview ? undefined : isOpen}
           aria-haspopup={preview ? undefined : "menu"}
           onFocus={() => openMenu(category)}
           onClick={() => setOpenCategory(null)}
           className={
             isMerchandising
-              ? "inline-flex h-8 items-center rounded-full bg-[var(--urgent)] px-3 text-[13px] font-medium text-white shadow-[0_2px_0_rgba(0,0,0,0.14)] transition-colors hover:bg-[#ff7a24] sm:px-4 sm:text-[15px] lg:text-[16px]"
-              : "inline-flex h-7 items-center rounded-md px-2 text-[13px] font-medium text-white/90 transition-colors hover:bg-white/8 hover:text-white sm:text-[15px] lg:text-[16px]"
+              ? "inline-flex h-8 items-center rounded-full bg-[var(--urgent)] px-3 text-[13px] font-medium text-white aria-[current=page]:underline aria-[current=page]:underline-offset-4 shadow-[0_2px_0_rgba(0,0,0,0.14)] transition-colors hover:bg-[#ff7a24] sm:px-4 sm:text-[15px] lg:text-[16px]"
+              : "inline-flex h-7 items-center rounded-md px-2 text-[13px] font-medium text-white/90 aria-[current=page]:bg-white/15 aria-[current=page]:underline aria-[current=page]:underline-offset-4 transition-colors hover:bg-white/8 hover:text-white sm:text-[15px] lg:text-[16px]"
           }
         >
           {category}
@@ -206,6 +256,10 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
         {isOpen ? (
           <div
             role="menu"
+            onKeyDown={event => {
+              if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+              if (focusCategoryItem(event.currentTarget, event.key, event.target)) event.preventDefault();
+            }}
             aria-label={`${category} menu`}
             style={{ top: menuTop, maxHeight: `calc(100dvh - ${menuTop}px)`, overflowY: "auto", cursor: "auto" }}
             className="fixed left-0 z-50 w-screen border-y border-white/10 bg-[#00132e]/[0.98] px-4 py-5 shadow-[0_22px_48px_rgba(0,0,0,0.42)] backdrop-blur-md sm:px-6 lg:px-[clamp(3rem,8vw,10rem)] lg:py-7"
@@ -264,6 +318,7 @@ export function DesktopCategoryNav({ endingSoonItems, resolvedSlugs = [], previe
         aria-controls={railId} aria-disabled={!edges.left} onClick={() => scrollCategories(-1)}>
         <AccountIcon name="chevron" className="h-4 w-4 rotate-180" />
       </button>}
+      {!preview && <Suspense fallback={null}><CurrentCategory onChange={setActiveCategory} /></Suspense>}
       <div id={railId} ref={railRef} className={styles.categoryRail} data-category-rail
         onDragStart={event => event.preventDefault()}
         onPointerDown={event => {

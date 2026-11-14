@@ -43,7 +43,7 @@ export function productBrowseReturnPath(value: unknown): string | null {
     const batch = url.searchParams.get("batch");
     const category = url.searchParams.get("category") ?? (url.searchParams.get("sort") === "ending-soon" ? "ending-soon" : "");
     const endingSoon = marketplaceCategoryId(category) === "ending-soon";
-    if (batch !== null && !(batch === "last" && endingSoon)
+    if (batch !== null && !(endingSoon && (batch === "last" || /^last-(?:[2-9]|[1-9]\d{1,5})$/.test(batch)))
       && (!/^[1-9]\d*$/.test(batch) || !Number.isSafeInteger(Number(batch)))) return null;
     const idea = url.searchParams.get("groceryIdea");
     if (idea !== null && (url.searchParams.get("category") !== "groceries" || !groceryThemes.some(theme => theme.id === idea))) return null;
@@ -64,11 +64,12 @@ export function productHrefWithBrowseReturn(slug: string, browseHref: string): s
 }
 
 /** Keep the shopping context through the free-entry instructions and print preview. */
-export function freeEntryHref(slug: string, browseReturn: unknown, quantity?: number | null): string {
+export function freeEntryHref(slug: string, browseReturn: unknown, quantity?: number | null, share?: unknown): string {
   const params = new URLSearchParams({ offering: slug });
   if (isEntryQuantity(quantity) && quantity > 1) params.set("quantity", String(quantity));
   const browse = productBrowseReturnPath(browseReturn);
   if (browse) params.set("from", browse);
+  if (typeof share === "string" && shareUuid.test(share)) params.set("share", share);
   return `/free-entry?${params.toString()}`;
 }
 

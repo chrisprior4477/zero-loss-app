@@ -46,11 +46,19 @@ function extractValues(query: string, products: readonly { retailer: string }[])
 }
 
 export function searchDenominations(query: string, products: readonly { retailer: string }[]) {
-  const { text, values } = extractValues(query.replace(/[\u2010-\u2015]/g, "-"), products);
+  const normalized = query.replace(/[\u2010-\u2015]/g, "-").replace(/\bgift cards\b/gi, "gift card");
+  const leading = /^(.*?)\b(under|below|less than|up to|at most)\s+(.+)$/i.exec(normalized);
+  const trailing = /^(.*)\b(?:and|or)\s+(under|below|less)\s*$/i.exec(normalized);
+  const parsedBound = leading ? extractValues(leading[3].trim().replace(/[.!?]$/, ""), []) : trailing ? extractValues(trailing[1], products) : null;
+  const budget = parsedBound?.values.size === 1 && (!leading || parsedBound.text === "")
+    ? { maximum: [...parsedBound.values][0], inclusive: !leading || /^(?:up to|at most)$/i.test(leading[2]) } : null;
+  const { text, values } = budget
+    ? { text: (leading?.[1] ?? parsedBound!.text).trim(), values: new Set<number>() }
+    : extractValues(normalized, products);
   const merchantWords = normalizeSearch(text).replace(/\b(?:gift card|for|from|at|a|an|the)\b/g, " ").replace(/\s+/g, " ").trim();
-  const merchant = values.size && merchantWords
+  const merchant = (values.size || budget) && merchantWords
     ? products.find(product => retailerName(product.retailer) === merchantWords)?.retailer
     : undefined;
   const keywords = merchant ? merchant + (/\bgift card\b/.test(normalizeSearch(text)) ? " gift card" : "") : text;
-  return { text: keywords, values, merchant: merchant ? normalizeSearch(merchant) : null };
+  return { text: keywords, values, budget, merchant: merchant ? normalizeSearch(merchant) : null };
 }

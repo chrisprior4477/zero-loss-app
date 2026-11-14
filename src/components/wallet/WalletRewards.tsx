@@ -67,12 +67,13 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
 }) {
   const allRewards = walletRewards(state);
   const ready = readyWalletRewards(state);
-  const readyCardCounts = new Map<string, number>();
-  for (const item of ready) {
+  const cardCounts = new Map<string, number>();
+  for (const item of allRewards) {
     if (!item.rewardId) continue;
     const group = rewardGroup(item);
-    readyCardCounts.set(group, (readyCardCounts.get(group) ?? 0) + 1);
+    cardCounts.set(group, (cardCounts.get(group) ?? 0) + 1);
   }
+  const repeatedCardRef = (item: ActivityItem) => item.rewardId && (cardCounts.get(rewardGroup(item)) ?? 0) > 1 ? cardReference(item.rewardId) : null;
   const readyToUseCount = ready.filter(item => item.rewardId && item.rewardClaimedAt).length;
   const toClaimCount = ready.filter(item => item.rewardId && !item.rewardClaimedAt).length;
   // Expired purchase options may never have issued a digital reward. Keep their
@@ -118,7 +119,7 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
               <span className={overview.rewardImage}><Image src={item.image} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1000px) 45vw, 20vw" /></span>
               <span className={overview.rewardTitle}>{item.title}</span>
               <span className={overview.rewardMeta}>{item.retailer} · {formatUsdFromCents(item.priceCents)}</span>
-              {item.rewardId && (readyCardCounts.get(rewardGroup(item)) ?? 0) > 1 ? <span className={overview.rewardMeta}>Card ref. {cardReference(item.rewardId)}</span> : null}
+              {repeatedCardRef(item) ? <span className={overview.rewardMeta}>Card ref. {repeatedCardRef(item)}</span> : null}
               <span className={overview.delivered}>{item.rewardId && !item.rewardClaimedAt ? "Claim to open your gift card" : item.rewardClaimedAt ? "Saved in your wallet" : state.isPreview ? "Sample reward preview" : "Awaiting gift-card issuance"}</span>
               {state.isPreview ? <span className={overview.sample}>Sample · Not redeemable</span> : null}
               <span className={overview.openReward}>{item.rewardId && !item.rewardClaimedAt ? "Claim reward" : item.rewardClaimedAt ? "Open gift card" : "Open reward"} <AccountIcon name="arrow" /></span>
@@ -151,8 +152,8 @@ export function WalletRewards({ state, balanceLabel = "Unavailable", fundingEnab
           {shown.length > 1 ? <p className={overview.historySwipeHint}>Swipe or drag to browse rewards</p> : null}
           <RewardHistoryCarousel key={view} focusRow={historyTarget || undefined}>
           <div className={overview.tableHeader} aria-hidden="true"><span>Date</span><span>Reward</span><span>Type</span><span>Status</span><span>Value</span><span className={overview.visuallyHidden}>Open</span></div>
-          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId ? `wallet-reward-${item.rewardId}` : undefined} href={isWalletReward(item) ? `${rewardInView(item)}&rewardHistory=1` : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}`} className={overview.historyRow}>
-            <span>{claimedDate(item.rewardClaimedAt, timeZone)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><strong>{item.title}</strong></span>
+          {shown.map(item => <Link key={item.rewardId ?? item.entryId ?? item.slug} id={item.rewardId ? `wallet-reward-${item.rewardId}` : undefined} href={isWalletReward(item) ? `${rewardInView(item)}&rewardHistory=1` : activityHref(item)} draggable={false} aria-label={`Open ${item.title}, ${rewardLabel(item, state.isPreview)}, ${formatUsdFromCents(item.priceCents)}${repeatedCardRef(item) ? `, card reference ${repeatedCardRef(item)}` : ""}`} className={overview.historyRow}>
+            <span>{claimedDate(item.rewardClaimedAt, timeZone)}</span><span className={overview.historyReward}><span className={overview.historyImage}><Image src={item.image} alt="" fill sizes="44px" draggable={false} /></span><span className="min-w-0"><strong>{item.title}</strong>{repeatedCardRef(item) ? <small className="block">Card ref. {repeatedCardRef(item)}</small> : null}</span></span>
             <span>{isWalletReward(item) ? "Gift Card" : "Purchase Option"}</span><span><span className={overview.historyStatus} data-status={rewardState(item)}>{rewardLabel(item, state.isPreview)}</span></span><span className={overview.historyValue}>{formatUsdFromCents(item.priceCents)}</span><span><AccountIcon name="chevron" /></span>
           </Link>)}
           </RewardHistoryCarousel>
@@ -199,7 +200,7 @@ function SampleRewardBarcode({ value }: { value: string }) {
 }
 
 /** Responsive reward destination. Preview codes are visibly non-redeemable. */
-export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView, returnTile = false, returnHistory = false, returnLink, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
+export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orderFilter = "all", returnView, returnTile = false, returnHistory = false, returnLink, fulfillmentReturn, claimedCode = null, overview: accountOverview, crewMembers = [], timeZone = "America/New_York" }: { timeZone?: string; item: ActivityItem; isPreview: boolean; fromPurchase?: boolean; orderFilter?: FulfillmentFilter; returnView?: RewardView; returnTile?: boolean; returnHistory?: boolean; returnLink?: { href: string; label: string }; fulfillmentReturn?: string; claimedCode?: string | null; overview?: { activity: AccountActivity; balanceLabel: string; fundingEnabled: boolean }; crewMembers?: WinShareCrewMember[] }) {
   const repeatableDemoOutcome = ["samsung-m70h-tv", "nike-court-shot-shoes", "babys-essentials-bundle"].includes(item.slug);
   const status = item.rewardStatus ?? (item.rewardId ? null : "ready");
   const available = status === "ready";
@@ -327,8 +328,8 @@ export function WalletRewardDetail({ item, isPreview, fromPurchase = false, orde
         <Link href="/browse" className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#31e800] px-5 py-2 text-sm font-black text-[#062218] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">Try another demo offer</Link>
       </div> : null}
       <nav aria-label="Reward detail exits" className={styles.detailExitActions}>
-        {item.rewardId ? <Link href={fulfillmentHref(item.rewardId, orderFilter)} className={styles.backToRewards}>View fulfillment status</Link> : null}
-        {orderFilter !== "all" ? <Link href={fulfillmentHref(undefined, orderFilter, false, item.rewardId ?? undefined)} className={styles.backToRewards}>Return to {fulfillmentFilterLabel[orderFilter]}</Link> : null}
+        {item.rewardId ? <Link href={fulfillmentReturn ?? fulfillmentHref(item.rewardId, orderFilter)} className={styles.backToRewards}>View fulfillment status</Link> : null}
+        {orderFilter !== "all" && !returnLink?.href.startsWith("/account/orders?") ? <Link href={fulfillmentHref(undefined, orderFilter, false, item.rewardId ?? undefined)} className={styles.backToRewards}>Return to {fulfillmentFilterLabel[orderFilter]}</Link> : null}
         <Link href="/" className={styles.detailShoppingButton}>Continue shopping</Link>
         <Link href={returnLink?.href ?? walletReturnHref} className={styles.backToRewards}>{returnLink?.label ?? "Back to Gift Cards & Rewards"}</Link>
       </nav>

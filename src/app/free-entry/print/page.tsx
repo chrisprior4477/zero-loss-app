@@ -11,6 +11,7 @@ export const metadata: Metadata = { title: "Print AMOE Entry Insert" };
 type Props = {
   searchParams: Promise<{
     offering?: string;
+    share?: string | string[];
     from?: string | string[];
     quantity?: string | string[];
     name?: unknown;
@@ -24,7 +25,7 @@ export default async function PrintFreeEntryPage({ searchParams }: Props) {
   const product = await freeEntryProduct(params.offering);
   if (!product) redirect("/browse");
   const quantity = params.offering === product.slug ? parseEntryQuantity(params.quantity) : null;
-  const instructions = freeEntryHref(product.slug, params.from, quantity);
+  const instructions = freeEntryHref(product.slug, params.from, quantity, params.offering === product.slug ? params.share : undefined);
   if (params.name !== undefined || params.account !== undefined || params.reference !== undefined) redirect(instructions);
   return <FreeEntryPrintSheet offering={product.slug} title={product.title}
     name="LEGAL NAME NEEDED" account="DEMO ACCOUNT NEEDED" reference="ZL-DEMO001"

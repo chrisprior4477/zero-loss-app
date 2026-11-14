@@ -13,15 +13,16 @@ export function searchCatalogMatches(
   { includeLowerGiftCards = false } = {},
 ): CatalogSearchMatch[] {
   if (query.length > maxCatalogSearchLength) return [];
-  const { text, values, merchant } = denomination;
+  const { text, values, budget, merchant } = denomination;
   const normalizedQuery = normalizeSearch(text);
   const tokens = queryWords(text);
-  if ((!tokens.length && !values.size) || tokens.length > maxCatalogSearchTerms) return [];
+  if ((!tokens.length && !values.size && !budget) || tokens.length > maxCatalogSearchTerms) return [];
   const giftCards = /\bgift card\b/.test(normalizedQuery);
   const includeLower = includeLowerGiftCards && Boolean(merchant) && values.size > 0;
   const requestedMax = Math.max(...values);
   const candidates = products.filter(product => (!values.size || values.has(product.value)
       || (includeLower && product.value < requestedMax && isGiftCardListing(product)))
+    && (!budget || (budget.inclusive ? product.value <= budget.maximum : product.value < budget.maximum))
     && (!giftCards || isGiftCardListing(product))
     && (!merchant || normalizeSearch(product.retailer) === merchant || normalizeSearch(product.retailer).startsWith(merchant + " ")));
   if (!tokens.length) return candidates.map(product => ({ product, kind: "product" }));
