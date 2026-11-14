@@ -115,11 +115,14 @@ test("asks for an in-country time zone under Country only when lookup is ambiguo
   expect(picker.value).toBe("Australia/Brisbane");
 });
 
-test("hides the time-zone choice for a resolved address", async () => {
+test("shows the automatically resolved time zone under Country without a picker", async () => {
   vi.mocked(lookupAddressTimeZone).mockResolvedValue({ zone: "Europe/London", options: ["Europe/London"] });
   render(<ProfileDetailsForm details={{ ...details, country: "United Kingdom", region: "England", postalCode: "SW1A 1AA" }} />);
   await waitFor(() => expect(lookupAddressTimeZone).toHaveBeenCalledWith("United Kingdom", "England", "SW1A 1AA"));
   await waitFor(() => expect(screen.queryByText("Checking your address time zone…")).toBeNull());
+  const note = screen.getByText("London, United Kingdom").closest('[role="status"]');
+  expect(note?.textContent).toBe("Time zone for this address · London, United Kingdom");
+  expect(note?.parentElement?.parentElement?.contains(screen.getByLabelText("Country"))).toBe(true);
   expect(screen.queryByLabelText("Time zone for your address")).toBeNull();
 });
 
@@ -128,6 +131,7 @@ test("restores the saved in-country zone and keeps it while editing an unrelated
   render(<ProfileDetailsForm details={{ ...details, country: "Canada", region: "Ontario", postalCode: "M5V 1A1", timezone: "America/Toronto" }} />);
   const picker = await screen.findByLabelText("Time zone for your address", {}, { timeout: 3000 }) as HTMLSelectElement;
   expect(picker.value).toBe("America/Toronto");
+  expect(screen.getByRole("option", { name: /Pacific Time.* · Vancouver/ })).toBeTruthy();
   expect(picker.checkValidity()).toBe(true);
   fireEvent.input(screen.getByLabelText("Phone number"), { target: { value: "+1 416 555 0123" } });
   expect(picker.value).toBe("America/Toronto");
@@ -209,7 +213,7 @@ test('every editable Profile field and clear button stays locked until its save 
  for(const control of fields.querySelectorAll('input:not([type="hidden"]),select,button'))expect(control.matches(':disabled')).toBe(true);
  await act(async()=>finish({status:'succeeded',message:'Profile saved',appliedFields:{display_name:'Submitted name'}}));
  expect(screen.getByLabelText('Display name').matches(':disabled')).toBe(false);
- expect(screen.getByRole('status').textContent).toBe('Profile saved');
+ expect(screen.getByText('Profile saved').getAttribute('role')).toBe('status');
  fireEvent.change(screen.getByLabelText('Display name'),{target:{value:'New unsaved edit'}});
- expect(screen.queryByRole('status')).toBeNull();
+ expect(screen.queryByText('Profile saved')).toBeNull();
 });

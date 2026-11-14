@@ -31,11 +31,15 @@ export type ProfileDetails = {
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] as const;
 
+function timeZoneLocation(zone: string) {
+  return (zone.split("/").at(-1) ?? zone).replaceAll("_", " ");
+}
+
 function timeZoneLabel(zone: string) {
-  const location = zone.replaceAll("_", " ").replaceAll("/", " / ");
+  const location = timeZoneLocation(zone);
   try {
-    const name = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "long" }).formatToParts(new Date()).find(part => part.type === "timeZoneName")?.value;
-    return name ? `${name} · ${location}` : location;
+    const name = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longGeneric" }).formatToParts(new Date()).find(part => part.type === "timeZoneName")?.value;
+    return name && name !== location ? `${name} · ${location}` : location;
   } catch { return location; }
 }
 
@@ -191,10 +195,32 @@ export function ProfileDetailsForm({ details, ticket = false }: { details: Profi
         <Field label="City" name="city" defaultValue={details.city} autoComplete="address-level2" hint={!requiredFields.includes("C") ? `Optional for ${address.country}.` : undefined} />
         <Field label="State or region" name="region" defaultValue={details.region} autoComplete="address-level1" hint={!requiredFields.includes("S") ? `Optional for ${address.country}.` : undefined} />
         <Field label="ZIP or postal code" name="postal_code" defaultValue={details.postalCode} autoComplete="postal-code" hint={!requiredFields.includes("Z") ? `Optional for ${address.country}. Leave blank if your address has no postal code.` : undefined} />
-        <div className={styles.field}><label htmlFor="profile-country">Country</label><div className={styles.inputWrap}><select id="profile-country" name="country" defaultValue={selectedCountry} autoComplete="country-name"><option value="United States">United States</option>{hasNonStandardCountry ? <option value={selectedCountry}>{selectedCountry}</option> : null}{PROFILE_COUNTRIES.slice(1).map(country => <option key={country} value={country}>{country}</option>)}</select></div></div>
-        {completeAddress && !currentLookup ? <p role="status">Checking your address time zone…</p> : null}
-        {currentLookup?.failed ? <div role="alert">We couldn’t check the time zones. <button type="button" onClick={() => { setLookup(null); setLookupAttempt(attempt => attempt + 1); }}>Try again</button></div> : null}
-        {currentLookup && !currentLookup.failed && !currentLookup.zone ? <div className={styles.field}><label htmlFor="address-timezone">Time zone for your address</label><div className={styles.inputWrap}><select id="address-timezone" name="timezone" required={addressChanged} value={fallbackZones.includes(selectedZone) ? selectedZone : ""} onChange={event => setSelectedZone(event.target.value)}><option value="">Choose your time zone</option>{fallbackZones.map(zone => <option key={zone} value={zone}>{timeZoneLabel(zone)}</option>)}</select></div><small>We couldn’t determine the time zone from this address. Choose the time zone used where you live.</small></div> : null}
+        <div className={styles.field}>
+          <label htmlFor="profile-country">Country</label>
+          <div className={styles.inputWrap}><select id="profile-country" name="country" defaultValue={selectedCountry} autoComplete="country-name"><option value="United States">United States</option>{hasNonStandardCountry ? <option value={selectedCountry}>{selectedCountry}</option> : null}{PROFILE_COUNTRIES.slice(1).map(country => <option key={country} value={country}>{country}</option>)}</select></div>
+          {completeAddress ? (
+            <div className={styles.addressZone}>
+              <p role="status" className={styles.addressZoneStatus}>
+                {!currentLookup ? "Checking your address time zone…" : currentLookup.zone ? (
+                  <>Time zone for this address · <strong>{timeZoneLocation(currentLookup.zone)}, {address.country}</strong></>
+                ) : null}
+              </p>
+              {currentLookup?.failed ? <div role="alert">We couldn’t check the time zones. <button type="button" onClick={() => { setLookup(null); setLookupAttempt(attempt => attempt + 1); }}>Try again</button></div> : null}
+              {currentLookup && !currentLookup.failed && !currentLookup.zone ? (
+                <div className={styles.field}>
+                  <label htmlFor="address-timezone">Time zone for your address</label>
+                  <div className={styles.inputWrap}>
+                    <select id="address-timezone" name="timezone" required={addressChanged} value={fallbackZones.includes(selectedZone) ? selectedZone : ""} onChange={event => setSelectedZone(event.target.value)}>
+                      <option value="">Choose your time zone</option>
+                      {fallbackZones.map(zone => <option key={zone} value={zone}>{timeZoneLabel(zone)}</option>)}
+                    </select>
+                  </div>
+                  <small>We couldn’t determine the time zone from this address. Choose the time zone used where you live.</small>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </section>
 
