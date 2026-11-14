@@ -120,7 +120,7 @@ function ResponsiveSiteHeaderContent({ logo, metrics, accountMenu, endingSoonIte
       <div aria-hidden="true" className={styles.brandRule} />
     </header>
     {layout !== "classic" && !preview?.pageCategoriesInPreviewBody && (preview || showsShoppingCategories(pathname)) ? <div className={styles.pageCategories} data-menu-viewport={viewport ?? undefined} data-shopping-category-row={preview ? undefined : true} data-menu-preview={preview ? "true" : undefined}>
-      <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} showHome={layout !== "home-ending-search"} />
+      <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} />
     </div> : null}
   </>;
 }

@@ -34,7 +34,7 @@ test("the category rail shows a small home link, then Ending Soon and All", () =
 
 test("the category rail slides smoothly with a mouse wheel when it overflows", () => {
   render(<DesktopCategoryNav endingSoonItems={[]} />);
-  const nav = screen.getByRole("navigation", { name: "Marketplace categories" });
+  const nav = screen.getByRole("navigation", { name: "Marketplace categories" }).querySelector<HTMLDivElement>("[data-category-rail]")!;
   Object.defineProperties(nav, {
     clientWidth: { configurable: true, value: 600 },
     scrollWidth: { configurable: true, value: 1000 },

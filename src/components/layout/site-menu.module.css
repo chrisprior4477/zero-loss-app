@@ -13,6 +13,16 @@
 .accountControls { margin-left: auto; display: flex; flex: none; align-items: center; gap: 16px; }
 .mobileSearchRow, .searchToggle, .pageCategories { display: none; }
 .stickyCategories { display: flex; height: 48px; padding: 0 8px; border-top: 1px solid #ffffff14; }
+.categoryNav { display: flex; align-items: stretch; gap: 4px; flex: 1; min-width: 0; padding-inline: 4px; }
+.pinnedCategories { display: flex; flex: none; align-items: center; gap: 4px; }
+.categoryGroup { display: flex; flex: 1; min-width: 0; align-items: center; gap: 4px; }
+.categoryRail { align-self: stretch; flex: 1; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; cursor: grab; }
+.categoryRail::-webkit-scrollbar { display: none; }
+.categoryChevron { display: grid; flex: none; place-items: center; width: 28px; height: 32px; padding: 0; border: 1px solid #b8dfff55; border-radius: 999px; background: #123653; color: #c9efff; cursor: pointer; }
+.categoryChevron:not([aria-disabled="true"]):hover { background: #23577c; }
+.categoryChevron:focus-visible { outline: 2px solid #6feaff; outline-offset: 1px; }
+.categoryChevron[aria-disabled="true"] { opacity: .38; cursor: default; }
+@media (pointer: coarse) { .categoryChevron { height: 40px; } }
 .brandRule { height: 3px; background: var(--brand-rule); }
   .topRow { height: 54px; gap: 6px; padding: 0 10px; }
   .header:not([data-menu-layout="search-over"]) .topRow { height: 45px; }
@@ -47,8 +57,7 @@
   .header:not([data-menu-layout="classic"]) .stickyCategories { display: none; }
   /* Layouts 2–6 put this strip in the page, not in the sticky header. */
   .pageCategories { display: flex; flex: none; position: relative; height: 48px; background: var(--background); }
-  .pageCategories [data-ending-soon-link] { background: transparent; color: #fff; font-weight: 800; border-radius: 6px; padding-inline: 8px; box-shadow: none; }
-  .pageCategories [data-ending-soon-link]:hover { background: #ffffff14; }
+
   /* Match the account controls' auto margin to center Search in the remaining gap. */
   .searchToggle { display: none; position: relative; flex: none; margin-left: auto; align-items: center; justify-content: center; color: white; height: 40px; width: 32px; outline: none; -webkit-tap-highlight-color: transparent; }
   .searchToggle svg { height: 23px; width: 23px; }
@@ -111,7 +120,7 @@
   /* Keep the approved full-width background, with a centered band for desktop controls. */
   .header:not([data-menu-preview]) { --desktop-header-max-width: 1920px; }
   .header:not([data-menu-preview]) .topRow { width: 100%; max-width: var(--desktop-header-max-width); margin-inline: auto; }
-  .header:not([data-menu-preview]) .stickyCategories > nav { max-width: calc(var(--desktop-header-max-width) - 32px); margin-inline: auto; }
+  .header:not([data-menu-preview]) .stickyCategories > nav, .pageCategories:not([data-menu-preview]) > nav { max-width: calc(var(--desktop-header-max-width) - 32px); margin-inline: auto; }
   .header:not([data-menu-preview]) .mobileSearchRow { max-width: var(--desktop-header-max-width); margin-inline: auto; }
   .header:not([data-menu-preview])[data-menu-layout="search-over"] .mobileSearchRow { max-width: calc(var(--desktop-header-max-width) - 32px); }
   /* Equal room for the wider side keeps Search centered as the band contracts. */

@@ -165,7 +165,7 @@ test.each(menuLayouts)("$name has a non-clickable scrollable page, with compact 
   expect(save).not.toHaveBeenCalled();
 });
 
-test.each(menuLayouts)("$name preview matches the page-strip Home choice without changing the header", option => {
+test.each(menuLayouts)("$name preview keeps Home and Ending Soon outside the category rail", option => {
   setup();
   fireEvent.click(screen.getByRole("radio", { name: `${menuLayouts.indexOf(option) + 1}. ${option.name}` }));
   const demo = screen.getByRole("group", { name: "Interactive menu preview" });
@@ -173,9 +173,9 @@ test.each(menuLayouts)("$name preview matches the page-strip Home choice without
   if (option.id === "classic") {
     expect(row).toBeNull();
   } else {
-    expect(row?.querySelector('a[aria-label="Home"]') !== null).toBe(option.id !== "home-ending-search");
+    expect(row?.querySelector('a[aria-label="Home"]')?.getAttribute("href")).toBe("/");
+    expect(row?.querySelector("[data-ending-soon-link]")?.textContent).toBe("Ending Soon");
     if (option.id === "home-ending-search") {
-      expect(row?.querySelector("li:first-child a")?.textContent).toBe("Ending Soon");
       expect(demo.querySelector('#preview-menu-search a[aria-label="Home"]')?.getAttribute("href")).toBe("/");
     }
   }

@@ -9,10 +9,11 @@ import Link from "next/link";
 
 const navigation = vi.hoisted(() => ({ path: "/account/profile", push: vi.fn() }));
 vi.mock("next/navigation", () => ({ usePathname: () => navigation.path, useRouter: () => ({ push: navigation.push }), useSearchParams: () => new URLSearchParams() }));
-let resized: () => void;
+let resized: Array<() => void>;
 beforeEach(() => {
   navigation.path = "/account/profile"; navigation.push.mockReset();
-  vi.stubGlobal("ResizeObserver", class { constructor(callback: () => void) { resized = callback; } observe() {} disconnect() {} });
+  resized = [];
+  vi.stubGlobal("ResizeObserver", class { constructor(callback: () => void) { resized.push(callback); } observe() {} disconnect() {} });
   vi.stubGlobal("requestAnimationFrame", (callback: () => void) => { callback(); return 1; });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
@@ -22,6 +23,41 @@ function setup(layout: MenuLayout) {
   const mobile = result.container.querySelector<HTMLElement>("#mobile-menu-search")!;
   return { ...result, mobile, header: result.container.querySelector("header")! };
 }
+
+test.each(menuLayouts)("$name keeps both shortcuts outside the scrolling categories on shopping pages", ({ id }) => {
+  navigation.path = "/";
+  const { container, header } = setup(id);
+  const row = id === "classic" ? header : container.querySelector<HTMLElement>("[data-shopping-category-row]")!;
+  const categoryNav = within(row).getByRole("navigation", { name: "Marketplace categories" });
+  const rail = categoryNav.querySelector<HTMLDivElement>("[data-category-rail]")!;
+  expect(rail.contains(within(categoryNav).getByRole("link", { name: "Home" }))).toBe(false);
+  expect(rail.contains(within(categoryNav).getByRole("link", { name: "Ending Soon" }))).toBe(false);
+  const links = within(rail).getAllByRole("link");
+  expect(links[0].textContent).toBe("All");
+  expect(links.at(-1)?.textContent).toBe("Games & Puzzles");
+  let availableWidth = 600;
+  Object.defineProperty(rail.parentElement, "clientWidth", { get: () => availableWidth });
+  Object.defineProperties(rail, {
+    clientWidth: { get: () => availableWidth - 64 },
+    scrollWidth: { value: 1200 },
+  });
+  rail.scrollBy = vi.fn();
+  act(() => resized.forEach(callback => callback()));
+  const right = within(categoryNav).getByRole("button", { name: /Scroll marketplace categories right/ });
+  const left = within(categoryNav).getByRole("button", { name: /Scroll marketplace categories left/ });
+  expect(left.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(right);
+  expect(rail.scrollBy).toHaveBeenCalledWith({ left: (600 - 64) * 0.85, behavior: "smooth" });
+  rail.scrollLeft = 1200 - rail.clientWidth;
+  fireEvent.scroll(rail);
+  expect(right.getAttribute("aria-disabled")).toBe("true");
+  expect(left.getAttribute("aria-disabled")).toBe("false");
+  fireEvent.click(left);
+  expect(rail.scrollBy).toHaveBeenLastCalledWith({ left: -(600 - 64) * 0.85, behavior: "smooth" });
+  availableWidth = 1500;
+  act(() => resized.forEach(callback => callback()));
+  expect(within(categoryNav).queryByRole("button", { name: /Scroll marketplace categories/ })).toBeNull();
+});
 
 test("responsive search boxes share typing, suggestions, clearing and the submitted query", () => {
   const { container, mobile } = setup("classic");
@@ -66,10 +102,10 @@ test("desktop centering reserves the wider side and remeasures changing account 
   expect(header.style.getPropertyValue("--desktop-header-side-width")).toBe("245px");
   expect(document.documentElement.style.getPropertyValue("--site-header-height")).toBe("111px");
   accountWidth = 310;
-  act(() => resized());
+  act(() => resized.forEach(callback => callback()));
   expect(header.style.getPropertyValue("--desktop-header-side-width")).toBe("310px");
   accountWidth = 120;
-  act(() => resized());
+  act(() => resized.forEach(callback => callback()));
   expect(header.style.getPropertyValue("--desktop-header-side-width")).toBe("174px");
 });
 
@@ -180,10 +216,10 @@ test("voice transcription uses the same Go action and closes the push-down", () 
 test("measured menu height updates the shared scroll spacing", () => {
   const { header } = setup("classic");
   vi.spyOn(header, "getBoundingClientRect").mockReturnValue({ height: 149 } as DOMRect);
-  act(() => resized());
+  act(() => resized.forEach(callback => callback()));
   expect(document.documentElement.style.getPropertyValue("--site-header-height")).toBe("149px");
   vi.spyOn(header, "getBoundingClientRect").mockReturnValue({ height: 57 } as DOMRect);
-  act(() => resized());
+  act(() => resized.forEach(callback => callback()));
   expect(document.documentElement.style.getPropertyValue("--site-header-height")).toBe("57px");
 });
 
@@ -205,12 +241,9 @@ test.each(["ending-search", "home-ending-search", "search-down", "search-down-br
   expect(endingSoon.hasAttribute("data-ending-soon-link")).toBe(true);
   expect(endingSoon.getAttribute("href")).toBe("/browse?sort=ending-soon");
   expect(header.contains(row)).toBe(false);
+  expect(within(row).getAllByRole("link")[0]).toBe(within(row).getByRole("link", { name: "Home" }));
   if (layout === "home-ending-search") {
-    expect(within(row).queryByRole("link", { name: "Home" })).toBeNull();
-    expect(within(row).getAllByRole("link")[0]).toBe(endingSoon);
     expect(within(mobile).getByRole("link", { name: "Home" }).getAttribute("href")).toBe("/");
-  } else {
-    expect(within(row).getAllByRole("link")[0]).toBe(within(row).getByRole("link", { name: "Home" }));
   }
   // Desktop keeps its own Home link, including when layout 3 is selected.
   expect(within(within(header).getByRole("navigation", { name: "Marketplace categories" })).getByRole("link", { name: "Home" }).getAttribute("href")).toBe("/");
