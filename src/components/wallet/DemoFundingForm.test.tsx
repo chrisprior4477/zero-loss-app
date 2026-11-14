@@ -321,6 +321,8 @@ test("unknown or outstanding requests block a new form submission", () => {
   expect((screen.getByRole("button", { name: "Add funds" }) as HTMLButtonElement).disabled).toBe(true);
 });
 test("Add funds recovers the exact older deposit before showing the credited toast", async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   const request = { id: "older-session", amount: 7300, currency: "USD" as const, status: "succeeded" as const, created_at: "2026-11-10T12:00:00Z", idempotencyKey: "older_deposit_request_01", reconciliation: "credit_pending" as const };
   const requests = [
     ...Array.from({ length: 7 }, (_, index) => ({ ...request, id: `new-${index}`, idempotencyKey: `new_deposit_request_${index}`, amount: 2500, reconciliation: "reconciled" as const })),
@@ -340,11 +342,14 @@ test("Add funds recovers the exact older deposit before showing the credited toa
   expect(screen.queryByLabelText("Deposit confirmation")).toBeNull();
   fireEvent.click(await screen.findByRole("button", { name: "Finish this deposit" }));
 
-  expect((await screen.findByLabelText("Deposit confirmation")).textContent).toContain("$73 credited to your wallet");
+  const notice = await screen.findByRole("dialog", { name: "Deposit confirmation" });
+  expect(notice.textContent).toContain("$73 credited to your wallet");
+  expect(document.documentElement.style.overflow).toBe("hidden");
   expect(vi.mocked(reconcileDemoFunding).mock.calls[0]?.[1].get("sessionId")).toBe(request.id);
   expect(completeDemoFunding).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Dismiss deposit confirmation" }));
+  fireEvent.click(within(notice).getByRole("button", { name: "Dismiss deposit confirmation" }));
   expect(screen.queryByLabelText("Deposit confirmation")).toBeNull();
+  expect(document.documentElement.style.overflow).toBe("");
   expect(screen.getByText("Balance after this deposit: $90")).toBeTruthy();
 });
 test("failed request list is unavailable, not empty", () => {

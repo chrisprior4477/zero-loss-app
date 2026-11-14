@@ -1,13 +1,8 @@
 .toast {
-  position: fixed;
-  z-index: 1200;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
-  width: min(420px, calc(100vw - 32px));
+  position: relative;
   padding: 24px;
   background: #c4efff;
   color: #081b3e;
-  filter: drop-shadow(0 8px 18px #00112c66);
   mask-image:
     radial-gradient(circle at left top, transparent 0 16px, #000 17px),
     radial-gradient(circle at right top, transparent 0 16px, #000 17px),
@@ -19,13 +14,13 @@
 }
 .toast h2 { margin: 0; padding-right: 42px; font-size: 19px; font-weight: 850; line-height: 1.25; }
 .toast p { margin: 12px 0 16px; font-size: 14px; line-height: 1.45; }
-.credited { background: #d5f7e3; color: #103d2b; padding-right: 66px; }
-.close { position: absolute; top: 18px; right: 18px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #08264b; color: white; font-size: 26px; line-height: 1; cursor: pointer; }
-.save { width: 100%; min-height: 40px; padding: 8px 12px; border-radius: 8px; background: #31e800; color: #002719; font-size: 14px; font-weight: 800; cursor: pointer; }
+.credited { display: flex; align-items: center; min-height: 80px; background: #d5f7e3; color: #103d2b; padding-right: 74px; }
+.close { position: absolute; top: 18px; right: 18px; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #08264b; color: white; font-size: 26px; line-height: 1; cursor: pointer; }
+.save { width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 8px; background: #31e800; color: #002719; font-size: 14px; font-weight: 800; cursor: pointer; }
 .toast button:focus-visible { outline: 3px solid #0872fb; outline-offset: 3px; }
-@media (max-width: 380px) { .toast { padding: 22px; } .toast h2 { font-size: 17px; } }
+@media (max-width: 380px) { .toast { padding: 22px; } .toast h2 { font-size: 17px; } .credited { padding-right: 74px; } }
 
-.warning {
+.dialog {
   position: fixed;
   inset: 0;
   margin: auto;
@@ -40,7 +35,4 @@
   box-shadow: none;
   filter: drop-shadow(0 12px 26px #00112c66);
 }
-.warning::backdrop { background: #09294b66; backdrop-filter: blur(3px); }
-.warning .toast { position: relative; inset: auto; width: 100%; filter: none; }
-.warning .close { width: 44px; height: 44px; }
-.warning .save { min-height: 44px; }
+.dialog::backdrop { background: #09294b66; backdrop-filter: blur(3px); }
