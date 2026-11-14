@@ -12,6 +12,7 @@ import { fundPurchaseWallet } from "@/lib/account/purchase-funding-actions";
 import type { DemoCard, DemoCardToken } from "@/lib/payments/demo-card";
 import { demoCardFixture } from "@/lib/payments/demo-card";
 import { isFundingAmount } from "@/lib/payments/provider";
+import { depositWarning, type CheckoutDeposit } from "@/lib/payments/deposit-warning";
 import { formatUsdFromCents as usd } from "@/lib/wallet/money";
 import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/account/notification-events";
 import { FundingCardPicker } from "@/components/wallet/FundingCardPicker";
@@ -53,8 +54,8 @@ type PurchaseReceipt = { status: "unconfirmed" | "unavailable" } | { status: "re
 
 type CheckoutDepositAttempt = { key: string; amount: number; token: DemoCardToken; makeDefault: boolean };
 
-export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, creditedDeposits, fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false }: {
-  ownerId: string; walletId?: string; options: ActivityItem[]; ticketLabels?: Record<string, string>; initialBalance: number; cards: DemoCard[]; creditedDeposits?: string[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
+export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = offerTicketLabels(options), initialBalance, cards, creditedDeposits, pendingDeposits = [], fundingAvailable, fundingBlocked = false, initiallySelectedEntryId, initiallyConfirmDecline = false }: {
+  ownerId: string; walletId?: string; options: ActivityItem[]; ticketLabels?: Record<string, string>; initialBalance: number; cards: DemoCard[]; creditedDeposits?: string[]; pendingDeposits?: CheckoutDeposit[]; fundingAvailable: boolean; fundingBlocked?: boolean; initiallySelectedEntryId?: string; initiallyConfirmDecline?: boolean;
 }) {
   const timeZone = useAccountTimeZone();
   const router = useRouter();
@@ -137,7 +138,8 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
   const chosen = options.filter(option => selected.includes(option.completionOptionId!));
   const selectedEntryId = chosen[0]?.entryId;
   const walletHref = depositRequestKey ? purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, depositRequestKey) : fundingHref(item.slug, selectedEntryId ?? undefined, undefined, undefined, handoffId);
-  const rememberSelection = () => rememberWalletSelection({ href: walletHref, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });
+  const rememberSelectionFor = (href: string) => rememberWalletSelection({ href, ownerId, slug: item.slug, available, selected: [...selected], decline, needsReview });
+  const rememberSelection = () => rememberSelectionFor(walletHref);
   const addCardHref = `/account/wallet?${new URLSearchParams({ view: "history", panel: "card", from: item.slug, ...(selectedEntryId ? { entry: selectedEntryId } : {}), ...(handoffId ? { choice: handoffId } : {}) })}#wallet-add-card`;
   useLayoutEffect(() => {
     const href = handoffId ? purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId) : null;
@@ -270,10 +272,13 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         setRecovery(null);
         setError("");
         setNotice("Your deposit was credited. Review your purchase before continuing.");
+        setOverlay(null);
         router.refresh();
       } else if (result.status === "missing") {
         setError("No deposit receipt was found for this attempt. You can confirm the same demo deposit again.");
         setDepositMissing(true);
+      } else if (result.status === "credit_pending" || result.status === "not_processed" || result.status === "discrepancy") {
+        setError(depositWarning(depositAttempt.amount, result.status));
       } else setError("Open the exact deposit in your wallet to see its current status.");
     } catch { setError("We couldn’t verify this deposit yet. Check again."); }
     finally { inFlight.current = false; setBusy(false); }
@@ -352,6 +357,16 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
     </> : null}
     <Link className={styles.secondary} href="/account/entries?filter=completed">View completed purchases</Link>
   </div> : null}</>;
+  const blockedFunding = fundingBlocked && recovery !== "deposit";
+  const pending = pendingDeposits.flatMap(({ amount, idempotencyKey, reconciliation }) => {
+    if (reconciliation === "reconciled") return [];
+    const href = purchaseDepositRecoveryHref(item.slug, selectedEntryId ?? undefined, handoffId, idempotencyKey);
+    return [<li key={idempotencyKey}>
+      <p>{depositWarning(amount, reconciliation)}</p>
+      <Link className={styles.secondary} href={href} onClick={() => rememberSelectionFor(href)}
+        aria-label={pendingDeposits.length > 1 ? `Check this ${usd(amount)} deposit` : undefined}>Check this deposit</Link>
+    </li>];
+  });
   const money = (onPage = false) => <div className={styles.facts}><div><span>Purchase total</span><strong>{usd(total)}</strong></div><div><span>In your wallet</span><strong>{usd(balance)}</strong></div>{onPage
     ? <div className={shortfall ? styles.balanceNeeded : styles.balanceReady}>{shortfall ? <><span>Still needed to continue</span><strong>{usd(required)}</strong></> : <><span aria-hidden="true">✓</span><strong>Your wallet covers this purchase.</strong></>}</div>
     : <div className={shortfall ? styles.shortfall : styles.covered}><strong>{shortfall ? `Please add ${usd(required)} to continue.` : "Your wallet covers this purchase."}</strong></div>}</div>;
@@ -394,9 +409,22 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
       <div className={singleOffer ? `${styles.utilityTools} ${styles.singleOfferTools}` : styles.utilityTools}><button type="button" disabled={locked || overlay !== null} onClick={() => setOverlay("decline")}>{singleOffer ? "Decline this offer" : "Decline all offers"}</button><ProductShareButton product={{ slug: item.slug, title: item.title, image: item.image, retailer: item.retailer, value: item.priceCents / 100 }} label="Share" /></div>
     </section>
     </div>{overlay === "decline" ? <DeclinePurchaseOffersDialog item={item} offeredOptionIds={available} ticketLabels={ticketLabels}
-      selectedOptionIds={declineDraft} onBackToSelection={backToSelection} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact>
+      selectedOptionIds={declineDraft} onBackToSelection={backToSelection} onClose={close} /> : overlay ? <PurchaseDialog title={overlay === "fund" ? "Add funds to continue" : overlay === "options" ? "Choose your options" : "Confirm your purchase"} onClose={close} compact centerOnPhone={overlay === "fund" && (fundingBlocked || recovery === "deposit")}>
       <Product item={item} />
       {overlay === "fund" ? <><div className={styles.purchaseRecap}><strong>{buyLabel}</strong><span>{usd(paid)} already paid + {usd(total)} remaining</span></div>{money()}
+        {recovery === "deposit" ? <section className={styles.depositWarning} aria-label="Deposit needs attention">
+          <h3>Check your deposit before adding more funds</h3>
+          {feedback}
+        </section> : blockedFunding ? <section className={styles.depositWarning} aria-label="Deposit needs attention">
+          <h3>Check your deposit before adding more funds</h3>
+          {pending.length > 1 ? <details>
+            <summary>See pending deposits ({pending.length})</summary>
+            <ul>{pending}</ul>
+          </details> : pending.length === 1 ? <ul>{pending}</ul> : <>
+            <p>We couldn’t verify your deposit status. Check Payment deposits in your wallet before adding more funds.</p>
+            <Link className={styles.secondary} href={walletHref} onClick={rememberSelection}>Open wallet</Link>
+          </>}
+        </section> : <>
         <div className={styles.cardChoice}><FundingCardPicker tokens={cards.map(card => card.token)} value={card} disabled={locked} onChange={value => { setCard(value); setAcknowledged(false); setNotice(""); }} /></div>
         {!cards.length ? <Link className={styles.backLink} href={addCardHref} onClick={() => {
           const href = purchaseFundingHref(item.slug, selectedEntryId ?? undefined, handoffId);
@@ -407,8 +435,9 @@ export function PurchaseCheckout({ ownerId, walletId, options, ticketLabels = of
         {validDeposit ? <p className={styles.extraNotice}>{usd(required)} + {usd(extraCents)} = {usd(deposit)} deposit{extraCents > 0 ? ` · ${usd(balance + deposit - total)} left after purchase` : ""}</p> : <p role="alert" className={styles.error}>Only whole-dollar amounts are accepted. For example: 50.</p>}
         {notice ? <p role="status" className={styles.small}>{notice}</p> : null}
         <label className={styles.check}><input type="checkbox" checked={acknowledged} disabled={locked || !selectedCard} onChange={event => setAcknowledged(event.target.checked)} /><span>I confirm adding {validDeposit ? usd(deposit) : "this amount"} using {demoCardFixture(card)?.issuer ?? "my card"}.<small>Adds funds only. Confirm purchase next.</small></span></label>
-        {fundingBlocked || !fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href={walletHref} onClick={rememberSelection}>Open wallet</Link></p> : null}
-        {feedback}<button type="button" className={styles.primary} disabled={locked || !validDeposit || !acknowledged || !selectedCard || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
+        {!fundingAvailable ? <p className={styles.error}>Check your wallet’s Payment deposits before starting another deposit. <Link href={walletHref} onClick={rememberSelection}>Open wallet</Link></p> : null}
+        </>}
+        {recovery !== "deposit" && feedback}<button type="button" className={styles.primary} disabled={locked || !validDeposit || !acknowledged || !selectedCard || fundingBlocked || !fundingAvailable} onClick={() => void addFunds()}>{busy ? "Adding funds…" : validDeposit ? `Add ${usd(deposit)} to wallet` : "Add funds"}</button><p className={styles.footnote}>Simulation only · No card is charged.</p><button type="button" className={styles.backLink} disabled={busy} onClick={close}>Back to purchase options</button>
       </> : overlay === "purchase" ? <>{notice ? <p className={styles.ready}>{notice}</p> : null}<ConfirmPurchase total={total} balance={balance} quantity={chosen.length} summary={selectionSummary} busy={busy} onUndo={close} onExpire={expirePurchase} onConfirm={() => void confirm()} />{feedback}</> : <><p className={styles.small}>Choose the offers you want to use or decline. Each entry’s credit applies only to its own offer.</p>
         <PurchaseOptionPicker optionIds={available} selected={declineDraft ?? selected} styles={styles} onApply={ids => { changeSelection(ids, true); close(); }}
           onDecline={ids => { setDeclineDraft(ids); setOverlay("decline"); }}>

@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, type ReactNode } from "react";
 import { checkDemoDeposit, reconcileDemoFunding, type DepositCheck } from "@/lib/payments/actions";
+import { depositWarning } from "@/lib/payments/deposit-warning";
 import { formatUsdFromCents } from "@/lib/wallet/money";
 import { depositSupportHref } from "@/lib/support/references";
 import { revealWalletSection } from "./WalletCardEditor";
@@ -16,8 +17,8 @@ const messages = {
   credit_pending: "Your payment was received. Finish this deposit to post the credit to your wallet.",
 };
 
-export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, onCredit, onReview, onBack }: {
-  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending" | "discrepancy"; embedded?: boolean;
+export function DepositRecovery({ requestKey, walletId, amount, date, initialStatus, embedded = false, fromCheckout = false, onCredit, onReview, onBack }: {
+  requestKey: string; walletId: string; amount: number; date?: ReactNode; initialStatus?: "not_processed" | "credit_pending" | "discrepancy"; embedded?: boolean; fromCheckout?: boolean;
   onCredit: (amount: number, balance: number) => void; onReview?: () => void; onBack?: () => void;
 }) {
   const sectionId = onBack ? "funding-deposit-recovery" : "add-funds";
@@ -50,10 +51,12 @@ export function DepositRecovery({ requestKey, walletId, amount, date, initialSta
   }, [pending, result]);
 
   const status = result?.status ?? initialStatus;
+  const checkoutWarning = fromCheckout && (status === "credit_pending" || status === "not_processed")
+    ? depositWarning(amount, status) : undefined;
   const card = <DepositReceipt amount={amount} date={date}
     status={pending ? "Checking this deposit…" : status === "credited" ? "Deposit credited to your wallet."
       : status === "missing" && !onReview ? "We couldn’t find this deposit in your account yet. Check again before adding more funds."
-        : status ? messages[status] : "We lost the confirmation. Check whether this deposit reached your wallet."}
+        : status ? checkoutWarning ?? messages[status] : "We lost the confirmation. Check whether this deposit reached your wallet."}
     tone={status === "discrepancy" ? "review" : status === "credited" ? "ready" : "checking"}>
     <form action={action} className={styles.actions}>
       {pending ? <button className={styles.primary} disabled>Checking…</button>

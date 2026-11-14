@@ -26,13 +26,16 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
   const [checking, startChecking] = useTransition();
   const [verified, setVerified] = useState<{ amount: number; balance: number } | null>(null);
   const request = requests?.find(request => request.idempotencyKey === requestKey);
-  const isPurchase = purchaseDepositKeyPattern.test(requestKey);
+  const fromCheckout = !!continueTo?.href.startsWith("/account/purchase-options/");
+  const isPurchase = fromCheckout || purchaseDepositKeyPattern.test(requestKey);
   const date = request && <DepositReceiptDate request={request} timeZone={timeZone} />;
   const credited = request?.reconciliation === "reconciled" && wallet
     ? { amount: request.amount, balance: wallet.balanceCents } : verified;
-  return <section id="purchase-deposit" className={`${styles.ticketPanel} ${styles.purchaseDeposit}`} aria-labelledby="purchase-deposit-heading">
-    <AccountSettingsLandingScroll target="purchase-deposit" allScreens settleAfterNavigation />
-    {verified && <DepositCreditedToast amount={verified.amount} />}
+  return <section id="purchase-deposit" className={`${styles.ticketPanel} ${styles.purchaseDeposit}`}
+    data-landing-align={fromCheckout ? "center" : undefined} aria-labelledby="purchase-deposit-heading">
+    <AccountSettingsLandingScroll target="purchase-deposit" initialTarget={fromCheckout ? "purchase-deposit" : undefined}
+      visitKey={fromCheckout ? `${requestKey}:${credited ? "credited" : "check"}` : requestKey} allScreens settleAfterNavigation />
+    {verified && !fromCheckout && <DepositCreditedToast amount={verified.amount} />}
     <div className={paymentStyles.editor}>
       <h2 id="purchase-deposit-heading">{isPurchase ? "Your purchase deposit" : "Your deposit"}</h2>
       {continueTo && <p>{continueTo.title}</p>}
@@ -46,7 +49,7 @@ export function PurchaseDepositRecovery({ requestKey, requests, wallet, continue
         status="This deposit needs review. Contact Support before adding more funds.">
         <Link href={depositSupportHref(requestKey)} className={paymentStyles.secondary}>Contact Support</Link>
       </DepositReceipt> : request && wallet?.walletAccountId && fundingEnabled ? <DepositRecovery key={request.id} requestKey={requestKey} walletId={wallet.walletAccountId} amount={request.amount}
-        date={date} initialStatus={request.reconciliation === "reconciled" ? undefined : request.reconciliation} embedded
+        date={date} initialStatus={request.reconciliation === "reconciled" ? undefined : request.reconciliation} embedded fromCheckout={fromCheckout}
         onCredit={(amount, balance) => { setVerified({ amount, balance }); router.refresh(); }} /> : <DepositReceipt amount={request?.amount} date={date} tone="checking"
         status={requests === null || !wallet ? "We couldn’t load this deposit’s status. Check your connection and try again."
           : !request ? "We couldn’t find this deposit in your account yet. Check again before adding more funds."

@@ -62,6 +62,14 @@
 .walletChoice .check { font-size:12px; }
 .backLink { display:block; margin:5px auto 0; }
 .backdrop { position:fixed; inset:0; z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:var(--preview-top) 12px 12px; background:#00152cc9; overflow-y:auto; overscroll-behavior:contain; }
+@media (max-width:767px), (pointer:coarse) and (max-height:500px) {
+  .backdrop[data-center-on-phone="true"] { align-items:center; }
+}
+.depositWarning { margin:8px 0; padding:12px; border-radius:10px; background:#fff0cf; color:#593308; }
+.depositWarning h3,.depositWarning p { margin:0 0 8px; }
+.depositWarning ul { display:grid; gap:12px; list-style:none; padding:0; margin:0; }
+.depositWarning summary { min-height:44px; padding:10px 0; font-weight:750; cursor:pointer; }
+.depositWarning a { min-height:44px; width:100%; }
 .dialog { max-width:490px; width:100%; max-height:calc(100dvh - var(--preview-top) - 12px); overflow-y:auto; background:#fffefa; color:#10234a; padding:22px 22px 18px; box-shadow:0 20px 80px #00112370; }
 .dialog > h2 { margin-right:35px; font-size:24px; }
 .close { position:absolute; right:16px; top:14px; width:32px; height:32px; display:grid; place-items:center; border:0; border-radius:50%; background:#e2f4ff; color:#194b70; font-size:25px; cursor:pointer; }

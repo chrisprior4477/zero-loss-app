@@ -239,8 +239,10 @@ test("$260 needed + $50 extra funds exactly $310, then requires a separate purch
   expect(mocks.purchase).not.toHaveBeenCalled();
   expect(within(screen.getByRole("dialog")).getByText("$50")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Confirm purchase" }));
-  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/account/wallet?rewardId=issued#reward-pass"));
-  expect(mocks.purchase.mock.calls[0][0]).toMatchObject({ purchaseIds: ["option-0"], declineIds: ["option-1", "option-2"], totalCents: 39900, confirmed: true });
+  await waitFor(() => expect(mocks.purchase).toHaveBeenCalledOnce());
+  const request = mocks.purchase.mock.calls[0][0];
+  expect(request).toMatchObject({ purchaseIds: ["option-0"], declineIds: ["option-1", "option-2"], totalCents: 39900, confirmed: true });
+  expect(mocks.replace).toHaveBeenCalledWith(`/account/purchase-options/nintendo-switch?receipt=${request.requestId}`);
 });
 test("typing extra money calculates it and rejects decimals, negatives and unsafe amounts without changing their meaning", () => {
   setup(); const popup = fundPopup(); const input = popup.getByRole("textbox", { name: "Extra dollars" });
@@ -319,7 +321,41 @@ test("uncertain funding is locked for recovery rather than submitting a second d
   expect(mocks.fund).toHaveBeenCalledOnce(); expect(mocks.purchase).not.toHaveBeenCalled(); expect(screen.getByRole("link", { name: "Check this deposit" })).toBeTruthy();
 });
 test("pre-existing unresolved deposits prevent a new deposit", () => {
-  setup(13900, true); const popup = fundPopup(); fireEvent.click(popup.getByRole("checkbox")); fireEvent.click(popup.getByRole("button", { name: "Add $260 to wallet" })); expect(mocks.fund).not.toHaveBeenCalled();
+  setup(13900, true);
+  const popup = fundPopup();
+  expect(popup.getByText(/couldn’t verify your deposit status/)).toBeTruthy();
+  expect(popup.getByRole("link", { name: "Open wallet" })).toBeTruthy();
+  expect(popup.queryByRole("checkbox")).toBeNull();
+  const add = popup.getByRole("button", { name: "Add $260 to wallet" });
+  expect(add.hasAttribute("disabled")).toBe(true);
+  fireEvent.click(add);
+  expect(mocks.fund).not.toHaveBeenCalled();
+});
+
+test.each([false, true])("the funding warning links to the exact pending deposit (multiple: %s)", multiple => {
+  const offers = options.map((option, i) => ({ ...option, entryId: `ent_${String(i + 1).repeat(32)}` }));
+  const first = { idempotencyKey: "11111111-1111-4111-8111-111111111111", amount: 7300, reconciliation: "credit_pending" as const };
+  const second = { idempotencyKey: "22222222-2222-4222-8222-222222222222", amount: 2500, reconciliation: "not_processed" as const };
+  render(<PurchaseCheckout ownerId="account-a" options={offers} initialBalance={13900} cards={[]} fundingAvailable fundingBlocked
+    pendingDeposits={multiple ? [first, second] : [first]} />);
+  const popup = fundPopup();
+  expect(screen.getByRole("dialog").parentElement?.dataset.centerOnPhone).toBe("true");
+  if (multiple) {
+    fireEvent.click(popup.getByText("See pending deposits (2)"));
+    expect(popup.getByText(/saved your \$25 deposit request, but couldn’t confirm the payment/)).toBeTruthy();
+    expect(popup.getByRole("link", { name: "Check this $25 deposit" }).getAttribute("href")).toContain(`deposit=${second.idempotencyKey}`);
+  }
+  expect(popup.getByText("We received your $73 payment, but it hasn’t been added to your wallet yet.")).toBeTruthy();
+  const link = popup.getByRole("link", { name: multiple ? "Check this $73 deposit" : "Check this deposit" });
+  const href = new URL(link.getAttribute("href")!, "https://example.test");
+  expect(href.searchParams.get("deposit")).toBe(first.idempotencyKey);
+  expect(href.searchParams.get("entry")).toBe(offers[0].entryId);
+  expect(href.searchParams.get("choice")).toMatch(/^[a-f0-9-]{36}$/);
+  expect(href.hash).toBe("#purchase-deposit");
+  fireEvent.click(link);
+  expect(JSON.parse(sessionStorage.getItem(purchaseSelectionKey)!)).toMatchObject({ selected: ["option-0"] });
+  expect(mocks.fund).not.toHaveBeenCalled();
+  expect(mocks.purchase).not.toHaveBeenCalled();
 });
 
 test.each(["pending", "lost response"])("%s retains the exact deposit, two selected offers and Keep for later", async outcome => {

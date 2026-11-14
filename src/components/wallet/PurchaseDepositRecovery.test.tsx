@@ -53,11 +53,15 @@ test.each([null, [], [{ ...receipt, idempotencyKey: "another-account-or-deposit"
 test("a pending deposit finishes the original session and only then offers purchase review", async () => {
   mocks.check.mockResolvedValueOnce({ status: "credit_pending", sessionId: receipt.id }).mockResolvedValueOnce({ status: "credited", amount: 7300, balanceCents: 39900 });
   mocks.finish.mockResolvedValue({ status: "succeeded", message: "Saved" });
-  render(<PurchaseDepositRecovery {...props} requests={[{ ...receipt, reconciliation: "credit_pending" }]} />);
+  const walletRequest = "33333333-3333-4333-8333-333333333333";
+  const { container } = render(<PurchaseDepositRecovery {...props} requestKey={walletRequest}
+    requests={[{ ...receipt, idempotencyKey: walletRequest, reconciliation: "credit_pending" }]} />);
+  expect(container.querySelector("#purchase-deposit")?.getAttribute("data-landing-align")).toBe("center");
+  expect(screen.getByRole("status").textContent).toContain("We received your $73 payment, but it hasn’t been added to your wallet yet.");
   fireEvent.click(screen.getByRole("button", { name: "Check this deposit" }));
   await screen.findByRole("button", { name: "Finish this deposit" });
   expect(screen.queryByRole("link", { name: "Return to purchase review" })).toBeNull();
-  expect(mocks.check).toHaveBeenCalledWith(key, 7300, wallet.walletAccountId);
+  expect(mocks.check).toHaveBeenCalledWith(walletRequest, 7300, wallet.walletAccountId);
   fireEvent.click(screen.getByRole("button", { name: "Finish this deposit" }));
   await screen.findByRole("link", { name: "Return to purchase review" });
   expect(mocks.finish).toHaveBeenCalledOnce();

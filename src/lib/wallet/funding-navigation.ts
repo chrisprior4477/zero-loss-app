@@ -1,5 +1,6 @@
 import { isEntryQuantity, parseEntryQuantity } from "@/lib/entries/quantity";
 import { productBrowseReturnPath } from "@/lib/catalog/product-return";
+import { depositRequestKeyPattern } from "@/lib/payments/provider";
 import { purchaseChoicePattern } from "./purchase-selection-handoff";
 
 const productSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -58,7 +59,7 @@ export function fundingHref(productSlug?: string, entryId?: string, quantity?: n
 /** The key selects an owner-authorized receipt; it never supplies a payment amount. */
 export function purchaseDepositRecoveryHref(slug: string, entryId: string | undefined, choice: unknown, requestKey: string): string {
   const href = fundingHref(slug, entryId, undefined, undefined, choice);
-  if (!purchaseDepositKeyPattern.test(requestKey)) return href;
+  if (!depositRequestKeyPattern.test(requestKey)) return href;
   return href.replace("#add-funds", `&deposit=${requestKey}#purchase-deposit`);
 }
 
