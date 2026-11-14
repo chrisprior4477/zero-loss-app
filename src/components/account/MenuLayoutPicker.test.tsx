@@ -165,19 +165,23 @@ test.each(menuLayouts)("$name has a non-clickable scrollable page, with compact 
   expect(save).not.toHaveBeenCalled();
 });
 
-test.each(menuLayouts)("$name preview keeps Home and Ending Soon outside the category rail", option => {
+test.each(menuLayouts)("$name preview mirrors shopping shortcut placement", option => {
   setup();
   fireEvent.click(screen.getByRole("radio", { name: `${menuLayouts.indexOf(option) + 1}. ${option.name}` }));
   const demo = screen.getByRole("group", { name: "Interactive menu preview" });
   const row = demo.querySelector("[data-preview-page-categories]");
   if (option.id === "classic") {
     expect(row).toBeNull();
+  } else if (option.id === "ending-search" || option.id === "home-ending-search") {
+    expect(row?.querySelector('a[aria-label="Home"]')).toBeNull();
+    expect(row?.querySelector("[data-ending-soon-link]")).toBeNull();
+    expect(row?.querySelector("a")?.textContent).toBe("All");
+    const search = within(demo.querySelector<HTMLElement>("#preview-menu-search")!);
+    expect(search.getByRole("link", { name: "Ending Soon" })).toBeTruthy();
+    expect(Boolean(search.queryByRole("link", { name: "Home" }))).toBe(option.id === "home-ending-search");
   } else {
     expect(row?.querySelector('a[aria-label="Home"]')?.getAttribute("href")).toBe("/");
     expect(row?.querySelector("[data-ending-soon-link]")?.textContent).toBe("Ending Soon");
-    if (option.id === "home-ending-search") {
-      expect(demo.querySelector('#preview-menu-search a[aria-label="Home"]')?.getAttribute("href")).toBe("/");
-    }
   }
   expect(demo.querySelector('header nav a[aria-label="Home"]')?.getAttribute("href")).toBe("/");
   expect(save).not.toHaveBeenCalled();

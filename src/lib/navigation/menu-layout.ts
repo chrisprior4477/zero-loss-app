@@ -22,6 +22,10 @@ export function menuLayoutOrClassic(value: unknown): MenuLayout {
   return isMenuLayout(value) ? value : "classic";
 }
 
+export function hasStickyShoppingShortcuts(layout: MenuLayout) {
+  return layout === "ending-search" || layout === "home-ending-search";
+}
+
 /** Category browsing belongs on shopping pages, ahead of their breadcrumbs. */
 export function showsShoppingCategories(pathname: string) {
   return pathname === "/" || pathname === "/browse" || pathname.startsWith("/items/")

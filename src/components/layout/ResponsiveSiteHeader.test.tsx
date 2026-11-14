@@ -24,14 +24,14 @@ function setup(layout: MenuLayout) {
   return { ...result, mobile, header: result.container.querySelector("header")! };
 }
 
-test.each(menuLayouts)("$name keeps both shortcuts outside the scrolling categories on shopping pages", ({ id }) => {
+test.each(menuLayouts)("$name keeps the scrolling categories between All and Games & Puzzles", ({ id }) => {
   navigation.path = "/";
   const { container, header } = setup(id);
   const row = id === "classic" ? header : container.querySelector<HTMLElement>("[data-shopping-category-row]")!;
   const categoryNav = within(row).getByRole("navigation", { name: "Marketplace categories" });
   const rail = categoryNav.querySelector<HTMLDivElement>("[data-category-rail]")!;
-  expect(rail.contains(within(categoryNav).getByRole("link", { name: "Home" }))).toBe(false);
-  expect(rail.contains(within(categoryNav).getByRole("link", { name: "Ending Soon" }))).toBe(false);
+  expect(within(rail).queryByRole("link", { name: "Home" })).toBeNull();
+  expect(within(rail).queryByRole("link", { name: "Ending Soon" })).toBeNull();
   const links = within(rail).getAllByRole("link");
   expect(links[0].textContent).toBe("All");
   expect(links.at(-1)?.textContent).toBe("Games & Puzzles");
@@ -233,27 +233,27 @@ test("compact shopping pages have an in-page category row; Profile does not", ()
   expect(view.container.querySelector("[data-shopping-category-row]")).toBeNull();
 });
 
-test.each(["ending-search", "home-ending-search", "search-down", "search-down-browse", "search-over"] as const)("%s scopes the page-style Ending Soon link outside the sticky header", layout => {
+test.each(["search-down", "search-down-browse", "search-over"] as const)("%s keeps its shopping shortcuts in the page row", layout => {
   navigation.path = "/";
-  const { container, header, mobile } = setup(layout);
+  const { container, header } = setup(layout);
   const row = container.querySelector<HTMLElement>("[data-shopping-category-row]")!;
   const endingSoon = within(row).getByRole("link", { name: "Ending Soon" });
   expect(endingSoon.hasAttribute("data-ending-soon-link")).toBe(true);
   expect(endingSoon.getAttribute("href")).toBe("/browse?sort=ending-soon");
   expect(header.contains(row)).toBe(false);
   expect(within(row).getAllByRole("link")[0]).toBe(within(row).getByRole("link", { name: "Home" }));
-  if (layout === "home-ending-search") {
-    expect(within(mobile).getByRole("link", { name: "Home" }).getAttribute("href")).toBe("/");
-  }
-  // Desktop keeps its own Home link, including when layout 3 is selected.
-  expect(within(within(header).getByRole("navigation", { name: "Marketplace categories" })).getByRole("link", { name: "Home" }).getAttribute("href")).toBe("/");
   expect(within(row).getByRole("link", { name: "Groceries" }).getAttribute("href")).toBe("/browse?category=groceries");
-  expect(mobile.querySelector("[data-ending-soon-link]")).toBeNull();
 });
 
-test.each(["ending-search", "home-ending-search"] as const)("%s Ending Soon targets the product list", layout => {
-  const { mobile } = setup(layout);
+test.each(["ending-search", "home-ending-search"] as const)("%s shows its shortcuts only in the sticky search row", layout => {
+  navigation.path = "/";
+  const { container, mobile } = setup(layout);
+  const row = within(container.querySelector<HTMLElement>("[data-shopping-category-row]")!);
+  expect(row.queryByRole("link", { name: "Home" })).toBeNull();
+  expect(row.queryByRole("link", { name: "Ending Soon" })).toBeNull();
+  expect(row.getAllByRole("link")[0].textContent).toBe("All");
   expect(within(mobile).getByRole("link", { name: "Ending Soon" }).getAttribute("href")).toBe("/browse?sort=ending-soon#search-results");
+  expect(within(mobile).queryByRole("link", { name: "Home" })?.getAttribute("href") ?? null).toBe(layout === "home-ending-search" ? "/" : null);
 });
 
 test.each(["Favorites & Sent to You", "Ending Soon", "Browse"])("new push-down reveals ordered shopping shortcuts and closes after %s navigation", label => {

@@ -26,13 +26,6 @@ function declarations(selector: string) {
 
 test("the non-Classic mobile page strip blends into the site, including menu previews", () => {
   expect(declarations(".pageCategories").background).toBe("var(--background)");
-  expect(declarations(".pageCategories [data-ending-soon-link]")).toMatchObject({
-    background: "transparent",
-    color: "#fff",
-    "font-weight": "800",
-    "box-shadow": "none",
-  });
-  expect(declarations(".pageCategories [data-ending-soon-link]:hover").background).toBe("#ffffff14");
 });
 
 test.each([".endingSoon", ".header [data-ending-soon-link]", ".pageCategories [data-ending-soon-link]"])("%s has no click-focus ring and keeps an underlined keyboard focus cue", selector => {

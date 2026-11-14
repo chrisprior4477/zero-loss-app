@@ -9,7 +9,7 @@ import { useMenuViewport } from "./useMenuViewport";
 import { DesktopHeaderSearch, DesktopHeaderSearchFallback, SharedHeaderSearchDraft } from "./DesktopHeaderSearch";
 import { DesktopCategoryNav } from "./DesktopCategoryNav";
 import { HomeIcon } from "./HomeIcon";
-import { showsShoppingCategories, type MenuLayout } from "@/lib/navigation/menu-layout";
+import { hasStickyShoppingShortcuts, showsShoppingCategories, type MenuLayout } from "@/lib/navigation/menu-layout";
 import styles from "./site-menu.module.css";
 
 type Props = {
@@ -120,7 +120,7 @@ function ResponsiveSiteHeaderContent({ logo, metrics, accountMenu, endingSoonIte
       <div aria-hidden="true" className={styles.brandRule} />
     </header>
     {layout !== "classic" && !preview?.pageCategoriesInPreviewBody && (preview || showsShoppingCategories(pathname)) ? <div className={styles.pageCategories} data-menu-viewport={viewport ?? undefined} data-shopping-category-row={preview ? undefined : true} data-menu-preview={preview ? "true" : undefined}>
-      <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} />
+      <DesktopCategoryNav endingSoonItems={endingSoonItems} resolvedSlugs={hiddenSlugs} preview={Boolean(preview)} showPinnedShortcuts={!hasStickyShoppingShortcuts(layout)} />
     </div> : null}
   </>;
 }
