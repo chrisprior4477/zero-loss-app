@@ -66,5 +66,5 @@ test("verified orders appear in the Orders notification category", async () => {
   }] });
   const props = await notificationProps();
   expect(props.notifications.find(item => item.category === "orders")?.href)
-    .toBe("/account/orders?order=ord_1234567890abcdef#order-ord_1234567890abcdef");
+    .toBe("/account/orders?order=ord_1234567890abcdef&from=notifications#order-ord_1234567890abcdef");
 });

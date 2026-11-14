@@ -36,14 +36,15 @@ export function BrowseResultsSearchSession({ browseHref, searchTerm, endingSoon 
   return <Session.Provider value={{ draft, setDraft, applied: searchTerm, editor, setEditor, search, voice, endingSoon }}>{children}</Session.Provider>;
 }
 
-export function BrowseResultsSearch({ position }: { position: Position }) {
+export function BrowseResultsSearch({ position, retailerScope }: { position: Position; retailerScope?: string }) {
   const session = useContext(Session);
   const id = useId();
   const field = useRef<HTMLInputElement>(null);
   if (!session) throw new Error("Browse results search requires a search session");
   const { draft, setDraft, applied, editor, setEditor, search, voice, endingSoon } = session;
   const editing = editor === position;
-  const label = endingSoon ? "Search all Ending Soon prizes" : "Search these prizes";
+  const label = retailerScope ? `Search ${retailerScope}${endingSoon ? " in Ending Soon" : ""}`
+    : endingSoon ? "Search all Ending Soon prizes" : "Search these prizes";
   const inputId = position === "bottom" ? endingSoon ? "ending-soon-search-input" : "browse-search-input" : id;
   function edit() {
     if (!editing) { voice.cancel(); setEditor(position); }

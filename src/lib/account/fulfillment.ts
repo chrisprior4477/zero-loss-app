@@ -26,9 +26,9 @@ export function fulfillmentHref(rewardId?: string, filter: FulfillmentFilter = "
 
 export const fulfillmentFilterLabel: Record<FulfillmentFilter, string> = { all: "all orders", processing: "In progress orders", fulfilled: "Issued orders", exceptions: "Exceptions", payment: "Confirmed payments" };
 
-export function exactOrderHref(orderNumber: string, filter: FulfillmentFilter = "all", details = false) {
+export function exactOrderHref(orderNumber: string, filter: FulfillmentFilter = "all", details = false, fromNotification = false) {
   const id = encodeURIComponent(orderNumber);
-  return `/account/orders?order=${id}${filter === "all" ? "" : `&filter=${filter}`}${details ? "&details=1" : ""}#order-${id}`;
+  return `/account/orders?order=${id}${filter === "all" ? "" : `&filter=${filter}`}${details ? "&details=1" : ""}${fromNotification ? "&from=notifications" : ""}#order-${id}`;
 }
 
 export function fulfillmentActivityHref(record: Pick<FulfillmentRecord, "entryId">) {

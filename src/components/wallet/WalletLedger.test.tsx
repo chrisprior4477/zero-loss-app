@@ -5,6 +5,21 @@ import { WalletLedger } from "./WalletLedger";
 import { storedActivityFixture } from "@/lib/account/activity.test-fixture";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+test("only an exact matched deposit credit gets a receipt shortcut", () => {
+  const requestKey = "deposit_request_123456";
+  const created_at = "2026-11-07T17:00:00Z";
+  render(<WalletLedger entries={[
+    { id: "matched", entry_type: "DEPOSIT", amount: 2500, created_at },
+    { id: "same-amount", entry_type: "DEPOSIT", amount: 2500, created_at },
+    { id: "wrong-amount", entry_type: "DEPOSIT", amount: 3500, created_at },
+  ]} depositsByLedgerId={new Map([
+    ["matched", { requestKey, amount: 2500 }],
+    ["wrong-amount", { requestKey: "another_request_12345", amount: 2500 }],
+  ])} />);
+  expect(screen.getByRole("link", { name: "View deposit receipt" }).getAttribute("href"))
+    .toBe(`/account/wallet?view=history&deposit=${requestKey}#purchase-deposit`);
+});
+
 test("quick dates preserve funding filter and all time clears only the dates", () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-11-08T02:00:00Z"));

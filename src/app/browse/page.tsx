@@ -126,8 +126,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const nextBatchParams = new URLSearchParams(returnParams);
   nextBatchParams.set("batch", String(batch + 1));
   const requestHref = `/contact/product-request?${new URLSearchParams({ product: searchTerm, from: browseReturnHref })}#product-request-heading`;
-  const department = subcategory || selectedLabel || selectedRetailerGroup?.category;
-  const retryScope = [filters.retailer, department].filter(Boolean).join(" in ");
+  const retryScope = [...new Set([filters.retailer || selectedRetailerGroup?.category, subcategory || selectedLabel].filter(Boolean))].join(" in ");
   const withoutBudget = new URLSearchParams(searchParamsForView);
   withoutBudget.delete("minValue");
   withoutBudget.delete("maxValue");
@@ -161,7 +160,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
         <div id="search-results" className="mt-5 min-w-0" style={{ scrollMarginTop: "calc(var(--site-header-height, 149px) + 12px)" }}>
           <BrowseDiscoveryBar key={searchHref} browseHref={searchHref} filters={filters} retailerGroups={discoveryGroups} selectedRetailerGroup={selectedRetailerGroup} selectedCategory={selectedCategory} searchTerm={searchTerm} subcategory={query.subcategory ?? ""} clearHref={clearHref}
-            searchField={endingSoon ? <BrowseResultsSearch position="top" /> : undefined}>
+            searchField={endingSoon ? <BrowseResultsSearch position="top" retailerScope={filters.retailer || selectedRetailerGroup?.category} /> : undefined}>
           <SearchResultsAutoScroll searchKey={searchTerm || selectedCategory === "ending-soon" ? browseReturnHref : ""} mobileBrowseKey={browseReturnHref} groceryKey={showGroceryInspiration ? browseReturnHref : ""} />
           {showGroceryInspiration ? <GroceryInspiration key={typeof query.groceryIdea === "string" ? query.groceryIdea : ""} offers={groceryOffers} browseHref={browseReturnHref} initialIdea={query.groceryIdea} /> : null}
           {selectedCategory && isRetailerCollection(selectedCategory) && retailers.length > 0 && !searchTerm && !selectedRetailerGroup ? (
@@ -297,7 +296,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {showBatchSearch && <section className={browseStyles.batchSearch} aria-labelledby={batchSearchHeading}>
           <h2 id={batchSearchHeading}>Didn’t find what you were looking for?</h2>
           <div className={browseStyles.footerDiscovery}>
-            <BrowseResultsSearch position="bottom" />
+            <BrowseResultsSearch position="bottom" retailerScope={filters.retailer || selectedRetailerGroup?.category} />
             <BrowseDiscoveryFooterControls />
           </div>
           <p className="text-sm text-white/75">Try a retailer and prize value, like “Walmart $100”.</p>

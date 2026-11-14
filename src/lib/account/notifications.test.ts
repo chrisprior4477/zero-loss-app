@@ -110,7 +110,7 @@ test("the Orders filter is backed by exact fulfillment records", () => {
   }]);
   expect(notice.category).toBe("orders");
   expect(notice.title).toBe("Netflix gift card issued");
-  expect(notice.href).toBe("/account/orders?order=ord_1234567890abcdef#order-ord_1234567890abcdef");
+  expect(notice.href).toBe("/account/orders?order=ord_1234567890abcdef&from=notifications#order-ord_1234567890abcdef");
   expect(notificationIsEnabled(notice, parseNotificationPreferences({ order_updates: false }))).toBe(false);
   expect(notificationIsEnabled(notice, parseNotificationPreferences({ order_updates: true }))).toBe(true);
 });

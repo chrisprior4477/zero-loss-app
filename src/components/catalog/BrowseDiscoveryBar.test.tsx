@@ -74,6 +74,8 @@ test("removing the retailer category preserves the prize category, query and oth
     selectedRetailerGroup={{ id: "digital-and-gaming", category: "Digital & Gaming", options: [] }}
     browseHref="/browse?category=electronics&q=sony&partnerCategory=digital-and-gaming&maxValue=100&batch=2"
     filters={{ ...props.filters, maxValue: 100 }} />);
+  expect(screen.getByRole("searchbox", { name: "Search Digital & Gaming in Electronics" })).toBeTruthy();
+  expect(screen.getByText("Results for “sony” in Digital & Gaming in Electronics")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Remove Digital & Gaming" }).getAttribute("href"))
     .toBe("/browse?category=electronics&q=sony&maxValue=100#search-results");
 });

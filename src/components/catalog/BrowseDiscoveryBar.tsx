@@ -42,9 +42,8 @@ export function BrowseDiscoveryBar(props: BrowseFilterProps & { browseHref: stri
   const voice = useVoiceSearch(setSearch);
   const id = useId();
   const categoryLabel = props.subcategory || marketplaceCategories.find(category => category.id === props.selectedCategory)?.label;
-  const scope = props.filters.retailer
-    ? [props.filters.retailer, categoryLabel].filter(Boolean).join(" in ")
-    : categoryLabel || props.selectedRetailerGroup?.category;
+  const retailerScope = props.filters.retailer || props.selectedRetailerGroup?.category;
+  const scope = [...new Set([retailerScope, categoryLabel].filter(Boolean))].join(" in ");
   const searchLabel = scope ? `Search ${scope}` : "Search all prizes";
   const withoutRetailer = new URL(props.browseHref, "https://zeroloss.local");
   withoutRetailer.searchParams.delete("retailer");

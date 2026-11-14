@@ -14,7 +14,7 @@ import styles from "./orders-fulfillment.module.css";
 
 type OrdersOverview = { balanceLabel: string; fundingEnabled: boolean; activity: AccountActivity };
 
-export function OrdersFulfillment({ state, overview, filter = "all", selectedRewardId, selectedOrderNumber, openSelectionDetails = false, supportHref = walletTransactionHelpHref, supportUnavailable = false }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; selectedRewardId?: string; selectedOrderNumber?: string; openSelectionDetails?: boolean; supportHref?: string; supportUnavailable?: boolean }) {
+export function OrdersFulfillment({ state, overview, filter = "all", selectedRewardId, selectedOrderNumber, fromNotification = false, openSelectionDetails = false, supportHref = walletTransactionHelpHref, supportUnavailable = false }: { state: AccountOrders; overview?: OrdersOverview; filter?: FulfillmentFilter; selectedRewardId?: string; selectedOrderNumber?: string; fromNotification?: boolean; openSelectionDetails?: boolean; supportHref?: string; supportUnavailable?: boolean }) {
   const chooseTransaction = supportHref === walletTransactionHelpHref;
   const supportLabel = chooseTransaction ? "Choose a transaction to report" : "Report a problem with this order";
   const fulfillment = accountFulfillment(state, overview?.activity ?? { source: "unavailable", isPreview: false, activeCount: null, activity: [] });
@@ -53,7 +53,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", selectedRew
       <header className={styles.heading}>
         <div><p>YOUR ACCOUNT</p><h1>Orders &amp; Fulfillment</h1><span>Your winning rewards and purchased gift cards, connected to My Activity and your wallet.</span></div>
         <nav aria-label="Order page actions" className={styles.headingActions}>
-          <Link href="/account/notifications"><AccountIcon name="bell" />Notifications</Link>
+          <Link href={fromNotification ? "/account/notifications?filter=orders#notification-tickets-filters" : "/account/notifications"}><AccountIcon name="bell" />{fromNotification ? "Back to order updates" : "Notifications"}</Link>
           <Link href={supportHref}><AccountIcon name="security" />{supportLabel}</Link>
         </nav>
       </header>

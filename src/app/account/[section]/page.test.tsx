@@ -69,6 +69,8 @@ test.each([0, 1, 5, 8])("notification for order %i opens its exact gift card, in
   expect(document.getElementById(decodeURIComponent(url.hash.slice(1)))).toBeTruthy();
   expect(screen.getByText("SELECTED ORDER")).toBeTruthy();
   expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByRole("link", { name: "Back to order updates" }).getAttribute("href"))
+    .toBe("/account/notifications?filter=orders#notification-tickets-filters");
   expect(mocks.support).toHaveBeenCalledWith(mocks.db, "owner", order.orderNumber);
   expect(within(screen.getByRole("navigation", { name: "Order page actions" })).getByRole("link", { name: "Report a problem with this order" }).getAttribute("href"))
     .toBe("/support?transaction=11111111-1111-4111-8111-111111111111#report-problem");
