@@ -83,7 +83,7 @@ export function FilterForm({ filters, retailerGroups, selectedRetailerGroup, sel
         if ((target instanceof HTMLInputElement || target instanceof HTMLSelectElement)
           && !(target instanceof HTMLInputElement && target.type === "radio" && selectingByKeyboard.current)
           && !["q", "minValue", "maxValue"].includes(target.name)
-          && !(target.name === "valueMode" && target.value === "custom")) event.currentTarget.requestSubmit();
+          && (target.name === "valueMode" ? target.value !== "custom" : mode !== "custom")) event.currentTarget.requestSubmit();
       }} className="space-y-5 rounded-2xl border border-cyan-300/25 bg-[#0d2b50] p-4 text-white shadow-[0_12px_30px_rgba(0,0,0,.14)]">
       {selectedCategory ? <input type="hidden" name="category" value={selectedCategory} /> : null}
       {subcategory ? <input type="hidden" name="subcategory" value={subcategory} /> : null}

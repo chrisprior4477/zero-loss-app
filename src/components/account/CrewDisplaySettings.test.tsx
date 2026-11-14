@@ -6,11 +6,28 @@ const { saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhon
 vi.mock("@/lib/crew/actions", () => ({ saveCrewDisplaySettings, saveCrewGroup, inviteToCrew, inviteToCrewByPhone }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/image", () => ({ default: () => <span /> }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); sessionStorage.clear(); vi.clearAllMocks(); vi.useRealTimers(); });
 
 const first = "11111111-1111-4111-8111-111111111111";
 const second = "22222222-2222-4222-8222-222222222222";
 const pick = "33333333-3333-4333-8333-333333333333";
+
+test("a refreshed group editor restores its draft and detects an edit saved in another tab", () => {
+  const initial = { ownerId: first, available: true, initialDiscoverable: false,
+    initialDefaultRule: { audience: "everyone" as const, memberIds: [], groupIds: [] },
+    initialGroups: [{ id: second, name: "Family", memberIds: [] }], initialEntryRules: {}, members: [], sharedPicks: [] };
+  const firstView = render(<CrewDisplaySettings {...initial} />);
+  fireEvent.click(screen.getByRole("button", { name: "Add people to group" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Group name" }), { target: { value: "Family trip" } });
+  firstView.unmount();
+  const refreshed = render(<CrewDisplaySettings {...initial} initialGroups={[{ ...initial.initialGroups[0], name: "Family reunion" }]} />);
+  expect(screen.getByRole("textbox", { name: "Group name" })).toHaveProperty("value", "Family trip");
+  expect(screen.getByRole("button", { name: "Save group" })).toHaveProperty("disabled", true);
+  expect(saveCrewGroup).not.toHaveBeenCalled();
+  refreshed.unmount();
+  render(<CrewDisplaySettings {...initial} ownerId={pick} />);
+  expect(screen.queryByRole("textbox", { name: "Group name" })).toBeNull();
+});
 
 test("cleanup's unchanged empty audiences do not block a privacy-only save", async () => {
   saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Saved" });

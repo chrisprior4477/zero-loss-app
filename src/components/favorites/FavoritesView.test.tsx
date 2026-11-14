@@ -19,6 +19,14 @@ beforeEach(() => {
   mocks.state.mockImplementation(async (_id, state) => ({ ok: true, viewedAt: "2026-10-25", declinedAt: state === "declined" ? "2026-10-25" : null, message: state === "declined" ? "Declined. This item stays in Shared with You." : "" }));
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState({}, "", "/"); });
+test.each(["Back to list", "← Shared with You"])("a direct declined share returns to Declined through %s", name => {
+  window.history.replaceState({}, "", `/account/favorites?tab=shared&share=${share.id}`);
+  show({ initialTab: "shared", initialShareId: share.id, initialShares: [{ ...share, declinedAt: "2026-10-26" }] });
+  fireEvent.click(screen.getByRole("button", { name }));
+  expect(screen.getByRole("button", { name: "Declined 1", pressed: true })).toBeTruthy();
+  expect(screen.getByRole("button", { name: /View declined share/ })).toBeTruthy();
+  expect(window.location.search).toBe("?tab=shared&view=declined");
+});
 test("personal favorites are the default and the two tabs replace the introductory copy", () => {
   window.history.replaceState({ __NA: true }, "", "/account/favorites");
   const replace = vi.spyOn(window.history, "replaceState");

@@ -46,6 +46,7 @@ export default async function CrewDisplayPage() {
 
   return <AccountSettingsFrame active="sharing" overview={{ balanceLabel: account.balanceLabel, fundingEnabled: account.fundingEnabled, activity: account.activity }}><CrewDisplaySettings
     withinAccountSettings
+    ownerId={account.userId}
     available={available}
     initialDiscoverable={profileResult.data?.crew_discoverable ?? true}
     initialDiscovery={{ real: profileResult.data?.crew_find_real_name ?? true, email: profileResult.data?.crew_find_email ?? true, phone: profileResult.data?.crew_find_phone ?? true }}

@@ -276,7 +276,7 @@ export function CrewHub({ currentUserId, invitations, members, discoverable, dis
       {sharing ? <CrewSharePicker products={[...new Map([...visibleMemberPicks.map(pick => ({ ...pick, slug: pick.offeringSlug })), ...Object.values(samplePicks).flat()].map(pick => [pick.slug, pick])).values()]} onClose={() => setSharing(false)} /> : null}
 
       <div className={firstStyles.content} hidden={tab !== "groups" && tab !== "privacy"}>
-        <CrewDisplaySettings key={currentUserId} embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />
+        <CrewDisplaySettings key={currentUserId} ownerId={currentUserId} embedded section={tab === "groups" ? "groups" : "privacy"} available={available && visibilityAvailable} initialDiscoverable={discoverable} initialDiscovery={discovery} initialDefaultRule={visibility?.defaultRule ?? defaultCrewVisibilityRule} initialGroups={visibility?.groups ?? []} initialEntryRules={visibility?.entryRules ?? {}} members={members.map(member => ({ id: member.memberId, name: member.name }))} sharedPicks={entries.filter(entry => entry.shared)} />
       </div>
 
       {tab === "requests" ? <section className={styles.utilityGrid}>

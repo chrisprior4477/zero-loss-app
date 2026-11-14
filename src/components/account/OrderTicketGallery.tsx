@@ -154,7 +154,7 @@ function OrderDetails({ order, anchor, onClose, filter, phone }: { filter: Fulfi
         <div><dt>Gift-card value</dt><dd>{formatUsdFromCents(order.faceValueCents)}</dd></div>
         {order.source !== "winner" ? <div><dt>Paid at checkout</dt><dd>{order.amountPaidCents === null ? "Unavailable" : formatUsdFromCents(order.amountPaidCents)}</dd></div> : null}
       </dl>
-      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
+      <Link className={styles.reportSupport} href={order.orderNumber ? `/account/orders?order=${encodeURIComponent(order.orderNumber)}&support=report&details=1${filter === "all" ? "" : `&filter=${filter}`}` : `/support?rewardId=${encodeURIComponent(order.rewardId)}&from=order&details=1${filter === "all" ? "" : `&orderFilter=${filter}`}#report-problem`}>Report a problem to Support<AccountIcon name="arrow" /></Link>
       <button className={styles.copySupport} type="button" onClick={() => copy(orderSupportSummary(order))}><CopyIcon />Copy for Support</button>
       <p role="status" className={styles.copyStatus}>{copyStatus}</p>
       {manualCopy !== null ? <textarea className={styles.manualCopy} aria-label="Details to copy" value={manualCopy} readOnly ref={element => { element?.select(); }} /> : null}
@@ -162,9 +162,9 @@ function OrderDetails({ order, anchor, onClose, filter, phone }: { filter: Fulfi
   </div>, document.body);
 }
 
-export function OrderTicketGallery({ orders, filter = "all" }: { orders: FulfillmentRecord[]; filter?: FulfillmentFilter }) {
+export function OrderTicketGallery({ orders, filter = "all", initialDetailsId }: { orders: FulfillmentRecord[]; filter?: FulfillmentFilter; initialDetailsId?: string }) {
   const phone = useSyncExternalStore(subscribePhone, isPhone, serverPhone);
-  const [pageAnchor, setPageAnchor] = useState<string | null>(null);
+  const [pageAnchor, setPageAnchor] = useState<string | null>(initialDetailsId ?? null);
   const [opened, setOpened] = useState<{ id: string; anchor: HTMLButtonElement } | null>(null);
   const [view, setView] = useState<TicketView | null>(null);
   const size = phone ? 2 : 6;
@@ -204,36 +204,39 @@ export function OrderTicketGallery({ orders, filter = "all" }: { orders: Fulfill
     let frame = 0;
     function restorePage() {
       const saved = window.history.state?.zeroLossOrderTickets;
-      if (!saved || saved.href !== window.location.href || !orders.some(order => order.rewardId === saved.anchor)
-        || !Number.isFinite(saved.scrollY) || saved.scrollY < 0) return;
-      setPageAnchor(saved.anchor);
+      const hasSaved = saved?.href === window.location.href && orders.some(order => order.rewardId === saved.anchor)
+        && Number.isFinite(saved.scrollY) && saved.scrollY >= 0;
+      const anchorId = hasSaved ? saved.anchor : initialDetailsId;
+      if (!anchorId || !orders.some(order => order.rewardId === anchorId)) return;
+      const href = window.location.href;
+      setPageAnchor(anchorId);
       setOpened(null);
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        if (window.location.href !== saved.href) return;
+        if (window.location.href !== href) return;
         if (rail.current) {
-          const index = orders.findIndex(order => order.rewardId === saved.anchor);
+          const index = orders.findIndex(order => order.rewardId === anchorId);
           const pageSize = isPhone() ? 2 : 6;
           const step = pageOffset(rail.current, 1);
-          rail.current.scrollLeft = saved.size === pageSize && Number.isFinite(saved.position) && step > 0
+          rail.current.scrollLeft = hasSaved && saved.size === pageSize && Number.isFinite(saved.position) && step > 0
             ? Math.min(Math.max(0, saved.position), Math.ceil(orders.length / pageSize) - 1) * step
             : pageOffset(rail.current, Math.floor(index / pageSize));
         }
-        window.scrollTo({ top: saved.scrollY, behavior: "instant" });
+        if (hasSaved) window.scrollTo({ top: saved.scrollY, behavior: "instant" });
         // The page containing this ticket has now rendered. Recover only a
         // details button for a record still present in the authorized list.
-        if (typeof saved.openId !== "string" || saved.openId !== saved.anchor) return;
+        if (hasSaved && saved.openId !== anchorId) return;
         const ticket = Array.from(gallery.current?.querySelectorAll<HTMLElement>("[data-order-ticket]") ?? [])
-          .find(element => element.id === `reward-${saved.openId}`);
+          .find(element => element.id === `reward-${anchorId}`);
         const anchor = ticket?.querySelector<HTMLButtonElement>("[data-order-details]");
-        if (anchor) setOpened({ id: saved.openId, anchor });
+        if (anchor) setOpened({ id: anchorId, anchor });
       });
     }
     restorePage();
     window.addEventListener("popstate", restorePage);
     window.addEventListener("pageshow", restorePage);
     return () => { cancelAnimationFrame(frame); window.removeEventListener("popstate", restorePage); window.removeEventListener("pageshow", restorePage); };
-  }, [orders]);
+  }, [initialDetailsId, orders]);
 
   const alignPage = useEffectEvent(() => {
     const track = rail.current;

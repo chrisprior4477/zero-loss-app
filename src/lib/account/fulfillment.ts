@@ -16,18 +16,19 @@ export function fulfillmentFilter(value: unknown): FulfillmentFilter {
   return value === "processing" || value === "fulfilled" || value === "exceptions" || value === "payment" ? value : "all";
 }
 
-export function fulfillmentHref(rewardId?: string, filter: FulfillmentFilter = "all") {
+export function fulfillmentHref(rewardId?: string, filter: FulfillmentFilter = "all", details = false) {
   const query = new URLSearchParams();
   if (filter !== "all") query.set("filter", filter);
   if (rewardId) query.set("rewardId", rewardId);
+  if (details && rewardId) query.set("details", "1");
   return `/account/orders${query.size ? `?${query}` : ""}#fulfillment-records`;
 }
 
 export const fulfillmentFilterLabel: Record<FulfillmentFilter, string> = { all: "all orders", processing: "In progress orders", fulfilled: "Issued orders", exceptions: "Exceptions", payment: "Confirmed payments" };
 
-export function exactOrderHref(orderNumber: string, filter: FulfillmentFilter = "all") {
+export function exactOrderHref(orderNumber: string, filter: FulfillmentFilter = "all", details = false) {
   const id = encodeURIComponent(orderNumber);
-  return `/account/orders?order=${id}${filter === "all" ? "" : `&filter=${filter}`}#order-${id}`;
+  return `/account/orders?order=${id}${filter === "all" ? "" : `&filter=${filter}`}${details ? "&details=1" : ""}#order-${id}`;
 }
 
 export function fulfillmentActivityHref(record: Pick<FulfillmentRecord, "entryId">) {

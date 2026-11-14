@@ -104,7 +104,7 @@ test("details copy full references and exact checkout amounts, then return focus
   expect(within(dialog).getByText("$99")).toBeTruthy();
   expect(within(dialog).getByText("$100")).toBeTruthy();
   expect(within(dialog).getByRole("link", { name: "Report a problem to Support" }).getAttribute("href"))
-    .toBe(`/account/orders?order=${order.orderNumber}&support=report`);
+    .toBe(`/account/orders?order=${order.orderNumber}&support=report&details=1`);
   expect(screen.getByRole("button", { name: "Close details" })).toBe(document.activeElement);
   fireEvent.click(within(dialog).getByRole("button", { name: "Copy order number" }));
   await waitFor(() => expect(writeText).toHaveBeenCalledWith(order.orderNumber));
@@ -164,7 +164,7 @@ test('a winning reward opens a direct support form with its own reward reference
  render(<OrderTicketGallery orders={[reward]}/>);
  fireEvent.click(screen.getByRole('button',{name:'Reward details'}));
  const dialog=screen.getByRole('dialog',{name:'Reward details'});
- expect(within(dialog).getByRole('link',{name:'Report a problem to Support'}).getAttribute('href')).toBe(`/support?rewardId=${reward.rewardId}#report-problem`);
+ expect(within(dialog).getByRole('link',{name:'Report a problem to Support'}).getAttribute('href')).toBe(`/support?rewardId=${reward.rewardId}&from=order&details=1#report-problem`);
  expect(within(dialog).getByRole('button',{name:'Copy for Support'})).toBeTruthy();
 });
 
@@ -286,6 +286,19 @@ test("browser return restores the later mobile order page and preserves router h
   render(<OrderTicketGallery orders={[record(1), record(2)]} />);
   expect(screen.getByText("1–2 of 2")).toBeTruthy();
   window.history.replaceState(null, "", "/");
+});
+
+test("a fresh order-details return opens the selected record and remembers an explicit close", async () => {
+  const order = record(2);
+  window.history.replaceState({}, "", `/account/orders?order=${order.orderNumber}&details=1`);
+  const view = () => render(<OrderTicketGallery orders={[order]} initialDetailsId={order.rewardId} />);
+  const firstView = view();
+  await screen.findByRole("dialog", { name: "Order details" });
+  fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+  firstView.unmount();
+  view();
+  expect(window.history.state.zeroLossOrderTickets.openId).toBeNull();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 test.each([true, false])("refresh and Support return reopen the same order; explicit close stays closed (phone: %s)", async phone => {

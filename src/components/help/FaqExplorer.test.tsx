@@ -6,6 +6,19 @@ import { faqReturnKey } from "@/lib/help/faq-return";
 beforeEach(() => { window.history.replaceState({ framework: "keep" }, "", "/faq"); vi.spyOn(window, "scrollTo").mockImplementation(() => {}); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); window.history.replaceState({}, "", "/"); });
 
+test("a fresh search survives remount and can widen an empty topic without clearing the query", () => {
+  const first = render(<FaqExplorer />);
+  fireEvent.click(screen.getByRole("button", { name: "Wallet & funding" }));
+  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "password" } });
+  first.unmount();
+  render(<FaqExplorer />);
+  expect(screen.getByRole("searchbox")).toHaveProperty("value", "password");
+  expect(screen.getByRole("button", { name: "Wallet & funding", pressed: true })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Search all topics" }));
+  expect(screen.getByRole("searchbox")).toHaveProperty("value", "password");
+  expect(screen.getByRole("link", { name: "Reset my password" })).toBeTruthy();
+});
+
 test("all questions begin collapsed and search shows matching answers without another click", () => {
   const { container } = render(<FaqExplorer />);
   expect(container.querySelectorAll("details")).toHaveLength(faqItems.length);

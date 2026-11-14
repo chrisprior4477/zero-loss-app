@@ -167,15 +167,18 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
     if (shareId) void setReceivedProductState(shareId, "viewed").then(result => applyShareResult(shareId, result, true))
       .catch(() => setMessage("The item is available, but its viewed status could not be saved."));
   }
-  function back() {
+  function back(keepCurrentView = false) {
     const target = selection?.shareId ?? selection?.slug;
-    const href = tab === "shared" ? savedShareHref(undefined, sharedView) : "/account/favorites";
+    const nextView = keepCurrentView || !selectedShare ? sharedView : selectedShare.declinedAt ? "declined" : "available";
+    const href = tab === "shared" ? savedShareHref(undefined, nextView) : "/account/favorites";
     if (savedListPosition(window.history.state)?.href === href) {
       window.history.back();
       return;
     }
     // A directly opened item may have no list behind it in this tab.
-    setSelected(null); location(href);
+    setSelected(null);
+    if (tab === "shared") setSharedView(nextView);
+    location(href);
     restoreListPosition(target);
   }
   async function changeShare(share: SavedProductShare, state: "declined" | "restore") {
@@ -188,7 +191,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       if (result.ok || stillViewing) applyShareResult(share.id, result);
       if (result.ok && stillViewing) {
         setMessage(result.message);
-        back();
+        back(true);
       }
     }
     catch { if (window.location.href === previewHref) setMessage("We couldn’t confirm this change. Please try again."); }
@@ -231,7 +234,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
   const missingFavoriteSlug = tab === "favorites" && available && !selectedSlug ? selection?.slug : undefined;
   const missingFavorite = missingFavoriteSlug ? productState(missingFavoriteSlug) : null;
   const { product: detailProduct, entryPriceCents: detailEntryPrice, status: detailStatus } = productState(selectedSlug ?? "");
-  const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, sharedView) : `/account/favorites?item=${detailProduct.slug}`)
+  const detailHref = detailProduct && detailStatus?.remaining !== 0 ? productHrefWithBrowseReturn(detailProduct.slug, selectedShare ? savedShareHref(selectedShare.id, selectedShare.declinedAt ? "declined" : "available") : `/account/favorites?item=${detailProduct.slug}`)
     + (selectedShare?.token ? `&share=${selectedShare.token}` : "") : null;
   return <section className={styles.page} aria-labelledby="saved-items-heading">
     <FavoritesLandingScroll enabled />
@@ -248,7 +251,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
       {message ? <p role="status" className={styles.message}>{message}</p> : null}
       <section id="saved-products-panel" role="tabpanel" aria-labelledby={tab === "favorites" ? "your-favorites-tab" : "shared-with-you-tab"}>
         {selectedSlug ? <>
-          <button type="button" className={styles.back} onClick={back}>← {tab === "shared" ? "Shared with You" : "Your Favorites"}</button>
+          <button type="button" className={styles.back} onClick={() => back()}>← {tab === "shared" ? "Shared with You" : "Your Favorites"}</button>
           <article className={styles.detail}>
             {selectedShare ? sender(selectedShare) : null}{art(selectedSlug, true)}
             <div className={styles.detailBody}>
@@ -261,7 +264,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
                 <div><button type="button" className={styles.saveFavorite} disabled={favoriteBusy.includes(selectedSlug) || !detailProduct || !available} onClick={() => toggle(selectedSlug)}>{slugs.includes(selectedSlug) ? "♥ Saved to Favorites" : "♡ Save to Favorites"}</button>
                   {selectedShare?.declinedAt && detailHref ? <Link className={styles.reopenButton} href={detailHref}>Reopen prize →</Link> : null}
                 </div>
-                <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={back}>Back to list</button></div>
+                <div>{detailProduct ? <ProductShareButton product={{ slug: detailProduct.slug, title: detailProduct.title, image: detailProduct.gallery[0].src, retailer: detailProduct.retailer, value: detailProduct.value }} label="Share" className={styles.shareButton} /> : null}<button type="button" className={styles.backToList} onClick={() => back()}>Back to list</button></div>
               </div>
               {selectedShare ? <><button type="button" className={styles.declineButton} disabled={shareBusy !== null} onClick={() => void changeShare(selectedShare, selectedShare.declinedAt ? "restore" : "declined")}>{shareBusy === selectedShare.id ? "Saving…" : selectedShare.declinedAt ? "Undo decline" : "Decline this share"}</button><p className={styles.kept}>{selectedShare.declinedAt ? detailHref ? "Reopen the prize to look again, or undo your decline to move it to Available." : "Undo your decline to move this share to Available." : "Declining moves this share to Declined. You can revisit it while its pool is open."}</p></> : null}
             </div>
@@ -269,7 +272,7 @@ export function FavoritesView({ availability, hiddenSlugs, initialAlerts, emailE
         </> : tab === "favorites" ? <>
           {missingFavorite ? <div role="status" className={styles.empty}>
             <h2>This prize is no longer in your Favorites</h2>
-            <button type="button" className={styles.back} onClick={back}>Back to Favorites</button>
+            <button type="button" className={styles.back} onClick={() => back()}>Back to Favorites</button>
             {missingFavorite.product && !hidden.has(missingFavorite.product.slug) && (missingFavorite.status?.remaining ?? 0) > 0 ? <Link href={`/items/${missingFavorite.product.slug}`}>View prize →</Link> : null}
           </div> : null}
           {emailEnabled === false ? <p className={styles.notice}>Favorite emails are paused in <Link href="/account/notifications#favorite-alert-preference">Notifications</Link>.</p> : null}

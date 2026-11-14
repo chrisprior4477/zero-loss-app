@@ -22,9 +22,9 @@ const routes: Record<string, ReturnRoute> = {
   "/account/security": { query: {} },
   "/account/profile": { query: {}, hash: /^#personal-details-heading$/ },
   "/account/payment-methods": { query: {} },
-  "/account/orders": { query: { filter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), order: matches(identifier), rewardId: matches(uuid), support: oneOf("report") }, hash: /^#(?:fulfillment-records|order-[a-zA-Z0-9_-]{1,80})$/ },
+  "/account/orders": { query: { filter: oneOf("all", "processing", "fulfilled", "exceptions", "payment"), order: matches(identifier), rewardId: matches(uuid), support: oneOf("report"), details: oneOf("1") }, hash: /^#(?:fulfillment-records|order-[a-zA-Z0-9_-]{1,80})$/ },
   "/account/results": { query: {} },
-  "/support": { query: { case: matches(uuid), transaction: matches(uuid), walletView: oneOf("1"), rewardId: matches(uuid), deposit: matches(depositRequestKeyPattern), view: oneOf("inbox"), from: oneOf("wallet", "order"), orderFilter: oneOf("processing", "fulfilled", "exceptions", "payment"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/) }, hash: /^#(?:conversation|case-list|report-problem)$/ },
+  "/support": { query: { case: matches(uuid), transaction: matches(uuid), walletView: oneOf("1"), rewardId: matches(uuid), deposit: matches(depositRequestKeyPattern), view: oneOf("inbox"), from: oneOf("wallet", "order"), orderFilter: oneOf("processing", "fulfilled", "exceptions", "payment"), page: matches(/^[1-9]\d{0,4}$/), messages: matches(/^[1-9]\d{0,4}$/), details: oneOf("1") }, hash: /^#(?:conversation|case-list|report-problem)$/ },
 };
 
 function returnRoute(path: string): ReturnRoute | undefined {
@@ -52,6 +52,11 @@ export function accountReturnPath(value: unknown): string | null {
   if (url.pathname === "/account/wallet" && url.searchParams.has("walletView") &&
     (url.searchParams.get("view") !== "history" || !url.searchParams.has("transaction"))) return null;
   if (url.pathname === "/support" && url.searchParams.has("walletView") && !url.searchParams.has("transaction") && !url.searchParams.has("case")) return null;
+  if (url.searchParams.has("details")) {
+    if (url.pathname === "/account/orders" && !(url.searchParams.has("order") || url.searchParams.has("rewardId"))) return null;
+    if (url.pathname === "/support" && (url.searchParams.get("from") !== "order" ||
+      !(url.searchParams.has("transaction") || url.searchParams.has("rewardId") || url.searchParams.has("case")))) return null;
+  }
   if (url.pathname === "/account/wallet" && url.searchParams.has("via") && !url.searchParams.has("rewardId")) return null;
   if (url.pathname === "/account/wallet" && url.searchParams.has("panel") && url.searchParams.get("view") !== "history") return null;
   if (url.pathname === "/account/wallet" && url.searchParams.has("quantity") &&

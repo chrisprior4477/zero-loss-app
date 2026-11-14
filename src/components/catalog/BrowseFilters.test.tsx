@@ -7,6 +7,21 @@ import { retailerFilterGroups } from "@/lib/catalog/browse-filters";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 afterEach(cleanup);
 
+test("sorting keeps an open custom range until Apply filters", () => {
+  const onNavigate = vi.fn();
+  render(<FilterForm id="custom-range" onNavigate={onNavigate}
+    filters={{ type: "all", retailer: "", availableOnly: false, sort: "featured", minValue: null, maxValue: null }}
+    retailerGroups={[]} selectedRetailerGroup={null} selectedCategory="electronics" searchTerm="" subcategory="" clearHref="/browse?category=electronics"
+  />);
+  fireEvent.click(screen.getByRole("radio", { name: "Custom range" }));
+  fireEvent.change(screen.getByRole("spinbutton", { name: "From ($)" }), { target: { value: "300" } });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "To ($)" }), { target: { value: "600" } });
+  fireEvent.click(screen.getByRole("radio", { name: "Highest prize value" }));
+  expect(onNavigate).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+  expect(onNavigate).toHaveBeenCalledOnce();
+});
+
 test("Browse search offers a direct category link while typing", () => {
   render(<BrowseFilters
     filters={{ type: "all", retailer: "", availableOnly: false, sort: "featured", minValue: null, maxValue: null }}

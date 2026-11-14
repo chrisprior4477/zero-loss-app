@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { saveCrewDisplaySettings, saveCrewGroup } from "@/lib/crew/actions";
 import { notifyAccountChanged } from "@/lib/account/account-state-events";
-import { changedCrewEntryRules, sameCrewVisibilityRule, type CrewAudience, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "@/lib/crew/visibility";
+import { changedCrewEntryRules, isCrewVisibilityGroup, sameCrewVisibilityRule, type CrewAudience, type CrewDisplaySnapshot, type CrewVisibilityGroup, type CrewVisibilityRule } from "@/lib/crew/visibility";
 import styles from "./crew-display-settings.module.css";
 import { CrewGroupContacts } from "./CrewGroupContacts";
 import { CrewGroupRemovalCountdown } from "./CrewGroupRemovalCountdown";
@@ -14,6 +14,7 @@ import { CrewGroupRemovalCountdown } from "./CrewGroupRemovalCountdown";
 type Member = { id: string; name: string };
 type Pick = { id: string; title: string; retailer: string; image: string | null };
 type Props = {
+  ownerId?: string;
   embedded?: boolean;
   withinAccountSettings?: boolean;
   section?: "all" | "groups" | "privacy";
@@ -93,7 +94,7 @@ function AudienceTargets({ rule, onChange, members, groups, prefix, disabled }: 
   </div>;
 }
 
-export function CrewDisplaySettings({ available, initialDiscoverable, initialDiscovery, initialDefaultRule, initialGroups, initialEntryRules, members, sharedPicks, embedded = false, withinAccountSettings = false, section = "all" }: Props) {
+export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, initialDiscovery, initialDefaultRule, initialGroups, initialEntryRules, members, sharedPicks, embedded = false, withinAccountSettings = false, section = "all" }: Props) {
   const router = useRouter();
   const [discoverable, setDiscoverable] = useState(initialDiscoverable);
   const [discovery, setDiscovery] = useState(initialDiscovery ?? { real: true, email: true, phone: true });
@@ -116,6 +117,8 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
   const [pending, startTransition] = useTransition();
   const privacyDisabled = !available || pending;
   const groupToReveal = useRef<string | null>(null);
+  const groupDraftKey = available && ownerId && section !== "privacy" ? `zero-loss:crew-group-draft:${ownerId}:${embedded ? "crew" : "settings"}` : null;
+  const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
   const persistedGroupIds = new Set(baseline.groups.map(group => group.id));
   const latestGroups = new Map(server.groups.map(group => [group.id, group]));
   const baselineGroups = new Map(baseline.groups.map(group => [group.id, group]));
@@ -152,6 +155,45 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
   }
 
   useEffect(() => {
+    if (!groupDraftKey || loadedDraftKey === groupDraftKey) return;
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(groupDraftKey) ?? "null");
+      const editor = initialGroups.find(group => group.id === draft?.expanded);
+      const entries: unknown[] = Array.isArray(draft?.changes) ? draft.changes : [];
+      const changes = entries.filter((change): change is { before: CrewVisibilityGroup; after: CrewVisibilityGroup } => {
+        if (!change || typeof change !== "object" || !("before" in change) || !("after" in change) || !isCrewVisibilityGroup(change.before)) return false;
+        const after = change.after as CrewVisibilityGroup | null;
+        return Boolean(after && typeof after.name === "string" && after.name.length <= 50 && after.id === change.before.id
+          && isCrewVisibilityGroup({ ...after, name: change.before.name }) && initialGroups.some(group => group.id === after.id));
+      });
+      if (changes.length) {
+        const { groups: restored, expectedGroups } = reconcileGroups(changes.map(change => change.after), changes.map(change => change.before), initialGroups);
+        // Hydrate this tab's draft and retain its saved baseline for conflict checks.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setGroups(restored);
+        setBaseline(current => ({ ...current, groups: expectedGroups }));
+      }
+      if (editor) {
+        groupToReveal.current = editor.id;
+        setExpandedGroupId(editor.id);
+      }
+    } catch { /* The saved groups can still be edited. */ }
+    setLoadedDraftKey(groupDraftKey);
+  }, [groupDraftKey, initialGroups, loadedDraftKey]);
+
+  useEffect(() => {
+    if (!groupDraftKey || loadedDraftKey !== groupDraftKey) return;
+    const changes = baseline.groups.flatMap(before => {
+      const after = groups.find(group => group.id === before.id);
+      return after && !sameGroup(before, after) ? [{ before, after }] : [];
+    });
+    try {
+      if (expandedGroupId || changes.length) sessionStorage.setItem(groupDraftKey, JSON.stringify({ expanded: expandedGroupId, changes }));
+      else sessionStorage.removeItem(groupDraftKey);
+    } catch { /* Editing remains available without tab storage. */ }
+  }, [baseline.groups, expandedGroupId, groupDraftKey, groups, loadedDraftKey]);
+
+  useEffect(() => {
     if (removingGroupId || !restoreRemovalFocus.current) return;
     document.getElementById(`remove-crew-group-${restoreRemovalFocus.current}`)?.focus({ preventScroll: true });
     restoreRemovalFocus.current = null;
@@ -166,7 +208,7 @@ export function CrewDisplaySettings({ available, initialDiscoverable, initialDis
     if (!groupToReveal.current) return;
     document.getElementById(`crew-group-${groupToReveal.current}`)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
     groupToReveal.current = null;
-  }, [groups]);
+  }, [groups, expandedGroupId]);
 
   function clearSaveFeedback() {
     setSaved(false);
