@@ -56,6 +56,11 @@ export function declinedOfferHref(optionId?: string | null, filter: ActivityFilt
   if (filter !== "all") params.set("filter", filter);
   return `/account/declined-offers${params.size ? `?${params}` : ""}${optionId ? `#declined-offer-${encodeURIComponent(optionId)}` : ""}`;
 }
+export function revivableDeclinedOfferCount(activity: readonly ActivityItem[], now = Date.now()) {
+  const eligible = activity.filter(item => item.completionOptionStatus === "declined" && item.completionOptionId
+    && Date.parse(item.completionExpiresAt ?? "") > now);
+  return new Set(eligible.map(item => item.completionOptionId)).size;
+}
 export function isWalletReward(item: ActivityItem): boolean {
   return item.rewardKind === "digital" && (item.status === "prize" || Boolean(item.rewardStatus) || Boolean(item.rewardId));
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { activityFilters, filterActivity, openEntriesAnchorId, openEntriesHref, type AccountActivity, type ActivityFilter } from "@/lib/account/activity";
+import { activityFilters, declinedOfferHref, filterActivity, openEntriesAnchorId, openEntriesHref, revivableDeclinedOfferCount, type AccountActivity, type ActivityFilter } from "@/lib/account/activity";
 import { MyZeroLossGallery } from "./MyZeroLossGallery";
 import { ActivitySelection } from "./ActivitySelection";
 import { AccountIcon } from "./AccountIcon";
@@ -24,7 +24,7 @@ const emptyMessages: Record<ActivityFilter, { title: string; detail: string }> =
   all: { title: "Unfortunately, you don't have any activity yet.", detail: "Your entries, rewards, and purchase options will appear here." },
   active: { title: "Unfortunately, you don't have any open entries yet.", detail: "Your entries will appear here once you enter a reward." },
   prize: { title: "Unfortunately, you haven't won anything yet.", detail: "We will notify you when you do." },
-  completion: { title: "Unfortunately, you don't have any purchase options yet.", detail: "We will notify you if one becomes available." },
+  completion: { title: "No open purchase options", detail: "We will notify you if one becomes available." },
   completed: { title: "Unfortunately, you don't have any completed activity yet.", detail: "Your completed rewards and purchases will appear here." },
 };
 
@@ -37,6 +37,8 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
   const allItems = filterActivity(verifiedState.activity, "all");
   const items = winnerFirst(filterActivity(verifiedState.activity, filter));
   const pendingOnly = pendingEntries.length > 0 && allItems.length === 0 && (filter === "all" || filter === "active");
+  const declinedCount = filter === "completion" && items.length === 0
+    ? revivableDeclinedOfferCount(verifiedState.activity) : 0;
   return <section data-activity-source={state.source}>
     <ActivityNotificationRead filter={filter} available={state.source !== "unavailable"} detailOpen={Boolean(selectedSlug || selectedEntryId || resumePurchase)} visibleIds={buildAccountNotifications({ ...verifiedState, activity: items }, null, false).map(notification => notification.id)} />
     <MyActivityLandingScroll ownerId={ownerId} filter={filter} revealControls={items.length === 0 && !pendingOnly} enabled={!selectedSlug && !selectedEntryId && !viewedEntryId && !returnToOptions && !resumePurchase} />
@@ -55,7 +57,10 @@ export function MyZeroLossActivity({ ownerId, state, purchaseStamps, filter, met
     {items.length > 0 ? <h2 className={styles.activityHeading}>{activityHeadings[filter]}</h2> : null}
     {items.length ? <MyZeroLossGallery ownerId={ownerId} key={filter + items.map(item => item.entryId ?? item.slug).join(",")} items={items} purchaseStamps={purchaseStamps} filter={filter} metricsBySlug={metricsBySlug} viewedEntryId={viewedEntryId} checkout={checkout} canClearDemoEntries={canClearDemoEntries} /> : <><div className={styles.empty}>
       <h2 className="text-xl font-bold text-white">{state.source === "unavailable" ? "Activity unavailable" : pendingOnly ? "Your entry is being confirmed" : emptyMessages[filter].title}</h2>
-      <p className="mt-2 max-w-xl text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "We can’t verify your activity right now. No entries or outcomes have been assumed. Please try again shortly." : pendingOnly ? "Confirm your pending request above, or wait for the automatic result. Your activity will update when the entry is accepted." : emptyMessages[filter].detail}</p>
+      <p className="mt-2 max-w-xl text-sm leading-6 text-[#b5cce4]">{state.source === "unavailable" ? "We can’t verify your activity right now. No entries or outcomes have been assumed. Please try again shortly." : pendingOnly ? "Confirm your pending request above, or wait for the automatic result. Your activity will update when the entry is accepted." : declinedCount ? "You can revive a declined offer before its original deadline." : emptyMessages[filter].detail}</p>
+      {declinedCount > 0 ? <div><Link href={declinedOfferHref(null, "completion")} className={styles.reviewDeclinedOffers}>
+        Review {declinedCount} declined {declinedCount === 1 ? "offer" : "offers"} <span aria-hidden="true">→</span>
+      </Link></div> : null}
       {state.source !== "unavailable" && allItems.length > 0 ? <Link href="/account/entries" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-[#31e800] px-5 text-sm font-black text-[#002719]">See my other activity <span aria-hidden="true" className="ml-3">›</span></Link> : null}
     </div><div id="my-activity-empty-controls" className={styles.emptyControls}><Link href="/" className={styles.continueShopping}>Continue shopping</Link>{canClearDemoEntries && state.source !== "unavailable" ? <ClearAllEntriesButton /> : null}</div></>}
     <ActivitySelection state={verifiedState} selectedSlug={selectedSlug} selectedEntryId={selectedEntryId} destination="/account/entries" filter={filter} metricsBySlug={metricsBySlug} outcomeEmailPreference={outcomeEmailPreference} returnToOptions={returnToOptions} resumePurchase={resumePurchase} />

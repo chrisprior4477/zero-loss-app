@@ -165,7 +165,7 @@ test.each([
   ["all", "Unfortunately, you don't have any activity yet.", "Your entries, rewards, and purchase options will appear here."],
   ["active", "Unfortunately, you don't have any open entries yet.", "Your entries will appear here once you enter a reward."],
   ["prize", "Unfortunately, you haven't won anything yet.", "We will notify you when you do."],
-  ["completion", "Unfortunately, you don't have any purchase options yet.", "We will notify you if one becomes available."],
+  ["completion", "No open purchase options", "We will notify you if one becomes available."],
   ["completed", "Unfortunately, you don't have any completed activity yet.", "Your completed rewards and purchases will appear here."],
 ] as const)("%s empty filter has its own message", (filter, title, detail) => {
   render(<MyZeroLossActivity state={drawerState(true)} filter={filter} />);
@@ -177,8 +177,29 @@ test("empty category links clearly to the rest of the saved activity", () => {
   const state = storedActivityFixture();
   state.activity = [state.activity[0]];
   render(<MyZeroLossActivity state={state} filter="completion" />);
-  expect(screen.getByRole("heading", { name: "Unfortunately, you don't have any purchase options yet." })).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "No open purchase options" })).toBeTruthy();
   expect(screen.getByRole("link", { name: /See my other activity/ }).getAttribute("href")).toBe("/account/entries");
+});
+
+test("the empty Purchase Options list links to still-revivable declined offers", () => {
+  const state = storedActivityFixture();
+  const declined = { ...state.activity[2], completionOptionStatus: "declined" as const, completionExpiresAt: "2099-01-01T00:00:00Z" };
+  const eligible = { ...declined, completionOptionId: "eligible-option" };
+  const expired = { ...declined, completionOptionId: "expired-option", completionExpiresAt: "2000-01-01T00:00:00Z" };
+  const unknown = { ...declined, completionOptionId: "unknown-option", completionExpiresAt: null };
+  const { rerender } = render(<MyZeroLossActivity state={{ ...state, activity: [eligible, expired, unknown] }} filter="completion" />);
+  const name = /^Review \d+ declined offers?$/;
+  expect(screen.getByRole("link", { name: "Review 1 declined offer" }).getAttribute("href")).toBe("/account/declined-offers?filter=completion");
+
+  rerender(<MyZeroLossActivity state={{ ...state, activity: [eligible, { ...eligible, completionOptionId: "second-option" }] }} filter="completion" />);
+  expect(screen.getByRole("link", { name: "Review 2 declined offers" })).toBeTruthy();
+
+  rerender(<MyZeroLossActivity state={{ ...state, activity: [expired, unknown] }} filter="completion" />);
+  expect(screen.queryByRole("link", { name })).toBeNull();
+
+  rerender(<MyZeroLossActivity state={{ ...state, source: "unavailable", activity: [eligible] }} filter="completion" />);
+  expect(screen.getByRole("heading", { name: "Activity unavailable" })).toBeTruthy();
+  expect(screen.queryByRole("link", { name })).toBeNull();
 });
 test("a saved pending request is visible without counting it as a confirmed entry", () => {
   const pending = { requestId: "41414141-4141-4141-8141-414141414141", slug: "best-buy-100-gift-card", title: "$100 Best Buy Gift Card",
