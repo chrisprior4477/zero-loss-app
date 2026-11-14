@@ -109,6 +109,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [removingGroupId, setRemovingGroupId] = useState<string | null>(null);
   const restoreRemovalFocus = useRef<string | null>(null);
+  const saveButton = useRef<HTMLButtonElement>(null);
   const [groupMessage, setGroupMessage] = useState("");
   const [groupMessageError, setGroupMessageError] = useState(false);
   const [editorMessage, setEditorMessage] = useState<{ id: string; text: string; error: boolean } | null>(null);
@@ -215,7 +216,7 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
     setMessage("");
   }
 
-  const discoveryFields = <div>{(["display", "real", "email", "phone"] as const).map(key => <label className={styles.discoveryToggle} key={key}><input type="checkbox" disabled={privacyDisabled} checked={key === "display" ? discoverable : discovery[key]} onChange={e => { if (key === "display") setDiscoverable(e.target.checked); else setDiscovery(current => ({ ...current, [key]: e.target.checked })); clearSaveFeedback(); }} /><span><strong>Find me by {({ display: "display name", real: "real name", email: "email address", phone: "phone number" })[key]}</strong><small>{key === "email" || key === "phone" ? "They must enter the full address or number. It is never shown in results." : "Allow matching names in Crew search."}</small></span></label>)}</div>;
+  const discoveryFields = <div className={styles.discoveryGrid}>{(["display", "real", "email", "phone"] as const).map(key => <label className={styles.discoveryToggle} key={key}><input type="checkbox" disabled={privacyDisabled} checked={key === "display" ? discoverable : discovery[key]} onChange={e => { if (key === "display") setDiscoverable(e.target.checked); else setDiscovery(current => ({ ...current, [key]: e.target.checked })); clearSaveFeedback(); }} /><span><strong>Find me by {({ display: "display name", real: "real name", email: "email address", phone: "phone number" })[key]}</strong></span></label>)}</div>;
   function updateEntryRule(id: string, rule: CrewVisibilityRule | null) {
     clearSaveFeedback();
     setEntryRules((current) => {
@@ -373,12 +374,12 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
       {!available ? <p role="alert" className={styles.unavailable}>Sharing settings are temporarily unavailable. Nothing has been changed.</p> : null}
 
       {(!embedded || section === "privacy") && section !== "groups" ? <section id="crew-privacy" className={styles.ticket} aria-labelledby="discover-title">
-        <div className={styles.sectionHead}><span className={styles.step}>01</span><div><h2 id="discover-title">Can people find me?</h2><p>Choose how other members can find you. These are on by default. Search never displays your email or phone number, or shares your picks or wallet.</p></div></div>
+        <div className={styles.sectionHead}><span className={styles.step}>01</span><div><h2 id="discover-title">Can people find me?</h2><p>These are on by default. Email and phone matches require the full address or number. Search never shows those details, your picks, or your wallet.</p></div></div>
         {discoveryFields}
       </section> : null}
 
-      {section !== "groups" ? <section className={styles.ticket} aria-labelledby="default-title">
-        <div className={styles.sectionHead}><span className={styles.step}>02</span><div><h2 id="default-title">Who sees my shared picks by default?</h2><p>This applies to picks you share unless you make a different choice for an individual pick below. Nobody outside your connected Crew can see them.</p></div></div>
+      {section !== "groups" ? <section className={`${styles.ticket} ${styles.defaultAudience}`} aria-labelledby="default-title">
+        <div className={styles.sectionHead}><span className={styles.step}>02</span><div><h2 id="default-title">Who sees my shared picks by default?</h2><p>Shared picks use this audience unless you change it for an individual pick. Only connected Crew members can see shared picks.</p></div></div>
         <div className={styles.audienceGrid} role="radiogroup" aria-label="Default pick audience">
           {(["everyone", "people", "groups"] as const).map((audience) => <label key={audience} className={styles.audienceOption} data-selected={defaultRule.audience === audience}>
             <input type="radio" name="default-audience" disabled={privacyDisabled} checked={defaultRule.audience === audience} onChange={() => { setDefaultRule(withAudience(defaultRule, audience)); clearSaveFeedback(); }} />
@@ -387,6 +388,19 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
           </label>)}
         </div>
         <AudienceTargets rule={defaultRule} onChange={(rule) => { setDefaultRule(rule); clearSaveFeedback(); }} members={members} groups={server.groups} prefix="default" disabled={privacyDisabled} />
+      </section> : null}
+
+      {section !== "groups" ? <section className={styles.ticket} aria-label="Save Crew settings">
+        {embedded && section === "all" ? discoveryFields : null}
+        <div className={styles.saveRow}>
+          <p>Changes take effect when you save. Removing someone from your Crew ends their access immediately.</p>
+          <div className={styles.saveActions}>
+            {!embedded ? <Link href="/account/crew#crew-intro">Back to Your Crew</Link> : null}
+            <button ref={saveButton} type="button" disabled={privacyDisabled} onClick={save}>{pending ? "Saving…" : "OK · Save to my profile"}</button>
+          </div>
+        </div>
+        <p role="status" className={pending ? styles.saving : saved && message ? styles.success : undefined}>{pending ? "Privacy settings are temporarily locked while this save finishes." : saved ? message : null}</p>
+        {!pending && !saved && message ? <p role="alert" className={styles.error}>{message}</p> : null}
       </section> : null}
 
       {section !== "privacy" ? <section id="crew-groups" className={styles.ticket} aria-labelledby="groups-title">
@@ -422,12 +436,16 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
         </div>
       </section> : null}
 
-      {(!embedded || section === "privacy") && section !== "groups" ? <section className={styles.ticket} aria-labelledby="picks-title">
-        <div className={styles.sectionHead}><span className={styles.step}>04</span><div><h2 id="picks-title">Choose who sees what</h2><p>Each pick can use your default, selected people, or one or more of your groups. Only picks you explicitly share appear here.</p></div></div>
+      {(!embedded || section === "privacy") && section !== "groups" ? <details className={`${styles.ticket} ${styles.pickDisclosure}`}>
+        <summary className={styles.pickSummary}>
+          <span>Choose who sees what</span>
+          <span className={styles.pickCount}>{sharedPicks.length} shared {sharedPicks.length === 1 ? "pick" : "picks"}</span>
+        </summary>
+        <p className={styles.pickHint}>Choose a different audience for any pick you’ve shared.</p>
         {sharedPicks.length ? <div className={styles.pickGrid}>{sharedPicks.map((pick) => {
           const rule = entryRules[pick.id];
           return <div className={styles.pickCard} key={pick.id}>
-            <div className={styles.pickTitle}>{pick.image ? <div className={styles.pickImage}><Image src={pick.image} alt="" fill sizes="64px" className="object-contain" /></div> : null}<div><strong>{pick.title}</strong><small>{pick.retailer}</small></div></div>
+            <div className={styles.pickTitle}>{pick.image ? <div className={styles.pickImage}><Image src={pick.image} alt="" fill sizes="48px" className="object-contain" /></div> : null}<div><strong>{pick.title}</strong><small>{pick.retailer}</small></div></div>
             <label className={styles.pickAudience}>Who can see this pick?
               <select value={rule?.audience ?? "default"} disabled={privacyDisabled} onChange={(event) => { const audience = event.target.value as CrewAudience | "default"; updateEntryRule(pick.id, audience === "default" ? null : { audience, memberIds: rule?.memberIds ?? [], groupIds: rule?.groupIds ?? [] }); }}>
                 <option value="default">Use my default</option><option value="everyone">Everyone in my Crew</option><option value="people">Only selected people</option><option value="groups">Only selected groups</option>
@@ -435,15 +453,12 @@ export function CrewDisplaySettings({ ownerId, available, initialDiscoverable, i
             </label>
             {rule ? <AudienceTargets rule={rule} onChange={(next) => updateEntryRule(pick.id, next)} members={members} groups={server.groups} prefix={`pick-${pick.id}`} disabled={privacyDisabled} /> : null}
           </div>;
-        })}</div> : <p className={styles.emptyTargets}>You have no shared picks yet. <Link href="/account/crew?tab=picks#sharing">Choose picks to share</Link> first; they will use the default audience above.</p>}
-      </section> : null}
-
-      {section !== "groups" ? <section className={styles.ticket} aria-label="Save Crew settings">
-        {embedded && section === "all" ? discoveryFields : null}
-        <div className={styles.saveRow}><div><h2>Ready to save?</h2><p>Changes take effect when you save to your profile. Removing someone from your Crew ends their access immediately.</p></div><div className={styles.saveActions}>{!embedded ? <Link href="/account/crew#crew-intro">Back to Your Crew</Link> : null}<button type="button" disabled={privacyDisabled} onClick={save}>{pending ? "Saving…" : "OK · Save to my profile"}</button></div></div>
-        <p role="status" className={pending ? styles.saving : saved && message ? styles.success : undefined}>{pending ? "Privacy settings are temporarily locked while this save finishes." : saved ? message : null}</p>
-        {!pending && !saved && message ? <p role="alert" className={styles.error}>{message}</p> : null}
-      </section> : null}
+        })}</div> : <p className={styles.emptyTargets}>You have no shared picks yet. <Link href="/account/crew?tab=picks#sharing">Choose picks to share</Link> to use your default audience.</p>}
+        <button className={styles.backToSave} type="button" disabled={privacyDisabled} onClick={() => {
+          saveButton.current?.focus({ preventScroll: true });
+          saveButton.current?.scrollIntoView?.({ block: "start" });
+        }}>↑ Back to Save</button>
+      </details> : null}
     </div>
   </div>;
 }

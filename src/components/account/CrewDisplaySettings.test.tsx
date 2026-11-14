@@ -40,6 +40,38 @@ test("cleanup's unchanged empty audiences do not block a privacy-only save", asy
   expect(Object.keys(saveCrewDisplaySettings.mock.calls[0][0].entryRules)).toHaveLength(0);
 });
 
+test("Crew Privacy keeps the save button before the collapsed pick editor and saves both edits together", async () => {
+  saveCrewDisplaySettings.mockResolvedValue({ ok: true, message: "Saved" });
+  render(<CrewDisplaySettings
+    available embedded section="privacy" initialDiscoverable={false}
+    initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }}
+    initialGroups={[]} initialEntryRules={{}} members={[]}
+    sharedPicks={[{ id: pick, title: "Switch", retailer: "Best Buy", image: null }]}
+  />);
+
+  const save = screen.getByRole("button", { name: "OK · Save to my profile" });
+  const disclosure = screen.getByText("Choose who sees what").closest("details");
+  expect(disclosure?.open).toBe(false);
+  expect(disclosure?.textContent).toContain("1 shared pick");
+  expect(save.compareDocumentPosition(disclosure!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
+  fireEvent.click(screen.getByLabelText(/Find me by display name/i));
+  fireEvent.click(screen.getByText("Choose who sees what").closest("summary")!);
+  expect(disclosure?.open).toBe(true);
+  fireEvent.change(screen.getByRole("combobox", { name: "Who can see this pick?" }), { target: { value: "everyone" } });
+  fireEvent.click(screen.getByRole("button", { name: /Back to Save/ }));
+  expect(document.activeElement).toBe(save);
+  expect(saveCrewDisplaySettings).not.toHaveBeenCalled();
+
+  fireEvent.click(save);
+  await screen.findByText("Saved");
+  expect(saveCrewDisplaySettings).toHaveBeenCalledOnce();
+  expect(saveCrewDisplaySettings).toHaveBeenCalledWith(expect.objectContaining({
+    discoverable: true,
+    entryRules: { [pick]: { audience: "everyone", memberIds: [], groupIds: [] } },
+  }));
+});
+
 test("a newly chosen empty audience still needs a deliberate selection", () => {
   render(<CrewDisplaySettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
   fireEvent.click(screen.getByRole("radio", { name: /Only selected groups/ }));
@@ -102,7 +134,8 @@ test("a group draft stays open through another group's update and warns on a sam
 test("account settings framing keeps every existing sharing control available", () => {
   render(<CrewDisplaySettings withinAccountSettings available initialDiscoverable={false} initialDefaultRule={{ audience: "everyone", memberIds: [], groupIds: [] }} initialGroups={[]} initialEntryRules={{}} members={[]} sharedPicks={[]} />);
   expect(screen.getByRole("heading", { level: 2, name: "How to display my picks" })).toBeTruthy();
-  for (const name of ["Can people find me?", "Who sees my shared picks by default?", "Make your own groups", "Choose who sees what"]) {
+  expect(screen.getByText("Choose who sees what").closest("details")).toHaveProperty("open", false);
+  for (const name of ["Can people find me?", "Who sees my shared picks by default?", "Make your own groups"]) {
     expect(screen.getByRole("heading", { name })).toBeTruthy();
   }
   expect(screen.getByRole("button", { name: "OK · Save to my profile" })).toBeTruthy();
@@ -131,6 +164,7 @@ test("creates multiple named groups and assigns a shared pick to a chosen group"
   fireEvent.click(screen.getByRole("button", { name: "Remove Maya from Friends" }));
   expect(screen.getByRole("button", { name: "+ Add Maya" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "+ Add Maya" }));
+  fireEvent.click(screen.getByText("Choose who sees what").closest("summary")!);
   fireEvent.change(screen.getByLabelText("Who can see this pick?"), { target: { value: "groups" } });
   fireEvent.click(screen.getByLabelText("Family"));
   fireEvent.click(screen.getByRole("button", { name: "OK · Save to my profile" }));
