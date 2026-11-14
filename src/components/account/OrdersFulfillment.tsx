@@ -6,6 +6,7 @@ import { accountFulfillment, fulfillmentFilterLabel, fulfillmentHref, matchesFul
 import { OrderTicketGallery } from "./OrderTicketGallery";
 import { OrdersRetryButton } from "./OrdersRetryButton";
 import { SelectedOrderScroll } from "./SelectedOrderScroll";
+import { AccountSettingsLandingScroll } from "./AccountSettingsLandingScroll";
 import { readyWalletRewards, walletHistoryHref, walletRewardHref, type AccountActivity } from "@/lib/account/activity";
 import { accountRoutes } from "@/lib/account/navigation";
 import { walletTransactionHelpHref } from "@/lib/account/order-support";
@@ -28,6 +29,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
   const hasSelection = Boolean(selectedOrderNumber || selectedRewardId);
   const paymentHref = fulfillmentHref(undefined, "payment");
   const showingPayments = filter === "payment" && !hasSelection;
+  const showAllLink = filter !== "all" || hasSelection;
   const retryLabel = selectedOrderNumber ? "Try this order again"
     : selectedRewardId ? "Try this reward again"
     : filter === "exceptions" ? "Try Exceptions again"
@@ -65,7 +67,7 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
       {supportUnavailable ? <p role="alert" className={styles.warning}>We couldn’t attach this order’s transaction right now. <Link href={walletTransactionHelpHref}>Choose its transaction from wallet history</Link> to report the problem.</p> : null}
 
       {/* Use native navigation for these filter links. The route cache can append the results fragment twice. */}
-      <section className={styles.summary} aria-label="Order status filters">
+      <section id="order-status-filters" className={styles.summary} aria-label="Order status filters">
         {([
           { key: "all", label: "All", count: records.length, icon: "all" },
           { key: "processing", label: "In progress", count: processing, icon: "active" },
@@ -77,13 +79,14 @@ export function OrdersFulfillment({ state, overview, filter = "all", focusReward
       </section>
 
       <SelectedOrderScroll targetId={selectionAnchor} onlyIfRepeated={!selectedOrderNumber} />
+      {!showAllLink && !focusRewardId ? <AccountSettingsLandingScroll target="order-status-filters" landingAlias={selectionAnchor} settleAfterNavigation /> : null}
       <div id={selectionAnchor} className={styles.contentGrid}>
         <header className={styles.sectionHeading}>
           <div><p>{selectedOrderNumber ? "SELECTED ORDER" : selectedRewardId ? "SELECTED REWARD" : filter === "payment" ? "PAYMENT CONFIRMED" : filter === "processing" ? "IN PROGRESS" : filter === "fulfilled" ? "ISSUED & READY" : filter === "exceptions" ? "EXCEPTIONS" : "YOUR ORDERS & REWARDS"}</p><h2 id="your-orders-heading">Retailer gift-card fulfillment</h2></div>
-          <div className={styles.resultControls}>
-            <span role="status">{resultsLabel}{!selectionComplete ? " found so far" : ""}</span>
+          <div className={styles.resultControls} data-show-on-phone={showAllLink || !selectionComplete}>
+            <span role="status" className={selectionComplete ? styles.resultCount : undefined}>{resultsLabel}{!selectionComplete ? " found so far" : ""}</span>
             {!hasSelection ? <a href={paymentHref} className={styles.paymentFilter} aria-current={showingPayments ? "page" : undefined}>Confirmed payments</a> : null}
-            {filter !== "all" || hasSelection ? <a href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</a> : null}
+            {showAllLink ? <a href={fulfillmentHref()} className={styles.showAll}>Show all orders &amp; rewards</a> : null}
           </div>
         </header>
         <section className={styles.orders} aria-labelledby="your-orders-heading">

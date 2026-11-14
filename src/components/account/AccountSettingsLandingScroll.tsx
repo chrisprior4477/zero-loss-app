@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { accountLandingTop } from "@/lib/account/landing-position";
 
 /** Destination-owned mobile landing, regardless of which link opened settings. */
-export function AccountSettingsLandingScroll({ target, initialTarget, visitKey = target, settleAfterNavigation = false, allScreens = false }: { target: string; initialTarget?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean }) {
+export function AccountSettingsLandingScroll({ target, initialTarget, landingAlias, visitKey = target, settleAfterNavigation = false, allScreens = false }: { target: string; initialTarget?: string; landingAlias?: string; visitKey?: string; settleAfterNavigation?: boolean; allScreens?: boolean }) {
   useEffect(() => {
     let first = 0;
     let second = 0;
@@ -34,7 +34,7 @@ export function AccountSettingsLandingScroll({ target, initialTarget, visitKey =
         second = requestAnimationFrame(() => {
           if (disposed || interrupted) return;
           // Older profile shortcuts should retain the four section buttons too.
-          const id = requestedId === "profile-intro" ? "account-settings-sections" : requestedId;
+          const id = requestedId === landingAlias ? target : requestedId === "profile-intro" ? "account-settings-sections" : requestedId;
           const destination = (id && document.getElementById(id)) || document.getElementById(target);
           if (!destination) return;
           const bounds = destination.getBoundingClientRect();
@@ -106,6 +106,6 @@ export function AccountSettingsLandingScroll({ target, initialTarget, visitKey =
       document.removeEventListener("click", onAnchor, true);
       scope?.style.removeProperty("--settings-header-bottom");
     };
-  }, [target, initialTarget, visitKey, settleAfterNavigation, allScreens]);
+  }, [target, initialTarget, landingAlias, visitKey, settleAfterNavigation, allScreens]);
   return null;
 }

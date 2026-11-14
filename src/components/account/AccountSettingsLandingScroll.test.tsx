@@ -81,6 +81,20 @@ test.each([["#account-settings-sections", 508], ["#profile-intro", 508], ["#secu
   expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top, behavior: "instant" });
 });
 
+test.each(["", "#security-controls"])("normal phone arrivals land on the filters from a plain or aliased link (%s)", hash => {
+  const { scrollTo, flush } = setup({ hash, path: "/account/orders" });
+  render(<AccountSettingsLandingScroll target="account-settings-sections" landingAlias="security-controls" />);
+  flush();
+  expect(scrollTo).toHaveBeenCalledExactlyOnceWith({ top: 508, behavior: "instant" });
+});
+
+test("the phone landing override leaves tablet and desktop scrolling to the browser", () => {
+  const { scrollTo, flush } = setup({ mobile: false, hash: "#security-controls" });
+  render(<AccountSettingsLandingScroll target="account-settings-sections" landingAlias="security-controls" />);
+  flush();
+  expect(scrollTo).not.toHaveBeenCalled();
+});
+
 test("a same-page click reveals a deeper control and repeated clicks still work", () => {
   const { scrollTo, flush } = setup();
   render(<AccountSettingsLandingScroll target="account-settings-intro" />); flush();

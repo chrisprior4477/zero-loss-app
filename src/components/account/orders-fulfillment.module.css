@@ -144,6 +144,10 @@
 .footerNote { margin-top: 25px; color: #95bdd8; font-size: 10px; font-weight: 800; letter-spacing: .2em; text-align: center; }
 .page a:focus-visible, .page button:focus-visible { outline: 3px solid #075fce; outline-offset: -4px; }
 
+@media (max-width: 767px) {
+  .resultControls[data-show-on-phone="false"], .resultCount, .paymentFilter { display: none; }
+}
+
 @media (max-width: 1180px) {
 
   .orderCard { grid-template-columns: minmax(110px, 31%) minmax(0, 1fr); }
