@@ -1,7 +1,5 @@
 "use client";
 
-import popupStyles from "@/components/layout/responsive-popup.module.css";
-
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -78,15 +76,17 @@ export function DeleteAllFundsButton({ value }: { value: string }) {
       {notice && balanceCents === null ? <span className={styles.notice} role="status">{notice}</span> : null}
     </div>
     {balanceCents !== null && typeof document !== "undefined" ? createPortal(
-      <dialog ref={dialogRef} className={`${styles.dialog} ${popupStyles.dialog}`} onCancel={event => { event.preventDefault(); if (!pending) closeDialog(); }} aria-labelledby="demo-balance-clear-title" aria-describedby="demo-balance-clear-description">
-        <h2 id="demo-balance-clear-title">Delete demo funds?</h2>
-        <p id="demo-balance-clear-description">This will clear <strong>{formatUsdFromCents(balanceCents)}</strong> from your demo Playable Balance. It will not delete your entries, gift cards, rewards, or wallet history. This does not charge or refund a card.</p>
-        <p className={styles.caution}>Funds added or returned after this reset will appear in your wallet normally.</p>
-        {notice ? <p role="alert" className={styles.error}>{notice}</p> : null}
-        <div className={styles.actions}>
-          <button type="button" onClick={closeDialog} disabled={pending} className={styles.cancel}>{uncertain ? "Close" : "Cancel"}</button>
-          {uncertain ? <button type="button" onClick={checkBalance} disabled={pending} className={styles.confirm}>{pending ? "Checking…" : "Check wallet balance"}</button>
-            : <button type="button" onClick={confirmClear} disabled={pending} className={styles.confirm}>{pending ? "Clearing…" : "Clear demo funds"}</button>}
+      <dialog ref={dialogRef} className={styles.dialog} onCancel={event => { event.preventDefault(); if (!pending) closeDialog(); }} aria-labelledby="demo-balance-clear-title" aria-describedby="demo-balance-clear-description">
+        <div className={styles.ticket}>
+          <h2 id="demo-balance-clear-title">Delete demo funds?</h2>
+          <p id="demo-balance-clear-description">This will clear <strong>{formatUsdFromCents(balanceCents)}</strong> from your demo Playable Balance. It will not delete your entries, gift cards, rewards, or wallet history. This does not charge or refund a card.</p>
+          <p className={styles.caution}>Funds added or returned after this reset will appear in your wallet normally.</p>
+          {notice ? <p role="alert" className={styles.error}>{notice}</p> : null}
+          <div className={styles.actions}>
+            <button type="button" onClick={closeDialog} disabled={pending} className={styles.cancel}>{uncertain ? "Close" : "Cancel"}</button>
+            {uncertain ? <button type="button" onClick={checkBalance} disabled={pending} className={styles.confirm}>{pending ? "Checking…" : "Check wallet balance"}</button>
+              : <button type="button" onClick={confirmClear} disabled={pending} className={styles.confirm}>{pending ? "Clearing…" : "Clear demo funds"}</button>}
+          </div>
         </div>
       </dialog>, document.body) : null}
   </>;
